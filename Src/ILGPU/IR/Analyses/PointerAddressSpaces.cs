@@ -3,7 +3,7 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: AddressSpaces.cs
+// File: PointerAddressSpaces.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
@@ -11,19 +11,39 @@
 
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Analyses
 {
     /// <summary>
     /// An analysis to determine safe address-space information for all values.
     /// </summary>
-    public sealed class PointerAddressSpaces
+    public class PointerAddressSpaces :
+        GlobalFixPointAnalysis<PointerAddressSpaces.AddressSpaceInfo, Forwards>
     {
         #region Nested Types
+
+        /// <summary>
+        /// The analysis flags.
+        /// </summary>
+        [Flags]
+        public enum AnalysisFlags : int
+        {
+            /// <summary>
+            /// Performs a conservative analysis.
+            /// </summary>
+            None = 0 << 0,
+
+            /// <summary>
+            /// Ignores generic address-space types during the analysis.
+            /// </summary>
+            IgnoreGenericAddressSpace = 1 << 0,
+        }
 
         /// <summary>
         /// Represents different address spaces that can coexist via flags.
@@ -221,6 +241,15 @@ namespace ILGPU.IR.Analyses
             /// <returns>The hash code of this instance.</returns>
             public override readonly int GetHashCode() => (int)Flags;
 
+            /// <summary>
+            /// Returns the string representation of this instance.
+            /// </summary>
+            /// <returns>The string representation of this instance.</returns>
+            public override readonly string ToString() =>
+                Flags == AddressSpaceFlags.None
+                ? "<None>"
+                : UnifiedAddressSpace.ToString();
+
             #endregion
 
             #region Operators
@@ -266,59 +295,46 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
-        /// Models the internal address-space analysis.
+        /// An implementation of an <see cref="IAnalysisValueSourceContext{T}"/> that
+        /// provides initial <see cref="AddressSpaceInfo"/> information for each
+        /// parameter.
         /// </summary>
-        private sealed class AnalysisImplementation :
-            GlobalFixPointAnalysis<AddressSpaceInfo, Forwards>
+        public readonly struct InitialParameterValueContext :
+            IAnalysisValueSourceContext<AddressSpaceInfo>
         {
             /// <summary>
-            /// Constructs a new analysis implementation.
+            /// Constructs a new parameter value context.
             /// </summary>
-            /// <param name="globalAddressSpace">
-            /// The global address space for all input parameters.
+            /// <param name="addressSpace">
+            /// The target address space to use for each parameter.
             /// </param>
-            public AnalysisImplementation(MemoryAddressSpace globalAddressSpace)
-                : base(
-                      defaultValue: default,
-                      initialValue: globalAddressSpace)
-            { }
+            public InitialParameterValueContext(MemoryAddressSpace addressSpace)
+            {
+                AddressSpace = addressSpace;
+            }
 
             /// <summary>
-            /// Returns initial and address space information.
+            /// Returns the target address space to use for each parameter.
             /// </summary>
-            /// <param name="node">The IR node.</param>
-            /// <returns>The initial address space information.</returns>
-            private static AddressSpaceInfo GetInitialSpace(Value node) =>
-                node.Type is IAddressSpaceType addressSpaceType
-                ? addressSpaceType.AddressSpace
-                : new AddressSpaceInfo();
+            public MemoryAddressSpace AddressSpace { get; }
 
             /// <summary>
-            /// Creates initial analysis data.
+            /// Returns the initial <see cref="AddressSpaceInfo"/> for the given value.
             /// </summary>
-            protected override AnalysisValue<AddressSpaceInfo> CreateData(Value node) =>
-                Create(GetInitialSpace(node), node.Type);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private AddressSpaceInfo GetInitialAddressSpace(Value value) =>
+                value is Parameter parameter &&
+                parameter.Type.HasFlags(TypeFlags.AddressSpaceDependent)
+                ? AddressSpace
+                : default(AddressSpaceInfo);
 
             /// <summary>
-            /// Returns the unified address-space flags.
+            /// Returns no address-space information in the case of default value,
+            /// detailed address-space information based on <see cref="AddressSpace"/>
+            /// in the case of a parameter.
             /// </summary>
-            protected override AddressSpaceInfo Merge(
-                AddressSpaceInfo first,
-                AddressSpaceInfo second) =>
-                new AddressSpaceInfo(first.Flags | second.Flags);
-
-            /// <summary>
-            /// Returns no analysis value.
-            /// </summary>
-            protected override AnalysisValue<AddressSpaceInfo>? TryMerge<TContext>(
-                Value value,
-                TContext context) => null;
-
-            protected override AnalysisValue<AddressSpaceInfo>?
-                TryProvide(TypeNode typeNode) =>
-                typeNode is IAddressSpaceType spaceType
-                ? Create(spaceType.AddressSpace, typeNode)
-                : default;
+            public readonly AnalysisValue<AddressSpaceInfo> this[Value value] =>
+                AnalysisValue.Create(GetInitialAddressSpace(value), value.Type);
         }
 
         #endregion
@@ -326,38 +342,32 @@ namespace ILGPU.IR.Analyses
         #region Static
 
         /// <summary>
-        /// Creates a new address space analysis.
+        /// Creates a new pointer analysis instance using the default analysis flags.
         /// </summary>
-        /// <param name="rootMethod">The root (entry) method.</param>
-        /// <param name="globalAddressSpace">
-        /// The initial address space information of all pointers and views of the root
-        /// method.
-        /// </param>
-        public static PointerAddressSpaces Create(
-            Method rootMethod,
-            MemoryAddressSpace globalAddressSpace) =>
-            new PointerAddressSpaces(rootMethod, globalAddressSpace);
+        /// <returns>The created analysis instance.</returns>
+        public static PointerAddressSpaces Create() =>
+            Create(AnalysisFlags.None);
+
+        /// <summary>
+        /// Creates a new pointer analysis instance.
+        /// </summary>
+        /// <param name="flags">The analysis flags.</param>
+        /// <returns>The created analysis instance.</returns>
+        public static PointerAddressSpaces Create(AnalysisFlags flags) =>
+            new PointerAddressSpaces(flags);
 
         #endregion
 
         #region Instance
 
         /// <summary>
-        /// Stores a method value-address-space mapping.
+        /// Constructs a new analysis implementation.
         /// </summary>
-        private readonly Dictionary<
-            Method,
-            AnalysisValueMapping<AddressSpaceInfo>> addressSpaces;
-
-        /// <summary>
-        /// Constructs a new address-spaces analysis.
-        /// </summary>
-        private PointerAddressSpaces(
-            Method rootMethod,
-            MemoryAddressSpace globalAddressSpace)
+        /// <param name="flags">The analysis flags.</param>
+        protected PointerAddressSpaces(AnalysisFlags flags)
+            : base(defaultValue: default)
         {
-            var impl = new AnalysisImplementation(globalAddressSpace);
-            addressSpaces = impl.AnalyzeGlobal(rootMethod);
+            Flags = flags;
         }
 
         #endregion
@@ -365,15 +375,68 @@ namespace ILGPU.IR.Analyses
         #region Properties
 
         /// <summary>
-        /// Returns address-space information for the given value.
+        /// Returns the current analysis flags.
         /// </summary>
-        /// <param name="value">The value to get the information for.</param>
-        /// <returns>Address-space information.</returns>
-        public AddressSpaceInfo this[Value value] =>
-            addressSpaces.TryGetValue(value.Method, out var mapping) &&
-            mapping.TryGetValue(value, out var info)
-            ? info.Data
-            : default;
+        public AnalysisFlags Flags { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Returns true if the analysis has the given flags.
+        /// </summary>
+        /// <param name="flags">The flags.</param>
+        /// <returns>True, if the analysis has the given flags.</returns>
+        protected bool HasFlags(AnalysisFlags flags) =>
+            (Flags & flags) != AnalysisFlags.None;
+
+        /// <summary>
+        /// Returns initial and address space information.
+        /// </summary>
+        /// <param name="node">The IR node.</param>
+        /// <returns>The initial address space information.</returns>
+        protected AddressSpaceInfo GetInitialInfo(Value node)
+        {
+            if (!(node.Type is IAddressSpaceType type))
+                return default;
+            return
+                type.AddressSpace != MemoryAddressSpace.Generic ||
+                !HasFlags(AnalysisFlags.IgnoreGenericAddressSpace)
+                ? type.AddressSpace
+                : default(AddressSpaceInfo);
+        }
+
+        /// <summary>
+        /// Creates initial analysis data.
+        /// </summary>
+        protected override AnalysisValue<AddressSpaceInfo> CreateData(Value node) =>
+            CreateValue(GetInitialInfo(node), node.Type);
+
+        /// <summary>
+        /// Returns the unified address-space flags.
+        /// </summary>
+        protected override AddressSpaceInfo Merge(
+            AddressSpaceInfo first,
+            AddressSpaceInfo second) =>
+            new AddressSpaceInfo(first.Flags | second.Flags);
+
+        /// <summary>
+        /// Returns no analysis value.
+        /// </summary>
+        protected override AnalysisValue<AddressSpaceInfo>? TryMerge<TContext>(
+            Value value,
+            TContext context) => null;
+
+        /// <summary>
+        /// Tries to convert the given type into an <see cref="IAddressSpaceType"/>
+        /// and returns the determined address space.
+        /// </summary>
+        protected override AnalysisValue<AddressSpaceInfo>?
+            TryProvide(TypeNode typeNode) =>
+            typeNode is IAddressSpaceType spaceType
+            ? AnalysisValue.Create<AddressSpaceInfo>(spaceType.AddressSpace, typeNode)
+            : default(AnalysisValue<AddressSpaceInfo>?);
 
         #endregion
     }
