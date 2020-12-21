@@ -9,10 +9,9 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Types;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Analyses
@@ -21,7 +20,7 @@ namespace ILGPU.IR.Analyses
     /// An abstract analysis value context.
     /// </summary>
     /// <typeparam name="T">The data type.</typeparam>
-    public interface IAnalysisValueContext<T>
+    public interface IAnalysisValueSourceContext<T>
         where T : IEquatable<T>
     {
         /// <summary>
@@ -30,6 +29,51 @@ namespace ILGPU.IR.Analyses
         /// <param name="value">The source value to lookup.</param>
         /// <returns>The parent value.</returns>
         AnalysisValue<T> this[Value value] { get; }
+    }
+
+    /// <summary>
+    /// A default implementation of an <see cref="IAnalysisValueSourceContext{T}"/>
+    /// that always returns a specific constant value.
+    /// </summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    public readonly struct ConstAnalysisValueSourceContext<T> :
+        IAnalysisValueSourceContext<T>
+        where T : IEquatable<T>
+    {
+        /// <summary>
+        /// Constructs a new source context.
+        /// </summary>
+        /// <param name="value">The constant value to use for all nodes.</param>
+        public ConstAnalysisValueSourceContext(T value)
+        {
+            Value = value;
+        }
+
+        /// <summary>
+        /// Returns the constant value to use for all nodes.
+        /// </summary>
+        public T Value { get; }
+
+        /// <summary>
+        /// Returns the value of <see cref="Value"/> for all input nodes.
+        /// </summary>
+        public readonly AnalysisValue<T> this[Value value] =>
+            AnalysisValue.Create(Value, value.Type);
+    }
+
+    /// <summary>
+    /// An abstract analysis value context.
+    /// </summary>
+    /// <typeparam name="T">The data type.</typeparam>
+    public interface IAnalysisValueContext<T> : IAnalysisValueSourceContext<T>
+        where T : IEquatable<T>
+    {
+        /// <summary>
+        /// Returns the analysis value associated with the given the method.
+        /// </summary>
+        /// <param name="method">The source method to lookup.</param>
+        /// <returns>The parent value.</returns>
+        AnalysisValue<T> this[Method method] { get; }
     }
 
     /// <summary>
@@ -143,7 +187,7 @@ namespace ILGPU.IR.Analyses
         /// Returns the hash code of this value.
         /// </summary>
         /// <returns>The hash code of this value.</returns>
-        public override int GetHashCode() => Data.GetHashCode() ^ NumFields;
+        public readonly override int GetHashCode() => Data.GetHashCode() ^ NumFields;
 
         /// <summary>
         /// Returns the string representation of this value.
@@ -184,18 +228,29 @@ namespace ILGPU.IR.Analyses
     }
 
     /// <summary>
-    /// Helper methods for the structure <see cref="AnalysisValueMapping{T}"/>.
+    /// Helper methods for the structure <see cref="AnalysisValue{T}"/>.
     /// </summary>
-    public static class AnalysisValueMapping
+    public static class AnalysisValue
     {
         /// <summary>
-        /// Creates a new analysis mapping instance.
+        /// Creates a new analysis value for the given type node.
         /// </summary>
-        /// <typeparam name="T">The target mapping type.</typeparam>
-        /// <returns>The initialized analysis mapping instance.</returns>
-        public static AnalysisValueMapping<T> Create<T>()
-            where T : struct, IEquatable<T> =>
-            new AnalysisValueMapping<T>(new Dictionary<Value, AnalysisValue<T>>());
+        /// <param name="data">The data value.</param>
+        /// <param name="type">The type node.</param>
+        /// <returns>The created analysis value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static AnalysisValue<T> Create<T>(T data, TypeNode type)
+            where T : IEquatable<T>
+        {
+            if (type is StructureType structureType)
+            {
+                var childData = new T[structureType.NumFields];
+                for (int i = 0, e = childData.Length; i < e; ++i)
+                    childData[i] = data;
+                return new AnalysisValue<T>(data, childData);
+            }
+            return new AnalysisValue<T>(data);
+        }
     }
 
     /// <summary>
@@ -203,13 +258,8 @@ namespace ILGPU.IR.Analyses
     /// specialized using the user-defined type <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The target mapping type.</typeparam>
-    [SuppressMessage(
-        "Naming",
-        "CA1710:Identifiers should have correct suffix",
-        Justification = "The collection ends in mapping")]
-    public readonly struct AnalysisValueMapping<T> :
-        IReadOnlyDictionary<Value, AnalysisValue<T>>
-        where T : struct, IEquatable<T>
+    public readonly struct AnalysisValueMapping<T>
+        where T : IEquatable<T>
     {
         #region Instance
 
@@ -239,19 +289,10 @@ namespace ILGPU.IR.Analyses
             internal set => mapping[key] = value;
         }
 
-        /// <summary cref="IReadOnlyDictionary{TKey, TValue}.Keys" />
-        IEnumerable<Value> IReadOnlyDictionary<Value, AnalysisValue<T>>.Keys =>
-            mapping.Keys;
-
-        /// <summary cref="IReadOnlyDictionary{TKey, TValue}.Values" />
-        IEnumerable<AnalysisValue<T>>
-            IReadOnlyDictionary<Value, AnalysisValue<T>>.Values =>
-            mapping.Values;
-
         /// <summary>
         /// Returns the number of elements in this mapping.
         /// </summary>
-        public readonly int Count => mapping.Count;
+        public readonly int Count => mapping?.Count ?? 0;
 
         #endregion
 
@@ -285,14 +326,90 @@ namespace ILGPU.IR.Analyses
         public readonly Dictionary<Value, AnalysisValue<T>>.Enumerator GetEnumerator() =>
             mapping.GetEnumerator();
 
-        /// <summary cref="IEnumerable{T}.GetEnumerator" />
-        IEnumerator<KeyValuePair<Value, AnalysisValue<T>>>
-            IEnumerable<KeyValuePair<Value, AnalysisValue<T>>>.GetEnumerator() =>
-            GetEnumerator();
+        #endregion
+    }
 
-        /// <summary cref="IEnumerable.GetEnumerator" />
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    /// <summary>
+    /// Maps <see cref="Method"/> instances to <see cref="AnalysisValue{T}"/> instances
+    /// specialized using the user-defined type <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The target mapping type.</typeparam>
+    public readonly struct AnalysisReturnValueMapping<T>
+        where T : IEquatable<T>
+    {
+        #region Instance
+
+        private readonly Dictionary<Method, AnalysisValue<T>> mapping;
+
+        /// <summary>
+        /// Constructs a new value mapping using the given dictionary.
+        /// </summary>
+        /// <param name="data">The underlying dictionary to use.</param>
+        public AnalysisReturnValueMapping(Dictionary<Method, AnalysisValue<T>> data)
+        {
+            mapping = data ?? throw new ArgumentNullException(nameof(data));
+        }
 
         #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Lookups the given key in this map.
+        /// </summary>
+        /// <param name="key">The key to lookup.</param>
+        /// <returns>The resolved analysis value.</returns>
+        public AnalysisValue<T> this[Method key]
+        {
+            readonly get => mapping[key];
+            internal set => mapping[key] = value;
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Tries to get map the given key to a stored value.
+        /// </summary>
+        /// <param name="key">The key to lookup.</param>
+        /// <param name="value">The resolved value (if any).</param>
+        /// <returns>True, if the given key could be found.</returns>
+        public readonly bool TryGetValue(Method key, out AnalysisValue<T> value) =>
+            mapping.TryGetValue(key, out value);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Helper methods for the structure <see cref="AnalysisValueMapping{T}"/>.
+    /// </summary>
+    public static class AnalysisValueMapping
+    {
+        /// <summary>
+        /// Creates a new analysis mapping instance.
+        /// </summary>
+        /// <typeparam name="T">The target mapping type.</typeparam>
+        /// <returns>The initialized analysis mapping instance.</returns>
+        public static AnalysisValueMapping<T> Create<T>()
+            where T : struct, IEquatable<T> =>
+            new AnalysisValueMapping<T>(
+                new Dictionary<Value, AnalysisValue<T>>());
+    }
+
+    /// <summary>
+    /// Helper methods for the structure <see cref="AnalysisReturnValueMapping{T}"/>.
+    /// </summary>
+    public static class AnalysisReturnValueMapping
+    {
+        /// <summary>
+        /// Creates a new analysis return mapping instance.
+        /// </summary>
+        /// <typeparam name="T">The target mapping type.</typeparam>
+        /// <returns>The initialized analysis mapping instance.</returns>
+        public static AnalysisReturnValueMapping<T> Create<T>()
+            where T : struct, IEquatable<T> =>
+            new AnalysisReturnValueMapping<T>(
+                new Dictionary<Method, AnalysisValue<T>>());
     }
 }
