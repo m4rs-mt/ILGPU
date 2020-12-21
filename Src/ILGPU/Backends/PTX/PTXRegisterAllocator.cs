@@ -215,30 +215,14 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Allocates a platform-specific register for the given node and
-        /// returns the resulting PTX type for the current platform.
-        /// </summary>
-        /// <param name="node">The node to allocate.</param>
-        /// <param name="description">The resolved register description.</param>
-        /// <returns>The allocated register.</returns>
-        public HardwareRegister AllocatePlatformRegister(
-            Value node,
-            out RegisterDescription description)
-        {
-            var register = AllocatePlatformRegister(out description);
-            Bind(node, register);
-            return register;
-        }
-
-        /// <summary>
         /// Resolves a register description for the basic value type.
         /// </summary>
         /// <param name="basicValueType">The basic value type to resolve.</param>
         /// <returns>The resolved register description.</returns>
-        protected static RegisterDescription ResolveRegisterDescription(
+        protected RegisterDescription ResolveRegisterDescription(
             BasicValueType basicValueType) =>
-            new RegisterDescription(
-                basicValueType,
+            RegisterDescription.Create(
+                TypeContext.GetPrimitiveType(basicValueType),
                 GetRegisterKind(basicValueType));
 
         /// <summary>
@@ -249,7 +233,12 @@ namespace ILGPU.Backends.PTX
         protected RegisterDescription ResolveParameterRegisterDescription(TypeNode type)
         {
             if (type.IsPointerType || type.IsStringType)
-                return ResolveRegisterDescription(Backend.PointerBasicValueType);
+            {
+                return RegisterDescription.Create(
+                    type,
+                    Backend.PointerBasicValueType,
+                    GetRegisterKind(Backend.PointerBasicValueType));
+            }
             // A return call cannot handle some types -> we have to
             // perform a PTX-specific type remapping
             var remapped = ResolveParameterBasicValueType(type.BasicValueType);
@@ -262,7 +251,10 @@ namespace ILGPU.Backends.PTX
         protected sealed override RegisterDescription ResolveRegisterDescription(
             TypeNode type) =>
             type.IsPointerType || type.IsStringType
-            ? ResolveRegisterDescription(Backend.PointerBasicValueType)
+            ? RegisterDescription.Create(
+                type,
+                Backend.PointerBasicValueType,
+                GetRegisterKind(Backend.PointerBasicValueType))
             : ResolveRegisterDescription(type.BasicValueType);
 
         /// <summary>
@@ -280,7 +272,8 @@ namespace ILGPU.Backends.PTX
         /// <returns>The allocated primitive 32bit integer register.</returns>
         public HardwareRegister AllocateInt32Register() =>
             AllocateRegister(
-                new RegisterDescription(BasicValueType.Int32, PTXRegisterKind.Int32));
+                BasicValueType.Int32,
+                PTXRegisterKind.Int32);
 
         /// <summary>
         /// Allocates a register that is compatible with the given description.
