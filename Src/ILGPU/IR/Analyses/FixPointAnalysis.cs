@@ -324,19 +324,51 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
+        /// Executes a fix point analysis working on values on the given method.
+        /// </summary>
+        /// <typeparam name="TContext">
+        /// The analysis value context to use for each parameter.
+        /// </typeparam>
+        /// <param name="method">The current method.</param>
+        /// <param name="context">The initial value context.</param>
+        /// <returns>The created analysis mapping from values to data elements.</returns>
+        public (AnalysisValue<T> ReturnValue, AnalysisValueMapping<T> Values)
+            AnalyzeMethod<TContext>(
+            Method method,
+            TContext context)
+            where TContext : IAnalysisValueSourceContext<T>
+        {
+            // Init the value mapping for each parameter.
+            var valueMapping = new Dictionary<
+                Value,
+                AnalysisValue<T>>(method.NumParameters);
+            foreach (var param in method.Parameters)
+                valueMapping[param] = context[param];
+
+            // Perform an analysis step
+            return Analyze(
+                method.Blocks,
+                new AnalysisValueMapping<T>(valueMapping),
+                AnalysisReturnValueMapping.Create<T>());
+        }
+
+        /// <summary>
         /// Executes a fix point analysis working on values.
         /// </summary>
         /// <typeparam name="TOrder">The current order.</typeparam>
         /// <typeparam name="TBlockDirection">The control-flow direction.</typeparam>
         /// <param name="blocks">The list of blocks.</param>
         /// <returns>The created analysis mapping from values to data elements.</returns>
-        public AnalysisValueMapping<T> Analyze<
+        public (AnalysisValue<T> ReturnValue, AnalysisValueMapping<T> Values) Analyze<
             TOrder,
             TBlockDirection>(
             in BasicBlockCollection<TOrder, TBlockDirection> blocks)
             where TOrder : struct, ITraversalOrder
             where TBlockDirection : struct, IControlFlowDirection =>
-            Analyze(blocks, AnalysisValueMapping.Create<T>());
+            Analyze(
+                blocks,
+                AnalysisValueMapping.Create<T>(),
+                AnalysisReturnValueMapping.Create<T>());
 
         /// <summary>
         /// Executes a fix point analysis working on values.
@@ -345,18 +377,26 @@ namespace ILGPU.IR.Analyses
         /// <typeparam name="TBlockDirection">The control-flow direction.</typeparam>
         /// <param name="blocks">The list of blocks.</param>
         /// <param name="valueMapping">The pre-defined map of input values.</param>
+        /// <param name="returnMapping">
+        /// The pre-defined map of method return values.
+        /// </param>
         /// <returns>The created analysis mapping from values to data elements.</returns>
-        public AnalysisValueMapping<T> Analyze<TOrder, TBlockDirection>(
+        public (AnalysisValue<T> ReturnValue, AnalysisValueMapping<T> Values) Analyze<
+            TOrder,
+            TBlockDirection>(
             in BasicBlockCollection<TOrder, TBlockDirection> blocks,
-            AnalysisValueMapping<T> valueMapping)
+            AnalysisValueMapping<T> valueMapping,
+            AnalysisReturnValueMapping<T> returnMapping)
             where TOrder : struct, ITraversalOrder
             where TBlockDirection : struct, IControlFlowDirection
         {
             // Setup initial data mapping
             var undefValue = blocks.Method.Context.UndefinedValue;
             valueMapping[undefValue] = CreateData(undefValue);
+            returnMapping[blocks.Method] = CreateData(blocks.Method);
             foreach (var block in blocks)
             {
+                // Register all values
                 foreach (Value value in block)
                 {
                     if (!valueMapping.ContainsKey(value))
@@ -391,7 +431,7 @@ namespace ILGPU.IR.Analyses
             while (context.TryPop(out var block))
                 ProcessBlock(block);
 
-            return valueMapping;
+            return (returnMapping[blocks.Method], valueMapping);
         }
 
         /// <summary>
