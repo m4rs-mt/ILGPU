@@ -693,6 +693,96 @@ namespace ILGPU.IR.Analyses
     { }
 
     /// <summary>
+    /// An analysis result of a global value analysis.
+    /// </summary>
+    /// <typeparam name="T">The element value type of the analysis.</typeparam>
+    /// <typeparam name="TMethodData">
+    /// The method data that has been stored for each method.
+    /// </typeparam>
+    public readonly struct GlobalAnalysisResult<T, TMethodData>
+        where T : IEquatable<T>
+    {
+        #region Static
+
+        /// <summary>
+        /// An empty result.
+        /// </summary>
+        public static readonly GlobalAnalysisResult<T, TMethodData> Empty = default;
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new analysis result.
+        /// </summary>
+        /// <param name="mapping">The method data mapping.</param>
+        /// <param name="returnMapping">The return-value mapping.</param>
+        internal GlobalAnalysisResult(
+            Dictionary<Method, TMethodData> mapping,
+            Dictionary<Method, AnalysisValue<T>> returnMapping)
+        {
+            Mapping = mapping;
+            ReturnMapping = returnMapping;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the current mapping dictionary that maps methods to their individual
+        /// analysis-data instance.
+        /// </summary>
+        private Dictionary<Method, TMethodData> Mapping { get; }
+
+        /// <summary>
+        /// Returns the current mapping dictionary that maps methods to their individual
+        /// return-value information.
+        /// </summary>
+        private Dictionary<Method, AnalysisValue<T>> ReturnMapping { get; }
+
+        /// <summary>
+        /// Returns true if this result information object is empty.
+        /// </summary>
+        public readonly bool IsEmpty => Mapping == null || Mapping.Count < 1;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Tries to get return data for the return value of the given method.
+        /// </summary>
+        /// <param name="method">The method to query information for.</param>
+        /// <param name="result">The result value (if any).</param>
+        /// <returns>True, if return data could be determined.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetReturnData(
+            Method method,
+            out AnalysisValue<T> result)
+        {
+            result = default;
+            return ReturnMapping?.TryGetValue(method, out result) ?? false;
+        }
+
+        /// <summary>
+        /// Tries to get value data for the given method.
+        /// </summary>
+        /// <param name="method">The method to query information for.</param>
+        /// <param name="result">The result data (if any).</param>
+        /// <returns>True, if return data could be determined.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetData(Method method, out TMethodData result)
+        {
+            result = default;
+            return Mapping?.TryGetValue(method, out result) ?? false;
+        }
+
+        #endregion
+    }
+
+    /// <summary>
     /// An abstract global fix point analysis to compute static invariants across
     /// different method calls.
     /// </summary>
@@ -967,7 +1057,7 @@ namespace ILGPU.IR.Analyses
         /// <returns>
         /// The created analysis mapping from methods to data elements.
         /// </returns>
-        public Dictionary<Method, TMethodData> AnalyzeGlobal(
+        public GlobalAnalysisResult<T, TMethodData> AnalyzeGlobal(
             Method rootMethod,
             ImmutableArray<AnalysisValue<T>> arguments)
         {
@@ -1024,7 +1114,96 @@ namespace ILGPU.IR.Analyses
             }
             while (context.TryPop(out current));
 
-            return result;
+            return new GlobalAnalysisResult<T, TMethodData>(result, returnMap);
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents the result of a global value analysis.
+    /// </summary>
+    /// <typeparam name="T">The value analysis type.</typeparam>
+    public readonly struct GlobalAnalysisValueResult<T>
+        where T : struct, IEquatable<T>
+    {
+        #region Static
+
+        /// <summary>
+        /// An empty value result.
+        /// </summary>
+        public static readonly GlobalAnalysisValueResult<T> Empty =
+            new GlobalAnalysisValueResult<T>(
+                GlobalAnalysisResult<T, AnalysisValueMapping<T>>.Empty);
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new wrapped analysis result.
+        /// </summary>
+        /// <param name="result"></param>
+        public GlobalAnalysisValueResult(
+            GlobalAnalysisResult<T, AnalysisValueMapping<T>> result)
+        {
+            Result = result;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Return the underlying analysis result.
+        /// </summary>
+        private GlobalAnalysisResult<T, AnalysisValueMapping<T>> Result { get; }
+
+        /// <summary>
+        /// Returns true if this result information object is empty.
+        /// </summary>
+        public readonly bool IsEmpty => Result.IsEmpty;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Tries to get return data for the return value of the given method.
+        /// </summary>
+        /// <param name="method">The method to query information for.</param>
+        /// <param name="result">The result value (if any).</param>
+        /// <returns>True, if return data could be determined.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetReturnData(
+            Method method,
+            out AnalysisValue<T> result) =>
+            Result.TryGetReturnData(method, out result);
+
+        /// <summary>
+        /// Tries to get value data for the given method.
+        /// </summary>
+        /// <param name="method">The method to query information for.</param>
+        /// <param name="result">The result data (if any).</param>
+        /// <returns>True, if return data could be determined.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetData(
+            Method method,
+            out AnalysisValueMapping<T> result) =>
+            Result.TryGetData(method, out result);
+
+        /// <summary>
+        /// Tries to get value data for the value.
+        /// </summary>
+        /// <param name="value">The value to query information for.</param>
+        /// <param name="data">The result data (if any).</param>
+        /// <returns>True, if return data could be determined.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetData(Value value, out AnalysisValue<T> data)
+        {
+            data = default;
+            return TryGetData(value.Method, out var result) &&
+                result.TryGetValue(value, out data);
         }
 
         #endregion
@@ -1108,19 +1287,41 @@ namespace ILGPU.IR.Analyses
         /// Executes a fix point analysis working on values.
         /// </summary>
         /// <param name="rootMethod">The root method.</param>
+        /// <param name="data">The initial value data for each parameter.</param>
         /// <returns>
         /// The created analysis mapping from methods to data elements.
         /// </returns>
-        public Dictionary<Method, AnalysisValueMapping<T>> AnalyzeGlobal(
-            Method rootMethod)
+        public GlobalAnalysisValueResult<T> AnalyzeGlobalMethod(
+            Method rootMethod,
+            T data) =>
+            AnalyzeGlobalMethod(
+                rootMethod,
+                new ConstAnalysisValueSourceContext<T>(data));
+
+        /// <summary>
+        /// Executes a fix point analysis working on values.
+        /// </summary>
+        /// <typeparam name="TContext">
+        /// The analysis value context to use for each parameter.
+        /// </typeparam>
+        /// <param name="rootMethod">The root method.</param>
+        /// <param name="context">The initial value context.</param>
+        /// <returns>
+        /// The created analysis mapping from methods to data elements.
+        /// </returns>
+        public GlobalAnalysisValueResult<T> AnalyzeGlobalMethod<TContext>(
+            Method rootMethod,
+            TContext context)
+            where TContext : IAnalysisValueSourceContext<T>
         {
             var parameters = ImmutableArray.CreateBuilder<AnalysisValue<T>>(
                 rootMethod.NumParameters);
 
             foreach (var param in rootMethod.Parameters)
-                parameters.Add(Create(InitialValue, param.Type));
+                parameters.Add(context[param]);
 
-            return AnalyzeGlobal(rootMethod, parameters.MoveToImmutable());
+            return new GlobalAnalysisValueResult<T>(
+                AnalyzeGlobal(rootMethod, parameters.MoveToImmutable()));
         }
 
         #endregion
