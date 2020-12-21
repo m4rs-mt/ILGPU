@@ -488,36 +488,27 @@ namespace ILGPU.IR.Analyses
         /// <param name="type">The type node.</param>
         /// <returns>The created analysis value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static AnalysisValue<T> Create(T data, TypeNode type)
-        {
-            if (type is StructureType structureType)
-            {
-                var childData = new T[structureType.NumFields];
-                for (int i = 0, e = childData.Length; i < e; ++i)
-                    childData[i] = data;
-                return new AnalysisValue<T>(data, childData);
-            }
-            return new AnalysisValue<T>(data);
-        }
+        protected static AnalysisValue<T> CreateValue(T data, TypeNode type) =>
+            AnalysisValue.Create(data, type);
 
         /// <summary>
         /// Creates an initial analysis value.
         /// </summary>
         /// <param name="type">The type node.</param>
         /// <returns>The created analysis value.</returns>
-        protected AnalysisValue<T> Create(TypeNode type)
+        protected AnalysisValue<T> CreateValue(TypeNode type)
         {
             if (type is StructureType structureType)
             {
                 var childData = new T[structureType.NumFields];
                 for (int i = 0, e = childData.Length; i < e; ++i)
-                    childData[i] = Create(structureType[i]).Data;
+                    childData[i] = CreateValue(structureType[i]).Data;
                 T data = childData[0];
                 for (int i = 1, e = childData.Length; i < e; ++i)
                     data = Merge(data, childData[i]);
                 return new AnalysisValue<T>(data, childData);
             }
-            return TryProvide(type) ?? Create(DefaultValue, type);
+            return TryProvide(type) ?? CreateValue(DefaultValue, type);
         }
 
         /// <summary>
@@ -562,7 +553,7 @@ namespace ILGPU.IR.Analyses
             var fieldSpan = getField.FieldSpan;
             if (!fieldSpan.HasSpan)
             {
-                return Create(
+                return CreateValue(
                     Merge(
                         source.Data,
                         sourceValue[fieldSpan.Index]),
@@ -679,7 +670,7 @@ namespace ILGPU.IR.Analyses
             var newData = source.Data;
             foreach (Value node in value.Nodes)
                 newData = Merge(newData, context[node].Data);
-            return Create(newData, value.Type);
+            return CreateValue(newData, value.Type);
         }
 
         #endregion
