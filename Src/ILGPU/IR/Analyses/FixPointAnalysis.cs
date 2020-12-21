@@ -108,6 +108,13 @@ namespace ILGPU.IR.Analyses
         #region Methods
 
         /// <summary>
+        /// Creates an initial data value for the method.
+        /// </summary>
+        /// <param name="method">The source IR method.</param>
+        /// <returns>The created data value.</returns>
+        protected abstract TData CreateData(Method method);
+
+        /// <summary>
         /// Creates an initial data value for the given node.
         /// </summary>
         /// <param name="node">The source IR node.</param>
@@ -248,6 +255,8 @@ namespace ILGPU.IR.Analyses
             IFixPointAnalysisContext<AnalysisValue<T>, Value>,
             IAnalysisValueContext<T>
         {
+            private readonly AnalysisReturnValueMapping<T> returnMapping;
+
             /// <summary>
             /// Returns the current value mapping.
             /// </summary>
@@ -256,15 +265,23 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Constructs a new analysis context.
             /// </summary>
+            /// <param name="parent">The parent analysis.</param>
             /// <param name="valueMapping">The parent value mapping.</param>
+            /// <param name="returnValueMapping">The parent return value mapping.</param>
             /// <param name="onStack">The internal block set.</param>
             public ValueAnalysisContext(
+                ValueFixPointAnalysis<T, TDirection> parent,
                 AnalysisValueMapping<T> valueMapping,
+                AnalysisReturnValueMapping<T> returnValueMapping,
                 BasicBlockSet onStack)
                 : base(onStack)
             {
+                Parent = parent;
+                returnMapping = returnValueMapping;
                 mapping = valueMapping;
             }
+
+            private ValueFixPointAnalysis<T, TDirection> Parent { get; }
 
             /// <summary>
             /// Returns the data of the given node.
@@ -275,6 +292,24 @@ namespace ILGPU.IR.Analyses
             {
                 get => mapping[valueNode];
                 set => mapping[valueNode] = value;
+            }
+
+            /// <summary>
+            /// Returns the analysis value associated with the given the method.
+            /// </summary>
+            /// <param name="method">The source method to lookup.</param>
+            /// <returns>The parent value.</returns>
+            public AnalysisValue<T> this[Method method]
+            {
+                get
+                {
+                    if (!returnMapping.TryGetValue(method, out var value))
+                    {
+                        value = Parent.CreateData(method);
+                        returnMapping[method] = value;
+                    }
+                    return value;
+                }
             }
         }
 
@@ -322,6 +357,14 @@ namespace ILGPU.IR.Analyses
             context[node] = newValue;
             return oldValue != newValue;
         }
+
+        /// <summary>
+        /// Creates a default analysis value based on the <see cref="DefaultValue"/>.
+        /// </summary>
+        protected override AnalysisValue<T> CreateData(Method method) =>
+            method.IsVoid
+            ? default
+            : CreateValue(DefaultValue, method.ReturnType);
 
         /// <summary>
         /// Executes a fix point analysis working on values on the given method.
@@ -402,11 +445,19 @@ namespace ILGPU.IR.Analyses
                     if (!valueMapping.ContainsKey(value))
                         valueMapping[value] = CreateData(value);
                 }
+                // Register return terminators
+                if (block.Terminator is ReturnTerminator terminator &&
+                    !valueMapping.ContainsKey(terminator))
+                {
+                    valueMapping[terminator] = CreateData(terminator);
+                }
             }
 
             // Create the analysis context and perform the analysis
             var context = new ValueAnalysisContext(
+                this,
                 valueMapping,
+                returnMapping,
                 blocks.CreateSet());
 
             // Processes a single block
@@ -416,6 +467,9 @@ namespace ILGPU.IR.Analyses
                 bool changed = false;
                 foreach (Value value in block)
                     changed |= Update(value, context);
+                // Check for a return terminator
+                if (block.Terminator is ReturnTerminator terminator)
+                    Update(terminator, context);
                 if (!changed)
                     return;
 
@@ -530,7 +584,9 @@ namespace ILGPU.IR.Analyses
                 SetField setField => SetField(source, setField, context),
                 StructureValue structureValue =>
                     StructureValue(source, structureValue, context),
-                PhiValue phiValue => PhiValue(source, phiValue, context),
+                PhiValue phi => PhiLikeValue(source, phi, phi.Nodes, context),
+                Predicate pred => PhiLikeValue(source, pred, pred.Values, context),
+                MethodCall call => MethodCall(source, call, context),
                 _ => TryMerge(value, context) ??
                     GenericValue(source, value, context),
             };
@@ -623,25 +679,30 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
-        /// Merges a <see cref="Values.PhiValue"/> into this analysis value.
+        /// Merges a <see cref="Values.PhiValue"/> or a <see cref="Values.Predicate"/>
+        /// value into this analysis value.
         /// </summary>
         /// <typeparam name="TContext">The value analysis context.</typeparam>
         /// <param name="source">The source value to merge.</param>
-        /// <param name="phi">The IR phi value to merge with.</param>
+        /// <param name="phi">The IR phi/predicate value to merge with.</param>
+        /// <param name="values">The values to merge with.</param>
         /// <param name="context">The current value context.</param>
         /// <returns>The merged analysis value.</returns>
-        protected AnalysisValue<T> PhiValue<TContext>(
+        protected AnalysisValue<T> PhiLikeValue<TContext>(
             in AnalysisValue<T> source,
-            PhiValue phi,
+            Value phi,
+            ReadOnlySpan<ValueReference> values,
             TContext context)
             where TContext : IAnalysisValueContext<T>
         {
+            phi.Assert(phi is PhiValue || phi is Predicate);
+
             if (source.NumFields < 1)
                 return GenericValue(source, phi, context);
 
             var newChildData = source.CloneChildData();
             var newData = source.Data;
-            foreach (Value node in phi.Nodes)
+            foreach (Value node in values)
             {
                 var childDataEntry = context[node];
                 for (int i = 0, e = source.NumFields; i < e; ++i)
@@ -651,6 +712,30 @@ namespace ILGPU.IR.Analyses
                 }
             }
             return new AnalysisValue<T>(newData, newChildData);
+        }
+
+        /// <summary>
+        /// Merges a <see cref="Values.MethodCall"/> into this analysis value.
+        /// </summary>
+        /// <typeparam name="TContext">The value analysis context.</typeparam>
+        /// <param name="source">The source value to merge.</param>
+        /// <param name="methodCall">The IR call value to merge with.</param>
+        /// <param name="context">The current value context.</param>
+        /// <returns>The merged analysis value.</returns>
+        protected AnalysisValue<T> MethodCall<TContext>(
+            in AnalysisValue<T> source,
+            MethodCall methodCall,
+            TContext context)
+            where TContext : IAnalysisValueContext<T>
+        {
+            var target = methodCall.Target;
+            // Check for void or opaque functions that cannot be analyzed
+            if (target.IsVoid || !target.HasImplementation)
+                return source;
+
+            var returnValue = context[target];
+            returnValue = Merge(returnValue, source);
+            return returnValue;
         }
 
         /// <summary>
@@ -1039,11 +1124,13 @@ namespace ILGPU.IR.Analyses
         /// <param name="method">The source method.</param>
         /// <param name="arguments">The call arguments.</param>
         /// <param name="valueMapping">The current value mapping.</param>
+        /// <param name="returnValueMapping">The current return value mapping.</param>
         /// <param name="context">The current analysis context.</param>
         protected abstract void UpdateMethod<TContext>(
             Method method,
             ImmutableArray<AnalysisValue<T>> arguments,
             AnalysisValueMapping<T> valueMapping,
+            AnalysisReturnValueMapping<T> returnValueMapping,
             TContext context)
             where TContext :
                 class,
@@ -1062,6 +1149,8 @@ namespace ILGPU.IR.Analyses
             ImmutableArray<AnalysisValue<T>> arguments)
         {
             var result = new Dictionary<Method, TMethodData>();
+            var returnMap = new Dictionary<Method, AnalysisValue<T>>();
+            var returnMapping = new AnalysisReturnValueMapping<T>(returnMap);
             var context = new GlobalAnalysisContext(result);
 
             var current = new GlobalAnalysisEntry<T>(rootMethod, arguments);
@@ -1084,15 +1173,17 @@ namespace ILGPU.IR.Analyses
                 }
 
                 // Perform an analysis step
-                var valueMap = Analyze(
+                var (_, valueMap) = Analyze(
                     method.Blocks,
-                    new AnalysisValueMapping<T>(valueMapping));
+                    new AnalysisValueMapping<T>(valueMapping),
+                    returnMapping);
 
                 // Update all changes
                 UpdateMethod(
                     current.Method,
                     current.Arguments,
                     valueMap,
+                    returnMapping,
                     context);
 
                 // Register all updated call sites
@@ -1233,27 +1324,13 @@ namespace ILGPU.IR.Analyses
         /// <param name="defaultValue">
         /// The default analysis value for generic IR nodes.
         /// </param>
-        /// <param name="initialValue">
-        /// The initial analysis value for entry-point IR nodes.
-        /// </param>
-        protected GlobalFixPointAnalysis(T defaultValue, T initialValue)
+        protected GlobalFixPointAnalysis(T defaultValue)
             : base(defaultValue)
-        {
-            InitialValue = initialValue;
-        }
+        { }
 
         #endregion
 
-        #region Properties
-
-        /// <summary>
-        /// Returns the initial analysis value.
-        /// </summary>
-        public T InitialValue { get; }
-
-        #endregion
-
-        #region Methods
+         #region Methods
 
         /// <summary>
         /// Creates an initial data value for the given method.
@@ -1271,9 +1348,12 @@ namespace ILGPU.IR.Analyses
             Method method,
             ImmutableArray<AnalysisValue<T>> arguments,
             AnalysisValueMapping<T> valueMapping,
+            AnalysisReturnValueMapping<T> returnValueMapping,
             TContext context)
         {
             var data = context[method];
+
+            // Merge values
             foreach (var entry in valueMapping)
             {
                 var value = entry.Value;
@@ -1281,6 +1361,31 @@ namespace ILGPU.IR.Analyses
                     value = Merge(oldValue, value);
                 data[entry.Key] = value;
             }
+
+            // Skip void functions
+            if (method.IsVoid)
+                return;
+
+            // Merge return values
+            var methodReturnValue = returnValueMapping[method];
+            foreach (var block in method.Blocks)
+            {
+                if (!(block.Terminator is ReturnTerminator terminator))
+                    continue;
+                var returnValue = data[terminator];
+                methodReturnValue = Merge(methodReturnValue, returnValue);
+            }
+
+            // Update all returns
+            foreach (var block in method.Blocks)
+            {
+                if (!(block.Terminator is ReturnTerminator terminator))
+                    continue;
+                data[terminator] = methodReturnValue;
+            }
+
+            // Update return information in the global mapping
+            returnValueMapping[method] = methodReturnValue;
         }
 
         /// <summary>
