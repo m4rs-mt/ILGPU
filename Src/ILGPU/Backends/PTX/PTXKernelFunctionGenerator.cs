@@ -126,7 +126,7 @@ namespace ILGPU.Backends.PTX
             {
                 sharedAlignmentInBytes = Math.Max(
                     sharedAlignmentInBytes,
-                    GetAllocaAlignment(alloca.Alloca));
+                    PointerAlignments.GetAllocaAlignment(alloca.Alloca));
             }
             sharedAlignmentInBytes = Math.Min(
                 sharedAlignmentInBytes,

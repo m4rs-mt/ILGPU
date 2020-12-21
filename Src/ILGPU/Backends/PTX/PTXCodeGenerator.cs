@@ -72,7 +72,7 @@ namespace ILGPU.Backends.PTX
                 EntryPoint entryPoint,
                 ContextFlags contextFlags,
                 PTXDebugInfoGenerator debugInfoGenerator,
-                PointerAlignments pointerAlignments)
+                PointerAlignments.AlignmentInfo pointerAlignments)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
@@ -104,7 +104,7 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Returns detailed information about all pointer alignments.
             /// </summary>
-            public PointerAlignments PointerAlignments { get; }
+            public PointerAlignments.AlignmentInfo PointerAlignments { get; }
         }
 
         /// <summary>
@@ -415,7 +415,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns detailed information about all pointer alignments.
         /// </summary>
-        public PointerAlignments PointerAlignments { get; }
+        public PointerAlignments.AlignmentInfo PointerAlignments { get; }
 
         /// <summary>
         /// Returns all blocks in an appropriate schedule.
@@ -450,15 +450,6 @@ namespace ILGPU.Backends.PTX
         #endregion
 
         #region General Code Generation
-
-        /// <summary>
-        /// Returns the alignment in bytes for the given alloca.
-        /// </summary>
-        /// <param name="alloca">The alloca to get the alignment information for.</param>
-        /// <returns>The determined and used alignment in bytes.</returns>
-        protected int GetAllocaAlignment(Alloca alloca) =>
-            PointerAlignments?.GetAllocaAlignment(alloca) ??
-            AllocaAlignments.GetInitialAlignment(alloca);
 
         /// <summary>
         /// Declares a new label.
@@ -615,7 +606,7 @@ namespace ILGPU.Backends.PTX
                 Builder.Append(addressSpacePrefix);
 
                 Builder.Append(".align ");
-                Builder.Append(GetAllocaAlignment(allocaInfo.Alloca));
+                Builder.Append(PointerAlignments.GetAllocaAlignment(allocaInfo.Alloca));
                 Builder.Append(" .b8 ");
 
                 var name = namePrefix + offset++;

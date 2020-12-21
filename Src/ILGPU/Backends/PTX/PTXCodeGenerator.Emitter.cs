@@ -687,7 +687,7 @@ namespace ILGPU.Backends.PTX
             Register register)
             where TEmitter : IVectorizedCommandEmitter
         {
-            if (PointerAlignments != null &&
+            if (!PointerAlignments.IsEmpty &&
                 register is CompoundRegister compoundRegister)
             {
                 // Check the provided alignment value to create vectorized instructions
