@@ -32,8 +32,6 @@ namespace ILGPU.Backends.PTX
             Builder.AppendLine();
             Builder.AppendLine("\t{");
 
-            Builder.AppendLine("\t.reg .b32 temp_param_reg;");
-
             for (int i = 0, e = methodCall.Count; i < e; ++i)
             {
                 var argument = methodCall.Nodes[i];
@@ -611,9 +609,7 @@ namespace ILGPU.Backends.PTX
 
             if (fieldOffset != 0)
             {
-                var targetRegister = AllocatePlatformRegister(
-                    value,
-                    out RegisterDescription _);
+                var targetRegister = AllocateHardware(value);
                 using var command = BeginCommand(
                     PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Add,
@@ -667,7 +663,7 @@ namespace ILGPU.Backends.PTX
 
             // Convert the string value into the generic address space
             // string (global) -> string (generic)
-            var register = AllocatePlatformRegister(value, out var _);
+            var register = AllocateHardware(value);
             CreateAddressSpaceCast(
                 tempValueRegister,
                 register,

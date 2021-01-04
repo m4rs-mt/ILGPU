@@ -36,10 +36,6 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The supported PTX instruction sets (in descending order).
         /// </summary>
-        [SuppressMessage(
-            "Microsoft.Security",
-            "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes",
-            Justification = "The collection is immutable")]
         public static readonly IEnumerable<PTXInstructionSet> SupportedInstructionSets =
             ImmutableSortedSet.Create(
                 Comparer<PTXInstructionSet>.Create((first, second) =>
@@ -711,9 +707,10 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             private readonly struct IOEmitter : IIOEmitter<int>
             {
-                public IOEmitter(string paramName)
+                public IOEmitter(string paramName, HardwareRegister tempRegister)
                 {
                     ParamName = paramName;
+                    TempRegister = tempRegister;
                 }
 
                 /// <summary>
@@ -721,23 +718,71 @@ namespace ILGPU.Backends.PTX
                 /// </summary>
                 public string ParamName { get; }
 
-                public void Emit(
+                /// <summary>
+                /// Returns the associated temp register.
+                /// </summary>
+                public HardwareRegister TempRegister { get; }
+
+                private static CommandEmitter BeginEmitLoad(
+                    PTXCodeGenerator codeGenerator,
+                    string command,
+                    PrimitiveRegister sourceRegister)
+                {
+                    var commandEmitter = codeGenerator.BeginCommand(command);
+                    commandEmitter.AppendSuffix(
+                        ResolveParameterBasicValueType(
+                            sourceRegister.BasicValueType));
+                    commandEmitter.AppendArgument(sourceRegister);
+                    return commandEmitter;
+                }
+
+                /// <summary>
+                /// Emits a new parameter load operation that converts generic address-
+                /// space pointers into a specialized address space.
+                /// </summary>
+                public readonly void Emit(
                     PTXCodeGenerator codeGenerator,
                     string command,
                     PrimitiveRegister primitiveRegister,
                     int offset)
                 {
-                    using var commandEmitter = codeGenerator.BeginCommand(command);
-                    commandEmitter.AppendSuffix(
-                        ResolveParameterBasicValueType(primitiveRegister.BasicValueType));
-                    commandEmitter.AppendArgument(primitiveRegister);
-                    commandEmitter.AppendRawValue(ParamName, offset);
+                    // Load into the temporary register in the case of a pointer type
+                    if (primitiveRegister.Type is AddressSpaceType addressSpaceType &&
+                        addressSpaceType.AddressSpace != MemoryAddressSpace.Generic)
+                    {
+                        primitiveRegister.AssertNotNull(TempRegister);
+
+                        using (var commandEmitter = BeginEmitLoad(
+                            codeGenerator,
+                            command,
+                            TempRegister))
+                        {
+                            commandEmitter.AppendRawValue(ParamName, offset);
+                        }
+
+                        // Convert the source value into the specialized address space
+                        // using the previously allocated temp register
+                        codeGenerator.CreateAddressSpaceCast(
+                            TempRegister,
+                            primitiveRegister as HardwareRegister,
+                            MemoryAddressSpace.Generic,
+                            addressSpaceType.AddressSpace);
+                    }
+                    else
+                    {
+                        // Load the parameter value directly into the target register
+                        using var commandEmitter = BeginEmitLoad(
+                            codeGenerator,
+                            command,
+                            primitiveRegister);
+                        commandEmitter.AppendRawValue(ParamName, offset);
+                    }
                 }
             }
 
-            public LoadParamEmitter(string paramName)
+            public LoadParamEmitter(string paramName, HardwareRegister tempRegister)
             {
-                Emitter = new IOEmitter(paramName);
+                Emitter = new IOEmitter(paramName, tempRegister);
             }
 
             /// <summary>
@@ -745,7 +790,11 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             private IOEmitter Emitter { get; }
 
-            public void Emit(
+                /// <summary>
+                /// Emits a new parameter load operation that converts generic address-
+                /// space pointers into a specialized address space.
+                /// </summary>
+            public readonly void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,
                 PrimitiveRegister primitiveRegister,
@@ -758,15 +807,42 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Emits a new set of load param instructions with the
-        /// appropriate configuration.
+        /// Emits a new set of load param instructions with the appropriate configuration
+        /// that converts pointers from the generic address space into specialized
+        /// target address-spaces.
         /// </summary>
         /// <param name="paramName">The parameter name.</param>
         /// <param name="register">The source register.</param>
-        protected void EmitLoadParam(string paramName, Register register) =>
+        protected void EmitLoadParam(string paramName, Register register)
+        {
+            // Allocate a temporary pointer register to cast the address spaces of
+            // pointer arguments
+            var tempRegister = AllocatePlatformRegister(out var _);
+
+            EmitLoadParam(paramName, register, tempRegister);
+
+            // Free the previously allocated temp register
+            FreeRegister(tempRegister);
+        }
+
+        /// <summary>
+        /// Emits a new set of load param instructions with the appropriate configuration
+        /// that converts pointers from the generic address space into specialized
+        /// target address-spaces.
+        /// </summary>
+        /// <param name="paramName">The parameter name.</param>
+        /// <param name="register">The source register.</param>
+        /// <param name="tempRegister">
+        /// A temporary hardware register to perform address-space casts based on the
+        /// PTX-specific calling convention.
+        /// </param>
+        protected void EmitLoadParam(
+            string paramName,
+            Register register,
+            HardwareRegister tempRegister) =>
             EmitComplexCommandWithOffsets(
                 PTXInstructions.LoadParamOperation,
-                new LoadParamEmitter(paramName),
+                new LoadParamEmitter(paramName, tempRegister),
                 register,
                 0);
 
@@ -780,9 +856,10 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             private readonly struct IOEmitter : IIOEmitter<int>
             {
-                public IOEmitter(string paramName)
+                public IOEmitter(string paramName, HardwareRegister tempRegister)
                 {
                     ParamName = paramName;
+                    TempRegister = tempRegister;
                 }
 
                 /// <summary>
@@ -790,23 +867,52 @@ namespace ILGPU.Backends.PTX
                 /// </summary>
                 public string ParamName { get; }
 
-                public void Emit(
+                /// <summary>
+                /// Returns the associated temp register.
+                /// </summary>
+                public HardwareRegister TempRegister { get; }
+
+                /// <summary>
+                /// Emits a new parameter store operation that converts non-generic
+                /// address-space pointers into the generic address space.
+                /// </summary>
+                public readonly void Emit(
                     PTXCodeGenerator codeGenerator,
                     string command,
                     PrimitiveRegister primitiveRegister,
                     int offset)
                 {
+                    // Check for a pointer type stored in this register
+                    if (primitiveRegister.Type is AddressSpaceType addressSpaceType &&
+                        addressSpaceType.AddressSpace != MemoryAddressSpace.Generic)
+                    {
+                        primitiveRegister.AssertNotNull(TempRegister);
+
+                        // Convert the source value into the generic address space
+                        // using the previously allocated temp register
+                        codeGenerator.CreateAddressSpaceCast(
+                            primitiveRegister,
+                            TempRegister,
+                            addressSpaceType.AddressSpace,
+                            MemoryAddressSpace.Generic);
+                        primitiveRegister = TempRegister;
+                    }
+
+                    // Store the actual (possibly converted) parameter value
                     using var commandEmitter = codeGenerator.BeginCommand(command);
                     commandEmitter.AppendSuffix(
-                        ResolveParameterBasicValueType(primitiveRegister.BasicValueType));
+                        ResolveParameterBasicValueType(
+                            primitiveRegister.BasicValueType));
                     commandEmitter.AppendRawValue(ParamName, offset);
                     commandEmitter.AppendArgument(primitiveRegister);
                 }
             }
 
-            public StoreParamEmitter(string paramName)
+            public StoreParamEmitter(
+                string paramName,
+                HardwareRegister tempRegister)
             {
-                Emitter = new IOEmitter(paramName);
+                Emitter = new IOEmitter(paramName, tempRegister);
             }
 
             /// <summary>
@@ -814,7 +920,11 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             private IOEmitter Emitter { get; }
 
-            public void Emit(
+            /// <summary>
+            /// Emits a new parameter store operation that converts non-generic
+            /// address-space pointers into the generic address space.
+            /// </summary>
+            public readonly void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,
                 PrimitiveRegister register,
@@ -827,17 +937,27 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Emits a new set of store param instructions with the
-        /// appropriate configuration.
+        /// Emits a new set of store param instructions with the appropriate
+        /// configuration that converts pointers to the generic address space before
+        /// passing them to the target function being called.
         /// </summary>
         /// <param name="paramName">The parameter name.</param>
         /// <param name="register">The target register.</param>
-        protected void EmitStoreParam(string paramName, Register register) =>
+        protected void EmitStoreParam(string paramName, Register register)
+        {
+            // Allocate a temporary pointer register to cast the address spaces of
+            // pointer arguments
+            var tempRegister = AllocatePlatformRegister(out var _);
+
             EmitComplexCommandWithOffsets(
                 PTXInstructions.StoreParamOperation,
-                new StoreParamEmitter(paramName),
+                new StoreParamEmitter(paramName, tempRegister),
                 register,
                 0);
+
+            // Free the previously allocated temp register
+            FreeRegister(tempRegister);
+        }
 
         /// <summary>
         /// Binds the given mapped parameters.
@@ -845,8 +965,18 @@ namespace ILGPU.Backends.PTX
         /// <param name="parameters">A list with mapped parameters.</param>
         internal void BindParameters(List<MappedParameter> parameters)
         {
+            // Allocate a temporary register for all conversion operations
+            var tempRegister = AllocatePlatformRegister(out var _);
+
             foreach (var mappedParameter in parameters)
-                EmitLoadParam(mappedParameter.PTXName, mappedParameter.Register);
+            {
+                EmitLoadParam(
+                    mappedParameter.PTXName,
+                    mappedParameter.Register,
+                    tempRegister);
+            }
+
+            FreeRegister(tempRegister);
         }
 
         /// <summary>
@@ -857,15 +987,20 @@ namespace ILGPU.Backends.PTX
         /// </param>
         internal void BindAllocations(List<(Alloca, string)> allocations)
         {
-            foreach (var allocaEntry in allocations)
+            // Early exit for methods without any allocations
+            if (allocations.Count < 1)
+                return;
+
+            foreach (var (alloca, valueReference) in allocations)
             {
-                var description = ResolveRegisterDescription(
-                    Backend.PointerBasicValueType);
-                var targetRegister = Allocate(allocaEntry.Item1, description);
+                // Allocate a type-specific target register holding the pointer.
+                // Note that this pointer will direclty point to either the local or
+                // the shared address space and does not need to be converted.
+                var targetRegister = AllocateHardware(alloca);
                 using var command = BeginMove();
-                command.AppendSuffix(description.BasicValueType);
+                command.AppendSuffix(targetRegister.BasicValueType);
                 command.AppendArgument(targetRegister);
-                command.AppendRawValueReference(allocaEntry.Item2);
+                command.AppendRawValueReference(valueReference);
             }
         }
 

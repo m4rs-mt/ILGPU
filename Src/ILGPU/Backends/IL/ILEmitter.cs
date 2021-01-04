@@ -120,6 +120,13 @@ namespace ILGPU.Backends.IL
         ILLocal DeclareLocal(Type type);
 
         /// <summary>
+        /// Declares a pinned local variable.
+        /// </summary>
+        /// <param name="type">The variable type.</param>
+        /// <returns>The variable reference.</returns>
+        ILLocal DeclarePinnedLocal(Type type);
+
+        /// <summary>
         /// Declares a new label.
         /// </summary>
         /// <returns>The label reference.</returns>
@@ -269,15 +276,28 @@ namespace ILGPU.Backends.IL
 
         #region Methods
 
-        /// <summary cref="IILEmitter.DeclareLocal(Type)"/>
+        /// <summary>
+        /// Declares a internal local.
+        /// </summary>
+        /// <param name="type">The local type.</param>
+        /// <param name="pinned">True, if the local is pinned.</param>
+        /// <returns>The declared local.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ILLocal DeclareLocal(Type type)
+        private ILLocal DeclareLocalInternal(Type type, bool pinned)
         {
             var local = Generator.DeclareLocal(type);
             var result = new ILLocal(declaredLocals.Count, type);
             declaredLocals.Add(local);
             return result;
         }
+
+        /// <summary cref="IILEmitter.DeclareLocal(Type)"/>
+        public ILLocal DeclareLocal(Type type) =>
+            DeclareLocalInternal(type, false);
+
+        /// <summary cref="IILEmitter.DeclarePinnedLocal(Type)"/>
+        public ILLocal DeclarePinnedLocal(Type type) =>
+            DeclareLocalInternal(type, true);
 
         /// <summary cref="IILEmitter.DeclareLabel"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -426,13 +446,25 @@ namespace ILGPU.Backends.IL
 
         #region Methods
 
-        /// <summary cref="IILEmitter.DeclareLocal(Type)"/>
-        public ILLocal DeclareLocal(Type type)
+        /// <summary>
+        /// Declares a locally internal type.
+        /// </summary>
+        /// <param name="type">The allocation type.</param>
+        /// <returns>The allocated local.</returns>
+        private ILLocal DeclareLocalInternal(Type type)
         {
             var result = new ILLocal(locals.Count, type);
             locals.Add(result);
             return result;
         }
+
+        /// <summary cref="IILEmitter.DeclareLocal(Type)"/>
+        public ILLocal DeclareLocal(Type type) =>
+            DeclareLocalInternal(type);
+
+        /// <summary cref="IILEmitter.DeclarePinnedLocal(Type)"/>
+        public ILLocal DeclarePinnedLocal(Type type) =>
+            DeclareLocalInternal(type);
 
         /// <summary cref="IILEmitter.DeclareLabel"/>
         public ILLabel DeclareLabel()

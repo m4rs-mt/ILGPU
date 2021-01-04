@@ -31,55 +31,50 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Implements the actual argument mapping.
         /// </summary>
-        private readonly struct MappingHandler : IMappingHandler
+        private readonly struct MappingHandler : IStructMappingHandler<(ILLocal, int)>
         {
             /// <summary>
             /// Constructs a new mapping handler.
             /// </summary>
-            /// <param name="argumentLocal">The unsafe target argument array.</param>
-            /// <param name="argumentOffset">The target argument offset.</param>
-            public MappingHandler(
-                ILLocal argumentLocal,
-                int argumentOffset)
+            /// <param name="entryPoint">The parent entry point.</param>
+            public MappingHandler(EntryPoint entryPoint)
             {
-                ArgumentLocal = argumentLocal;
-                ArgumentOffset = argumentOffset;
+                EntryPoint = entryPoint;
             }
 
             /// <summary>
-            /// Returns the associated unsafe kernel argument local.
+            /// Returns the associated current entry point.
             /// </summary>
-            public ILLocal ArgumentLocal { get; }
+            public EntryPoint EntryPoint { get; }
 
-            /// <summary>
-            /// Returns the argument offset.
-            /// </summary>
-            public int ArgumentOffset { get; }
+            public bool CanMapKernelLength(out Type indexType)
+            {
+                indexType = EntryPoint.KernelIndexType;
+                return EntryPoint.IsImplictlyGrouped;
+            }
 
-            /// <summary>
-            /// Maps a single PTX argument.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void MapArgument<TILEmitter, TSource>(
+            public void MapKernelLength<TILEmitter, TTarget>(
                 in TILEmitter emitter,
-                TSource source,
-                int argumentIndex)
-                where TILEmitter : IILEmitter
-                where TSource : ISource
+                in StructureTarget<TTarget> kernelLengthTarget)
+                where TILEmitter : struct, IILEmitter
+                where TTarget : struct, ITarget
             {
-                // Load and compute target address
-                emitter.Emit(LocalOperation.Load, ArgumentLocal);
-                emitter.EmitConstant(IntPtr.Size * (argumentIndex + ArgumentOffset));
-                emitter.Emit(OpCodes.Conv_I);
-                emitter.Emit(OpCodes.Add);
+                Debug.Assert(EntryPoint.IsImplictlyGrouped);
 
-                // Load source address
-                source.EmitLoadSource(emitter);
-                emitter.Emit(OpCodes.Conv_I);
-
-                // Store target
-                emitter.Emit(OpCodes.Stind_I);
+                var argumentSource = new ArgumentSource(
+                    kernelLengthTarget.TargetType,
+                    Kernel.KernelParamDimensionIdx);
+                kernelLengthTarget.EmitStoreTarget(emitter, argumentSource);
             }
+
+            /// <summary>
+            /// Maps a single PTX argument structure.
+            /// </summary>
+            public (ILLocal, int) MapArgumentStruct<TILEmitter>(
+                in TILEmitter emitter,
+                ILLocal local,
+                int sizeInBytes)
+                where TILEmitter : struct, IILEmitter => (local, sizeInBytes);
         }
 
         #endregion
@@ -99,31 +94,6 @@ namespace ILGPU.Backends.PTX
         #region Methods
 
         /// <summary>
-        /// Stores the kernel length argument of an implicitly grouped kernel.
-        /// </summary>
-        /// <typeparam name="TILEmitter">The emitter type.</typeparam>
-        /// <param name="emitter">The target emitter to write to.</param>
-        /// <param name="argumentBuffer">
-        /// The current local holding the native argument pointers.
-        /// </param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void StoreKernelLength<TILEmitter>(
-            in TILEmitter emitter,
-            ILLocal argumentBuffer)
-            where TILEmitter : IILEmitter
-        {
-            // Load target data pointer
-            emitter.Emit(LocalOperation.Load, argumentBuffer);
-
-            // Load source pointer
-            emitter.Emit(ArgumentOperation.LoadAddress, Kernel.KernelParamDimensionIdx);
-            emitter.Emit(OpCodes.Conv_I);
-
-            // Store target
-            emitter.Emit(OpCodes.Stind_I);
-        }
-
-        /// <summary>
         /// Creates code that maps the given parameter specification to
         /// a compatible representation.
         /// </summary>
@@ -131,37 +101,19 @@ namespace ILGPU.Backends.PTX
         /// <param name="emitter">The target emitter to write to.</param>
         /// <param name="entryPoint">The entry point.</param>
         /// <returns>A local that stores the native kernel argument pointers.</returns>
-        public ILLocal Map<TILEmitter>(in TILEmitter emitter, EntryPoint entryPoint)
-            where TILEmitter : IILEmitter
+        public (ILLocal Local, int BufferSize) Map<TILEmitter>(
+            in TILEmitter emitter,
+            EntryPoint entryPoint)
+            where TILEmitter : struct, IILEmitter
         {
             Debug.Assert(entryPoint != null, "Invalid entry point");
 
-            var local = emitter.DeclareLocal(typeof(byte*));
-            var parameters = entryPoint.Parameters;
-
-            // Compute the actual number of kernel arguments
-            int numParameters = parameters.Count;
-            int parameterOffset = 0;
-            if (!entryPoint.IsExplicitlyGrouped)
-            {
-                ++numParameters;
-                ++parameterOffset;
-            }
-
-            // Emit a local argument pointer array that stores the native addresses
-            // of all arguments
-            emitter.EmitConstant(IntPtr.Size * numParameters);
-            emitter.Emit(OpCodes.Conv_U);
-            emitter.Emit(OpCodes.Localloc);
-
-            // Store pointer in local variable
-            emitter.Emit(LocalOperation.Store, local);
-
-            // Store pointers to all mapped arguments
-            var mappingHandler = new MappingHandler(local, parameterOffset);
-            Map(emitter, mappingHandler, parameters);
-
-            return local;
+            // Map all arguments
+            var mappingHandler = new MappingHandler(entryPoint);
+            return MapArgumentsStruct<TILEmitter, MappingHandler, (ILLocal, int)>(
+                emitter,
+                mappingHandler,
+                entryPoint.Parameters);
         }
 
         #endregion

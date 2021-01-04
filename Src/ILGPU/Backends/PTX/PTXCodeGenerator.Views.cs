@@ -22,9 +22,7 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(LoadElementAddress value)
         {
             var elementIndex = LoadPrimitive(value.Offset);
-            var targetAddressRegister = AllocatePlatformRegister(
-                value,
-                out RegisterDescription _);
+            var targetAddressRegister = AllocateHardware(value);
             Debug.Assert(value.IsPointerAccess, "Invalid pointer access");
 
             var address = LoadPrimitive(value.Source);
@@ -100,11 +98,9 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IBackendCodeGenerator.GenerateCode(AddressSpaceCast)"/>
         public void GenerateCode(AddressSpaceCast value)
         {
-            var sourceType = value.SourceType as AddressSpaceType;
-            var targetAdressRegister = AllocatePlatformRegister(
-                value,
-                out RegisterDescription _);
-            Debug.Assert(value.IsPointerCast, "Invalid pointer access");
+            var sourceType = value.SourceType.As<AddressSpaceType>(value);
+            var targetAdressRegister = AllocateHardware(value);
+            value.Assert(value.IsPointerCast);
 
             var address = LoadPrimitive(value.Value);
             CreateAddressSpaceCast(

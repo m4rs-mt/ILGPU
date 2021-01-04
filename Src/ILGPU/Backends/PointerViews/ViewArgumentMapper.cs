@@ -10,8 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.IL;
 using System;
-using System.Reflection.Emit;
 
 namespace ILGPU.Backends.PointerViews
 {
@@ -21,6 +21,44 @@ namespace ILGPU.Backends.PointerViews
     /// <remarks>Members of this class are not thread safe.</remarks>
     public abstract class ViewArgumentMapper : ArgumentMapper
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Wraps a value source and created a new view instance from value references.
+        /// </summary>
+        /// <typeparam name="TSource">The source type.</typeparam>
+        private readonly struct ViewImplementationSource<TSource> : IRawValueSource
+            where TSource : struct, ISource
+        {
+            public ViewImplementationSource(TSource source, Type targetType)
+            {
+                Source = source;
+                TargetType = targetType;
+            }
+
+            /// <summary>
+            /// Returns the parent source.
+            /// </summary>
+            public TSource Source { get; }
+
+            public Type TargetType { get; }
+
+            /// <summary>
+            /// Emits a new view-value construction.
+            /// </summary>
+            public readonly void EmitLoadSource<TILEmitter>(
+                in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter
+            {
+                // Load source and create custom view type
+                Source.EmitLoadSource(emitter);
+                emitter.EmitNewObject(
+                    ViewImplementation.GetViewConstructor(TargetType));
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -47,22 +85,13 @@ namespace ILGPU.Backends.PointerViews
         protected sealed override void MapViewInstance<TILEmitter, TSource, TTarget>(
             in TILEmitter emitter,
             Type elementType,
-            TSource source,
-            TTarget target)
+            in TSource source,
+            in TTarget target)
         {
-            var targetType = target.TargetType;
-
-            // Load target address
-            target.EmitLoadTarget(emitter);
-
-            // Load source and create custom view type
-            source.EmitLoadSource(emitter);
-            emitter.Emit(OpCodes.Ldobj, source.SourceType);
-            emitter.EmitNewObject(
-                ViewImplementation.GetViewConstructor(targetType));
-
-            // Store target
-            emitter.Emit(OpCodes.Stobj, target.TargetType);
+            var viewSource = new ViewImplementationSource<TSource>(
+                source,
+                target.TargetType);
+            target.EmitStoreTarget(emitter, viewSource);
         }
 
         #endregion

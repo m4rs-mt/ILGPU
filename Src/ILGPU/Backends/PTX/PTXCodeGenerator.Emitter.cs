@@ -440,9 +440,8 @@ namespace ILGPU.Backends.PTX
 
                 RegisterAllocator = registerAllocator;
                 PredicateRegister = registerAllocator.AllocateRegister(
-                    new RegisterDescription(
-                        BasicValueType.Int1,
-                        PTXRegisterKind.Predicate));
+                    BasicValueType.Int1,
+                    PTXRegisterKind.Predicate);
             }
 
             /// <summary>
@@ -791,9 +790,8 @@ namespace ILGPU.Backends.PTX
                 "Invalid register kind");
 
             var targetRegister = AllocateRegister(
-                new RegisterDescription(
-                    BasicValueType.Int1,
-                    PTXRegisterKind.Predicate));
+                BasicValueType.Int1,
+                PTXRegisterKind.Predicate);
             ConvertValueToPredicate(register, targetRegister);
             return targetRegister;
         }
@@ -991,11 +989,13 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Resolves the desired hardware register.
         /// </summary>
-        public static HardwareRegister GetIntrinsicRegister(
+        public HardwareRegister GetIntrinsicRegister(
             PTXRegisterKind registerKind,
             int dimension = 0)
         {
-            var desc = new RegisterDescription(BasicValueType.Int32, registerKind);
+            var desc = RegisterDescription.Create(
+                TypeContext.GetPrimitiveType(BasicValueType.Int32),
+                registerKind);
             return new HardwareRegister(desc, dimension);
         }
 
