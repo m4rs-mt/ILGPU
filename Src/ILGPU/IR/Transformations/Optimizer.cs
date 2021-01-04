@@ -189,7 +189,7 @@ namespace ILGPU.IR.Transformations
             if (level > OptimizationLevel.O1)
             {
                 // Specialize all parameter address spaces
-                builder.Add(new AddressSpaceSpecializer(MemoryAddressSpace.Global));
+                builder.Add(new InferKernelAddressSpaces(MemoryAddressSpace.Global));
             }
 
             // Lower all value structures that could have been created during the
@@ -202,7 +202,10 @@ namespace ILGPU.IR.Transformations
             builder.Add(new DeadCodeElimination());
 
             // Infer all specialized address spaces
-            builder.Add(new InferAddressSpaces());
+            if (level > OptimizationLevel.O1)
+                builder.Add(new InferLocalAddressSpaces());
+            else
+                builder.Add(new InferAddressSpaces());
 
             // Final cleanup phases to improve performance
             builder.Add(new CleanupBlocks());
