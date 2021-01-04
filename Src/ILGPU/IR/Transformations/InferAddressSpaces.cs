@@ -16,7 +16,6 @@ using ILGPU.IR.Values;
 using System.Collections.Generic;
 using static ILGPU.IR.Analyses.PointerAddressSpaces;
 using static ILGPU.IR.Transformations.InferAddressSpaces;
-using static ILGPU.IR.Transformations.InferKernelAddressSpaces;
 using static ILGPU.IR.Types.AddressSpaceType;
 using AnalysisResult = ILGPU.IR.Analyses.GlobalAnalysisValueResult<
     ILGPU.IR.Analyses.PointerAddressSpaces.AddressSpaceInfo>;
@@ -467,29 +466,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new address-space inference pass.
         /// </summary>
-        public InferLocalAddressSpaces()
-            : this(MemoryAddressSpace.Generic)
-        { }
-
-        /// <summary>
-        /// Constructs a new address-space inference pass.
-        /// </summary>
-        /// <param name="parameterAddressSpace">
-        /// The root address space of all method parameters.
-        /// </param>
-        public InferLocalAddressSpaces(MemoryAddressSpace parameterAddressSpace)
-        {
-            ParameterAddressSpace = parameterAddressSpace;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the parameter address space.
-        /// </summary>
-        public MemoryAddressSpace ParameterAddressSpace { get; }
+        public InferLocalAddressSpaces() { }
 
         #endregion
 
@@ -503,7 +480,7 @@ namespace ILGPU.IR.Transformations
             var analysis = Create(AnalysisFlags.IgnoreGenericAddressSpace);
             var (_, result) = analysis.AnalyzeMethod(
                 builder.Method,
-                new InitialParameterValueContext(ParameterAddressSpace));
+                new AutomaticParameterValueContext());
             return Rewriter.Rewrite(
                 builder.SourceBlocks,
                 builder,
@@ -514,25 +491,26 @@ namespace ILGPU.IR.Transformations
     }
 
     /// <summary>
-    /// Infers kernel address spaces by removing unnecessary address-space casts.
+    /// Infers kernel address spaces by specializing the address spaces of all parameters
+    /// or keeping them and inserting the appropriate address space casts.
     /// </summary>
     /// <remarks>
-    /// This transformation is inteded to run after applying
-    /// <see cref="SpecializeKernelParameterAddressSpaces"/>. In contrast to
-    /// <see cref="InferLocalAddressSpaces"/>, this transformation uses a global program
-    /// analysis to determine detailed address-space information for each method.
+    /// CAUTION: This program transformation adds additional address-space casts into
+    /// the <see cref="MemoryAddressSpace.Generic"/> address space to have a valid IR
+    /// program in the end. The additionally introduced casts are intended to be removed
+    /// using <see cref="InferLocalAddressSpaces"/> afterwards.
     /// </remarks>
     public sealed class InferKernelAddressSpaces :
-        UnorderedTransformation<MethodDataProvider>
+        OrderedTransformation<InferKernelAddressSpaces.MethodDataProvider>
     {
         #region Nested Types
 
         /// <summary>
-        /// A data provider based on global program analysis information.
+        /// Represents an intermediate value for processing.
         /// </summary>
-        public sealed class MethodDataProvider : IAddressSpaceProvider
+        public sealed class MethodDataProvider
         {
-            #region Instance
+            #region Static
 
             /// <summary>
             /// Creates a new provider instance.
@@ -553,7 +531,7 @@ namespace ILGPU.IR.Transformations
                         var analysis = Create(AnalysisFlags.IgnoreGenericAddressSpace);
                         var result = analysis.AnalyzeGlobalMethod(
                             method,
-                            new InitialParameterValueContext(kernelAddressSpace));
+                            new ConstParameterValueContext(kernelAddressSpace));
                         return new MethodDataProvider(result);
                     }
                 }
@@ -562,12 +540,19 @@ namespace ILGPU.IR.Transformations
                 return default;
             }
 
+            #endregion
+
+            #region Instance
+
+            private readonly Dictionary<Parameter, Parameter> oldParameters;
+
             /// <summary>
-            /// Constructs a new method data provider.
+            /// Constructs a new intermediate value.
             /// </summary>
             /// <param name="result">The analysis result.</param>
-            private MethodDataProvider(in AnalysisResult result)
+            public MethodDataProvider(in AnalysisResult result)
             {
+                oldParameters = new Dictionary<Parameter, Parameter>();
                 Result = result;
             }
 
@@ -597,139 +582,6 @@ namespace ILGPU.IR.Transformations
                 : new DataProvider()[value];
 
             #endregion
-        }
-
-        #endregion
-
-        #region Rewriter
-
-        /// <summary>
-        /// The internal rewriter.
-        /// </summary>
-        private static readonly Rewriter<ProcessingData<MethodDataProvider>> Rewriter =
-            new Rewriter<ProcessingData<MethodDataProvider>>();
-
-        /// <summary>
-        /// Registers all conversion patterns.
-        /// </summary>
-        static InferKernelAddressSpaces()
-        {
-            AddRewriters(Rewriter);
-        }
-
-        #endregion
-
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new address-space inference pass.
-        /// </summary>
-        /// <param name="kernelAddressSpace">
-        /// The root address space of all kernel functions.
-        /// </param>
-        public InferKernelAddressSpaces(MemoryAddressSpace kernelAddressSpace)
-        {
-            KernelAddressSpace = kernelAddressSpace;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the kernel address space.
-        /// </summary>
-        public MemoryAddressSpace KernelAddressSpace { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Creates a new <see cref="MethodDataProvider"/> instance based on the main
-        /// entry-point method.
-        /// </summary>
-        protected override MethodDataProvider CreateIntermediate<TPredicate>(
-            in MethodCollection<TPredicate> methods) =>
-            MethodDataProvider.CreateProvider(methods, KernelAddressSpace);
-
-        /// <summary>
-        /// Applies the address-space inference transformation.
-        /// </summary>
-        protected override bool PerformTransformation(
-            Method.Builder builder,
-            MethodDataProvider intermediate) =>
-            intermediate != null && Rewriter.Rewrite(
-                builder.SourceBlocks,
-                builder,
-                CreateProcessingData(intermediate));
-
-        /// <summary>
-        /// Performs no operation.
-        /// </summary>
-        protected override void FinishProcessing(MethodDataProvider _) { }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Specializes kernel parameter address spaces by adapting their address spaces.
-    /// </summary>
-    /// <remarks>
-    /// CAUTION: This program transformation adds additional address-space casts into
-    /// the <see cref="MemoryAddressSpace.Generic"/> address space to have a valid IR
-    /// program in the end. The additionally introduced casts can be (potentially)
-    /// removed using <see cref="InferKernelAddressSpaces"/> afterwards.
-    /// </remarks>
-    public sealed class SpecializeKernelParameterAddressSpaces :
-        OrderedTransformation<SpecializeKernelParameterAddressSpaces.Intermediate>
-    {
-        #region Nested Types
-
-        /// <summary>
-        /// Represents an intermediate value for processing.
-        /// </summary>
-        public readonly struct Intermediate
-        {
-            #region Instance
-
-            private readonly Dictionary<Parameter, Parameter> oldParameters;
-
-            /// <summary>
-            /// Constructs a new intermediate value.
-            /// </summary>
-            /// <param name="provider">The underlying data provider.</param>
-            public Intermediate(MethodDataProvider provider)
-            {
-                oldParameters = new Dictionary<Parameter, Parameter>();
-                Provider = provider;
-            }
-
-            #endregion
-
-            #region Properties
-
-            /// <summary>
-            /// Returns true if the current intermediate value is valid.
-            /// </summary>
-            public readonly bool IsValid => Provider != null;
-
-            /// <summary>
-            /// Returns the underlying data provider.
-            /// </summary>
-            private MethodDataProvider Provider { get; }
-
-            /// <summary>
-            /// Returns the return type and the original parameters of the given method.
-            /// </summary>
-            public readonly MemoryAddressSpace this[Method method] => Provider[method];
-
-            /// <summary>
-            /// Returns the unified address space of the given value.
-            /// </summary>
-            public readonly MemoryAddressSpace this[Value value] => Provider[value];
-
-            #endregion
 
             #region Methods
 
@@ -737,9 +589,17 @@ namespace ILGPU.IR.Transformations
             /// Returns the original target address space for the updated parameter.
             /// </summary>
             /// <param name="parameter">The updated parameter reference.</param>
-            public readonly MemoryAddressSpace GetTargetAddressSpace(
-                Parameter parameter) =>
-                Provider[oldParameters[parameter]];
+            public MemoryAddressSpace GetTargetAddressSpace(
+                Parameter parameter)
+            {
+                if (oldParameters.TryGetValue(parameter, out var oldParameter))
+                    return this[oldParameter];
+
+                // If we have not seen this parameter, it can be a previously unknown
+                // parameter of an external function
+                parameter.Assert(parameter.Method.HasFlags(MethodFlags.External));
+                return MemoryAddressSpace.Generic;
+            }
 
             /// <summary>
             /// Maps the <paramref name="targetParam"/> to the
@@ -747,7 +607,7 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="parameter">The source parameter.</param>
             /// <param name="targetParam">The new target parameter.</param>
-            internal readonly void Map(Parameter parameter, Parameter targetParam) =>
+            public void Map(Parameter parameter, Parameter targetParam) =>
                 oldParameters.Add(targetParam, parameter);
 
             #endregion
@@ -816,24 +676,27 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Specializes an address-space dependent parameter.
         /// </summary>
-        /// <param name="intermediate">The intermediate value.</param>
+        /// <param name="provider">The intermediate value.</param>
         /// <param name="methodBuilder">The target method builder.</param>
         /// <param name="builder">The entry block builder.</param>
-        /// <param name="targetAddressSpace">The target address space.</param>
         /// <param name="parameter">The source parameter.</param>
         /// <returns>True, if the given parameter was specialized.</returns>
-        private static bool SpecializeParameter(
-            in Intermediate intermediate,
+        private static bool SpecializeParameterAddressSpace(
+            MethodDataProvider provider,
             Method.Builder methodBuilder,
             BasicBlock.Builder builder,
-            MemoryAddressSpace targetAddressSpace,
             Parameter parameter)
         {
-            // Append a new parameter using the converted target type
+            // Determine the target address space
+            var targetAddressSpace = provider[parameter];
             var converted = GetAddressSpaceConverter(targetAddressSpace).
                 ConvertType(builder, parameter.Type);
+
+            // Append a new parameter using the converted target type
             var targetParam = methodBuilder.AddParameter(converted, parameter.Name);
-            intermediate.Map(parameter, targetParam);
+
+            // Remember the parameter association
+            provider.Map(parameter, targetParam);
 
             // If the type is the same, skip further address space casts
             if (converted == parameter.Type)
@@ -843,12 +706,14 @@ namespace ILGPU.IR.Transformations
             }
 
             // We have to convert the updated parameter address spaces into the generic
-            // address space at this point since the remainder of the program assumed
-            // operations on the generic address space
+            // address space at this point, since the remainder of this program still
+            // assumes operations on the generic address space
             var convertedValue = ConvertToAddressSpace(
                 RewriterContext.FromBuilder(builder),
                 targetParam,
                 MemoryAddressSpace.Generic);
+
+            // Replace the parameter with the converted value
             parameter.Replace(convertedValue);
             return true;
         }
@@ -861,7 +726,7 @@ namespace ILGPU.IR.Transformations
         /// Checks if the given call has address-space dependencies.
         /// </summary>
         private static bool CanRewrite(
-            Intermediate data,
+            MethodDataProvider data,
             MethodCall call)
         {
             foreach (Value argument in call)
@@ -878,7 +743,7 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         private static void Rewrite(
             RewriterContext context,
-            Intermediate data,
+            MethodDataProvider data,
             MethodCall call)
         {
             // Rebuild the call
@@ -920,7 +785,7 @@ namespace ILGPU.IR.Transformations
         /// Checks if the given return has address-space dependencies.
         /// </summary>
         private static bool CanRewrite(
-            Intermediate data,
+            MethodDataProvider data,
             ReturnTerminator terminator)
         {
             var returnType = terminator.Method.ReturnType;
@@ -932,7 +797,7 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         private static void Rewrite(
             RewriterContext context,
-            Intermediate data,
+            MethodDataProvider data,
             ReturnTerminator terminator)
         {
             var targetAddressSpace = data[terminator.Method];
@@ -954,13 +819,13 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// The internal rewriter.
         /// </summary>
-        private static readonly Rewriter<Intermediate> Rewriter =
-            new Rewriter<Intermediate>();
+        private static readonly Rewriter<MethodDataProvider> Rewriter =
+            new Rewriter<MethodDataProvider>();
 
         /// <summary>
         /// Registers all conversion patterns.
         /// </summary>
-        static SpecializeKernelParameterAddressSpaces()
+        static InferKernelAddressSpaces()
         {
             Rewriter.Add<MethodCall>(CanRewrite, Rewrite);
             Rewriter.Add<ReturnTerminator>(CanRewrite, Rewrite);
@@ -976,8 +841,7 @@ namespace ILGPU.IR.Transformations
         /// <param name="kernelAddressSpace">
         /// The root address space of all kernel functions.
         /// </param>
-        public SpecializeKernelParameterAddressSpaces(
-            MemoryAddressSpace kernelAddressSpace)
+        public InferKernelAddressSpaces(MemoryAddressSpace kernelAddressSpace)
         {
             KernelAddressSpace = kernelAddressSpace;
         }
@@ -996,28 +860,23 @@ namespace ILGPU.IR.Transformations
         #region Methods
 
         /// <summary>
-        /// Creates a new <see cref="Intermediate"/> instance based on the main
+        /// Creates a new <see cref="MethodDataProvider"/> instance based on the main
         /// entry-point method.
         /// </summary>
-        protected override Intermediate CreateIntermediate<TPredicate>(
-            in MethodCollection<TPredicate> methods)
-        {
-            var provider = MethodDataProvider.CreateProvider(
-                methods,
-                KernelAddressSpace);
-            return provider is null ? default : new Intermediate(provider);
-        }
+        protected override MethodDataProvider CreateIntermediate<TPredicate>(
+            in MethodCollection<TPredicate> methods) =>
+            MethodDataProvider.CreateProvider(methods, KernelAddressSpace);
 
         /// <summary>
         /// Applies the address-space inference transformation.
         /// </summary>
         protected override bool PerformTransformation(
             Method.Builder builder,
-            in Intermediate intermediate,
+            in MethodDataProvider intermediate,
             Landscape landscape,
             Landscape.Entry current)
         {
-            if (!intermediate.IsValid)
+            if (intermediate is null)
                 return false;
 
             // Initialize the main converted and the entry block builder
@@ -1028,16 +887,12 @@ namespace ILGPU.IR.Transformations
             bool applied = false;
             for (int i = 0, e = builder.NumParams; i < e; ++i)
             {
-                // Query address-space information from the analysis
+                // Specialize the address space of the current parameter
                 var parameter = builder[i];
-                var targetAddressSpace = intermediate[parameter];
-
-                // Add a new specialized parameter
-                applied |= SpecializeParameter(
+                applied |= SpecializeParameterAddressSpace(
                     intermediate,
                     builder,
                     entryBuilder,
-                    targetAddressSpace,
                     parameter);
             }
 
@@ -1059,7 +914,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Performs no operation.
         /// </summary>
-        protected override void FinishProcessing(in Intermediate _) { }
+        protected override void FinishProcessing(in MethodDataProvider _) { }
 
         #endregion
     }
