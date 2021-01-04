@@ -11,6 +11,7 @@
 
 using ILGPU.Resources;
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -725,7 +726,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="kernelArgs">The kernel arguments.</param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal CudaError LaunchKernelWithStreamBinding(
+        public CudaError LaunchKernelWithStreamBinding(
             CudaStream stream,
             CudaKernel kernel,
             RuntimeKernelConfig config,
@@ -749,6 +750,51 @@ namespace ILGPU.Runtime.Cuda
 
             binding.Recover();
             return result;
+        }
+
+        /// <summary>
+        /// Launches the given kernel function.
+        /// </summary>
+        /// <param name="stream">The current stream.</param>
+        /// <param name="kernel">The current kernel.</param>
+        /// <param name="config">The current kernel configuration.</param>
+        /// <param name="args">The argument structure.</param>
+        /// <param name="argsSizeInBytes">The argument size in bytes.</param>
+        /// <returns>The error status.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public CudaError LaunchKernelWithStruct<T>(
+            CudaStream stream,
+            CudaKernel kernel,
+            RuntimeKernelConfig config,
+            ref T args,
+            int argsSizeInBytes)
+            where T : unmanaged
+        {
+            // Setup object size
+            var size = new IntPtr(argsSizeInBytes);
+            Debug.Assert(
+                argsSizeInBytes <= Interop.SizeOf<T>(),
+                "Invalid argument size");
+
+            // Pin object buffer in memory
+            fixed (T* pArgs = &args)
+            {
+                // Setup unmanaged launch configuration for the driver
+                var launchConfig = stackalloc void*[5];
+                launchConfig[0] = (void*)1; // CU_LAUNCH_PARAM_BUFFER_POINTER
+                launchConfig[1] = pArgs;
+                launchConfig[2] = (void*)2; // CU_LAUNCH_PARAM_BUFFER_SIZE
+                launchConfig[3] = &size;
+                launchConfig[4] = (void*)0; // CU_LAUNCH_PARAM_END
+
+                // Use existing launch configuration
+                return LaunchKernelWithStreamBinding(
+                    stream,
+                    kernel,
+                    config,
+                    IntPtr.Zero,
+                    new IntPtr(launchConfig));
+            }
         }
 
         /// <summary>
@@ -791,61 +837,6 @@ namespace ILGPU.Runtime.Cuda
                 stream,
                 args,
                 kernelArgs);
-
-        /// <summary>
-        /// Launches the given kernel function using a bulk structure.
-        /// </summary>
-        /// <param name="kernelFunction">The function to launch.</param>
-        /// <param name="gridDimX">The grid dimension in X dimension.</param>
-        /// <param name="gridDimY">The grid dimension in Y dimension.</param>
-        /// <param name="gridDimZ">The grid dimension in Z dimension.</param>
-        /// <param name="blockDimX">The block dimension in X dimension.</param>
-        /// <param name="blockDimY">The block dimension in Y dimension.</param>
-        /// <param name="blockDimZ">The block dimension in Z dimension.</param>
-        /// <param name="sharedMemSizeInBytes">The shared-memory size in bytes.</param>
-        /// <param name="stream">The associated accelerator stream.</param>
-        /// <param name="argument">The argument structure.</param>
-        /// <param name="argumentLength">
-        /// The length of the memory region in bytes.
-        /// </param>
-        /// <returns>The error status.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe CudaError LaunchKernelWithStruct<T>(
-            IntPtr kernelFunction,
-            int gridDimX,
-            int gridDimY,
-            int gridDimZ,
-            int blockDimX,
-            int blockDimY,
-            int blockDimZ,
-            int sharedMemSizeInBytes,
-            IntPtr stream,
-            ref T argument,
-            int argumentLength)
-            where T : unmanaged
-        {
-            var argumentLengthPtrSize = new IntPtr(argumentLength);
-            var kernelArgs = stackalloc byte[sizeof(void*) * 5];
-            var kernelArgsPtr = (void**)kernelArgs;
-            kernelArgsPtr[0] = (void*)0x1;
-            kernelArgsPtr[1] = Unsafe.AsPointer(ref argument);
-            kernelArgsPtr[2] = (void*)0x2;
-            kernelArgsPtr[3] = &argumentLengthPtrSize;
-            kernelArgsPtr[4] = (void*)0x0;
-
-            return LaunchKernel(
-                kernelFunction,
-                gridDimX,
-                gridDimY,
-                gridDimZ,
-                blockDimX,
-                blockDimY,
-                blockDimZ,
-                sharedMemSizeInBytes,
-                stream,
-                IntPtr.Zero,
-                new IntPtr(kernelArgs));
-        }
 
         /// <summary>
         /// Computes the maximum number of blocks for maximum occupancy. 

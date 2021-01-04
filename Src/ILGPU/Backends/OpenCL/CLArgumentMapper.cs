@@ -72,8 +72,17 @@ namespace ILGPU.Backends.OpenCL
                 /// <summary>
                 /// Emits a nested source address.
                 /// </summary>
-                public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                    where TILEmitter : IILEmitter =>
+                public readonly void EmitLoadSourceAddress<TILEmitter>(
+                    in TILEmitter emitter)
+                    where TILEmitter : struct, IILEmitter =>
+                    Source.EmitLoadSourceAddress(emitter);
+
+                /// <summary>
+                /// Emits a nested source value.
+                /// </summary>
+                public readonly  void EmitLoadSource<TILEmitter>(
+                    in TILEmitter emitter)
+                    where TILEmitter : struct, IILEmitter =>
                     Source.EmitLoadSource(emitter);
             }
 
@@ -124,12 +133,12 @@ namespace ILGPU.Backends.OpenCL
             /// <summary>
             /// Emits code to set an individual argument.
             /// </summary>
-            public void MapArgument<TILEmitter, TSource>(
+            public readonly void MapArgument<TILEmitter, TSource>(
                 in TILEmitter emitter,
-                TSource source,
+                in TSource source,
                 int argumentIndex)
-                where TILEmitter : IILEmitter
-                where TSource : ISource =>
+                where TILEmitter : struct, IILEmitter
+                where TSource : struct, ISource =>
                 Parent.SetKernelArgument(
                     emitter,
                     KernelLocal,
@@ -177,14 +186,13 @@ namespace ILGPU.Backends.OpenCL
                 public SeparateViewEntryPoint.ViewParameter Parameter { get; }
 
                 /// <summary>
-                /// Converts a view into its native implementation form and maps it to
-                /// an argument.
+                /// Emits a source local that contains the native view pointer.
                 /// </summary>
-                public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                    where TILEmitter : IILEmitter
+                private ILLocal EmitSourceLocal<TILEmitter>(in TILEmitter emitter)
+                    where TILEmitter : struct, IILEmitter
                 {
                     // Load source
-                    Source.EmitLoadSource(emitter);
+                    Source.EmitLoadSourceAddress(emitter);
 
                     // Extract native pointer
                     emitter.EmitCall(
@@ -194,7 +202,30 @@ namespace ILGPU.Backends.OpenCL
                     // the reference to the local to the actual set-argument method.
                     var tempLocal = emitter.DeclareLocal(typeof(IntPtr));
                     emitter.Emit(LocalOperation.Store, tempLocal);
+
+                    return tempLocal;
+                }
+
+                /// <summary>
+                /// Converts a view into its native implementation form and maps it to
+                /// an argument.
+                /// </summary>
+                public void EmitLoadSourceAddress<TILEmitter>(in TILEmitter emitter)
+                    where TILEmitter : struct, IILEmitter
+                {
+                    var tempLocal = EmitSourceLocal(emitter);
                     emitter.Emit(LocalOperation.LoadAddress, tempLocal);
+                }
+
+                /// <summary>
+                /// Converts a view into its native implementation form and maps it to
+                /// an argument.
+                /// </summary>
+                public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
+                    where TILEmitter : struct, IILEmitter
+                {
+                    var tempLocal = EmitSourceLocal(emitter);
+                    emitter.Emit(LocalOperation.Load, tempLocal);
                 }
             }
 
@@ -250,8 +281,8 @@ namespace ILGPU.Backends.OpenCL
                 in TSource source,
                 in SeparateViewEntryPoint.ViewParameter viewParameter,
                 int viewArgumentIndex)
-                where TILEmitter : IILEmitter
-                where TSource : ISource =>
+                where TILEmitter : struct, IILEmitter
+                where TSource : struct, ISource =>
                 Parent.SetKernelArgument(
                     emitter,
                     KernelLocal,
@@ -303,7 +334,7 @@ namespace ILGPU.Backends.OpenCL
             ILLocal resultLocal,
             int argumentIndex,
             in TSource source)
-            where TILEmitter : IILEmitter
+            where TILEmitter : struct, IILEmitter
             where TSource : struct, ISource
         {
             // Load current driver API
@@ -320,7 +351,7 @@ namespace ILGPU.Backends.OpenCL
             emitter.EmitConstant(size);
 
             // Load source address
-            source.EmitLoadSource(emitter);
+            source.EmitLoadSourceAddress(emitter);
 
             // Set argument
             emitter.EmitCall(SetKernelArgumentMethod);
@@ -343,7 +374,7 @@ namespace ILGPU.Backends.OpenCL
             in TILEmitter emitter,
             ILLocal kernel,
             SeparateViewEntryPoint entryPoint)
-            where TILEmitter : IILEmitter
+            where TILEmitter : struct, IILEmitter
         {
             if (entryPoint == null)
                 throw new ArgumentNullException(nameof(entryPoint));
@@ -389,7 +420,7 @@ namespace ILGPU.Backends.OpenCL
                 kernel,
                 resultLocal,
                 parameterOffset);
-            Map(emitter, mappingHandler, entryPoint.Parameters);
+            MapArguments(emitter, mappingHandler, entryPoint.Parameters);
 
             // Check mapping result
             emitter.Emit(LocalOperation.Load, resultLocal);
