@@ -20,6 +20,21 @@ namespace ILGPU.IR.Rewriting
     /// </summary>
     public readonly struct RewriterContext : IRewriterContext
     {
+        #region Static
+
+        /// <summary>
+        /// Creates a light-weight rewriter context from the given builder.
+        /// </summary>
+        /// <param name="builder">The parent builder.</param>
+        /// <returns>The created rewriter context.</returns>
+        /// <remarks>
+        /// Note that this context does not support any of the conversion utilities.
+        /// </remarks>
+        public static RewriterContext FromBuilder(BasicBlock.Builder builder) =>
+            new RewriterContext(builder, null);
+
+        #endregion
+
         #region Instance
 
         /// <summary>
