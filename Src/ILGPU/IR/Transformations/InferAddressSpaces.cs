@@ -16,6 +16,7 @@ using ILGPU.IR.Values;
 using System.Collections.Generic;
 using static ILGPU.IR.Analyses.PointerAddressSpaces;
 using static ILGPU.IR.Transformations.InferAddressSpaces;
+using static ILGPU.IR.Transformations.InferKernelAddressSpaces;
 using static ILGPU.IR.Types.AddressSpaceType;
 using AnalysisResult = ILGPU.IR.Analyses.GlobalAnalysisValueResult<
     ILGPU.IR.Analyses.PointerAddressSpaces.AddressSpaceInfo>;
@@ -508,6 +509,165 @@ namespace ILGPU.IR.Transformations
                 builder,
                 CreateProcessingData(new LocalDataProvider(result)));
         }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Infers kernel address spaces by removing unnecessary address-space casts.
+    /// </summary>
+    /// <remarks>
+    /// This transformation is inteded to run after applying
+    /// <see cref="SpecializeKernelParameterAddressSpaces"/>. In contrast to
+    /// <see cref="InferLocalAddressSpaces"/>, this transformation uses a global program
+    /// analysis to determine detailed address-space information for each method.
+    /// </remarks>
+    public sealed class InferKernelAddressSpaces :
+        UnorderedTransformation<MethodDataProvider>
+    {
+        #region Nested Types
+
+        /// <summary>
+        /// A data provider based on global program analysis information.
+        /// </summary>
+        public sealed class MethodDataProvider : IAddressSpaceProvider
+        {
+            #region Instance
+
+            /// <summary>
+            /// Creates a new provider instance.
+            /// </summary>
+            /// <typeparam name="TPredicate">The collection predicate type.</typeparam>
+            /// <param name="methods">The collection of methods.</param>
+            /// <param name="kernelAddressSpace">The target address space.</param>
+            public static MethodDataProvider CreateProvider<TPredicate>(
+                in MethodCollection<TPredicate> methods,
+                MemoryAddressSpace kernelAddressSpace)
+                where TPredicate : IMethodCollectionPredicate
+            {
+                // Get the main entry point method
+                foreach (var method in methods)
+                {
+                    if (method.HasFlags(MethodFlags.EntryPoint))
+                    {
+                        var analysis = Create(AnalysisFlags.IgnoreGenericAddressSpace);
+                        var result = analysis.AnalyzeGlobalMethod(
+                            method,
+                            new InitialParameterValueContext(kernelAddressSpace));
+                        return new MethodDataProvider(result);
+                    }
+                }
+
+                // We could not find any entry point
+                return default;
+            }
+
+            /// <summary>
+            /// Constructs a new method data provider.
+            /// </summary>
+            /// <param name="result">The analysis result.</param>
+            private MethodDataProvider(in AnalysisResult result)
+            {
+                Result = result;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the associated program analysis result.
+            /// </summary>
+            private AnalysisResult Result { get; }
+
+            /// <summary>
+            /// Returns the return type and the original parameters of the given method.
+            /// </summary>
+            public MemoryAddressSpace this[Method method] =>
+                Result.TryGetReturnData(method, out var data)
+                ? data.Data.UnifiedAddressSpace
+                : MemoryAddressSpace.Generic;
+
+            /// <summary>
+            /// Returns the unified address space of the given value.
+            /// </summary>
+            public MemoryAddressSpace this[Value value] =>
+                Result.TryGetData(value, out var data)
+                ? data.Data.UnifiedAddressSpace
+                : new DataProvider()[value];
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Rewriter
+
+        /// <summary>
+        /// The internal rewriter.
+        /// </summary>
+        private static readonly Rewriter<ProcessingData<MethodDataProvider>> Rewriter =
+            new Rewriter<ProcessingData<MethodDataProvider>>();
+
+        /// <summary>
+        /// Registers all conversion patterns.
+        /// </summary>
+        static InferKernelAddressSpaces()
+        {
+            AddRewriters(Rewriter);
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new address-space inference pass.
+        /// </summary>
+        /// <param name="kernelAddressSpace">
+        /// The root address space of all kernel functions.
+        /// </param>
+        public InferKernelAddressSpaces(MemoryAddressSpace kernelAddressSpace)
+        {
+            KernelAddressSpace = kernelAddressSpace;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the kernel address space.
+        /// </summary>
+        public MemoryAddressSpace KernelAddressSpace { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Creates a new <see cref="MethodDataProvider"/> instance based on the main
+        /// entry-point method.
+        /// </summary>
+        protected override MethodDataProvider CreateIntermediate<TPredicate>(
+            in MethodCollection<TPredicate> methods) =>
+            MethodDataProvider.CreateProvider(methods, KernelAddressSpace);
+
+        /// <summary>
+        /// Applies the address-space inference transformation.
+        /// </summary>
+        protected override bool PerformTransformation(
+            Method.Builder builder,
+            MethodDataProvider intermediate) =>
+            intermediate != null && Rewriter.Rewrite(
+                builder.SourceBlocks,
+                builder,
+                CreateProcessingData(intermediate));
+
+        /// <summary>
+        /// Performs no operation.
+        /// </summary>
+        protected override void FinishProcessing(MethodDataProvider _) { }
 
         #endregion
     }
