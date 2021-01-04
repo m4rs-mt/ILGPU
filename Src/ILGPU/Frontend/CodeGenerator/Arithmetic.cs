@@ -126,10 +126,21 @@ namespace ILGPU.Frontend
                     // Check whether this can be safely converted into a LEA value
                     kind == BinaryArithmeticKind.Add)
                 {
+                    // Check the size of the element type and devide the raw offset
+                    // by the element size to retrieve the actual element index.
+                    var elementType = left.Type.As<PointerType>(Location).ElementType;
+                    var elementSize = Builder.CreateSizeOf(Location, elementType);
+
+                    // Create the actual address computation
+                    var leaIndex = Builder.CreateArithmetic(
+                        Location,
+                        right,
+                        elementSize,
+                        BinaryArithmeticKind.Div);
                     result = Builder.CreateLoadElementAddress(
                         Location,
                         left,
-                        right);
+                        leaIndex);
                 }
                 // Check whether this operation on pointer values can be converted
                 // into a LEA instruction

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
+<# int FixedBufferLength = 9; #>
 
 #pragma warning disable CA1815 // Override equals and operator equals on value types
 #pragma warning disable CA1051 // Do not declare visible instance fields
@@ -119,7 +120,7 @@ namespace ILGPU.Tests
 
     public unsafe abstract class FixedBuffers : TestBase
     {
-        public const int Length = 9;
+        public const int Length = <#= FixedBufferLength #>;
 
         protected FixedBuffers(ITestOutputHelper output, TestContext testContext)
             : base(output, testContext)
@@ -139,12 +140,27 @@ namespace ILGPU.Tests
             Index1 index,
             ArrayView<<#= type.Type #>> data,
             ArrayView<<#= type.Type #>> data2,
+            ArrayView<<#= type.Type #>> data3,
             FixedBufferStruct<#= type.Name #> value,
             <#= type.Type #> scalarValue)
         {
             data[index] = value.Data[index];
             AdjustBuffer(ref value, scalarValue);
             data2[index] = value.Data[index];
+
+            // Adjust buffer using C# compile-time constants
+            var bufferStruct = new FixedBufferStruct<#= type.Name #>();
+<#      for (int i = 0; i < FixedBufferLength; ++i) { #>
+            bufferStruct.Data[<#= i #>] = scalarValue;
+<#      } #>
+
+            // Limit results to the main thread
+            if (index > 0)
+                return;
+
+<#      for (int i = 0; i < FixedBufferLength; ++i) { #>
+            data3[<#= i #>] = bufferStruct.Data[<#= i #>];
+<#      } #>
         }
 
         [Fact]
@@ -153,10 +169,17 @@ namespace ILGPU.Tests
         {
             using var buffer1 = Accelerator.Allocate<<#= type.Type #>>(Length);
             using var buffer2 = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var buffer3 = Accelerator.Allocate<<#= type.Type #>>(Length);
 
-            <#= type.Type #> scalarValue = 2;
+            <#= type.Type #> scalarValue = <#= type.Type #>.MaxValue;
             var fixedBufferData1 = new FixedBufferStruct<#= type.Name #>(scalarValue);
-            Execute(Length, buffer1.View, buffer2.View, fixedBufferData1, scalarValue);
+            Execute(
+                Length,
+                buffer1.View,
+                buffer2.View,
+                buffer3.View,
+                fixedBufferData1,
+                scalarValue);
 
             var expected1 = Enumerable.Repeat(scalarValue, Length).ToArray();
             var expected2 = Enumerable.Repeat(
@@ -164,6 +187,7 @@ namespace ILGPU.Tests
                 Length).ToArray();
             Verify(buffer1, expected1);
             Verify(buffer2, expected2);
+            Verify(buffer3, expected1);
         }
 
         internal static void GetMultiFixedBuffer<#= type.Name #>Kernel(
