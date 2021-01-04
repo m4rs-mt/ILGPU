@@ -671,4 +671,396 @@ namespace ILGPU.IR.Transformations
 
         #endregion
     }
+
+    /// <summary>
+    /// Specializes kernel parameter address spaces by adapting their address spaces.
+    /// </summary>
+    /// <remarks>
+    /// CAUTION: This program transformation adds additional address-space casts into
+    /// the <see cref="MemoryAddressSpace.Generic"/> address space to have a valid IR
+    /// program in the end. The additionally introduced casts can be (potentially)
+    /// removed using <see cref="InferKernelAddressSpaces"/> afterwards.
+    /// </remarks>
+    public sealed class SpecializeKernelParameterAddressSpaces :
+        OrderedTransformation<SpecializeKernelParameterAddressSpaces.Intermediate>
+    {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents an intermediate value for processing.
+        /// </summary>
+        public readonly struct Intermediate
+        {
+            #region Instance
+
+            private readonly Dictionary<Parameter, Parameter> oldParameters;
+
+            /// <summary>
+            /// Constructs a new intermediate value.
+            /// </summary>
+            /// <param name="provider">The underlying data provider.</param>
+            public Intermediate(MethodDataProvider provider)
+            {
+                oldParameters = new Dictionary<Parameter, Parameter>();
+                Provider = provider;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns true if the current intermediate value is valid.
+            /// </summary>
+            public readonly bool IsValid => Provider != null;
+
+            /// <summary>
+            /// Returns the underlying data provider.
+            /// </summary>
+            private MethodDataProvider Provider { get; }
+
+            /// <summary>
+            /// Returns the return type and the original parameters of the given method.
+            /// </summary>
+            public readonly MemoryAddressSpace this[Method method] => Provider[method];
+
+            /// <summary>
+            /// Returns the unified address space of the given value.
+            /// </summary>
+            public readonly MemoryAddressSpace this[Value value] => Provider[value];
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns the original target address space for the updated parameter.
+            /// </summary>
+            /// <param name="parameter">The updated parameter reference.</param>
+            public readonly MemoryAddressSpace GetTargetAddressSpace(
+                Parameter parameter) =>
+                Provider[oldParameters[parameter]];
+
+            /// <summary>
+            /// Maps the <paramref name="targetParam"/> to the
+            /// <paramref name="parameter"/>.
+            /// </summary>
+            /// <param name="parameter">The source parameter.</param>
+            /// <param name="targetParam">The new target parameter.</param>
+            internal readonly void Map(Parameter parameter, Parameter targetParam) =>
+                oldParameters.Add(targetParam, parameter);
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Converts the given value into the specified target address space.
+        /// </summary>
+        /// <param name="context">The current rewriter context.</param>
+        /// <param name="value">The current value to convert.</param>
+        /// <param name="targetAddressSpace">
+        /// The target address space to convert into.
+        /// </param>
+        /// <returns>The converted value in the correct address space.</returns>
+        private static Value ConvertToAddressSpace(
+            in RewriterContext context,
+            Value value,
+            MemoryAddressSpace targetAddressSpace)
+        {
+            // Check if the current value is affected by the conversion
+            var type = value.Type;
+            if (!type.HasFlags(TypeFlags.AddressSpaceDependent))
+                return value;
+
+            var location = value.Location;
+            // If this is a simple scalar value, try to convert it
+            if (type is AddressSpaceType)
+            {
+                return context.Builder.CreateAddressSpaceCast(
+                    location,
+                    value,
+                    targetAddressSpace);
+            }
+            else
+            {
+                // We need to create a wrapper structure that has the correct address
+                // space information
+                var typeConverter = GetAddressSpaceConverter(targetAddressSpace);
+                var targetType = typeConverter.ConvertType(context.Builder, value.Type);
+                return type == targetType
+                    ? value
+                    : context.AssembleStructure(
+                        targetType as StructureType,
+                        value,
+                        (ctx, val, access) =>
+                        {
+                            // Resolve the original source value
+                            var fieldValue = ctx.Builder.CreateGetField(
+                                val.Location,
+                                val,
+                                access);
+
+                            // Convert it into the target address space (if possible)
+                            return ConvertToAddressSpace(
+                                ctx,
+                                fieldValue,
+                                targetAddressSpace);
+                        });
+            }
+        }
+
+        /// <summary>
+        /// Specializes an address-space dependent parameter.
+        /// </summary>
+        /// <param name="intermediate">The intermediate value.</param>
+        /// <param name="methodBuilder">The target method builder.</param>
+        /// <param name="builder">The entry block builder.</param>
+        /// <param name="targetAddressSpace">The target address space.</param>
+        /// <param name="parameter">The source parameter.</param>
+        /// <returns>True, if the given parameter was specialized.</returns>
+        private static bool SpecializeParameter(
+            in Intermediate intermediate,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
+            MemoryAddressSpace targetAddressSpace,
+            Parameter parameter)
+        {
+            // Append a new parameter using the converted target type
+            var converted = GetAddressSpaceConverter(targetAddressSpace).
+                ConvertType(builder, parameter.Type);
+            var targetParam = methodBuilder.AddParameter(converted, parameter.Name);
+            intermediate.Map(parameter, targetParam);
+
+            // If the type is the same, skip further address space casts
+            if (converted == parameter.Type)
+            {
+                parameter.Replace(targetParam);
+                return false;
+            }
+
+            // We have to convert the updated parameter address spaces into the generic
+            // address space at this point since the remainder of the program assumed
+            // operations on the generic address space
+            var convertedValue = ConvertToAddressSpace(
+                RewriterContext.FromBuilder(builder),
+                targetParam,
+                MemoryAddressSpace.Generic);
+            parameter.Replace(convertedValue);
+            return true;
+        }
+
+        #endregion
+
+        #region Rewriter Methods
+
+        /// <summary>
+        /// Checks if the given call has address-space dependencies.
+        /// </summary>
+        private static bool CanRewrite(
+            Intermediate data,
+            MethodCall call)
+        {
+            foreach (Value argument in call)
+            {
+                if (argument.Type.HasFlags(TypeFlags.AddressSpaceDependent))
+                    return true;
+            }
+            var returnType = call.Target.ReturnType;
+            return returnType.HasFlags(TypeFlags.AddressSpaceDependent);
+        }
+
+        /// <summary>
+        /// Rewrites method calls that need wrapped address-space casts.
+        /// </summary>
+        private static void Rewrite(
+            RewriterContext context,
+            Intermediate data,
+            MethodCall call)
+        {
+            // Rebuild the call
+            var target = call.Target;
+            var callBuilder = context.Builder.CreateCall(call.Location, call.Target);
+            for (int i = 0, e = call.Count; i < e; ++i)
+            {
+                // Check the target address space of the (potentially) updated parameter
+                var parameter = target.Parameters[i];
+                var parameterTargetAddressSpace = data.GetTargetAddressSpace(parameter);
+
+                // Convert the argument (if possible) into the target address space
+                callBuilder.Add(ConvertToAddressSpace(
+                    context,
+                    call[i],
+                    parameterTargetAddressSpace));
+            }
+
+            // Create new call node
+            Value newCall = callBuilder.Seal();
+            context.MarkConverted(newCall);
+
+            // Check the return type for a potential conversion
+            if (newCall.Type.HasFlags(TypeFlags.AddressSpaceDependent))
+            {
+                // If the return type of the callee changed, we have to emit an address
+                // space cast to ensure a valid IR
+                newCall = ConvertToAddressSpace(
+                    context,
+                    newCall,
+                    MemoryAddressSpace.Generic);
+            }
+
+            // Replace and remove the current call
+            context.ReplaceAndRemove(call, newCall);
+        }
+
+        /// <summary>
+        /// Checks if the given return has address-space dependencies.
+        /// </summary>
+        private static bool CanRewrite(
+            Intermediate data,
+            ReturnTerminator terminator)
+        {
+            var returnType = terminator.Method.ReturnType;
+            return returnType.HasFlags(TypeFlags.AddressSpaceDependent);
+        }
+
+        /// <summary>
+        /// Rewrites return terminators that need a wrapped address-space cast.
+        /// </summary>
+        private static void Rewrite(
+            RewriterContext context,
+            Intermediate data,
+            ReturnTerminator terminator)
+        {
+            var targetAddressSpace = data[terminator.Method];
+            var newReturnValue = ConvertToAddressSpace(
+                context,
+                terminator.ReturnValue,
+                targetAddressSpace);
+
+            var newReturn = context.Builder.CreateReturn(
+                newReturnValue.Location,
+                newReturnValue);
+            context.MarkConverted(newReturn);
+        }
+
+        #endregion
+
+        #region Rewriter
+
+        /// <summary>
+        /// The internal rewriter.
+        /// </summary>
+        private static readonly Rewriter<Intermediate> Rewriter =
+            new Rewriter<Intermediate>();
+
+        /// <summary>
+        /// Registers all conversion patterns.
+        /// </summary>
+        static SpecializeKernelParameterAddressSpaces()
+        {
+            Rewriter.Add<MethodCall>(CanRewrite, Rewrite);
+            Rewriter.Add<ReturnTerminator>(CanRewrite, Rewrite);
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new address-space specialization pass.
+        /// </summary>
+        /// <param name="kernelAddressSpace">
+        /// The root address space of all kernel functions.
+        /// </param>
+        public SpecializeKernelParameterAddressSpaces(
+            MemoryAddressSpace kernelAddressSpace)
+        {
+            KernelAddressSpace = kernelAddressSpace;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the kernel address space.
+        /// </summary>
+        public MemoryAddressSpace KernelAddressSpace { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Creates a new <see cref="Intermediate"/> instance based on the main
+        /// entry-point method.
+        /// </summary>
+        protected override Intermediate CreateIntermediate<TPredicate>(
+            in MethodCollection<TPredicate> methods)
+        {
+            var provider = MethodDataProvider.CreateProvider(
+                methods,
+                KernelAddressSpace);
+            return provider is null ? default : new Intermediate(provider);
+        }
+
+        /// <summary>
+        /// Applies the address-space inference transformation.
+        /// </summary>
+        protected override bool PerformTransformation(
+            Method.Builder builder,
+            in Intermediate intermediate,
+            Landscape landscape,
+            Landscape.Entry current)
+        {
+            if (!intermediate.IsValid)
+                return false;
+
+            // Initialize the main converted and the entry block builder
+            var entryBuilder = builder.EntryBlockBuilder;
+            entryBuilder.SetupInsertPositionToStart();
+
+            // Specialize all parameters
+            bool applied = false;
+            for (int i = 0, e = builder.NumParams; i < e; ++i)
+            {
+                // Query address-space information from the analysis
+                var parameter = builder[i];
+                var targetAddressSpace = intermediate[parameter];
+
+                // Add a new specialized parameter
+                applied |= SpecializeParameter(
+                    intermediate,
+                    builder,
+                    entryBuilder,
+                    targetAddressSpace,
+                    parameter);
+            }
+
+            // Specialize the return type to use the (potentially) new address space
+            if (!builder.Method.IsVoid)
+            {
+                var targetAddressSpace = intermediate[builder.Method];
+                builder.UpdateReturnType(
+                    GetAddressSpaceConverter(targetAddressSpace));
+            }
+
+            // Adjust all method calls
+            return applied && Rewriter.Rewrite(
+                builder.SourceBlocks,
+                builder,
+                intermediate);
+        }
+
+        /// <summary>
+        /// Performs no operation.
+        /// </summary>
+        protected override void FinishProcessing(in Intermediate _) { }
+
+        #endregion
+    }
 }
