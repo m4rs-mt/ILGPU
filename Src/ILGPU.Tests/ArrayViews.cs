@@ -578,88 +578,44 @@ namespace ILGPU.Tests
             Verify(buffer, expectedData);
         }
 
-        internal static void ArrayViewVectorizedIOKernel<T, T2>(
+        internal static void ArrayViewSparseMultidimensionalAccessKernel(
             Index1 index,
-            ArrayView<T> source,
-            ArrayView<T> target)
-            where T : unmanaged
-            where T2 : unmanaged
+            ArrayView<byte, LongIndex1> data,
+            ArrayView<byte, LongIndex3> source)
         {
-            // Use compile-time known offsets to test the internal alignment rules
-
-            var nonVectorAlignedSource = source.GetSubView(1, 2);
-            var nonVectorAlignedCastedSource = nonVectorAlignedSource.Cast<T2>();
-
-            var nonVectorAlignedTarget = target.GetSubView(1, 2);
-            var nonVectorAlignedTargetCasted = nonVectorAlignedTarget.Cast<T2>();
-
-            // Load from source and write to target
-            T2 data = nonVectorAlignedCastedSource[index];
-            nonVectorAlignedTargetCasted[index] = data;
-
-            // Perform the same operations with compile-time known offsets
-
-            var vectorAlignedSource = source.GetSubView(2, 2);
-            var vectorAlignedCastedSource = vectorAlignedSource.Cast<T2>();
-
-            var vectorAlignedTarget = target.GetSubView(2, 2);
-            var vectorAlignedTargetCasted = vectorAlignedTarget.Cast<T2>();
-
-            // Load from source and write to target
-            T2 data2 = vectorAlignedCastedSource[index];
-            vectorAlignedTargetCasted[index] = data2;
+            var reconstructedIndex = source.Extent.ReconstructIndex(index.Size * (source.Extent.Size / data.Extent.Size));
+            data[index] = source[reconstructedIndex];
         }
 
-        public static TheoryData<object, object> VectorizedIOData =>
-            new TheoryData<object, object>
-            {
-                { default(int), default(PairStruct<int, int>) },
-                { default(long), default(PairStruct<long, long>) },
-                {
-                    default(PairStruct<int, int>),
-                    default(PairStruct<PairStruct<int, int>, PairStruct<int, int>>)
-                },
-                {
-                    default(PairStruct<long, long>),
-                    default(PairStruct<PairStruct<long, long>, PairStruct<long, long>>)
-                },
-
-                { default(float), default(PairStruct<float, float>) },
-                { default(double), default(PairStruct<double, double>) },
-                {
-                    default(PairStruct<float, float>),
-                    default(
-                        PairStruct<
-                            PairStruct<float, float>,
-                            PairStruct<float, float>>)
-                },
-                {
-                    default(PairStruct<double, double>),
-                    default(
-                        PairStruct<
-                            PairStruct<double, double>,
-                            PairStruct<double, double>>)
-                },
-            };
-
         [Theory]
-        [MemberData(nameof(VectorizedIOData))]
-        [KernelMethod(nameof(ArrayViewVectorizedIOKernel))]
-        [SuppressMessage(
-            "Usage",
-            "xUnit1026:Theory methods should use all of their parameters")]
-        public void ArrayViewVectorizedIO<T, T2>(T sourceType, T2 targetType)
-            where T : unmanaged
-            where T2 : unmanaged
+        [InlineData(127)]
+        [InlineData(1300)]  // Makes a 2.04GB MemoryBuffer on the GPU. Prefer not to go larger so this test will pass on more machines.
+        [KernelMethod(nameof(ArrayViewSparseMultidimensionalAccessKernel))]
+        public void ArrayViewSparseMultidimensionalAccess(long length)
         {
-            const int Length = 4;
-            using var source = Accelerator.Allocate<T>(Length);
-            using var target = Accelerator.Allocate<T2>(Length);
-
-            Execute<Index1, T, T2>(1, source.View, target.View.Cast<T>());
-
-            // Note that we don't have to check the result in this case. If the execution
-            // succeeds, we already know that the vectorized IO access worked as intended
+            // This test allocates over 2GB of memory (with length == 1300), then fills it with 0s and 255s.
+            // Rather than copying the whole array and checking the result, which would take a long time to
+            // check, we'll copy every outputReductionRatio'th element and check that result.
+            var extent = new LongIndex3(length);
+            long outputReductionRatio = 103;
+            using var buffer = Accelerator.Allocate<byte, LongIndex1>(extent.Size / outputReductionRatio);
+            var expectedData = new byte[extent.Size / outputReductionRatio];
+            for (int i = 0; i < expectedData.Length; i++)
+            {
+                // Find what row of the source element i comes from. Odd rows contain 255, and even rows contain 0.
+                long sourceRow = (i * outputReductionRatio) / (length * length);
+                expectedData[i] = sourceRow % 2 == 0 ? 0 : byte.MaxValue;
+            }
+            using (var source = Accelerator.Allocate<byte, LongIndex3>(extent))
+            {
+                // Fill alternating rows with 0 and 255.
+                for (int i = 0; i < length; i++)
+                {
+                    source.MemSet(i % 2 == 0 ? 0 : byte.MaxValue, i * (length * length), length * length);
+                }
+                Execute((int)(extent.Size / outputReductionRatio), buffer.View, source.View);
+            }
+            Verify(buffer, expectedData);
         }
 
         internal static void ArrayViewAlignmentKernel<T>(
