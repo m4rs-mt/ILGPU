@@ -139,6 +139,76 @@ namespace ILGPU.IR.Analyses
 
             #endregion
 
+            #region Static
+
+            /// <summary>
+            /// Determines an address-space information instance based on type
+            /// information.
+            /// </summary>
+            /// <param name="type">The source type.</param>
+            /// <returns>
+            /// The resolved address-space information for the given type.
+            /// </returns>
+            public static AddressSpaceInfo FromType(TypeNode type)
+            {
+                // Check for address-space dependencies
+                if (!type.HasFlags(TypeFlags.AddressSpaceDependent))
+                    return default;
+
+                // Determine the unified address space of all elements
+                if (type is AddressSpaceType addressSpaceType)
+                    return addressSpaceType.AddressSpace;
+
+                // Unify all address space flags from each dependent field
+                var structureType = type as StructureType;
+                var result = new AddressSpaceInfo();
+                foreach (var (fieldType, _) in structureType)
+                    result = Merge(result, FromType(fieldType));
+                return result;
+            }
+
+            /// <summary>
+            /// Creates an <see cref="AnalysisValue{T}"/> instance based on the given
+            /// type information.
+            /// information.
+            /// </summary>
+            /// <param name="type">The source type.</param>
+            /// <returns>
+            /// The resolved analysis value holding detailed address-space information
+            /// for the given type.
+            /// </returns>
+            public static AnalysisValue<AddressSpaceInfo> AnalysisValueFromType(
+                TypeNode type)
+            {
+                var unifiedAddressSpace = FromType(type);
+                if (unifiedAddressSpace.Flags != AddressSpaceFlags.None &&
+                    type is StructureType structureType)
+                {
+                    var childData = new AddressSpaceInfo[structureType.NumFields];
+                    foreach (var (fieldType, fieldAccess) in structureType)
+                        childData[fieldAccess.Index] = FromType(fieldType);
+                    return new AnalysisValue<AddressSpaceInfo>(
+                        unifiedAddressSpace,
+                        childData);
+                }
+                return AnalysisValue.Create(unifiedAddressSpace, type);
+            }
+
+            /// <summary>
+            /// Merges two information objects.
+            /// </summary>
+            /// <param name="first">The first info object.</param>
+            /// <param name="second">The second info object.</param>
+            /// <returns>
+            /// Merged address space information based on both operands.
+            /// </returns>
+            public static AddressSpaceInfo Merge(
+                AddressSpaceInfo first,
+                AddressSpaceInfo second) =>
+                new AddressSpaceInfo(first.Flags | second.Flags);
+
+            #endregion
+
             #region Instance
 
             /// <summary>
@@ -299,7 +369,7 @@ namespace ILGPU.IR.Analyses
         /// provides initial <see cref="AddressSpaceInfo"/> information for each
         /// parameter.
         /// </summary>
-        public readonly struct InitialParameterValueContext :
+        public readonly struct ConstParameterValueContext :
             IAnalysisValueSourceContext<AddressSpaceInfo>
         {
             /// <summary>
@@ -308,7 +378,7 @@ namespace ILGPU.IR.Analyses
             /// <param name="addressSpace">
             /// The target address space to use for each parameter.
             /// </param>
-            public InitialParameterValueContext(MemoryAddressSpace addressSpace)
+            public ConstParameterValueContext(MemoryAddressSpace addressSpace)
             {
                 AddressSpace = addressSpace;
             }
@@ -329,12 +399,28 @@ namespace ILGPU.IR.Analyses
                 : default(AddressSpaceInfo);
 
             /// <summary>
-            /// Returns no address-space information in the case of default value,
-            /// detailed address-space information based on <see cref="AddressSpace"/>
+            /// Returns address-space information based on <see cref="AddressSpace"/>
             /// in the case of a parameter.
             /// </summary>
             public readonly AnalysisValue<AddressSpaceInfo> this[Value value] =>
                 AnalysisValue.Create(GetInitialAddressSpace(value), value.Type);
+        }
+
+        /// <summary>
+        /// An implementation of an <see cref="IAnalysisValueSourceContext{T}"/> that
+        /// provides initial <see cref="AddressSpaceInfo"/> information for each
+        /// parameter using an automated deduction phase.
+        /// </summary>
+        public readonly struct AutomaticParameterValueContext :
+            IAnalysisValueSourceContext<AddressSpaceInfo>
+        {
+            /// <summary>
+            /// Returns <see cref="AddressSpaceInfo"/> instances based on the
+            /// automatically determined address-space type information from each
+            /// parameter.
+            /// </summary>
+            public readonly AnalysisValue<AddressSpaceInfo> this[Value value] =>
+                AddressSpaceInfo.AnalysisValueFromType(value.Type);
         }
 
         #endregion
@@ -419,7 +505,7 @@ namespace ILGPU.IR.Analyses
         protected override AddressSpaceInfo Merge(
             AddressSpaceInfo first,
             AddressSpaceInfo second) =>
-            new AddressSpaceInfo(first.Flags | second.Flags);
+            AddressSpaceInfo.Merge(first, second);
 
         /// <summary>
         /// Returns no analysis value.
