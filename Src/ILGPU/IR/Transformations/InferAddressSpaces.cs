@@ -15,6 +15,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
 using static ILGPU.IR.Analyses.PointerAddressSpaces;
+using static ILGPU.IR.Transformations.InferAddressSpaces;
 using static ILGPU.IR.Types.AddressSpaceType;
 using AnalysisResult = ILGPU.IR.Analyses.GlobalAnalysisValueResult<
     ILGPU.IR.Analyses.PointerAddressSpaces.AddressSpaceInfo>;
@@ -400,6 +401,113 @@ namespace ILGPU.IR.Transformations
                 builder.SourceBlocks,
                 builder,
                 CreateProcessingData(new DataProvider()));
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Infers method-local address spaces by removing unnecessary address-space casts.
+    /// </summary>
+    /// <remarks>
+    /// This transformation uses a method-local program analysis to remove address-space
+    /// casts that are no longer required.
+    /// </remarks>
+    public sealed class InferLocalAddressSpaces : UnorderedTransformation
+    {
+        #region Nested Types
+
+        /// <summary>
+        /// A data provider based on local program analysis information.
+        /// </summary>
+        private readonly struct LocalDataProvider : IAddressSpaceProvider
+        {
+            internal LocalDataProvider(in AnalysisValueMapping<AddressSpaceInfo> mapping)
+            {
+                Mapping = mapping;
+            }
+
+            /// <summary>
+            /// Returns the local information of the <see cref="PointerAddressSpaces"/>
+            /// analysis.
+            /// </summary>
+            private AnalysisValueMapping<AddressSpaceInfo> Mapping { get; }
+
+            /// <summary>
+            /// Returns the unified address space of the given value.
+            /// </summary>
+            public readonly MemoryAddressSpace this[Value value] =>
+                Mapping.TryGetValue(value, out var data)
+                ? data.Data.UnifiedAddressSpace
+                : new DataProvider()[value];
+        }
+
+        #endregion
+
+        #region Rewriter
+
+        /// <summary>
+        /// The internal rewriter.
+        /// </summary>
+        private static readonly Rewriter<ProcessingData<LocalDataProvider>> Rewriter =
+            new Rewriter<ProcessingData<LocalDataProvider>>();
+
+        /// <summary>
+        /// Registers all conversion patterns.
+        /// </summary>
+        static InferLocalAddressSpaces()
+        {
+            AddRewriters(Rewriter);
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new address-space inference pass.
+        /// </summary>
+        public InferLocalAddressSpaces()
+            : this(MemoryAddressSpace.Generic)
+        { }
+
+        /// <summary>
+        /// Constructs a new address-space inference pass.
+        /// </summary>
+        /// <param name="parameterAddressSpace">
+        /// The root address space of all method parameters.
+        /// </param>
+        public InferLocalAddressSpaces(MemoryAddressSpace parameterAddressSpace)
+        {
+            ParameterAddressSpace = parameterAddressSpace;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the parameter address space.
+        /// </summary>
+        public MemoryAddressSpace ParameterAddressSpace { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Applies the address-space inference transformation.
+        /// </summary>
+        protected override bool PerformTransformation(Method.Builder builder)
+        {
+            var analysis = Create(AnalysisFlags.IgnoreGenericAddressSpace);
+            var (_, result) = analysis.AnalyzeMethod(
+                builder.Method,
+                new InitialParameterValueContext(ParameterAddressSpace));
+            return Rewriter.Rewrite(
+                builder.SourceBlocks,
+                builder,
+                CreateProcessingData(new LocalDataProvider(result)));
+        }
 
         #endregion
     }
