@@ -32,10 +32,6 @@ namespace ILGPU.IR.Analyses
     /// </summary>
     /// <typeparam name="TOrder">The current order.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    [SuppressMessage(
-        "Microsoft.Naming",
-        "CA1710: IdentifiersShouldHaveCorrectSuffix",
-        Justification = "This is the correct name of this program analysis")]
     public sealed class Loops<TOrder, TDirection>
         where TOrder : struct, ITraversalOrder
         where TDirection : struct, IControlFlowDirection
@@ -285,6 +281,40 @@ namespace ILGPU.IR.Analyses
                         builder.Add(block);
                 }
                 return builder.Seal();
+            }
+
+            /// <summary>
+            /// Returns true if the given blocks contain at least one backedge block.
+            /// </summary>
+            /// <param name="blocks">The blocks to test.</param>
+            /// <returns>
+            /// True, if the given block contain at least one backedge block.
+            /// </returns>
+            public bool ContainsBackedgeBlock(ReadOnlySpan<BasicBlock> blocks)
+            {
+                foreach (var block in blocks)
+                {
+                    if (BackEdges.Contains(block, new BasicBlock.Comparer()))
+                        return true;
+                }
+                return false;
+            }
+
+            /// <summary>
+            /// Returns true if the given blocks consists of exclusive body blocks only.
+            /// </summary>
+            /// <param name="blocks">The blocks to test.</param>
+            /// <returns>
+            /// True, if the given blocks consists of exclusive body blocks only.
+            /// </returns>
+            public bool ConsistsOfBodyBlocks(ReadOnlySpan<BasicBlock> blocks)
+            {
+                foreach (var block in blocks)
+                {
+                    if (!ContainsExclusively(block))
+                        return false;
+                }
+                return true;
             }
 
             /// <summary>
