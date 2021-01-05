@@ -873,7 +873,8 @@ namespace ILGPU.Backends.EntryPoints
             // the actual alignment-induced padding into account
             var lastFieldName = GetFieldName(parameters.Count - 1);
             int lastOffset = Marshal.OffsetOf(argumentType, lastFieldName).ToInt32();
-            int lastFieldSize = Interop.SizeOf(parameters[parameters.Count - 1]);
+            int lastFieldSize = Interop.SizeOf(
+                argumentType.GetField(lastFieldName).FieldType);
 
             // Map the whole argument structure
             return mappingHandler.MapArgumentStruct(
