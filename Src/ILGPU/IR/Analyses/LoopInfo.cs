@@ -212,7 +212,7 @@ namespace ILGPU.IR.Analyses
             out InlineList<(PhiValue, Value)> phiValues)
         {
             var phis = loop.ComputePhis();
-            var phiInductionsVariables = new HashSet<PhiValue>();
+            var visitedPhis = new HashSet<PhiValue>();
 
             inductionVariables = InlineList<InductionVariable>.Create(phis.Count);
             phiValues = InlineList<(PhiValue, Value)>.Create(phis.Count);
@@ -234,21 +234,37 @@ namespace ILGPU.IR.Analyses
                     outside,
                     inside,
                     branch));
-                phiInductionsVariables.Add(phiValue);
+                visitedPhis.Add(phiValue);
             }
 
-            // Check all
+            // Check all phi values
             foreach (var phi in phis)
             {
-                // Check whether this phi is an induction variable
-                if (!phiInductionsVariables.Add(phi))
+                // Check whether this phi has already been visited, which also covers
+                // caches in which the given phi is an induction variable
+                if (!visitedPhis.Add(phi))
                     continue;
 
-                // Try to get the phi operands
-                if (!TryGetPhiOperands(loop, phi, out var _, out var outside))
+                // Check whether this phi value is affected by the current loop; in
+                // other words, the phi value receives an argument via the backedge
+                if (loop.ContainsBackedgeBlock(phi.Sources))
+                {
+                    // Try to get the phi operands
+                    if (!TryGetPhiOperands(loop, phi, out var _, out var outside))
+                        return false;
+                    phiValues.Add((phi, outside));
+                }
+                else if (loop.ConsistsOfBodyBlocks(phi.Sources))
+                {
+                    // We can safely ignore this phi value since all of its sources
+                    // reference loop-internal blocks that will be automatically
+                    // remapped during unrolling and do not need to be specialized
+                }
+                else
+                {
+                    // We have found a degenerated phi-value can which we cannot unroll
                     return false;
-
-                phiValues.Add((phi, outside));
+                }
             }
 
             return true;
