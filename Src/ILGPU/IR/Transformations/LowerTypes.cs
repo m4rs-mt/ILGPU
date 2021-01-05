@@ -55,9 +55,9 @@ namespace ILGPU.IR.Transformations
             var location = value.Location;
 
             var sourceType = typeConverter[value] as StructureType;
-            var instance = builder.CreateDynamicStructure(
+            var instance = builder.CreateStructure(
                 location,
-                sourceType.NumFields);
+                typeConverter.ConvertType(sourceType) as StructureType);
 
             for (int i = 0, e = sourceType.NumFields; i < e; ++i)
             {
@@ -227,6 +227,16 @@ namespace ILGPU.IR.Transformations
             PhiValue phi) =>
             context.Builder.UpdatePhiType(phi, typeConverter);
 
+        /// <summary>
+        /// Invalidates the type of the given value.
+        /// </summary>
+        protected static void InvalidateType<TValue>(
+            RewriterContext context,
+            TypeLowering<TType> typeConverter,
+            TValue value)
+            where TValue : Value =>
+            value.InvalidateType();
+
         #endregion
 
         #region Rewriter
@@ -299,6 +309,10 @@ namespace ILGPU.IR.Transformations
                 (typeConverter, value) =>
                     IsTypeDependent(typeConverter, value, value.PhiType),
                 Lower);
+
+            rewriter.Add<Predicate>(IsTypeDependent, InvalidateType);
+            rewriter.Add<MethodCall>(IsTypeDependent, InvalidateType);
+            rewriter.Add<ReturnTerminator>(IsTypeDependent, InvalidateType);
         }
 
         #endregion

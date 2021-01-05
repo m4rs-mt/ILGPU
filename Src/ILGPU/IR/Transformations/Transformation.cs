@@ -270,6 +270,7 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="builder">The current builder.</param>
             /// <returns>True, if the transformation could be applied.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool Execute(Method.Builder builder) =>
                 Parent.PerformTransformation(builder, Intermediate);
         }
@@ -339,7 +340,8 @@ namespace ILGPU.IR.Transformations
     /// Represents a generic transformation that will be applied in the post order
     /// of the induced call graph.
     /// </summary>
-    public abstract class OrderedTransformation : Transformation
+    /// <typeparam name="TIntermediate">The type of the intermediate values.</typeparam>
+    public abstract class OrderedTransformation<TIntermediate> : Transformation
     {
         #region Nested Types
 
@@ -352,14 +354,17 @@ namespace ILGPU.IR.Transformations
             /// Constructs a new executor.
             /// </summary>
             /// <param name="parent">The parent transformation.</param>
+            /// <param name="intermediate">The intermediate value.</param>
             /// <param name="landscape">The current landscape.</param>
             /// <param name="entry">The current landscape entry.</param>
             public Executor(
-                OrderedTransformation parent,
+                OrderedTransformation<TIntermediate> parent,
+                TIntermediate intermediate,
                 Landscape landscape,
                 Landscape.Entry entry)
             {
                 Parent = parent;
+                Intermediate = intermediate;
                 Landscape = landscape;
                 Entry = entry;
             }
@@ -367,7 +372,12 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// The associated parent transformation.
             /// </summary>
-            public OrderedTransformation Parent { get; }
+            public OrderedTransformation<TIntermediate> Parent { get; }
+
+            /// <summary>
+            /// Returns the associated intermediate value.
+            /// </summary>
+            public TIntermediate Intermediate { get; }
 
             /// <summary>
             /// Returns the current landscape.
@@ -384,9 +394,11 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="builder">The current builder.</param>
             /// <returns>True, if the transformation could be applied.</returns>
-            public bool Execute(Method.Builder builder) =>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly bool Execute(Method.Builder builder) =>
                 Parent.PerformTransformation(
                     builder,
+                    Intermediate,
                     Landscape,
                     Entry);
         }
@@ -405,6 +417,20 @@ namespace ILGPU.IR.Transformations
         #region Methods
 
         /// <summary>
+        /// Creates a new intermediate value.
+        /// </summary>
+        /// <returns>The resulting intermediate value.</returns>
+        protected abstract TIntermediate CreateIntermediate<TPredicate>(
+            in MethodCollection<TPredicate> methods)
+            where TPredicate : IMethodCollectionPredicate;
+
+        /// <summary>
+        /// Is invoked after all methods have been transformed.
+        /// </summary>
+        /// <param name="intermediate">The current intermediate value.</param>
+        protected abstract void FinishProcessing(in TIntermediate intermediate);
+
+        /// <summary>
         /// Transforms all methods in the given context.
         /// </summary>
         /// <param name="methods">The methods to transform.</param>
@@ -417,15 +443,77 @@ namespace ILGPU.IR.Transformations
             if (landscape.Count < 1)
                 return;
 
+            var intermediate = CreateIntermediate(methods);
             foreach (var entry in landscape)
             {
-                var executor = new Executor(this, landscape, entry);
+                var executor = new Executor(this, intermediate, landscape, entry);
                 {
                     using var builder = entry.Method.CreateBuilder();
                     ExecuteTransform(builder, executor);
                 }
             }
+            FinishProcessing(intermediate);
         }
+
+        /// <summary>
+        /// Transforms the given method using the provided builder.
+        /// </summary>
+        /// <param name="builder">The current method builder.</param>
+        /// <param name="intermediate">The intermediate value.</param>
+        /// <param name="landscape">The global processing landscape.</param>
+        /// <param name="current">The current landscape entry.</param>
+        protected abstract bool PerformTransformation(
+            Method.Builder builder,
+            in TIntermediate intermediate,
+            Landscape landscape,
+            Landscape.Entry current);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a generic transformation that will be applied in the post order
+    /// of the induced call graph.
+    /// </summary>
+    public abstract class OrderedTransformation : OrderedTransformation<object>
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new transformation.
+        /// </summary>
+        protected OrderedTransformation() { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Creates a new intermediate value.
+        /// </summary>
+        /// <returns>The resulting intermediate value.</returns>
+        protected sealed override object CreateIntermediate<TPredicate>(
+            in MethodCollection<TPredicate> methods) => null;
+
+        /// <summary>
+        /// Is invoked after all methods have been transformed.
+        /// </summary>
+        /// <param name="intermediate">The current intermediate value.</param>
+        protected sealed override void FinishProcessing(in object intermediate) { }
+
+        /// <summary>
+        /// Transforms the given method using the provided builder.
+        /// </summary>
+        /// <param name="builder">The current method builder.</param>
+        /// <param name="intermediate">The intermediate value.</param>
+        /// <param name="landscape">The global processing landscape.</param>
+        /// <param name="current">The current landscape entry.</param>
+        protected sealed override bool PerformTransformation(
+            Method.Builder builder,
+            in object intermediate,
+            Landscape landscape,
+            Landscape.Entry current) =>
+            PerformTransformation(builder, landscape, current);
 
         /// <summary>
         /// Transforms the given method using the provided builder.

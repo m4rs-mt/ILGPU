@@ -109,6 +109,13 @@ namespace ILGPU.IR.Construction
         {
             var type = node.Type.As<AddressSpaceType>(location);
 
+            // Simplify chained casts
+            if (node is AddressSpaceCast cast)
+            {
+                node = cast.Value;
+                type = cast.SourceType;
+            }
+
             var sourceAddressSpace = type.AddressSpace;
             return sourceAddressSpace == targetAddressSpace
                 ? (ValueReference)node

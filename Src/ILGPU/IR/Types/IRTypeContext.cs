@@ -303,7 +303,7 @@ namespace ILGPU.IR.Types
 
             // Create a 1D view type for now
             elementType.Assert(dimensions == 1);
-            return CreateViewType(elementType, MemoryAddressSpace.Local);
+            return CreateViewType(elementType, MemoryAddressSpace.Generic);
         }
 
         /// <summary>
