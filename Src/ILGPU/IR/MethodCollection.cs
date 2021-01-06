@@ -13,7 +13,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR
 {
@@ -28,35 +28,6 @@ namespace ILGPU.IR
         /// <param name="method">The function to test.</param>
         /// <returns>True, if this predicate matches the given function.</returns>
         bool Match(Method method);
-    }
-
-    /// <summary>
-    /// Represents an abstract function view.
-    /// </summary>
-    public interface IMethodCollection : IReadOnlyCollection<Method>
-    {
-        /// <summary>
-        /// Returns the associated IR context.
-        /// </summary>
-        IRContext Context { get; }
-
-        /// <summary>
-        /// Returns the total number of functions without applying the predicate.
-        /// </summary>
-        int TotalNumMethods { get; }
-    }
-
-    /// <summary>
-    /// Represents an abstract function view using a predicate.
-    /// </summary>
-    /// <typeparam name="TPredicate">The predicate type.</typeparam>
-    public interface IMethodCollection<TPredicate> : IMethodCollection
-        where TPredicate : IMethodCollectionPredicate
-    {
-        /// <summary>
-        /// Returns the associated predicate.
-        /// </summary>
-        TPredicate Predicate { get; }
     }
 
     /// <summary>
@@ -93,147 +64,67 @@ namespace ILGPU.IR
             public bool Match(Method method) =>
                 !method.HasTransformationFlags(MethodTransformationFlags.Dirty);
         }
-    }
-
-    /// <summary>
-    /// Represents an unsafe function view.
-    /// </summary>
-    /// <typeparam name="TPredicate">The predicate type.</typeparam>
-    public readonly struct UnsafeMethodCollection<TPredicate> :
-        IMethodCollection<TPredicate>
-        where TPredicate : IMethodCollectionPredicate
-    {
-        #region Nested Types
 
         /// <summary>
-        /// The internal enumerator.
+        /// Represents a function predicate for functions to transform.
         /// </summary>
-        public struct Enumerator : IEnumerator<Method>
+        public readonly struct ToTransform : IMethodCollectionPredicate
         {
-            #region Instance
-
-            private MethodMapping<Method>.Enumerator enumerator;
-            private readonly TPredicate predicate;
+            /// <summary>
+            /// Constructs a new function predicate.
+            /// </summary>
+            /// <param name="flags">The desired flags that should not be set.</param>
+            public ToTransform(MethodTransformationFlags flags)
+            {
+                Flags = flags;
+            }
 
             /// <summary>
-            /// Constructs a new internal enumerator.
+            /// Returns the flags that should not be set on the target function.
             /// </summary>
-            /// <param name="collection">The parent collection.</param>
-            /// <param name="currentPredicate">The view predicate.</param>
-            internal Enumerator(
-                MethodMapping<Method>.ReadOnlyCollection collection,
-                TPredicate currentPredicate)
-            {
-                enumerator = collection.GetEnumerator();
-                predicate = currentPredicate;
-            }
+            public MethodTransformationFlags Flags { get; }
 
-            #endregion
-
-            #region Properties
-
-            /// <summary cref="IEnumerator{T}.Current"/>
-            public Method Current => enumerator.Current;
-
-            /// <summary cref="IEnumerator.Current"/>
-            object IEnumerator.Current => Current;
-
-            #endregion
-
-            #region Methods
-
-            /// <summary cref="IEnumerator.Reset"/>
-            void IEnumerator.Reset() => throw new InvalidOperationException();
-
-            /// <summary cref="IEnumerator.MoveNext"/>
-            public bool MoveNext()
-            {
-                while (enumerator.MoveNext())
-                {
-                    if (predicate.Match(enumerator.Current))
-                        return true;
-                }
-                return false;
-            }
-
-            #endregion
-
-            #region IDisposable
-
-            /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose() => enumerator.Dispose();
-
-            #endregion
+            /// <summary cref="IMethodCollectionPredicate.Match(Method)"/>
+            public bool Match(Method method) =>
+                method.HasImplementation &&
+                (method.TransformationFlags & Flags) == MethodTransformationFlags.None;
         }
 
-        #endregion
-
-        #region Instance
-
-        internal UnsafeMethodCollection(
-            IRContext context,
-            MethodMapping<Method>.ReadOnlyCollection collection,
-            TPredicate predicate)
+        /// <summary>
+        /// Represents a predicate based on a hash set implementation.
+        /// </summary>
+        public readonly struct SetPredicate : IMethodCollectionPredicate
         {
-            Debug.Assert(context != null, "Invalid context");
-            Context = context;
-            Collection = collection;
-            Predicate = predicate;
+            private readonly HashSet<Method> methodSet;
+
+            /// <summary>
+            /// Constructs a new set predicate using a method collection.
+            /// </summary>
+            /// <param name="methods">The method collection to use.</param>
+            public SetPredicate(in MethodCollection methods)
+                : this(methods.ToSet())
+            { }
+
+            /// <summary>
+            /// Constructs a new set predicate using a method set.
+            /// </summary>
+            /// <param name="methods">The method set to use.</param>
+            public SetPredicate(HashSet<Method> methods)
+            {
+                methodSet = methods;
+            }
+
+            /// <summary>
+            /// Returns true if the given method is contained in the encapsulated set.
+            /// </summary>
+            public readonly bool Match(Method method) => methodSet.Contains(method);
         }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated IR context.
-        /// </summary>
-        public IRContext Context { get; }
-
-        /// <summary>
-        /// Returns the associated function collection.
-        /// </summary>
-        public MethodMapping<Method>.ReadOnlyCollection Collection { get; }
-
-        /// <summary>
-        /// Returns the associated predicate.
-        /// </summary>
-        public TPredicate Predicate { get; }
-
-        /// <summary>
-        /// Returns the total number of functions without applying the predicate.
-        /// </summary>
-        public int TotalNumMethods => Collection.Count;
-
-        /// <summary cref="IReadOnlyCollection{T}.Count"/>
-        int IReadOnlyCollection<Method>.Count => TotalNumMethods;
-
-        #endregion
-
-        #region IEnumerable
-
-        /// <summary>
-        /// Returns an enumerator that enumerates all stored values.
-        /// </summary>
-        /// <returns>An enumerator that enumerates all stored values.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(Collection, Predicate);
-
-        /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<Method> IEnumerable<Method>.GetEnumerator() => GetEnumerator();
-
-        /// <summary cref="IEnumerable.GetEnumerator"/>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        #endregion
     }
 
     /// <summary>
     /// Represents a thread-safe function view.
     /// </summary>
-    /// <typeparam name="TPredicate">The predicate type.</typeparam>
-    public readonly struct MethodCollection<TPredicate> :
-        IMethodCollection<TPredicate>
-        where TPredicate : IMethodCollectionPredicate
+    public readonly struct MethodCollection : IEnumerable<Method>
     {
         #region Nested Types
 
@@ -280,7 +171,7 @@ namespace ILGPU.IR
             #region IDisposable
 
             /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose() { }
+            void IDisposable.Dispose() { }
 
             #endregion
         }
@@ -289,15 +180,15 @@ namespace ILGPU.IR
 
         #region Instance
 
-        internal MethodCollection(
-            IRContext context,
-            ImmutableArray<Method> collection,
-            TPredicate predicate)
+        /// <summary>
+        /// Constructs a new method collection.
+        /// </summary>
+        /// <param name="context">The parent context.</param>
+        /// <param name="collection">The collection members.</param>
+        internal MethodCollection(IRContext context, ImmutableArray<Method> collection)
         {
-            Debug.Assert(context != null, "Invalid context");
             Context = context;
             Collection = collection;
-            Predicate = predicate;
         }
 
         #endregion
@@ -315,17 +206,26 @@ namespace ILGPU.IR
         public ImmutableArray<Method> Collection { get; }
 
         /// <summary>
-        /// Returns the associated predicate.
+        /// Returns the number of functions.
         /// </summary>
-        public TPredicate Predicate { get; }
+        public readonly int Count => Collection.Length;
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
-        /// Returns the total number of functions without applying the predicate.
+        /// Converts this collection into a <see cref="HashSet{T}"/> instance.
         /// </summary>
-        public int TotalNumMethods => Collection.Length;
-
-        /// <summary cref="IReadOnlyCollection{T}.Count"/>
-        int IReadOnlyCollection<Method>.Count => TotalNumMethods;
+        /// <returns>The created and filled set instance.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly HashSet<Method> ToSet()
+        {
+            var result = new HashSet<Method>();
+            foreach (var method in this)
+                result.Add(method);
+            return result;
+        }
 
         #endregion
 
@@ -335,7 +235,7 @@ namespace ILGPU.IR
         /// Returns an enumerator that enumerates all stored values.
         /// </summary>
         /// <returns>An enumerator that enumerates all stored values.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(Collection);
+        public readonly Enumerator GetEnumerator() => new Enumerator(Collection);
 
         /// <summary cref="IEnumerable{T}.GetEnumerator"/>
         IEnumerator<Method> IEnumerable<Method>.GetEnumerator() => GetEnumerator();
