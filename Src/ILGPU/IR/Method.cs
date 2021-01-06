@@ -389,11 +389,11 @@ namespace ILGPU.IR
         /// <summary>
         /// Creates a new method instance.
         /// </summary>
-        /// <param name="context">The context this method belongs to.</param>
+        /// <param name="baseContext">The context this method belongs to.</param>
         /// <param name="declaration">The associated declaration.</param>
         /// <param name="location">The current location.</param>
         internal Method(
-            IRContext context,
+            IRBaseContext baseContext,
             in MethodDeclaration declaration,
             Location location)
             : base(
@@ -401,11 +401,10 @@ namespace ILGPU.IR
                   ? location
                   : new MethodLocation(declaration.Source))
         {
-            Location.AssertNotNull(context);
             Location.Assert(
                 declaration.HasHandle && declaration.ReturnType != null);
 
-            Context = context;
+            BaseContext = baseContext;
             Declaration = declaration;
 
             // Create entry block
@@ -419,9 +418,9 @@ namespace ILGPU.IR
         #region Properties
 
         /// <summary>
-        /// Returns the associated IR context.
+        /// Returns the associated IR context reference.
         /// </summary>
-        public IRContext Context { get; }
+        public IRBaseContext BaseContext { get; }
 
         /// <summary>
         /// Returns the associated method name.
@@ -606,6 +605,23 @@ namespace ILGPU.IR
             Debug.Assert(oldBuilder != null, "Invalid builder");
             if (Interlocked.CompareExchange(ref builder, null, oldBuilder) != oldBuilder)
                 throw new InvalidOperationException();
+        }
+
+        /// <summary>
+        /// Extracts the current method and all of its dependencies into a separate
+        /// context instance.
+        /// </summary>
+        /// <param name="method">The extracted method reference.</param>
+        /// <returns>The created context instance.</returns>
+        public IRContext ExtractToContext(out Method method)
+        {
+            var context = new IRContext(BaseContext.Context);
+
+            // Note that it is safe to call Import here, since we are currently the
+            // only owner of the context instance (since it has just been created)
+            method = context.Import(this);
+
+            return context;
         }
 
         /// <summary>

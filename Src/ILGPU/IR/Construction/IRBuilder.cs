@@ -42,9 +42,9 @@ namespace ILGPU.IR.Construction
         #region Properties
 
         /// <summary>
-        /// Returns the associated context.
+        /// Returns the associated type context.
         /// </summary>
-        public IRContext Context { get; }
+        public IRTypeContext TypeContext { get; }
 
         /// <summary>
         /// Returns the parent method.
@@ -59,12 +59,12 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Returns the void type.
         /// </summary>
-        public VoidType VoidType => Context.VoidType;
+        public VoidType VoidType => TypeContext.VoidType;
 
         /// <summary>
         /// Returns the string type.
         /// </summary>
-        public StringType StringType => Context.StringType;
+        public StringType StringType => TypeContext.StringType;
 
         /// <summary>
         /// True, if the IR builder should use constant propagation.
