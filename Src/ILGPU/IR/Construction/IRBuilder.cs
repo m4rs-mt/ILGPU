@@ -32,8 +32,8 @@ namespace ILGPU.IR.Construction
         protected IRBuilder(BasicBlock basicBlock)
         {
             BasicBlock = basicBlock;
-            Context = Method.Context;
-            UseConstantPropagation = !Context.HasFlags(
+            BaseContext = Method.BaseContext;
+            UseConstantPropagation = !BaseContext.HasFlags(
                 ContextFlags.DisableConstantPropagation);
         }
 
@@ -42,9 +42,9 @@ namespace ILGPU.IR.Construction
         #region Properties
 
         /// <summary>
-        /// Returns the associated type context.
+        /// Returns a wrapped context reference.
         /// </summary>
-        public IRTypeContext TypeContext { get; }
+        public IRBaseContext BaseContext { get; }
 
         /// <summary>
         /// Returns the parent method.
@@ -55,16 +55,6 @@ namespace ILGPU.IR.Construction
         /// Returns the associated basic block.
         /// </summary>
         public BasicBlock BasicBlock { get; }
-
-        /// <summary>
-        /// Returns the void type.
-        /// </summary>
-        public VoidType VoidType => TypeContext.VoidType;
-
-        /// <summary>
-        /// Returns the string type.
-        /// </summary>
-        public StringType StringType => TypeContext.StringType;
 
         /// <summary>
         /// True, if the IR builder should use constant propagation.
@@ -89,7 +79,7 @@ namespace ILGPU.IR.Construction
         /// <returns>The created value initializer.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ValueInitializer GetInitializer(Location location) =>
-            new ValueInitializer(Context, BasicBlock, location);
+            new ValueInitializer(BaseContext, BasicBlock, location);
 
         /// <summary>
         /// Creates a node that represents an <see cref="Accelerator.CurrentType"/>
@@ -245,7 +235,7 @@ namespace ILGPU.IR.Construction
         /// Creates a node that represents an undefined value.
         /// </summary>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateUndefined() => Context.UndefinedValue;
+        public ValueReference CreateUndefined() => BaseContext.UndefinedValue;
 
         /// <summary>
         /// Creates a node that represents a managed runtime handle.

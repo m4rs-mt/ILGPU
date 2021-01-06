@@ -16,7 +16,6 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
@@ -49,7 +48,7 @@ namespace ILGPU.IR.Construction
                     managedType);
             }
 
-            var typeInfo = Context.TypeContext.GetTypeInfo(managedType);
+            var typeInfo = TypeContext.GetTypeInfo(managedType);
             var type = CreateType(managedType);
             if (!(type is StructureType structureType))
             {
@@ -295,10 +294,6 @@ namespace ILGPU.IR.Construction
         /// <param name="objectValue">The object value.</param>
         /// <param name="fieldSpan">The field span.</param>
         /// <returns>A reference to the requested value.</returns>
-        [SuppressMessage(
-            "Style",
-            "IDE0046:Convert to conditional expression",
-            Justification = "Avoid nested if conditionals")]
         public ValueReference CreateGetField(
             Location location,
             Value objectValue,
@@ -319,7 +314,7 @@ namespace ILGPU.IR.Construction
                 case NullValue _:
                     return CreateNull(
                         location,
-                        structureType.Get(Context, fieldSpan));
+                        structureType.Get(BaseContext, fieldSpan));
                 case SetField setField:
                     // Optimize for simple cases
                     if (setField.FieldSpan == fieldSpan)
@@ -379,7 +374,7 @@ namespace ILGPU.IR.Construction
             Value value)
         {
             var structureType = objectValue.Type.As<StructureType>(location);
-            location.Assert(structureType.Get(Context, fieldSpan) == value.Type);
+            location.Assert(structureType.Get(BaseContext, fieldSpan) == value.Type);
 
             // Fold structure values
             if (objectValue is StructureValue structureValue)

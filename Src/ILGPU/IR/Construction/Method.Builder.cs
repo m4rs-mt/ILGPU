@@ -175,9 +175,14 @@ namespace ILGPU.IR
             #region Properties
 
             /// <summary>
-            /// Returns the associated IR context.
+            /// Returns the associated IR base context.
             /// </summary>
-            public IRContext Context => Method.Context;
+            public IRBaseContext BaseContext => Method.BaseContext;
+
+            /// <summary>
+            /// Returns the associated type context.
+            /// </summary>
+            public IRTypeContext TypeContext => BaseContext.TypeContext;
 
             /// <summary>
             /// Returns the associated method.
@@ -310,7 +315,9 @@ namespace ILGPU.IR
                 TTypeConverter typeConverter)
                 where TTypeConverter : ITypeConverter<TypeNode>
             {
-                var returnType = typeConverter.ConvertType(Context, Method.ReturnType);
+                var returnType = typeConverter.ConvertType(
+                    BaseContext,
+                    Method.ReturnType);
                 Method.Declaration = Method.Declaration.Specialize(returnType);
             }
 
@@ -324,7 +331,7 @@ namespace ILGPU.IR
                 where TTypeConverter : ITypeConverter<TypeNode>
             {
                 foreach (var param in parameters)
-                    param.UpdateType(Context, typeConverter);
+                    param.UpdateType(BaseContext, typeConverter);
             }
 
             /// <summary>
@@ -414,7 +421,7 @@ namespace ILGPU.IR
             private Parameter CreateParam(TypeNode type, string name) =>
                 new Parameter(
                     new ValueInitializer(
-                        Context,
+                        BaseContext,
                         Method,
                         Method.Location),
                     type,
