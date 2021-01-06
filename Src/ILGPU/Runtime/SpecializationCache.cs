@@ -83,11 +83,6 @@ namespace ILGPU.Runtime
         public Accelerator Accelerator { get; }
 
         /// <summary>
-        /// Returns the associated raw kernel context.
-        /// </summary>
-        public IRContext KernelContext => KernelMethod.Context;
-
-        /// <summary>
         /// Returns the associated raw kernel method.
         /// </summary>
         public Method KernelMethod { get; }
@@ -115,18 +110,21 @@ namespace ILGPU.Runtime
         /// Creates a kernel wrapper method that invokes the actual kernel method
         /// with specialized values.
         /// </summary>
+        /// <param name="kernelContext">The current kernel context.</param>
         /// <param name="kernelMethod">The kernel method to invoke.</param>
         /// <param name="args">The target arguments.</param>
         /// <returns>The created IR method.</returns>
-        private Method CreateKernelWrapper(Method kernelMethod, in TArgs args)
+        private Method CreateKernelWrapper(
+            IRContext kernelContext,
+            Method kernelMethod,
+            in TArgs args)
         {
             // Create a new wrapper kernel launcher
             var handle = MethodHandle.Create("LauncherWrapper");
-            var targetContext = kernelMethod.Context;
-            var targetMethod = targetContext.Declare(
+            var targetMethod = kernelContext.Declare(
                 new MethodDeclaration(
                     handle,
-                    targetContext.VoidType),
+                    kernelContext.VoidType),
                 out var _);
             kernelMethod.AddFlags(MethodFlags.Inline);
             using (var methodBuilder = targetMethod.CreateBuilder())
@@ -182,9 +180,12 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private TDelegate SpecializeKernel(in TArgs args)
         {
-            using var targetContext = new IRContext(KernelContext.Context);
-            var oldKernelMethod = targetContext.Import(KernelMethod);
-            var targetMethod = CreateKernelWrapper(oldKernelMethod, args);
+            using var targetContext = KernelMethod.ExtractToContext(
+                out var oldKernelMethod);
+            var targetMethod = CreateKernelWrapper(
+                targetContext,
+                oldKernelMethod,
+                args);
             targetContext.Optimize();
 
             var compiledKernel = Accelerator.Backend.Compile(
@@ -203,28 +204,18 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TDelegate GetOrCreateKernel(TArgs args)
         {
-            cacheLock.EnterUpgradeableReadLock();
-            try
+            // Synchronize all accesses below using a read/write scope
+            using var readWriteScope = cacheLock.EnterUpgradeableReadScope();
+
+            if (!kernelCache.TryGetValue(args, out var launcher))
             {
-                if (!kernelCache.TryGetValue(args, out var launcher))
-                {
-                    cacheLock.EnterWriteLock();
-                    try
-                    {
-                        launcher = SpecializeKernel(args);
-                        kernelCache.Add(args, launcher);
-                    }
-                    finally
-                    {
-                        cacheLock.ExitWriteLock();
-                    }
-                }
-                return launcher;
+                // Synchronize all accesses below using a write scope
+                using var writeScope = readWriteScope.EnterWriteScope();
+
+                launcher = SpecializeKernel(args);
+                kernelCache.Add(args, launcher);
             }
-            finally
-            {
-                cacheLock.ExitUpgradeableReadLock();
-            }
+            return launcher;
         }
 
         #endregion
@@ -238,7 +229,6 @@ namespace ILGPU.Runtime
 
             if (disposing)
             {
-                KernelContext.Dispose();
                 cacheLock.Dispose();
                 kernelCache.Clear();
             }
