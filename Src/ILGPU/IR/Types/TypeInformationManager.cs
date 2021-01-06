@@ -227,27 +227,18 @@ namespace ILGPU.IR.Types
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
-            cachingLock.EnterUpgradeableReadLock();
-            try
+
+            // Synchronize all accesses below using a read/write scope
+            using var readWriteScope = cachingLock.EnterUpgradeableReadScope();
+
+            if (!typeInfoMapping.TryGetValue(type, out TypeInformation typeInfo))
             {
-                if (!typeInfoMapping.TryGetValue(type, out TypeInformation typeInfo))
-                {
-                    cachingLock.EnterWriteLock();
-                    try
-                    {
-                        typeInfo = CreateTypeInfo(type);
-                    }
-                    finally
-                    {
-                        cachingLock.ExitWriteLock();
-                    }
-                }
-                return typeInfo;
+                // Synchronize all accesses below using a write scope
+                using var writeScope = readWriteScope.EnterWriteScope();
+
+                typeInfo = CreateTypeInfo(type);
             }
-            finally
-            {
-                cachingLock.ExitUpgradeableReadLock();
-            }
+            return typeInfo;
         }
 
         /// <summary>
@@ -398,16 +389,11 @@ namespace ILGPU.IR.Types
         /// <param name="mode">The clear mode.</param>
         public virtual void ClearCache(ClearCacheMode mode)
         {
-            cachingLock.EnterWriteLock();
-            try
-            {
-                typeInfoMapping.Clear();
-                InitIntrinsicTypeInformation();
-            }
-            finally
-            {
-                cachingLock.ExitWriteLock();
-            }
+            // Synchronize all accesses below using a write scope
+            using var writeScope = cachingLock.EnterWriteScope();
+
+            typeInfoMapping.Clear();
+            InitIntrinsicTypeInformation();
         }
 
         #endregion
