@@ -195,57 +195,17 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Creates a function structure instance.
         /// </summary>
-        /// <typeparam name="TPredicate">The view predicate.</typeparam>
         /// <typeparam name="TDataProvider">The custom data provider type.</typeparam>
-        /// <param name="functionView">The source function view.</param>
+        /// <param name="methods">The source methods.</param>
         /// <param name="dataProvider">A custom data provider.</param>
         /// <returns>The created function structure object.</returns>
-        public static Landscape<T> Create<TPredicate, TDataProvider>(
-            in MethodCollection<TPredicate> functionView,
+        public static Landscape<T> Create<TDataProvider>(
+            in MethodCollection methods,
             in TDataProvider dataProvider)
-            where TPredicate : IMethodCollectionPredicate
-            where TDataProvider : IDataProvider =>
-            Create<MethodCollection<TPredicate>, TPredicate, TDataProvider>(
-                functionView,
-                dataProvider);
-
-        /// <summary>
-        /// Creates a function structure instance.
-        /// </summary>
-        /// <typeparam name="TPredicate">The view predicate.</typeparam>
-        /// <typeparam name="TDataProvider">The custom data provider type.</typeparam>
-        /// <param name="functionView">The source function view.</param>
-        /// <param name="dataProvider">A custom data provider.</param>
-        /// <returns>The created function structure object.</returns>
-        public static Landscape<T> Create<TPredicate, TDataProvider>(
-            in UnsafeMethodCollection<TPredicate> functionView,
-            in TDataProvider dataProvider)
-            where TPredicate : IMethodCollectionPredicate
-            where TDataProvider : IDataProvider =>
-            Create<UnsafeMethodCollection<TPredicate>, TPredicate, TDataProvider>(
-                functionView,
-                dataProvider);
-
-        /// <summary>
-        /// Creates a function structure instance.
-        /// </summary>
-        /// <typeparam name="TFunctionView">The type of the function view.</typeparam>
-        /// <typeparam name="TPredicate">The view predicate.</typeparam>
-        /// <typeparam name="TDataProvider">The custom data provider type.</typeparam>
-        /// <param name="functionView">The source function view.</param>
-        /// <param name="dataProvider">A custom data provider.</param>
-        /// <returns>The created function structure object.</returns>
-        public static Landscape<T> Create<TFunctionView, TPredicate, TDataProvider>(
-            in TFunctionView functionView,
-            in TDataProvider dataProvider)
-            where TFunctionView : IMethodCollection<TPredicate>
-            where TPredicate : IMethodCollectionPredicate
             where TDataProvider : IDataProvider
         {
             var result = new Landscape<T>();
-            result.Init<TFunctionView, TPredicate, TDataProvider>(
-                functionView,
-                dataProvider);
+            result.Init(methods, dataProvider);
             return result;
         }
 
@@ -298,20 +258,20 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Computes all entries.
         /// </summary>
-        /// <param name="view">The source view.</param>
+        /// <param name="methods">The source methods.</param>
         /// <param name="dataProvider">A custom data provider.</param>
-        protected void Init<TView, TPredicate, TDataProvider>(
-            in TView view,
-            TDataProvider dataProvider)
-            where TView : IMethodCollection<TPredicate>
-            where TPredicate : IMethodCollectionPredicate
+        protected void Init<TDataProvider>(
+            in MethodCollection methods,
+            in TDataProvider dataProvider)
             where TDataProvider : IDataProvider
         {
-            var predicate = view.Predicate;
+            // Create a specific predicate that checks for contained methods
+            var containsPredicate = new MethodCollections.SetPredicate(methods);
 
-            foreach (var method in view)
+            // Iterate over all methods in the entry set and resolve their references
+            foreach (var method in methods)
             {
-                var references = References.Create(method, predicate);
+                var references = References.Create(method, containsPredicate);
                 var data = dataProvider.GetData(method, references);
                 var entry = new Entry(method, references, data);
                 entries[method] = entry;
@@ -431,19 +391,12 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Creates a function structure instance.
         /// </summary>
-        /// <typeparam name="TFunctionView">The type of the function view.</typeparam>
-        /// <typeparam name="TPredicate">The view predicate.</typeparam>
-        /// <param name="functionView">The source function view.</param>
+        /// <param name="methods">The source methods.</param>
         /// <returns>The created function structure object.</returns>
-        public static Landscape Create<TFunctionView, TPredicate>(
-            in TFunctionView functionView)
-            where TFunctionView : IMethodCollection<TPredicate>
-            where TPredicate : IMethodCollectionPredicate
+        public static Landscape Create(in MethodCollection methods)
         {
             var landscape = new Landscape();
-            landscape.Init<TFunctionView, TPredicate, DataProvider>(
-                functionView,
-                new DataProvider());
+            landscape.Init(methods, new DataProvider());
             return landscape;
         }
 
@@ -451,21 +404,15 @@ namespace ILGPU.IR.Analyses
         /// Creates a function structure instance.
         /// </summary>
         /// <typeparam name="T">The custom information type.</typeparam>
-        /// <typeparam name="TFunctionView">The type of the function view.</typeparam>
-        /// <typeparam name="TPredicate">The view predicate.</typeparam>
         /// <typeparam name="TDataProvider">The custom data provider type.</typeparam>
-        /// <param name="functionView">The source function view.</param>
+        /// <param name="methods">The source methods.</param>
         /// <param name="dataProvider">A custom data provider.</param>
         /// <returns>The created function structure object.</returns>
-        public static Landscape<T> Create<T, TFunctionView, TPredicate, TDataProvider>(
-            in TFunctionView functionView,
+        public static Landscape<T> Create<T, TDataProvider>(
+            in MethodCollection methods,
             in TDataProvider dataProvider)
-            where TFunctionView : IMethodCollection<TPredicate>
-            where TPredicate : IMethodCollectionPredicate
             where TDataProvider : Landscape<T>.IDataProvider =>
-            Landscape<T>.Create<TFunctionView, TPredicate, TDataProvider>(
-                functionView,
-                dataProvider);
+            Landscape<T>.Create(methods, dataProvider);
 
         #endregion
 
