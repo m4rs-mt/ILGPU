@@ -31,10 +31,6 @@ namespace ILGPU.IR.Intrinsics
     /// <summary>
     /// Defines an abstract intrinsic implementation.
     /// </summary>
-    [SuppressMessage(
-        "Microsoft.Design",
-        "CA1040:AvoidEmptyInterfaces",
-        Justification = "It is used as a type constraint")]
     public interface IIntrinsicImplementation
     {
         // Left blank for future extension possibilities
