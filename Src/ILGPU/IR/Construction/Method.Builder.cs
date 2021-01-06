@@ -444,28 +444,6 @@ namespace ILGPU.IR
             }
 
             /// <summary>
-            /// Declares a method.
-            /// </summary>
-            /// <param name="methodBase">The method base.</param>
-            /// <param name="created">True, if the method has been created.</param>
-            /// <returns>The declared method.</returns>
-            public Method DeclareMethod(
-                MethodBase methodBase,
-                out bool created) =>
-                Context.Declare(methodBase, out created);
-
-            /// <summary>
-            /// Declares a method.
-            /// </summary>
-            /// <param name="declaration">The method declaration.</param>
-            /// <param name="created">True, if the method has been created.</param>
-            /// <returns>The declared method.</returns>
-            public Method DeclareMethod(
-                in MethodDeclaration declaration,
-                out bool created) =>
-                Context.Declare(declaration, out created);
-
-            /// <summary>
             /// Computes an updated block collection using the latest terminator
             /// information.
             /// </summary>

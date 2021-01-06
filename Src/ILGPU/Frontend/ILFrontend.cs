@@ -419,25 +419,6 @@ namespace ILGPU.Frontend
         #region Methods
 
         /// <summary>
-        /// Declares a method.
-        /// </summary>
-        /// <param name="methodDeclaration">The method declaration.</param>
-        /// <returns>The declared method.</returns>
-        internal Method DeclareMethod(MethodDeclaration methodDeclaration) =>
-            Context.Declare(methodDeclaration, out bool _);
-
-        /// <summary>
-        /// Declares a method.
-        /// </summary>
-        /// <param name="methodDeclaration">The method declaration.</param>
-        /// <param name="created">True, if the method has been created.</param>
-        /// <returns>The declared method.</returns>
-        internal Method DeclareMethod(
-            MethodDeclaration methodDeclaration,
-            out bool created) =>
-            Context.Declare(methodDeclaration, out created);
-
-        /// <summary>
         /// Performs the actual (asynchronous) code generation.
         /// </summary>
         /// <param name="method">The method.</param>
