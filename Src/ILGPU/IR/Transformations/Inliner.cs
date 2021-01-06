@@ -119,6 +119,7 @@ namespace ILGPU.IR.Transformations
         /// Applies the inlining transformation.
         /// </summary>
         protected override bool PerformTransformation(
+            IRContext context,
             Method.Builder builder,
             Landscape landscape,
             Landscape.Entry current)

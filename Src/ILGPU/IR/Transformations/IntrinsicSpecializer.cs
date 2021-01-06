@@ -98,7 +98,9 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Applies an intrinsic specialization.
         /// </summary>
-        protected override bool PerformTransformation(Method.Builder builder)
+        protected override bool PerformTransformation(
+            IRContext context,
+            Method.Builder builder)
         {
             // Check whether we are currently processing an intrinsic method
             var dependencies = FindDependencies(builder, out bool applied);
@@ -106,7 +108,7 @@ namespace ILGPU.IR.Transformations
                 return applied;
 
             // Import all dependencies
-            ImportDependencies(builder.Context, dependencies);
+            ImportDependencies(context, dependencies);
 
             // Replace every node with a function call to the given
             // implementation function

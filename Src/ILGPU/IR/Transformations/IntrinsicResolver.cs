@@ -50,7 +50,7 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected override
             IntrinsicImplementationProvider<TDelegate>.IRSpecializationPhase
-            CreateIntermediate<TPredicate>(in MethodCollection<TPredicate> methods) =>
+            CreateIntermediate(in MethodCollection methods) =>
             provider.BeginIRSpecialization();
 
         /// <summary>

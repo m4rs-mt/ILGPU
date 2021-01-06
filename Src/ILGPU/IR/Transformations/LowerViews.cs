@@ -36,7 +36,7 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="builder">The parent builder.</param>
             protected ViewTypeLowering(Method.Builder builder)
-                : this(builder.Context.TypeContext)
+                : this(builder.TypeContext)
             { }
 
             /// <summary>
@@ -44,7 +44,7 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="builder">The parent builder.</param>
             protected ViewTypeLowering(IRBuilder builder)
-                : this(builder.Context.TypeContext)
+                : this(builder.TypeContext)
             { }
 
             /// <summary>
