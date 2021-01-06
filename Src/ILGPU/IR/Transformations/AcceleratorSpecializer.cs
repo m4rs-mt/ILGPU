@@ -23,8 +23,52 @@ namespace ILGPU.IR.Transformations
     /// <remarks>
     /// Note that this class does not perform recursive specialization operations.
     /// </remarks>
-    public class AcceleratorSpecializer : UnorderedTransformation
+    public class AcceleratorSpecializer : SequentialUnorderedTransformation
     {
+        #region Nested Types
+
+        private readonly struct SpecializerData
+        {
+            /// <summary>
+            /// Constructs a new data instance.
+            /// </summary>
+            public SpecializerData(
+                AcceleratorSpecializer specializer,
+                IRContext context)
+            {
+                Specializer = specializer;
+                Context = context;
+            }
+
+            /// <summary>
+            /// Returns the parent specializer instance.
+            /// </summary>
+            public AcceleratorSpecializer Specializer { get; }
+
+            /// <summary>
+            /// Returns the current IR context.
+            /// </summary>
+            public IRContext Context { get; }
+
+            /// <summary>
+            /// Returns the current accelerator type.
+            /// </summary>
+            public readonly AcceleratorType AcceleratorType =>
+                Specializer.AcceleratorType;
+
+            /// <summary>
+            /// Returns the current warp size (if any).
+            /// </summary>
+            public readonly int? WarpSize => Specializer.WarpSize;
+
+            /// <summary>
+            /// Returns the target-platform specific integer pointer type.
+            /// </summary>
+            public readonly PrimitiveType IntPointerType => Specializer.IntPointerType;
+        }
+
+        #endregion
+
         #region Rewriter Methods
 
         /// <summary>
@@ -46,37 +90,38 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         private static void Specialize(
             RewriterContext context,
-            AcceleratorSpecializer specializer,
+            SpecializerData data,
             AcceleratorTypeValue value) =>
-            Specialize(context, value, (int)specializer.AcceleratorType);
+            Specialize(context, value, (int)data.AcceleratorType);
 
         /// <summary>
         /// Specializes warp size values.
         /// </summary>
         private static void Specialize(
             RewriterContext context,
-            AcceleratorSpecializer specializer,
+            SpecializerData data,
             WarpSizeValue value)
         {
-            if (!specializer.WarpSize.HasValue)
+            var warpSizeValue = data.WarpSize;
+            if (!warpSizeValue.HasValue)
                 return;
-            Specialize(context, value, specializer.WarpSize.Value);
+            Specialize(context, value, warpSizeValue.Value);
         }
 
         /// <summary>
         /// Returns true if we have to adjust the source cast operation.
         /// </summary>
         private static bool CanSpecialize(
-            AcceleratorSpecializer specializer,
+            SpecializerData data,
             IntAsPointerCast value) =>
-            value.SourceType != specializer.IntPointerType;
+            value.SourceType != data.IntPointerType;
 
         /// <summary>
         /// Specializes int to native pointer casts.
         /// </summary>
         private static void Specialize(
             RewriterContext context,
-            AcceleratorSpecializer specializer,
+            SpecializerData data,
             IntAsPointerCast value)
         {
             // Convert from int -> native int type -> pointer
@@ -86,7 +131,7 @@ namespace ILGPU.IR.Transformations
             var convertToNativeInt = builder.CreateConvert(
                 value.Location,
                 value.Value,
-                specializer.IntPointerType);
+                data.IntPointerType);
 
             // native int type -> pointer
             var convert = builder.CreateIntAsPointerCast(
@@ -100,16 +145,16 @@ namespace ILGPU.IR.Transformations
         /// Returns true if we have to adjust the source cast operation.
         /// </summary>
         private static bool CanSpecialize(
-            AcceleratorSpecializer specializer,
+            SpecializerData data,
             PointerAsIntCast value) =>
-            value.TargetType != specializer.IntPointerType;
+            value.TargetType != data.IntPointerType;
 
         /// <summary>
         /// Specializes native pointer to int casts.
         /// </summary>
         private static void Specialize(
             RewriterContext context,
-            AcceleratorSpecializer specializer,
+            SpecializerData data,
             PointerAsIntCast value)
         {
             // Convert from ptr -> native int type -> desired int type
@@ -119,7 +164,7 @@ namespace ILGPU.IR.Transformations
             var convertToNativeType = builder.CreatePointerAsIntCast(
                 value.Location,
                 value.Value,
-                specializer.IntPointerType.BasicValueType);
+                data.IntPointerType.BasicValueType);
 
             // native int type -> desired int type
             var convert = builder.CreateConvert(
@@ -132,14 +177,14 @@ namespace ILGPU.IR.Transformations
 
         /// <summary>
         /// Specializes IO output operations via the instance method
-        /// <see cref="Specialize(in RewriterContext, WriteToOutput)"/> of the parent
-        /// <paramref name="specializer"/> instance.
+        /// <see cref="Specialize(in RewriterContext, IRContext, WriteToOutput)"/> of
+        /// the parent <paramref name="data"/> instance.
         /// </summary>
         private static void Specialize(
             RewriterContext context,
-            AcceleratorSpecializer specializer,
+            SpecializerData data,
             WriteToOutput value) =>
-            specializer.Specialize(context, value);
+            data.Specializer.Specialize(context, data.Context, value);
 
         #endregion
 
@@ -148,8 +193,8 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// The internal rewriter.
         /// </summary>
-        private static readonly Rewriter<AcceleratorSpecializer> Rewriter =
-            new Rewriter<AcceleratorSpecializer>();
+        private static readonly Rewriter<SpecializerData> Rewriter =
+            new Rewriter<SpecializerData>();
 
         /// <summary>
         /// Registers all rewriting patterns.
@@ -210,17 +255,24 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Applies an accelerator-specialization transformation.
         /// </summary>
-        protected override bool PerformTransformation(Method.Builder builder) =>
-            Rewriter.Rewrite(builder.SourceBlocks, builder, this);
+        protected override bool PerformTransformation(
+            IRContext context,
+            Method.Builder builder) =>
+            Rewriter.Rewrite(
+                builder.SourceBlocks,
+                builder,
+                new SpecializerData(this, context));
 
         /// <summary>
         /// Specializes IO output operations (if any). Note that this default
         /// implementation removes the output operations from the current program.
         /// </summary>
         /// <param name="context">The current rewriter context.</param>
+        /// <param name="irContext">The parent IR context.</param>
         /// <param name="writeToOutput">The IO output operation.</param>
         protected virtual void Specialize(
             in RewriterContext context,
+            IRContext irContext,
             WriteToOutput writeToOutput) =>
             context.Remove(writeToOutput);
 
