@@ -451,6 +451,7 @@ namespace ILGPU.Frontend
                 {
                     var codeGenerator = new CodeGenerator(
                         Frontend,
+                        Context,
                         builder,
                         disassembledMethod,
                         detectedMethods);

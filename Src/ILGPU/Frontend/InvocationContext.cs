@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Construction;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
 using System.Reflection;
@@ -82,6 +83,11 @@ namespace ILGPU.Frontend
         /// Returns the current IR context.
         /// </summary>
         public IRContext Context => CodeGenerator.Context;
+
+        /// <summary>
+        /// Returns the current type context.
+        /// </summary>
+        public IRTypeContext TypeContext => CodeGenerator.TypeContext;
 
         /// <summary>
         /// Returns the current IR builder.

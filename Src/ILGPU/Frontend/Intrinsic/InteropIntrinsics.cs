@@ -88,7 +88,7 @@ namespace ILGPU.Frontend.Intrinsic
         private static ValueReference CreateOffsetOf(ref InvocationContext context)
         {
             var builder = context.Builder;
-            var typeInfo = builder.Context.TypeContext.GetTypeInfo(
+            var typeInfo = builder.TypeContext.GetTypeInfo(
                 context.GetMethodGenericArguments()[0]);
             var fieldName = context[0].ResolveAs<StringValue>();
             int fieldIndex = 0;
