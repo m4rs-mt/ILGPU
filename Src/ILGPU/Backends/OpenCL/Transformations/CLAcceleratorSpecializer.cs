@@ -56,7 +56,8 @@ namespace ILGPU.Backends.OpenCL.Transformations
             : base(
                   AcceleratorType.OpenCL,
                   null,
-                  pointerType)
+                  pointerType,
+                  false)
         { }
 
         #region Methods
