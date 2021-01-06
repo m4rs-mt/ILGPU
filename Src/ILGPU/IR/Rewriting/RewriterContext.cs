@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Types;
 using System.Collections.Generic;
 using System.Diagnostics;
 
