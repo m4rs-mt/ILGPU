@@ -434,7 +434,7 @@ namespace ILGPU.IR.Analyses
             where TBlockDirection : struct, IControlFlowDirection
         {
             // Setup initial data mapping
-            var undefValue = blocks.Method.Context.UndefinedValue;
+            var undefValue = blocks.BaseContext.UndefinedValue;
             valueMapping[undefValue] = CreateData(undefValue);
             returnMapping[blocks.Method] = CreateData(blocks.Method);
             foreach (var block in blocks)

@@ -493,9 +493,8 @@ namespace ILGPU.IR
             /// <summary>
             /// Performs a verification step for all methods that should be verified.
             /// </summary>
-            /// <typeparam name="TPredicate">The collection predicate.</typeparam>
             /// <param name="methods">The methods to verify.</param>
-            public override void Verify<TPredicate>(MethodCollection<TPredicate> methods)
+            public override void Verify(in MethodCollection methods)
             { }
         }
 
@@ -574,10 +573,8 @@ namespace ILGPU.IR
         /// <summary>
         /// Performs a verification step for all methods that should be verified.
         /// </summary>
-        /// <typeparam name="TPredicate">The collection predicate.</typeparam>
         /// <param name="methods">The methods to verify.</param>
-        public virtual void Verify<TPredicate>(MethodCollection<TPredicate> methods)
-            where TPredicate : IMethodCollectionPredicate
+        public virtual void Verify(in MethodCollection methods)
         {
             foreach (var method in methods)
                 Verify(method);

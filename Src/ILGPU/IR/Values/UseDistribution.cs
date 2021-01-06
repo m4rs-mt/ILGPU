@@ -39,7 +39,7 @@ namespace ILGPU.IR.Values
             var groupedUses = new Dictionary<int, int>();
             var usesPerType = new Dictionary<Type, (int, int)>();
 
-            foreach (var method in context.UnsafeMethods)
+            foreach (var method in context.Methods)
             {
                 foreach (Value value in method.Blocks.Values)
                 {
