@@ -220,6 +220,11 @@ namespace ILGPU.IR
         public readonly Method Method => EntryBlock.Method;
 
         /// <summary>
+        /// Returns the parent base context.
+        /// </summary>
+        public readonly IRBaseContext BaseContext => Method.BaseContext;
+
+        /// <summary>
         /// Returns the entry block.
         /// </summary>
         public BasicBlock EntryBlock { get; }

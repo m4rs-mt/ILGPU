@@ -181,12 +181,12 @@ namespace ILGPU.IR
         /// <summary>
         /// Constructs a new value initializer.
         /// </summary>
-        /// <param name="context">The parent context.</param>
+        /// <param name="context">The context reference.</param>
         /// <param name="parent">The associated parent.</param>
         /// <param name="location">The current location.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValueInitializer(
-            IRContext context,
+            IRBaseContext context,
             ValueParent parent,
             Location location)
         {
@@ -203,14 +203,14 @@ namespace ILGPU.IR
         #region Properties
 
         /// <summary>
-        /// Returns the parent context.
+        /// Returns the parent context reference.
         /// </summary>
-        public readonly IRContext Context { get; }
+        public IRBaseContext Context { get; }
 
         /// <summary>
         /// Returns the associated parent.
         /// </summary>
-        public readonly ValueParent Parent { get; }
+        public ValueParent Parent { get; }
 
         /// <summary>
         /// Returns the associated location.
@@ -226,8 +226,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="flags">The flags to check.</param>
         /// <returns>True, if the current context has the given flags.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasFlags(ContextFlags flags) => Context.HasFlags(flags);
+        public readonly bool HasFlags(ContextFlags flags) => Context.HasFlags(flags);
 
         #endregion
 
@@ -381,7 +380,7 @@ namespace ILGPU.IR
                 {
                     this.Assert(!HasStaticType);
                     type = ComputeType(new ValueInitializer(
-                        Method.Context,
+                        Method.BaseContext,
                         parent,
                         Location));
                 }

@@ -126,7 +126,7 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <param name="builder">The parent builder.</param>
         protected TypeLowering(Method.Builder builder)
-            : this(builder.Context.TypeContext)
+            : this(builder.TypeContext)
         { }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <param name="builder">The parent builder.</param>
         protected TypeLowering(IRBuilder builder)
-            : this(builder.Context.TypeContext)
+            : this(builder.TypeContext)
         { }
 
         /// <summary>
