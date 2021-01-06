@@ -10,29 +10,11 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Intrinsics;
-using ILGPU.IR.Values;
 using System;
 using System.Collections.Generic;
 
 namespace ILGPU.IR.Transformations
 {
-    /// <summary>
-    /// Flags for the <see cref="IntrinsicSpecializer{TDelegate}"/> transformation.
-    /// </summary>
-    [Flags]
-    public enum IntrinsicSpecializerFlags : int
-    {
-        /// <summary>
-        /// Default lowering flags.
-        /// </summary>
-        None,
-
-        /// <summary>
-        /// Enables assertions.
-        /// </summary>
-        EnableAssertions = 1 << 0,
-    }
-
     /// <summary>
     /// Represents an intrinsic implementation specializer.
     /// </summary>
@@ -76,24 +58,10 @@ namespace ILGPU.IR.Transformations
         /// Constructs a new intrinsic specializer.
         /// </summary>
         public IntrinsicSpecializer(
-            IntrinsicSpecializerFlags flags,
             IntrinsicImplementationProvider<TDelegate> implementationProvider)
         {
-            Flags = flags;
             provider = implementationProvider;
         }
-
-        /// <summary>
-        /// Returns the current flags.
-        /// </summary>
-        public IntrinsicSpecializerFlags Flags { get; }
-
-        /// <summary>
-        /// Returns true if assertions should be enabled.
-        /// </summary>
-        public bool EnableAssertions =>
-            (Flags & IntrinsicSpecializerFlags.EnableAssertions) !=
-            IntrinsicSpecializerFlags.None;
 
         /// <summary>
         /// Applies an intrinsic specialization.
@@ -142,24 +110,8 @@ namespace ILGPU.IR.Transformations
             {
                 var blockBuilder = builder[value.BasicBlock];
 
-                if (value is DebugOperation debug)
-                {
-                    if (EnableAssertions &&
-                        provider.TryGetImplementation(
-                            debug,
-                            out var debugImplementation))
-                    {
-                        intrinsicFunctions.Add((debug, debugImplementation));
-                    }
-                    else
-                    {
-                        blockBuilder.Remove(debug);
-                    }
-
-                    applied = true;
-                }
-                // Check intrinsic value
-                else if (provider.TryGetImplementation(value, out var implementation))
+                // Check intrinsic implementations
+                if (provider.TryGetImplementation(value, out var implementation))
                 {
                     intrinsicFunctions.Add((value, implementation));
                     applied = true;
