@@ -17,12 +17,27 @@ namespace ILGPU.IR.Construction
     partial class IRBuilder : IIRTypeContext
     {
         /// <summary>
+        /// Returns the associated type context.
+        /// </summary>
+        public IRTypeContext TypeContext => BaseContext.TypeContext;
+
+        /// <summary>
+        /// Returns the void type.
+        /// </summary>
+        public VoidType VoidType => TypeContext.VoidType;
+
+        /// <summary>
+        /// Returns the string type.
+        /// </summary>
+        public StringType StringType => TypeContext.StringType;
+
+        /// <summary>
         /// Creates a primitive type.
         /// </summary>
         /// <param name="basicValueType">The basic value type.</param>
         /// <returns>The created primitive type.</returns>
         public PrimitiveType GetPrimitiveType(BasicValueType basicValueType) =>
-            Context.GetPrimitiveType(basicValueType);
+            TypeContext.GetPrimitiveType(basicValueType);
 
         /// <summary>
         /// Creates an intrinsic index type.
@@ -30,7 +45,7 @@ namespace ILGPU.IR.Construction
         /// <param name="dimension">The dimension of the index type.</param>
         /// <returns>The created index type.</returns>
         public TypeNode GetIndexType(int dimension) =>
-            Context.GetIndexType(dimension);
+            TypeContext.GetIndexType(dimension);
 
         /// <summary>
         /// Creates a pointer type.
@@ -41,7 +56,7 @@ namespace ILGPU.IR.Construction
         public PointerType CreatePointerType(
             TypeNode elementType,
             MemoryAddressSpace addressSpace) =>
-            Context.CreatePointerType(elementType, addressSpace);
+            TypeContext.CreatePointerType(elementType, addressSpace);
 
         /// <summary>
         /// Creates a view type.
@@ -52,7 +67,7 @@ namespace ILGPU.IR.Construction
         public ViewType CreateViewType(
             TypeNode elementType,
             MemoryAddressSpace addressSpace) =>
-            Context.CreateViewType(elementType, addressSpace);
+            TypeContext.CreateViewType(elementType, addressSpace);
 
         /// <summary>
         /// Creates a new array type.
@@ -61,7 +76,7 @@ namespace ILGPU.IR.Construction
         /// <param name="dimensions">The number of array dimensions.</param>
         /// <returns>The created array type.</returns>
         public TypeNode CreateArrayType(TypeNode elementType, int dimensions) =>
-            Context.CreateArrayType(elementType, dimensions);
+            TypeContext.CreateArrayType(elementType, dimensions);
 
         /// <summary>
         /// Creates a new structure type builder with the given capacity.
@@ -69,7 +84,7 @@ namespace ILGPU.IR.Construction
         /// <param name="capacity">The initial capacity.</param>
         /// <returns>The created structure builder.</returns>
         public StructureType.Builder CreateStructureType(int capacity) =>
-            Context.CreateStructureType(capacity);
+            TypeContext.CreateStructureType(capacity);
 
         /// <summary>
         /// Creates a new type based on a type from the .Net world.
@@ -86,7 +101,7 @@ namespace ILGPU.IR.Construction
         /// <param name="addressSpace">The address space for pointer types.</param>
         /// <returns>The IR type.</returns>
         public TypeNode CreateType(Type type, MemoryAddressSpace addressSpace) =>
-            Context.CreateType(type, addressSpace);
+            TypeContext.CreateType(type, addressSpace);
 
         /// <summary>
         /// Specializes the address space of the given <see cref="AddressSpaceType"/>.
@@ -97,7 +112,7 @@ namespace ILGPU.IR.Construction
         public AddressSpaceType SpecializeAddressSpaceType(
             AddressSpaceType addressSpaceType,
             MemoryAddressSpace addressSpace) =>
-            Context.SpecializeAddressSpaceType(addressSpaceType, addressSpace);
+            TypeContext.SpecializeAddressSpaceType(addressSpaceType, addressSpace);
 
         /// <summary>
         /// Tries to specialize a view or a pointer address space.
@@ -110,7 +125,7 @@ namespace ILGPU.IR.Construction
             TypeNode type,
             MemoryAddressSpace addressSpace,
             out TypeNode specializedType) =>
-            Context.TrySpecializeAddressSpaceType(
+            TypeContext.TrySpecializeAddressSpaceType(
                 type,
                 addressSpace,
                 out specializedType);

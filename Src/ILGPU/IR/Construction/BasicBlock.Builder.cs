@@ -33,10 +33,6 @@ namespace ILGPU.IR
         /// <summary>
         /// Represents a basic block builder.
         /// </summary>
-        [SuppressMessage(
-            "Microsoft.Naming",
-            "CA1710: IdentifiersShouldHaveCorrectSuffix",
-            Justification = "This is the correct name of the current entity")]
         public sealed class Builder :
             IRBuilder,
             IEnumerable<ValueEntry>,
@@ -336,7 +332,7 @@ namespace ILGPU.IR
                 PhiValue phiValue,
                 TTypeConverter typeConverter)
                 where TTypeConverter : ITypeConverter<TypeNode> =>
-                phiValue.UpdateType(Context, typeConverter);
+                phiValue.UpdateType(TypeContext, typeConverter);
 
             /// <summary>
             /// Specializes a function call.
