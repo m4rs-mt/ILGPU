@@ -41,6 +41,7 @@ namespace ILGPU.Frontend
         /// Constructs a new code generator.
         /// </summary>
         /// <param name="frontend">The current frontend instance.</param>
+        /// <param name="context">The parent IR context.</param>
         /// <param name="methodBuilder">The current method builder.</param>
         /// <param name="disassembledMethod">
         /// The corresponding disassembled method.
@@ -48,11 +49,13 @@ namespace ILGPU.Frontend
         /// <param name="detectedMethods">The set of newly detected methods.</param>
         public CodeGenerator(
             ILFrontend frontend,
+            IRContext context,
             Method.Builder methodBuilder,
             DisassembledMethod disassembledMethod,
             HashSet<MethodBase> detectedMethods)
         {
             Frontend = frontend;
+            Context = context;
             DisassembledMethod = disassembledMethod;
             DetectedMethods = detectedMethods;
 
@@ -181,7 +184,12 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the current IR context.
         /// </summary>
-        public IRContext Context => MethodBuilder.Context;
+        public IRContext Context { get; }
+
+        /// <summary>
+        /// Returns the current type context.
+        /// </summary>
+        public IRTypeContext TypeContext => Context.TypeContext;
 
         /// <summary>
         /// Returns the current method builder.
@@ -245,7 +253,13 @@ namespace ILGPU.Frontend
         public Method DeclareMethod(MethodBase methodBase)
         {
             Debug.Assert(methodBase != null, "Invalid function to declare");
-            var result = MethodBuilder.DeclareMethod(methodBase, out bool created);
+
+            // CAUTION: we are calling a thread-safe method on the context. This does
+            // not cause any deadlock or synchronization issues since the code-generation
+            // engine runs in parallel and does not acquire any other locks on the
+            // current IR context.
+            var result = Context.Declare(methodBase, out bool created);
+
             if (created && result.HasImplementation)
                 DetectedMethods.Add(methodBase);
             return result;

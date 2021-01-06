@@ -44,8 +44,8 @@ namespace ILGPU.Frontend
             else
             {
                 // Load field from value
-                var typeInfo = Context.TypeContext.GetTypeInfo(field.FieldType);
-                var parentInfo = Context.TypeContext.GetTypeInfo(field.DeclaringType);
+                var typeInfo = TypeContext.GetTypeInfo(field.FieldType);
+                var parentInfo = TypeContext.GetTypeInfo(field.DeclaringType);
                 int absoluteIndex = parentInfo.GetAbsoluteIndex(field);
 
                 // Check whether we have to get multiple elements
@@ -84,8 +84,8 @@ namespace ILGPU.Frontend
                 targetPointerType,
                 ConvertFlags.None);
 
-            var typeInfo = Context.TypeContext.GetTypeInfo(field.FieldType);
-            var parentInfo = Context.TypeContext.GetTypeInfo(parentType);
+            var typeInfo = TypeContext.GetTypeInfo(field.FieldType);
+            var parentInfo = TypeContext.GetTypeInfo(parentType);
             int absoluteIndex = parentInfo.GetAbsoluteIndex(field);
 
             if (targetPointerType.ElementType.IsStructureType)
