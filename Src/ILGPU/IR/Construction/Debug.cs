@@ -19,16 +19,16 @@ namespace ILGPU.IR.Construction
         /// Creates a new failed debug assertion.
         /// </summary>
         /// <param name="location">The current location.</param>
-        /// <param name="kind">The operation kind.</param>
+        /// <param name="condition">The debug assert condition.</param>
         /// <param name="message">The assertion message.</param>
         /// <returns>A node that represents the debug assertion.</returns>
-        public ValueReference CreateDebug(
+        public ValueReference CreateDebugAssert(
             Location location,
-            DebugKind kind,
+            Value condition,
             Value message) =>
-            Append(new DebugOperation(
+            Append(new DebugAssertOperation(
                 GetInitializer(location),
-                kind,
+                condition,
                 message));
     }
 }

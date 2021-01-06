@@ -15,26 +15,10 @@ using ILGPU.IR.Types;
 namespace ILGPU.IR.Values
 {
     /// <summary>
-    /// Represents the kind of a debug operation.
+    /// Represents a debug assert operation.
     /// </summary>
-    public enum DebugKind
-    {
-        /// <summary>
-        /// A failed assertion.
-        /// </summary>
-        AssertFailed,
-
-        /// <summary>
-        /// A trace operation.
-        /// </summary>
-        Trace
-    }
-
-    /// <summary>
-    /// Represents a generic debug operation.
-    /// </summary>
-    [ValueKind(ValueKind.Debug)]
-    public sealed class DebugOperation : MemoryValue
+    [ValueKind(ValueKind.DebugAssert)]
+    public sealed class DebugAssertOperation : MemoryValue
     {
         #region Instance
 
@@ -42,16 +26,15 @@ namespace ILGPU.IR.Values
         /// Constructs a new debug operation.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="kind">The operation kind.</param>
+        /// <param name="condition">The assert condition.</param>
         /// <param name="message">The debug message.</param>
-        internal DebugOperation(
+        internal DebugAssertOperation(
             in ValueInitializer initializer,
-            DebugKind kind,
+            ValueReference condition,
             ValueReference message)
             : base(initializer)
         {
-            Kind = kind;
-            Seal(message);
+            Seal(condition, message);
         }
 
         #endregion
@@ -59,21 +42,45 @@ namespace ILGPU.IR.Values
         #region Properties
 
         /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.Debug;
+        public override ValueKind ValueKind => ValueKind.DebugAssert;
 
         /// <summary>
-        /// The debug operation kind.
+        /// The debug condition.
         /// </summary>
-        public DebugKind Kind { get; }
+        public ValueReference Condition => this[0];
 
         /// <summary>
         /// Returns the message.
         /// </summary>
-        public ValueReference Message => this[0];
+        public ValueReference Message => this[1];
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Determines the current location information.
+        /// </summary>
+        /// <returns>The location information.</returns>
+        public (string FileName, int Line, string Method) GetLocationInfo()
+        {
+            const string KernelName = "Kernel";
+            if (Location.IsKnown && Location is FileLocation fileLocation)
+            {
+                // Return information based on the current file location
+                return (
+                    string.IsNullOrWhiteSpace(fileLocation.FileName)
+                    ? KernelName
+                    : fileLocation.FileName,
+                    fileLocation.StartLine,
+                    string.Empty);
+            }
+            else
+            {
+                // Return dummy location information
+                return (KernelName, 0, KernelName);
+            }
+        }
 
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
@@ -83,9 +90,9 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            builder.CreateDebug(
+            builder.CreateDebugAssert(
                 Location,
-                Kind,
+                rebuilder.Rebuild(Condition),
                 rebuilder.Rebuild(Message));
 
         /// <summary cref="Value.Accept" />
@@ -96,11 +103,10 @@ namespace ILGPU.IR.Values
         #region Object
 
         /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() =>
-            "debug." + Kind.ToString().ToLower();
+        protected override string ToPrefixString() => "debug.assert";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => Message.ToString();
+        protected override string ToArgString() => $"{Condition}, {Message}";
 
         #endregion
     }
