@@ -333,29 +333,17 @@ namespace ILGPU.IR.Types
             }
             else
             {
-                // Try to query the local cache
-                typeLock.EnterUpgradeableReadLock();
-                try
-                {
-                    // Explicitly check the local cache for a potential type
-                    if (typeMapping.TryGetValue((type, addressSpace), out var result))
-                        return result;
+                // Synchronize all accesses below using a read/write scope
+                using var readWriteScope = typeLock.EnterUpgradeableReadScope();
 
-                    // Create a new type
-                    typeLock.EnterWriteLock();
-                    try
-                    {
-                        return CreateTypeInternal(type, addressSpace);
-                    }
-                    finally
-                    {
-                        typeLock.ExitWriteLock();
-                    }
-                }
-                finally
-                {
-                    typeLock.ExitUpgradeableReadLock();
-                }
+                // Explicitly check the local cache for a potential type
+                if (typeMapping.TryGetValue((type, addressSpace), out var result))
+                    return result;
+
+                // Synchronize all accesses below using a write scope
+                using var writeScope = typeLock.EnterWriteScope();
+
+                return CreateType_Sync(type, addressSpace);
             }
         }
 
@@ -381,7 +369,7 @@ namespace ILGPU.IR.Types
         /// <param name="type">The source type.</param>
         /// <param name="addressSpace">The address space for pointer types.</param>
         /// <returns>The IR type.</returns>
-        private TypeNode CreateTypeInternal(Type type, MemoryAddressSpace addressSpace)
+        private TypeNode CreateType_Sync(Type type, MemoryAddressSpace addressSpace)
         {
             Debug.Assert(type != null, "Invalid type");
 
@@ -397,11 +385,11 @@ namespace ILGPU.IR.Types
             if (type.IsEnum)
             {
                 // Do not store enum types
-                return CreateTypeInternal(type.GetEnumUnderlyingType(), addressSpace);
+                return CreateType_Sync(type.GetEnumUnderlyingType(), addressSpace);
             }
             else if (type.IsArray)
             {
-                var arrayElementType = CreateTypeInternal(
+                var arrayElementType = CreateType_Sync(
                     type.GetElementType(),
                     addressSpace);
                 var dimension = type.GetArrayRank();
@@ -416,7 +404,7 @@ namespace ILGPU.IR.Types
                     type,
                     addressSpace,
                     CreateViewType(
-                        CreateTypeInternal(elementType, addressSpace),
+                        CreateType_Sync(elementType, addressSpace),
                         addressSpace));
             }
             else if (type.IsVoidPtr())
@@ -432,7 +420,7 @@ namespace ILGPU.IR.Types
                     type,
                     addressSpace,
                     CreatePointerType(
-                        CreateTypeInternal(type.GetElementType(), addressSpace),
+                        CreateType_Sync(type.GetElementType(), addressSpace),
                         addressSpace));
             }
             else if (type.IsClass)
@@ -459,7 +447,7 @@ namespace ILGPU.IR.Types
                     typeInfo.NumFlattendedFields,
                     typeInfo.Size);
                 foreach (var field in typeInfo.Fields)
-                    builder.Add(CreateTypeInternal(field.FieldType, addressSpace));
+                    builder.Add(CreateType_Sync(field.FieldType, addressSpace));
 
                 return Map(
                     type,
@@ -524,27 +512,17 @@ namespace ILGPU.IR.Types
         private T UnifyType<T>(T type)
             where T : TypeNode
         {
-            typeLock.EnterUpgradeableReadLock();
-            try
-            {
-                if (unifiedTypes.TryGetValue(type, out TypeNode result))
-                    return result as T;
+            // Synchronize all accesses below using a read/write scope
+            using var readWriteScope = typeLock.EnterUpgradeableReadScope();
 
-                typeLock.EnterWriteLock();
-                try
-                {
-                    unifiedTypes.Add(type, type);
-                    return type as T;
-                }
-                finally
-                {
-                    typeLock.ExitWriteLock();
-                }
-            }
-            finally
-            {
-                typeLock.ExitUpgradeableReadLock();
-            }
+            if (unifiedTypes.TryGetValue(type, out TypeNode result))
+                return result as T;
+
+            // Synchronize all accesses below using a write scope
+            using var writeScope = typeLock.EnterWriteScope();
+
+            unifiedTypes.Add(type, type);
+            return type;
         }
 
         /// <summary>
@@ -583,18 +561,12 @@ namespace ILGPU.IR.Types
         {
             base.ClearCache(mode);
 
-            typeLock.EnterWriteLock();
-            try
-            {
-                typeMapping.Clear();
-                unifiedTypes.Clear();
-                Array.Clear(indexTypes, 0, indexTypes.Length);
-                PopulateTypeMapping();
-            }
-            finally
-            {
-                typeLock.ExitWriteLock();
-            }
+            // Synchronize all accesses below using a write scope
+            using var writeScope = typeLock.EnterWriteScope();
+
+            typeMapping.Clear();
+            unifiedTypes.Clear();
+            PopulateTypeMapping();
         }
 
         #endregion
