@@ -21,7 +21,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -32,51 +31,17 @@ using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 namespace ILGPU.IR
 {
     /// <summary>
-    /// Represents an IR context.
+    /// An abstract base IR context.
     /// </summary>
-    public sealed partial class IRContext : DisposeBase, ICache, IDumpable
+    public abstract partial class IRBaseContext : DisposeBase
     {
-        #region Nested Types
-
-        /// <summary>
-        /// Represents no transformer handler.
-        /// </summary>
-        private readonly struct NoHandler : ITransformerHandler
-        {
-            /// <summary>
-            /// Performs no operation.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void BeforeTransformation(
-                IRContext context,
-                Transformation transformation)
-            { }
-
-            /// <summary>
-            /// Performs no operation.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void AfterTransformation(
-                IRContext context,
-                Transformation transformation)
-            { }
-        }
-
-        #endregion
-
         #region Instance
-
-        private readonly ReaderWriterLockSlim irLock =
-            new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-        private readonly Action<Method> gcDelegate;
-
-        private readonly MethodMapping<Method> methods = new MethodMapping<Method>();
 
         /// <summary>
         /// Constructs a new IR context.
         /// </summary>
         /// <param name="context">The associated main context.</param>
-        public IRContext(Context context)
+        protected IRBaseContext(Context context)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             TypeContext = context.TypeContext;
@@ -86,8 +51,6 @@ namespace ILGPU.IR
                     this,
                     null,
                     Location.Nowhere));
-
-            gcDelegate = (Method method) => method.GC();
         }
 
         #endregion
@@ -119,22 +82,6 @@ namespace ILGPU.IR
         /// </summary>
         public ContextFlags Flags => Context.Flags;
 
-        /// <summary>
-        /// Internal (unsafe) access to all top-level functions.
-        /// </summary>
-        /// <remarks>
-        /// The resulting collection is not thread safe in terms
-        /// of parallel operations on this context.
-        /// </remarks>
-        public UnsafeMethodCollection<MethodCollections.AllMethods> UnsafeMethods =>
-            GetUnsafeMethodCollection(new MethodCollections.AllMethods());
-
-        /// <summary>
-        /// Returns all top-level functions.
-        /// </summary>
-        public MethodCollection<MethodCollections.AllMethods> Methods =>
-            GetMethodCollection(new MethodCollections.AllMethods());
-
         #endregion
 
         #region Methods
@@ -147,20 +94,45 @@ namespace ILGPU.IR
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool HasFlags(ContextFlags flags) => Context.HasFlags(flags);
 
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents an IR context.
+    /// </summary>
+    public sealed class IRContext : IRBaseContext, ICache, IDumpable
+    {
+        #region Instance
+
+        private readonly ReaderWriterLockSlim irLock = new ReaderWriterLockSlim(
+            LockRecursionPolicy.SupportsRecursion);
+        private readonly Action<Method> gcDelegate;
+
+        private readonly MethodMapping<Method> methods = new MethodMapping<Method>();
+
         /// <summary>
-        /// Returns an unsafe (not thread-safe) function view.
+        /// Constructs a new IR context.
         /// </summary>
-        /// <typeparam name="TPredicate">The type of the predicate to apply.</typeparam>
-        /// <param name="predicate">The predicate to apply.</param>
-        /// <returns>The resolved function view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public UnsafeMethodCollection<TPredicate>
-            GetUnsafeMethodCollection<TPredicate>(TPredicate predicate)
-            where TPredicate : IMethodCollectionPredicate =>
-            new UnsafeMethodCollection<TPredicate>(
-                this,
-                methods.AsReadOnly(),
-                predicate);
+        /// <param name="context">The associated main context.</param>
+        public IRContext(Context context)
+            : base(context)
+        {
+            gcDelegate = (Method method) => method.GC();
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns all top-level functions.
+        /// </summary>
+        public MethodCollection Methods =>
+            GetMethodCollection(new MethodCollections.AllMethods());
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Returns a thread-safe function view.
@@ -169,29 +141,38 @@ namespace ILGPU.IR
         /// <param name="predicate">The predicate to apply.</param>
         /// <returns>The resolved function view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public MethodCollection<TPredicate>
-            GetMethodCollection<TPredicate>(TPredicate predicate)
+        public MethodCollection GetMethodCollection<TPredicate>(TPredicate predicate)
             where TPredicate : IMethodCollectionPredicate
         {
-            irLock.EnterReadLock();
-            try
+            // Synchronize all accesses below using a read scope
+            using var readScope = irLock.EnterReadScope();
+
+            return GetMethodCollection_Sync(predicate);
+        }
+
+        /// <summary>
+        /// Returns a thread-safe function view.
+        /// </summary>
+        /// <typeparam name="TPredicate">The type of the predicate to apply.</typeparam>
+        /// <param name="predicate">The predicate to apply.</param>
+        /// <returns>The resolved function view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private MethodCollection GetMethodCollection_Sync<TPredicate>(
+            TPredicate predicate)
+            where TPredicate : IMethodCollectionPredicate
+        {
+            var builder = ImmutableArray.CreateBuilder<Method>(
+                methods.Count);
+            foreach (var function in methods)
             {
-                var builder = ImmutableArray.CreateBuilder<Method>(
-                    methods.Count);
-                foreach (var function in methods)
-                {
-                    if (predicate.Match(function))
-                        builder.Add(function);
-                }
-                return new MethodCollection<TPredicate>(
-                    this,
-                    builder.ToImmutable(),
-                    predicate);
+                if (predicate.Match(function))
+                    builder.Add(function);
             }
-            finally
-            {
-                irLock.ExitReadLock();
-            }
+            return new MethodCollection(
+                this,
+                builder.Count == methods.Count
+                ? builder.MoveToImmutable()
+                : builder.ToImmutable());
         }
 
         /// <summary>
@@ -205,15 +186,10 @@ namespace ILGPU.IR
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
 
-            irLock.EnterReadLock();
-            try
-            {
-                return methods.TryGetHandle(method, out handle);
-            }
-            finally
-            {
-                irLock.ExitReadLock();
-            }
+            // Synchronize all accesses below using a read scope
+            using var readScope = irLock.EnterUpgradeableReadScope();
+
+            return methods.TryGetHandle(method, out handle);
         }
 
         /// <summary>
@@ -230,15 +206,10 @@ namespace ILGPU.IR
                 return false;
             }
 
-            irLock.EnterReadLock();
-            try
-            {
-                return methods.TryGetData(handle, out function);
-            }
-            finally
-            {
-                irLock.ExitReadLock();
-            }
+            // Synchronize all accesses below using a read scope
+            using var readScope = irLock.EnterUpgradeableReadScope();
+
+            return methods.TryGetData(handle, out function);
         }
 
         /// <summary>
@@ -252,17 +223,12 @@ namespace ILGPU.IR
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
 
+            // Synchronize all accesses below using a read scope
+            using var readScope = irLock.EnterUpgradeableReadScope();
+
             function = null;
-            irLock.EnterReadLock();
-            try
-            {
-                return methods.TryGetHandle(method, out MethodHandle handle)
-                    && methods.TryGetData(handle, out function);
-            }
-            finally
-            {
-                irLock.ExitReadLock();
-            }
+            return methods.TryGetHandle(method, out MethodHandle handle)
+                && methods.TryGetData(handle, out function);
         }
 
         /// <summary>
@@ -286,31 +252,28 @@ namespace ILGPU.IR
         public Method Declare(MethodBase methodBase, out bool created)
         {
             Debug.Assert(methodBase != null, "Invalid method base");
+
+            // Synchronize all accesses below using a read scope
+            using var readScope = irLock.EnterUpgradeableReadScope();
+
             // Check for existing method
-            irLock.EnterUpgradeableReadLock();
-            try
+            if (methods.TryGetHandle(methodBase, out MethodHandle handle))
             {
-                if (methods.TryGetHandle(methodBase, out MethodHandle handle))
-                {
-                    created = false;
-                    return methods[handle];
-                }
-
-                var externalAttribute = methodBase.GetCustomAttribute<
-                    ExternalAttribute>();
-                var methodName = externalAttribute?.Name ?? methodBase.Name;
-                handle = MethodHandle.Create(methodName);
-                var declaration = new MethodDeclaration(
-                    handle,
-                    CreateType(methodBase.GetReturnType()),
-                    methodBase);
-                return Declare(declaration, out created);
-            }
-            finally
-            {
-                irLock.ExitUpgradeableReadLock();
+                created = false;
+                return methods[handle];
             }
 
+            var externalAttribute = methodBase.GetCustomAttribute<ExternalAttribute>();
+            var methodName = externalAttribute?.Name ?? methodBase.Name;
+            handle = MethodHandle.Create(methodName);
+            var declaration = new MethodDeclaration(
+                handle,
+                CreateType(methodBase.GetReturnType()),
+                methodBase);
+
+            // Declare a new method sync using a write scope
+            using var writeScope = readScope.EnterWriteScope();
+            return Declare_Sync(declaration, out created);
         }
 
         /// <summary>
@@ -323,38 +286,41 @@ namespace ILGPU.IR
         {
             Debug.Assert(declaration.ReturnType != null, "Invalid return type");
 
-            created = false;
-            irLock.EnterUpgradeableReadLock();
-            try
-            {
-                if (!methods.TryGetData(declaration.Handle, out Method method))
-                {
-                    irLock.EnterWriteLock();
-                    try
-                    {
-                        created = true;
-                        method = DeclareNewMethod_Sync(declaration, out var handle);
-                        methods.Register(handle, method);
-                    }
-                    finally
-                    {
-                        irLock.ExitWriteLock();
-                    }
-                }
-                return method;
-            }
-            finally
-            {
-                irLock.ExitUpgradeableReadLock();
-            }
+            // Declare a new method sync using a write scope
+            using var writeScope = irLock.EnterWriteScope();
+
+            return Declare_Sync(declaration, out created);
         }
 
         /// <summary>
-        /// Declares a new method.
+        /// Declares a method based on the given declaration (sync).
+        /// </summary>
+        /// <param name="declaration">The method declaration.</param>
+        /// <param name="created">True, if the method has been created.</param>
+        /// <returns>The declared method.</returns>
+        private Method Declare_Sync(in MethodDeclaration declaration, out bool created)
+        {
+            Debug.Assert(declaration.ReturnType != null, "Invalid return type");
+
+            created = false;
+            if (methods.TryGetData(declaration.Handle, out Method method))
+                return method;
+
+            created = true;
+            method = DeclareNewMethod_Sync(declaration, out var handle);
+            methods.Register(handle, method);
+            return method;
+        }
+
+        /// <summary>
+        /// Declares a new method (sync).
         /// </summary>
         /// <param name="declaration">The method declaration to use.</param>
         /// <param name="handle">The created handle.</param>
         /// <returns>The declared method.</returns>
+        /// <remarks>
+        /// Helper method for <see cref="Declare_Sync(in MethodDeclaration, out bool)"/>.
+        /// </remarks>
         private Method DeclareNewMethod_Sync(
             MethodDeclaration declaration,
             out MethodHandle handle)
@@ -410,33 +376,35 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="source">The method to import.</param>
         /// <returns>The imported method.</returns>
+        /// <remarks>
+        /// CAUTION: This method can cause deadlocks if improperly used. The import
+        /// function needs to acquire write access to the current context and needs
+        /// to request safe read access from the source context. This can lead to
+        /// unintended deadlocks.
+        /// </remarks>
         public Method Import(Method source)
         {
             if (source is null)
                 throw source.GetArgumentException(nameof(source));
-            if (source.Context == this)
+
+            // Determine the actual source context reference
+            var sourceContext = source.BaseContext as IRContext;
+            if (sourceContext == this)
                 throw source.GetInvalidOperationException();
 
-            irLock.EnterUpgradeableReadLock();
-            try
-            {
-                if (methods.TryGetData(source.Handle, out Method method))
-                    return method;
+            // Synchronize all accesses below using a read scope
+            using var readScope = irLock.EnterUpgradeableReadScope();
 
-                irLock.EnterWriteLock();
-                try
-                {
-                    return ImportInternal(source);
-                }
-                finally
-                {
-                    irLock.ExitWriteLock();
-                }
-            }
-            finally
-            {
-                irLock.ExitUpgradeableReadLock();
-            }
+            // Check for the requested method handle
+            if (methods.TryGetData(source.Handle, out Method method))
+                return method;
+
+            // CAUTION: we have to acquire the current irLock in write mode and have
+            // to ensure a read-only access on the other context to avoid cross-thread
+            // manipulations of the IR!
+            using var otherReadScope = sourceContext.irLock.EnterReadScope();
+            using var writeScope = readScope.EnterWriteScope();
+            return Import_Sync(source);
         }
 
         /// <summary>
@@ -444,7 +412,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="source">The method to import.</param>
         /// <returns>The imported method.</returns>
-        private Method ImportInternal(Method source)
+        private Method Import_Sync(Method source)
         {
             var allReferences = References.CreateRecursive(
                 source.Blocks,
@@ -455,7 +423,7 @@ namespace ILGPU.IR
             var targetMapping = new Dictionary<Method, Method>();
             foreach (var entry in allReferences)
             {
-                var declared = Declare(entry.Declaration, out bool created);
+                var declared = Declare_Sync(entry.Declaration, out bool created);
                 targetMapping.Add(entry, declared);
                 if (created)
                     methodsToRebuild.Add(entry);
@@ -505,27 +473,32 @@ namespace ILGPU.IR
         /// Applies the given transformer to the current context.
         /// </summary>
         /// <param name="transformer">The target transformer.</param>
-        public void Transform(in Transformer transformer) =>
-            Transform(transformer, new NoHandler());
-
-        /// <summary>
-        /// Applies the given transformer to the current context.
-        /// </summary>
-        /// <typeparam name="THandler">The handler type.</typeparam>
-        /// <param name="transformer">The target transformer.</param>
-        /// <param name="handler">The target handler.</param>
-        public void Transform<THandler>(in Transformer transformer, THandler handler)
-            where THandler : ITransformerHandler
+        public void Transform(in Transformer transformer)
         {
-            irLock.EnterWriteLock();
-            try
+            // Get the current transformation
+            var configuration = transformer.Configuration;
+
+            // Synchronize all accesses below using a write scope
+            using var writeScope = irLock.EnterWriteScope();
+
+            var toTransform = GetMethodCollection_Sync(configuration.GetPredicate());
+            if (toTransform.Count < 1)
+                return;
+
+            // Apply all transformations
+            foreach (var transform in transformer.Transformations)
             {
-                transformer.Transform(this, handler, Verifier);
+                transform.Transform(toTransform);
+                Verifier.Verify(toTransform);
             }
-            finally
-            {
-                irLock.ExitWriteLock();
-            }
+
+            // Apply final flags
+            var transformationFlags = transformer.Configuration.TransformationFlags;
+            foreach (var entry in toTransform)
+                entry.AddTransformationFlags(transformationFlags);
+
+            // Cleanup the IR
+            Parallel.ForEach(toTransform, gcDelegate);
         }
 
         /// <summary>
@@ -534,7 +507,7 @@ namespace ILGPU.IR
         /// <param name="textWriter">The text writer.</param>
         public void Dump(TextWriter textWriter)
         {
-            foreach (var method in UnsafeMethods)
+            foreach (var method in Methods)
             {
                 method.Dump(textWriter);
                 textWriter.WriteLine();
@@ -544,46 +517,7 @@ namespace ILGPU.IR
 
         #endregion
 
-        #region GC
-
-        /// <summary>
-        /// Rebuilds all nodes and clears up the IR.
-        /// </summary>
-        /// <remarks>
-        /// This method must not be invoked in the context of other
-        /// parallel operations using this context.
-        /// </remarks>
-        [SuppressMessage(
-            "Microsoft.Reliability",
-            "CA2001:AvoidCallingProblematicMethods",
-            Justification = "Users might want to force a global GC to free memory " +
-            "after an internal ILGPU GC run")]
-        public void GC()
-        {
-            irLock.EnterWriteLock();
-            try
-            {
-                Parallel.ForEach(UnsafeMethods, gcDelegate);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-            finally
-            {
-                irLock.ExitWriteLock();
-            }
-
-            // Check whether to call a forced system GC
-            if (HasFlags(ContextFlags.ForceSystemGC))
-                System.GC.Collect();
-        }
-
-        /// <summary>
-        /// Clears cached IR nodes.
-        /// </summary>
-        [Obsolete("Use ClearCache(ClearCacheMode.Everything) instead")]
-        public void Clear() => ClearCache(ClearCacheMode.Everything);
+        #region Cache
 
         /// <summary>
         /// Clears cached IR nodes.
@@ -591,15 +525,10 @@ namespace ILGPU.IR
         /// <param name="mode">The clear mode.</param>
         public void ClearCache(ClearCacheMode mode)
         {
-            irLock.EnterWriteLock();
-            try
-            {
-                methods.Clear();
-            }
-            finally
-            {
-                irLock.ExitWriteLock();
-            }
+            // Synchronize all accesses below using a write scope
+            using var writeScope = irLock.EnterWriteScope();
+
+            methods.Clear();
         }
 
         #endregion
