@@ -1049,8 +1049,8 @@ namespace ILGPU.Backends.PTX
             FreeRegister(maskRegister);
         }
 
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugOperation)"/>
-        public void GenerateCode(DebugOperation debug) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugAssertOperation)"/>
+        public void GenerateCode(DebugAssertOperation debug) =>
             Debug.Assert(false, "Invalid debug node -> should have been removed");
     }
 }
