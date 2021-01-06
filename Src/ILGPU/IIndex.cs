@@ -104,7 +104,7 @@ namespace ILGPU
         };
 
         /// <summary>
-        /// A reference to the 32-bit index linerization method.
+        /// A reference to the 32-bit index linearization method.
         /// </summary>
         private static readonly MethodInfo ViewLinearIndex32Method =
             typeof(IndexTypeExtensions).GetMethod(
@@ -112,7 +112,7 @@ namespace ILGPU
                 BindingFlags.NonPublic | BindingFlags.Static);
 
         /// <summary>
-        /// A reference to the 64-bit index linerization method.
+        /// A reference to the 64-bit index linearization method.
         /// </summary>
         private static readonly MethodInfo ViewLinearIndex64Method =
             typeof(IndexTypeExtensions).GetMethod(
@@ -209,14 +209,14 @@ namespace ILGPU
             typeof(TIndex).IsLongIndex();
 
         /// <summary>
-        /// Gets the index linerization method that works either on 32-bit or on 64-bit
+        /// Gets the index linearization method that works either on 32-bit or on 64-bit
         /// values depending on the index type.
         /// </summary>
         /// <param name="indexType">The managed index type.</param>
         /// <param name="elementType">
         /// The managed element type of a particular view.
         /// </param>
-        /// <returns>The managed 32-bit or 64-bit linerization method.</returns>
+        /// <returns>The managed 32-bit or 64-bit linearization method.</returns>
         public static MethodBase GetViewLinearIndexMethod(
             this Type indexType,
             Type elementType)
@@ -244,6 +244,9 @@ namespace ILGPU
             where T : unmanaged
             where TIndex : struct, IGenericIndex<TIndex>
         {
+            Trace.Assert(
+                index.InBounds(dimension),
+                "Multidimensional index out of range");
             int linearIndex = index.ComputeLinearIndex(dimension);
             return ref view[linearIndex];
         }
@@ -265,6 +268,9 @@ namespace ILGPU
             where T : unmanaged
             where TIndex : struct, IGenericIndex<TIndex>
         {
+            Trace.Assert(
+                index.InBounds(dimension),
+                "Multidimensional index out of range");
             long linearIndex = index.ComputeLongLinearIndex(dimension);
             return ref view[linearIndex];
         }
