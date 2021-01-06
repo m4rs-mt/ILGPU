@@ -226,25 +226,16 @@ namespace ILGPU.Backends.OpenCL
         {
             get
             {
-                readerWriterLock.EnterUpgradeableReadLock();
-                try
-                {
-                    if (mapping.TryGetValue(typeNode, out string typeName))
-                        return typeName;
-                    readerWriterLock.EnterWriteLock();
-                    try
-                    {
-                        return GetOrCreateType(typeNode);
-                    }
-                    finally
-                    {
-                        readerWriterLock.ExitWriteLock();
-                    }
-                }
-                finally
-                {
-                    readerWriterLock.ExitUpgradeableReadLock();
-                }
+                // Synchronize all accesses below using a read/write scope
+                using var readWriteScope = readerWriterLock.EnterUpgradeableReadScope();
+
+                if (mapping.TryGetValue(typeNode, out string typeName))
+                    return typeName;
+
+                // Synchronize all accesses below using a write scope
+                using var writeScope = readWriteScope.EnterWriteScope();
+
+                return GetOrCreateType(typeNode);
             }
         }
 

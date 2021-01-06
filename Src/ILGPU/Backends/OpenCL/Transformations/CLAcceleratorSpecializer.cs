@@ -46,13 +46,6 @@ namespace ILGPU.Backends.OpenCL.Transformations
                 nameof(PrintF),
                 BindingFlags.Static | BindingFlags.NonPublic);
 
-        /// <summary>
-        /// Gets or declares the <see cref="PrintF(string)"/> method in the current
-        /// context.
-        /// </summary>
-        public static Method GetPrintFMethod(in RewriterContext context) =>
-            context.GetIRContext().Declare(PrintFMethod, out bool _);
-
         #endregion
 
         /// <summary>
@@ -74,6 +67,7 @@ namespace ILGPU.Backends.OpenCL.Transformations
         /// </summary>
         protected override void Specialize(
             in RewriterContext context,
+            IRContext irContext,
             WriteToOutput writeToOutput)
         {
             var builder = context.Builder;
@@ -86,7 +80,8 @@ namespace ILGPU.Backends.OpenCL.Transformations
                 expressionString);
 
             // Create a call to the native printf
-            var callBuilder = builder.CreateCall(location, GetPrintFMethod(context));
+            var printFMethod = irContext.Declare(PrintFMethod, out bool _);
+            var callBuilder = builder.CreateCall(location, printFMethod);
             callBuilder.Add(expression);
             foreach (Value argument in writeToOutput.Arguments)
             {
