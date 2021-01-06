@@ -9,13 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-// Enforce DEBUG mode in all cases to preserve Debug calls
-#define DEBUG
-
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -50,10 +45,6 @@ namespace ILGPU.Frontend.Intrinsic
             FunctionRemappers =
             new Dictionary<MethodBase, DeviceFunctionRemapper>();
 
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1810:InitializeReferenceTypeStaticFieldsInline",
-            Justification = "Caching of compiler-known functions")]
         static RemappedIntrinsics()
         {
             var remappedType = typeof(RemappedIntrinsics);
@@ -81,63 +72,6 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(double));
 
             RegisterMathRemappings();
-
-            // Remap debug assert
-            AddDebugRemapping(remappedType, typeof(Debug));
-            AddDebugRemapping(remappedType, typeof(Trace));
-        }
-
-        /// <summary>
-        /// Registers a new debug mapping.
-        /// </summary>
-        /// <param name="remappedType">The remapped intrinsics type.</param>
-        /// <param name="debugType">The debug type.</param>
-        private static void AddDebugRemapping(Type remappedType, Type debugType)
-        {
-            AddDebugRemapping(
-                remappedType,
-                nameof(DebugAssertCondition),
-                debugType,
-                nameof(Debug.Assert),
-                new Type[] { typeof(bool) });
-            AddDebugRemapping(
-                remappedType,
-                nameof(DebugAssertConditionMessage),
-                debugType,
-                nameof(Debug.Assert),
-                new Type[] { typeof(bool), typeof(string) });
-        }
-
-        /// <summary>
-        /// Registers a new debug mapping.
-        /// </summary>
-        /// <param name="remappedType">The remapped intrinsics type.</param>
-        /// <param name="internalMethod">The internal method name.</param>
-        /// <param name="debugType">The debug type.</param>
-        /// <param name="method">The original method name.</param>
-        /// <param name="parameters">The parameters types of all functions.</param>
-        private static void AddDebugRemapping(
-            Type remappedType,
-            string internalMethod,
-            Type debugType,
-            string method,
-            Type[] parameters)
-        {
-            var targetMethod = remappedType.GetMethod(
-                internalMethod,
-                BindingFlags.NonPublic | BindingFlags.Static,
-                null,
-                parameters,
-                null);
-
-            var debugMethod = debugType.GetMethod(
-                method,
-                BindingFlags.Public | BindingFlags.Static,
-                null,
-                parameters,
-                null);
-            AddRemapping(debugMethod,
-                (ref InvocationContext context) => context.Method = targetMethod);
         }
 
         #endregion
@@ -204,29 +138,6 @@ namespace ILGPU.Frontend.Intrinsic
         {
             if (FunctionRemappers.TryGetValue(context.Method, out var remapper))
                 remapper(ref context);
-        }
-
-        /// <summary>
-        /// Implements a simple debug assertion.
-        /// </summary>
-        /// <param name="condition">The assertion condition.</param>
-        [SuppressMessage(
-            "Microsoft.Globalization",
-            "CA1303:DoNotPassLiteralsAsLocalizedParameters",
-            Justification = "ILGPU cannot load constants from global resource " +
-            "tables at the moment")]
-        private static void DebugAssertCondition(bool condition) =>
-            DebugAssertConditionMessage(condition, "Assertion failed");
-
-        /// <summary>
-        /// Implements a simple debug assertion.
-        /// </summary>
-        /// <param name="condition">The assertion condition.</param>
-        /// <param name="message">The error message.</param>
-        private static void DebugAssertConditionMessage(bool condition, string message)
-        {
-            if (!condition)
-                Debug.Fail(message);
         }
 
         #endregion
