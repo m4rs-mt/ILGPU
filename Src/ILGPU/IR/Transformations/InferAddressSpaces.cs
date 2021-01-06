@@ -515,13 +515,11 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Creates a new provider instance.
             /// </summary>
-            /// <typeparam name="TPredicate">The collection predicate type.</typeparam>
             /// <param name="methods">The collection of methods.</param>
             /// <param name="kernelAddressSpace">The target address space.</param>
-            public static MethodDataProvider CreateProvider<TPredicate>(
-                in MethodCollection<TPredicate> methods,
+            public static MethodDataProvider CreateProvider(
+                in MethodCollection methods,
                 MemoryAddressSpace kernelAddressSpace)
-                where TPredicate : IMethodCollectionPredicate
             {
                 // Get the main entry point method
                 foreach (var method in methods)
@@ -863,14 +861,15 @@ namespace ILGPU.IR.Transformations
         /// Creates a new <see cref="MethodDataProvider"/> instance based on the main
         /// entry-point method.
         /// </summary>
-        protected override MethodDataProvider CreateIntermediate<TPredicate>(
-            in MethodCollection<TPredicate> methods) =>
+        protected override MethodDataProvider CreateIntermediate(
+            in MethodCollection methods) =>
             MethodDataProvider.CreateProvider(methods, KernelAddressSpace);
 
         /// <summary>
         /// Applies the address-space inference transformation.
         /// </summary>
         protected override bool PerformTransformation(
+            IRContext context,
             Method.Builder builder,
             in MethodDataProvider intermediate,
             Landscape landscape,
