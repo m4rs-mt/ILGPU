@@ -110,6 +110,7 @@ namespace ILGPU
         /// <summary>
         /// Forces a .Net GC run after every context GC.
         /// </summary>
+        [Obsolete("This flag is no longer required")]
         ForceSystemGC = 1 << 16,
 
         /// <summary>

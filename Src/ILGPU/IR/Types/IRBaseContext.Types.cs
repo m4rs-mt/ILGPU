@@ -3,7 +3,7 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: IRContext.Types.cs
+// File: IRBaseContext.Types.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
@@ -14,7 +14,7 @@ using System;
 
 namespace ILGPU.IR
 {
-    partial class IRContext : IIRTypeContext
+    partial class IRBaseContext : IIRTypeContext
     {
         /// <summary>
         /// Returns the void type.
