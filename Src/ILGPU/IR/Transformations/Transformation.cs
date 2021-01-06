@@ -53,9 +53,7 @@ namespace ILGPU.IR.Transformations
         /// Transforms all method in the given context.
         /// </summary>
         /// <param name="methods">The methods to transform.</param>
-        public abstract void Transform<TPredicate>(
-            MethodCollection<TPredicate> methods)
-            where TPredicate : IMethodCollectionPredicate;
+        public abstract void Transform(in MethodCollection methods);
 
         /// <summary>
         /// Transforms the given method using the provided builder.
@@ -148,8 +146,7 @@ namespace ILGPU.IR.Transformations
         /// Transforms all methods in the given context.
         /// </summary>
         /// <param name="methods">The methods to transform.</param>
-        public override void Transform<TPredicate>(
-            MethodCollection<TPredicate> methods) =>
+        public override void Transform(in MethodCollection methods) =>
             Parallel.ForEach(methods, transformerDelegate);
 
         /// <summary>
@@ -180,9 +177,13 @@ namespace ILGPU.IR.Transformations
             /// Constructs a new executor.
             /// </summary>
             /// <param name="parent">The parent transformation.</param>
-            public Executor(SequentialUnorderedTransformation parent)
+            /// <param name="context">The context IR context.</param>
+            public Executor(
+                SequentialUnorderedTransformation parent,
+                IRContext context)
             {
                 Parent = parent;
+                Context = context;
             }
 
             /// <summary>
@@ -191,12 +192,17 @@ namespace ILGPU.IR.Transformations
             public SequentialUnorderedTransformation Parent { get; }
 
             /// <summary>
+            /// Returns the current IR context in the scope of this transformation.
+            /// </summary>
+            public IRContext Context { get; }
+
+            /// <summary>
             /// Applies the parent transformation.
             /// </summary>
             /// <param name="builder">The current builder.</param>
             /// <returns>True, if the transformation could be applied.</returns>
             public bool Execute(Method.Builder builder) =>
-                Parent.PerformTransformation(builder);
+                Parent.PerformTransformation(Context, builder);
         }
 
         #endregion
@@ -207,12 +213,11 @@ namespace ILGPU.IR.Transformations
         /// Transforms all methods in the given context.
         /// </summary>
         /// <param name="methods">The methods to transform.</param>
-        public override void Transform<TPredicate>(
-            MethodCollection<TPredicate> methods)
+        public override void Transform(in MethodCollection methods)
         {
             foreach (var method in methods)
             {
-                var executor = new Executor(this);
+                var executor = new Executor(this, methods.Context);
                 {
                     using var builder = method.CreateBuilder();
                     ExecuteTransform(builder, executor);
@@ -223,8 +228,11 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Transforms the given method using the provided builder.
         /// </summary>
+        /// <param name="context">The parent IR context to operate on.</param>
         /// <param name="builder">The current method builder.</param>
-        protected abstract bool PerformTransformation(Method.Builder builder);
+        protected abstract bool PerformTransformation(
+            IRContext context,
+            Method.Builder builder);
 
         #endregion
     }
@@ -292,9 +300,7 @@ namespace ILGPU.IR.Transformations
         /// Creates a new intermediate value.
         /// </summary>
         /// <returns>The resulting intermediate value.</returns>
-        protected abstract TIntermediate CreateIntermediate<TPredicate>(
-            in MethodCollection<TPredicate> methods)
-            where TPredicate : IMethodCollectionPredicate;
+        protected abstract TIntermediate CreateIntermediate(in MethodCollection methods);
 
         /// <summary>
         /// Is invoked after all methods have been transformed.
@@ -306,8 +312,7 @@ namespace ILGPU.IR.Transformations
         /// Transforms all methods in the given context.
         /// </summary>
         /// <param name="methods">The methods to transform.</param>
-        public override void Transform<TPredicate>(
-            MethodCollection<TPredicate> methods)
+        public override void Transform(in MethodCollection methods)
         {
             var intermediate = CreateIntermediate(methods);
 
@@ -354,16 +359,19 @@ namespace ILGPU.IR.Transformations
             /// Constructs a new executor.
             /// </summary>
             /// <param name="parent">The parent transformation.</param>
+            /// <param name="context">The context IR context.</param>
             /// <param name="intermediate">The intermediate value.</param>
             /// <param name="landscape">The current landscape.</param>
             /// <param name="entry">The current landscape entry.</param>
             public Executor(
                 OrderedTransformation<TIntermediate> parent,
+                IRContext context,
                 TIntermediate intermediate,
                 Landscape landscape,
                 Landscape.Entry entry)
             {
                 Parent = parent;
+                Context = context;
                 Intermediate = intermediate;
                 Landscape = landscape;
                 Entry = entry;
@@ -373,6 +381,11 @@ namespace ILGPU.IR.Transformations
             /// The associated parent transformation.
             /// </summary>
             public OrderedTransformation<TIntermediate> Parent { get; }
+
+            /// <summary>
+            /// Returns the current IR context in the scope of this transformation.
+            /// </summary>
+            public IRContext Context { get; }
 
             /// <summary>
             /// Returns the associated intermediate value.
@@ -397,6 +410,7 @@ namespace ILGPU.IR.Transformations
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly bool Execute(Method.Builder builder) =>
                 Parent.PerformTransformation(
+                    Context,
                     builder,
                     Intermediate,
                     Landscape,
@@ -420,9 +434,7 @@ namespace ILGPU.IR.Transformations
         /// Creates a new intermediate value.
         /// </summary>
         /// <returns>The resulting intermediate value.</returns>
-        protected abstract TIntermediate CreateIntermediate<TPredicate>(
-            in MethodCollection<TPredicate> methods)
-            where TPredicate : IMethodCollectionPredicate;
+        protected abstract TIntermediate CreateIntermediate(in MethodCollection methods);
 
         /// <summary>
         /// Is invoked after all methods have been transformed.
@@ -434,19 +446,21 @@ namespace ILGPU.IR.Transformations
         /// Transforms all methods in the given context.
         /// </summary>
         /// <param name="methods">The methods to transform.</param>
-        public sealed override void Transform<TPredicate>(
-            MethodCollection<TPredicate> methods)
+        public sealed override void Transform(in MethodCollection methods)
         {
-            var landscape = Landscape.Create<
-                MethodCollection<TPredicate>,
-                TPredicate>(methods);
+            var landscape = Landscape.Create(methods);
             if (landscape.Count < 1)
                 return;
 
             var intermediate = CreateIntermediate(methods);
             foreach (var entry in landscape)
             {
-                var executor = new Executor(this, intermediate, landscape, entry);
+                var executor = new Executor(
+                    this,
+                    methods.Context,
+                    intermediate,
+                    landscape,
+                    entry);
                 {
                     using var builder = entry.Method.CreateBuilder();
                     ExecuteTransform(builder, executor);
@@ -458,11 +472,13 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Transforms the given method using the provided builder.
         /// </summary>
+        /// <param name="context">The parent IR context to operate on.</param>
         /// <param name="builder">The current method builder.</param>
         /// <param name="intermediate">The intermediate value.</param>
         /// <param name="landscape">The global processing landscape.</param>
         /// <param name="current">The current landscape entry.</param>
         protected abstract bool PerformTransformation(
+            IRContext context,
             Method.Builder builder,
             in TIntermediate intermediate,
             Landscape landscape,
@@ -492,8 +508,8 @@ namespace ILGPU.IR.Transformations
         /// Creates a new intermediate value.
         /// </summary>
         /// <returns>The resulting intermediate value.</returns>
-        protected sealed override object CreateIntermediate<TPredicate>(
-            in MethodCollection<TPredicate> methods) => null;
+        protected sealed override object CreateIntermediate(
+            in MethodCollection methods) => null;
 
         /// <summary>
         /// Is invoked after all methods have been transformed.
@@ -504,24 +520,28 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Transforms the given method using the provided builder.
         /// </summary>
+        /// <param name="context">The parent IR context to operate on.</param>
         /// <param name="builder">The current method builder.</param>
         /// <param name="intermediate">The intermediate value.</param>
         /// <param name="landscape">The global processing landscape.</param>
         /// <param name="current">The current landscape entry.</param>
         protected sealed override bool PerformTransformation(
+            IRContext context,
             Method.Builder builder,
             in object intermediate,
             Landscape landscape,
             Landscape.Entry current) =>
-            PerformTransformation(builder, landscape, current);
+            PerformTransformation(context, builder, landscape, current);
 
         /// <summary>
         /// Transforms the given method using the provided builder.
         /// </summary>
+        /// <param name="context">The parent IR context to operate on.</param>
         /// <param name="builder">The current method builder.</param>
         /// <param name="landscape">The global processing landscape.</param>
         /// <param name="current">The current landscape entry.</param>
         protected abstract bool PerformTransformation(
+            IRContext context,
             Method.Builder builder,
             Landscape landscape,
             Landscape.Entry current);

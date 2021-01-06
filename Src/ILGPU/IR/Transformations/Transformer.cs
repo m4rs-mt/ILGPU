@@ -17,30 +17,6 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.IR.Transformations
 {
     /// <summary>
-    /// Represents a transformer callback.
-    /// </summary>
-    public interface ITransformerHandler
-    {
-        /// <summary>
-        /// Will be invoked before a transformation is applied.
-        /// </summary>
-        /// <param name="context">The current context.</param>
-        /// <param name="transformation">The transformation to apply.</param>
-        void BeforeTransformation(
-            IRContext context,
-            Transformation transformation);
-
-        /// <summary>
-        /// Will be invoked after a transformation has been applied.
-        /// </summary>
-        /// <param name="context">The current context.</param>
-        /// <param name="transformation">The applied transformation.</param>
-        void AfterTransformation(
-            IRContext context,
-            Transformation transformation);
-    }
-
-    /// <summary>
     /// Represents a transformer configuration.
     /// </summary>
     public readonly struct TransformerConfiguration
@@ -50,28 +26,21 @@ namespace ILGPU.IR.Transformations
         /// adding additional flags to them.
         /// </summary>
         public static readonly TransformerConfiguration Empty =
-            new TransformerConfiguration(
-                MethodTransformationFlags.None,
-                true);
+            new TransformerConfiguration(MethodTransformationFlags.None);
 
         /// <summary>
         /// Represents a default configuration that works on all non-transformed
         /// functions and marks them as transformed.
         /// </summary>
         public static readonly TransformerConfiguration Transformed =
-            new TransformerConfiguration(
-                MethodTransformationFlags.Transformed,
-                true);
+            new TransformerConfiguration(MethodTransformationFlags.Transformed);
 
         /// <summary>
         /// Constructs a new transformer configuration.
         /// </summary>
         /// <param name="flags">The transformation flags.</param>
-        /// <param name="finalGC">True, if a final GC run is required.</param>
-        public TransformerConfiguration(
-            MethodTransformationFlags flags,
-            bool finalGC)
-            : this(flags, flags, finalGC)
+        public TransformerConfiguration(MethodTransformationFlags flags)
+            : this(flags, flags)
         { }
 
         /// <summary>
@@ -81,21 +50,13 @@ namespace ILGPU.IR.Transformations
         /// The transformation flags that should not be set.
         /// </param>
         /// <param name="flags">The transformation flags that will be set.</param>
-        /// <param name="finalGC">True, if a final GC run is required.</param>
         public TransformerConfiguration(
             MethodTransformationFlags requiredFlags,
-            MethodTransformationFlags flags,
-            bool finalGC)
+            MethodTransformationFlags flags)
         {
             RequiredFlags = requiredFlags;
             TransformationFlags = flags;
-            FinalGC = finalGC;
         }
-
-        /// <summary>
-        /// Returns true if a final GC run is required.
-        /// </summary>
-        public bool FinalGC { get; }
 
         /// <summary>
         /// Returns the transformation flags that will be checked
@@ -112,7 +73,14 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Returns true if the current configuration manipulates transformation flags.
         /// </summary>
-        public bool AddsFlags => TransformationFlags != MethodTransformationFlags.None;
+        public readonly bool AddsFlags =>
+            TransformationFlags != MethodTransformationFlags.None;
+
+        /// <summary>
+        /// Returns a compatible collection predicate.
+        /// </summary>
+        public readonly MethodCollections.ToTransform GetPredicate() =>
+            new MethodCollections.ToTransform(RequiredFlags);
     }
 
     /// <summary>
@@ -178,41 +146,9 @@ namespace ILGPU.IR.Transformations
             #endregion
         }
 
-        /// <summary>
-        /// Represents a function predicate for functions to transform.
-        /// </summary>
-        private readonly struct MethodPredicate : IMethodCollectionPredicate
-        {
-            /// <summary>
-            /// Constructs a new function predicate.
-            /// </summary>
-            /// <param name="flags">The desired flags that should not be set.</param>
-            public MethodPredicate(MethodTransformationFlags flags)
-            {
-                Flags = flags;
-            }
-
-            /// <summary>
-            /// Returns the flags that should not be set on the target function.
-            /// </summary>
-            public MethodTransformationFlags Flags { get; }
-
-            /// <summary cref="IMethodCollectionPredicate.Match(Method)"/>
-            public bool Match(Method method) =>
-                method.HasImplementation &&
-                (method.TransformationFlags & Flags) == MethodTransformationFlags.None;
-        }
-
         #endregion
 
         #region Static
-
-        /// <summary>
-        /// Represents an empty transformer.
-        /// </summary>
-        public static readonly Transformer Empty = new Transformer(
-            new TransformerConfiguration(MethodTransformationFlags.None, false),
-            ImmutableArray<Transformation>.Empty);
 
         /// <summary>
         /// Creates a new transformer builder.
@@ -295,57 +231,6 @@ namespace ILGPU.IR.Transformations
         /// Returns the stored transformations.
         /// </summary>
         public ImmutableArray<Transformation> Transformations { get; }
-
-        /// <summary>
-        /// Returns the number of stored transformations.
-        /// </summary>
-        public int Length => Transformations.Length;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Applies all transformations to the given context.
-        /// </summary>
-        /// <typeparam name="THandler">The handler type.</typeparam>
-        /// <param name="context">The target IR context.</param>
-        /// <param name="handler">The target handler.</param>
-        /// <param name="verifier">The internal verifier instance.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Transform<THandler>(
-            IRContext context,
-            THandler handler,
-            Verifier verifier)
-            where THandler : ITransformerHandler
-        {
-            Debug.Assert(context != null, "Invalid context");
-
-            var toTransform = context.GetMethodCollection(
-                new MethodPredicate(Configuration.RequiredFlags));
-            if (toTransform.TotalNumMethods < 1)
-                return;
-
-            // Apply all transformations
-            foreach (var transform in Transformations)
-            {
-                handler.BeforeTransformation(
-                    context,
-                    transform);
-                transform.Transform(toTransform);
-                handler.AfterTransformation(
-                    context,
-                    transform);
-                verifier.Verify(toTransform);
-            }
-
-            // Apply final flags
-            foreach (var entry in toTransform)
-                entry.AddTransformationFlags(Configuration.TransformationFlags);
-
-            if (Configuration.FinalGC)
-                context.GC();
-        }
 
         #endregion
     }
