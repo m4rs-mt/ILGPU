@@ -43,15 +43,6 @@ namespace ILGPU.IR.Types
                 BasicValueType.Float64);
 
         /// <summary>
-        /// All intrinsic index types.
-        /// </summary>
-        private static readonly ImmutableArray<Type> IndexTypes =
-            ImmutableArray.Create(
-                typeof(Index1),
-                typeof(Index2),
-                typeof(Index3));
-
-        /// <summary>
         /// Returns true if the given basic value type can be used in combination with
         /// a view type.
         /// </summary>
@@ -73,7 +64,6 @@ namespace ILGPU.IR.Types
             new Dictionary<TypeNode, TypeNode>();
         private readonly Dictionary<(Type, MemoryAddressSpace), TypeNode> typeMapping =
             new Dictionary<(Type, MemoryAddressSpace), TypeNode>();
-        private readonly TypeNode[] indexTypes;
         private readonly PrimitiveType[] basicValueTypes;
 
         /// <summary>
@@ -91,7 +81,6 @@ namespace ILGPU.IR.Types
             var rootTypeBuilder = CreateStructureType(0);
             RootType = new StructureType(this, rootTypeBuilder);
 
-            indexTypes = new TypeNode[IndexTypes.Length];
             basicValueTypes = new PrimitiveType[BasicValueTypes.Length + 1];
 
             foreach (var type in BasicValueTypes)
@@ -202,29 +191,6 @@ namespace ILGPU.IR.Types
                 default:
                     throw new ArgumentOutOfRangeException(nameof(basicValueType));
             }
-        }
-
-        /// <summary>
-        /// Creates an intrinsic index type.
-        /// </summary>
-        /// <param name="dimension">The dimension of the index type.</param>
-        /// <returns>The created index type.</returns>
-        public TypeNode GetIndexType(int dimension)
-        {
-            Debug.Assert(
-                dimension >= 1 && dimension <= indexTypes.Length,
-                "Invalid index dimension");
-            ref var indexType = ref indexTypes[dimension - 1];
-            typeLock.EnterWriteLock();
-            try
-            {
-                indexType ??= CreateType(IndexTypes[dimension - 1]);
-            }
-            finally
-            {
-                typeLock.ExitWriteLock();
-            }
-            return indexType;
         }
 
         /// <summary>

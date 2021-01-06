@@ -37,13 +37,6 @@ namespace ILGPU.IR.Types
         PrimitiveType GetPrimitiveType(BasicValueType basicValueType);
 
         /// <summary>
-        /// Creates an intrinsic index type.
-        /// </summary>
-        /// <param name="dimension">The dimension of the index type.</param>
-        /// <returns>The created index type.</returns>
-        TypeNode GetIndexType(int dimension);
-
-        /// <summary>
         /// Creates a pointer type.
         /// </summary>
         /// <param name="elementType">The pointer element type.</param>

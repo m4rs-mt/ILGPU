@@ -40,14 +40,6 @@ namespace ILGPU.IR.Construction
             TypeContext.GetPrimitiveType(basicValueType);
 
         /// <summary>
-        /// Creates an intrinsic index type.
-        /// </summary>
-        /// <param name="dimension">The dimension of the index type.</param>
-        /// <returns>The created index type.</returns>
-        public TypeNode GetIndexType(int dimension) =>
-            TypeContext.GetIndexType(dimension);
-
-        /// <summary>
         /// Creates a pointer type.
         /// </summary>
         /// <param name="elementType">The pointer element type.</param>
