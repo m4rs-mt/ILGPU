@@ -583,37 +583,45 @@ namespace ILGPU.Tests
             ArrayView<byte, LongIndex1> data,
             ArrayView<byte, LongIndex3> source)
         {
-            var reconstructedIndex = source.Extent.ReconstructIndex(index.Size * (source.Extent.Size / data.Extent.Size));
+            var reconstructedIndex = source.Extent.ReconstructIndex(
+                index.Size * (source.Extent.Size / data.Extent.Size));
             data[index] = source[reconstructedIndex];
         }
 
         [Theory]
         [InlineData(127)]
-        [InlineData(1300)]  // Makes a 2.04GB MemoryBuffer on the GPU. Prefer not to go larger so this test will pass on more machines.
+        [InlineData(1300)]  // Makes a 2.04GB MemoryBuffer on the GPU.
+        // Prefer not to go larger so this test will pass on more machines.
         [KernelMethod(nameof(ArrayViewSparseMultidimensionalAccessKernel))]
         public void ArrayViewSparseMultidimensionalAccess(long length)
         {
-            // This test allocates over 2GB of memory (with length == 1300), then fills it with 0s and 255s.
-            // Rather than copying the whole array and checking the result, which would take a long time to
-            // check, we'll copy every outputReductionRatio'th element and check that result.
+            // This test allocates over 2GB of memory (with length == 1300), then fills
+            // it with 0s and 255s.
+            // Rather than copying the whole array and checking the result, which would
+            // take a long time to check, we'll copy every outputReductionRatio'th
+            // element and check that result.
             var extent = new LongIndex3(length);
             long outputReductionRatio = 103;
-            using var buffer = Accelerator.Allocate<byte, LongIndex1>(extent.Size / outputReductionRatio);
+            using var buffer = Accelerator.Allocate<byte, LongIndex1>(
+                extent.Size / outputReductionRatio);
             var expectedData = new byte[extent.Size / outputReductionRatio];
             for (int i = 0; i < expectedData.Length; i++)
             {
-                // Find what row of the source element i comes from. Odd rows contain 255, and even rows contain 0.
+                // Find what row of the source element i comes from.
+                // Odd rows contain 255, and even rows contain 0.
                 long sourceRow = (i * outputReductionRatio) / (length * length);
-                expectedData[i] = sourceRow % 2 == 0 ? 0 : byte.MaxValue;
+                expectedData[i] = sourceRow % 2 == 0 ? byte.MinValue : byte.MaxValue;
             }
             using (var source = Accelerator.Allocate<byte, LongIndex3>(extent))
             {
                 // Fill alternating rows with 0 and 255.
                 for (int i = 0; i < length; i++)
                 {
-                    source.MemSet(i % 2 == 0 ? 0 : byte.MaxValue, i * (length * length), length * length);
+                    source.MemSet(i % 2 == 0 ? byte.MinValue : byte.MaxValue,
+                        i * (length * length), length * length);
                 }
-                Execute((int)(extent.Size / outputReductionRatio), buffer.View, source.View);
+                Execute((int)(extent.Size / outputReductionRatio),
+                    buffer.View, source.View);
             }
             Verify(buffer, expectedData);
         }
