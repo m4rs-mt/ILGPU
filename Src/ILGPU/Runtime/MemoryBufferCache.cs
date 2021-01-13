@@ -80,11 +80,6 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <typeparam name="T">The desired element type.</typeparam>
         /// <returns>The available number of elements of type T.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1004:GenericMethodsShouldProvideTypeParameter",
-            Justification = "The generic parameter is required to compute the number " +
-            "of elements of the given type that can be stored")]
         public long GetCacheSize<T>()
             where T : unmanaged =>
             (cache?.Length ?? 0L) / Interop.SizeOf<T>();
@@ -166,12 +161,14 @@ namespace ILGPU.Runtime
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposes this cache by disposing the associated cache buffer.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (disposing)
-                cache?.Dispose();
-            base.Dispose(disposing);
+            if (disposing && cache != null)
+                cache.Dispose();
+            cache = null;
         }
 
         #endregion
