@@ -716,7 +716,11 @@ namespace ILGPU.Runtime.OpenCL
 
             // Map all kernel arguments
             var argumentMapper = Backend.ArgumentMapper;
-            argumentMapper.Map(emitter, kernelLocal, entryPoint);
+            argumentMapper.Map(
+                emitter,
+                kernelLocal,
+                Context.TypeContext,
+                entryPoint);
 
             // Load current driver API
             emitter.EmitCall(GetCLAPIMethod);

@@ -12,6 +12,7 @@
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
 using ILGPU.Backends.SeparateViews;
+using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using System;
@@ -369,10 +370,14 @@ namespace ILGPU.Backends.OpenCL
         /// <typeparam name="TILEmitter">The emitter type.</typeparam>
         /// <param name="emitter">The target emitter to write to.</param>
         /// <param name="kernel">A local that holds the kernel driver reference.</param>
+        /// <param name="typeInformationManager">
+        /// The parent type information manager.
+        /// </param>
         /// <param name="entryPoint">The entry point.</param>
         public void Map<TILEmitter>(
             in TILEmitter emitter,
             ILLocal kernel,
+            TypeInformationManager typeInformationManager,
             SeparateViewEntryPoint entryPoint)
             where TILEmitter : struct, IILEmitter
         {
@@ -396,7 +401,11 @@ namespace ILGPU.Backends.OpenCL
                 kernel,
                 resultLocal,
                 baseOffset);
-            MapViews(emitter, viewMappingHandler, entryPoint);
+            MapViews(
+                emitter,
+                viewMappingHandler,
+                typeInformationManager,
+                entryPoint);
 
             // Map implicit kernel length (if required)
             int parameterOffset = entryPoint.NumViewParameters + baseOffset;
