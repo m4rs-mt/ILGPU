@@ -220,6 +220,11 @@ namespace ILGPU.Backends
         public KernelSpecialization Specialization => EntryPoint.Specialization;
 
         /// <summary>
+        /// Returns the number of uniform parameters.
+        /// </summary>
+        public int NumParameters => EntryPoint.Parameters.Count;
+
+        /// <summary>
         /// Returns the internally used entry point.
         /// </summary>
         internal EntryPoint EntryPoint { get; }
