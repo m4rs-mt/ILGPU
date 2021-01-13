@@ -15,7 +15,8 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
-using System.Diagnostics.CodeAnalysis;
+<# int numDimensions = 3; #>
+using ILGPU.Runtime.CPU;
 
 namespace ILGPU.Runtime
 {
@@ -23,17 +24,11 @@ namespace ILGPU.Runtime
     /// A static helper class for all exchange buffer implementations.
     /// </summary>
     public static class ExchangeBuffer
-    {<#int top = 3;
-    for(int i = 1; i <= top; i++)
-    {#>
-    <# var indexName = $"LongIndex{i}"; #>
-    <# var dimensionName = $"{i}D"; #>
-    <# var typeName = i == 1 ? "ExchangeBuffer" : $"ExchangeBuffer{dimensionName}"; #>
-    <# var arrayViewType = $"ArrayView<T, {indexName}>"; #>
-    <# var highLevelView =  i == 1 ? "ArrayView" : $"ArrayView{dimensionName}"; #>
-    <# var memoryBufferType = $"MemoryBuffer<T, {indexName}>"; #>
-    <# var highLevelMemBuf = i == 1 ? "MemoryBuffer" : $"MemoryBuffer{dimensionName}";#>
-
+    {
+<# for(int i = 1; i <= numDimensions; i++) { #>
+<#      var indexName = $"LongIndex{i}"; #>
+<#      var dimensionName = $"{i}D"; #>
+<#      var typeName = i == 1 ? "ExchangeBuffer" : $"ExchangeBuffer{dimensionName}"; #>
         /// <summary>
         /// Allocates a new <#= dimensionName #> exchange buffer
         /// that allocates the specified amount of elements on the current
@@ -53,7 +48,7 @@ namespace ILGPU.Runtime
             <#= indexName #> extent)
             where T : unmanaged => accelerator.AllocateExchangeBuffer<T>(
                 extent,
-                ExchangeBufferMode.PreferPagedLockedMemory);
+                ExchangeBufferMode.PreferPageLockedMemory);
 
         /// <summary>
         /// Allocates a new <#= dimensionName #> exchange buffer
@@ -75,18 +70,16 @@ namespace ILGPU.Runtime
             var gpuBuffer = accelerator.Allocate<T>(extent);
             return new <#= typeName #><T>(gpuBuffer, mode);
         }
-    <#}
-    #>}
-    <#for(int i = 1; i <= top; i++)
-    {#>
-    <# var indexName = $"LongIndex{i}"; #>
-    <# var dimensionName = $"{i}D"; #>
-    <# var typeName = i == 1 ? "ExchangeBuffer" : $"ExchangeBuffer{dimensionName}"; #>
-    <# var arrayViewType = $"ArrayView<T, {indexName}>"; #>
-    <# var highLevelView =  i == 1 ? "ArrayView" : $"ArrayView{dimensionName}"; #>
-    <# var memoryBufferType = $"MemoryBuffer<T, {indexName}>"; #>
-    <# var highLevelMemBuf =  i == 1 ? "MemoryBuffer" :
-        $"MemoryBuffer{dimensionName}"; #>
+<# } #>
+   }
+<# for(int i = 1; i <= numDimensions; i++) { #>
+<#      var indexName = $"LongIndex{i}"; #>
+<#      var dimensionName = $"{i}D"; #>
+<#      var typeName = i == 1 ? "ExchangeBuffer" : $"ExchangeBuffer{dimensionName}"; #>
+<#      var arrayViewType = $"ArrayView<T, {indexName}>"; #>
+<#      var highLevelView =  i == 1 ? "ArrayView" : $"ArrayView{dimensionName}"; #>
+<#      var memoryBufferType = i == 1 ? "MemoryBuffer<T>" :
+            $"MemoryBuffer{dimensionName}<T>"; #>
 
     /// <summary>
     /// <#= dimensionName #> implementation of
@@ -94,10 +87,13 @@ namespace ILGPU.Runtime
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed unsafe class <#=typeName#><T> : ExchangeBufferBase<T, <#=indexName#>>
+    public sealed unsafe class <#= typeName #><T> :
+        ExchangeBufferBase<T, <#= indexName #>>
         where T : unmanaged
     {
         #region Instance
+
+        private readonly <#= memoryBufferType #> gpuBuffer;
 
         /// <summary>
         /// Initializes this memory buffer.
@@ -107,38 +103,66 @@ namespace ILGPU.Runtime
         internal <#= typeName #>(
             <#= memoryBufferType #> buffer,
             ExchangeBufferMode mode)
-            : base(buffer, mode)
+            : base(buffer.Accelerator, buffer.Extent, mode)
         {
-            <#if(i > 1)
-            {#>var baseView = new ArrayView<T>(CPUMemory, 0, buffer.Length);
-            CPUArrayView = new <#= arrayViewType #>(baseView, buffer.Extent);
-            <#}
-            else
-            {#>CPUArrayView = new ArrayView<T>(CPUMemory, 0, buffer.Length);
-            <#}#>
-
-            // Cache local data
-            Buffer = buffer;
+            gpuBuffer = buffer;
             NativePtr = buffer.NativePtr;
-            View = buffer.View;
-            Extent = buffer.Extent;
         }
 
         #endregion
 
         #region Methods
 
-        /// <summary>
-        /// Gets this buffer as a higher level memory buffer.
-        /// </summary>
-        /// <returns> A <see cref="<#= highLevelMemBuf #>{T}"/> containing
-        /// the data in this exchanage buffer.
-        /// </returns>
-        public <#= highLevelMemBuf #><T> As<#= highLevelMemBuf #>() =>
-            new <#= highLevelMemBuf #><T>(Buffer);
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(
+        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
+        protected internal override void CopyToView(
+            AcceleratorStream stream,
+            ArrayView<T> target,
+            LongIndex1 sourceOffset) =>
+            gpuBuffer.CopyToView(stream, target, sourceOffset);
 
-<#if(i > 1)
-        {#>
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(
+        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
+        protected internal override void CopyFromView(
+            AcceleratorStream stream,
+            ArrayView<T> source,
+            LongIndex1 targetOffset) =>
+            gpuBuffer.CopyFromView(stream, source, targetOffset);
+
+        /// <summary>
+        /// Sets the contents of the current buffer to the given byte value.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="value">The value to write into the memory buffer.</param>
+        /// <param name="offsetInBytes">The raw offset in bytes.</param>
+        /// <param name="lengthInBytes">The raw length in bytes.</param>
+        protected internal override void MemSetInternal(
+            AcceleratorStream stream,
+            byte value,
+            long offsetInBytes,
+            long lengthInBytes)
+        {
+            gpuBuffer.MemSetInternal(
+                stream,
+                value,
+                offsetInBytes,
+                lengthInBytes);
+            CPUMemoryBuffer<T, <#= indexName #>>.MemSet(
+                CPUMemory.NativePtr,
+                value,
+                offsetInBytes,
+                lengthInBytes);
+        }
+
+        /// <summary>
+        /// Copies the current contents into a new byte array.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        public override byte[] GetAsRawArray(AcceleratorStream stream) =>
+            gpuBuffer.GetAsRawArray(stream);
+<#      if(i > 1) { #>
+
         /// <summary>
         /// Gets the part of this buffer on CPU memory as a <#= dimensionName #> View
         /// using the current extent.
@@ -152,10 +176,6 @@ namespace ILGPU.Runtime
         /// the accelerator using the default stream.
         /// </summary>
         /// <returns>The array containing all the elements in the buffer.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "target")]
         public T[,<#if(i == 3){#>,<#}#>] GetAs<#= dimensionName #>Array() =>
             GetAs<#= dimensionName #>Array(Accelerator.DefaultStream);
 
@@ -163,20 +183,12 @@ namespace ILGPU.Runtime
         /// Gets this buffer as a <#= dimensionName #> array from the accelerator.
         /// </summary>
         /// <returns>The array containing all the elements in the buffer.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "target")]
         public T[,<#if(i == 3){#>,<#}#>] GetAs<#= dimensionName #>Array(
-            AcceleratorStream stream)
-        {
-            var buffer = new <#= highLevelMemBuf #><T>(Buffer);
-            var array = buffer.GetAs<#= dimensionName #>Array(stream);
-            buffer.Dispose();
-            return array;
-        }
+            AcceleratorStream stream) =>
+            gpuBuffer.GetAs<#= dimensionName #>Array(stream);
+<#      } #>
 
-<#}#>        #endregion
+        #endregion
 
         #region Operators
 
@@ -188,15 +200,21 @@ namespace ILGPU.Runtime
             <#= typeName #><T> buffer) =>
             buffer.View;
 
+        #endregion
+
+        #region IDisposable
+
         /// <summary>
-        /// Implicitly converts this buffer into a memory buffer.
+        /// Frees the underlying GPU memory buffer.
         /// </summary>
-        /// <param name="buffer">The source buffer.</param>
-        public static implicit operator MemoryBuffer<T, <#= indexName #>>(
-            <#= typeName #><T> buffer) =>
-            buffer.Buffer;
+        protected override void DisposeAcceleratorObject(bool disposing)
+        {
+            if (disposing)
+                gpuBuffer.Dispose();
+            base.DisposeAcceleratorObject(disposing);
+        }
 
         #endregion
     }
-<#}
-#>}
+<# } #>
+}
