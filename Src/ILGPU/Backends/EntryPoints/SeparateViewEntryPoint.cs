@@ -50,7 +50,7 @@ namespace ILGPU.Backends.EntryPoints
             /// <param name="viewType">The source view type.</param>
             internal ViewParameter(
                 int index,
-                in (TypeInformationManager.TypeInformation, int) parameter,
+                in (Type, int) parameter,
                 FieldAccessChain sourceChain,
                 FieldAccess targetAccess,
                 Type elementType,
@@ -77,7 +77,7 @@ namespace ILGPU.Backends.EntryPoints
             /// <summary>
             /// Returns the associated parameter type.
             /// </summary>
-            public TypeInformationManager.TypeInformation ParameterType { get; }
+            public Type ParameterType { get; }
 
             /// <summary>
             /// Returns the associated kernel-parameter index.
@@ -279,7 +279,7 @@ namespace ILGPU.Backends.EntryPoints
                 int sourceIndex = builder.Count;
                 ResolveVirtualViewParameters(
                     builder,
-                    (typeInfo, i),
+                    (typeInfo.ManagedType, i),
                     typeInfo,
                     FieldAccessChain.Empty,
                     new FieldAccess(0));
@@ -308,7 +308,7 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="targetAccess">The target field access.</param>
         private void ResolveVirtualViewParameters(
             ImmutableArray<ViewParameter>.Builder builder,
-            in (TypeInformationManager.TypeInformation, int) parameter,
+            in (Type, int) parameter,
             TypeInformationManager.TypeInformation type,
             FieldAccessChain sourceChain,
             FieldAccess targetAccess)
