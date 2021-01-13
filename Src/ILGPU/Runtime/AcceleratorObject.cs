@@ -106,7 +106,7 @@ namespace ILGPU.Runtime
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private List<WeakReference<AcceleratorObject>> childObjects =
-            new List<WeakReference<AcceleratorObject>>();
+            new List<WeakReference<AcceleratorObject>>(MinNumberOfChildObjectsInGC);
 
         #endregion
 
@@ -150,13 +150,6 @@ namespace ILGPU.Runtime
         internal void RegisterChildObject<T>(T child)
             where T : AcceleratorObject
         {
-            if (!GCEnabled ||
-                !AutomaticBufferDisposalEnabled && child is MemoryBuffer ||
-                !AutomaticKernelDisposalEnabled && child is Kernel)
-            {
-                return;
-            }
-
             var objRef = new WeakReference<AcceleratorObject>(child);
             lock (syncRoot)
             {
