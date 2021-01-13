@@ -47,14 +47,10 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Disposes the GC functionality.
         /// </summary>
-        private void DisposeGC()
+        private void DisposeGC_SyncRoot()
         {
-            lock (syncRoot)
-            {
-                gcActivated = false;
-                Monitor.Pulse(syncRoot);
-            }
-            gcThread.Join();
+            gcActivated = false;
+            Monitor.PulseAll(syncRoot);
         }
 
         #endregion
@@ -70,7 +66,7 @@ namespace ILGPU.Runtime
         private void RequestGC_SyncRoot()
         {
             if (RequestChildObjectsGC_SyncRoot || RequestKernelCacheGC_SyncRoot)
-                Monitor.Pulse(syncRoot);
+                Monitor.PulseAll(syncRoot);
         }
 
         /// <summary>
@@ -83,6 +79,9 @@ namespace ILGPU.Runtime
                 while (gcActivated)
                 {
                     Monitor.Wait(syncRoot);
+
+                    if (!gcActivated)
+                        break;
 
                     ChildObjectsGC_SyncRoot();
                     KernelCacheGC_SyncRoot();
