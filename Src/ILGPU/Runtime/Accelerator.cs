@@ -16,7 +16,6 @@ using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Runtime
 {
@@ -58,10 +57,6 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Detects all accelerators.
         /// </summary>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1810:InitializeReferenceTypeStaticFieldsInline",
-            Justification = "Complex initialization logic is required in this case")]
         static Accelerator()
         {
             var accelerators = ImmutableArray.CreateBuilder<AcceleratorId>(4);
@@ -147,6 +142,7 @@ namespace ILGPU.Runtime
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             AcceleratorType = type;
+            InstanceId = InstanceId.CreateNew();
 
             InitKernelCache();
             InitLaunchCache();
@@ -158,6 +154,11 @@ namespace ILGPU.Runtime
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the internal unique accelerator instance id.
+        /// </summary>
+        internal InstanceId InstanceId { get; }
 
         /// <summary>
         /// Returns the associated ILGPU context.

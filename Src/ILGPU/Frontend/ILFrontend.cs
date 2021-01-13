@@ -86,22 +86,27 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Constructs a new frontend with two threads.
         /// </summary>
+        /// <param name="context">The context instance.</param>
         /// <param name="debugInformationManager">
         /// The associated debug information manager.
         /// </param>
-        public ILFrontend(DebugInformationManager debugInformationManager)
-            : this(debugInformationManager, 2)
+        public ILFrontend(
+            Context context,
+            DebugInformationManager debugInformationManager)
+            : this(context, debugInformationManager, 2)
         { }
 
         /// <summary>
         /// Constructs a new frontend that uses the given number of
         /// threads for code generation.
         /// </summary>
+        /// <param name="context">The context instance.</param>
         /// <param name="debugInformationManager">
         /// The associated debug information manager.
         /// </param>
         /// <param name="numThreads">The number of threads.</param>
         public ILFrontend(
+            Context context,
             DebugInformationManager debugInformationManager,
             int numThreads)
         {
@@ -114,7 +119,7 @@ namespace ILGPU.Frontend
             {
                 var thread = new Thread(DoWork)
                 {
-                    Name = "ILFrontendWorker" + i,
+                    Name = $"ILGPU_{context.InstanceId}_Frontend_{i}",
                     IsBackground = true,
                 };
                 threads[i] = thread;

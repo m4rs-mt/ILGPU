@@ -39,7 +39,7 @@ namespace ILGPU.Runtime
             gcActivated = true;
             gcThread = new Thread(GCThread)
             {
-                Name = "ILGPUAcceleratorGCThread",
+                Name = $"ILGPU_{InstanceId}_GCThread",
             };
             gcThread.Start();
         }

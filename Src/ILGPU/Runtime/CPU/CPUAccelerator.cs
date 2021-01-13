@@ -108,7 +108,7 @@ namespace ILGPU.Runtime.CPU
                     IsBackground = true,
                     Priority = threadPriority,
                 };
-                thread.Name = "ILGPUExecutionThread" + i;
+                thread.Name = $"ILGPU_{InstanceId}_CPU_{i}";
                 thread.Start(i);
             }
 
