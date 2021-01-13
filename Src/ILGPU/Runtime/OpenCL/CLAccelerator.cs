@@ -15,7 +15,6 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using static ILGPU.Runtime.OpenCL.CLAPI;
@@ -122,14 +121,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Detects all OpenCL accelerators.
         /// </summary>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1810:InitializeReferenceTypeStaticFieldsInline",
-            Justification = "Complex initialization logic is required in this case")]
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1031:Do not catch general exception types",
-            Justification = "Must be caught to ignore external driver errors")]
         static CLAccelerator()
         {
             var accelerators = ImmutableArray.CreateBuilder<CLAcceleratorId>();
@@ -216,8 +207,6 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Instance
 
-        private IntPtr contextPtr;
-
         /// <summary>
         /// Constructs a new OpenCL accelerator.
         /// </summary>
@@ -250,7 +239,8 @@ namespace ILGPU.Runtime.OpenCL
 
             // Create new context
             CLException.ThrowIfFailed(
-                CurrentAPI.CreateContext(DeviceId, out contextPtr));
+                CurrentAPI.CreateContext(DeviceId, out var contextPtr));
+            NativePtr = contextPtr;
 
             // Resolve device info
             Name = CurrentAPI.GetDeviceInfo(
@@ -310,10 +300,10 @@ namespace ILGPU.Runtime.OpenCL
             MaxNumThreadsPerMultiprocessor = MaxNumThreadsPerGroup;
 
             base.Capabilities = new CLCapabilityContext(acceleratorId);
-            InitVendorFeatures();
-            InitSubGroupSupport(acceleratorId);
 
             Bind();
+            InitVendorFeatures();
+            InitSubGroupSupport(acceleratorId);
             DefaultStream = CreateStreamInternal();
             Init(new CLBackend(Context, Capabilities, Vendor));
         }
@@ -321,11 +311,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Initializes major vendor features.
         /// </summary>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "string.Contains(string, StringComparison) not available " +
-            "in net47 and netcoreapp2.0")]
         private void InitVendorFeatures()
         {
             // Check major vendor features
@@ -393,10 +378,6 @@ namespace ILGPU.Runtime.OpenCL
         /// Initializes support for sub groups.
         /// </summary>
         /// <param name="acceleratorId">The current accelerator id.</param>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1031:Do not catch general exception types",
-            Justification = "Must be caught to setup internal flags")]
         private void InitSubGroupSupport(CLAcceleratorId acceleratorId)
         {
             // Check sub group support
@@ -490,7 +471,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Returns the native OpenCL-context ptr.
         /// </summary>
-        public IntPtr ContextPtr => contextPtr;
+        [Obsolete("Use NativePtr instead")]
+        public IntPtr ContextPtr => NativePtr;
 
         /// <summary>
         /// Returns the clock rate.
@@ -776,17 +758,14 @@ namespace ILGPU.Runtime.OpenCL
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            if (contextPtr != IntPtr.Zero)
-            {
-                CLException.ThrowIfFailed(
-                    CurrentAPI.ReleaseContext(contextPtr));
-                contextPtr = IntPtr.Zero;
-            }
-        }
+        /// <summary>
+        /// Disposes the current OpenCL context.
+        /// </summary>
+        protected override void DisposeAccelerator_SyncRoot(bool disposing) =>
+            // Dispose the current context
+            CLException.VerifyDisposed(
+                disposing,
+                CurrentAPI.ReleaseContext(NativePtr));
 
         #endregion
     }
