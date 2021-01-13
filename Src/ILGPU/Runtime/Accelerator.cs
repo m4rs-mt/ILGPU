@@ -135,6 +135,12 @@ namespace ILGPU.Runtime
         private readonly MemoryBufferCache memoryCache;
 
         /// <summary>
+        /// The current volatile native pointer of this instance.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private volatile IntPtr nativePtr;
+
+        /// <summary>
         /// Constructs a new accelerator.
         /// </summary>
         /// <param name="context">The target context.</param>
@@ -175,6 +181,15 @@ namespace ILGPU.Runtime
         /// Returns the type of the accelerator.
         /// </summary>
         public AcceleratorType AcceleratorType { get; }
+
+        /// <summary>
+        /// Returns the current native accelerator pointer.
+        /// </summary>
+        public IntPtr NativePtr
+        {
+            get => nativePtr;
+            protected set => nativePtr = value;
+        }
 
         /// <summary>
         /// Returns the memory size in bytes.
