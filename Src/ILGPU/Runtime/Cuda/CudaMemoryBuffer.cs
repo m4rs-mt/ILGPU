@@ -10,9 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
-using ILGPU.Util;
 using System;
-using System.Runtime.CompilerServices;
 using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.Cuda
@@ -147,16 +145,15 @@ namespace ILGPU.Runtime.Cuda
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposes this Cuda buffer.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (NativePtr != IntPtr.Zero)
-            {
-                CudaException.ThrowIfFailed(
-                    CurrentAPI.FreeMemory(NativePtr));
-                NativePtr = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
+            CudaException.VerifyDisposed(
+                disposing,
+                CurrentAPI.FreeMemory(NativePtr));
+            NativePtr = IntPtr.Zero;
         }
 
         #endregion
