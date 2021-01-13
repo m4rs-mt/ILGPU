@@ -15,7 +15,6 @@ using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
@@ -369,10 +368,6 @@ namespace ILGPU.IR.Values
         /// Converts the internal format expressions into a printf string.
         /// </summary>
         /// <returns>The converted printf string.</returns>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "There are no affected characters")]
         public string ToPrintFExpression()
         {
             var result = new StringBuilder();
@@ -404,10 +399,6 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Converts the internal format expressions into an escaped sequence.
         /// </summary>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "There are no affected characters")]
         public string ToEscapedPrintFExpression() =>
             ToPrintFExpression()
             .Replace("\t", @"\t")
@@ -425,10 +416,6 @@ namespace ILGPU.IR.Values
 
 
         /// <summary cref="Value.ToArgString"/>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "There are no affected characters")]
         protected override string ToArgString() =>
             ToPrintFExpression().Replace(
                 Environment.NewLine,

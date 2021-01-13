@@ -79,27 +79,26 @@ namespace ILGPU.Backends.PTX
 
             InitIntrinsicProvider();
             InitializeKernelTransformers(
-                Context.HasFlags(ContextFlags.EnableAssertions) ?
-                IntrinsicSpecializerFlags.EnableAssertions :
-                IntrinsicSpecializerFlags.None,
                 builder =>
-            {
-                var transformerBuilder = Transformer.CreateBuilder(
-                    TransformerConfiguration.Empty);
-                transformerBuilder.AddBackendOptimizations(
-                    new PTXAcceleratorSpecializer(PointerType),
-                    context.Flags,
-                    context.OptimizationLevel);
-
-                if (Context.HasFlags(ContextFlags.EnhancedPTXBackendFeatures))
                 {
-                    // Create an optimized PTX assembler block schedule
-                    transformerBuilder.Add(new PTXBlockScheduling());
-                    transformerBuilder.Add(new DeadCodeElimination());
-                }
+                    var transformerBuilder = Transformer.CreateBuilder(
+                        TransformerConfiguration.Empty);
+                    transformerBuilder.AddBackendOptimizations(
+                        new PTXAcceleratorSpecializer(
+                            PointerType,
+                            Context.HasFlags(ContextFlags.EnableAssertions)),
+                        context.Flags,
+                        context.OptimizationLevel);
 
-                builder.Add(transformerBuilder.ToTransformer());
-            });
+                    if (Context.HasFlags(ContextFlags.EnhancedPTXBackendFeatures))
+                    {
+                        // Create an optimized PTX assembler block schedule
+                        transformerBuilder.Add(new PTXBlockScheduling());
+                        transformerBuilder.Add(new DeadCodeElimination());
+                    }
+
+                    builder.Add(transformerBuilder.ToTransformer());
+                });
         }
 
         #endregion

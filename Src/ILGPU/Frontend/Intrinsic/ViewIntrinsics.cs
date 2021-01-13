@@ -14,7 +14,6 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
-using System.Diagnostics;
 
 namespace ILGPU.Frontend.Intrinsic
 {
@@ -106,8 +105,8 @@ namespace ILGPU.Frontend.Intrinsic
                             context[paramOffset],
                             BinaryArithmeticKind.Sub)),
                 ViewIntrinsicKind.GetViewElementAddress =>
-                    builder.CreateLoadElementAddress(
-                        location,
+                    GetViewElementAddress(
+                        ref context,
                         instanceValue,
                         context[paramOffset++]),
                 ViewIntrinsicKind.CastView => builder.CreateViewCast(
@@ -126,8 +125,8 @@ namespace ILGPU.Frontend.Intrinsic
                     location,
                     builder.CreateGetViewLongLength(location, instanceValue)),
                 ViewIntrinsicKind.GetViewElementAddressByIndex =>
-                    builder.CreateLoadElementAddress(
-                        location,
+                    GetViewElementAddress(
+                        ref context,
                         instanceValue,
                         builder.CreateGetField(
                             location,
@@ -148,8 +147,74 @@ namespace ILGPU.Frontend.Intrinsic
         }
 
         /// <summary>
-        /// Remaps intrinsic index-linerization functionality to a specific linearization
-        /// function (see also <see cref="IndexTypeExtensions.
+        /// Constructs a new view-element access that is bounds checked in debug mode.
+        /// </summary>
+        private static ValueReference GetViewElementAddress(
+            ref InvocationContext context,
+            Value instanceValue,
+            Value index)
+        {
+            // Load the corresponding view length
+            var builder = context.Builder;
+            var location = context.Location;
+
+            // Build a new assertion
+            if (context.Context.HasFlags(ContextFlags.EnableAssertions))
+            {
+                // Determine base offset and max length
+                var baseOffset = builder.CreatePrimitiveValue(
+                    location,
+                    index.BasicValueType,
+                    0L);
+                var viewLength = index.BasicValueType == BasicValueType.Int64
+                    ? builder.CreateGetViewLongLength(location, instanceValue)
+                    : builder.CreateGetViewLength(location, instanceValue);
+
+                // Verify the lower bound, which must be >= 0 in all cases:
+                // index >= 0
+                var lowerBoundsCheck = builder.CreateCompare(
+                    location,
+                    index,
+                    baseOffset,
+                    CompareKind.GreaterEqual);
+
+                // If the length can be determined (>= 0), we have to verify the upper
+                // bound too
+                // length < 0 || index < length
+                var upperBoundsCheck = builder.CreateArithmetic(
+                    location,
+                    builder.CreateCompare(
+                        location,
+                        viewLength,
+                        builder.CreatePrimitiveValue(location, 0),
+                        CompareKind.LessThan),
+                    builder.CreateCompare(
+                        location,
+                        index,
+                        viewLength,
+                        CompareKind.LessThan),
+                    BinaryArithmeticKind.Or);
+
+                // Build the complete range condition check:
+                // index >= 0 && (length < 0 || index < length)
+                var inRange = builder.CreateArithmetic(
+                    location,
+                    lowerBoundsCheck,
+                    upperBoundsCheck,
+                    BinaryArithmeticKind.And);
+                builder.CreateDebugAssert(
+                    location,
+                    inRange,
+                    builder.CreatePrimitiveValue(location, "Index out of range"));
+            }
+
+            // Load the element index
+            return builder.CreateLoadElementAddress(location, instanceValue, index);
+        }
+
+        /// <summary>
+        /// Remaps intrinsic index-linearization functionality to a specific
+        /// linearization function (see also <see cref="IndexTypeExtensions.
         /// GetViewLinearIndexMethod(Type, Type)"/>).
         /// </summary>
         /// <param name="context">The invocation context.</param>
@@ -159,8 +224,8 @@ namespace ILGPU.Frontend.Intrinsic
         {
             var builder = context.Builder;
 
-            // Extract the managed index type instance and resolve the index linerization
-            // method to compute either an int or a long value.
+            // Extract the managed index type instance and resolve the index
+            // linearization method to compute either an int or a long value.
             var methodGenerics = context.GetMethodGenericArguments();
             var typeGenerics = context.GetTypeGenericArguments();
             var linearMethod = IndexTypeExtensions.GetViewLinearIndexMethod(

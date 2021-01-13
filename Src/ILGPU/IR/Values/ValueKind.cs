@@ -294,9 +294,9 @@ namespace ILGPU.IR
         // Debugging
 
         /// <summary>
-        /// A <see cref="Values.DebugOperation"/> value.
+        /// A <see cref="Values.DebugAssertOperation"/> value.
         /// </summary>
-        Debug,
+        DebugAssert,
 
         // IO
 
