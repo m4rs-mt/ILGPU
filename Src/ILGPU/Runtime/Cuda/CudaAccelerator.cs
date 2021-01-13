@@ -13,11 +13,9 @@ using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PTX;
 using ILGPU.Resources;
-using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -61,10 +59,6 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Detects all cuda accelerators.
         /// </summary>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1810:InitializeReferenceTypeStaticFieldsInline",
-            Justification = "Complex initialization logic is required in this case")]
         static CudaAccelerator()
         {
             CudaAccelerators = ImmutableArray<CudaAcceleratorId>.Empty;
@@ -151,7 +145,6 @@ namespace ILGPU.Runtime.Cuda
 
         #region Instance
 
-        private IntPtr contextPtr;
         private CudaSharedMemoryConfiguration sharedMemoryConfiguration;
         private CudaCacheConfiguration cacheConfiguration;
 
@@ -195,9 +188,10 @@ namespace ILGPU.Runtime.Cuda
         {
             CudaException.ThrowIfFailed(
                 CurrentAPI.CreateContext(
-                    out contextPtr,
+                    out var contextPtr,
                     acceleratorFlags,
                     deviceId));
+            NativePtr = contextPtr;
             DeviceId = deviceId;
 
             SetupAccelerator();
@@ -300,7 +294,8 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Returns the native Cuda-context ptr.
         /// </summary>
-        public IntPtr ContextPtr => contextPtr;
+        [Obsolete("Use NativePtr instead")]
+        public IntPtr ContextPtr => NativePtr;
 
         /// <summary>
         /// Returns the device id.
@@ -438,7 +433,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="Accelerator.OnBind"/>
         protected override void OnBind() =>
             CudaException.ThrowIfFailed(
-                CurrentAPI.SetCurrentContext(contextPtr));
+                CurrentAPI.SetCurrentContext(NativePtr));
 
         /// <summary cref="Accelerator.OnUnbind"/>
         protected override void OnUnbind() =>
@@ -449,10 +444,6 @@ namespace ILGPU.Runtime.Cuda
         /// Queries the amount of free memory.
         /// </summary>
         /// <returns>The amount of free memory in bytes.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1024:UsePropertiesWhereAppropriate",
-            Justification = "This method implies a native method invocation")]
         public long GetFreeMemory()
         {
             Bind();
@@ -492,7 +483,7 @@ namespace ILGPU.Runtime.Cuda
             }
 
             CudaException.ThrowIfFailed(
-                CurrentAPI.EnablePeerAccess(cudaAccelerator.ContextPtr, 0));
+                CurrentAPI.EnablePeerAccess(cudaAccelerator.NativePtr, 0));
         }
 
         /// <summary cref="Accelerator.DisablePeerAccessInternal(Accelerator)"/>
@@ -505,7 +496,7 @@ namespace ILGPU.Runtime.Cuda
             Debug.Assert(cudaAccelerator != null, "Invalid EnablePeerAccess method");
 
             CudaException.ThrowIfFailed(
-                CurrentAPI.DisablePeerAccess(cudaAccelerator.ContextPtr));
+                CurrentAPI.DisablePeerAccess(cudaAccelerator.NativePtr));
         }
 
         #endregion
@@ -654,17 +645,14 @@ namespace ILGPU.Runtime.Cuda
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            if (contextPtr != IntPtr.Zero)
-            {
-                CudaException.ThrowIfFailed(
-                    CurrentAPI.DestroyContext(contextPtr));
-                contextPtr = IntPtr.Zero;
-            }
-        }
+        /// <summary>
+        /// Disposes the current Cuda context.
+        /// </summary>
+        protected override void DisposeAccelerator_SyncRoot(bool disposing) =>
+            // Dispose the current context
+            CudaException.VerifyDisposed(
+                disposing,
+                CurrentAPI.DestroyContext(NativePtr));
 
         #endregion
     }

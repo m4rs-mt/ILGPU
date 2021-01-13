@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using static ILGPU.Runtime.Cuda.CudaAPI;
@@ -30,7 +29,7 @@ namespace ILGPU.Runtime.Cuda
         private readonly bool responsibleForHandle;
 
         /// <summary>
-        /// Constructs a new cuda stream from the given native pointer.
+        /// Constructs a new Cuda stream from the given native pointer.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="ptr">The native stream pointer.</param>
@@ -45,7 +44,7 @@ namespace ILGPU.Runtime.Cuda
         }
 
         /// <summary>
-        /// Constructs a new cuda stream with given <see cref="StreamFlags"/>.
+        /// Constructs a new Cuda stream with given <see cref="StreamFlags"/>.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="flag">
@@ -89,16 +88,18 @@ namespace ILGPU.Runtime.Cuda
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposes this Cuda stream.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (responsibleForHandle && streamPtr != IntPtr.Zero)
-            {
-                CudaException.ThrowIfFailed(
-                    CurrentAPI.DestroyStream(streamPtr));
-                streamPtr = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
+            if (!responsibleForHandle || streamPtr == IntPtr.Zero)
+                return;
+
+            CudaException.VerifyDisposed(
+                disposing,
+                CurrentAPI.DestroyStream(streamPtr));
+            streamPtr = IntPtr.Zero;
         }
 
         #endregion

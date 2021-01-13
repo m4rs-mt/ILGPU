@@ -10,10 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.PTX;
-using ILGPU.Util;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using static ILGPU.Runtime.Cuda.CudaAPI;
 
@@ -44,11 +42,6 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="kernel">The source kernel.</param>
         /// <param name="launcher">The launcher method for the given kernel.</param>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1062:Validate arguments of public methods",
-            MessageId = "0",
-            Justification = "Will be verified in the constructor of the base class")]
         internal CudaKernel(
             CudaAccelerator accelerator,
             PTXCompiledKernel kernel,
@@ -87,12 +80,12 @@ namespace ILGPU.Runtime.Cuda
         #region Properties
 
         /// <summary>
-        /// Returns the Cuda module ptr.
+        /// Returns the Cuda module pointer.
         /// </summary>
         public IntPtr ModulePtr => modulePtr;
 
         /// <summary>
-        /// Returns the Cuda function ptr.
+        /// Returns the Cuda function pointer.
         /// </summary>
         public IntPtr FunctionPtr => functionPtr;
 
@@ -100,17 +93,16 @@ namespace ILGPU.Runtime.Cuda
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposes this Cuda kernel.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (modulePtr != IntPtr.Zero)
-            {
-                CudaException.ThrowIfFailed(
-                    CurrentAPI.DestroyModule(modulePtr));
-                functionPtr = IntPtr.Zero;
-                modulePtr = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
+            CudaException.VerifyDisposed(
+                disposing,
+                CurrentAPI.DestroyModule(modulePtr));
+            functionPtr = IntPtr.Zero;
+            modulePtr = IntPtr.Zero;
         }
 
         #endregion
