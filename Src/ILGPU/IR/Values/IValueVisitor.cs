@@ -312,7 +312,7 @@ namespace ILGPU.IR.Values
         /// Visits the debug operation.
         /// </summary>
         /// <param name="debug">The node.</param>
-        void Visit(DebugOperation debug);
+        void Visit(DebugAssertOperation debug);
 
         // IO operations
 

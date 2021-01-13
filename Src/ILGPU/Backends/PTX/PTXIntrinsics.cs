@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.AtomicOperations;
-using ILGPU.Frontend;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using System;
@@ -23,26 +22,6 @@ namespace ILGPU.Backends.PTX
     /// </summary>
     static partial class PTXIntrinsics
     {
-        #region Debugging
-
-        /// <remarks>
-        /// All strings must be in the generic address space.
-        /// </remarks>
-        [External("__assertfail")]
-        private static void AssertFail(
-            string message,
-            string file,
-            int line,
-            string function,
-            int charSize)
-        { }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void AssertFailed(string message) =>
-            AssertFail(message, "Kernel.cs", 0, "Kernel", 1);
-
-        #endregion
-
         #region Specializers
 
         /// <summary>
@@ -115,13 +94,6 @@ namespace ILGPU.Backends.PTX
             RegisterWarpShuffles(manager);
             RegisterFP16(manager);
             RegisterBitFunctions(manager);
-
-            // Register assert support
-            manager.RegisterDebug(
-                DebugKind.AssertFailed,
-                CreateIntrinsic(
-                    nameof(AssertFailed),
-                    IntrinsicImplementationMode.Redirect));
         }
 
         #endregion

@@ -221,10 +221,18 @@ namespace ILGPU.Frontend.Intrinsic
 
             return context.Method.Name switch
             {
+                nameof(Debug.Assert) when context.NumArguments == 1 =>
+                    builder.CreateDebugAssert(
+                        location,
+                        context[0],
+                        builder.CreatePrimitiveValue(location, "Assert failed")),
                 nameof(Debug.Assert) when context.NumArguments == 2 =>
-                    builder.CreateDebug(location, DebugKind.Trace, context[0]),
+                    builder.CreateDebugAssert(location, context[0], context[1]),
                 nameof(Debug.Fail) when context.NumArguments == 1 =>
-                    builder.CreateDebug(location, DebugKind.AssertFailed, context[0]),
+                    builder.CreateDebugAssert(
+                        location,
+                        builder.CreatePrimitiveValue(location, false),
+                        context[0]),
                 _ => throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedIntrinsic,
                     context.Method.Name),

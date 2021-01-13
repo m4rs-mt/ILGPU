@@ -424,6 +424,35 @@ namespace ILGPU.Tests
             var expected = Enumerable.Repeat(7, Length).ToArray();
             Verify(buffer, expected);
         }
+
+        internal static void LoopUnrollingChainedIfKernel(
+            Index1 index,
+            ArrayView<int> source,
+            ArrayView<int> data)
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                var j = source[i];
+                if (i > 2 && i < 5 && i == j)
+                    data[index] = j;
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrollingChainedIfKernel))]
+        public void LoopUnrollingChainedIf()
+        {
+            using var source = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate<int>(Length);
+
+            source.MemSetToZero();
+            buffer.MemSetToZero();
+
+            Execute(buffer.Length, source.View, buffer.View);
+
+            var expected = Enumerable.Repeat(0, Length).ToArray();
+            Verify(buffer, expected);
+        }
     }
 }
 
