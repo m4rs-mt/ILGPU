@@ -20,29 +20,14 @@ namespace ILGPU.IR
     /// </summary>
     public readonly struct NodeId : IEquatable<NodeId>, IComparable<NodeId>
     {
-        #region Constants
-
-        /// <summary>
-        /// Represents the empty node id.
-        /// </summary>
-        public static readonly NodeId Empty = new NodeId(-1);
-
-        #endregion
-
         #region Static
-
-        /// <summary>
-        /// A shared static id counter.
-        /// </summary>
-        private static long idCounter = 0;
 
         /// <summary>
         /// Creates a new unique node id.
         /// </summary>
         /// <returns>A new unique node id.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static NodeId CreateNew() =>
-            new NodeId(Interlocked.Add(ref idCounter, 1L));
+        public static NodeId CreateNew() => new NodeId(InstanceId.CreateNew());
 
         #endregion
 
@@ -52,9 +37,9 @@ namespace ILGPU.IR
         /// Constructs a new node id.
         /// </summary>
         /// <param name="id">The raw id.</param>
-        internal NodeId(long id)
+        private NodeId(InstanceId id)
         {
-            Value = id;
+            Id = id;
         }
 
         #endregion
@@ -62,9 +47,9 @@ namespace ILGPU.IR
         #region Properties
 
         /// <summary>
-        /// Returns the encapsulated value.
+        /// Returns the encapsulated id.
         /// </summary>
-        public long Value { get; }
+        private InstanceId Id { get; }
 
         #endregion
 
@@ -86,7 +71,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="other">The object to compare to.</param>
         /// <returns>The comparison result.</returns>
-        public int CompareTo(NodeId other) => Value.CompareTo(other.Value);
+        public int CompareTo(NodeId other) => Id.Value.CompareTo(other.Id.Value);
 
         #endregion
 
@@ -104,13 +89,13 @@ namespace ILGPU.IR
         /// Returns the hash code of this id.
         /// </summary>
         /// <returns>The hash code of this id.</returns>
-        public override int GetHashCode() => Value.GetHashCode();
+        public override int GetHashCode() => Id.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this id.
         /// </summary>
         /// <returns>The string representation of this id.</returns>
-        public override string ToString() => Value.ToString();
+        public override string ToString() => Id.ToString();
 
         #endregion
 
@@ -120,7 +105,7 @@ namespace ILGPU.IR
         /// Converts the given node id into its underlying long value.
         /// </summary>
         /// <param name="nodeId">The node id.</param>
-        public static implicit operator long(NodeId nodeId) => nodeId.Value;
+        public static implicit operator long(NodeId nodeId) => nodeId.Id;
 
         /// <summary>
         /// Returns true if the first and the second id are the same.
@@ -129,7 +114,7 @@ namespace ILGPU.IR
         /// <param name="second">The second id.</param>
         /// <returns>True, if the first and the second id are the same.</returns>
         public static bool operator ==(NodeId first, NodeId second) =>
-            first.Value == second.Value;
+            first.Id == second.Id;
 
         /// <summary>
         /// Returns true if the first and the second id are not the same.
@@ -138,7 +123,7 @@ namespace ILGPU.IR
         /// <param name="second">The second id.</param>
         /// <returns>True, if the first and the second id are not the same.</returns>
         public static bool operator !=(NodeId first, NodeId second) =>
-            first.Value != second.Value;
+            first.Id != second.Id;
 
         /// <summary>
         /// Returns true if the first id is smaller than the second one.
@@ -147,7 +132,7 @@ namespace ILGPU.IR
         /// <param name="second">The second id.</param>
         /// <returns>True, if the first id is smaller than the second one.</returns>
         public static bool operator <(NodeId first, NodeId second) =>
-            first.Value < second.Value;
+            first.Id < second.Id;
 
         /// <summary>
         /// Returns true if the first id is smaller than or equal to the second one.
@@ -158,7 +143,7 @@ namespace ILGPU.IR
         /// True, if the first id is smaller than or equal to the second one.
         /// </returns>
         public static bool operator <=(NodeId first, NodeId second) =>
-            first.Value <= second.Value;
+            first.Id <= second.Id;
 
         /// <summary>
         /// Returns true if the first id is greater than the second one.
@@ -167,7 +152,7 @@ namespace ILGPU.IR
         /// <param name="second">The second id.</param>
         /// <returns>True, if the first id is greater than the second one.</returns>
         public static bool operator >(NodeId first, NodeId second) =>
-            first.Value > second.Value;
+            first.Id > second.Id;
 
         /// <summary>
         /// Returns true if the first id is greater than or equal to the second one.
@@ -178,7 +163,7 @@ namespace ILGPU.IR
         /// True, if the first id is greater than or equal to the second one.
         /// </returns>
         public static bool operator >=(NodeId first, NodeId second) =>
-            first.Value >= second.Value;
+            first.Id >= second.Id;
 
         #endregion
     }
