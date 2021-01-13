@@ -173,6 +173,7 @@ namespace ILGPU
         /// disposal, you have to ensure that all accelerator child objects have been
         /// freed manually before disposing the associated accelerator object.
         /// </remarks>
+        [Obsolete]
         DisableAutomaticBufferDisposal = 1 << 25,
 
         /// <summary>
@@ -189,12 +190,14 @@ namespace ILGPU
         /// disposal, you have to ensure that all accelerator child objects have been
         /// freed manually before disposing the associated accelerator object.
         /// </remarks>
+        [Obsolete]
         DisableAutomaticKernelDisposal = 1 << 26,
 
         /// <summary>
         /// Disables kernel caching and automatic disposal of memory buffers and kernels.
         /// It should only be used by experienced users.
         /// </summary>
+        [Obsolete]
         DisableAcceleratorGC =
             DisableKernelCaching |
             DisableAutomaticBufferDisposal |

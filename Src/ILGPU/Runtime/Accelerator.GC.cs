@@ -36,9 +36,6 @@ namespace ILGPU.Runtime
         /// </summary>
         private void InitGC()
         {
-            if (Context.HasFlags(ContextFlags.DisableAcceleratorGC))
-                return;
-
             gcActivated = true;
             gcThread = new Thread(GCThread)
             {
@@ -52,9 +49,6 @@ namespace ILGPU.Runtime
         /// </summary>
         private void DisposeGC()
         {
-            if (!gcActivated)
-                return;
-
             lock (syncRoot)
             {
                 gcActivated = false;
@@ -62,15 +56,6 @@ namespace ILGPU.Runtime
             }
             gcThread.Join();
         }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns true if the GC thread is enabled.
-        /// </summary>
-        private bool GCEnabled => gcThread != null;
 
         #endregion
 
