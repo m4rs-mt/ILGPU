@@ -136,7 +136,7 @@ namespace ILGPU.Runtime
         /// <remarks>This method is invoked in the scope of the locked
         /// <see cref="syncRoot"/> object.</remarks>
         private bool RequestChildObjectsGC_SyncRoot =>
-            childObjects.Count % NumberNewChildObjectsUntilGC == 0;
+            (childObjects.Count + 1) % NumberNewChildObjectsUntilGC == 0;
 
         #endregion
 

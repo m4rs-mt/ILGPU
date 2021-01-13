@@ -356,8 +356,8 @@ namespace ILGPU.Runtime
         /// </remarks>
         private bool RequestKernelCacheGC_SyncRoot =>
             KernelCacheEnabled &&
-            (compiledKernelCache.Count % NumberNewKernelsUntilGC == 0 ||
-            kernelCache.Count % NumberNewKernelsUntilGC == 0);
+            ((compiledKernelCache.Count + 1) % NumberNewKernelsUntilGC == 0 ||
+            (kernelCache.Count + 1) % NumberNewKernelsUntilGC == 0);
 
         #endregion
 
