@@ -446,7 +446,7 @@ namespace ILGPU.Tests
             using var stream = Accelerator.CreateStream();
             using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
                 bufferSize);
-            exchangeBuffer.Buffer.MemSetToZero(stream);
+            exchangeBuffer.MemSetToZero(stream);
             stream.Synchronize();
 
             // Fill data on the CPU side
@@ -491,7 +491,7 @@ namespace ILGPU.Tests
             using var stream = Accelerator.CreateStream();
             using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
                 bufferSize);
-            exchangeBuffer.Buffer.MemSetToZero(stream);
+            exchangeBuffer.MemSetToZero(stream);
             stream.Synchronize();
 
             // Fill data on the CPU side
