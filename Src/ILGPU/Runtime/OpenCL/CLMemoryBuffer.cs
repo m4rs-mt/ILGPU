@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
-using ILGPU.Util;
 using System;
 using static ILGPU.Runtime.OpenCL.CLAPI;
 
@@ -37,7 +36,7 @@ namespace ILGPU.Runtime.OpenCL
         {
             CLException.ThrowIfFailed(
                 CurrentAPI.CreateBuffer(
-                    accelerator.ContextPtr,
+                    accelerator.NativePtr,
                     CLBufferFlags.CL_MEM_READ_WRITE,
                     new IntPtr(extent.Size * ElementSize),
                     IntPtr.Zero,
@@ -153,16 +152,15 @@ namespace ILGPU.Runtime.OpenCL
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposes this OpenCL buffer.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (NativePtr != IntPtr.Zero)
-            {
-                CLException.ThrowIfFailed(
-                    CurrentAPI.ReleaseBuffer(NativePtr));
-                NativePtr = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
+            CLException.VerifyDisposed(
+                disposing,
+                CurrentAPI.ReleaseBuffer(NativePtr));
+            NativePtr = IntPtr.Zero;
         }
 
         #endregion
