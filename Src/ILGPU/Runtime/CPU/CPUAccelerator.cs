@@ -12,7 +12,6 @@
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Resources;
-using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -91,10 +90,10 @@ namespace ILGPU.Runtime.CPU
             if (numThreads < 1)
                 throw new ArgumentOutOfRangeException(nameof(numThreads));
 
-            // Setup assembly and module builder for dynamic code generation
-
+            NativePtr = new IntPtr(1);
             NumThreads = numThreads;
             WarpSize = 1;
+
             threads = new Thread[numThreads];
             finishedEvent = new Barrier(numThreads + 1);
             // The maximum number of thread groups that can be handled in parallel is
@@ -504,26 +503,28 @@ namespace ILGPU.Runtime.CPU
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Dispose all managed resources allocated by this CPU accelerator instance.
+        /// </summary>
+        protected override void DisposeAccelerator_SyncRoot(bool disposing)
         {
-            if (disposing)
+            if (!disposing)
+                return;
+
+            // Dispose all managed objects
+            lock (taskSynchronizationObject)
             {
-                lock (taskSynchronizationObject)
-                {
-                    running = false;
-                    currentTask = null;
-                    Monitor.PulseAll(taskSynchronizationObject);
-                }
-                foreach (var thread in threads)
-                    thread.Join();
-                threads = null;
-                foreach (var group in groupContexts)
-                    group.Dispose();
-                groupContexts = null;
-                finishedEvent.Dispose();
+                running = false;
+                currentTask = null;
+                Monitor.PulseAll(taskSynchronizationObject);
             }
-            base.Dispose(disposing);
+            foreach (var thread in threads)
+                thread.Join();
+            threads = null;
+            foreach (var group in groupContexts)
+                group.Dispose();
+            groupContexts = null;
+            finishedEvent.Dispose();
         }
 
         #endregion
