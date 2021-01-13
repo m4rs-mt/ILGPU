@@ -119,11 +119,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="flags">The context flags.</param>
         public Context(ContextFlags flags)
-#if DEBUG
-            : this(flags, OptimizationLevel.Debug)
-#else
             : this(flags, OptimizationLevel.Release)
-#endif
         { }
 
         /// <summary>
