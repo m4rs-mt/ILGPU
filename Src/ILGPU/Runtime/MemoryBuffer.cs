@@ -170,7 +170,8 @@ namespace ILGPU.Runtime
     /// <typeparam name="TIndex">The index type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
     public abstract class MemoryBuffer<T, TIndex> :
-        MemoryBuffer, IMemoryBuffer<T, TIndex>
+        MemoryBuffer,
+        IMemoryBuffer<T, TIndex>
         where T : unmanaged
         where TIndex : unmanaged, IGenericIndex<TIndex>
     {
@@ -190,9 +191,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="extent">The extent (number of elements).</param>
-        protected unsafe MemoryBuffer(
-            Accelerator accelerator,
-            TIndex extent)
+        protected unsafe MemoryBuffer(Accelerator accelerator, TIndex extent)
             : base(accelerator, extent.Size, ElementSize)
         {
             Extent = extent;
