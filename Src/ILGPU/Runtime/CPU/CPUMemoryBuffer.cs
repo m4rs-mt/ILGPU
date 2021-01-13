@@ -11,7 +11,6 @@
 
 using ILGPU.Resources;
 using ILGPU.Runtime.Cuda;
-using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -28,6 +27,40 @@ namespace ILGPU.Runtime.CPU
         where T : unmanaged
         where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
     {
+        #region Static
+
+        /// <summary>
+        /// Performs a unsafe memset operation on a CPU memory pointer.
+        /// </summary>
+        /// <param name="nativePtr">The native pointer to CPU memory.</param>
+        /// <param name="value">The value to set.</param>
+        /// <param name="offsetInBytes">
+        /// The offset in bytes to begin the operation.
+        /// </param>
+        /// <param name="lengthInBytes">The number of bytes to set.</param>
+        internal static unsafe void MemSet(
+            IntPtr nativePtr,
+            byte value,
+            long offsetInBytes,
+            long lengthInBytes)
+        {
+            ref byte targetAddress = ref Unsafe.AsRef<byte>(nativePtr.ToPointer());
+            for (
+                long offset = offsetInBytes, e = offsetInBytes + lengthInBytes;
+                offset < e;
+                offset += uint.MaxValue)
+            {
+                Unsafe.InitBlock(
+                    ref Unsafe.AddByteOffset(
+                        ref targetAddress,
+                        new IntPtr(offset)),
+                    value,
+                    (uint)Math.Min(uint.MaxValue, e - offset));
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -126,34 +159,20 @@ namespace ILGPU.Runtime.CPU
             long lengthInBytes)
         {
             stream.Synchronize();
-            ref byte targetAddress = ref Unsafe.AsRef<byte>(NativePtr.ToPointer());
-            for (
-                long offset = offsetInBytes, e = offsetInBytes + lengthInBytes;
-                offset < e;
-                offset += uint.MaxValue)
-            {
-                Unsafe.InitBlock(
-                    ref Unsafe.AddByteOffset(
-                        ref targetAddress,
-                        new IntPtr(offset)),
-                    value,
-                    (uint)Math.Min(uint.MaxValue, e - offset));
-            }
+            MemSet(NativePtr, value, offsetInBytes, lengthInBytes);
         }
 
         #endregion
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Frees the allocated unsafe memory.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (NativePtr != IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(NativePtr);
-                NativePtr = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
+            Marshal.FreeHGlobal(NativePtr);
+            NativePtr = IntPtr.Zero;
         }
 
         #endregion
