@@ -384,10 +384,10 @@ namespace ILGPU.Backends.OpenCL
             emitter.Emit(OpCodes.Ldc_I4_0);
             emitter.Emit(LocalOperation.Store, resultLocal);
 
-            // Compute the base offset that can reserves an additional parameter
-            // of dynamic shared memory allocations
+            // Compute the base offset that reserves additional parameters for dynamic
+            // shared memory allocations - buffer and buffer size.
             int baseOffset = entryPoint.SharedMemory.HasDynamicMemory
-                ? 1
+                ? 2
                 : 0;
 
             // Map all views

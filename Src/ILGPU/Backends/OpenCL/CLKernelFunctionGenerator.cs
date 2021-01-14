@@ -37,6 +37,12 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         public const string DynamicSharedMemoryParamName = "dynamic_shared_memory";
 
+        /// <summary>
+        /// The parameter name of dynamic shared memory length parameter.
+        /// </summary>
+        public const string DynamicSharedMemoryLengthParamName =
+            "dynamic_shared_memory_length";
+
         #endregion
 
         #region Nested Types
@@ -183,6 +189,13 @@ namespace ILGPU.Backends.OpenCL
                 builder.Append(' ');
                 builder.Append(GetSharedMemoryAllocationName(allocaInfo));
                 builder.AppendLine(";");
+                if (allocaInfo.IsDynamicArray)
+                {
+                    builder.Append(TypeGenerator[allocaInfo.Alloca.ArrayLength.Type]);
+                    builder.Append(' ');
+                    builder.Append(GetSharedMemoryAllocationLengthName(allocaInfo));
+                    builder.AppendLine(";");
+                }
             }
         }
 
@@ -211,6 +224,14 @@ namespace ILGPU.Backends.OpenCL
                 Builder.Append(CLInstructions.DereferenceOperation);
                 Builder.Append(' ');
                 Builder.Append(DynamicSharedMemoryParamName);
+
+                // Append the length of the memory in bytes.
+                Builder.AppendLine(",\t");
+                Builder.Append(
+                    TypeGenerator.GetBasicValueType(
+                        ArithmeticBasicValueType.Int32));
+                Builder.Append(' ');
+                Builder.Append(DynamicSharedMemoryLengthParamName);
 
                 if (hasDefaultParameters || viewParameters.Length > 0)
                     Builder.AppendLine(",");
@@ -279,12 +300,22 @@ namespace ILGPU.Backends.OpenCL
             {
                 // We have to bind the local allocations to the shared variables in
                 // order to make them visible to all other functions in this module
-                using var statement = new StatementEmitter(this);
-                statement.AppendTarget(
-                    GetSharedMemoryAllocationVariable(dynamicAllocaInfo),
-                    newTarget: false);
-                statement.AppendCast(dynamicAllocaInfo.Alloca.Type);
-                statement.AppendCommand(DynamicSharedMemoryParamName);
+                using (var statement = new StatementEmitter(this))
+                {
+                    statement.AppendTarget(
+                        GetSharedMemoryAllocationVariable(dynamicAllocaInfo),
+                        newTarget: false);
+                    statement.AppendCast(dynamicAllocaInfo.Alloca.Type);
+                    statement.AppendCommand(DynamicSharedMemoryParamName);
+                }
+                using (var statement = new StatementEmitter(this))
+                {
+                    statement.AppendTarget(
+                        GetSharedMemoryAllocationLengthVariable(dynamicAllocaInfo),
+                        newTarget: false);
+                    statement.AppendCast(dynamicAllocaInfo.Alloca.ArrayLength.Type);
+                    statement.AppendCommand(DynamicSharedMemoryLengthParamName);
+                }
             }
 
             // Bind all dynamic shared memory allocations

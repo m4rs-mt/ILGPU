@@ -264,6 +264,12 @@ namespace ILGPU.Backends
         /// <summary>
         /// Generates code for the given value.
         /// </summary>
+        /// <param name="value">The node.</param>
+        void GenerateCode(DynamicMemoryLengthValue value);
+
+        /// <summary>
+        /// Generates code for the given value.
+        /// </summary>
         /// <param name="barrier">The node.</param>
         void GenerateCode(PredicateBarrier barrier);
 
@@ -510,6 +516,10 @@ namespace ILGPU.Backends
 
             /// <summary cref="IValueVisitor.Visit(LaneIdxValue)"/>
             public void Visit(LaneIdxValue value) =>
+                CodeGenerator.GenerateCode(value);
+
+            /// <summary cref="IValueVisitor.Visit(DynamicMemoryLengthValue)"/>
+            public void Visit(DynamicMemoryLengthValue value) =>
                 CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(PredicateBarrier)"/>

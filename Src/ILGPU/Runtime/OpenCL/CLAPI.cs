@@ -71,12 +71,21 @@ namespace ILGPU.Runtime.OpenCL
             public readonly CLError PreLaunchKernel(
                 CLStream stream,
                 CLKernel kernel,
-                RuntimeKernelConfig config) =>
-                CurrentAPI.SetKernelArgumentUnsafeWithKernel(
-                    kernel,
-                    0,
-                    config.SharedMemoryConfig.DynamicArraySize,
-                    null);
+                RuntimeKernelConfig config)
+            {
+                // Allocate local buffer of desired size.
+                CLException.ThrowIfFailed(
+                    CurrentAPI.SetKernelArgumentUnsafeWithKernel(
+                        kernel,
+                        0,
+                        config.SharedMemoryConfig.DynamicArraySize,
+                        null));
+                // The length of the local buffer (in bytes).
+                return CurrentAPI.SetKernelArgument(
+                    kernel.KernelPtr,
+                    1,
+                    config.SharedMemoryConfig.DynamicArraySize);
+            }
         }
 
         #endregion
