@@ -702,8 +702,8 @@ namespace ILGPU.Backends.OpenCL
         public void GenerateCode(SubWarpShuffle shuffle) =>
             throw new InvalidCodeGenerationException();
 
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugOperation)"/>
-        public void GenerateCode(DebugOperation debug) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugAssertOperation)"/>
+        public void GenerateCode(DebugAssertOperation debug) =>
             // Invalid debug node -> should have been removed
             debug.Assert(false);
     }

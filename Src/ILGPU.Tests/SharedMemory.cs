@@ -80,7 +80,7 @@ namespace ILGPU.Tests
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static int AllocateSharedMemoryNested()
         {
-            var sharedMemory = ILGPU.SharedMemory.Allocate<int>(2);
+            var sharedMemory = ILGPU.SharedMemory.Allocate<int>(1024);
             sharedMemory[Group.IdxX] = Group.IdxX;
             Group.Barrier();
 

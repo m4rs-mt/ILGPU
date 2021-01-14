@@ -67,7 +67,6 @@ namespace ILGPU.Backends.OpenCL
 
             InitIntrinsicProvider();
             InitializeKernelTransformers(
-                IntrinsicSpecializerFlags.None,
                 builder =>
                 {
                     var transformerBuilder = Transformer.CreateBuilder(

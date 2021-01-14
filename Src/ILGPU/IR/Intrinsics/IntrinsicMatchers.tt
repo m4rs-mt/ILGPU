@@ -15,10 +15,7 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#
-var matchers = new (string, string, string)[]
-    {
-        ("Debug", "DebugOperation", "DebugKind"),
-    };
+var matchers = new (string, string, string)[] { };
 var typedMatchers = new (string, string, string)[]
     {
         ("Broadcast", "Broadcast", "BroadcastKind"),

@@ -303,7 +303,7 @@ namespace ILGPU.Backends
         /// Generates code for the given value.
         /// </summary>
         /// <param name="debug">The node.</param>
-        void GenerateCode(DebugOperation debug);
+        void GenerateCode(DebugAssertOperation debug);
 
         // Terminators
 
@@ -550,8 +550,8 @@ namespace ILGPU.Backends
             public void Visit(HandleValue handle) =>
                 throw new InvalidCodeGenerationException();
 
-            /// <summary cref="IValueVisitor.Visit(DebugOperation)"/>
-            public void Visit(DebugOperation debug) =>
+            /// <summary cref="IValueVisitor.Visit(DebugAssertOperation)"/>
+            public void Visit(DebugAssertOperation debug) =>
                 CodeGenerator.GenerateCode(debug);
 
             /// <summary cref="IValueVisitor.Visit(WriteToOutput)"/>
