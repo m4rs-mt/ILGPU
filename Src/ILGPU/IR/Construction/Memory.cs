@@ -77,7 +77,7 @@ namespace ILGPU.IR.Construction
             MemoryAddressSpace addressSpace) =>
             CreateStaticAllocaArray(
                 location,
-                CreatePrimitiveValue(location, -1),
+                CreateDynamicMemoryLengthValue(location, type, addressSpace),
                 type,
                 addressSpace);
 

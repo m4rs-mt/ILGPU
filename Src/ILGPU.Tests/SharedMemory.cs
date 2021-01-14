@@ -1,4 +1,7 @@
-﻿using System.Linq;
+﻿using ILGPU.Runtime;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
@@ -152,6 +155,39 @@ namespace ILGPU.Tests
             }
 
             Verify(buffer, expected);
+        }
+
+        private static void DynamicSharedMemoryLengthKernel<T>(ArrayView<long> output)
+            where T : unmanaged
+        {
+            var dynamicMemory = ILGPU.SharedMemory.GetDynamic<T>();
+            output[0] = dynamicMemory.Length;
+            output[1] = dynamicMemory.IntLength;
+            output[2] = dynamicMemory.LengthInBytes;
+        }
+
+        [Theory]
+        [InlineData(default(byte), 11)]
+        [InlineData(default(int), 13)]
+        [InlineData(default(long), 15)]
+        [InlineData(default(float), 17)]
+        [InlineData(default(double), 19)]
+        [KernelMethod(nameof(DynamicSharedMemoryLengthKernel))]
+        [SuppressMessage(
+            "Usage",
+            "xUnit1026:Theory methods should use all of their parameters",
+            Justification = "Required to infer generic type argument")]
+        public void DynamicSharedMemoryLength<T>(T elementType, int length)
+            where T : unmanaged
+        {
+            var expectedSizeInBytes = length * Interop.SizeOf<T>();
+            var expected = new long[] { length, length, expectedSizeInBytes };
+
+            using var output = Accelerator.AllocateZero<long>(expected.Length);
+            var config = SharedMemoryConfig.RequestDynamic<T>(length);
+            var index = new KernelConfig(1, 2, config);
+            Execute<KernelConfig, T>(index, output.View);
+            Verify(output, expected);
         }
 
         internal static void ImplicitSharedMemoryKernel(Index1 index, ArrayView<int> data)
