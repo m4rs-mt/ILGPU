@@ -569,6 +569,52 @@ namespace ILGPU.Backends.OpenCL
                 value,
                 CLInstructions.GetLaneIndexOperation);
 
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(DynamicMemoryLengthValue)"/>
+        public void GenerateCode(DynamicMemoryLengthValue value)
+        {
+            if (value.AddressSpace != MemoryAddressSpace.Shared)
+                throw new InvalidCodeGenerationException();
+
+            // Resolve the name of the global variable containing the length of the
+            // shared dynamic memory buffer.
+            var dynamicView = value.GetFirstUseNode().ResolveAs<Alloca>();
+            var lengthVariableName = GetSharedMemoryAllocationLengthName(dynamicView);
+
+            // Load the dynamic memory size (in bytes) from the dynamic length variable
+            // and divide by the size in bytes of the array element.
+            var target = Allocate(value);
+            using var statement = BeginStatement(target);
+            statement.AppendCast(value.Type);
+            var operation = CLInstructions.GetArithmeticOperation(
+                BinaryArithmeticKind.Div,
+                value.BasicValueType.IsFloat(),
+                out bool isFunction);
+            if (isFunction)
+            {
+                statement.AppendCommand(operation);
+                statement.BeginArguments();
+            }
+            else
+            {
+                statement.OpenParen();
+            }
+
+            statement.AppendCast(dynamicView.ArrayLength.Type);
+            statement.AppendCommand(lengthVariableName);
+
+            if (!isFunction)
+                statement.AppendCommand(operation);
+
+            statement.AppendArgument();
+            statement.AppendCast(value.ElementType.BasicValueType);
+            statement.AppendConstant(value.ElementType.Size);
+
+            if (isFunction)
+                statement.EndArguments();
+            else
+                statement.CloseParen();
+        }
+
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PredicateBarrier)"/>
         public void GenerateCode(PredicateBarrier barrier)
         {

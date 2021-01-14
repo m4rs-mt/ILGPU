@@ -77,6 +77,11 @@ namespace ILGPU.Backends.PTX
         /// The LaneId register.
         /// </summary>
         LaneId,
+
+        /// <summary>
+        /// The DynamicSharedMemorySize register.
+        /// </summary>
+        DynamicSharedMemorySize,
     }
 
     /// <summary>
@@ -176,6 +181,7 @@ namespace ILGPU.Backends.PTX
                 PTXRegisterKind.NtId => "ntid." +
                     ResolveDeviceConstantValue(register),
                 PTXRegisterKind.LaneId => "laneid",
+                PTXRegisterKind.DynamicSharedMemorySize => "dynamic_smem_size",
                 _ => throw new InvalidCodeGenerationException(),
             };
 

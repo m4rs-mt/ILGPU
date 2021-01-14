@@ -437,4 +437,71 @@ namespace ILGPU.IR.Values
 
         #endregion
     }
+
+    /// <summary>
+    /// Represents the value returned by calling the <see cref="ArrayView{T}.Length"/>
+    /// property on a dynamic memory view.
+    /// </summary>
+    [ValueKind(ValueKind.DynamicMemoryLength)]
+    public sealed class DynamicMemoryLengthValue : DeviceConstantValue
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new value.
+        /// </summary>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="elementType">The element type node.</param>
+        /// <param name="addressSpace">The target address space.</param>
+        internal DynamicMemoryLengthValue(
+            in ValueInitializer initializer,
+            TypeNode elementType,
+            MemoryAddressSpace addressSpace)
+            : base(
+                  initializer,
+                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+        {
+            ElementType = elementType;
+            AddressSpace = addressSpace;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.DynamicMemoryLength;
+
+        /// <summary>
+        /// Returns the element type node.
+        /// </summary>
+        public TypeNode ElementType { get; }
+
+        /// <summary>
+        /// Returns the address space of this allocation.
+        /// </summary>
+        public MemoryAddressSpace AddressSpace { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
+            builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
+
+        /// <summary cref="Value.Accept" />
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <summary cref="Node.ToPrefixString"/>
+        protected override string ToPrefixString() => "dynamicMemLength";
+
+        #endregion
+    }
 }

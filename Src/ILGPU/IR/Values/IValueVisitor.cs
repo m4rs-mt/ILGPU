@@ -267,6 +267,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Visits the node.
         /// </summary>
+        /// <param name="value">The node.</param>
+        void Visit(DynamicMemoryLengthValue value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
         /// <param name="barrier">The node.</param>
         void Visit(PredicateBarrier barrier);
 

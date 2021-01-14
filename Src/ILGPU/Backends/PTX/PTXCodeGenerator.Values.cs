@@ -820,6 +820,29 @@ namespace ILGPU.Backends.PTX
                 value,
                 PTXRegisterKind.LaneId);
 
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(DynamicMemoryLengthValue)"/>
+        public void GenerateCode(DynamicMemoryLengthValue value)
+        {
+            if (value.AddressSpace != MemoryAddressSpace.Shared)
+                throw new InvalidCodeGenerationException();
+
+            // Load the dynamic memory size (in bytes) from the PTX special register
+            // and divide by the size in bytes of the array element.
+            var lengthRegister = AllocateHardware(value);
+            var dynamicMemorySizeRegister = MoveFromIntrinsicRegister(
+                PTXRegisterKind.DynamicSharedMemorySize);
+
+            using var command = BeginCommand(
+                PTXInstructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.Div,
+                    ArithmeticBasicValueType.UInt32,
+                    Backend.Capabilities,
+                    false));
+            command.AppendArgument(lengthRegister);
+            command.AppendArgument(dynamicMemorySizeRegister);
+            command.AppendConstant(value.ElementType.Size);
+        }
+
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PredicateBarrier)"/>
         public void GenerateCode(PredicateBarrier barrier)
         {

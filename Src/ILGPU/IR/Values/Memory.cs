@@ -102,6 +102,12 @@ namespace ILGPU.IR.Values
         public bool IsSimpleAllocation =>
             ArrayLength.ResolveAs<UndefinedValue>() != null;
 
+        /// <summary>
+        /// Returns true if this allocation is a dynamic allocation.
+        /// </summary>
+        public bool IsDynamicAllocation =>
+            ArrayLength.ResolveAs<DynamicMemoryLengthValue>() != null;
+
         #endregion
 
         #region Methods
