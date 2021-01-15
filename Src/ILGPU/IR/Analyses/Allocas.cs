@@ -40,12 +40,24 @@ namespace ILGPU.IR.Analyses
             Index = index;
             Alloca = alloca;
 
-            ArraySize = alloca.IsArrayAllocation(out var length)
-                ? length.Int32Value
-                : alloca.IsSimpleAllocation
-                    ? 1
-                    : throw new NotSupportedException(
-                        ErrorMessages.NotSupportedDynamicAllocation);
+            if (alloca.IsArrayAllocation(out var length))
+            {
+                ArraySize = length.Int32Value;
+            }
+            else if (alloca.IsSimpleAllocation)
+            {
+                ArraySize = 1;
+            }
+            else if (alloca.IsDynamicAllocation)
+            {
+                // Size determined at run-time.
+                ArraySize = -1;
+            }
+            else
+            {
+                throw new NotSupportedException(
+                    ErrorMessages.NotSupportedDynamicAllocation);
+            }
         }
 
         #endregion

@@ -107,6 +107,22 @@ namespace ILGPU.IR.Construction
             Append(new LaneIdxValue(GetInitializer(location)));
 
         /// <summary>
+        /// Creates a node that represents the length of dynamic memory.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="elementType">The element type.</param>
+        /// <param name="addressSpace">The target address space.</param>
+        /// <returns>A reference to the requested value.</returns>
+        internal ValueReference CreateDynamicMemoryLengthValue(
+            Location location,
+            TypeNode elementType,
+            MemoryAddressSpace addressSpace) =>
+            Append(new DynamicMemoryLengthValue(
+                GetInitializer(location),
+                elementType,
+                addressSpace));
+
+        /// <summary>
         /// Creates a node that represents a <see cref="Grid.Index"/> property.
         /// </summary>
         /// <param name="location">The current location.</param>

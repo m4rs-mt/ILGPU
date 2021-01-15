@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
@@ -21,11 +20,8 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Represents a Cuda exception that can be thrown by the Cuda runtime.
     /// </summary>
-    [SuppressMessage(
-        "Microsoft.Design",
-        "CA1032:ImplementStandardExceptionConstructors")]
     [Serializable]
-    public sealed class CudaException : Exception
+    public sealed class CudaException : AcceleratorException
     {
         #region Instance
 
@@ -63,6 +59,11 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         public string Error { get; }
 
+        /// <summary>
+        /// Returns <see cref="AcceleratorType.Cuda"/>.
+        /// </summary>
+        public override AcceleratorType AcceleratorType => AcceleratorType.Cuda;
+
         #endregion
 
         #region Methods
@@ -79,6 +80,22 @@ namespace ILGPU.Runtime.Cuda
             base.GetObjectData(info, context);
 
             info.AddValue("Error", Error);
+        }
+
+        /// <summary>
+        /// Checks the given status and throws an exception in case of an error if
+        /// <paramref name="disposing"/> is set to true. If it is set to false, the
+        /// exception will be suppressed in all cases.
+        /// </summary>
+        /// <param name="disposing">
+        /// True, if this function has been called by the dispose method, false otherwise.
+        /// </param>
+        /// <param name="cudaStatus">The Cuda status to check.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void VerifyDisposed(bool disposing, CudaError cudaStatus)
+        {
+            if (disposing)
+                ThrowIfFailed(cudaStatus);
         }
 
         /// <summary>

@@ -142,6 +142,11 @@ namespace ILGPU.IR
         /// </summary>
         LaneIdx,
 
+        /// <summary>
+        /// A <see cref="Values.DynamicMemoryLengthValue"/> value.
+        /// </summary>
+        DynamicMemoryLength,
+
         // Memory
 
         /// <summary>

@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -95,6 +94,8 @@ namespace ILGPU.Runtime
     /// </summary>
     public class ViewPointerWrapper : ArrayViewSource
     {
+        #region Static
+
         /// <summary>
         /// Creates a new pointer wrapper.
         /// </summary>
@@ -126,6 +127,10 @@ namespace ILGPU.Runtime
         public static unsafe ViewPointerWrapper Create(IntPtr value) =>
             new ViewPointerWrapper(value);
 
+        #endregion
+
+        #region Instance
+
         /// <summary>
         /// Creates a new pointer wrapper.
         /// </summary>
@@ -135,12 +140,27 @@ namespace ILGPU.Runtime
             NativePtr = ptr;
         }
 
+        #endregion
+
+        #region Methods
+
         /// <summary cref="ArrayViewSource.GetAsRawArray(
         /// AcceleratorStream, long, long)"/>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
             long byteOffset,
             long byteExtent) => throw new InvalidOperationException();
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary>
+        /// Does not perform any operation.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing) { }
+
+        #endregion
     }
 
     /// <summary>
@@ -148,6 +168,8 @@ namespace ILGPU.Runtime
     /// </summary>
     internal sealed class UnmanagedMemoryViewSource : ViewPointerWrapper
     {
+        #region Static
+
         /// <summary>
         /// Creates a new unmanaged memory view source.
         /// </summary>
@@ -157,9 +179,17 @@ namespace ILGPU.Runtime
         public static unsafe UnmanagedMemoryViewSource Create(long sizeInBytes) =>
             new UnmanagedMemoryViewSource(sizeInBytes);
 
+        #endregion
+
+        #region Instance
+
         private UnmanagedMemoryViewSource(long sizeInBytes)
             : base(Marshal.AllocHGlobal(new IntPtr(sizeInBytes)))
         { }
+
+        #endregion
+
+        #region Methods
 
         /// <summary cref="ArrayViewSource.GetAsRawArray(
         /// AcceleratorStream, long, long)"/>
@@ -168,17 +198,17 @@ namespace ILGPU.Runtime
             long byteOffset,
             long byteExtent) => throw new InvalidOperationException();
 
-        #region IDispoable
+        #endregion
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        #region IDisposable
+
+        /// <summary>
+        /// Frees the allocated unsafe memory.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (NativePtr != IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(NativePtr);
-                NativePtr = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
+            Marshal.FreeHGlobal(NativePtr);
+            NativePtr = IntPtr.Zero;
         }
 
         #endregion

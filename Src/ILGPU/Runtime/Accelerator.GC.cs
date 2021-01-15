@@ -36,13 +36,10 @@ namespace ILGPU.Runtime
         /// </summary>
         private void InitGC()
         {
-            if (Context.HasFlags(ContextFlags.DisableAcceleratorGC))
-                return;
-
             gcActivated = true;
             gcThread = new Thread(GCThread)
             {
-                Name = "ILGPUAcceleratorGCThread",
+                Name = $"ILGPU_{InstanceId}_GCThread",
             };
             gcThread.Start();
         }
@@ -50,27 +47,11 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Disposes the GC functionality.
         /// </summary>
-        private void DisposeGC()
+        private void DisposeGC_SyncRoot()
         {
-            if (!gcActivated)
-                return;
-
-            lock (syncRoot)
-            {
-                gcActivated = false;
-                Monitor.Pulse(syncRoot);
-            }
-            gcThread.Join();
+            gcActivated = false;
+            Monitor.PulseAll(syncRoot);
         }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns true if the GC thread is enabled.
-        /// </summary>
-        private bool GCEnabled => gcThread != null;
 
         #endregion
 
@@ -85,7 +66,7 @@ namespace ILGPU.Runtime
         private void RequestGC_SyncRoot()
         {
             if (RequestChildObjectsGC_SyncRoot || RequestKernelCacheGC_SyncRoot)
-                Monitor.Pulse(syncRoot);
+                Monitor.PulseAll(syncRoot);
         }
 
         /// <summary>
@@ -98,6 +79,9 @@ namespace ILGPU.Runtime
                 while (gcActivated)
                 {
                     Monitor.Wait(syncRoot);
+
+                    if (!gcActivated)
+                        break;
 
                     ChildObjectsGC_SyncRoot();
                     KernelCacheGC_SyncRoot();

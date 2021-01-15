@@ -199,26 +199,6 @@ namespace ILGPU.Tests
         /// <param name="expected">The expected values.</param>
         /// <param name="offset">The custom data offset to use (if any).</param>
         /// <param name="length">The custom data length to use (if any).</param>
-        public void Verify<T>(
-            MemoryBuffer<T> buffer,
-            T[] expected,
-            int? offset = null,
-            int? length = null)
-            where T : unmanaged =>
-            Verify(
-                buffer.Buffer,
-                expected,
-                offset,
-                length);
-
-        /// <summary>
-        /// Verifies the contents of the given memory buffer.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="buffer">The target buffer.</param>
-        /// <param name="expected">The expected values.</param>
-        /// <param name="offset">The custom data offset to use (if any).</param>
-        /// <param name="length">The custom data length to use (if any).</param>
         public void Verify<T, TIndex>(
             MemoryBuffer<T, TIndex> buffer,
             T[] expected,

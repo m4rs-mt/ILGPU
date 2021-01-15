@@ -68,5 +68,14 @@ namespace ILGPU.Runtime.CPU
         internal CPUKernelExecutionHandler KernelExecutionDelegate { get; }
 
         #endregion
+
+        #region IDisposable
+
+        /// <summary>
+        /// Does not perform any operation.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing) { }
+
+        #endregion
     }
 }

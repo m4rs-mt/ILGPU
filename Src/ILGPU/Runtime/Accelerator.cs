@@ -16,7 +16,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 
 namespace ILGPU.Runtime
 {
@@ -58,10 +58,6 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Detects all accelerators.
         /// </summary>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1810:InitializeReferenceTypeStaticFieldsInline",
-            Justification = "Complex initialization logic is required in this case")]
         static Accelerator()
         {
             var accelerators = ImmutableArray.CreateBuilder<AcceleratorId>(4);
@@ -139,6 +135,12 @@ namespace ILGPU.Runtime
         private readonly MemoryBufferCache memoryCache;
 
         /// <summary>
+        /// The current volatile native pointer of this instance.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private volatile IntPtr nativePtr;
+
+        /// <summary>
         /// Constructs a new accelerator.
         /// </summary>
         /// <param name="context">The target context.</param>
@@ -147,11 +149,8 @@ namespace ILGPU.Runtime
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             AcceleratorType = type;
+            InstanceId = InstanceId.CreateNew();
 
-            AutomaticBufferDisposalEnabled = !context.HasFlags(
-                ContextFlags.DisableAutomaticBufferDisposal);
-            AutomaticKernelDisposalEnabled = !context.HasFlags(
-                ContextFlags.DisableAutomaticKernelDisposal);
             InitKernelCache();
             InitLaunchCache();
             InitGC();
@@ -162,6 +161,11 @@ namespace ILGPU.Runtime
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the internal unique accelerator instance id.
+        /// </summary>
+        internal InstanceId InstanceId { get; }
 
         /// <summary>
         /// Returns the associated ILGPU context.
@@ -177,6 +181,15 @@ namespace ILGPU.Runtime
         /// Returns the type of the accelerator.
         /// </summary>
         public AcceleratorType AcceleratorType { get; }
+
+        /// <summary>
+        /// Returns the current native accelerator pointer.
+        /// </summary>
+        public IntPtr NativePtr
+        {
+            get => nativePtr;
+            protected set => nativePtr = value;
+        }
 
         /// <summary>
         /// Returns the memory size in bytes.
@@ -259,20 +272,6 @@ namespace ILGPU.Runtime
         /// operations.
         /// </summary>
         public MemoryBufferCache MemoryCache => memoryCache;
-
-        /// <summary>
-        /// See <see cref="ContextFlags.DisableAutomaticBufferDisposal"/> for more
-        /// information.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool AutomaticBufferDisposalEnabled { get; }
-
-        /// <summary>
-        /// See <see cref="ContextFlags.DisableAutomaticKernelDisposal"/> for more
-        /// information.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool AutomaticKernelDisposalEnabled { get; }
 
         #endregion
 
@@ -796,24 +795,52 @@ namespace ILGPU.Runtime
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        protected sealed override void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                Disposed?.Invoke(this, EventArgs.Empty);
-                if (currentAccelerator == this)
-                {
-                    OnUnbind();
-                    currentAccelerator = null;
-                }
+            Debug.Assert(NativePtr != IntPtr.Zero, "Invalid native pointer");
 
-                memoryCache.Dispose();
-
-                DisposeChildObjects();
-                DisposeGC();
-            }
+            // Dispose all accelerator extensions
             base.Dispose(disposing);
+
+            // The main disposal functionality is locked to avoid parallel dispose
+            // operations that can happen due to a parallel invocation of the .Net GC
+            lock (syncRoot)
+            {
+                // Invoke the disposal event
+                Disposed?.Invoke(this, EventArgs.Empty);
+
+                // Bind the current instance
+                Bind();
+
+                // Dispose all child objects
+                DisposeChildObjects_SyncRoot(disposing);
+
+                // Dispose the accelerator instance
+                DisposeAccelerator_SyncRoot(disposing);
+
+                // Wait for the GC thread to terminate
+                DisposeGC_SyncRoot();
+
+                // Unbind the current accelerator and reset it to no accelerator
+                OnUnbind();
+                currentAccelerator = null;
+
+                // Clear the native pointer
+                NativePtr = IntPtr.Zero;
+
+                // Commit all changes
+                Thread.MemoryBarrier();
+            }
         }
+
+        /// <summary>
+        /// Disposes this accelerator instance (synchronized with the current main
+        /// synchronization object of this accelerator).
+        /// </summary>
+        /// <param name="disposing">
+        /// True, if the method is not called by the finalizer.
+        /// </param>
+        protected abstract void DisposeAccelerator_SyncRoot(bool disposing);
 
         #endregion
 

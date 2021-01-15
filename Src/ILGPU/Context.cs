@@ -141,6 +141,7 @@ namespace ILGPU
             if (Debugger.IsAttached)
                 flags |= DefaultDebug;
 
+            InstanceId = InstanceId.CreateNew();
             OptimizationLevel = optimizationLevel;
             Flags = flags.Prepare();
             TargetPlatform = Backend.RuntimePlatform;
@@ -168,8 +169,8 @@ namespace ILGPU
                 : null;
 
             ILFrontend = HasFlags(ContextFlags.EnableParallelCodeGenerationInFrontend)
-                ? new ILFrontend(frontendDebugInformationManager)
-                : new ILFrontend(frontendDebugInformationManager, 1);
+                ? new ILFrontend(this, frontendDebugInformationManager)
+                : new ILFrontend(this, frontendDebugInformationManager, 1);
 
             // Create default IL backend
             DefautltILBackend = flags.HasFlags(ContextFlags.SkipCPUCodeGeneration)
@@ -191,6 +192,11 @@ namespace ILGPU
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the current instance id.
+        /// </summary>
+        internal InstanceId InstanceId { get; }
 
         /// <summary>
         /// Returns the current target platform.

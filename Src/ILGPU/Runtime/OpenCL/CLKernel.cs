@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.OpenCL;
-using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -49,7 +48,7 @@ namespace ILGPU.Runtime.OpenCL
             errorLog = null;
             kernelPtr = IntPtr.Zero;
             var programError = CurrentAPI.CreateProgram(
-                accelerator.ContextPtr,
+                accelerator.NativePtr,
                 source,
                 out programPtr);
             if (programError != CLError.CL_SUCCESS)
@@ -202,22 +201,28 @@ namespace ILGPU.Runtime.OpenCL
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposes this OpenCL kernel.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
+            // Free the kernel
             if (kernelPtr != IntPtr.Zero)
             {
-                CLException.ThrowIfFailed(
+                CLException.VerifyDisposed(
+                    disposing,
                     CurrentAPI.ReleaseKernel(kernelPtr));
                 kernelPtr = IntPtr.Zero;
             }
+
+            // Free the surrounding program
             if (programPtr != IntPtr.Zero)
             {
-                CLException.ThrowIfFailed(
+                CLException.VerifyDisposed(
+                    disposing,
                     CurrentAPI.ReleaseProgram(programPtr));
                 programPtr = IntPtr.Zero;
             }
-            base.Dispose(disposing);
         }
 
         #endregion

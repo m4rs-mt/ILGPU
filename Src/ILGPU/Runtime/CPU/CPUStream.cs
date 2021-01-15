@@ -34,5 +34,14 @@ namespace ILGPU.Runtime.CPU
         public override void Synchronize() { }
 
         #endregion
+
+        #region IDisposable
+
+        /// <summary>
+        /// Does not perform any operation.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing) { }
+
+        #endregion
     }
 }

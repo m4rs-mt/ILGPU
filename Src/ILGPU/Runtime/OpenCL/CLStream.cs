@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using static ILGPU.Runtime.OpenCL.CLAPI;
@@ -43,7 +42,7 @@ namespace ILGPU.Runtime.OpenCL
                 CurrentAPI.CreateCommandQueue(
                     accelerator.PlatformVersion,
                     accelerator.DeviceId,
-                    accelerator.ContextPtr,
+                    accelerator.NativePtr,
                     out queuePtr));
             responsibleForHandle = true;
         }
@@ -70,16 +69,18 @@ namespace ILGPU.Runtime.OpenCL
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposes this OpenCL stream.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (responsibleForHandle && queuePtr != IntPtr.Zero)
-            {
-                CLException.ThrowIfFailed(
-                    CurrentAPI.ReleaseCommandQueue(queuePtr));
-                queuePtr = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
+            if (!responsibleForHandle || queuePtr == IntPtr.Zero)
+                return;
+
+            CLException.VerifyDisposed(
+                disposing,
+                CurrentAPI.ReleaseCommandQueue(queuePtr));
+            queuePtr = IntPtr.Zero;
         }
 
         #endregion

@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.Cuda;
-using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -24,9 +23,15 @@ namespace ILGPU.Runtime
     public enum ExchangeBufferMode
     {
         /// <summary>
+        /// Prefer page locked memory for improved transfer speeds.
+        /// </summary>
+        PreferPageLockedMemory = 0,
+
+        /// <summary>
         /// Prefer paged locked memory for improved transfer speeds.
         /// </summary>
-        PreferPagedLockedMemory = 0,
+        [Obsolete("Use PreferPageLockedMemory instead")]
+        PreferPagedLockedMemory = PreferPageLockedMemory,
 
         /// <summary>
         /// Allocate CPU memory in pageable memory to leverage virtual memory.
@@ -40,21 +45,12 @@ namespace ILGPU.Runtime
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TIndex">The index type.</typeparam>
-    public unsafe class ExchangeBufferBase<T, TIndex> :
-        MemoryBuffer,
+    public abstract unsafe class ExchangeBufferBase<T, TIndex> :
+        MemoryBuffer<T, TIndex>,
         IMemoryBuffer<T>
         where T : unmanaged
         where TIndex : unmanaged, IGenericIndex<TIndex>
     {
-        #region Constants
-
-        /// <summary>
-        /// Represents the size of an element in bytes.
-        /// </summary>
-        public static readonly int ElementSize = MemoryBuffer<T>.ElementSize;
-
-        #endregion
-
         #region Nested Types
 
         /// <summary>
@@ -93,17 +89,18 @@ namespace ILGPU.Runtime
                 long byteOffset,
                 long byteExtent) => throw new InvalidOperationException();
 
-            #region IDispoable
+            #region IDisposable
 
-            /// <summary cref="DisposeBase.Dispose(bool)"/>
-            protected override void Dispose(bool disposing)
+            /// <summary>
+            /// Frees the Cuda host memory.
+            /// </summary>
+            protected override void DisposeAcceleratorObject(bool disposing)
             {
-                if (NativePtr != IntPtr.Zero)
-                {
-                    CurrentAPI.FreeHostMemory(NativePtr);
-                    NativePtr = IntPtr.Zero;
-                }
-                base.Dispose(disposing);
+                if (NativePtr == IntPtr.Zero)
+                    return;
+
+                CurrentAPI.FreeHostMemory(NativePtr);
+                NativePtr = IntPtr.Zero;
             }
 
             #endregion
@@ -114,45 +111,24 @@ namespace ILGPU.Runtime
         #region Instance
 
         /// <summary>
-        /// The internally allocated CPU memory.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly ViewPointerWrapper cpuMemory;
-
-        /// <summary>
-        /// Property for accessing cpuMemory.
-        /// </summary>
-        protected ViewPointerWrapper CPUMemory => cpuMemory;
-
-        /// <summary>
-        /// A cached version of the CPU memory pointer.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly void* cpuMemoryPointer;
-
-        /// <summary>
-        /// Property for accessing cpuMemoryPointer.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        [CLSCompliant(false)]
-        protected void* CPUMemoryPointer => cpuMemoryPointer;
-
-        /// <summary>
         /// Constructs the base class for all exchange buffer implementations.
         /// </summary>
-        /// <param name="buffer">The memory buffer to use.</param>
+        /// <param name="accelerator">The associated accelerator.</param>
+        /// <param name="extent">The extent (number of elements).</param>
         /// <param name="mode">The exchange buffer mode to use.</param>
-        internal ExchangeBufferBase(MemoryBuffer<T, TIndex> buffer,
+        protected ExchangeBufferBase(
+            Accelerator accelerator,
+            TIndex extent,
             ExchangeBufferMode mode)
-            : base(buffer.Accelerator, buffer.Extent.Size, ElementSize)
+            : base(accelerator, extent)
         {
-            cpuMemory = buffer.Accelerator is CudaAccelerator &&
-                mode == ExchangeBufferMode.PreferPagedLockedMemory
-                ? CudaViewSource.Create(buffer.LengthInBytes)
-                : (ViewPointerWrapper)UnmanagedMemoryViewSource.Create(
-                    buffer.LengthInBytes);
+            CPUMemory = Accelerator is CudaAccelerator &&
+                mode == ExchangeBufferMode.PreferPageLockedMemory
+                ? CudaViewSource.Create(LengthInBytes)
+                : (ViewPointerWrapper)UnmanagedMemoryViewSource.Create(LengthInBytes);
 
-            cpuMemoryPointer = cpuMemory.NativePtr.ToPointer();
+            var baseView = new ArrayView<T>(CPUMemory, 0, Length);
+            CPUView = new ArrayView<T, TIndex>(baseView, extent);
         }
 
         #endregion
@@ -160,109 +136,43 @@ namespace ILGPU.Runtime
         #region Properties
 
         /// <summary>
-        /// Returns the underlying generic memory buffer.
+        /// The CPU view representing the allocated chunk of memory.
         /// </summary>
-        public MemoryBuffer<T, TIndex> Buffer { get; protected set; }
+        public ArrayView<T, TIndex> CPUView { get; }
 
         /// <summary>
-        /// Returns an array view that can access this array.
+        /// Returns a span to the part of this buffer in CPU memory.
         /// </summary>
-        public ArrayView<T, TIndex> View { get; protected set; }
-
-        /// <summary>
-        /// Returns the extent of this buffer.
-        /// </summary>
-        public TIndex Extent { get; protected set; }
-
-        /// <summary>
-        /// Internal array view
-        /// </summary>
-        protected ArrayView<T, TIndex> CPUArrayView { get; set; }
-
-        /// <summary>
-        /// The part of this buffer in CPU memory
-        /// </summary>
-        /// <remarks>
-        /// Is obsolete, sole purpose is to prevent a breaking API change
-        /// </remarks>
-        [Obsolete("Replaced by Span property")]
-        public ArrayView<T, TIndex> CPUView => CPUArrayView;
-
-        /// <summary>
-        /// Returns a span to the part of this buffer in CPU memory
-        /// </summary>
-        public Span<T> Span => new Span<T>(cpuMemoryPointer, (int)Length);
+        public Span<T> Span => new Span<T>(CPUMemoryPointer, (int)Length);
 
         /// <summary>
         /// Returns a reference to the i-th element in CPU memory.
         /// </summary>
         /// <param name="index">The element index to access.</param>
         /// <returns>A reference to the i-th element in CPU memory.</returns>
-        public ref T this[TIndex index] => ref CPUArrayView[index];
+        public ref T this[TIndex index] => ref CPUView[index];
+
+        /// <summary>
+        /// Property for accessing cpuMemory.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        protected ViewPointerWrapper CPUMemory { get; }
+
+        /// <summary>
+        /// Property for accessing cpuMemoryPointer.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [CLSCompliant(false)]
+        protected void* CPUMemoryPointer => CPUMemory.NativePtr.ToPointer();
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Sets the contents of the current buffer to the given byte value.
-        /// </summary>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <param name="value">The value to write into the memory buffer.</param>
-        /// <param name="offsetInBytes">The raw offset in bytes.</param>
-        /// <param name="lengthInBytes">The raw length in bytes.</param>
-        protected internal override void MemSetInternal(
-            AcceleratorStream stream,
-            byte value,
-            long offsetInBytes,
-            long lengthInBytes) =>
-            Buffer.MemSetInternal(
-                stream,
-                value,
-                offsetInBytes,
-                lengthInBytes);
-
-        /// <summary>
-        /// Copies the current contents into a new byte array.
-        /// </summary>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <returns>A new array holding the requested contents.</returns>
-        public override byte[] GetAsRawArray(AcceleratorStream stream) =>
-            Buffer.GetAsRawArray(stream);
-
-        /// <summary>
-        /// Copies the current contents into a new byte array.
-        /// </summary>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <param name="byteOffset">The offset in bytes.</param>
-        /// <param name="byteExtent">The extent in bytes (number of elements).</param>
-        /// <returns>A new array holding the requested contents.</returns>
-        protected internal override ArraySegment<byte> GetAsRawArray(
-            AcceleratorStream stream,
-            long byteOffset,
-            long byteExtent) =>
-            Buffer.GetAsRawArray(stream, byteOffset, byteExtent);
-
-        /// <summary>
-        /// Copies the current contents into a new array using the default
-        /// accelerator stream.
-        /// </summary>
-        /// <returns>A new array holding the requested contents.</returns>
-        public T[] GetAsArray() => GetAsArray(Accelerator.DefaultStream);
-
-        /// <summary>
-        /// Copies the current contents into a new array.
-        /// </summary>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <returns>A new array holding the requested contents.</returns>
-        public unsafe T[] GetAsArray(AcceleratorStream stream) =>
-            Buffer.GetAsArray(stream);
-
-        /// <summary>
         /// Copes data from CPU memory to the associated accelerator.
         /// </summary>
-        public void CopyToAccelerator() =>
-            CopyToAccelerator(Accelerator.DefaultStream);
+        public void CopyToAccelerator() => CopyToAccelerator(Accelerator.DefaultStream);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
@@ -272,8 +182,7 @@ namespace ILGPU.Runtime
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-
-            Buffer.CopyFromView(stream, CPUArrayView.AsLinearView(), 0);
+            CopyFromView(stream, CPUView.AsLinearView(), 0);
         }
 
         /// <summary>
@@ -285,7 +194,7 @@ namespace ILGPU.Runtime
                 Accelerator.DefaultStream,
                 default,
                 acceleratorMemoryOffset,
-                CPUArrayView.Length);
+                CPUView.Length);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
@@ -299,7 +208,7 @@ namespace ILGPU.Runtime
                 stream,
                 default,
                 acceleratorMemoryOffset,
-                CPUArrayView.Length);
+                CPUView.Length);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
@@ -313,7 +222,7 @@ namespace ILGPU.Runtime
                 Accelerator.DefaultStream,
                 cpuMemoryOffset,
                 acceleratorMemoryOffset,
-                CPUArrayView.Length);
+                CPUView.Length);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
@@ -329,7 +238,7 @@ namespace ILGPU.Runtime
                 stream,
                 cpuMemoryOffset,
                 acceleratorMemoryOffset,
-                CPUArrayView.Length);
+                CPUView.Length);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
@@ -362,25 +271,25 @@ namespace ILGPU.Runtime
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            if (!cpuMemoryOffset.InBounds(CPUArrayView.Extent))
+            if (!cpuMemoryOffset.InBounds(CPUView.Extent))
                 throw new ArgumentOutOfRangeException(nameof(cpuMemoryOffset));
             if (!acceleratorMemoryOffset.InBounds(Extent))
                 throw new ArgumentOutOfRangeException(nameof(acceleratorMemoryOffset));
-            if (extent < 1 || extent > CPUArrayView.Length)
+            if (extent < 1 || extent > CPUView.Length)
                 throw new ArgumentOutOfRangeException(nameof(extent));
             var linearSourceIndex =
-                    cpuMemoryOffset.ComputeLinearIndex(CPUArrayView.Extent);
+                    cpuMemoryOffset.ComputeLinearIndex(CPUView.Extent);
             var linearTargetIndex =
                     acceleratorMemoryOffset.ComputeLinearIndex(Extent);
-            if (linearSourceIndex + extent > CPUArrayView.Length ||
+            if (linearSourceIndex + extent > CPUView.Length ||
                 linearTargetIndex + extent > Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
-            Buffer.CopyFromView(
+            CopyFromView(
                 stream,
-                CPUArrayView.GetSubView(cpuMemoryOffset, extent),
+                CPUView.GetSubView(cpuMemoryOffset, extent),
                 linearTargetIndex);
         }
 
@@ -398,7 +307,7 @@ namespace ILGPU.Runtime
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            Buffer.CopyToView(stream, CPUArrayView.BaseView, 0);
+            CopyToView(stream, CPUView.BaseView, 0);
         }
 
         /// <summary>
@@ -410,7 +319,7 @@ namespace ILGPU.Runtime
                 Accelerator.DefaultStream,
                 default,
                 cpuMemoryOffset,
-                CPUArrayView.Length);
+                CPUView.Length);
 
         /// <summary>
         /// Copies data from the associated accelerator into CPU memory.
@@ -487,7 +396,7 @@ namespace ILGPU.Runtime
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            if (!cpuMemoryOffset.InBounds(CPUArrayView.Extent))
+            if (!cpuMemoryOffset.InBounds(CPUView.Extent))
                 throw new ArgumentOutOfRangeException(nameof(cpuMemoryOffset));
             if (!acceleratorMemoryOffset.InBounds(Extent))
                 throw new ArgumentOutOfRangeException(nameof(acceleratorMemoryOffset));
@@ -496,16 +405,16 @@ namespace ILGPU.Runtime
             var linearSourceIndex =
                     acceleratorMemoryOffset.ComputeLinearIndex(Extent);
             var linearTargetIndex =
-                    cpuMemoryOffset.ComputeLinearIndex(CPUArrayView.Extent);
+                    cpuMemoryOffset.ComputeLinearIndex(CPUView.Extent);
             if (linearSourceIndex + extent > Length ||
-                linearTargetIndex + extent > CPUArrayView.Length)
+                linearTargetIndex + extent > CPUView.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
-            Buffer.CopyToView(
+            CopyToView(
                 stream,
-                CPUArrayView.GetSubView(cpuMemoryOffset, extent),
+                CPUView.GetSubView(cpuMemoryOffset, extent),
                 linearSourceIndex);
         }
 
@@ -515,7 +424,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The view extent.</param>
         /// <returns>The view.</returns>
         public ArrayView2D<T> As2DView(LongIndex2 extent) =>
-            CPUArrayView.BaseView.As2DView<T>(extent);
+            CPUView.BaseView.As2DView(extent);
 
         /// <summary>
         /// Gets the part of this buffer on CPU memory as a 3D View.
@@ -523,7 +432,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The view extent.</param>
         /// <returns>The view.</returns>
         public ArrayView3D<T> As3DView(LongIndex3 extent) =>
-            CPUArrayView.BaseView.As3DView<T>(extent);
+            CPUView.BaseView.As3DView(extent);
 
         /// <summary>
         /// Gets this exchange buffer as a <see cref="Span{T}"/>, copying from the
@@ -533,8 +442,7 @@ namespace ILGPU.Runtime
         /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
         /// Uses the default accelerator stream.
         /// </returns>
-        public Span<T> GetAsSpan() =>
-            GetAsSpan(Accelerator.DefaultStream);
+        public Span<T> GetAsSpan() => GetAsSpan(Accelerator.DefaultStream);
 
         /// <summary>
         /// Gets this exchange buffer as a <see cref="Span{T}"/>, copying from the
@@ -555,15 +463,13 @@ namespace ILGPU.Runtime
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <summary>
+        /// Frees the underlying CPU memory handles.
+        /// </summary>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
             if (disposing)
-            {
-                Buffer.Dispose();
-                cpuMemory.Dispose();
-            }
-            base.Dispose(disposing);
+                CPUMemory.Dispose();
         }
 
         #endregion

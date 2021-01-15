@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
@@ -20,11 +19,8 @@ namespace ILGPU.Runtime.OpenCL
     /// <summary>
     /// Represents an OpenCL exception that can be thrown by the OpenCL runtime.
     /// </summary>
-    [SuppressMessage(
-        "Microsoft.Design",
-        "CA1032:ImplementStandardExceptionConstructors")]
     [Serializable]
-    public sealed class CLException : Exception
+    public sealed class CLException : AcceleratorException
     {
         #region Instance
 
@@ -61,6 +57,11 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         public CLError Error { get; }
 
+        /// <summary>
+        /// Returns <see cref="AcceleratorType.OpenCL"/>.
+        /// </summary>
+        public override AcceleratorType AcceleratorType => AcceleratorType.OpenCL;
+
         #endregion
 
         #region Methods
@@ -70,7 +71,8 @@ namespace ILGPU.Runtime.OpenCL
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
 #endif
         public override void GetObjectData(
-            SerializationInfo info, StreamingContext context)
+            SerializationInfo info,
+            StreamingContext context)
         {
             base.GetObjectData(info, context);
 
@@ -78,14 +80,30 @@ namespace ILGPU.Runtime.OpenCL
         }
 
         /// <summary>
+        /// Checks the given status and throws an exception in case of an error if
+        /// <paramref name="disposing"/> is set to true. If it is set to false, the
+        /// exception will be suppressed in all cases.
+        /// </summary>
+        /// <param name="disposing">
+        /// True, if this function has been called by the dispose method, false otherwise.
+        /// </param>
+        /// <param name="clStatus">The OpenCL error code to check.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void VerifyDisposed(bool disposing, CLError clStatus)
+        {
+            if (disposing)
+                ThrowIfFailed(clStatus);
+        }
+
+        /// <summary>
         /// Checks the given status and throws an exception in case of an error.
         /// </summary>
-        /// <param name="errorCode">The OpenCL error code to check.</param>
+        /// <param name="clStatus">The OpenCL error code to check.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ThrowIfFailed(CLError errorCode)
+        public static void ThrowIfFailed(CLError clStatus)
         {
-            if (errorCode != CLError.CL_SUCCESS)
-                throw new CLException(errorCode);
+            if (clStatus != CLError.CL_SUCCESS)
+                throw new CLException(clStatus);
         }
 
         #endregion
