@@ -693,7 +693,8 @@ namespace ILGPU.Backends.PTX
                 int alignment = PointerAlignments.GetAlignment(
                     pointerValue,
                     safeAlignment);
-                var ranges = compoundRegister.Type.VectorizableFields;
+                var ranges = compoundRegister.Type.GetVectorizableFields(
+                    MaxVectorSizeInBytes);
                 for (int i = 0, e = ranges.Count; i < e; ++i)
                 {
                     var rangeEntry = ranges[i];
