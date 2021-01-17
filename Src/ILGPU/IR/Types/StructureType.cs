@@ -493,9 +493,16 @@ namespace ILGPU.IR.Types
                 public int Offset { get; }
 
                 /// <summary>
+                /// Returns the size of this chunk in bytes.
+                /// </summary>
+                public readonly int Size => Count * Type.Size;
+
+                /// <summary>
                 /// Returns the required alignment in bytes.
                 /// </summary>
-                public readonly int RequiredAlignment => Count * Type.Size;
+                public readonly int RequiredAlignment =>
+                    // The alignment is equal to the size in bytes
+                    Size;
 
                 #endregion
 
@@ -560,7 +567,10 @@ namespace ILGPU.IR.Types
             /// Constructs a new field collection.
             /// </summary>
             /// <param name="structureType">The parent structure type.</param>
-            internal VectorizableFieldCollection(StructureType structureType)
+            /// <param name="maxSizeInBytes">The maximum vector size in bytes.</param>
+            internal VectorizableFieldCollection(
+                StructureType structureType,
+                int maxSizeInBytes)
             {
                 structureType.Assert(structureType.NumFields > 0);
                 ranges = new List<Entry>(structureType.NumFields);
@@ -578,7 +588,8 @@ namespace ILGPU.IR.Types
                     // If the next type is not compatible or is not properly aligned
                     // we have to split at this point
                     if (current.Type != nextType ||
-                        currentOffset + nextType.Size != nextOffset)
+                        currentOffset + nextType.Size != nextOffset ||
+                        current.Size + nextType.Size > maxSizeInBytes)
                     {
                         // Register the current vectorizable entry
                         RegisterRange(structureType, current);
@@ -737,12 +748,6 @@ namespace ILGPU.IR.Types
         public OffsetCollection Offsets => new OffsetCollection(this);
 
         /// <summary>
-        /// Returns a readonly collection of all vectorized field configurations.
-        /// </summary>
-        public VectorizableFieldCollection VectorizableFields =>
-            new VectorizableFieldCollection(this);
-
-        /// <summary>
         /// Returns the number of associated fields.
         /// </summary>
         public int NumFields => Fields.Length;
@@ -757,6 +762,15 @@ namespace ILGPU.IR.Types
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns a readonly collection of all vectorized field configurations that
+        /// do not exceed the maximum size in bytes.
+        /// </summary>
+        /// <param name="maxSizeInBytes">The maximum vector size in bytes.</param>
+        /// <returns>The vectorizable field collection.</returns>
+        public VectorizableFieldCollection GetVectorizableFields(int maxSizeInBytes) =>
+            new VectorizableFieldCollection(this, maxSizeInBytes);
 
         /// <summary>
         /// Gets a specific field offset in bytes from the beginning of the structure.
