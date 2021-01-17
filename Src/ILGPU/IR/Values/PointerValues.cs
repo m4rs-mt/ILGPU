@@ -56,7 +56,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the view element type.
         /// </summary>
-        public IAddressSpaceType AddressSpaceType => Type as IAddressSpaceType;
+        public AddressSpaceType AddressSpaceType => Type as AddressSpaceType;
 
         /// <summary>
         /// Returns the pointer address space.
@@ -194,7 +194,7 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer)
         {
-            var sourceType = Source.Type as IAddressSpaceType;
+            var sourceType = Source.Type as AddressSpaceType;
             Location.AssertNotNull(sourceType);
 
             return sourceType is PointerType

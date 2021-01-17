@@ -58,7 +58,7 @@ namespace ILGPU.IR.Transformations
             /// Returns the target address space of the underling type.
             /// </summary>
             public readonly MemoryAddressSpace this[Value value] =>
-                value.Type is IAddressSpaceType type
+                value.Type is AddressSpaceType type
                 ? type.AddressSpace
                 : MemoryAddressSpace.Generic;
         }
@@ -204,7 +204,7 @@ namespace ILGPU.IR.Transformations
                     if (!call.Target.HasImplementation)
                         break;
                     var targetParam = call.Target.Parameters[use.Index];
-                    if (targetParam.Type is IAddressSpaceType &&
+                    if (targetParam.Type is AddressSpaceType &&
                         data[targetParam] == targetSpace)
                     {
                         return false;
@@ -215,7 +215,7 @@ namespace ILGPU.IR.Transformations
                 case ReturnTerminator _:
                     // We are not allowed to remove casts in the case of phi values,
                     // predicates and returns
-                    if (value.Type is IAddressSpaceType && data[value] == targetSpace)
+                    if (value.Type is AddressSpaceType && data[value] == targetSpace)
                         return false;
                     break;
                 case Store _:
@@ -264,7 +264,7 @@ namespace ILGPU.IR.Transformations
             TValue value)
             where TValue : Value
             where TProvider : IAddressSpaceProvider =>
-            value.Type is IAddressSpaceType type &&
+            value.Type is AddressSpaceType type &&
             type.AddressSpace != data[value];
 
         /// <summary>

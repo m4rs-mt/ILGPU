@@ -222,7 +222,7 @@ namespace ILGPU.IR.Construction
             // Assert a valid indexing type from here on
             location.Assert(
                 IRTypeContext.IsViewIndexType(elementIndex.BasicValueType));
-            var addressSpaceType = source.Type as IAddressSpaceType;
+            var addressSpaceType = source.Type as AddressSpaceType;
             location.AssertNotNull(addressSpaceType);
 
             // Fold primitive pointer arithmetic that does not change anything
