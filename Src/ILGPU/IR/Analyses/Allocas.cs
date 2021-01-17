@@ -363,7 +363,7 @@ namespace ILGPU.IR.Analyses
                 PhiValue phiValue => phiValue.Type,
                 PointerCast cast => cast.TargetElementType,
                 AddressSpaceCast cast =>
-                    (cast.TargetType as IAddressSpaceType).ElementType,
+                    (cast.TargetType as AddressSpaceType).ElementType,
                 NewView newView => newView.ViewElementType,
                 ViewCast cast => cast.TargetElementType,
                 SubViewValue subView => subView.ElementType,

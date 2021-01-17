@@ -484,7 +484,7 @@ namespace ILGPU.IR.Analyses
         /// <returns>The initial address space information.</returns>
         protected AddressSpaceInfo GetInitialInfo(Value node)
         {
-            if (!(node.Type is IAddressSpaceType type))
+            if (!(node.Type is AddressSpaceType type))
                 return default;
             return
                 type.AddressSpace != MemoryAddressSpace.Generic ||
@@ -515,12 +515,12 @@ namespace ILGPU.IR.Analyses
             TContext context) => null;
 
         /// <summary>
-        /// Tries to convert the given type into an <see cref="IAddressSpaceType"/>
+        /// Tries to convert the given type into an <see cref="AddressSpaceType"/>
         /// and returns the determined address space.
         /// </summary>
         protected override AnalysisValue<AddressSpaceInfo>?
             TryProvide(TypeNode typeNode) =>
-            typeNode is IAddressSpaceType spaceType
+            typeNode is AddressSpaceType spaceType
             ? AnalysisValue.Create<AddressSpaceInfo>(spaceType.AddressSpace, typeNode)
             : default(AnalysisValue<AddressSpaceInfo>?);
 
