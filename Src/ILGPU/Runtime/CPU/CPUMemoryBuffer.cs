@@ -11,10 +11,10 @@
 
 using ILGPU.Resources;
 using ILGPU.Runtime.Cuda;
+using ILGPU.Runtime.OpenCL;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.CPU
 {
@@ -101,11 +101,21 @@ namespace ILGPU.Runtime.CPU
                     break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(
-                        CurrentAPI.MemcpyHostToDevice(
+                        CudaAPI.CurrentAPI.MemcpyAsync(
                             new IntPtr(targetAddress),
                             new IntPtr(sourceAddress),
                             new IntPtr(target.LengthInBytes),
                             stream));
+                    break;
+                case AcceleratorType.OpenCL:
+                    CLException.ThrowIfFailed(
+                        CLAPI.CurrentAPI.WriteBuffer(
+                        stream,
+                        target.Source.NativePtr,
+                        false,
+                        new IntPtr(target.Index * ElementSize),
+                        new IntPtr(target.LengthInBytes),
+                        new IntPtr(sourceAddress)));
                     break;
                 default:
                     throw new NotSupportedException(
@@ -137,11 +147,21 @@ namespace ILGPU.Runtime.CPU
                     break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(
-                        CurrentAPI.MemcpyDeviceToHost(
+                        CudaAPI.CurrentAPI.MemcpyAsync(
                             new IntPtr(targetAddress),
                             new IntPtr(sourceAddress),
                             new IntPtr(source.LengthInBytes),
                             stream));
+                    break;
+                case AcceleratorType.OpenCL:
+                    CLException.ThrowIfFailed(
+                        CLAPI.CurrentAPI.ReadBuffer(
+                            stream,
+                            NativePtr,
+                            false,
+                            new IntPtr(sourceAddress),
+                            new IntPtr(source.LengthInBytes),
+                            new IntPtr(targetAddress)));
                     break;
                 default:
                     throw new NotSupportedException(
