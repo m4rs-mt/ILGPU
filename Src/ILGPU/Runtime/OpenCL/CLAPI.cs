@@ -925,7 +925,9 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Reads from a buffer into host memory.
         /// </summary>
-        /// <param name="queue">The queue.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <param name="buffer">The source buffer to read from.</param>
         /// <param name="blockingRead">
         /// True, if the operation blocks until completion.
@@ -936,16 +938,17 @@ namespace ILGPU.Runtime.OpenCL
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CLError ReadBuffer(
-            IntPtr queue,
+            AcceleratorStream stream,
             IntPtr buffer,
             bool blockingRead,
             IntPtr offset,
             IntPtr size,
             IntPtr ptr)
         {
-            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            var clStream = stream as CLStream;
+            CLException.ThrowIfFailed(EnqueueBarrier(clStream.CommandQueue));
             return clEnqueueReadBuffer(
-                queue,
+                clStream.CommandQueue,
                 buffer,
                 blockingRead,
                 offset,
@@ -959,7 +962,9 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Writes to a buffer from host memory.
         /// </summary>
-        /// <param name="queue">The queue.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <param name="buffer">The target buffer to write to.</param>
         /// <param name="blockingWrite">
         /// True, if the operation blocks until completion.
@@ -970,16 +975,17 @@ namespace ILGPU.Runtime.OpenCL
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CLError WriteBuffer(
-            IntPtr queue,
+            AcceleratorStream stream,
             IntPtr buffer,
             bool blockingWrite,
             IntPtr offset,
             IntPtr size,
             IntPtr ptr)
         {
-            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            var clStream = stream as CLStream;
+            CLException.ThrowIfFailed(EnqueueBarrier(clStream.CommandQueue));
             return clEnqueueWriteBuffer(
-                queue,
+                clStream.CommandQueue,
                 buffer,
                 blockingWrite,
                 offset,
@@ -994,7 +1000,9 @@ namespace ILGPU.Runtime.OpenCL
         /// Fills the given buffer with the specified pattern.
         /// </summary>
         /// <typeparam name="T">The data type used for filling.</typeparam>
-        /// <param name="queue">The queue.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <param name="buffer">The target buffer to fill.</param>
         /// <param name="pattern">The pattern value used for filling.</param>
         /// <param name="offset">The target offset in bytes.</param>
@@ -1002,16 +1010,17 @@ namespace ILGPU.Runtime.OpenCL
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CLError FillBuffer<T>(
-            IntPtr queue,
+            AcceleratorStream stream,
             IntPtr buffer,
             T pattern,
             IntPtr offset,
             IntPtr size)
             where T : unmanaged
         {
-            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            var clStream = stream as CLStream;
+            CLException.ThrowIfFailed(EnqueueBarrier(clStream.CommandQueue));
             return clEnqueueFillBuffer(
-                queue,
+                clStream.CommandQueue,
                 buffer,
                 Unsafe.AsPointer(ref pattern),
                 new IntPtr(Interop.SizeOf<T>()),
@@ -1025,7 +1034,9 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Copies the contents of the source buffer into the target buffer.
         /// </summary>
-        /// <param name="queue">The queue.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <param name="sourceBuffer">The source buffer.</param>
         /// <param name="targetBuffer">The target buffer.</param>
         /// <param name="sourceOffset">
@@ -1038,16 +1049,17 @@ namespace ILGPU.Runtime.OpenCL
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CLError CopyBuffer(
-            IntPtr queue,
+            AcceleratorStream stream,
             IntPtr sourceBuffer,
             IntPtr targetBuffer,
             IntPtr sourceOffset,
             IntPtr targetOffset,
             IntPtr size)
         {
-            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            var clStream = stream as CLStream;
+            CLException.ThrowIfFailed(EnqueueBarrier(clStream.CommandQueue));
             return clEnqueueCopyBuffer(
-                queue,
+                clStream.CommandQueue,
                 sourceBuffer,
                 targetBuffer,
                 sourceOffset,
