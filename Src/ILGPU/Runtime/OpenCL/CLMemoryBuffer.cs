@@ -56,14 +56,13 @@ namespace ILGPU.Runtime.OpenCL
             LongIndex1 sourceOffset)
         {
             var binding = Accelerator.BindScoped();
-            var clStream = (CLStream)stream;
 
             switch (target.AcceleratorType)
             {
                 case AcceleratorType.CPU:
                     CLException.ThrowIfFailed(
                         CurrentAPI.ReadBuffer(
-                            clStream.CommandQueue,
+                            stream,
                             NativePtr,
                             false,
                             new IntPtr(sourceOffset * ElementSize),
@@ -73,7 +72,7 @@ namespace ILGPU.Runtime.OpenCL
                 case AcceleratorType.OpenCL:
                     CLException.ThrowIfFailed(
                         CurrentAPI.CopyBuffer(
-                            clStream.CommandQueue,
+                            stream,
                             NativePtr,
                             target.Source.NativePtr,
                             new IntPtr(sourceOffset * ElementSize),
@@ -96,14 +95,13 @@ namespace ILGPU.Runtime.OpenCL
             LongIndex1 targetOffset)
         {
             var binding = Accelerator.BindScoped();
-            var clStream = (CLStream)stream;
 
             switch (source.AcceleratorType)
             {
                 case AcceleratorType.CPU:
                     CLException.ThrowIfFailed(
                         CurrentAPI.WriteBuffer(
-                            clStream.CommandQueue,
+                            stream,
                             NativePtr,
                             false,
                             new IntPtr(targetOffset * ElementSize),
@@ -113,7 +111,7 @@ namespace ILGPU.Runtime.OpenCL
                 case AcceleratorType.OpenCL:
                     CLException.ThrowIfFailed(
                         CurrentAPI.CopyBuffer(
-                            clStream.CommandQueue,
+                            stream,
                             source.Source.NativePtr,
                             NativePtr,
                             new IntPtr(source.Index * ElementSize),
@@ -139,7 +137,7 @@ namespace ILGPU.Runtime.OpenCL
 
             CLException.ThrowIfFailed(
                 CurrentAPI.FillBuffer(
-                    ((CLStream)stream).CommandQueue,
+                    stream,
                     NativePtr,
                     value,
                     new IntPtr(offsetInBytes),
