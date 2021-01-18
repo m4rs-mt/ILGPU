@@ -61,16 +61,9 @@ namespace ILGPU.Runtime.Cuda
             switch (targetBuffer.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    CudaException.ThrowIfFailed(
-                        CurrentAPI.MemcpyDeviceToHost(
-                            targetAddress,
-                            sourceAddress,
-                            lengthInBytes,
-                            stream));
-                    break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(
-                        CurrentAPI.MemcpyDeviceToDevice(
+                        CurrentAPI.MemcpyAsync(
                             targetAddress,
                             sourceAddress,
                             lengthInBytes,
@@ -99,16 +92,9 @@ namespace ILGPU.Runtime.Cuda
             switch (source.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    CudaException.ThrowIfFailed(
-                        CurrentAPI.MemcpyHostToDevice(
-                            targetAddress,
-                            sourceAddress,
-                            lengthInBytes,
-                            stream));
-                    break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(
-                        CurrentAPI.MemcpyDeviceToDevice(
+                        CurrentAPI.MemcpyAsync(
                             targetAddress,
                             sourceAddress,
                             lengthInBytes,
