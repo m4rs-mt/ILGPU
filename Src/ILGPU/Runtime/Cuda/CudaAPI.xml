@@ -101,26 +101,9 @@
     <Import Name="cuMemFreeHost">
         <Parameter Name="devicePtr" Type="IntPtr" />
     </Import>
-    <Import Name="cuMemcpy">
+    <Import Name="cuMemcpyAsync">
         <Parameter Name="destination" Type="IntPtr" />
         <Parameter Name="source" Type="IntPtr" />
-        <Parameter Name="length" Type="IntPtr" />
-    </Import>
-    <Import Name="cuMemcpyHtoDAsync_v2">
-        <Parameter Name="destinationDevice" Type="IntPtr" />
-        <Parameter Name="sourceHost" Type="IntPtr" />
-        <Parameter Name="length" Type="IntPtr" />
-        <Parameter Name="stream" Type="IntPtr" />
-    </Import>
-    <Import Name="cuMemcpyDtoHAsync_v2">
-        <Parameter Name="destinationHost" Type="IntPtr" />
-        <Parameter Name="sourceDevice" Type="IntPtr" />
-        <Parameter Name="length" Type="IntPtr" />
-        <Parameter Name="stream" Type="IntPtr" />
-    </Import>
-    <Import Name="cuMemcpyDtoDAsync_v2">
-        <Parameter Name="destinationDevice" Type="IntPtr" />
-        <Parameter Name="sourceDevice" Type="IntPtr" />
         <Parameter Name="length" Type="IntPtr" />
         <Parameter Name="stream" Type="IntPtr" />
     </Import>

@@ -146,7 +146,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="attribute">The device attribute.</param>
         /// <param name="device">The device.</param>
         /// <returns>The resolved value.</returns>
-        internal int GetDeviceAttribute(DeviceAttribute attribute, int device)
+        public int GetDeviceAttribute(DeviceAttribute attribute, int device)
         {
             CudaException.ThrowIfFailed(
                 cuDeviceGetAttribute(out int value, attribute, device));
@@ -373,149 +373,23 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="source">The source.</param>
         /// <param name="length">The number of bytes to copy.</param>
         /// <returns>The error status.</returns>
-        public CudaError Memcpy(
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public CudaError MemcpyAsync(
             IntPtr destination,
             IntPtr source,
-            IntPtr length) =>
-            cuMemcpy(destination, source, length);
-
-        /// <summary>
-        /// Performs a memory-copy operation from host to device memory.
-        /// </summary>
-        /// <param name="destinationDevice">The destination in device memory.</param>
-        /// <param name="sourceHost">The source in host memory.</param>
-        /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">
-        /// The accelerator stream for asynchronous processing.
-        /// </param>
-        /// <returns>The error status.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CudaError MemcpyHostToDevice(
-            IntPtr destinationDevice,
-            IntPtr sourceHost,
             IntPtr length,
             AcceleratorStream stream)
         {
-            CudaStream cudaStream = stream as CudaStream;
-            return MemcpyHostToDevice(
-                destinationDevice,
-                sourceHost,
+            var cudaStream = stream as CudaStream;
+            return cuMemcpyAsync(
+                destination,
+                source,
                 length,
                 cudaStream?.StreamPtr ?? IntPtr.Zero);
         }
-
-        /// <summary>
-        /// Performs a memory-copy operation from host to device memory.
-        /// </summary>
-        /// <param name="destinationDevice">The destination in device memory.</param>
-        /// <param name="sourceHost">The source in host memory.</param>
-        /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">
-        /// The accelerator stream for asynchronous processing.
-        /// </param>
-        /// <returns>The error status.</returns>
-        public CudaError MemcpyHostToDevice(
-            IntPtr destinationDevice,
-            IntPtr sourceHost,
-            IntPtr length,
-            IntPtr stream) =>
-            cuMemcpyHtoDAsync_v2(
-                destinationDevice,
-                sourceHost,
-                length,
-                stream);
-
-        /// <summary>
-        /// Performs a memory-copy operation from device to host memory.
-        /// </summary>
-        /// <param name="destinationHost">The destination in host memory.</param>
-        /// <param name="sourceDevice">The source in device memory.</param>
-        /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">
-        /// The accelerator stream for asynchronous processing.
-        /// </param>
-        /// <returns>The error status.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CudaError MemcpyDeviceToHost(
-            IntPtr destinationHost,
-            IntPtr sourceDevice,
-            IntPtr length,
-            AcceleratorStream stream)
-        {
-            CudaStream cudaStream = stream as CudaStream;
-            return MemcpyDeviceToHost(
-                destinationHost,
-                sourceDevice,
-                length,
-                cudaStream?.StreamPtr ?? IntPtr.Zero);
-        }
-
-        /// <summary>
-        /// Performs a memory-copy operation from device to host memory.
-        /// </summary>
-        /// <param name="destinationHost">The destination in host memory.</param>
-        /// <param name="sourceDevice">The source in device memory.</param>
-        /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">
-        /// The accelerator stream for asynchronous processing.
-        /// </param>
-        /// <returns>The error status.</returns>
-        public CudaError MemcpyDeviceToHost(
-            IntPtr destinationHost,
-            IntPtr sourceDevice,
-            IntPtr length,
-            IntPtr stream) =>
-            cuMemcpyDtoHAsync_v2(
-                destinationHost,
-                sourceDevice,
-                length,
-                stream);
-
-        /// <summary>
-        /// Performs a memory-copy operation from device to device memory.
-        /// </summary>
-        /// <param name="destinationDevice">The destination in device memory.</param>
-        /// <param name="sourceDevice">The source in device memory.</param>
-        /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">
-        /// The accelerator stream for asynchronous processing.
-        /// </param>
-        /// <returns>The error status.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CudaError MemcpyDeviceToDevice(
-            IntPtr destinationDevice,
-            IntPtr sourceDevice,
-            IntPtr length,
-            AcceleratorStream stream)
-        {
-            CudaStream cudaStream = stream as CudaStream;
-            return MemcpyDeviceToDevice(
-                destinationDevice,
-                sourceDevice,
-                length,
-                cudaStream?.StreamPtr ?? IntPtr.Zero);
-        }
-
-        /// <summary>
-        /// Performs a memory-copy operation from device to device memory.
-        /// </summary>
-        /// <param name="destinationDevice">The destination in device memory.</param>
-        /// <param name="sourceDevice">The source in device memory.</param>
-        /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">
-        /// The accelerator stream for asynchronous processing.
-        /// </param>
-        /// <returns>The error status.</returns>
-        public CudaError MemcpyDeviceToDevice(
-            IntPtr destinationDevice,
-            IntPtr sourceDevice,
-            IntPtr length,
-            IntPtr stream) =>
-            cuMemcpyDtoDAsync_v2(
-                destinationDevice,
-                sourceDevice,
-                length,
-                stream);
 
         /// <summary>
         /// Performs a memory-set operation.

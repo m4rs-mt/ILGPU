@@ -48,7 +48,7 @@ namespace ILGPU.Runtime.Cuda
         TCC = 1,
     }
 
-    enum DeviceAttribute
+    public enum DeviceAttribute
     {
         CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK = 1,
         CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X = 2,
