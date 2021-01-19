@@ -16,6 +16,7 @@ using ILGPU.Resources;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -246,7 +247,15 @@ namespace ILGPU.Runtime.Cuda
 
             // Resolve clock rate
             ClockRate = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_CLOCK_RATE, DeviceId);
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_CLOCK_RATE, DeviceId) / 1000;
+
+            // Resolve memory clock rate
+            MemoryClockRate = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE, DeviceId) / 1000;
+
+            // Resolve the bus width
+            MemoryBusWidth = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_GLOBAL_MEMORY_BUS_WIDTH, DeviceId);
 
             // Resolve warp size
             WarpSize = CurrentAPI.GetDeviceAttribute(
@@ -259,6 +268,65 @@ namespace ILGPU.Runtime.Cuda
             // Result max number of threads per multiprocessor
             MaxNumThreadsPerMultiprocessor = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,
+                DeviceId);
+
+            // Resolve the L2 cache size
+            L2CacheSize = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_L2_CACHE_SIZE, DeviceId);
+
+            // Resolve the maximum amount of shared memory per multiprocessor
+            MaxSharedMemoryPerMultiprocessor = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_MULTIPROCESSOR,
+                DeviceId);
+
+            // Resolve the total number of registers per multiprocessor
+            TotalNumRegistersPerMultiprocessor = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_MULTIPROCESSOR,
+                DeviceId);
+
+            // Resolve the total number of registers per group
+            TotalNumRegistersPerGroup = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK, DeviceId);
+
+            // Resolve the max memory pitch
+            MaxMemoryPitch = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_PITCH, DeviceId);
+
+            // Resolve the number of concurrent copy engines
+            NumConcurrentCopyEngines = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT, DeviceId);
+
+            // Resolve whether this device has ECC support
+            HasECCSupport = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_ECC_ENABLED, DeviceId) != 0;
+
+            // Resolve whether this device supports managed memory
+            SupportsManagedMemory = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MANAGED_MEMORY, DeviceId) != 0;
+
+            // Resolve whether this device supports compute preemption
+            SupportsComputePreemption = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_PREEMPTION_SUPPORTED,
+                DeviceId) != 0;
+
+            // Resolve the current driver mode
+            DriverMode = (DeviceDriverMode)CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_TCC_DRIVER,
+                DeviceId);
+
+            // Resolve the PCI domain id
+            PCIDomainId = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID,
+                DeviceId);
+
+            // Resolve the PCI device id
+            PCIBusId = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_PCI_BUS_ID,
+                DeviceId);
+
+            // Resolve the PCI device id
+            PCIDeviceId = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID,
                 DeviceId);
 
             // Resolve cache configuration
@@ -277,6 +345,7 @@ namespace ILGPU.Runtime.Cuda
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetDriverVersion(out var driverVersion));
+            DriverVersion = driverVersion;
             InstructionSet = GetInstructionSet(Architecture, driverVersion);
             base.Capabilities = new CudaCapabilityContext(Architecture);
 
@@ -308,19 +377,94 @@ namespace ILGPU.Runtime.Cuda
         public PTXArchitecture Architecture { get; private set; }
 
         /// <summary>
+        /// Returns the current driver version.
+        /// </summary>
+        public CudaDriverVersion DriverVersion { get; private set; }
+
+        /// <summary>
         /// Returns the PTX instruction set.
         /// </summary>
         public PTXInstructionSet InstructionSet { get; private set; }
 
         /// <summary>
-        /// Returns the max group size.
-        /// </summary>
-        public Index3 MaxGroupSize { get; private set; }
-
-        /// <summary>
         /// Returns the clock rate.
         /// </summary>
         public int ClockRate { get; private set; }
+
+        /// <summary>
+        /// Returns the memory clock rate.
+        /// </summary>
+        public int MemoryClockRate { get; private set; }
+
+        /// <summary>
+        /// Returns the memory clock rate.
+        /// </summary>
+        public int MemoryBusWidth { get; private set; }
+
+        /// <summary>
+        /// Returns L2 cache size.
+        /// </summary>
+        public int L2CacheSize { get; private set; }
+
+        /// <summary>
+        /// Returns the maximum shared memory size per multiprocessor.
+        /// </summary>
+        public int MaxSharedMemoryPerMultiprocessor { get; private set; }
+
+        /// <summary>
+        /// Returns the total number of registers per multiprocessor.
+        /// </summary>
+        public int TotalNumRegistersPerMultiprocessor { get; private set; }
+
+        /// <summary>
+        /// Returns the total number of registers per group.
+        /// </summary>
+        public int TotalNumRegistersPerGroup { get; private set; }
+
+        /// <summary>
+        /// Returns the maximum memory pitch in bytes.
+        /// </summary>
+        public long MaxMemoryPitch { get; private set; }
+
+        /// <summary>
+        /// Returns the number of concurrent copy engines (if any, result > 0).
+        /// </summary>
+        public int NumConcurrentCopyEngines { get; private set; }
+
+        /// <summary>
+        /// Returns true if this device has ECC support.
+        /// </summary>
+        public bool HasECCSupport { get; private set; }
+
+        /// <summary>
+        /// Returns true if this device supports managed memory allocations.
+        /// </summary>
+        public bool SupportsManagedMemory { get; private set; }
+
+        /// <summary>
+        /// Returns true if this device support compute preemption.
+        /// </summary>
+        public bool SupportsComputePreemption { get; private set; }
+
+        /// <summary>
+        /// Returns the current device driver mode.
+        /// </summary>
+        public DeviceDriverMode DriverMode { get; private set; }
+
+        /// <summary>
+        /// Returns the PCI domain id.
+        /// </summary>
+        public int PCIDomainId { get; private set; }
+
+        /// <summary>
+        /// Returns the PCI bus id.
+        /// </summary>
+        public int PCIBusId { get; private set; }
+
+        /// <summary>
+        /// Returns the PCI device id.
+        /// </summary>
+        public int PCIDeviceId { get; private set; }
 
         /// <summary>
         /// Gets or sets the current shared-memory configuration.
@@ -378,6 +522,94 @@ namespace ILGPU.Runtime.Cuda
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns an NVML library compatible PCI bus id.
+        /// </summary>
+        public string GetNVMLPCIBusId() =>
+            $"{PCIDomainId:X4}:{PCIBusId:X2}:{PCIDeviceId:X2}.0";
+
+        /// <inheritdoc/>
+        protected override void PrintHeader(TextWriter writer)
+        {
+            base.PrintHeader(writer);
+
+            writer.Write("  Cuda device id:                          ");
+            writer.WriteLine(DeviceId);
+
+            writer.Write("  Cuda driver version:                     ");
+            writer.WriteLine("{0}.{1}", DriverVersion.Major, DriverVersion.Minor);
+
+            writer.Write("  Cuda architecture:                       ");
+            writer.WriteLine(Architecture.ToString());
+
+            writer.Write("  Instruction set:                         ");
+            writer.WriteLine(InstructionSet.ToString());
+
+            writer.Write("  Clock rate:                              ");
+            writer.Write(ClockRate);
+            writer.WriteLine(" MHz");
+
+            writer.Write("  Memory clock rate:                       ");
+            writer.Write(MemoryClockRate);
+            writer.WriteLine(" MHz");
+
+            writer.Write("  Memory bus width:                        ");
+            writer.Write(MemoryBusWidth);
+            writer.WriteLine("-bit");
+        }
+
+        /// <inheritdoc/>
+        protected override void PrintGeneralInfo(TextWriter writer)
+        {
+            base.PrintGeneralInfo(writer);
+
+            writer.Write("  Total amount of shared memory per mp:    ");
+            writer.WriteLine(
+                "{0} bytes, {1} KB",
+                MaxSharedMemoryPerMultiprocessor,
+                MaxSharedMemoryPerMultiprocessor / 1024);
+
+            writer.Write("  L2 cache size:                           ");
+            writer.WriteLine(
+                "{0} bytes, {1} KB",
+                L2CacheSize,
+                L2CacheSize / 1024);
+
+            writer.Write("  Max memory pitch:                        ");
+            writer.Write(MaxMemoryPitch);
+            writer.WriteLine(" bytes");
+
+            writer.Write("  Total number of registers per mp:        ");
+            writer.WriteLine(TotalNumRegistersPerMultiprocessor);
+
+            writer.Write("  Total number of registers per group:     ");
+            writer.WriteLine(TotalNumRegistersPerGroup);
+
+            writer.Write("  Concurrent copy and kernel execution:    ");
+            if (NumConcurrentCopyEngines < 1)
+                writer.WriteLine("False");
+            else
+                writer.WriteLine("True, with {0} copy engines", NumConcurrentCopyEngines);
+
+            writer.Write("  Driver mode:                             ");
+            writer.WriteLine(DriverMode.ToString());
+
+            writer.Write("  Has ECC support:                         ");
+            writer.WriteLine(HasECCSupport);
+
+            writer.Write("  Supports managed memory:                 ");
+            writer.WriteLine(SupportsManagedMemory);
+
+            writer.Write("  Supports compute preemption:             ");
+            writer.WriteLine(SupportsComputePreemption);
+
+            writer.Write("  PCI domain id / bus id / device id:      ");
+            writer.WriteLine("{0} / {1} / {2}", PCIDomainId, PCIBusId, PCIDeviceId);
+
+            writer.Write("  NVML PCI bus id:                         ");
+            writer.WriteLine(GetNVMLPCIBusId());
+        }
 
         /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}(
         /// TExtensionProvider)"/>
