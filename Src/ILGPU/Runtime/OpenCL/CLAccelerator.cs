@@ -15,6 +15,7 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
+using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using static ILGPU.Runtime.OpenCL.CLAPI;
@@ -273,6 +274,10 @@ namespace ILGPU.Runtime.OpenCL
             MaxNumThreadsPerGroup = CurrentAPI.GetDeviceInfo<IntPtr>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_WORK_GROUP_SIZE).ToInt32();
+            MaxGroupSize = new Index3(
+                MaxNumThreadsPerGroup,
+                MaxNumThreadsPerGroup,
+                MaxNumThreadsPerGroup);
 
             // Resolve max shared memory per block
             MaxSharedMemoryPerGroup = (int)IntrinsicMath.Min(
@@ -504,6 +509,47 @@ namespace ILGPU.Runtime.OpenCL
         #endregion
 
         #region Methods
+
+        /// <inheritdoc/>
+        protected override void PrintHeader(TextWriter writer)
+        {
+            base.PrintHeader(writer);
+
+            writer.Write("  Platform name:                           ");
+            writer.WriteLine(PlatformName);
+
+            writer.Write("  Platform version:                        ");
+            writer.WriteLine(PlatformVersion.ToString());
+
+            writer.Write("  Vendor name:                             ");
+            writer.WriteLine(VendorName);
+
+            writer.Write("  Vendor:                                  ");
+            writer.WriteLine(Vendor.ToString());
+
+            writer.Write("  Device type:                             ");
+            writer.WriteLine(DeviceType.ToString());
+
+            writer.Write("  Clock rate:                              ");
+            writer.Write(ClockRate);
+            writer.WriteLine(" MHz");
+        }
+
+        /// <inheritdoc/>
+        protected override void PrintGeneralInfo(TextWriter writer)
+        {
+            writer.Write("  OpenCL C version:                        ");
+            writer.WriteLine(CVersion.ToString());
+
+            writer.Write("  Has FP16 support:                        ");
+            writer.WriteLine(Capabilities.Float16);
+
+            writer.Write("  Has Int64 atomics support:               ");
+            writer.WriteLine(Capabilities.Int64_Atomics);
+
+            writer.Write("  Has sub group support:                   ");
+            writer.WriteLine(Capabilities.SubGroups);
+        }
 
         /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}(
         /// TExtensionProvider)"/>
