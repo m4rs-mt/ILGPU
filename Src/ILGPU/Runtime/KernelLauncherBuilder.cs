@@ -93,8 +93,10 @@ namespace ILGPU.Runtime
             emitter.EmitNewObject(mainConstructor);
         }
 
-        private static readonly Type[] ReconstructIndex2DArguments = new Type[] { typeof(int), typeof(Index2) };
-        private static readonly Type[] ReconstructIndex3DArguments = new Type[] { typeof(int), typeof(Index3) };
+        private static readonly Type[] ReconstructIndex2DArguments =
+            new Type[] { typeof(int), typeof(Index2) };
+        private static readonly Type[] ReconstructIndex3DArguments =
+            new Type[] { typeof(int), typeof(Index3) };
 
         /// <summary>
         /// Emits code to convert a linear index to a specific target type.
