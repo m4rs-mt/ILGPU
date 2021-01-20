@@ -86,7 +86,12 @@ jobs:
               exit 1
             }
           } else {
-            $params = "--version-suffix", $(git rev-parse --short HEAD)
+            # WORKAROUND: Add letter prefix to ensure that MSBuild treats
+            # the suffix as a string. e.g. '0313071' will fail as an invalid
+            # version string, but 'G0313071' will succeeded. It looks like
+            # the parser does not like numbers with a leading zero.
+            $suffix = 'g' + $(git rev-parse --short HEAD)
+            $params = "--version-suffix", $suffix
           }
           dotnet pack --configuration=Release -o . @params Src
       - name: Fix NuGet Symbols Package
