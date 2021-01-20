@@ -180,16 +180,16 @@ namespace ILGPU.IR.Values
                 "%d",
                 "%d",
                 "%d",
-                "%ld",
+                "%lld",
 
                 "%n",
                 "%f",
                 "%lf",
 
-                "%i",
-                "%i",
-                "%i",
-                "%lu");
+                "%u",
+                "%u",
+                "%u",
+                "%llu");
 
         /// <summary>
         /// The native PrintF pointer format.
