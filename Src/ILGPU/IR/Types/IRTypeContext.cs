@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Backends;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
@@ -72,7 +73,12 @@ namespace ILGPU.IR.Types
         /// <param name="context">The associated main context.</param>
         public IRTypeContext(Context context)
         {
-            Context = context ?? throw new ArgumentNullException(nameof(context));
+            if (context is null)
+                throw new ArgumentNullException(nameof(context));
+
+            ContextFlags = context.Flags;
+            TargetPlatform = context.TargetPlatform;
+            RuntimeSystem = context.RuntimeSystem;
 
             VoidType = new VoidType(this);
             StringType = new StringType(this);
@@ -105,9 +111,19 @@ namespace ILGPU.IR.Types
         #region Properties
 
         /// <summary>
-        /// Returns the associated context.
+        /// Returns the associated context flags.
         /// </summary>
-        public Context Context { get; }
+        public ContextFlags ContextFlags { get; }
+
+        /// <summary>
+        /// Returns the associated target platform for all pointer-based types.
+        /// </summary>
+        public TargetPlatform TargetPlatform { get; }
+
+        /// <summary>
+        /// Returns the parent runtime system.
+        /// </summary>
+        public RuntimeSystem RuntimeSystem { get; }
 
         /// <summary>
         /// Returns the void type.
