@@ -519,7 +519,9 @@ namespace ILGPU.Runtime.Cuda
                     ErrorMessages.NotSupportedByRefKernelParameters);
             }
 
-            var launcher = entryPoint.CreateLauncherMethod();
+            using var scopedLock = entryPoint.CreateLauncherMethod(
+                Context.RuntimeSystem,
+                out var launcher);
             var emitter = new ILEmitter(launcher.ILGenerator);
 
             // Allocate array of pointers as kernel argument(s)
