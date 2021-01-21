@@ -166,7 +166,7 @@ namespace ILGPU.IR.Types
             : base(typeContext, elementType, addressSpace)
         {
             Size = Alignment =
-                typeContext.Context.TargetPlatform == TargetPlatform.X86
+                typeContext.TargetPlatform == TargetPlatform.X86
                 ? 4
                 : 8;
             AddFlags(TypeFlags.PointerDependent);
@@ -180,7 +180,7 @@ namespace ILGPU.IR.Types
         /// Creates a managed pointer type.
         /// </summary>
         protected override Type GetManagedType() =>
-            ElementType.ManagedType.MakePointerType();
+            ElementType.LoadManagedType().MakePointerType();
 
         #endregion
 
@@ -231,7 +231,8 @@ namespace ILGPU.IR.Types
         /// Creates a managed view type.
         /// </summary>
         protected override Type GetManagedType() =>
-            typeof(ArrayView<>).MakeGenericType(ElementType.ManagedType);
+            typeof(ArrayView<>).MakeGenericType(
+                ElementType.LoadManagedType());
 
         #endregion
 

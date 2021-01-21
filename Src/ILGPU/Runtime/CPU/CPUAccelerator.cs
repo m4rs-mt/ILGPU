@@ -390,7 +390,9 @@ namespace ILGPU.Runtime.CPU
             var entryPoint = kernel.EntryPoint;
             AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
 
-            var launcher = entryPoint.CreateLauncherMethod();
+            using var scopedLock = entryPoint.CreateLauncherMethod(
+                Context.RuntimeSystem,
+                out var launcher);
             var emitter = new ILEmitter(launcher.ILGenerator);
 
             var cpuKernel = emitter.DeclareLocal(typeof(CPUKernel));
