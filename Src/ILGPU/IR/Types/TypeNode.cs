@@ -191,10 +191,27 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the basic value type.
         /// </summary>
-        public BasicValueType BasicValueType =>
-            this is PrimitiveType primitiveType
-            ? primitiveType.BasicValueType
-            : BasicValueType.None;
+        public BasicValueType BasicValueType
+        {
+            get
+            {
+                if (this is PrimitiveType primitiveType)
+                {
+                    return primitiveType.BasicValueType;
+                }
+                else if (this is PointerType pointerType)
+                {
+                    return pointerType.Size switch
+                    {
+                        4 => BasicValueType.Int32,
+                        8 => BasicValueType.Int64,
+                        _ => throw new NotImplementedException(),
+                    };
+                }
+
+                return BasicValueType.None;
+            }
+        }
 
         /// <summary>
         /// Returns all type flags.
