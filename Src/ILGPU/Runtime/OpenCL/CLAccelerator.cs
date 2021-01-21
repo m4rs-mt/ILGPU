@@ -218,6 +218,8 @@ namespace ILGPU.Runtime.OpenCL
             if (acceleratorId == null)
                 throw new ArgumentNullException(nameof(acceleratorId));
 
+            Backends.Backend.EnsureRunningOnNativePlatform();
+
             PlatformId = acceleratorId.PlatformId;
             DeviceId = acceleratorId.DeviceId;
             CVersion = acceleratorId.CVersion;
