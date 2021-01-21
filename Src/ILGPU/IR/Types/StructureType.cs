@@ -25,7 +25,6 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a structure type.
     /// </summary>
-    [SuppressMessage("Naming", "CA1710:Identifiers should have correct suffix")]
     public sealed class StructureType : ObjectType, IEnumerable<(TypeNode, FieldAccess)>
     {
         #region Nested Types
@@ -888,13 +887,14 @@ namespace ILGPU.IR.Types
         /// </summary>
         protected override Type GetManagedType()
         {
-            var typeBuilder = RuntimeSystem.Instance.DefineRuntimeStruct();
+            using var scopedLock = RuntimeSystem.DefineRuntimeStruct(
+                out var typeBuilder);
             int index = 0;
             foreach (var type in DirectFields)
             {
                 typeBuilder.DefineField(
                     "Field" + index++,
-                    type.ManagedType,
+                    type.LoadManagedType(),
                     FieldAttributes.Public);
 
             }
