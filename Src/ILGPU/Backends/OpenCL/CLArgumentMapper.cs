@@ -312,7 +312,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns>The interop size in bytes.</returns>
-        private int GetSizeOf(Type type) => Context.TypeContext.CreateType(type).Size;
+        private int GetSizeOf(Type type) => TypeContext.CreateType(type).Size;
 
         /// <summary>
         /// Emits code that sets an OpenCL kernel argument.
