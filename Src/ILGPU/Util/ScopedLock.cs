@@ -17,7 +17,7 @@ namespace ILGPU.Util
     /// <summary>
     /// Represents read only scoped lock based on a <see cref="ReaderWriterLockSlim"/>.
     /// </summary>
-    internal readonly struct ReadOnlyScopedLock : IDisposable
+    public readonly struct ReadOnlyScopedLock : IDisposable
     {
         private readonly ReaderWriterLockSlim syncLock;
 
@@ -41,7 +41,7 @@ namespace ILGPU.Util
     /// <summary>
     /// Represents write scoped lock based on a <see cref="ReaderWriterLockSlim"/>.
     /// </summary>
-    internal readonly struct WriteScopedLock : IDisposable
+    public readonly struct WriteScopedLock : IDisposable
     {
         private readonly ReaderWriterLockSlim syncLock;
 
@@ -66,7 +66,7 @@ namespace ILGPU.Util
     /// Represents an upgradeable read scoped lock based on a
     /// <see cref="ReaderWriterLockSlim"/>.
     /// </summary>
-    internal readonly struct UpgradeableScopedLock : IDisposable
+    public readonly struct UpgradeableScopedLock : IDisposable
     {
         private readonly ReaderWriterLockSlim syncLock;
 
@@ -96,7 +96,7 @@ namespace ILGPU.Util
     /// <summary>
     /// Additional extensions for scoped locks.
     /// </summary>
-    internal static class LockExtensions
+    public static class LockExtensions
     {
         /// <summary>
         /// Enters a new read scope.
