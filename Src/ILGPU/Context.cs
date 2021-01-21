@@ -145,6 +145,7 @@ namespace ILGPU
             OptimizationLevel = optimizationLevel;
             Flags = flags.Prepare();
             TargetPlatform = Backend.RuntimePlatform;
+            RuntimeSystem = new RuntimeSystem();
 
             // Initialize enhanced PTX backend feature flags
             if (optimizationLevel > OptimizationLevel.O1 &&
@@ -202,6 +203,11 @@ namespace ILGPU
         /// Returns the current target platform.
         /// </summary>
         public TargetPlatform TargetPlatform { get; }
+
+        /// <summary>
+        /// Returns the associated runtime system class.
+        /// </summary>
+        public RuntimeSystem RuntimeSystem { get; }
 
         /// <summary>
         /// Returns the main IR context.
@@ -338,8 +344,8 @@ namespace ILGPU
             TypeContext.ClearCache(mode);
             DebugInformationManager.ClearCache(mode);
             DefautltILBackend.ClearCache(mode);
+            RuntimeSystem.ClearCache(mode);
 
-            RuntimeSystem.Instance.ClearCache(mode);
             base.ClearCache(mode);
         }
 
