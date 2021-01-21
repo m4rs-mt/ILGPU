@@ -164,10 +164,14 @@ namespace ILGPU.Backends.EntryPoints
         /// <summary>
         /// Creates a new launcher method.
         /// </summary>
+        /// <param name="runtimeSystem">The current runtime system.</param>
         /// <param name="instanceType">The instance type (if any).</param>
-        /// <returns>The method emitter that represents the launcher method.</returns>
-        internal RuntimeSystem.MethodEmitter CreateLauncherMethod(
-            Type instanceType = null)
+        /// <param name="methodEmitter">The method emitter.</param>
+        /// <returns>The acquired scoped lock.</returns>
+        internal RuntimeSystem.ScopedLock CreateLauncherMethod(
+            RuntimeSystem runtimeSystem,
+            Type instanceType,
+            out RuntimeSystem.MethodEmitter methodEmitter)
         {
             var parameterTypes = new Type[
                 Parameters.Count + Kernel.KernelParameterOffset];
@@ -181,9 +185,10 @@ namespace ILGPU.Backends.EntryPoints
                 IndexType.GetManagedIndexType();
             Parameters.CopyTo(parameterTypes, Kernel.KernelParameterOffset);
 
-            var result = RuntimeSystem.Instance.DefineRuntimeMethod(
+            var writeScope = runtimeSystem.DefineRuntimeMethod(
                 typeof(void),
-                parameterTypes);
+                parameterTypes,
+                out methodEmitter);
             // TODO: we have to port the following snippet to .Net Core
             // in order to support "in" parameters
             //if (Parameters.IsByRef(i))
@@ -195,7 +200,7 @@ namespace ILGPU.Backends.EntryPoints
             //        null);
             //}
 
-            return result;
+            return writeScope;
         }
 
         /// <summary>
