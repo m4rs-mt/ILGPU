@@ -534,9 +534,11 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="context">The current context.</param>
         protected ArgumentMapper(Context context)
         {
-            Context = context ??
+            if (context is null)
                 throw new ArgumentNullException(nameof(context));
-            TypeInformationManager = context.TypeContext;
+
+            RuntimeSystem = context.RuntimeSystem;
+            TypeContext = context.TypeContext;
         }
 
         #endregion
@@ -544,14 +546,14 @@ namespace ILGPU.Backends.EntryPoints
         #region Properties
 
         /// <summary>
-        /// Returns the associated context.
+        /// Returns the current runtime system.
         /// </summary>
-        public Context Context { get; }
+        public RuntimeSystem RuntimeSystem { get; }
 
         /// <summary>
-        /// Returns the associated type-information manager.
+        /// Returns the current type context.
         /// </summary>
-        public TypeInformationManager TypeInformationManager { get; }
+        public IRTypeContext TypeContext { get; }
 
         #endregion
 
@@ -573,7 +575,7 @@ namespace ILGPU.Backends.EntryPoints
         protected Type MapStructType(Type structType)
         {
             // Check all element types
-            var typeInfo = TypeInformationManager.GetTypeInfo(structType);
+            var typeInfo = TypeContext.GetTypeInfo(structType);
             var sourceFields = typeInfo.Fields;
             if (sourceFields.Length < 1)
                 return structType;
@@ -591,7 +593,8 @@ namespace ILGPU.Backends.EntryPoints
                 return structType;
 
             // We need a custom structure type and map all fields
-            var typeBuilder = RuntimeSystem.Instance.DefineRuntimeStruct();
+            using var scopedLock = RuntimeSystem.DefineRuntimeStruct(
+                out var typeBuilder);
             for (int i = 0, e = sourceFields.Length; i < e; ++i)
             {
                 typeBuilder.DefineField(
@@ -687,8 +690,8 @@ namespace ILGPU.Backends.EntryPoints
             where TTarget : struct, ITarget
         {
             // Resolve type info of source and target types
-            var sourceInfo = TypeInformationManager.GetTypeInfo(source.SourceType);
-            var targetInfo = TypeInformationManager.GetTypeInfo(target.TargetType);
+            var sourceInfo = TypeContext.GetTypeInfo(source.SourceType);
+            var targetInfo = TypeContext.GetTypeInfo(target.TargetType);
             Debug.Assert(
                 sourceInfo.NumFields == targetInfo.NumFields,
                 "Incompatible types");
@@ -822,29 +825,11 @@ namespace ILGPU.Backends.EntryPoints
             where TILEmitter : struct, IILEmitter
             where TMappingHandler : struct, IStructMappingHandler<T>
         {
-            var typeBuilder = RuntimeSystem.Instance.DefineRuntimeStruct();
-
-            // Define the main kernel length
-            if (mappingHandler.CanMapKernelLength(out var indexType))
-            {
-                typeBuilder.DefineField(
-                    KernelLengthField,
-                    indexType,
-                    FieldAttributes.Public);
-            }
-
-            // Define all parameter types
-            for (int i = 0, e = parameters.Count; i < e; ++i)
-            {
-                var mappedType = MapType(parameters.ParameterTypes[i]);
-                typeBuilder.DefineField(
-                    GetFieldName(i),
-                    mappedType,
-                    FieldAttributes.Public);
-            }
-
             // Map type and store the mapped instance in a pinned local
-            var argumentType = typeBuilder.CreateType();
+            var argumentType = CreateArgumentStructType<TMappingHandler, T>(
+                mappingHandler,
+                parameters);
+
             var mappingLocal = emitter.DeclarePinnedLocal(argumentType);
             var localTarget = new LocalTarget(mappingLocal);
 
@@ -881,6 +866,44 @@ namespace ILGPU.Backends.EntryPoints
                 emitter,
                 mappingLocal,
                 lastOffset + lastFieldSize);
+        }
+
+        /// <summary>
+        /// Creates a mapping argument structure type.
+        /// </summary>
+        /// <typeparam name="TMappingHandler">The handler type.</typeparam>
+        /// <typeparam name="T">The custom handler type of this mapper.</typeparam>
+        /// <param name="mappingHandler">The target mapping handler to use.</param>
+        /// <param name="parameters">The parameter collection to map.</param>
+        /// <returns>The argument mapping structure type.</returns>
+        private Type CreateArgumentStructType<TMappingHandler, T>(
+            in TMappingHandler mappingHandler,
+            in ParameterCollection parameters)
+            where TMappingHandler : struct, IStructMappingHandler<T>
+        {
+            using var scopedLock = RuntimeSystem.DefineRuntimeStruct(
+                out var typeBuilder);
+
+            // Define the main kernel length
+            if (mappingHandler.CanMapKernelLength(out var indexType))
+            {
+                typeBuilder.DefineField(
+                    KernelLengthField,
+                    indexType,
+                    FieldAttributes.Public);
+            }
+
+            // Define all parameter types
+            for (int i = 0, e = parameters.Count; i < e; ++i)
+            {
+                var mappedType = MapType(parameters.ParameterTypes[i]);
+                typeBuilder.DefineField(
+                    GetFieldName(i),
+                    mappedType,
+                    FieldAttributes.Public);
+            }
+
+            return typeBuilder.CreateType();
         }
 
         /// <summary>
