@@ -119,38 +119,65 @@ namespace ILGPU.Runtime
             where TLoader : struct, Accelerator.IKernelLoader
         {
             Debug.Assert(entry.HasSpecializedParameters);
+            var runtimeSystem = accelerator.Context.RuntimeSystem;
 
             // Build customized runtime structure
-            var keyStruct = RuntimeSystem.Instance.DefineRuntimeStruct();
-            var specializedParameters = entry.Parameters.SpecializedParameters;
-            var fieldBuilders = new List<FieldInfo>(specializedParameters.Length);
-            foreach (var param in specializedParameters)
-            {
-                fieldBuilders.Add(keyStruct.DefineField(
-                    "Key" + param.Index,
-                    param.ParameterType,
-                    FieldAttributes.Public));
-            }
-            var sourceFields = fieldBuilders.ToArray();
-
-            // Define equals and hash code functions
-            keyStruct.GenerateEqualsAndHashCode(sourceFields);
-
-            // Implement ISpecializationCacheArgs interface
-            ImplementSpecializationCacheArgs(keyStruct, sourceFields);
+            var keyStruct = CreateSpecializedLauncherStruct(runtimeSystem, entry);
 
             // Create new structure instance and assign fields
-            var keyStructType = keyStruct.CreateType();
             var cacheType = typeof(SpecializationCache<,,>).MakeGenericType(
                 typeof(TLoader),
-                keyStructType,
+                keyStruct,
                 typeof(TDelegate));
-            var method = entry.CreateLauncherMethod(cacheType);
+
+            // Create the specialized launcher method
+            var launcherMethod = CreateSpecializedLauncherMethod<TDelegate>(
+                runtimeSystem,
+                entry,
+                keyStruct,
+                cacheType);
+
+            // Build launcher delegate
+            var cacheInstance = Activator.CreateInstance(
+                cacheType,
+                accelerator,
+                kernelMethod,
+                loader,
+                entry,
+                specialization);
+            return launcherMethod.CreateDelegate(
+                typeof(TDelegate),
+                cacheInstance) as TDelegate;
+        }
+
+        /// <summary>
+        /// Creates a specialized launcher method that uses the
+        /// <see cref="SpecializationCache{TLoader, TArgs, TDelegate}"/>.
+        /// </summary>
+        /// <typeparam name="TDelegate">The launcher delegate type.</typeparam>
+        /// <param name="runtimeSystem">The current runtime system.</param>
+        /// <param name="entry">The entry point to compile into a kernel.</param>
+        /// <param name="keyStruct">The key struct.</param>
+        /// <param name="cacheType">The parent cache type.</param>
+        /// <returns>The specialized launcher method.</returns>
+        private static MethodInfo CreateSpecializedLauncherMethod<TDelegate>(
+            RuntimeSystem runtimeSystem,
+            in EntryPointDescription entry,
+            Type keyStruct,
+            Type cacheType)
+            where TDelegate : Delegate
+        {
+            var specializedParameters = entry.Parameters.SpecializedParameters;
+
+            using var writeScope = entry.CreateLauncherMethod(
+                runtimeSystem,
+                cacheType,
+                out var method);
             var emitter = new ILEmitter(method.ILGenerator);
 
-            var keyVariable = emitter.DeclareLocal(keyStructType);
+            var keyVariable = emitter.DeclareLocal(keyStruct);
             emitter.Emit(LocalOperation.LoadAddress, keyVariable);
-            emitter.Emit(OpCodes.Initobj, keyStructType);
+            emitter.Emit(OpCodes.Initobj, keyStruct);
 
             // Assign all fields
             var fields = keyStruct.GetFields();
@@ -197,19 +224,40 @@ namespace ILGPU.Runtime
 
             // Return
             emitter.Emit(OpCodes.Ret);
+            return method.Finish();
+        }
 
-            // Build launcher delegate
-            var launcherMethod = method.Finish();
-            var cacheInstance = Activator.CreateInstance(
-                cacheType,
-                accelerator,
-                kernelMethod,
-                loader,
-                entry,
-                specialization);
-            return launcherMethod.CreateDelegate(
-                typeof(TDelegate),
-                cacheInstance) as TDelegate;
+        /// <summary>
+        /// Creates a specialized launcher struct to be used with a dictionary cache.
+        /// </summary>
+        /// <param name="runtimeSystem">The current runtime system.</param>
+        /// <param name="entry">The entry point to compile into a kernel.</param>
+        /// <returns>The key kernel type.</returns>
+        private static Type CreateSpecializedLauncherStruct(
+            RuntimeSystem runtimeSystem,
+            in EntryPointDescription entry)
+        {
+            var specializedParameters = entry.Parameters.SpecializedParameters;
+            var fieldBuilders = new List<FieldInfo>(specializedParameters.Length);
+
+            using var scopedLock = runtimeSystem.DefineRuntimeStruct(
+                out var keyStructBuilder);
+            foreach (var param in specializedParameters)
+            {
+                fieldBuilders.Add(keyStructBuilder.DefineField(
+                    "Key" + param.Index,
+                    param.ParameterType,
+                    FieldAttributes.Public));
+            }
+            var sourceFields = fieldBuilders.ToArray();
+
+            // Define equals and hash code functions
+            keyStructBuilder.GenerateEqualsAndHashCode(sourceFields);
+
+            // Implement ISpecializationCacheArgs interface
+            ImplementSpecializationCacheArgs(keyStructBuilder, sourceFields);
+
+            return keyStructBuilder.CreateType();
         }
 
         #endregion
