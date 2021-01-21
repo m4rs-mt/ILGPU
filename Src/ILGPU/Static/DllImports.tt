@@ -26,7 +26,6 @@ using System;
 using System.Runtime.InteropServices;
 
 #pragma warning disable IDE1006 // Naming
-#pragma warning disable CA1060 // Move pinvokes to native methods class
 
 <# foreach (var importFile in importFiles) { #>
 <#      var imports = Imports.Load(rootPath, importFile); #>
@@ -164,5 +163,4 @@ namespace <#= imports.Namespace #>
 
 <# } #>
 
-#pragma warning restore CA1060 // Move pinvokes to native methods class
 #pragma warning restore IDE1006 // Naming
