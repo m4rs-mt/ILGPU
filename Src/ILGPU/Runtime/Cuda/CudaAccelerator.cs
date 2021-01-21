@@ -187,6 +187,11 @@ namespace ILGPU.Runtime.Cuda
             CudaAcceleratorFlags acceleratorFlags)
             : base(context, AcceleratorType.Cuda)
         {
+            if (deviceId < 0)
+                throw new ArgumentOutOfRangeException(nameof(deviceId));
+
+            Backends.Backend.EnsureRunningOnNativePlatform();
+
             CudaException.ThrowIfFailed(
                 CurrentAPI.CreateContext(
                     out var contextPtr,
@@ -836,8 +841,6 @@ namespace ILGPU.Runtime.Cuda
             if (!(kernel is CudaKernel cudaKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
-            Backends.Backend.EnsureRunningOnNativePlatform();
-
             CudaException.ThrowIfFailed(
                 CurrentAPI.ComputeOccupancyMaxPotentialBlockSize(
                     out minGridSize,
@@ -861,8 +864,6 @@ namespace ILGPU.Runtime.Cuda
         {
             if (!(kernel is CudaKernel cudaKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
-
-            Backends.Backend.EnsureRunningOnNativePlatform();
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.ComputeOccupancyMaxPotentialBlockSize(
