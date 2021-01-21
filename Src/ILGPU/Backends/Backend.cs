@@ -483,6 +483,11 @@ namespace ILGPU.Backends
         public Context Context { get; }
 
         /// <summary>
+        /// Returns the current runtime system instance.
+        /// </summary>
+        protected RuntimeSystem RuntimeSystem => Context.RuntimeSystem;
+
+        /// <summary>
         /// Returns the supported capabilities.
         /// </summary>
         public CapabilityContext Capabilities { get; }

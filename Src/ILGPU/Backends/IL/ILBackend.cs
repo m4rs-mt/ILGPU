@@ -142,7 +142,7 @@ namespace ILGPU.Backends.IL
                 out ImmutableArray<FieldInfo> taskArgumentMapping);
 
             MethodInfo kernelMethod;
-            using (var writeScope = RuntimeSystem.Instance.DefineRuntimeMethod(
+            using (var scopedLock = RuntimeSystem.DefineRuntimeMethod(
                 typeof(void),
                 CPUAcceleratorTask.ExecuteParameterTypes,
                 out var methodEmitter))
@@ -212,7 +212,7 @@ namespace ILGPU.Backends.IL
         /// and dynamically-sized shared-memory-variable-length specifications to fields
         /// in the task class.
         /// </param>
-        private static Type GenerateAcceleratorTask(
+        private Type GenerateAcceleratorTask(
             in ParameterCollection parameters,
             out ConstructorInfo taskConstructor,
             out ImmutableArray<FieldInfo> taskArgumentMapping)
@@ -224,7 +224,7 @@ namespace ILGPU.Backends.IL
 
             Type taskType;
             {
-                using var writeScope = RuntimeSystem.Instance.DefineRuntimeClass(
+                using var scopedLock = RuntimeSystem.DefineRuntimeClass(
                     acceleratorTaskType,
                     out var taskBuilder);
 
