@@ -116,6 +116,10 @@ namespace ILGPU.Runtime.CPU
             MemorySize = long.MaxValue;
             MaxGridSize = new Index3(int.MaxValue, int.MaxValue, int.MaxValue);
             MaxNumThreadsPerGroup = NumThreads;
+            MaxGroupSize = new Index3(
+                MaxNumThreadsPerGroup,
+                MaxNumThreadsPerGroup,
+                MaxNumThreadsPerGroup);
             MaxSharedMemoryPerGroup = CPURuntimeGroupContext.SharedMemorySize;
             MaxConstantMemory = int.MaxValue;
             NumMultiprocessors = 1;
@@ -390,7 +394,9 @@ namespace ILGPU.Runtime.CPU
             var entryPoint = kernel.EntryPoint;
             AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
 
-            var launcher = entryPoint.CreateLauncherMethod();
+            using var scopedLock = entryPoint.CreateLauncherMethod(
+                Context.RuntimeSystem,
+                out var launcher);
             var emitter = new ILEmitter(launcher.ILGenerator);
 
             var cpuKernel = emitter.DeclareLocal(typeof(CPUKernel));

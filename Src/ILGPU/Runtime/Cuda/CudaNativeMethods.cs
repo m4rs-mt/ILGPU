@@ -32,6 +32,22 @@ namespace ILGPU.Runtime.Cuda
         CU_STREAM_NON_BLOCKING = 1
     }
 
+    /// <summary>
+    /// Represents the device driver mode of a particular Cuda device.
+    /// </summary>
+    public enum DeviceDriverMode : int
+    {
+        /// <summary>
+        /// The Windows Display Driver Model.
+        /// </summary>
+        WDDM = 0,
+
+        /// <summary>
+        /// The Tesla Compute Cluster Driver.
+        /// </summary>
+        TCC = 1,
+    }
+
     enum DeviceAttribute
     {
         CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK = 1,

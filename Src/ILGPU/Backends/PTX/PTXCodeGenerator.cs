@@ -18,7 +18,6 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -53,6 +52,11 @@ namespace ILGPU.Backends.PTX
         /// The name for the globally registered dynamic shared memory alloca (if any).
         /// </summary>
         protected const string DynamicSharedMemoryAllocationName = "__dyn_shared_alloca";
+
+        /// <summary>
+        /// The maximum vector size in bytes (128 bits in PTX).
+        /// </summary>
+        private const int MaxVectorSizeInBytes = 128 / 8;
 
         #endregion
 

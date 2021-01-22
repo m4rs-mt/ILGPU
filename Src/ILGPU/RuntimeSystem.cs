@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.IL;
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Linq;
@@ -17,13 +18,14 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Threading;
 
 namespace ILGPU
 {
     /// <summary>
     /// Represents the dynamic ILGPU assembly runtime system.
     /// </summary>
-    public sealed class RuntimeSystem : ICache
+    public sealed class RuntimeSystem : DisposeBase, ICache
     {
         #region Constants
 
@@ -45,6 +47,50 @@ namespace ILGPU
         #endregion
 
         #region Nested Types
+
+        /// <summary>
+        /// A scoped lock that can be used in combination with a
+        /// <see cref="RuntimeSystem"/> instance.
+        /// </summary>
+        public readonly struct ScopedLock : IDisposable
+        {
+            private readonly WriteScopedLock writeScope;
+
+            internal ScopedLock(RuntimeSystem parent)
+            {
+                writeScope = parent.assemblyLock.EnterWriteScope();
+
+                Parent = parent;
+                AssemblyVersion = parent.assemblyVersion;
+            }
+
+            /// <summary>
+            /// Returns the parent runtime system instance.
+            /// </summary>
+            public RuntimeSystem Parent { get; }
+
+            /// <summary>
+            /// Returns the original assembly version this lock has been created from.
+            /// </summary>
+            /// <remarks>
+            /// This information is used to detect internal assembly corruption.
+            /// </remarks>
+            public int AssemblyVersion { get; }
+
+            /// <summary>
+            /// Releases the lock.
+            /// </summary>
+            public readonly void Dispose()
+            {
+                // Verify the assembly version
+                if (AssemblyVersion != Parent.assemblyVersion)
+                {
+                    throw new InvalidOperationException(
+                        RuntimeErrorMessages.InvalidConcurrentModification);
+                }
+                writeScope.Dispose();
+            }
+        }
 
         /// <summary>
         /// Represents a method builder in the .Net world.
@@ -322,29 +368,34 @@ namespace ILGPU
             }
         }
 
-        #endregion
-
-        #region Static Instance
+        /// <summary>
+        /// The globally unique assembly version.
+        /// </summary>
+        private static volatile int globalAssemblyVersion = 0;
 
         /// <summary>
-        /// Returns the static runtime-system instance.
+        /// Determines the next global assembly version.
         /// </summary>
-        public static RuntimeSystem Instance { get; } = new RuntimeSystem();
+        private static int GetNextAssemblyVersion() =>
+            Interlocked.Add(ref globalAssemblyVersion, 1);
 
         #endregion
 
         #region Instance
 
-        private readonly object assemblyLock = new object();
-        private int assemblyVersion = 0;
+        private readonly ReaderWriterLockSlim assemblyLock = new ReaderWriterLockSlim(
+            LockRecursionPolicy.SupportsRecursion);
+
         private AssemblyBuilder assemblyBuilder;
         private ModuleBuilder moduleBuilder;
+
+        private volatile int assemblyVersion;
         private volatile int typeBuilderIdx = 0;
 
         /// <summary>
         /// Constructs a new runtime system.
         /// </summary>
-        private RuntimeSystem()
+        public RuntimeSystem()
         {
             // Initialize assembly builder and context data
             ReloadAssemblyBuilder();
@@ -359,17 +410,17 @@ namespace ILGPU
         /// </summary>
         private void ReloadAssemblyBuilder()
         {
-            lock (assemblyLock)
+            using var writerLock = assemblyLock.EnterWriteScope();
+
+            assemblyVersion = GetNextAssemblyVersion();
+            var assemblyName = new AssemblyName(AssemblyName)
             {
-                var assemblyName = new AssemblyName(AssemblyName)
-                {
-                    Version = new Version(1, assemblyVersion++),
-                };
-                assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
-                    assemblyName,
-                    AssemblyBuilderAccess.RunAndCollect);
-                moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
-            }
+                Version = new Version(1, assemblyVersion),
+            };
+            assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
+                assemblyName,
+                AssemblyBuilderAccess.RunAndCollect);
+            moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
         }
 
         /// <summary>
@@ -377,23 +428,32 @@ namespace ILGPU
         /// </summary>
         /// <param name="attributes">The custom type attributes.</param>
         /// <param name="baseClass">The base class.</param>
-        /// <returns>A new runtime type builder.</returns>
-        private TypeBuilder DefineRuntimeType(TypeAttributes attributes, Type baseClass)
+        /// <param name="typeBuilder">The type builder.</param>
+        /// <returns>The acquired scoped lock.</returns>
+        private ScopedLock DefineRuntimeType(
+            TypeAttributes attributes,
+            Type baseClass,
+            out TypeBuilder typeBuilder)
         {
-            lock (assemblyLock)
-            {
-                return moduleBuilder.DefineType(
-                    CustomTypeName + typeBuilderIdx++,
-                    attributes,
-                    baseClass);
-            }
+            var scopedLock = new ScopedLock(this);
+
+            typeBuilder = moduleBuilder.DefineType(
+                CustomTypeName + typeBuilderIdx++,
+                attributes,
+                baseClass);
+
+            return scopedLock;
         }
 
         /// <summary>
         /// Defines a new runtime class.
         /// </summary>
-        /// <returns>A new runtime type builder.</returns>
-        public TypeBuilder DefineRuntimeClass(Type baseClass) =>
+        /// <param name="baseClass">The base class.</param>
+        /// <param name="typeBuilder">The type builder.</param>
+        /// <returns>The acquired scoped lock.</returns>
+        public ScopedLock DefineRuntimeClass(
+            Type baseClass,
+            out TypeBuilder typeBuilder) =>
             DefineRuntimeType(
                 TypeAttributes.Public |
                 TypeAttributes.Class |
@@ -402,13 +462,16 @@ namespace ILGPU
                 TypeAttributes.BeforeFieldInit |
                 TypeAttributes.AutoLayout |
                 TypeAttributes.Sealed,
-                baseClass ?? typeof(object));
+                baseClass ?? typeof(object),
+                out typeBuilder);
 
         /// <summary>
         /// Defines a new runtime structure.
         /// </summary>
-        /// <returns>A new runtime type builder.</returns>
-        public TypeBuilder DefineRuntimeStruct() => DefineRuntimeStruct(false);
+        /// <param name="typeBuilder">The type builder.</param>
+        /// <returns>The acquired scoped lock.</returns>
+        public ScopedLock DefineRuntimeStruct(out TypeBuilder typeBuilder) =>
+            DefineRuntimeStruct(false, out typeBuilder);
 
         /// <summary>
         /// Defines a new runtime structure.
@@ -416,8 +479,11 @@ namespace ILGPU
         /// <param name="explicitLayout">
         /// True, if the individual fields have an explicit structure layout.
         /// </param>
-        /// <returns>A new runtime type builder.</returns>
-        public TypeBuilder DefineRuntimeStruct(bool explicitLayout) =>
+        /// <param name="typeBuilder">The type builder.</param>
+        /// <returns>The acquired scoped lock.</returns>
+        public ScopedLock DefineRuntimeStruct(
+            bool explicitLayout,
+            out TypeBuilder typeBuilder) =>
             DefineRuntimeType(
                 TypeAttributes.Public |
                 TypeAttributes.Class |
@@ -427,28 +493,32 @@ namespace ILGPU
                 (explicitLayout
                     ? TypeAttributes.ExplicitLayout
                     : TypeAttributes.SequentialLayout),
-                typeof(ValueType));
+                typeof(ValueType),
+                out typeBuilder);
 
         /// <summary>
         /// Defines a new runtime method.
         /// </summary>
         /// <param name="returnType">The return type.</param>
         /// <param name="parameterTypes">All parameter types.</param>
-        /// <returns>The defined method.</returns>
-        public MethodEmitter DefineRuntimeMethod(
+        /// <param name="methodEmitter">The method emitter.</param>
+        /// <returns>The acquired scoped lock.</returns>
+        public ScopedLock DefineRuntimeMethod(
             Type returnType,
-            Type[] parameterTypes)
+            Type[] parameterTypes,
+            out MethodEmitter methodEmitter)
         {
-            var typeBuilder = DefineRuntimeStruct();
-            var type = typeBuilder.CreateType();
+            var scopedLock = new ScopedLock(this);
 
-            var method = new DynamicMethod(
-                LauncherMethodName,
-                typeof(void),
-                parameterTypes,
-                type,
-                true);
-            return new MethodEmitter(method);
+            methodEmitter = new MethodEmitter(
+                new DynamicMethod(
+                    LauncherMethodName,
+                    returnType,
+                    parameterTypes,
+                    moduleBuilder,
+                    true));
+
+            return scopedLock;
         }
 
         /// <summary>
@@ -486,7 +556,9 @@ namespace ILGPU
                 throw new InvalidOperationException();
 
             // Define the runtime class an implement all functions
-            var implTypeBuilder = DefineRuntimeClass(classType);
+            using var writeScope = DefineRuntimeClass(
+                classType,
+                out var implTypeBuilder);
             callback(implTypeBuilder, methods);
 
             // Create the actual implementation instance
@@ -580,195 +652,21 @@ namespace ILGPU
         /// Clears all internal caches.
         /// </summary>
         /// <param name="mode">Not used.</param>
-        public void ClearCache(ClearCacheMode mode) =>
-            ReloadAssemblyBuilder();
+        public void ClearCache(ClearCacheMode mode) => ReloadAssemblyBuilder();
 
         #endregion
-    }
 
-    /// <summary>
-    /// An abstract runtime API that can be used in combination with the dynamic DLL
-    /// loader functionality of the class <see cref="RuntimeSystem"/>.
-    /// </summary>
-    public abstract class RuntimeAPI
-    {
+        #region IDisposable
+
         /// <summary>
-        /// Loads a runtime API that is implemented via compile-time known classes.
+        /// Disposes the internal assembly lock.
         /// </summary>
-        /// <typeparam name="T">The abstract class type to implement.</typeparam>
-        /// <typeparam name="TWindows">The Windows implementation.</typeparam>
-        /// <typeparam name="TLinux">The Linux implementation.</typeparam>
-        /// <typeparam name="TMacOS">The MacOS implementation.</typeparam>
-        /// <typeparam name="TNotSupported">The not-supported implementation.</typeparam>
-        /// <returns>The loaded runtime API.</returns>
-        internal static T LoadRuntimeAPI<
-            T,
-            TWindows,
-            TLinux,
-            TMacOS,
-            TNotSupported>()
-            where T : RuntimeAPI
-            where TWindows : T, new()
-            where TLinux : T, new()
-            where TMacOS : T, new()
-            where TNotSupported : T, new()
+        protected override void Dispose(bool disposing)
         {
-            if (!Backends.Backend.RunningOnNativePlatform)
-                return new TNotSupported();
-            try
-            {
-                T instance =
-                    RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                    ? new TLinux()
-                    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                    ? new TMacOS() as T
-                    : new TWindows();
-                // Try to initialize the new interface
-                if (!instance.Init())
-                    instance = new TNotSupported();
-                return instance;
-            }
-            catch (Exception ex) when (
-                ex is DllNotFoundException ||
-                ex is EntryPointNotFoundException)
-            {
-                // In case of a critical initialization exception fall back to the
-                // not supported API
-                return new TNotSupported();
-            }
+            if (disposing)
+                assemblyLock.Dispose();
+            base.Dispose(disposing);
         }
-
-        /// <summary>
-        /// Returns true if the runtime API instance is supported on this platform.
-        /// </summary>
-        public abstract bool IsSupported { get; }
-
-        /// <summary>
-        /// Initializes the runtime API implementation.
-        /// </summary>
-        /// <returns>
-        /// True, if the API instance could be initialized successfully.
-        /// </returns>
-        public abstract bool Init();
-    }
-
-    /// <summary>
-    /// Marks dynamic DLL-import functions that are compatible with the
-    /// <see cref="RuntimeSystem.CreateDllWrapper{T}(string, string, string, string)"/>
-    /// function.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-    public sealed class DynamicImportAttribute : Attribute
-    {
-        #region Static
-
-        /// <summary>
-        /// Represents the managed attribute <see cref="DllImportAttribute"/>.
-        /// </summary>
-        private static readonly Type DllImportType = typeof(DllImportAttribute);
-
-        /// <summary>
-        /// The default constructor of the class <see cref="DllImportAttribute"/>.
-        /// </summary>
-        private static readonly ConstructorInfo DllImportConstructor =
-            DllImportType.GetConstructor(new Type[] { typeof(string) });
-
-        /// <summary>
-        /// All supported fields of the class <see cref="DllImportAttribute"/>.
-        /// </summary>
-        private static readonly FieldInfo[] DllImportFields =
-        {
-            DllImportType.GetField(nameof(DllImportAttribute.EntryPoint)),
-            DllImportType.GetField(nameof(DllImportAttribute.CharSet)),
-            DllImportType.GetField(nameof(DllImportAttribute.CallingConvention)),
-            DllImportType.GetField(nameof(DllImportAttribute.BestFitMapping)),
-            DllImportType.GetField(nameof(DllImportAttribute.ThrowOnUnmappableChar))
-        };
-
-        #endregion
-
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new dynamic import attribute.
-        /// </summary>
-        public DynamicImportAttribute()
-            : this(null)
-        { }
-
-        /// <summary>
-        /// Constructs a new dynamic import attribute.
-        /// </summary>
-        /// <param name="entryPoint">The entry point.</param>
-        public DynamicImportAttribute(string entryPoint)
-        {
-            EntryPoint = entryPoint;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated native entry point.
-        /// </summary>
-        public string EntryPoint { get; }
-
-        /// <summary>
-        /// Defines the associated character set to use.
-        /// </summary>
-        public CharSet CharSet { get; set; } = CharSet.Auto;
-
-        /// <summary>
-        /// Defines the calling convention.
-        /// </summary>
-        public CallingConvention CallingConvention { get; set; } =
-            CallingConvention.Winapi;
-
-        /// <summary>
-        /// Enables or disabled best-fit mapping when mapping ANSI characters.
-        /// </summary>
-        public bool BestFitMapping { get; set; } = false;
-
-        /// <summary>
-        /// If true, it throws an exception in the case of an unmappable character.
-        /// </summary>
-        public bool ThrowOnUnmappableChar { get; set; } = false;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns the name of the native entry point to use.
-        /// </summary>
-        /// <param name="method">The associated method.</param>
-        /// <returns>The resolved native entry-point name.</returns>
-        public string GetEntryPoint(MethodInfo method) =>
-            EntryPoint ?? method.Name;
-
-        /// <summary>
-        /// Converts this attribute instance into a custom attribute builder assembling
-        /// an instance of type <see cref="DllImportAttribute"/>.
-        /// </summary>
-        /// <param name="libraryName">The library name.</param>
-        /// <param name="method">The associated method.</param>
-        /// <returns>The created attribute builder.</returns>
-        public CustomAttributeBuilder ToImportAttributeBuilder(
-            string libraryName,
-            MethodInfo method) =>
-            new CustomAttributeBuilder(
-                DllImportConstructor,
-                new object[] { libraryName },
-                DllImportFields,
-                new object[]
-                {
-                    GetEntryPoint(method),
-                    CharSet,
-                    CallingConvention,
-                    BestFitMapping,
-                    ThrowOnUnmappableChar
-                });
 
         #endregion
     }

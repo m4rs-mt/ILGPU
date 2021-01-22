@@ -287,6 +287,10 @@ namespace ILGPU.Frontend
                     MakeLoadArrayLength();
                     return true;
 
+                case ILInstructionType.SizeOf:
+                    LoadSizeOf(instruction.GetArgumentAs<Type>());
+                    return true;
+
                 default:
                     return false;
             }

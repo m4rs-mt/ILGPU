@@ -346,7 +346,9 @@ namespace ILGPU
         [ViewIntrinsic(ViewIntrinsicKind.GetSubViewImplicitLength)]
         public ArrayView<T> GetSubView(long index)
         {
-            Trace.Assert(index >= 0 && index < Length, "Offset out of bounds");
+            Trace.Assert(
+                index >= 0 && index < Length || index == 0 && Length < 1,
+                "Offset out of bounds");
             return GetSubView(index, Length - index);
         }
 
@@ -374,8 +376,9 @@ namespace ILGPU
         [ViewIntrinsic(ViewIntrinsicKind.GetSubView)]
         public ArrayView<T> GetSubView(long index, long subViewLength)
         {
-            Trace.Assert(index >= 0 && index < Length, "Index out of bounds");
-            Trace.Assert(index < Length, "Index out of bounds");
+            Trace.Assert(
+                index >= 0 && index < Length || index == 0 && Length < 1,
+                "Index out of bounds");
             Trace.Assert(index + subViewLength <= Length, "Sub view out of range");
             index += Index;
             return new ArrayView<T>(Source, index, subViewLength);

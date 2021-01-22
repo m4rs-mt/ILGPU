@@ -16,6 +16,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 
 namespace ILGPU.Runtime
@@ -192,19 +193,24 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Returns the memory size in bytes.
-        /// </summary>
-        public long MemorySize { get; protected set; }
-
-        /// <summary>
         /// Returns the name of the device.
         /// </summary>
         public string Name { get; protected set; }
 
         /// <summary>
+        /// Returns the memory size in bytes.
+        /// </summary>
+        public long MemorySize { get; protected set; }
+
+        /// <summary>
         /// Returns the max grid size.
         /// </summary>
         public Index3 MaxGridSize { get; protected set; }
+
+        /// <summary>
+        /// Returns the max group size.
+        /// </summary>
+        public Index3 MaxGroupSize { get; protected set; }
 
         /// <summary>
         /// Returns the maximum number of threads in a group.
@@ -445,6 +451,78 @@ namespace ILGPU.Runtime
                 ClearLaunchCache_SyncRoot();
                 base.ClearCache(mode);
             }
+        }
+
+        /// <summary>
+        /// Prints device information to the standard <see cref="Console.Out"/> stream.
+        /// </summary>
+        public void PrintInformation() => PrintInformation(Console.Out);
+
+        /// <summary>
+        /// Prints device information to the given text writer.
+        /// </summary>
+        /// <param name="writer">The target text writer to write to.</param>
+        public void PrintInformation(TextWriter writer)
+        {
+            if (writer is null)
+                throw new ArgumentNullException(nameof(writer));
+
+            PrintHeader(writer);
+            PrintGeneralInfo(writer);
+        }
+
+        /// <summary>
+        /// Prints general header information that should appear at the top.
+        /// </summary>
+        /// <param name="writer">The target text writer to write to.</param>
+        protected virtual void PrintHeader(TextWriter writer)
+        {
+            writer.Write("Device: ");
+            writer.Write(Name);
+            writer.WriteLine(" [ILGPU InstanceId: {0}]", InstanceId);
+        }
+
+        /// <summary>
+        /// Print general GPU specific information to the given text writer.
+        /// </summary>
+        /// <param name="writer">The target text writer to write to.</param>
+        protected virtual void PrintGeneralInfo(TextWriter writer)
+        {
+            writer.Write("  Number of multiprocessors:               ");
+            writer.WriteLine(NumMultiprocessors);
+
+            writer.Write("  Max number of threads/multiprocessor:    ");
+            writer.WriteLine(MaxNumThreadsPerMultiprocessor);
+
+            writer.Write("  Max number of threads/group:             ");
+            writer.WriteLine(MaxNumThreadsPerGroup);
+
+            writer.Write("  Max number of total threads:             ");
+            writer.WriteLine(MaxNumThreads);
+
+            writer.Write("  Max dimension of a group size:           ");
+            writer.WriteLine(MaxGroupSize.ToString());
+
+            writer.Write("  Max dimension of a grid size:            ");
+            writer.WriteLine(MaxGridSize.ToString());
+
+            writer.Write("  Total amount of global memory:           ");
+            writer.WriteLine(
+                "{0} bytes, {1} MB",
+                MemorySize,
+                MemorySize / (1024 * 1024));
+
+            writer.Write("  Total amount of constant memory:         ");
+            writer.WriteLine(
+                "{0} bytes, {1} KB",
+                MaxConstantMemory,
+                MaxConstantMemory / 1024);
+
+            writer.Write("  Total amount of shared memory per group: ");
+            writer.WriteLine(
+                "{0} bytes, {1} KB",
+                MaxSharedMemoryPerGroup,
+                MaxSharedMemoryPerGroup / 1024);
         }
 
         #endregion

@@ -56,7 +56,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// The type representation in the managed world.
         /// </summary>
-        Type ManagedType { get; }
+        Type LoadManagedType();
     }
 
     /// <summary>
@@ -116,14 +116,14 @@ namespace ILGPU.IR.Types
         #region Properties
 
         /// <summary>
-        /// Returns the parent ILGPU context.
-        /// </summary>
-        public Context Context => TypeContext.Context;
-
-        /// <summary>
         /// Returns the parent type context.
         /// </summary>
         public IRTypeContext TypeContext { get; }
+
+        /// <summary>
+        /// Returns the urrent runtime system.
+        /// </summary>
+        public RuntimeSystem RuntimeSystem => TypeContext.RuntimeSystem;
 
         /// <summary>
         /// The size of the type in bytes (if the type is in its lowered representation).
@@ -191,10 +191,27 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the basic value type.
         /// </summary>
-        public BasicValueType BasicValueType =>
-            this is PrimitiveType primitiveType
-            ? primitiveType.BasicValueType
-            : BasicValueType.None;
+        public BasicValueType BasicValueType
+        {
+            get
+            {
+                if (this is PrimitiveType primitiveType)
+                {
+                    return primitiveType.BasicValueType;
+                }
+                else if (this is PointerType pointerType)
+                {
+                    return pointerType.Size switch
+                    {
+                        4 => BasicValueType.Int32,
+                        8 => BasicValueType.Int64,
+                        _ => throw new NotImplementedException(),
+                    };
+                }
+
+                return BasicValueType.None;
+            }
+        }
 
         /// <summary>
         /// Returns all type flags.
@@ -213,14 +230,14 @@ namespace ILGPU.IR.Types
             Size > 0 && Alignment > 0 &&
             !HasFlags(TypeFlags.ArrayDependent | TypeFlags.ViewDependent);
 
-        /// <summary>
-        /// The type representation in the managed world.
-        /// </summary>
-        public Type ManagedType => managedType ??= GetManagedType();
-
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// The type representation in the managed world.
+        /// </summary>
+        public Type LoadManagedType() => managedType ??= GetManagedType();
 
         /// <summary>
         /// Returns true if the given flags are set.
@@ -269,7 +286,7 @@ namespace ILGPU.IR.Types
                 ErrorMessages.LocationTypeMessage,
                     message,
                     ToString(),
-                    ManagedType.ToString());
+                    LoadManagedType().ToString());
 
         #endregion
 
