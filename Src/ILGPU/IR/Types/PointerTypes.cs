@@ -16,25 +16,9 @@ using System.Diagnostics;
 namespace ILGPU.IR.Types
 {
     /// <summary>
-    /// An abstract type that has an element type and an address space.
-    /// </summary>
-    public interface IAddressSpaceType
-    {
-        /// <summary>
-        /// Returns the underlying element type.
-        /// </summary>
-        TypeNode ElementType { get; }
-
-        /// <summary>
-        /// Returns the associated address space.
-        /// </summary>
-        MemoryAddressSpace AddressSpace { get; }
-    }
-
-    /// <summary>
     /// Represents an abstract type that relies on addresses.
     /// </summary>
-    public abstract class AddressSpaceType : TypeNode, IAddressSpaceType
+    public abstract class AddressSpaceType : TypeNode
     {
         #region Nested Types
 
@@ -182,7 +166,7 @@ namespace ILGPU.IR.Types
             : base(typeContext, elementType, addressSpace)
         {
             Size = Alignment =
-                typeContext.Context.TargetPlatform == TargetPlatform.X86
+                typeContext.TargetPlatform == TargetPlatform.X86
                 ? 4
                 : 8;
             AddFlags(TypeFlags.PointerDependent);
@@ -196,7 +180,7 @@ namespace ILGPU.IR.Types
         /// Creates a managed pointer type.
         /// </summary>
         protected override Type GetManagedType() =>
-            ElementType.ManagedType.MakePointerType();
+            ElementType.LoadManagedType().MakePointerType();
 
         #endregion
 
@@ -247,7 +231,8 @@ namespace ILGPU.IR.Types
         /// Creates a managed view type.
         /// </summary>
         protected override Type GetManagedType() =>
-            typeof(ArrayView<>).MakeGenericType(ElementType.ManagedType);
+            typeof(ArrayView<>).MakeGenericType(
+                ElementType.LoadManagedType());
 
         #endregion
 

@@ -115,6 +115,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Concurrent modification detected.
+        /// </summary>
+        internal static string InvalidConcurrentModification {
+            get {
+                return ResourceManager.GetString("InvalidConcurrentModification", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid custom group size &gt; 0 in a grouped-index scenario.
         /// </summary>
         internal static string InvalidCustomGroupSize {

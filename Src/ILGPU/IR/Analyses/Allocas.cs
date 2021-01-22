@@ -342,7 +342,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="type">The type.</param>
         /// <returns>The compatible allocation alignment in bytes.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetAllocaTypeAlignment(TypeNode type) =>
+        public static int GetAllocaTypeAlignment(TypeNode type) =>
             // Assume that we can align the type to an appropriate power of
             // 2 if the type size is compatible
             Utilities.IsPowerOf2(type.Size)
@@ -363,7 +363,7 @@ namespace ILGPU.IR.Analyses
                 PhiValue phiValue => phiValue.Type,
                 PointerCast cast => cast.TargetElementType,
                 AddressSpaceCast cast =>
-                    (cast.TargetType as IAddressSpaceType).ElementType,
+                    (cast.TargetType as AddressSpaceType).ElementType,
                 NewView newView => newView.ViewElementType,
                 ViewCast cast => cast.TargetElementType,
                 SubViewValue subView => subView.ElementType,

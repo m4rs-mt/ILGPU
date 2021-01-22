@@ -275,7 +275,7 @@ namespace ILGPU.Frontend.Intrinsic
             // appropriate store instructions
             Value target = context[0];
             var arrayType = target.Type as ViewType;
-            var elementType = arrayType.ElementType.ManagedType;
+            var elementType = arrayType.ElementType.LoadManagedType();
 
             // Convert values to IR values
             var builder = context.Builder;

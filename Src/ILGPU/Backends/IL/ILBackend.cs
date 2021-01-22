@@ -141,38 +141,43 @@ namespace ILGPU.Backends.IL
                 out ConstructorInfo taskConstructor,
                 out ImmutableArray<FieldInfo> taskArgumentMapping);
 
-            var kernel = RuntimeSystem.Instance.DefineRuntimeMethod(
+            MethodInfo kernelMethod;
+            using (var scopedLock = RuntimeSystem.DefineRuntimeMethod(
                 typeof(void),
-                CPUAcceleratorTask.ExecuteParameterTypes);
-            var emitter = new ILEmitter(kernel.ILGenerator);
-            var kernelData = new KernelGenerationData();
+                CPUAcceleratorTask.ExecuteParameterTypes,
+                out var methodEmitter))
+            {
+                var emitter = new ILEmitter(methodEmitter.ILGenerator);
+                var kernelData = new KernelGenerationData();
 
-            // Generate CPU runtime startup code
-            GenerateStartupCode(
-                entryPoint,
-                emitter,
-                kernelData,
-                taskType,
-                taskArgumentMapping);
+                // Generate CPU runtime startup code
+                GenerateStartupCode(
+                    entryPoint,
+                    emitter,
+                    kernelData,
+                    taskType,
+                    taskArgumentMapping);
 
-            // Generate the actual kernel code
-            GenerateCode(
-                entryPoint,
-                backendContext,
-                emitter,
-                kernelData);
+                // Generate the actual kernel code
+                GenerateCode(
+                    entryPoint,
+                    backendContext,
+                    emitter,
+                    kernelData);
 
-            // Generate CPU runtime finish code
-            GenerateFinishCode(
-                emitter,
-                kernelData);
+                // Generate CPU runtime finish code
+                GenerateFinishCode(
+                    emitter,
+                    kernelData);
 
-            emitter.Finish();
+                emitter.Finish();
+                kernelMethod = methodEmitter.Finish();
+            }
 
             return new ILCompiledKernel(
                 Context,
                 entryPoint,
-                kernel.Finish(),
+                kernelMethod,
                 taskType,
                 taskConstructor,
                 taskArgumentMapping);
@@ -207,48 +212,64 @@ namespace ILGPU.Backends.IL
         /// and dynamically-sized shared-memory-variable-length specifications to fields
         /// in the task class.
         /// </param>
-        private static Type GenerateAcceleratorTask(
+        private Type GenerateAcceleratorTask(
             in ParameterCollection parameters,
             out ConstructorInfo taskConstructor,
             out ImmutableArray<FieldInfo> taskArgumentMapping)
         {
+            const string ArgumentFormat = "Arg{0}";
+
             var acceleratorTaskType = typeof(CPUAcceleratorTask);
-            var taskBuilder = RuntimeSystem.Instance.DefineRuntimeClass(
-                acceleratorTaskType);
-
-            var ctor = taskBuilder.DefineConstructor(
-                MethodAttributes.Public,
-                CallingConventions.HasThis,
-                CPUAcceleratorTask.ConstructorParameterTypes);
-
-            // Build constructor
-            {
-                var constructorILGenerator = ctor.GetILGenerator();
-                constructorILGenerator.Emit(OpCodes.Ldarg_0);
-                for (
-                    int i = 0, e = CPUAcceleratorTask.ConstructorParameterTypes.Length;
-                    i < e;
-                    ++i)
-                {
-                    constructorILGenerator.Emit(OpCodes.Ldarg, i + 1);
-                }
-                constructorILGenerator.Emit(
-                    OpCodes.Call,
-                    CPUAcceleratorTask.GetTaskConstructor(acceleratorTaskType));
-                constructorILGenerator.Emit(OpCodes.Ret);
-            }
-
-            // Define all fields
             var argFieldBuilders = new FieldInfo[parameters.Count];
-            for (int i = 0, e = argFieldBuilders.Length; i < e; ++i)
-            {
-                argFieldBuilders[i] = taskBuilder.DefineField(
-                    $"Arg{i}",
-                    parameters[i],
-                    FieldAttributes.Public);
-            }
 
-            var taskType = taskBuilder.CreateTypeInfo().AsType();
+            Type taskType;
+            {
+                using var scopedLock = RuntimeSystem.DefineRuntimeClass(
+                    acceleratorTaskType,
+                    out var taskBuilder);
+
+                var ctor = taskBuilder.DefineConstructor(
+                    MethodAttributes.Public,
+                    CallingConventions.HasThis,
+                    CPUAcceleratorTask.ConstructorParameterTypes);
+
+                // Build constructor
+                {
+                    var constructorILGenerator = ctor.GetILGenerator();
+                    constructorILGenerator.Emit(OpCodes.Ldarg_0);
+                    for (
+                        int i = 0,
+                        e = CPUAcceleratorTask.ConstructorParameterTypes.Length;
+                        i < e;
+                        ++i)
+                    {
+                        constructorILGenerator.Emit(OpCodes.Ldarg, i + 1);
+                    }
+                    constructorILGenerator.Emit(
+                        OpCodes.Call,
+                        CPUAcceleratorTask.GetTaskConstructor(acceleratorTaskType));
+                    constructorILGenerator.Emit(OpCodes.Ret);
+                }
+
+                // Define all fields
+                for (int i = 0, e = argFieldBuilders.Length; i < e; ++i)
+                {
+                    taskBuilder.DefineField(
+                        string.Format(ArgumentFormat, i),
+                        parameters[i],
+                        FieldAttributes.Public);
+                }
+
+                // Create the actual type
+                taskType = taskBuilder.CreateType();
+
+                // Get all fields
+                for (int i = 0, e = argFieldBuilders.Length; i < e; ++i)
+                {
+                    argFieldBuilders[i] = taskBuilder.GetField(
+                        string.Format(ArgumentFormat, i));
+                }
+            }
             taskConstructor = taskType.GetConstructor(
                 CPUAcceleratorTask.ConstructorParameterTypes);
 

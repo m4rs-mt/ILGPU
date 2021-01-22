@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 
@@ -141,11 +142,29 @@ namespace ILGPU.Backends.EntryPoints
         /// <summary>
         /// Creates a new launcher method.
         /// </summary>
+        /// <param name="runtimeSystem">The current runtime system.</param>
+        /// <param name="methodEmitter">The method emitter.</param>
+        /// <returns>The acquired scoped lock.</returns>
+        internal RuntimeSystem.ScopedLock CreateLauncherMethod(
+            RuntimeSystem runtimeSystem,
+            out RuntimeSystem.MethodEmitter methodEmitter) =>
+            CreateLauncherMethod(runtimeSystem, null, out methodEmitter);
+
+        /// <summary>
+        /// Creates a new launcher method.
+        /// </summary>
+        /// <param name="runtimeSystem">The current runtime system.</param>
         /// <param name="instanceType">The instance type (if any).</param>
-        /// <returns>The method emitter that represents the launcher method.</returns>
-        internal RuntimeSystem.MethodEmitter CreateLauncherMethod(
-            Type instanceType = null) =>
-            Description.CreateLauncherMethod(instanceType);
+        /// <param name="methodEmitter">The method emitter.</param>
+        /// <returns>The acquired scoped lock.</returns>
+        internal RuntimeSystem.ScopedLock CreateLauncherMethod(
+            RuntimeSystem runtimeSystem,
+            Type instanceType,
+            out RuntimeSystem.MethodEmitter methodEmitter) =>
+            Description.CreateLauncherMethod(
+                runtimeSystem,
+                instanceType,
+                out methodEmitter);
 
         #endregion
     }

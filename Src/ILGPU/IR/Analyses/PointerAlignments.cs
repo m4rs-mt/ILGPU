@@ -12,6 +12,7 @@
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 
 namespace ILGPU.IR.Analyses
@@ -229,6 +230,75 @@ namespace ILGPU.IR.Analyses
         protected override int Merge(int first, int second) =>
             Math.Min(first, second);
 
+
+        /// <summary>
+        /// Creates alignment information for global pointer and view types.
+        /// </summary>
+        protected override AnalysisValue<int>? TryProvide(TypeNode typeNode) =>
+            typeNode is AddressSpaceType
+            ? CreateValue(GlobalAlignment, typeNode)
+            : default(AnalysisValue<int>?);
+
+        #endregion
+
+        #region Merging
+
+        /// <summary>
+        /// Computes merged alignment information of the given
+        /// <see cref="LoadFieldAddress"/> node.
+        /// </summary>
+        private static AnalysisValue<int> MergeLoadFieldAddress<TContext>(
+            LoadFieldAddress lfa,
+            TContext context)
+            where TContext : IAnalysisValueContext<int>
+        {
+            // Determine the base alignment of the input address
+            int baseAlignment = context[lfa.Source].Data;
+
+            // Determine the alignment of the referenced field
+            int fieldAlignment = lfa.StructureType[lfa.FieldSpan.Access].Alignment;
+
+            // Use the minimum alignment information of both addresses. Note that this
+            // is required to check for non-properly aligned fields.
+            return CreateValue(
+                Math.Min(baseAlignment, fieldAlignment),
+                lfa.Type);
+        }
+
+        /// <summary>
+        /// Computes merged alignment information of the given
+        /// <see cref="LoadElementAddress"/> node.
+        /// </summary>
+        private static AnalysisValue<int> MergeLoadElementAddress<TContext>(
+            LoadElementAddress lea,
+            TContext context)
+            where TContext : IAnalysisValueContext<int>
+        {
+            // Determine the base alignment of the input address
+            int baseAlignment = context[lea.Source].Data;
+
+            // Determine the alignment of the referenced element type (used for indexing)
+            var elementType = (lea.Type as AddressSpaceType).ElementType;
+            int typeAlignment = AllocaAlignments.GetAllocaTypeAlignment(elementType);
+
+            // Check whether we have found a power of 2 != 0
+            if (lea.Offset.Resolve() is PrimitiveValue primitiveValue &&
+                primitiveValue.IsInt &&
+                primitiveValue.RawValue > 1L &&
+                Utilities.IsPowerOf2(primitiveValue.RawValue) &&
+                primitiveValue.RawValue < int.MaxValue / typeAlignment)
+            {
+                // We can use a multiple of the type alignment
+                typeAlignment *= (int)primitiveValue.RawValue;
+            }
+
+            // Use the minimum alignment information of both addresses. Note that this
+            // is required to check for non-properly aligned accesses.
+            return CreateValue(
+                Math.Min(baseAlignment, typeAlignment),
+                lea.Type);
+        }
+
         /// <summary>
         /// Returns merged information about <see cref="LoadFieldAddress"/> and
         /// <see cref="LoadElementAddress"/> IR nodes.
@@ -238,29 +308,11 @@ namespace ILGPU.IR.Analyses
             TContext context) =>
             value switch
             {
-                LoadFieldAddress lfa =>
-                    CreateValue(
-                        Math.Min(
-                            context[lfa.Source].Data,
-                            lfa.StructureType[lfa.FieldSpan.Access].Alignment),
-                            lfa.Type),
-                LoadElementAddress lea =>
-                    CreateValue(
-                        Math.Max(
-                            context[lea.Source].Data,
-                            (lea.Type as IAddressSpaceType).ElementType.Alignment),
-                        lea.Type),
+                LoadFieldAddress lfa => MergeLoadFieldAddress(lfa, context),
+                LoadElementAddress lea => MergeLoadElementAddress(lea, context),
                 _ => null,
             };
 
-        /// <summary>
-        /// Creates alignment information for global pointer and view types.
-        /// </summary>
-        protected override AnalysisValue<int>? TryProvide(TypeNode typeNode) =>
-            typeNode is IAddressSpaceType
-            ? CreateValue(GlobalAlignment, typeNode)
-            : default(AnalysisValue<int>?);
+        #endregion
     }
-
-    #endregion
 }
