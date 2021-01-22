@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Backends;
 using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -124,6 +125,37 @@ namespace ILGPU.Frontend
             var value = Block.Pop(typeNode, ConvertFlags.None);
             var address = Block.Pop();
             CreateStore(address, value);
+        }
+
+        /// <summary>
+        /// Loads the size of the type (in bytes).
+        /// </summary>
+        /// <param name="type">The target type.</param>
+        private void LoadSizeOf(Type type)
+        {
+            // Pushes the size, in bytes, of a supplied value type onto the evaluation
+            // stack.
+            //
+            // For a reference type, the size returned is the size of a reference value
+            // of the corresponding type (4 bytes on 32-bit systems), not the size of the
+            // data stored in objects referred to by the reference value. A generic type
+            // parameter can be used only in the body of the type or method that defines
+            // it. When that type or method is instantiated, the generic type parameter
+            // is replaced by a value type or reference type.
+            if (type.IsValueType)
+            {
+                Load(Interop.SizeOf(type));
+            }
+            else
+            {
+                var pointerSize = TypeContext.TargetPlatform switch
+                {
+                    TargetPlatform.X86 => 4,
+                    TargetPlatform.X64 => 8,
+                    _ => throw new NotImplementedException()
+                };
+                Load(pointerSize);
+            }
         }
     }
 }
