@@ -174,9 +174,7 @@ namespace ILGPU
                 : new ILFrontend(this, frontendDebugInformationManager, 1);
 
             // Create default IL backend
-            DefautltILBackend = flags.HasFlags(ContextFlags.SkipCPUCodeGeneration)
-                ? new SkipCodeGenerationDefaultILBackend(this)
-                : new DefaultILBackend(this);
+            DefautltILBackend = new DefaultILBackend(this);
 
             // Initialize default transformer
             ContextTransformer = Optimizer.CreateTransformer(
