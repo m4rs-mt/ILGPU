@@ -119,6 +119,7 @@ namespace ILGPU
         /// <remarks>
         /// Caution: this avoids general kernel code-analysis and verification checks.
         /// </remarks>
+        [Obsolete("A basic code-generation pipeline is always enabled by default.")]
         SkipCPUCodeGeneration = 1 << 17,
 
         /// <summary>

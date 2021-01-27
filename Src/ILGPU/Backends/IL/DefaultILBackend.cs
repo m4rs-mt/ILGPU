@@ -19,7 +19,7 @@ using System.Reflection.Emit;
 namespace ILGPU.Backends.IL
 {
     /// <summary>
-    /// The default IL backend thach das it uses the original kernel method.
+    /// The default IL backend that uses the original kernel method.
     /// </summary>
     public class DefaultILBackend : ILBackend
     {
