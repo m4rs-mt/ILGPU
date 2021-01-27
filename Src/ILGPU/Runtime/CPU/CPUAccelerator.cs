@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -40,24 +41,62 @@ namespace ILGPU.Runtime.CPU
         public static ImmutableArray<CPUAcceleratorId> CPUAccelerators { get; } =
             ImmutableArray.Create(CPUAcceleratorId);
 
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of an NVIDIA
+        /// GPU having 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator CreateNvidiaSimulator(Context context) =>
+            new CPUAccelerator(context, 32, 32, 1);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of an AMD
+        /// GPU having 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator CreateAMDSimulator(Context context) =>
+            new CPUAccelerator(context, 32, 8, 1);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of a legacy
+        /// GCN AMD GPU having 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator CreateLegacyAMDSimulator(Context context) =>
+            new CPUAccelerator(context, 64, 4, 1);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of an Intel
+        /// GPU having 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator CreateIntelSimulator(Context context) =>
+            new CPUAccelerator(context, 16, 8, 1);
+
         #endregion
 
         #region Instance
 
-        private Thread[] threads;
-        private CPURuntimeGroupContext[] groupContexts;
+        private readonly Thread[] threads;
+        private readonly Barrier[] processorBarriers;
+        private readonly CPURuntimeGroupContext[] groupContexts;
+        private readonly CPURuntimeWarpContext[,] warpContexts;
 
         private readonly object taskSynchronizationObject = new object();
         private volatile CPUAcceleratorTask currentTask;
         private volatile bool running = true;
-        private readonly Barrier finishedEvent;
+        private readonly Barrier finishedEventPerMultiprocessor;
 
         /// <summary>
         /// Constructs a new CPU runtime.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         public CPUAccelerator(Context context)
-            : this(context, Environment.ProcessorCount)
+            : this(context, Environment.ProcessorCount * 2)
         { }
 
         /// <summary>
@@ -85,23 +124,109 @@ namespace ILGPU.Runtime.CPU
             Context context,
             int numThreads,
             ThreadPriority threadPriority)
+            : this(
+                  context,
+                  Math.Max(numThreads, 2),
+                  Math.Min(Math.Max(numThreads, 2), 32),
+                  1,
+                  threadPriority)
+        { }
+
+        /// <summary>
+        /// Constructs a new CPU runtime.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="numThreadsPerWarp">
+        /// The number of threads per warp within a group.
+        /// </param>
+        /// <param name="numWarpsPerMultiprocessor">
+        /// The number of warps per multiprocessor.
+        /// </param>
+        /// <param name="numMultiprocessors">
+        /// The number of multiprocessors (number of parallel groups) to simulate.
+        /// </param>
+        public CPUAccelerator(
+            Context context,
+            int numThreadsPerWarp,
+            int numWarpsPerMultiprocessor,
+            int numMultiprocessors)
+            : this(
+                  context,
+                  numThreadsPerWarp,
+                  numWarpsPerMultiprocessor,
+                  numMultiprocessors,
+                  ThreadPriority.Normal)
+        { }
+
+        /// <summary>
+        /// Constructs a new CPU runtime.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="numThreadsPerWarp">
+        /// The number of threads per group for parallel processing.
+        /// </param>
+        /// <param name="numWarpsPerMultiprocessor">
+        /// The number of warps per multiprocessor.
+        /// </param>
+        /// <param name="numMultiprocessors">
+        /// The number of multiprocessors (number of parallel groups) to simulate.
+        /// </param>
+        /// <param name="threadPriority">
+        /// The thread priority of the execution threads.
+        /// </param>
+        public CPUAccelerator(
+            Context context,
+            int numThreadsPerWarp,
+            int numWarpsPerMultiprocessor,
+            int numMultiprocessors,
+            ThreadPriority threadPriority)
             : base(context, AcceleratorType.CPU)
         {
-            if (numThreads < 1)
-                throw new ArgumentOutOfRangeException(nameof(numThreads));
+            if (numThreadsPerWarp < 2 || !Utilities.IsPowerOf2(numWarpsPerMultiprocessor))
+                throw new ArgumentOutOfRangeException(nameof(numThreadsPerWarp));
+            if (numWarpsPerMultiprocessor < 1)
+                throw new ArgumentOutOfRangeException(nameof(numWarpsPerMultiprocessor));
+            if (numMultiprocessors < 1)
+                throw new ArgumentOutOfRangeException(nameof(numMultiprocessors));
+
+            // Check for existing limitations with respect to barrier participants
+            if (numThreadsPerWarp * numWarpsPerMultiprocessor > short.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(numWarpsPerMultiprocessor));
+            if (NumMultiprocessors > short.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(numMultiprocessors));
 
             NativePtr = new IntPtr(1);
-            NumThreads = numThreads;
-            WarpSize = 1;
+            WarpSize = numThreadsPerWarp;
+            MaxNumThreadsPerGroup = numThreadsPerWarp * numWarpsPerMultiprocessor;
+            MaxNumThreadsPerMultiprocessor = MaxNumThreadsPerGroup;
+            NumMultiprocessors = numMultiprocessors;
+            NumThreads = MaxNumThreads * numMultiprocessors;
 
-            threads = new Thread[numThreads];
-            finishedEvent = new Barrier(numThreads + 1);
-            // The maximum number of thread groups that can be handled in parallel is
-            // equal to the number of available threads in the worst case.
-            groupContexts = new CPURuntimeGroupContext[numThreads];
-            for (int i = 0; i < numThreads; ++i)
+            threads = new Thread[NumThreads];
+            finishedEventPerMultiprocessor = new Barrier(numMultiprocessors + 1);
+
+            // Setup all warp and group contexts
+            warpContexts = new CPURuntimeWarpContext[
+                numMultiprocessors,
+                numWarpsPerMultiprocessor];
+            groupContexts = new CPURuntimeGroupContext[numMultiprocessors];
+            processorBarriers = new Barrier[numMultiprocessors];
+            for (int i = 0; i < numMultiprocessors; ++i)
             {
+                for (int j = 0; j < numWarpsPerMultiprocessor; ++j)
+                {
+                    warpContexts[i, j] = new CPURuntimeWarpContext(
+                        this,
+                        numThreadsPerWarp);
+                }
+
                 groupContexts[i] = new CPURuntimeGroupContext(this);
+                processorBarriers[i] = new Barrier(MaxNumThreadsPerMultiprocessor);
+            }
+
+            // Instantiate all runtime threads
+            for (int i = 0; i < NumThreads; ++i)
+            {
                 var thread = threads[i] = new Thread(ExecuteThread)
                 {
                     IsBackground = true,
@@ -120,10 +245,8 @@ namespace ILGPU.Runtime.CPU
                 MaxNumThreadsPerGroup,
                 MaxNumThreadsPerGroup,
                 MaxNumThreadsPerGroup);
-            MaxSharedMemoryPerGroup = CPURuntimeGroupContext.SharedMemorySize;
+            MaxSharedMemoryPerGroup = int.MaxValue;
             MaxConstantMemory = int.MaxValue;
-            NumMultiprocessors = 1;
-            MaxNumThreadsPerMultiprocessor = NumThreads;
 
             Bind();
             Init(context.DefautltILBackend);
@@ -259,21 +382,6 @@ namespace ILGPU.Runtime.CPU
         #region Launch Methods
 
         /// <summary>
-        /// Computes the number of required threads to reach the requested group size.
-        /// </summary>
-        /// <param name="groupSize">The requested group size.</param>
-        /// <returns>The number of threads to reach the requested group size.</returns>
-        private int ComputeNumGroupThreads(int groupSize)
-        {
-            var numThreads = groupSize + (groupSize % WarpSize);
-            return numThreads > NumThreads
-                ? throw new NotSupportedException(string.Format(
-                    RuntimeErrorMessages.NotSupportedTotalGroupSize,
-                    NumThreads))
-                : numThreads;
-        }
-
-        /// <summary>
         /// Launches the given accelerator task on this accelerator.
         /// </summary>
         /// <param name="task">The task to launch.</param>
@@ -282,17 +390,37 @@ namespace ILGPU.Runtime.CPU
         {
             Debug.Assert(task != null, "Invalid accelerator task");
 
-            var groupThreadSize = ComputeNumGroupThreads(task.GroupDim.Size);
+            // Setup groups contexts
+            int groupSize = task.GroupDim.Size;
+            int numWarps = IntrinsicMath.DivRoundUp(groupSize, WarpSize);
 
-            // Setup groups
-            var numRuntimeGroups = NumThreads / groupThreadSize;
-            for (int i = 0; i < numRuntimeGroups; ++i)
+            if (numWarps * WarpSize > MaxNumThreadsPerGroup)
             {
-                var context = groupContexts[i];
-                context.Initialize(task.GroupDim, task.SharedMemoryConfig);
+                throw new NotSupportedException(string.Format(
+                    RuntimeErrorMessages.NotSupportedTotalGroupSize,
+                    MaxNumThreadsPerGroup));
             }
 
-            Interlocked.MemoryBarrier();
+            for (int i = 0, e = NumMultiprocessors; i < e; ++i)
+            {
+                // Initialize the associated group context
+                var context = groupContexts[i];
+                context.Initialize(
+                    task.GridDim,
+                    task.GroupDim,
+                    task.DynamicSharedMemoryConfig);
+
+                // Initialize each involved warp context
+                for (int j = 0, e2 = numWarps - 1; j < e2; ++j)
+                    warpContexts[i, j].Initialize(WarpSize);
+
+                int lastWarpSize = groupSize % WarpSize == 0
+                    ? WarpSize
+                    : groupSize % WarpSize;
+                warpContexts[i, numWarps - 1].Initialize(lastWarpSize);
+
+        }
+        Interlocked.MemoryBarrier();
 
             // Launch all processing threads
             lock (taskSynchronizationObject)
@@ -303,10 +431,10 @@ namespace ILGPU.Runtime.CPU
             }
 
             // Wait for the result
-            finishedEvent.SignalAndWait();
+            finishedEventPerMultiprocessor.SignalAndWait();
 
             // Reset all groups
-            for (int i = 0; i < numRuntimeGroups; ++i)
+            for (int i = 0, e = NumMultiprocessors; i < e; ++i)
                 groupContexts[i].TearDown();
 
             // Reset task
@@ -320,11 +448,34 @@ namespace ILGPU.Runtime.CPU
         /// <param name="arg">The relative thread index.</param>
         private void ExecuteThread(object arg)
         {
-            var relativeThreadIdx = (int)arg;
+            // Compute the thread indices
+            int absoluteThreadIdx = (int)arg;
+            int threadIdx = absoluteThreadIdx % MaxNumThreadsPerMultiprocessor;
+            bool isMainThread = threadIdx == 0;
+
+            // Get processor related information
+            int processorIdx = absoluteThreadIdx / MaxNumThreadsPerMultiprocessor;
+            var processorBarrier = processorBarriers[processorIdx];
+
+            // Setup a new thread context for this thread and initialize the lane idx
+            int laneIdx = threadIdx % WarpSize;
+            var threadContext = new CPURuntimeThreadContext(laneIdx);
+            threadContext.MakeCurrent();
+
+            // Setup the current warp context as it always stays the same
+            int warpIdx = threadIdx / WarpSize;
+            bool isMainWarpThread = threadIdx == 0;
+            var warpContext = warpContexts[processorIdx, warpIdx];
+            warpContext.MakeCurrent();
+
+            // Setup the current group context as it always stays the same
+            var groupContext = groupContexts[processorIdx];
+            groupContext.MakeCurrent();
 
             CPUAcceleratorTask task = null;
             for (; ; )
             {
+                // Get a new task to execute
                 lock (taskSynchronizationObject)
                 {
                     while ((currentTask == null | currentTask == task) & running)
@@ -333,46 +484,59 @@ namespace ILGPU.Runtime.CPU
                         break;
                     task = currentTask;
                 }
-
                 Debug.Assert(task != null, "Invalid task");
 
-                var groupThreadSize = ComputeNumGroupThreads(task.GroupDim.Size);
-                var runtimeGroupThreadIdx = relativeThreadIdx % groupThreadSize;
-                var runtimeGroupIdx = relativeThreadIdx / groupThreadSize;
-                var numRuntimeGroups = NumThreads / groupThreadSize;
-                var numUsedThreads = numRuntimeGroups * groupThreadSize;
-                Debug.Assert(numUsedThreads > 0, "Invalid group size");
+                // Setup the current group index
+                threadContext.GroupIndex = Index3.ReconstructIndex(
+                    threadIdx,
+                    task.GroupDim);
 
-                // Check whether we are an active thread
-                if (relativeThreadIdx < numUsedThreads)
+                // Wait for all threads of all multiprocessors to arrive here
+                Thread.MemoryBarrier();
+                processorBarrier.SignalAndWait();
+
+                // If we are an active group thread
+                int groupSize = task.GroupDim.Size;
+                if (threadIdx < groupSize)
                 {
-                    // Bind the context to the current thread
-                    var groupContext = groupContexts[runtimeGroupIdx];
-                    groupContext.MakeCurrent();
-                    var runtimeDimension = task.RuntimeDimension;
-                    int chunkSize = (runtimeDimension + numRuntimeGroups - 1) /
-                        numRuntimeGroups;
-                    chunkSize = (chunkSize + groupThreadSize - 1) / groupThreadSize *
-                        groupThreadSize;
-                    int chunkOffset = chunkSize * runtimeGroupIdx;
+                    var launcher = task.KernelExecutionDelegate;
 
-                    // Setup current indices
-                    CPURuntimeThreadContext.SetupDimensions(task.GridDim, task.GroupDim);
+                    // Split the grid into different chunks that will be processed by the
+                    // available multiprocessors
+                    int linearGridDim = task.GridDim.Size;
+                    int gridChunkSize = IntrinsicMath.DivRoundUp(
+                        linearGridDim,
+                        NumMultiprocessors);
+                    int gridOffset = gridChunkSize * processorIdx;
+                    int linearUserDim = task.TotalUserDim.Size;
+                    for (int i = gridOffset, e = gridOffset + gridChunkSize; i < e; ++i)
+                    {
+                        // Setup the current grid index
+                        threadContext.GridIndex = Index3.ReconstructIndex(
+                            i,
+                            task.GridDim);
 
-                    // Prepare execution
-                    groupContext.WaitForNextThreadIndex();
+                        // Invoke the actual kernel launcher
+                        int globalIndex = i * groupSize + threadIdx;
+                        if (globalIndex < linearUserDim)
+                            launcher(task, globalIndex);
 
-                    var targetDimension = Math.Min(task.UserDimension, runtimeDimension);
-                    task.Execute(
-                        groupContext,
-                        runtimeGroupThreadIdx,
-                        groupThreadSize,
-                        chunkSize,
-                        chunkOffset,
-                        targetDimension);
+                        // Wait for all group threads to arrive
+                        groupContext.WaitForNextThreadIndex();
+                    }
+
+                    // This thread has already finished processing
+                    warpContext.OnKernelExecutionCompleted();
+                    groupContext.OnKernelExecutionCompleted();
                 }
 
-                finishedEvent.SignalAndWait();
+                // Wait for all threads of all multiprocessors to arrive here
+                processorBarrier.SignalAndWait();
+
+                // If we reach this point and we are the main thread, notify the parent
+                // accelerator instance
+                if (isMainThread)
+                    finishedEventPerMultiprocessor.SignalAndWait();
             }
         }
 
@@ -529,7 +693,8 @@ namespace ILGPU.Runtime.CPU
             threads = null;
             foreach (var group in groupContexts)
                 group.Dispose();
-            groupContexts = null;
+            foreach (var warp in warpContexts)
+                warp.Dispose();
             finishedEvent.Dispose();
         }
 
