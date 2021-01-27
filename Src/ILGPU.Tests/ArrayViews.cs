@@ -24,7 +24,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewValidKernel))]
         public void ArrayViewValid(int length)
         {
@@ -47,7 +47,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewLeaKernel))]
         public void ArrayViewLea(int length)
         {
@@ -74,7 +74,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewLeaIndexKernel))]
         public void ArrayViewLeaIndex(int length)
         {
@@ -102,7 +102,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewLongLeaIndexKernel))]
         public void ArrayViewLongLeaIndex(long length)
         {
@@ -128,7 +128,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewLengthKernel))]
         public void ArrayViewLength(int length)
         {
@@ -150,7 +150,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewLongLengthKernel))]
         public void ArrayViewLongLength(int length)
         {
@@ -172,7 +172,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewExtentKernel))]
         public void ArrayViewExtent(int length)
         {
@@ -194,7 +194,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewLongExtentKernel))]
         public void ArrayViewLongExtent(int length)
         {
@@ -216,7 +216,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewLengthInBytesKernel))]
         public void ArrayViewLengthInBytes(int length)
         {
@@ -407,7 +407,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewLinearViewKernel))]
         public void ArrayViewLinearView(int length)
         {
@@ -434,7 +434,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewGetVariableViewKernel))]
         public void ArrayViewGetVariableView(int length)
         {
@@ -493,7 +493,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewCastToGenericViewKernel))]
         public void ArrayViewCastToGenericView(int length)
         {
@@ -529,7 +529,7 @@ namespace ILGPU.Tests
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
-        [InlineData(int.MaxValue >> 8 + 1)]
+        [InlineData(8197)]
         [KernelMethod(nameof(ArrayViewGetSubVariableViewKernel))]
         public void ArrayViewGetSubVariableView(int length)
         {
