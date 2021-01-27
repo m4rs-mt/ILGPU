@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ILGPU.Backends.EntryPoints;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Xunit;
@@ -534,6 +535,25 @@ namespace ILGPU.Tests
             var e = Assert.Throws<InternalCompilerException>(() =>
                 Execute(kernel.Method, extent, buffer.View, extent));
             Assert.IsType<NotSupportedException>(e.InnerException);
+        }
+
+        [KernelName("My @ CustomKernel.Name12345 [1211]")]
+        internal static void NamedEntryPointKernel(Index1 index, ArrayView<int> output)
+        {
+            output[index] = index;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(NamedEntryPointKernel))]
+        public void NamedEntryPoint()
+        {
+            const int Length = 32;
+
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Range(0, Length).ToArray();
+            Verify(buffer, expected);
         }
     }
 }
