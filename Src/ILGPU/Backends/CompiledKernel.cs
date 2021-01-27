@@ -205,6 +205,11 @@ namespace ILGPU.Backends
         public MethodInfo SourceMethod => EntryPoint.MethodInfo;
 
         /// <summary>
+        /// Returns the associated kernel function name.
+        /// </summary>
+        public string Name => EntryPoint.Name;
+
+        /// <summary>
         /// Returns the index type of the entry point.
         /// </summary>
         public IndexType IndexType => EntryPoint.IndexType;

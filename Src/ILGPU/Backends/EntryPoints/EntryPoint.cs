@@ -54,6 +54,11 @@ namespace ILGPU.Backends.EntryPoints
         public EntryPointDescription Description { get; }
 
         /// <summary>
+        /// Returns the associated kernel function name.
+        /// </summary>
+        public string Name => Description.Name;
+
+        /// <summary>
         /// Returns the associated method info.
         /// </summary>
         public MethodInfo MethodInfo => Description.MethodSource;
