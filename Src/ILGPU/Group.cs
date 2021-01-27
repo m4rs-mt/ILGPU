@@ -38,7 +38,7 @@ namespace ILGPU
         public static int IdxX
         {
             [GridIntrinsic(GridIntrinsicKind.GetGroupIndex, DeviceConstantDimension3D.X)]
-            get => CPURuntimeThreadContext.GroupIndex.X;
+            get => CPURuntimeThreadContext.Current.GroupIndex.X;
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace ILGPU
         public static int IdxY
         {
             [GridIntrinsic(GridIntrinsicKind.GetGroupIndex, DeviceConstantDimension3D.Y)]
-            get => CPURuntimeThreadContext.GroupIndex.Y;
+            get => CPURuntimeThreadContext.Current.GroupIndex.Y;
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace ILGPU
         public static int IdxZ
         {
             [GridIntrinsic(GridIntrinsicKind.GetGroupIndex, DeviceConstantDimension3D.Z)]
-            get => CPURuntimeThreadContext.GroupIndex.Z;
+            get => CPURuntimeThreadContext.Current.GroupIndex.Z;
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace ILGPU
             [GridIntrinsic(
                 GridIntrinsicKind.GetGroupDimension,
                 DeviceConstantDimension3D.X)]
-            get => CPURuntimeThreadContext.GroupDimension.X;
+            get => CPURuntimeGroupContext.Current.GroupDimension.X;
         }
 
         /// <summary>
@@ -120,7 +120,7 @@ namespace ILGPU
             [GridIntrinsic(
                 GridIntrinsicKind.GetGroupDimension,
                 DeviceConstantDimension3D.Y)]
-            get => CPURuntimeThreadContext.GroupDimension.Y;
+            get => CPURuntimeGroupContext.Current.GroupDimension.Y;
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace ILGPU
             [GridIntrinsic(
                 GridIntrinsicKind.GetGroupDimension,
                 DeviceConstantDimension3D.Z)]
-            get => CPURuntimeThreadContext.GroupDimension.Z;
+            get => CPURuntimeGroupContext.Current.GroupDimension.Z;
         }
 
         /// <summary>
