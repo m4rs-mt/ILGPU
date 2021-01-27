@@ -48,31 +48,25 @@ namespace ILGPU.Runtime.Cuda
             MethodInfo launcher)
             : base(accelerator, kernel, launcher)
         {
-#if DEBUG
             var kernelLoaded = CurrentAPI.LoadModule(
                 out modulePtr,
                 kernel.PTXAssembly,
                 out string errorLog);
             if (kernelLoaded != CudaError.CUDA_SUCCESS)
             {
-                Debug.WriteLine("Kernel loading failed:");
+                Trace.WriteLine("PTX Kernel loading failed:");
                 if (string.IsNullOrWhiteSpace(errorLog))
-                    Debug.WriteLine(">> No error information available");
+                    Trace.WriteLine(">> No error information available");
                 else
-                    Debug.WriteLine(errorLog);
+                    Trace.WriteLine(errorLog);
             }
             CudaException.ThrowIfFailed(kernelLoaded);
-#else
-            CudaException.ThrowIfFailed(
-                CurrentAPI.LoadModule(
-                    out modulePtr,
-                    kernel.PTXAssembly));
-#endif
+
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetModuleFunction(
                     out functionPtr,
                     modulePtr,
-                    PTXCompiledKernel.EntryName));
+                    kernel.Name));
         }
 
         #endregion

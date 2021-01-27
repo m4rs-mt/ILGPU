@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using System;
 
 namespace ILGPU.Backends.PTX
 {
@@ -23,6 +24,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The entry name of the kernel function.
         /// </summary>
+        [Obsolete("Use CompiledKernel.Name instead")]
         public const string EntryName = "ILGPUKernel";
 
         #endregion
