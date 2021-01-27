@@ -12,6 +12,7 @@
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
+using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -21,7 +22,7 @@ namespace ILGPU.Runtime.CPU
     /// <summary>
     /// Represents a runtime context for thread groups.
     /// </summary>
-    public sealed class CPURuntimeGroupContext : CPURuntimeContext
+    abstract class CPURuntimeGroupContext : CPURuntimeContext
     {
         #region Thread Static
 
@@ -45,6 +46,9 @@ namespace ILGPU.Runtime.CPU
                 return currentContext;
             }
         }
+
+        protected static int GroupIndex =>
+            CPURuntimeThreadContext.Current.LinearGroupIndex;
 
         #endregion
 
@@ -180,14 +184,6 @@ namespace ILGPU.Runtime.CPU
                 new GetSharedMemory<T>(this, extent));
 
         /// <summary>
-        /// This method waits for all threads to complete and
-        /// resets all information that might be required for the next
-        /// thread index.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WaitForNextThreadIndex() => Barrier();
-
-        /// <summary>
         /// Executes a thread barrier and returns the number of threads for which
         /// the predicate evaluated to true.
         /// </summary>
@@ -236,13 +232,14 @@ namespace ILGPU.Runtime.CPU
         /// <param name="sharedMemoryConfig">
         /// The current shared memory configuration.
         /// </param>
-        internal void Initialize(
-            Index3 gridDimension,
-            Index3 groupDimension,
+        public virtual void Initialize(
+            in Index3 gridDimension,
+            in Index3 groupDimension,
             in SharedMemoryConfig sharedMemoryConfig)
         {
             GridDimension = gridDimension;
             GroupDimension = groupDimension;
+            GroupSize = groupDimension.Size;
             dynamicSharedMemoryArrayLength = sharedMemoryConfig.NumElements;
 
             ClearSharedMemoryAllocations();
@@ -253,8 +250,22 @@ namespace ILGPU.Runtime.CPU
         /// Performs cleanup operations with respect to the previously allocated
         /// shared memory
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void TearDown() => ClearSharedMemoryAllocations();
+        public virtual void TearDown() => ClearSharedMemoryAllocations();
+
+        /// <summary>
+        /// Begins processing of the current thread.
+        /// </summary>
+        public abstract void BeginThreadProcessing();
+
+        /// <summary>
+        /// Ends a previously started processing task of the current thread.
+        /// </summary>
+        public abstract void EndThreadProcessing();
+
+        /// <summary>
+        /// Finishes processing of the current thread.
+        /// </summary>
+        public abstract void FinishThreadProcessing();
 
         /// <summary>
         /// Clears all previously allocated shared-memory operations.
@@ -274,6 +285,22 @@ namespace ILGPU.Runtime.CPU
 
         #endregion
 
+        #region Task Runtime
+
+        /// <summary>
+        /// This method does not perform any operation at the moment.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void BeginParallelThreadProcessing() { }
+
+        /// <summary>
+        /// This method waits for all threads in this group to complete.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void EndParallelThreadProcessing() => Barrier();
+
+        #endregion
+
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
@@ -285,5 +312,123 @@ namespace ILGPU.Runtime.CPU
         }
 
         #endregion
+    }
+
+    sealed class SequentialCPURuntimeGroupContext : CPURuntimeGroupContext
+    {
+        /// <summary>
+        /// The internal activity set.
+        /// </summary>
+        private volatile BitArray activitySet = new BitArray(1024);
+
+        /// <summary>
+        /// The internal index of the currently active thread.
+        /// </summary>
+        private volatile int activeThreadIndex = 0;
+
+        public SequentialCPURuntimeGroupContext(CPUAccelerator accelerator)
+            : base(accelerator)
+        { }
+
+        /// <inheritdoc/>
+        public override void Initialize(
+            in Index3 gridDimension,
+            in Index3 groupDimension,
+            in SharedMemoryConfig sharedMemoryConfig)
+        {
+            // Setup the activity set
+            int groupSize = groupDimension.Size;
+            if (activitySet.Length < groupSize)
+                activitySet = new BitArray(groupSize);
+
+            // Mark all threads as active and activate the first one
+            activitySet.SetAll(true);
+            activeThreadIndex = 0;
+
+            // Setup remaining information and issue a thread barrier
+            base.Initialize(gridDimension, groupDimension, sharedMemoryConfig);
+        }
+
+        /// <summary>
+        /// Puts the current thread into sleep mode (if there are some other threads
+        /// being active) and wakes up the next thread.
+        /// </summary>
+        private void ScheduleNextThread()
+        {
+            // Determine the next thread that might become active
+            int groupIdx = GroupIndex;
+            lock (activitySet.SyncRoot)
+            {
+                // Determine the next thread that might become active
+                for (int i = 1; i < GroupSize; ++i)
+                {
+                    int index = (groupIdx + i) % GroupSize;
+                    if (activitySet[index])
+                    {
+                        // This thread can become active
+                        activeThreadIndex = index;
+                        Monitor.PulseAll(activitySet.SyncRoot);
+                        break;
+                    }
+                }
+            }
+            Thread.MemoryBarrier();
+        }
+
+        public override void Barrier() =>
+            // We have hit an inter-group thread barrier that requires all other threads
+            // to run until this point
+            ScheduleNextThread();
+
+        /// <inheritdoc/>
+        public override void BeginThreadProcessing()
+        {
+            // NOTE: the current thread lock cannot be null
+            int groupIdx = GroupIndex;
+
+            lock (activitySet.SyncRoot)
+            {
+                // Wait for our thread to become active
+                while (activeThreadIndex != groupIdx)
+                    Monitor.Wait(activitySet.SyncRoot);
+
+                // We have become active... continue processing
+            }
+        }
+
+        /// <inheritdoc/>
+        public override void EndThreadProcessing() => ScheduleNextThread();
+
+        /// <inheritdoc/>
+        public override void FinishThreadProcessing()
+        {
+            // Remove the current thread from the set
+            lock (activitySet.SyncRoot)
+                activitySet.Set(GroupIndex, false);
+        }
+    }
+
+    sealed class ParallelCPURuntimeGroupContext : CPURuntimeGroupContext
+    {
+        public ParallelCPURuntimeGroupContext(CPUAccelerator accelerator)
+            : base(accelerator)
+        { }
+
+        private void ParallelBarrier() => WaitForAllThreads();
+
+        public override void Barrier() => ParallelBarrier();
+
+        /// <summary>
+        /// This method does not perform any operation at the moment.
+        /// </summary>
+        public override void BeginThreadProcessing() { }
+
+        /// <summary>
+        /// This method waits for all threads in this group to complete.
+        /// </summary>
+        public override void EndThreadProcessing() => ParallelBarrier();
+
+        /// <inheritdoc/>
+        public override void FinishThreadProcessing() => RemoveBarrierParticipant();
     }
 }

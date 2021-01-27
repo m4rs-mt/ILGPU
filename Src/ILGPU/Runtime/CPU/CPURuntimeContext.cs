@@ -20,7 +20,7 @@ namespace ILGPU.Runtime.CPU
     /// <summary>
     /// Represents a runtime context for a single group.
     /// </summary>
-    public abstract class CPURuntimeContext : DisposeBase
+    abstract class CPURuntimeContext : DisposeBase
     {
         #region Nested Types
 
@@ -156,8 +156,13 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Executes a thread barrier.
         /// </summary>
+        public abstract void Barrier();
+
+        /// <summary>
+        /// Executes a thread barrier.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Barrier()
+        protected void WaitForAllThreads()
         {
             // Issue a thread memory barrier first to ensure that no IO operations
             // will be reorder across this barrier
@@ -252,13 +257,6 @@ namespace ILGPU.Runtime.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected void RemoveBarrierParticipant() =>
             barrier.RemoveParticipant();
-
-        /// <summary>
-        /// Called when a CPU kernel has finished, reducing the number of participants in
-        /// future calls to Barrier-related methods.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void OnKernelExecutionCompleted() => RemoveBarrierParticipant();
 
         /// <summary>
         /// Initializes the internal runtime context using the given number of

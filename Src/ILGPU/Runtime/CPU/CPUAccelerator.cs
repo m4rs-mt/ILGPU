@@ -18,16 +18,100 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ILGPU.Runtime.CPU
 {
     /// <summary>
+    /// The accelerator mode to be used with the <see cref="CPUAccelerator"/>.
+    /// </summary>
+    public enum CPUAcceleratorMode
+    {
+        /// <summary>
+        /// The automatic mode uses <see cref="Sequential"/> if a debugger is attached.
+        /// It uses <see cref="Parallel"/> if no debugger is attached to the
+        /// application.
+        /// </summary>
+        /// <remarks>
+        /// This is the default mode.
+        /// </remarks>
+        Auto = 0,
+
+        /// <summary>
+        /// If the CPU accelerator uses a simulated sequential execution mechanism. This
+        /// is particularly useful to simplify debugging. Note that different threads for
+        /// distinct multiprocessors may still run in parallel.
+        /// </summary>
+        Sequential = 1,
+
+        /// <summary>
+        /// A parallel execution mode that runs all execution threads in parallel. This
+        /// reduces processing time but makes it harder to use a debugger.
+        /// </summary>
+        Parallel = 2,
+    }
+
+    /// <summary>
+    /// Specifies a simulator kind of a <see cref="CPUAccelerator"/> instance.
+    /// </summary>
+    public enum CPUAcceleratorKind
+    {
+        /// <summary>
+        /// A CPU accelerator that simulates a common configuration of a default GPU
+        /// simulator with 1 multiprocessor, a warp size of 4 and 4 warps per
+        /// multiprocessor.
+        /// </summary>
+        Default,
+
+        /// <summary>
+        /// a CPU accelerator that simulates a common configuration of an NVIDIA GPU
+        /// with 1 multiprocessor.
+        /// </summary>
+        Nvidia,
+
+        /// <summary>
+        /// A CPU accelerator that simulates a common configuration of an AMD GPU with
+        /// 1 multiprocessor.
+        /// </summary>
+        AMD,
+
+        /// <summary>
+        /// A CPU accelerator that simulates a common configuration of a legacy GCN AMD
+        /// GPU with 1 multiprocessor.
+        /// </summary>
+        LegacyAMD,
+
+        /// <summary>
+        /// A CPU accelerator that simulates a common configuration of an Intel GPU
+        /// with 1 multiprocessor.
+        /// </summary>
+        Intel
+    }
+
+    /// <summary>
     /// Represents a general CPU-based runtime for kernels.
     /// </summary>
-    public sealed class CPUAccelerator : Accelerator
+    public sealed partial class CPUAccelerator : Accelerator
     {
+        #region Constants
+
+        /// <summary>
+        /// The default warp size of 4 threads per group.
+        /// </summary>
+        private const int DefaultWarpSize = 4;
+
+        /// <summary>
+        /// The default number of 4 warps per multiprocessor.
+        /// </summary>
+        private const int DefaultNumWarpsPerMultiprocessor = 4;
+
+        /// <summary>
+        /// The default number of 1 multiprocessor.
+        /// </summary>
+        private const int DefaultNumMultiprocessors = 1;
+
+        #endregion
+
         #region Static
 
         /// <summary>
@@ -42,61 +126,204 @@ namespace ILGPU.Runtime.CPU
             ImmutableArray.Create(CPUAcceleratorId);
 
         /// <summary>
-        /// Creates a CPU accelerator that simulates a common configuration of an NVIDIA
-        /// GPU having 1 multiprocessor.
+        /// Maps <see cref="CPUAcceleratorKind"/> values to <see cref="CPUAccelerator"/>
+        /// static factory methods.
+        /// </summary>
+        private static readonly Func<Context, CPUAcceleratorMode, CPUAccelerator>[]
+            CreateAccelerators =
+        {
+            CreateDefaultSimulator,
+            CreateNvidiaSimulator,
+            CreateAMDSimulator,
+            CreateLegacyAMDSimulator,
+            CreateIntelSimulator,
+        };
+
+        #endregion
+
+        #region Static Creation
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of a default
+        /// GPU simulator with 1 multiprocessor, a warp size of 4 and 4 warps per
+        /// multiprocessor.
         /// </summary>
         /// <param name="context">The current context.</param>
         /// <returns>The created CPU accelerator instance.</returns>
+        /// <remarks>
+        /// Note that this accelerator will use <see cref="CPUAcceleratorMode.Auto"/>.
+        /// </remarks>
+        public static CPUAccelerator CreateDefaultSimulator(Context context) =>
+            CreateDefaultSimulator(context, CPUAcceleratorMode.Auto);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of a default
+        /// GPU simulator with 1 multiprocessor, a warp size of 4 and 4 warps per
+        /// multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="mode">The accelerator mode.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator CreateDefaultSimulator(
+            Context context,
+            CPUAcceleratorMode mode) =>
+            new CPUAccelerator(context, mode);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of an NVIDIA
+        /// GPU with 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        /// <remarks>
+        /// Note that this accelerator will use <see cref="CPUAcceleratorMode.Auto"/>.
+        /// </remarks>
         public static CPUAccelerator CreateNvidiaSimulator(Context context) =>
-            new CPUAccelerator(context, 32, 32, 1);
+            CreateNvidiaSimulator(context, CPUAcceleratorMode.Auto);
 
         /// <summary>
         /// Creates a CPU accelerator that simulates a common configuration of an AMD
-        /// GPU having 1 multiprocessor.
+        /// GPU with 1 multiprocessor.
         /// </summary>
         /// <param name="context">The current context.</param>
         /// <returns>The created CPU accelerator instance.</returns>
+        /// <remarks>
+        /// Note that this accelerator will use <see cref="CPUAcceleratorMode.Auto"/>.
+        /// </remarks>
         public static CPUAccelerator CreateAMDSimulator(Context context) =>
-            new CPUAccelerator(context, 32, 8, 1);
+            CreateAMDSimulator(context, CPUAcceleratorMode.Auto);
 
         /// <summary>
         /// Creates a CPU accelerator that simulates a common configuration of a legacy
-        /// GCN AMD GPU having 1 multiprocessor.
+        /// GCN AMD GPU with 1 multiprocessor.
         /// </summary>
         /// <param name="context">The current context.</param>
         /// <returns>The created CPU accelerator instance.</returns>
+        /// <remarks>
+        /// Note that this accelerator will use <see cref="CPUAcceleratorMode.Auto"/>.
+        /// </remarks>
         public static CPUAccelerator CreateLegacyAMDSimulator(Context context) =>
-            new CPUAccelerator(context, 64, 4, 1);
+            CreateLegacyAMDSimulator(context, CPUAcceleratorMode.Auto);
 
         /// <summary>
         /// Creates a CPU accelerator that simulates a common configuration of an Intel
-        /// GPU having 1 multiprocessor.
+        /// GPU with 1 multiprocessor.
         /// </summary>
         /// <param name="context">The current context.</param>
         /// <returns>The created CPU accelerator instance.</returns>
+        /// <remarks>
+        /// Note that this accelerator will use <see cref="CPUAcceleratorMode.Auto"/>.
+        /// </remarks>
         public static CPUAccelerator CreateIntelSimulator(Context context) =>
-            new CPUAccelerator(context, 16, 8, 1);
+            CreateIntelSimulator(context, CPUAcceleratorMode.Auto);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of an NVIDIA
+        /// GPU with 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="mode">The accelerator mode.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator CreateNvidiaSimulator(
+            Context context,
+            CPUAcceleratorMode mode) =>
+            new CPUAccelerator(context, 32, 32, 1, mode);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of an AMD
+        /// GPU with 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="mode">The accelerator mode.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator CreateAMDSimulator(
+            Context context,
+            CPUAcceleratorMode mode) =>
+            new CPUAccelerator(context, 32, 8, 1, mode);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of a legacy
+        /// GCN AMD GPU with 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="mode">The accelerator mode.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator CreateLegacyAMDSimulator(
+            Context context,
+            CPUAcceleratorMode mode) =>
+            new CPUAccelerator(context, 64, 4, 1, mode);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration of an Intel
+        /// GPU with 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="mode">The accelerator mode.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator CreateIntelSimulator(
+            Context context,
+            CPUAcceleratorMode mode) =>
+            new CPUAccelerator(context, 16, 8, 1, mode);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration specified
+        /// by the given <paramref name="kind"/>.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="kind">The desired CPU accelerator kind.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        /// <remarks>
+        /// Note that this accelerator will use <see cref="CPUAcceleratorMode.Auto"/>.
+        /// </remarks>
+        public static CPUAccelerator Create(Context context, CPUAcceleratorKind kind) =>
+            Create(context, kind, CPUAcceleratorMode.Auto);
+
+        /// <summary>
+        /// Creates a CPU accelerator that simulates a common configuration specified
+        /// by the given <paramref name="kind"/>.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="kind">The desired CPU accelerator kind.</param>
+        /// <param name="mode">The accelerator mode.</param>
+        /// <returns>The created CPU accelerator instance.</returns>
+        public static CPUAccelerator Create(
+            Context context,
+            CPUAcceleratorKind kind,
+            CPUAcceleratorMode mode) =>
+            kind < CPUAcceleratorKind.Default || kind > CPUAcceleratorKind.Intel
+            ? throw new ArgumentOutOfRangeException(nameof(kind))
+            : CreateAccelerators[(int)kind](context, mode);
 
         #endregion
 
         #region Instance
 
-        private readonly Thread[] threads;
-        private readonly Barrier[] processorBarriers;
-        private readonly CPURuntimeGroupContext[] groupContexts;
-        private readonly CPURuntimeWarpContext[,] warpContexts;
-
-        private readonly object taskSynchronizationObject = new object();
-        private volatile CPUAcceleratorTask currentTask;
-        private volatile bool running = true;
-        private readonly Barrier finishedEventPerMultiprocessor;
-
         /// <summary>
-        /// Constructs a new CPU runtime.
+        /// Constructs a new CPU runtime with the default number of 4 threads per warp,
+        /// 4 warps per multiprocessor and 1 multiprocessor.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         public CPUAccelerator(Context context)
-            : this(context, Environment.ProcessorCount * 2)
+            : this(
+                  context,
+                  DefaultWarpSize,
+                  DefaultNumWarpsPerMultiprocessor,
+                  DefaultNumMultiprocessors)
+        { }
+
+        /// <summary>
+        /// Constructs a new CPU runtime with the default number of 4 threads per warp,
+        /// 4 warps per multiprocessor and 1 multiprocessor.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="mode">The accelerator mode.</param>
+        public CPUAccelerator(Context context, CPUAcceleratorMode mode)
+            : this(
+                  context,
+                  DefaultWarpSize,
+                  DefaultNumWarpsPerMultiprocessor,
+                  DefaultNumMultiprocessors,
+                  mode)
         { }
 
         /// <summary>
@@ -106,8 +333,15 @@ namespace ILGPU.Runtime.CPU
         /// <param name="numThreads">
         /// The number of threads for parallel processing.
         /// </param>
+        [Obsolete("Use an explicit constructor instead with the number of threads, " +
+            "number of warps and number of multiprocessors. The number of threads in " +
+            "this constructor will not be used anymore.")]
         public CPUAccelerator(Context context, int numThreads)
-            : this(context, numThreads, ThreadPriority.Normal)
+            : this(
+                  context,
+                  DefaultWarpSize,
+                  DefaultNumWarpsPerMultiprocessor,
+                  DefaultNumMultiprocessors)
         { }
 
         /// <summary>
@@ -120,16 +354,19 @@ namespace ILGPU.Runtime.CPU
         /// <param name="threadPriority">
         /// The thread priority of the execution threads.
         /// </param>
+        [Obsolete("Use an explicit constructor instead with the number of threads, " +
+            "number of warps and number of multiprocessors. The number of threads in " +
+            "this constructor will not be used anymore.")]
         public CPUAccelerator(
             Context context,
             int numThreads,
             ThreadPriority threadPriority)
             : this(
                   context,
-                  Math.Max(numThreads, 2),
-                  Math.Min(Math.Max(numThreads, 2), 32),
-                  1,
-                  threadPriority)
+                  DefaultWarpSize,
+                  DefaultNumWarpsPerMultiprocessor,
+                  DefaultNumMultiprocessors,
+                  CPUAcceleratorMode.Auto)
         { }
 
         /// <summary>
@@ -155,6 +392,35 @@ namespace ILGPU.Runtime.CPU
                   numThreadsPerWarp,
                   numWarpsPerMultiprocessor,
                   numMultiprocessors,
+                  CPUAcceleratorMode.Auto)
+        { }
+
+        /// <summary>
+        /// Constructs a new CPU runtime.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="numThreadsPerWarp">
+        /// The number of threads per warp within a group.
+        /// </param>
+        /// <param name="numWarpsPerMultiprocessor">
+        /// The number of warps per multiprocessor.
+        /// </param>
+        /// <param name="numMultiprocessors">
+        /// The number of multiprocessors (number of parallel groups) to simulate.
+        /// </param>
+        /// <param name="mode">The accelerator mode.</param>
+        public CPUAccelerator(
+            Context context,
+            int numThreadsPerWarp,
+            int numWarpsPerMultiprocessor,
+            int numMultiprocessors,
+            CPUAcceleratorMode mode)
+            : this(
+                  context,
+                  numThreadsPerWarp,
+                  numWarpsPerMultiprocessor,
+                  numMultiprocessors,
+                  mode,
                   ThreadPriority.Normal)
         { }
 
@@ -171,6 +437,7 @@ namespace ILGPU.Runtime.CPU
         /// <param name="numMultiprocessors">
         /// The number of multiprocessors (number of parallel groups) to simulate.
         /// </param>
+        /// <param name="mode">The current accelerator mode.</param>
         /// <param name="threadPriority">
         /// The thread priority of the execution threads.
         /// </param>
@@ -179,6 +446,7 @@ namespace ILGPU.Runtime.CPU
             int numThreadsPerWarp,
             int numWarpsPerMultiprocessor,
             int numMultiprocessors,
+            CPUAcceleratorMode mode,
             ThreadPriority threadPriority)
             : base(context, AcceleratorType.CPU)
         {
@@ -200,61 +468,45 @@ namespace ILGPU.Runtime.CPU
             MaxNumThreadsPerGroup = numThreadsPerWarp * numWarpsPerMultiprocessor;
             MaxNumThreadsPerMultiprocessor = MaxNumThreadsPerGroup;
             NumMultiprocessors = numMultiprocessors;
-            NumThreads = MaxNumThreads * numMultiprocessors;
-
-            threads = new Thread[NumThreads];
-            finishedEventPerMultiprocessor = new Barrier(numMultiprocessors + 1);
-
-            // Setup all warp and group contexts
-            warpContexts = new CPURuntimeWarpContext[
-                numMultiprocessors,
-                numWarpsPerMultiprocessor];
-            groupContexts = new CPURuntimeGroupContext[numMultiprocessors];
-            processorBarriers = new Barrier[numMultiprocessors];
-            for (int i = 0; i < numMultiprocessors; ++i)
-            {
-                for (int j = 0; j < numWarpsPerMultiprocessor; ++j)
-                {
-                    warpContexts[i, j] = new CPURuntimeWarpContext(
-                        this,
-                        numThreadsPerWarp);
-                }
-
-                groupContexts[i] = new CPURuntimeGroupContext(this);
-                processorBarriers[i] = new Barrier(MaxNumThreadsPerMultiprocessor);
-            }
-
-            // Instantiate all runtime threads
-            for (int i = 0; i < NumThreads; ++i)
-            {
-                var thread = threads[i] = new Thread(ExecuteThread)
-                {
-                    IsBackground = true,
-                    Priority = threadPriority,
-                };
-                thread.Name = $"ILGPU_{InstanceId}_CPU_{i}";
-                thread.Start(i);
-            }
-
-            DefaultStream = CreateStream();
-            Name = nameof(CPUAccelerator);
-            MemorySize = long.MaxValue;
-            MaxGridSize = new Index3(int.MaxValue, int.MaxValue, int.MaxValue);
-            MaxNumThreadsPerGroup = NumThreads;
             MaxGroupSize = new Index3(
                 MaxNumThreadsPerGroup,
                 MaxNumThreadsPerGroup,
                 MaxNumThreadsPerGroup);
+
+            MemorySize = long.MaxValue;
+            MaxGridSize = new Index3(int.MaxValue, int.MaxValue, int.MaxValue);
             MaxSharedMemoryPerGroup = int.MaxValue;
             MaxConstantMemory = int.MaxValue;
 
+            DefaultStream = CreateStream();
+            Name = nameof(CPUAccelerator);
+
+            NumThreads = MaxNumThreads * numMultiprocessors;
+            Mode = mode;
+            UsesSequentialExecution =
+                Mode == CPUAcceleratorMode.Sequential ||
+                Mode == CPUAcceleratorMode.Auto && Debugger.IsAttached;
+
             Bind();
+            InitExecutionEngine(numWarpsPerMultiprocessor, threadPriority);
             Init(context.DefautltILBackend);
         }
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the current mode.
+        /// </summary>
+        public CPUAcceleratorMode Mode { get; }
+
+        /// <summary>
+        /// Returns true if the current accelerator uses a simulated sequential execution
+        /// mechanism. This is particularly useful to simplify debugging. Note that
+        /// different threads for distinct multiprocessors may still run in parallel.
+        /// </summary>
+        public bool UsesSequentialExecution { get; }
 
         /// <summary>
         /// Returns the number of threads.
@@ -380,165 +632,6 @@ namespace ILGPU.Runtime.CPU
         #endregion
 
         #region Launch Methods
-
-        /// <summary>
-        /// Launches the given accelerator task on this accelerator.
-        /// </summary>
-        /// <param name="task">The task to launch.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Launch(CPUAcceleratorTask task)
-        {
-            Debug.Assert(task != null, "Invalid accelerator task");
-
-            // Setup groups contexts
-            int groupSize = task.GroupDim.Size;
-            int numWarps = IntrinsicMath.DivRoundUp(groupSize, WarpSize);
-
-            if (numWarps * WarpSize > MaxNumThreadsPerGroup)
-            {
-                throw new NotSupportedException(string.Format(
-                    RuntimeErrorMessages.NotSupportedTotalGroupSize,
-                    MaxNumThreadsPerGroup));
-            }
-
-            for (int i = 0, e = NumMultiprocessors; i < e; ++i)
-            {
-                // Initialize the associated group context
-                var context = groupContexts[i];
-                context.Initialize(
-                    task.GridDim,
-                    task.GroupDim,
-                    task.DynamicSharedMemoryConfig);
-
-                // Initialize each involved warp context
-                for (int j = 0, e2 = numWarps - 1; j < e2; ++j)
-                    warpContexts[i, j].Initialize(WarpSize);
-
-                int lastWarpSize = groupSize % WarpSize == 0
-                    ? WarpSize
-                    : groupSize % WarpSize;
-                warpContexts[i, numWarps - 1].Initialize(lastWarpSize);
-
-        }
-        Interlocked.MemoryBarrier();
-
-            // Launch all processing threads
-            lock (taskSynchronizationObject)
-            {
-                Debug.Assert(currentTask == null, "Invalid concurrent modification");
-                currentTask = task;
-                Monitor.PulseAll(taskSynchronizationObject);
-            }
-
-            // Wait for the result
-            finishedEventPerMultiprocessor.SignalAndWait();
-
-            // Reset all groups
-            for (int i = 0, e = NumMultiprocessors; i < e; ++i)
-                groupContexts[i].TearDown();
-
-            // Reset task
-            lock (taskSynchronizationObject)
-                currentTask = null;
-        }
-
-        /// <summary>
-        /// Entry point for a single processing thread.
-        /// </summary>
-        /// <param name="arg">The relative thread index.</param>
-        private void ExecuteThread(object arg)
-        {
-            // Compute the thread indices
-            int absoluteThreadIdx = (int)arg;
-            int threadIdx = absoluteThreadIdx % MaxNumThreadsPerMultiprocessor;
-            bool isMainThread = threadIdx == 0;
-
-            // Get processor related information
-            int processorIdx = absoluteThreadIdx / MaxNumThreadsPerMultiprocessor;
-            var processorBarrier = processorBarriers[processorIdx];
-
-            // Setup a new thread context for this thread and initialize the lane idx
-            int laneIdx = threadIdx % WarpSize;
-            var threadContext = new CPURuntimeThreadContext(laneIdx);
-            threadContext.MakeCurrent();
-
-            // Setup the current warp context as it always stays the same
-            int warpIdx = threadIdx / WarpSize;
-            bool isMainWarpThread = threadIdx == 0;
-            var warpContext = warpContexts[processorIdx, warpIdx];
-            warpContext.MakeCurrent();
-
-            // Setup the current group context as it always stays the same
-            var groupContext = groupContexts[processorIdx];
-            groupContext.MakeCurrent();
-
-            CPUAcceleratorTask task = null;
-            for (; ; )
-            {
-                // Get a new task to execute
-                lock (taskSynchronizationObject)
-                {
-                    while ((currentTask == null | currentTask == task) & running)
-                        Monitor.Wait(taskSynchronizationObject);
-                    if (!running)
-                        break;
-                    task = currentTask;
-                }
-                Debug.Assert(task != null, "Invalid task");
-
-                // Setup the current group index
-                threadContext.GroupIndex = Index3.ReconstructIndex(
-                    threadIdx,
-                    task.GroupDim);
-
-                // Wait for all threads of all multiprocessors to arrive here
-                Thread.MemoryBarrier();
-                processorBarrier.SignalAndWait();
-
-                // If we are an active group thread
-                int groupSize = task.GroupDim.Size;
-                if (threadIdx < groupSize)
-                {
-                    var launcher = task.KernelExecutionDelegate;
-
-                    // Split the grid into different chunks that will be processed by the
-                    // available multiprocessors
-                    int linearGridDim = task.GridDim.Size;
-                    int gridChunkSize = IntrinsicMath.DivRoundUp(
-                        linearGridDim,
-                        NumMultiprocessors);
-                    int gridOffset = gridChunkSize * processorIdx;
-                    int linearUserDim = task.TotalUserDim.Size;
-                    for (int i = gridOffset, e = gridOffset + gridChunkSize; i < e; ++i)
-                    {
-                        // Setup the current grid index
-                        threadContext.GridIndex = Index3.ReconstructIndex(
-                            i,
-                            task.GridDim);
-
-                        // Invoke the actual kernel launcher
-                        int globalIndex = i * groupSize + threadIdx;
-                        if (globalIndex < linearUserDim)
-                            launcher(task, globalIndex);
-
-                        // Wait for all group threads to arrive
-                        groupContext.WaitForNextThreadIndex();
-                    }
-
-                    // This thread has already finished processing
-                    warpContext.OnKernelExecutionCompleted();
-                    groupContext.OnKernelExecutionCompleted();
-                }
-
-                // Wait for all threads of all multiprocessors to arrive here
-                processorBarrier.SignalAndWait();
-
-                // If we reach this point and we are the main thread, notify the parent
-                // accelerator instance
-                if (isMainThread)
-                    finishedEventPerMultiprocessor.SignalAndWait();
-            }
-        }
 
         /// <summary>
         /// Generates a dynamic kernel-launcher method that will be just-in-time compiled
@@ -676,27 +769,8 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Dispose all managed resources allocated by this CPU accelerator instance.
         /// </summary>
-        protected override void DisposeAccelerator_SyncRoot(bool disposing)
-        {
-            if (!disposing)
-                return;
-
-            // Dispose all managed objects
-            lock (taskSynchronizationObject)
-            {
-                running = false;
-                currentTask = null;
-                Monitor.PulseAll(taskSynchronizationObject);
-            }
-            foreach (var thread in threads)
-                thread.Join();
-            threads = null;
-            foreach (var group in groupContexts)
-                group.Dispose();
-            foreach (var warp in warpContexts)
-                warp.Dispose();
-            finishedEvent.Dispose();
-        }
+        protected override void DisposeAccelerator_SyncRoot(bool disposing) =>
+            DisposeExecutionEngine(disposing);
 
         #endregion
     }

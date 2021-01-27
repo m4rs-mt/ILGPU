@@ -65,12 +65,24 @@ namespace ILGPU.Runtime.CPU
                 ConstructorParameterTypes,
                 null);
 
+        /// <summary>
+        /// Returns the getter for the <see cref="TotalUserDim"/> of a specific task
+        /// type.
+        /// </summary>
+        /// <param name="taskType">The task type.</param>
+        /// <returns>The getter method.</returns>
         public static MethodInfo GetTotalUserDimGetter(Type taskType) =>
             taskType.GetProperty(
                 nameof(TotalUserDim),
                 BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
             .GetGetMethod(true);
 
+        /// <summary>
+        /// Returns the getter for the <see cref="TotalUserDimXY"/> of a specific task
+        /// type.
+        /// </summary>
+        /// <param name="taskType">The task type.</param>
+        /// <returns>The getter method.</returns>
         public static MethodInfo GetTotalUserDimXYGetter(Type taskType) =>
             taskType.GetProperty(
                 nameof(TotalUserDimXY),
