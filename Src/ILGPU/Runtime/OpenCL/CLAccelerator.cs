@@ -90,10 +90,15 @@ namespace ILGPU.Runtime.OpenCL
                 BindingFlags.Public | BindingFlags.Static);
 
         /// <summary>
+        /// Specifies the kernel entry point name for the following dummy kernels.
+        /// </summary>
+        private const string DummyKernelName = "ILGPUTestKernel";
+
+        /// <summary>
         /// The first dummy kernel that is compiled during accelerator initialization.
         /// </summary>
         private const string DummyKernelSource =
-            "__kernel void " + CLCompiledKernel.EntryName + "(\n" +
+            "__kernel void " + DummyKernelName + "(\n" +
             "   __global const int *a,\n" +
             "   __global const int *b,\n" +
             "   __global int *c) { \n" +
@@ -104,7 +109,7 @@ namespace ILGPU.Runtime.OpenCL
         /// The second dummy kernel that is compiled during accelerator initialization.
         /// </summary>
         private const string DummySubGroupKernelSource =
-            "__kernel void " + CLCompiledKernel.EntryName + "(\n" +
+            "__kernel void " + DummyKernelName + "(\n" +
             "   __global int *a," +
             "   const int n) { \n" +
             "   size_t i = get_global_id(0);\n" +
@@ -357,6 +362,7 @@ namespace ILGPU.Runtime.OpenCL
                 // Compile dummy kernel to resolve additional information
                 CLException.ThrowIfFailed(CLKernel.LoadKernel(
                     this,
+                    DummyKernelName,
                     DummyKernelSource,
                     CVersion,
                     out IntPtr programPtr,
@@ -395,6 +401,7 @@ namespace ILGPU.Runtime.OpenCL
             // Verify support using a simple kernel
             if (CLKernel.LoadKernel(
                 this,
+                DummyKernelName,
                 DummySubGroupKernelSource,
                 CVersion,
                 out IntPtr programPtr,
