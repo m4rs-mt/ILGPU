@@ -13,7 +13,6 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime.CPU;
 using ILGPU.Util;
 using System.Collections.Immutable;
-using System.Reflection;
 using System.Reflection.Emit;
 
 namespace ILGPU.Backends.IL
@@ -38,45 +37,15 @@ namespace ILGPU.Backends.IL
         #region Methods
 
         /// <summary>
-        /// Generates code that caches all task fields in local variables.
-        /// </summary>
-        protected override void GenerateLocals<TEmitter>(
-            EntryPoint entryPoint,
-            TEmitter emitter,
-            KernelGenerationData kernelData,
-            ImmutableArray<FieldInfo> taskArgumentMapping,
-            ILLocal task)
-        {
-            // Cache all fields in local variables
-            var taskArgumentLocals = ImmutableArray.CreateBuilder<ILLocal>(
-                taskArgumentMapping.Length);
-
-            for (int i = 0, e = taskArgumentMapping.Length; i < e; ++i)
-            {
-                var taskArgument = taskArgumentMapping[i];
-                var taskArgumentType = taskArgument.FieldType;
-
-                // Load instance field i
-                emitter.Emit(LocalOperation.Load, task);
-                emitter.Emit(OpCodes.Ldfld, taskArgumentMapping[i]);
-
-                // Declare local
-                taskArgumentLocals.Add(emitter.DeclareLocal(taskArgumentType));
-
-                // Cache field value in local variable
-                emitter.Emit(LocalOperation.Store, taskArgumentLocals[i]);
-            }
-            kernelData.SetupUniforms(taskArgumentLocals.MoveToImmutable());
-        }
-
-        /// <summary>
         /// Generates the actual kernel invocation call.
         /// </summary>
         protected override void GenerateCode<TEmitter>(
             EntryPoint entryPoint,
             in BackendContext backendContext,
             TEmitter emitter,
-            KernelGenerationData kernelData)
+            in ILLocal task,
+            in ILLocal index,
+            ImmutableArray<ILLocal> locals)
         {
             // Load placeholder 'this' argument to satisfy IL evaluation stack
             if (entryPoint.MethodInfo.IsNotCapturingLambda())
@@ -85,12 +54,12 @@ namespace ILGPU.Backends.IL
             if (entryPoint.IsImplictlyGrouped)
             {
                 // Load index
-                emitter.Emit(LocalOperation.Load, kernelData.Index);
+                emitter.Emit(LocalOperation.Load, index);
             }
 
             // Load kernel arguments
-            foreach (var uniform in kernelData.Uniforms)
-                emitter.Emit(LocalOperation.Load, uniform);
+            foreach (var local in locals)
+                emitter.Emit(LocalOperation.Load, local);
 
             // Invoke kernel
             emitter.EmitCall(entryPoint.MethodInfo);
