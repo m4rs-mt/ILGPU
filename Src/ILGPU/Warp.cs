@@ -10,10 +10,11 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
+using ILGPU.Runtime.CPU;
+using ILGPU.Util;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Threading;
+using static ILGPU.Runtime.CPU.CPURuntimeWarpContext;
 
 namespace ILGPU
 {
@@ -27,21 +28,19 @@ namespace ILGPU
         /// <summary>
         /// Returns the warp size.
         /// </summary>
-        [SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate")]
         public static int WarpSize
         {
             [WarpIntrinsic(WarpIntrinsicKind.WarpSize)]
-            get => 1;
+            get => Current.WarpSize;
         }
 
         /// <summary>
         /// Returns the current lane index [0, WarpSize - 1].
         /// </summary>
-        [SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate")]
         public static int LaneIdx
         {
             [WarpIntrinsic(WarpIntrinsicKind.LaneIdx)]
-            get => 0;
+            get => CPURuntimeThreadContext.Current.LaneIndex;
         }
 
         /// <summary>
@@ -94,7 +93,36 @@ namespace ILGPU
         /// Executes a thread barrier in the scope of a warp.
         /// </summary>
         [WarpIntrinsic(WarpIntrinsicKind.Barrier)]
-        public static void Barrier() => Thread.MemoryBarrier();
+        public static void Barrier() => Current.Barrier();
+
+        #endregion
+
+        #region Util
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ShuffleConfig GetShuffleConfig(int sourceLane) =>
+            new ShuffleConfig(
+                LaneIdx,
+                sourceLane,
+                0,
+                WarpSize);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ShuffleConfig GetSubShuffleConfig(
+            int sourceLane,
+            int width)
+        {
+            Trace.Assert(
+                width > 0 && width <= WarpSize && Utilities.IsPowerOf2(width),
+                "Invalid warp shuffle width");
+            int lane = sourceLane % width;
+            int offset = sourceLane / width * width;
+            return new ShuffleConfig(
+                LaneIdx,
+                lane,
+                offset,
+                width);
+        }
 
         #endregion
 
@@ -116,7 +144,16 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.Shuffle)]
         public static T Shuffle<T>(T variable, int sourceLane)
-            where T : unmanaged => variable;
+            where T : unmanaged =>
+            ShuffleInternal(variable, sourceLane);
+
+        /// <summary>
+        /// Internal wrapper that implements shuffle operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T ShuffleInternal<T>(T variable, int sourceLane)
+            where T : unmanaged =>
+            Current.Shuffle(variable, GetShuffleConfig(sourceLane));
 
         /// <summary>
         /// Performs a shuffle operation. It returns the value of the variable
@@ -136,11 +173,16 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffle)]
         public static T Shuffle<T>(T variable, int sourceLane, int width)
-            where T : unmanaged
-        {
-            Trace.Assert(width <= WarpSize, "Not supported shuffle width");
-            return variable;
-        }
+            where T : unmanaged =>
+            SubShuffleInternal(variable, sourceLane, width);
+
+        /// <summary>
+        /// Internal wrapper that implements shuffle operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T SubShuffleInternal<T>(T variable, int sourceLane, int width)
+            where T : unmanaged =>
+            Current.Shuffle(variable, GetSubShuffleConfig(sourceLane, width));
 
         #endregion
 
@@ -162,7 +204,16 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleDown)]
         public static T ShuffleDown<T>(T variable, int delta)
-            where T : unmanaged => variable;
+            where T : unmanaged =>
+            ShuffleDownInternal(variable, delta);
+
+        /// <summary>
+        /// Internal wrapper that implements shuffle down operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T ShuffleDownInternal<T>(T variable, int delta)
+            where T : unmanaged =>
+            Shuffle(variable, LaneIdx + delta);
 
         /// <summary>
         /// Performs a shuffle operation. It returns the value of the variable
@@ -182,10 +233,20 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffleDown)]
         public static T ShuffleDown<T>(T variable, int delta, int width)
+            where T : unmanaged =>
+            SubShuffleDownInternal(variable, delta, width);
+
+        /// <summary>
+        /// Internal wrapper that implements shuffle down operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T SubShuffleDownInternal<T>(T variable, int delta, int width)
             where T : unmanaged
         {
-            Trace.Assert(width <= WarpSize, "Not supported shuffle width");
-            return variable;
+            var config = GetSubShuffleConfig(LaneIdx, width);
+            return Current.Shuffle(
+                variable,
+                config.AdjustSourceLane(config.SourceLane + delta));
         }
 
         #endregion
@@ -208,7 +269,16 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleUp)]
         public static T ShuffleUp<T>(T variable, int delta)
-            where T : unmanaged => variable;
+            where T : unmanaged =>
+            ShuffleUpInternal(variable, delta);
+
+        /// <summary>
+        /// Internal wrapper that implements shuffle up operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T ShuffleUpInternal<T>(T variable, int delta)
+            where T : unmanaged =>
+            Shuffle(variable, LaneIdx - delta);
 
         /// <summary>
         /// Performs a shuffle operation. It returns the value of the variable
@@ -228,10 +298,20 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffleUp)]
         public static T ShuffleUp<T>(T variable, int delta, int width)
+            where T : unmanaged =>
+            SubShuffleUpInternal(variable, delta, width);
+
+        /// <summary>
+        /// Internal wrapper that implements shuffle up operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T SubShuffleUpInternal<T>(T variable, int delta, int width)
             where T : unmanaged
         {
-            Trace.Assert(width <= WarpSize, "Not supported shuffle width");
-            return variable;
+            var config = GetSubShuffleConfig(LaneIdx, width);
+            return Current.Shuffle(
+                variable,
+                config.AdjustSourceLane(config.SourceLane - delta));
         }
 
         #endregion
@@ -254,7 +334,16 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleXor)]
         public static T ShuffleXor<T>(T variable, int mask)
-            where T : unmanaged => variable;
+            where T : unmanaged =>
+            ShuffleXorInternal(variable, mask);
+
+        /// <summary>
+        /// Internal wrapper that implements shuffle xor operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T ShuffleXorInternal<T>(T variable, int mask)
+            where T : unmanaged =>
+            Shuffle(variable, LaneIdx ^ mask);
 
         /// <summary>
         /// Performs a shuffle operation. It returns the value of the variable
@@ -274,10 +363,20 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffleXor)]
         public static T ShuffleXor<T>(T variable, int mask, int width)
+            where T : unmanaged =>
+            SubShuffleXorInternal(variable, mask, width);
+
+        /// <summary>
+        /// Internal wrapper that implements shuffle xor operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T SubShuffleXorInternal<T>(T variable, int mask, int width)
             where T : unmanaged
         {
-            Trace.Assert(width <= WarpSize, "Not supported shuffle width");
-            return variable;
+            var config = GetSubShuffleConfig(LaneIdx, width);
+            return Current.Shuffle(
+                variable,
+                config.AdjustSourceLane(config.SourceLane ^ mask));
         }
 
         #endregion
@@ -290,13 +389,14 @@ namespace ILGPU
         /// </summary>
         /// <typeparam name="T">The type to broadcast.</typeparam>
         /// <param name="value">The value to broadcast.</param>
-        /// <param name="laneIndex">The source thread index within the warp.</param>
+        /// <param name="sourceLane">The source thread index within the warp.</param>
         /// <remarks>
-        /// Note that the group index must be the same for all threads in the warp.
+        /// Note that the source lane must be the same for all threads in the warp.
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.Broadcast)]
-        public static T Broadcast<T>(T value, int laneIndex)
-            where T : unmanaged => value;
+        public static T Broadcast<T>(T value, int sourceLane)
+            where T : unmanaged =>
+            Current.Broadcast(value, sourceLane);
 
         #endregion
     }
