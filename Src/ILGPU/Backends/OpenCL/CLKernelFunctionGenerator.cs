@@ -206,7 +206,7 @@ namespace ILGPU.Backends.OpenCL
         {
             // Emit kernel declaration and parameter definitions
             Builder.Append("kernel void ");
-            Builder.Append(CLCompiledKernel.EntryName);
+            Builder.Append(EntryPoint.Name);
             Builder.AppendLine("(");
 
             // Initialize view information

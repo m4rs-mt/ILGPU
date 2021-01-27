@@ -12,7 +12,6 @@
 using ILGPU.Backends.OpenCL;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using static ILGPU.Runtime.OpenCL.CLAPI;
 
@@ -37,8 +36,39 @@ namespace ILGPU.Runtime.OpenCL
         /// <returns>
         /// True, if the program and the kernel could be loaded successfully.
         /// </returns>
+        [Obsolete("Use LoadKernel with an explicit entry point name instead.")]
         public static CLError LoadKernel(
             CLAccelerator accelerator,
+            string source,
+            CLCVersion version,
+            out IntPtr programPtr,
+            out IntPtr kernelPtr,
+            out string errorLog) =>
+            LoadKernel(
+                accelerator,
+                CLCompiledKernel.EntryName,
+                source,
+                version,
+                out programPtr,
+                out kernelPtr,
+                out errorLog);
+
+        /// <summary>
+        /// Loads the given OpenCL kernel.
+        /// </summary>
+        /// <param name="accelerator">The associated accelerator.</param>
+        /// <param name="name">The name of the entry-point function.</param>
+        /// <param name="source">The OpenCL source code.</param>
+        /// <param name="version">The OpenCL C version.</param>
+        /// <param name="programPtr">The created program pointer.</param>
+        /// <param name="kernelPtr">The created kernel pointer.</param>
+        /// <param name="errorLog">The error log (if any).</param>
+        /// <returns>
+        /// True, if the program and the kernel could be loaded successfully.
+        /// </returns>
+        public static CLError LoadKernel(
+            CLAccelerator accelerator,
+            string name,
             string source,
             CLCVersion version,
             out IntPtr programPtr,
@@ -77,7 +107,7 @@ namespace ILGPU.Runtime.OpenCL
 
             return CurrentAPI.CreateKernel(
                 programPtr,
-                CLCompiledKernel.EntryName,
+                name,
                 out kernelPtr);
         }
 
@@ -133,20 +163,15 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="kernel">The source kernel.</param>
         /// <param name="launcher">The launcher method for the given kernel.</param>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1062:Validate arguments of public methods",
-            MessageId = "0",
-            Justification = "Will be verified in the constructor of the base class")]
         public CLKernel(
             CLAccelerator accelerator,
             CLCompiledKernel kernel,
             MethodInfo launcher)
             : base(accelerator, kernel, launcher)
         {
-#if DEBUG
             var errorCode = LoadKernel(
                 accelerator,
+                kernel.Name,
                 kernel.Source,
                 kernel.CVersion,
                 out programPtr,
@@ -154,23 +179,13 @@ namespace ILGPU.Runtime.OpenCL
                 out var errorLog);
             if (errorCode != CLError.CL_SUCCESS)
             {
-                Debug.WriteLine("Kernel loading failed:");
+                Trace.WriteLine("Kernel loading failed:");
                 if (string.IsNullOrWhiteSpace(errorLog))
-                    Debug.WriteLine(">> No error information available");
+                    Trace.WriteLine(">> No error information available");
                 else
-                    Debug.WriteLine(errorLog);
+                    Trace.WriteLine(errorLog);
             }
             CLException.ThrowIfFailed(errorCode);
-#else
-            CLException.ThrowIfFailed(LoadKernel(
-                accelerator,
-                kernel.Source,
-                kernel.CVersion,
-                out programPtr,
-                out kernelPtr,
-                out var _));
-#endif
-
         }
 
         #endregion
