@@ -78,6 +78,11 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         public Index3 GroupIndex { get; internal set; }
 
+        /// <summary>
+        /// Returns the linear thread index within this thread group.
+        /// </summary>
+        public int LinearGroupIndex { get; internal set; }
+
         #endregion
 
         #region Methods

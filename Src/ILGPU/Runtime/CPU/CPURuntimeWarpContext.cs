@@ -19,7 +19,7 @@ namespace ILGPU.Runtime.CPU
     /// <summary>
     /// Represents a runtime context for a single warp.
     /// </summary>
-    public sealed class CPURuntimeWarpContext : CPURuntimeContext
+    sealed class CPURuntimeWarpContext : CPURuntimeContext
     {
         #region Thread Static
 
@@ -209,6 +209,11 @@ namespace ILGPU.Runtime.CPU
         #region Methods
 
         /// <summary>
+        /// Executes a thread barrier.
+        /// </summary>
+        public override void Barrier() => WaitForAllThreads();
+
+        /// <summary>
         /// Performs a shuffle operation.
         /// </summary>
         /// <typeparam name="T">The value type to shuffle.</typeparam>
@@ -246,6 +251,13 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         /// <param name="numLanes">The number of active lanes.</param>
         internal new void Initialize(int numLanes) => base.Initialize(numLanes);
+
+        /// <summary>
+        /// Called when a CPU kernel has finished, reducing the number of participants in
+        /// future calls to Barrier-related methods.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void FinishThreadProcessing() => RemoveBarrierParticipant();
 
         /// <summary>
         /// Makes the current context the active one for this thread.
