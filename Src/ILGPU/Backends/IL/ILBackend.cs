@@ -10,13 +10,14 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.IL
 {
@@ -25,67 +26,39 @@ namespace ILGPU.Backends.IL
     /// </summary>
     public abstract class ILBackend : Backend
     {
-        #region Nested Types
+        #region Static
 
         /// <summary>
-        /// Contains important global variable references.
+        /// A reference to the static <see cref="Reconstruct2DIndex(Index2, int)"/>
+        /// method.
         /// </summary>
-        protected internal sealed class KernelGenerationData
-        {
-            #region Properties
+        private static readonly MethodInfo Reconstruct2DIndexMethod =
+            typeof(ILBackend).GetMethod(
+                nameof(Reconstruct2DIndex),
+                BindingFlags.NonPublic | BindingFlags.Static);
 
-            /// <summary>
-            /// Maps the grid dimension.
-            /// </summary>
-            public ILLocal UserGridDim { get; set; }
+        /// <summary>
+        /// A reference to the static <see cref="Reconstruct3DIndex(Index3, int)"/>
+        /// method.
+        /// </summary>
+        private static readonly MethodInfo Reconstruct3DIndexMethod =
+            typeof(ILBackend).GetMethod(
+                nameof(Reconstruct3DIndex),
+                BindingFlags.NonPublic | BindingFlags.Static);
 
-            /// <summary>
-            /// Maps the current thread index.
-            /// </summary>
-            public ILLocal Index { get; set; }
+        /// <summary>
+        /// Helper method to reconstruct 2D indices.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Index2 Reconstruct2DIndex(Index2 totalDim, int linearIndex) =>
+            totalDim.ReconstructIndex(linearIndex);
 
-            /// <summary>
-            /// The intrinsic kernel invocation variable.
-            /// </summary>
-            public ILLabel KernelNotInvoked { get; set; }
-
-            /// <summary>
-            /// The current loop header.
-            /// </summary>
-            public ILLabel LoopHeader { get; set; }
-
-            /// <summary>
-            /// The current loop body.
-            /// </summary>
-            public ILLabel LoopBody { get; set; }
-
-            /// <summary>
-            /// The chunk index counter.
-            /// </summary>
-            public ILLocal ChunkIdxCounter { get; set; }
-
-            /// <summary>
-            /// The loop break condition.
-            /// </summary>
-            public ILLocal BreakCondition { get; set; }
-
-            /// <summary>
-            /// The uniform references.
-            /// </summary>
-            public ImmutableArray<ILLocal> Uniforms { get; private set; }
-
-            #endregion
-
-            /// <summary>
-            /// Setups the given uniform variables.
-            /// </summary>
-            /// <param name="uniformVariables">The variables to setup.</param>
-            public void SetupUniforms(ImmutableArray<ILLocal> uniformVariables)
-            {
-                Debug.Assert(Uniforms.IsDefaultOrEmpty);
-                Uniforms = uniformVariables;
-            }
-        }
+        /// <summary>
+        /// Helper method to reconstruct 3D indices.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Index3 Reconstruct3DIndex(Index3 totalDim, int linearIndex) =>
+            totalDim.ReconstructIndex(linearIndex);
 
         #endregion
 
@@ -136,6 +109,7 @@ namespace ILGPU.Backends.IL
             in BackendContext backendContext,
             in KernelSpecialization specialization)
         {
+            // Build the custom strongly type task type and define the kernel method
             var taskType = GenerateAcceleratorTask(
                 entryPoint.Parameters,
                 out ConstructorInfo taskConstructor,
@@ -148,28 +122,30 @@ namespace ILGPU.Backends.IL
                 out var methodEmitter))
             {
                 var emitter = new ILEmitter(methodEmitter.ILGenerator);
-                var kernelData = new KernelGenerationData();
 
-                // Generate CPU runtime startup code
+                // Generate CPU runtime startup code and initialize all locals
                 GenerateStartupCode(
                     entryPoint,
                     emitter,
-                    kernelData,
                     taskType,
-                    taskArgumentMapping);
+                    out var taskLocal,
+                    out var indexLocal);
+                var locals = GenerateLocals(
+                    emitter,
+                    taskArgumentMapping,
+                    taskLocal);
 
                 // Generate the actual kernel code
                 GenerateCode(
                     entryPoint,
                     backendContext,
                     emitter,
-                    kernelData);
+                    taskLocal,
+                    indexLocal,
+                    locals);
 
-                // Generate CPU runtime finish code
-                GenerateFinishCode(
-                    emitter,
-                    kernelData);
-
+                // Finish building
+                emitter.Emit(OpCodes.Ret);
                 emitter.Finish();
                 kernelMethod = methodEmitter.Finish();
             }
@@ -190,17 +166,62 @@ namespace ILGPU.Backends.IL
         /// <param name="entryPoint">The desired entry point.</param>
         /// <param name="backendContext">The current backend context.</param>
         /// <param name="emitter">The current code generator.</param>
-        /// <param name="kernelData">The current kernel data.</param>
+        /// <param name="task">The strongly typed task local.</param>
+        /// <param name="index">The index dimension local (for implicit kernels).</param>
+        /// <param name="locals">
+        /// The array of all local variables loaded from the task kernel implementation.
+        /// </param>
         protected abstract void GenerateCode<TEmitter>(
             EntryPoint entryPoint,
             in BackendContext backendContext,
             TEmitter emitter,
-            KernelGenerationData kernelData)
+            in ILLocal task,
+            in ILLocal index,
+            ImmutableArray<ILLocal> locals)
             where TEmitter : IILEmitter;
 
         #endregion
 
         #region Kernel Functionality
+
+        /// <summary>
+        /// Generates code that caches all task fields in local variables.
+        /// </summary>
+        /// <param name="emitter">The current code generator.</param>
+        /// <param name="taskArgumentMapping">
+        /// The created task-argument mapping that maps parameter indices of uniforms
+        /// and dynamically-sized shared-memory-variable-length specifications to fields
+        /// in the task class.
+        /// </param>
+        /// <param name="task">The strongly typed task local.</param>
+        private static ImmutableArray<ILLocal> GenerateLocals<TEmitter>(
+            TEmitter emitter,
+            ImmutableArray<FieldInfo> taskArgumentMapping,
+            ILLocal task)
+            where TEmitter : IILEmitter
+        {
+            // Cache all fields in local variables
+            var taskArgumentLocals = ImmutableArray.CreateBuilder<ILLocal>(
+                taskArgumentMapping.Length);
+
+            for (int i = 0, e = taskArgumentMapping.Length; i < e; ++i)
+            {
+                var taskArgument = taskArgumentMapping[i];
+                var taskArgumentType = taskArgument.FieldType;
+
+                // Load instance field i
+                emitter.Emit(LocalOperation.Load, task);
+                emitter.Emit(OpCodes.Ldfld, taskArgumentMapping[i]);
+
+                // Declare local
+                taskArgumentLocals.Add(emitter.DeclareLocal(taskArgumentType));
+
+                // Cache field value in local variable
+                emitter.Emit(LocalOperation.Store, taskArgumentLocals[i]);
+            }
+
+            return taskArgumentLocals.MoveToImmutable();
+        }
 
         /// <summary>
         /// Generates specialized task classes for kernel execution.
@@ -288,214 +309,62 @@ namespace ILGPU.Backends.IL
         /// </summary>
         /// <param name="entryPoint">The entry point.</param>
         /// <param name="emitter">The current code generator.</param>
-        /// <param name="kernelData">The current kernel data.</param>
         /// <param name="taskType">The created task.</param>
-        /// <param name="taskArgumentMapping">
-        /// The created task-argument mapping that maps parameter indices of uniforms
-        /// and dynamically-sized shared-memory-variable-length specifications to fields
-        /// in the task class.
-        /// </param>
-        private void GenerateStartupCode<TEmitter>(
+        /// <param name="task">The created strongly typed task local.</param>
+        /// <param name="index">The index dimension local (for implicit kernels).</param>
+        private static void GenerateStartupCode<TEmitter>(
             EntryPoint entryPoint,
             TEmitter emitter,
-            KernelGenerationData kernelData,
             Type taskType,
-            ImmutableArray<FieldInfo> taskArgumentMapping)
+            out ILLocal task,
+            out ILLocal index)
             where TEmitter : IILEmitter
         {
             // Cast generic task type to actual task type
-            var task = emitter.DeclareLocal(taskType);
+            task = emitter.DeclareLocal(taskType);
             emitter.Emit(OpCodes.Ldarg_0);
             emitter.Emit(OpCodes.Castclass, taskType);
             emitter.Emit(LocalOperation.Store, task);
 
-            // Store the grid and group dimension of the current task
-            var sourceGridDim = emitter.DeclareLocal(typeof(Index3));
+            // Construct launch index from linear index
+            index = emitter.DeclareLocal(entryPoint.KernelIndexType);
+            emitter.Emit(LocalOperation.LoadAddress, index);
+            emitter.Emit(OpCodes.Initobj, index.VariableType);
+
+            if (entryPoint.IsExplicitlyGrouped)
+                return;
+
+            // Convert to the appropriate index type
             emitter.Emit(LocalOperation.Load, task);
-            emitter.EmitCall(typeof(CPUAcceleratorTask).GetProperty(
-                nameof(CPUAcceleratorTask.UserGridDim)).GetGetMethod(false));
-            emitter.Emit(LocalOperation.Store, sourceGridDim);
-
-            var sourceGroupDim = emitter.DeclareLocal(typeof(Index3));
-            emitter.Emit(LocalOperation.Load, task);
-            emitter.EmitCall(typeof(CPUAcceleratorTask).GetProperty(
-                nameof(CPUAcceleratorTask.GroupDim)).GetGetMethod(false));
-            emitter.Emit(LocalOperation.Store, sourceGroupDim);
-
-            // Determine used grid dimensions
-            if (entryPoint.IsImplictlyGrouped)
+            switch (entryPoint.IndexType)
             {
-                kernelData.UserGridDim = emitter.DeclareLocal(
-                    entryPoint.KernelIndexType);
+                case IndexType.Index1D:
+                    // Ignore the task local and construct a new 1D instance
+                    emitter.Emit(OpCodes.Pop);
+                    emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.LinearIndex);
+                    emitter.EmitNewObject(Index1.MainConstructor);
+                    break;
+                case IndexType.Index2D:
+                    // Convert to 2D index
+                    emitter.EmitCall(
+                        CPUAcceleratorTask.GetTotalUserDimXYGetter(taskType));
+                    emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.LinearIndex);
+                    emitter.EmitCall(Reconstruct2DIndexMethod);
+                    break;
+                case IndexType.Index3D:
+                    // Convert to 3D index
+                    emitter.EmitCall(
+                        CPUAcceleratorTask.GetTotalUserDimGetter(taskType));
+                    emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.LinearIndex);
+                    emitter.EmitCall(Reconstruct3DIndexMethod);
+                    break;
+                default:
+                    throw new NotSupportedException(
+                        RuntimeErrorMessages.NotSupportedIndexType);
 
-                KernelLauncherBuilder.EmitConvertIndex3ToTargetType(
-                    entryPoint.IndexType, emitter,
-                    () => emitter.Emit(LocalOperation.Load, sourceGridDim));
-                emitter.Emit(LocalOperation.Store, kernelData.UserGridDim);
             }
-
-            // Compute group dimension size
-            var groupDimSize = emitter.DeclareLocal(typeof(int));
-            emitter.Emit(LocalOperation.Load, task);
-            emitter.EmitCall(typeof(CPUAcceleratorTask).GetProperty(
-                nameof(CPUAcceleratorTask.GroupDimSize)).GetGetMethod(false));
-            emitter.Emit(LocalOperation.Store, groupDimSize);
-
-            GenerateLocals(entryPoint, emitter, kernelData, taskArgumentMapping, task);
-
-            // Build loop to address all dispatched grid indices
-            kernelData.LoopHeader = emitter.DeclareLabel();
-            kernelData.LoopBody = emitter.DeclareLabel();
-
-            // Init counter: int i = runtimeThreadOffset
-            kernelData.ChunkIdxCounter = emitter.DeclareLocal(typeof(int));
-            kernelData.BreakCondition = emitter.DeclareLocal(typeof(bool));
-            emitter.Emit(
-                ArgumentOperation.Load,
-                CPUAcceleratorTask.RuntimeThreadOffsetIndex);
-            emitter.Emit(LocalOperation.Store, kernelData.ChunkIdxCounter);
-            emitter.Emit(OpCodes.Br, kernelData.LoopHeader);
-
-            var globalIndex = emitter.DeclareLocal(typeof(int));
-
-            // Loop body
-            {
-                emitter.MarkLabel(kernelData.LoopBody);
-
-                // var index = i + chunkOffset;
-                emitter.Emit(LocalOperation.Load, kernelData.ChunkIdxCounter);
-                emitter.Emit(
-                    ArgumentOperation.Load,
-                    CPUAcceleratorTask.ChunkSizeOffsetIndex);
-                emitter.Emit(OpCodes.Add);
-
-                emitter.Emit(LocalOperation.Store, globalIndex);
-            }
-
-            // Check the custom user dimension
-            // globalIndex < targetDimension
-            kernelData.KernelNotInvoked = emitter.DeclareLabel();
-            emitter.Emit(LocalOperation.Load, globalIndex);
-            emitter.Emit(
-                ArgumentOperation.Load,
-                CPUAcceleratorTask.TargetDimensionIndex);
-            emitter.Emit(OpCodes.Clt);
-            emitter.Emit(LocalOperation.Store, kernelData.BreakCondition);
-            emitter.Emit(LocalOperation.Load, kernelData.BreakCondition);
-            emitter.Emit(OpCodes.Brfalse, kernelData.KernelNotInvoked);
-
-            // Compute linear grid index
-            var linearGridIndex = emitter.DeclareLocal(typeof(int));
-            emitter.Emit(LocalOperation.Load, globalIndex);
-            emitter.Emit(LocalOperation.Load, groupDimSize);
-            emitter.Emit(OpCodes.Div);
-            emitter.Emit(LocalOperation.Store, linearGridIndex);
-
-            // Compute linear group index
-            var linearGroupIndex = emitter.DeclareLocal(typeof(int));
-            emitter.Emit(LocalOperation.Load, globalIndex);
-            emitter.Emit(LocalOperation.Load, groupDimSize);
-            emitter.Emit(OpCodes.Rem);
-            emitter.Emit(LocalOperation.Store, linearGroupIndex);
-
-            // Bind current multi-dimensional grid and group indices
-            emitter.Emit(LocalOperation.Load, linearGridIndex);
-            KernelLauncherBuilder.EmitConvertFrom1DIndexToTargetIndexType(
-                IndexType.Index3D,
-                emitter,
-                () => emitter.Emit(LocalOperation.Load, sourceGridDim));
-
-            emitter.Emit(LocalOperation.Load, linearGroupIndex);
-            KernelLauncherBuilder.EmitConvertFrom1DIndexToTargetIndexType(
-                IndexType.Index3D,
-                emitter,
-                () => emitter.Emit(LocalOperation.Load, sourceGroupDim));
-            emitter.EmitCall(CPURuntimeThreadContext.SetupIndicesMethod);
-
-            if (entryPoint.IsImplictlyGrouped)
-            {
-                // Construct launch index from linear index
-                kernelData.Index = emitter.DeclareLocal(entryPoint.KernelIndexType);
-
-                // Use direct construction for 1D index
-                emitter.Emit(LocalOperation.Load, globalIndex);
-                KernelLauncherBuilder.EmitConvertFrom1DIndexToTargetIndexType(
-                    entryPoint.IndexType,
-                    emitter,
-                    () => emitter.Emit(LocalOperation.Load, kernelData.UserGridDim));
-                emitter.Emit(LocalOperation.Store, kernelData.Index);
-            }
-            else
-            {
-                // Do nothing
-            }
-        }
-
-        /// <summary>
-        /// Generates the required local variables (e.g. shared memory).
-        /// </summary>
-        /// <param name="entryPoint">The entry point.</param>
-        /// <param name="emitter">The current code generator.</param>
-        /// <param name="kernelData">The current kernel data.</param>
-        /// <param name="taskArgumentMapping">
-        /// The created task-argument mapping that maps parameter indices of uniforms.
-        /// </param>
-        /// <param name="task">The task variable.</param>
-        protected abstract void GenerateLocals<TEmitter>(
-            EntryPoint entryPoint,
-            TEmitter emitter,
-            KernelGenerationData kernelData,
-            ImmutableArray<FieldInfo> taskArgumentMapping,
-            ILLocal task)
-            where TEmitter : IILEmitter;
-
-        /// <summary>
-        /// Generates the kernel finish code.
-        /// </summary>
-        /// <param name="emitter">The current code generator.</param>
-        /// <param name="kernelData">The current kernel data.</param>
-        private static void GenerateFinishCode<TEmitter>(
-            TEmitter emitter,
-            KernelGenerationData kernelData)
-            where TEmitter : IILEmitter
-        {
-            // Synchronize group threads
-            {
-                emitter.MarkLabel(kernelData.KernelNotInvoked);
-
-                // Wait for all threads to complete and reset all required information
-                emitter.Emit(
-                    ArgumentOperation.Load,
-                    CPUAcceleratorTask.GroupContextIndex);
-                emitter.EmitCall(RuntimeMethods.WaitForNextThreadIndex);
-            }
-
-            // Increase counter
-            {
-                // i += groupSize
-                emitter.Emit(LocalOperation.Load, kernelData.ChunkIdxCounter);
-                emitter.Emit(
-                    ArgumentOperation.Load,
-                    CPUAcceleratorTask.RuntimeGroupSizeIndex);
-                emitter.Emit(OpCodes.Add);
-                emitter.Emit(LocalOperation.Store, kernelData.ChunkIdxCounter);
-            }
-
-            // Loop header
-            {
-                emitter.MarkLabel(kernelData.LoopHeader);
-
-                // if (i < chunkSize) ...
-                emitter.Emit(LocalOperation.Load, kernelData.ChunkIdxCounter);
-                emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.ChunkSizeIndex);
-                emitter.Emit(OpCodes.Clt);
-                emitter.Emit(LocalOperation.Store, kernelData.BreakCondition);
-                emitter.Emit(LocalOperation.Load, kernelData.BreakCondition);
-                emitter.Emit(OpCodes.Brtrue, kernelData.LoopBody);
-            }
-
-            // Emit final return
-            emitter.Emit(OpCodes.Ret);
+            // Store the index operation
+            emitter.Emit(LocalOperation.Store, index);
         }
 
         #endregion
