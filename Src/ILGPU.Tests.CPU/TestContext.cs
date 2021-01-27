@@ -7,13 +7,38 @@ namespace ILGPU.Tests.CPU
     /// <summary>
     /// An abstract test context for CPU accelerators.
     /// </summary>
+    /// <remarks>
+    /// The CPU simulation mode can be change via the environment variable
+    /// <see cref="CPUTestContext.CPUKindEnvVariable"/>. The content should be the raw
+    /// string representation of one of the enumeration members of
+    /// <see cref="CPUAcceleratorKind"/>
+    /// </remarks>
     public abstract class CPUTestContext : TestContext
     {
         /// <summary>
-        /// The number of threads to use.
+        /// The name of the environment variable to control the kind of all CPU tests.
         /// </summary>
-        private static readonly int NumThreads = Math.Max(Math.Min(
-            Environment.ProcessorCount, 4), 2);
+        public static readonly string CPUKindEnvVariable = "ILGPU_CPU_TEST_KIND";
+
+        /// <summary>
+        /// Creates a new CPU accelerator based on the configuration provided via
+        /// the environment variable <see cref="CPUKindEnvVariable"/>.
+        /// </summary>
+        /// <param name="context">The parent context to use.</param>
+        /// <returns>The created (parallel) CPU accelerator instance.</returns>
+        /// <remarks>
+        /// If the environment variables does not exists or does not contain a valid kind
+        /// (specified by the <see cref="CPUAcceleratorKind"/> enumeration), this
+        /// function creates a simulator compatible with the kind
+        /// <see cref="CPUAcceleratorKind.Default"/>.
+        /// </remarks>
+        private static CPUAccelerator CreateCPUAccelerator(Context context)
+        {
+            var cpuConfig = Environment.GetEnvironmentVariable(CPUKindEnvVariable);
+            if (!Enum.TryParse(cpuConfig, out CPUAcceleratorKind kind))
+                kind = CPUAcceleratorKind.Default;
+            return CPUAccelerator.Create(context, kind, CPUAcceleratorMode.Parallel);
+        }
 
         /// <summary>
         /// Creates a new test context instance.
@@ -26,7 +51,7 @@ namespace ILGPU.Tests.CPU
             : base(
                   optimizationLevel,
                   prepareContext,
-                  context => new CPUAccelerator(context, NumThreads))
+                  CreateCPUAccelerator)
         { }
 
         /// <summary>
