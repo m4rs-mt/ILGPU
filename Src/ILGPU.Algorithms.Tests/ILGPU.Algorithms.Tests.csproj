@@ -59,6 +59,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>RadixSortExtensionTests.tt</DependentUpon>
     </None>
+    <None Include="RandomTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RandomTests.tt</DependentUpon>
+    </None>
     <None Include="ReductionExtensionTests.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -130,6 +135,10 @@
     <None Update="RadixSortExtensionTests.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="RandomTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RandomTests.cs</LastGenOutput>
     </None>
     <None Update="ReductionExtensionTests.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -232,6 +241,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>RadixSortExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="RandomTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RandomTests.tt</DependentUpon>
     </Compile>
     <Compile Update="ReductionExtensionTests.cs">
       <DesignTime>True</DesignTime>

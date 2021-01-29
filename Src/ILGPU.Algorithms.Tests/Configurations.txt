@@ -3,6 +3,7 @@ GroupExtensionTests: Debug, Release, O2
 ﻿HistogramTests: Debug, Release, O2
 InitializeTests: Debug, Release, O2
 RadixSortExtensionTests: Debug, Release, O2
+RandomTests: Debug, Release, O2
 ReductionExtensionTests: Debug, Release, O2
 ReorderExtensionTests: Debug, Release, O2
 ScanExtensionTests: Debug, Release, O2

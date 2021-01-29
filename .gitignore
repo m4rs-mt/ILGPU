@@ -273,6 +273,7 @@ Src/ILGPU.Algorithms.Tests/ArrayExtensionTests.cs
 Src/ILGPU.Algorithms.Tests/GroupExtensionTests.cs
 Src/ILGPU.Algorithms.Tests/HistogramTests.cs
 Src/ILGPU.Algorithms.Tests/RadixSortExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/RandomTests.cs
 Src/ILGPU.Algorithms.Tests/ReductionExtensionTests.cs
 Src/ILGPU.Algorithms.Tests/ReorderExtensionTests.cs
 Src/ILGPU.Algorithms.Tests/ScanExtensionTests.cs
