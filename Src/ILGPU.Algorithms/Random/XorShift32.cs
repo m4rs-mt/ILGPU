@@ -14,6 +14,8 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using static ILGPU.Algorithms.Random.RandomExtensions;
 
 namespace ILGPU.Algorithms.Random
 {
@@ -22,7 +24,7 @@ namespace ILGPU.Algorithms.Random
     /// </summary>
     /// <remarks>https://en.wikipedia.org/wiki/Xorshift</remarks>
     [CLSCompliant(false)]
-    public struct XorShift32 : IEquatable<XorShift32>
+    public struct XorShift32 : IEquatable<XorShift32>, IRandomProvider<XorShift32>
     {
         #region Static
 
@@ -49,7 +51,7 @@ namespace ILGPU.Algorithms.Random
         /// <param name="state">The initial state value.</param>
         public XorShift32(uint state)
         {
-            Debug.Assert(state != 0, "State must not be zero");
+            Trace.Assert(state != 0, "State must not be zero");
             State = state;
         }
 
@@ -70,9 +72,10 @@ namespace ILGPU.Algorithms.Random
         /// Generates a random uint in [0..uint.MaxValue].
         /// </summary>
         /// <returns>A random uint in [0..uint.MaxValue].</returns>
-        public uint Next()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public uint NextUInt()
         {
-            var x = State;
+            uint x = State;
             x ^= x << 13;
             x ^= x >> 17;
             x ^= x << 5;
@@ -81,58 +84,43 @@ namespace ILGPU.Algorithms.Random
         }
 
         /// <summary>
-        /// Generates a random double in [0..1].
+        /// Generates a random ulong in [0..ulong.MaxValue].
         /// </summary>
-        /// <returns>A random double in [0..1].</returns>
-        public double NextDouble()
-        {
-            return NextInt() * RandomExtensions.InverseIntDoubleRange;
-        }
+        /// <returns>A random ulong in [0..ulong.MaxValue].</returns>
+        public ulong NextULong() => SeperateUInt(NextUInt());
 
-        /// <summary>
-        /// Generates a random float in [0..1].
-        /// </summary>
-        /// <returns>A random float in [0..1].</returns>
-        public float NextFloat()
-        {
-            return NextInt() * RandomExtensions.InverseIntFloatRange;
-        }
+        /// <inheritdoc cref="IRandomProvider.Next"/>
+        public int Next() => ToInt(NextUInt());
 
-        /// <summary>
-        /// Generates a random int in [0..int.MaxValue].
-        /// </summary>
-        /// <returns>A random int in [0..int.MaxValue].</returns>
-        public int NextInt()
-        {
-            return (int)(Next() & 0x7FFFFFFFU);
-        }
+        /// <inheritdoc cref="IRandomProvider.NextLong"/>
+        public long NextLong() => ToLong(NextULong());
 
-        /// <summary>
-        /// Generates a random int in [minValue..maxValue[.
-        /// </summary>
-        /// <param name="minValue">The minimum value (inclusive)</param>
-        /// <param name="maxValue">The maximum values (exclusive)</param>
-        /// <returns>A random int in [minValue..maxValue[.</returns>
-        public int Next(int minValue, int maxValue)
-        {
-            Debug.Assert(minValue < maxValue, "Values out of range");
-            var dist = maxValue - minValue;
-            return Math.Min((int)(NextFloat() * dist) + minValue, maxValue - 1);
-        }
+        /// <inheritdoc cref="IRandomProvider.NextFloat"/>
+        public float NextFloat() => Next() * InverseIntFloatRange;
+
+        /// <inheritdoc cref="IRandomProvider.NextDouble"/>
+        public double NextDouble() => NextLong() * InverseLongDoubleRange;
+
+        /// <inheritdoc cref="IRandomProvider{TProvider}.ShiftPeriod(int)"/>
+        public void ShiftPeriod(int shift) => State = ShiftState(State, shift);
+
+        /// <inheritdoc cref="IRandomProvider{TProvider}.NextProvider()"/>
+        public XorShift32 NextProvider() => new XorShift32(NextUInt());
+
+        /// <inheritdoc cref="IRandomProvider{TProvider}.CreateProvider(System.Random)"/>
+        public readonly XorShift32 CreateProvider(System.Random random) =>
+            Create(random);
 
         #endregion
 
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current rng.
+        /// Returns true if the given object is equal to the current rng.
         /// </summary>
         /// <param name="other">The other rng to test.</param>
-        /// <returns>True, iff the given object is equal to the current rng.</returns>
-        public bool Equals(XorShift32 other)
-        {
-            return this == other;
-        }
+        /// <returns>True, if the given object is equal to the current rng.</returns>
+        public readonly bool Equals(XorShift32 other) => this == other;
 
         #endregion
 
@@ -142,57 +130,43 @@ namespace ILGPU.Algorithms.Random
         /// Returns the hash code of this rng.
         /// </summary>
         /// <returns>The hash code of this rng.</returns>
-        public override int GetHashCode()
-        {
-            return (int)State;
-        }
+        public readonly override int GetHashCode() => (int)State;
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current rng.
+        /// Returns true if the given object is equal to the current rng.
         /// </summary>
         /// <param name="obj">The other rng to test.</param>
-        /// <returns>True, iff the given object is equal to the current rng.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is XorShift32 shift)
-                return Equals(shift);
-            return false;
-        }
+        /// <returns>True, if the given object is equal to the current rng.</returns>
+        public readonly override bool Equals(object obj) =>
+            obj is XorShift32 shift && Equals(shift);
 
         /// <summary>
         /// Returns the string representation of this rng.
         /// </summary>
         /// <returns>The string representation of this rng.</returns>
-        public override string ToString()
-        {
-            return State.ToString();
-        }
+        public readonly override string ToString() => State.ToString();
 
         #endregion
 
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first and second rng are the same.
+        /// Returns true if the first and second rng are the same.
         /// </summary>
         /// <param name="first">The first rng.</param>
         /// <param name="second">The second rng.</param>
-        /// <returns>True, iff the first and second rng are the same.</returns>
-        public static bool operator ==(XorShift32 first, XorShift32 second)
-        {
-            return first.State == second.State;
-        }
+        /// <returns>True, if the first and second rng are the same.</returns>
+        public static bool operator ==(XorShift32 first, XorShift32 second) =>
+            first.State == second.State;
 
         /// <summary>
-        /// Returns true iff the first and second rng are not the same.
+        /// Returns true if the first and second rng are not the same.
         /// </summary>
         /// <param name="first">The first rng.</param>
         /// <param name="second">The second rng.</param>
-        /// <returns>True, iff the first and second rng are not the same.</returns>
-        public static bool operator !=(XorShift32 first, XorShift32 second)
-        {
-            return first.State != second.State;
-        }
+        /// <returns>True, if the first and second rng are not the same.</returns>
+        public static bool operator !=(XorShift32 first, XorShift32 second) =>
+            first.State != second.State;
 
         #endregion
     }
