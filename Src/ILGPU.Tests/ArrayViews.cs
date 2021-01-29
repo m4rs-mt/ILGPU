@@ -578,14 +578,88 @@ namespace ILGPU.Tests
             Verify(buffer, expectedData);
         }
 
-        internal static void ArrayViewSparseMultidimensionalAccessKernel(
+        internal static void ArrayViewVectorizedIOKernel<T, T2>(
             Index1 index,
-            ArrayView<byte, LongIndex1> data,
-            ArrayView<byte, LongIndex3> source)
+            ArrayView<T> source,
+            ArrayView<T> target)
+            where T : unmanaged
+            where T2 : unmanaged
         {
-            var reconstructedIndex = source.Extent.ReconstructIndex(
-                index.Size * (source.Extent.Size / data.Extent.Size));
-            data[index] = source[reconstructedIndex];
+            // Use compile-time known offsets to test the internal alignment rules
+
+            var nonVectorAlignedSource = source.GetSubView(1, 2);
+            var nonVectorAlignedCastedSource = nonVectorAlignedSource.Cast<T2>();
+
+            var nonVectorAlignedTarget = target.GetSubView(1, 2);
+            var nonVectorAlignedTargetCasted = nonVectorAlignedTarget.Cast<T2>();
+
+            // Load from source and write to target
+            T2 data = nonVectorAlignedCastedSource[index];
+            nonVectorAlignedTargetCasted[index] = data;
+
+            // Perform the same operations with compile-time known offsets
+
+            var vectorAlignedSource = source.GetSubView(2, 2);
+            var vectorAlignedCastedSource = vectorAlignedSource.Cast<T2>();
+
+            var vectorAlignedTarget = target.GetSubView(2, 2);
+            var vectorAlignedTargetCasted = vectorAlignedTarget.Cast<T2>();
+
+            // Load from source and write to target
+            T2 data2 = vectorAlignedCastedSource[index];
+            vectorAlignedTargetCasted[index] = data2;
+        }
+
+        public static TheoryData<object, object> VectorizedIOData =>
+            new TheoryData<object, object>
+            {
+                { default(int), default(PairStruct<int, int>) },
+                { default(long), default(PairStruct<long, long>) },
+                {
+                    default(PairStruct<int, int>),
+                    default(PairStruct<PairStruct<int, int>, PairStruct<int, int>>)
+                },
+                {
+                    default(PairStruct<long, long>),
+                    default(PairStruct<PairStruct<long, long>, PairStruct<long, long>>)
+                },
+
+                { default(float), default(PairStruct<float, float>) },
+                { default(double), default(PairStruct<double, double>) },
+                {
+                    default(PairStruct<float, float>),
+                    default(
+                        PairStruct<
+                            PairStruct<float, float>,
+                            PairStruct<float, float>>)
+                },
+                {
+                    default(PairStruct<double, double>),
+                    default(
+                        PairStruct<
+                            PairStruct<double, double>,
+                            PairStruct<double, double>>)
+                },
+            };
+
+        [Theory]
+        [MemberData(nameof(VectorizedIOData))]
+        [KernelMethod(nameof(ArrayViewVectorizedIOKernel))]
+        [SuppressMessage(
+            "Usage",
+            "xUnit1026:Theory methods should use all of their parameters")]
+        public void ArrayViewVectorizedIO<T, T2>(T sourceType, T2 targetType)
+            where T : unmanaged
+            where T2 : unmanaged
+        {
+            const int Length = 4;
+            using var source = Accelerator.Allocate<T>(Length);
+            using var target = Accelerator.Allocate<T2>(Length);
+
+            Execute<Index1, T, T2>(1, source.View, target.View.Cast<T>());
+
+            // Note that we don't have to check the result in this case. If the execution
+            // succeeds, we already know that the vectorized IO access worked as intended
         }
 
         internal static void ArrayViewAlignmentKernel<T>(
