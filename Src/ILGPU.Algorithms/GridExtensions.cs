@@ -11,6 +11,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms
@@ -33,6 +35,7 @@ namespace ILGPU.Algorithms
     /// <typeparam name="T">
     /// The type of the intermediate values inside the loop.
     /// </typeparam>
+    [Obsolete("Use IGridStrideKernelBody instead")]
     public interface IGridStrideLoopBody<T>
         where T : struct
     {
@@ -43,6 +46,24 @@ namespace ILGPU.Algorithms
         /// <param name="input">The intermediate input value.</param>
         /// <returns>The resulting intermediate value for the next iteration.</returns>
         T Execute(Index1 linearIndex, T input);
+    }
+
+    /// <summary>
+    /// Represents a grid-stride-loop kernel body.
+    /// </summary>
+    public interface IGridStrideKernelBody
+    {
+        /// <summary>
+        /// Executes this loop body using the given index.
+        /// </summary>
+        /// <param name="linearIndex">The current global element index.</param>
+        /// <remarks>
+        /// Note that the original number of data elements will be padded to be a
+        /// multiple of the warp size. Hence, the linear index can become larger than
+        /// the original number of elements. Bounds checks to underlying array views
+        /// have to be managed by the user.
+        /// </remarks>
+        void Execute(LongIndex1 linearIndex);
     }
 
     /// <summary>
@@ -61,6 +82,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="TLoopBody">The type of the loop body.</typeparam>
         /// <param name="length">The global length.</param>
         /// <param name="loopBody">The loop body.</param>
+        [Obsolete("Use GridStrideKernel instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GridStrideLoop<TLoopBody>(
             Index1 length,
@@ -85,6 +107,7 @@ namespace ILGPU.Algorithms
         /// <param name="input">The initial input value.</param>
         /// <param name="loopBody">The loop body.</param>
         /// <returns>The last intermediate value.</returns>
+        [Obsolete("Use GridStrideKernel instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T GridStrideLoop<T, TLoopBody>(
             Index1 length,
@@ -115,7 +138,23 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static (Index1, Index1) ComputeGridStrideLoopExtent(
             this Accelerator accelerator,
-            Index1 numDataElements) =>
+            long numDataElements) =>
+            accelerator.ComputeGridStrideLoopExtent(
+                (int)Math.Min(numDataElements, int.MaxValue));
+
+        /// <summary>
+        /// Returns a kernel extent (a grouped index) with the maximum number of groups
+        /// using the maximum number of threads per group to launch common grid-stride
+        /// loop kernels.
+        /// </summary>
+        /// <param name="accelerator">The accelerator.</param>
+        /// <param name="numDataElements">
+        /// The number of parallel data elements to process.
+        /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static (Index1, Index1) ComputeGridStrideLoopExtent(
+            this Accelerator accelerator,
+            int numDataElements) =>
             accelerator.ComputeGridStrideLoopExtent(
                 numDataElements,
                 out var _);
@@ -147,6 +186,135 @@ namespace ILGPU.Algorithms
                 XMath.DivRoundUp(numDataElements, dimension * groupDim);
 
             return (dimension, groupDim);
+        }
+
+        /// <summary>
+        /// Represents a full grid-stride loop kernel implementation.
+        /// </summary>
+        /// <typeparam name="TBody">The body type.</typeparam>
+        /// <param name="paddedNumDataElements">The padded number of elements.</param>
+        /// <param name="body">The body instance.</param>
+        public static void GridStrideLoopKernel<TBody>(
+            LongIndex1 paddedNumDataElements,
+            TBody body)
+            where TBody : struct, IGridStrideKernelBody
+        {
+            Trace.Assert(
+                paddedNumDataElements % Warp.WarpSize == 0L,
+                "Invalidly padded number of elements");
+
+            // Note that this kernel does not use GridStrideLoop<TLoopBody> because
+            // the reference capture can cause the compiler to skip several
+            // optimizations. In addition, this implementation ensures that it is
+            // padded by the warp size and uses longs to perform the grid stride loop.
+
+            for (
+                LongIndex1 idx = Grid.GlobalIndex.X, stride = GridStrideLoopStride;
+                idx < paddedNumDataElements;
+                idx += stride)
+            {
+                body.Execute(idx);
+            }
+        }
+
+        /// <summary>
+        /// Determines a grid-stride kernel configuration.
+        /// </summary>
+        /// <param name="accelerator">The accelerator instance.</param>
+        /// <param name="numDataElements">The number of data elements.</param>
+        /// <param name="paddedNumElements">The padded number of elements.</param>
+        /// <returns>The kernel configuration.</returns>
+        private static KernelConfig GetGridStrideKernelConfig(
+            Accelerator accelerator,
+            LongIndex1 numDataElements,
+            out LongIndex1 paddedNumElements)
+        {
+            paddedNumElements =
+                XMath.DivRoundUp(numDataElements, accelerator.WarpSize) *
+                accelerator.WarpSize;
+            return ComputeGridStrideLoopExtent(
+                accelerator,
+                (int)Math.Min(numDataElements, int.MaxValue));
+        }
+
+        /// <summary>
+        /// Loads a grid-stride kernel.
+        /// </summary>
+        /// <typeparam name="TBody">The body type.</typeparam>
+        /// <param name="accelerator">The accelerator instance.</param>
+        /// <returns>The loaded grid-stride kernel.</returns>
+        public static Action<AcceleratorStream, LongIndex1, TBody>
+            LoadGridStrideKernel<TBody>(
+            this Accelerator accelerator)
+            where TBody : struct, IGridStrideKernelBody
+        {
+            var kernel = accelerator.LoadKernel<LongIndex1, TBody>(GridStrideLoopKernel);
+            return (stream, numDataElements, body) =>
+            {
+                if (stream is null)
+                    throw new ArgumentNullException(nameof(stream));
+                if (numDataElements < 0)
+                    throw new ArgumentOutOfRangeException(nameof(numDataElements));
+                if (numDataElements < 1)
+                    return;
+
+                var config = GetGridStrideKernelConfig(
+                    stream.Accelerator,
+                    numDataElements,
+                    out var paddedNumElements);
+                kernel(stream, config, paddedNumElements, body);
+            };
+        }
+
+        /// <summary>
+        /// Launches a grid-stride kernel.
+        /// </summary>
+        /// <typeparam name="TBody">The body type.</typeparam>
+        /// <param name="accelerator">The accelerator instance.</param>
+        /// <param name="numDataElements">The number of data elements.</param>
+        /// <param name="body">The body instance.</param>
+        public static void LaunchGridStride<TBody>(
+            this Accelerator accelerator,
+            LongIndex1 numDataElements,
+            in TBody body)
+            where TBody : struct, IGridStrideKernelBody =>
+            accelerator.LaunchGridStride(
+                accelerator.DefaultStream,
+                numDataElements,
+                body);
+
+        /// <summary>
+        /// Launches a grid-stride kernel.
+        /// </summary>
+        /// <typeparam name="TBody">The body type.</typeparam>
+        /// <param name="accelerator">The accelerator instance.</param>
+        /// <param name="stream">The current stream.</param>
+        /// <param name="numDataElements">The number of data elements.</param>
+        /// <param name="body">The body instance.</param>
+        public static void LaunchGridStride<TBody>(
+            this Accelerator accelerator,
+            AcceleratorStream stream,
+            LongIndex1 numDataElements,
+            in TBody body)
+            where TBody : struct, IGridStrideKernelBody
+        {
+            if (stream is null)
+                throw new ArgumentNullException(nameof(stream));
+            if (numDataElements < 0)
+                throw new ArgumentOutOfRangeException(nameof(numDataElements));
+            if (numDataElements < 1)
+                return;
+
+            var config = GetGridStrideKernelConfig(
+                accelerator,
+                numDataElements,
+                out var paddedNumElements);
+            accelerator.Launch(
+                GridStrideLoopKernel,
+                stream,
+                config,
+                paddedNumElements,
+                body);
         }
     }
 }
