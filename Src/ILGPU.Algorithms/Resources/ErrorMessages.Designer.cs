@@ -68,7 +68,16 @@ namespace ILGPU.Algorithms.Resources {
                 return ResourceManager.GetString("NotSupportedArrayView64", resourceCulture);
             }
         }
-
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported cuRAND API platform..
+        /// </summary>
+        internal static string NotSupportedCuRandAPI {
+            get {
+                return ResourceManager.GetString("NotSupportedCuRandAPI", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized string similar to The allocation of type &apos;{0}&apos; is not correctly aligned. Requires &apos;{1}&apos; byte alignment but was allocated at byte offset &apos;{2}&apos;..
         /// </summary>
