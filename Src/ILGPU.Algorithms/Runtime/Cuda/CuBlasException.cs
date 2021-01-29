@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
@@ -20,7 +19,6 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Represents an CuBlas exception that can be thrown by the CuBlas library.
     /// </summary>
-    [SuppressMessage("Microsoft.Design", "CA1032:ImplementStandardExceptionConstructors")]
     [Serializable]
     public sealed class CuBlasException : Exception
     {

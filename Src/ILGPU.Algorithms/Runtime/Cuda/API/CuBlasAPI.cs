@@ -31,7 +31,6 @@ namespace ILGPU.Runtime.Cuda.API
             CuBlasAPI result = null;
             try
             {
-
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     if (version == CuBlasAPIVersion.V11)

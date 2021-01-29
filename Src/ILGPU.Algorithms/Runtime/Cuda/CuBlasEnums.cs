@@ -3,13 +3,12 @@
 //                      Copyright (c) 2020 ILGPU Algorithms Project
 //                                    www.ilgpu.net
 //
-// File: Enums.cs
+// File: CuBlasEnums.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-#pragma warning disable IDE1006 // Naming Styles
 #pragma warning disable CA1707 // Identifiers should not contain underscores
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -94,4 +93,3 @@ namespace ILGPU.Runtime.Cuda
 
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 #pragma warning restore CA1707 // Identifiers should not contain underscores
-#pragma warning restore IDE1006 // Naming Styles
