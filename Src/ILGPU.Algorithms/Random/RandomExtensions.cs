@@ -10,10 +10,10 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using static ILGPU.IntrinsicMath;
 
 namespace ILGPU.Algorithms.Random
 {
@@ -132,5 +132,33 @@ namespace ILGPU.Algorithms.Random
                 : (long)(randomProvider.NextDouble() * dist);
             return Math.Min(intermediate + minValue, maxValue - 1);
         }
+
+        /// <summary>
+        /// Constructs an RNG using the given provider instance.
+        /// </summary>
+        /// <typeparam name="TRandomProvider">The random provider type.</typeparam>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="random">The parent RNG provider.</param>
+        public static RNG<TRandomProvider> CreateRNG<TRandomProvider>(
+            this Accelerator accelerator,
+            System.Random random)
+            where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider> =>
+            RNG.Create<TRandomProvider>(accelerator, random);
+
+        /// <summary>
+        /// Constructs an RNG using the given provider instance.
+        /// </summary>
+        /// <typeparam name="TRandomProvider">The random provider type.</typeparam>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="random">The parent RNG provider.</param>
+        /// <param name="maxNumParallelWarps">
+        /// The maximum number of parallel warps.
+        /// </param>
+        public static RNG<TRandomProvider> CreateRNG<TRandomProvider>(
+            this Accelerator accelerator,
+            System.Random random,
+            int maxNumParallelWarps)
+            where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider> =>
+            RNG.Create<TRandomProvider>(accelerator, random, maxNumParallelWarps);
     }
 }
