@@ -8,6 +8,10 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Channel)' == 'experimental'">
+    <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
+  </PropertyGroup>
+
   <PropertyGroup>
     <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\..\ILGPU\Src\ILGPU.Tests\.test.runsettings</RunSettingsFilePath>
   </PropertyGroup>
