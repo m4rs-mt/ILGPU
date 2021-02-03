@@ -9,6 +9,10 @@
     <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Channel)' == 'experimental'">
+    <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
+  </PropertyGroup>
+
   <PropertyGroup>
     <VersionPrefix>0.9.2</VersionPrefix>
     <AssemblyVersion>0.9.2.0</AssemblyVersion>
