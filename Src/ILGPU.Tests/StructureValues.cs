@@ -1,6 +1,7 @@
 ﻿using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -384,6 +385,45 @@ namespace ILGPU.Tests
             Execute<Index1, T>(1, output.View, value, value, 42);
 
             var expected = new T[] { value };
+            Verify(output, expected);
+        }
+
+        internal struct Vector2
+        {
+            public int X { get; set; }
+            public int Y { get; set; }
+
+            public static readonly Vector2 Zero = new Vector2(0, 0);
+
+            public Vector2(int x, int y)
+            {
+                X = x;
+                Y = y;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void StructureAggressiveInliningFunc(out Vector2 v)
+        {
+            v = Vector2.Zero;
+            v.X += 42;
+        }
+
+        internal static void StructureAggressiveInliningKernel(
+            Index1 index, ArrayView<int> output)
+        {
+            StructureAggressiveInliningFunc(out var v);
+            output[index] = v.X;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StructureAggressiveInliningKernel))]
+        public void StructureAggressiveInlining()
+        {
+            using var output = Accelerator.Allocate<int>(1);
+            Execute(1, output.View);
+
+            var expected = new int[] { 42 };
             Verify(output, expected);
         }
     }
