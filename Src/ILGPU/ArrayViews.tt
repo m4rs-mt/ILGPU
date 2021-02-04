@@ -79,7 +79,6 @@ namespace ILGPU
         /// <param name="baseView">The source view.</param>
         public <#= typeName #>(ArrayView<T, <#= indexType #>> baseView)
         {
-            IndexTypeExtensions.AssertIntIndexRange(baseView.Length);
             BaseView = baseView;
         }
 
