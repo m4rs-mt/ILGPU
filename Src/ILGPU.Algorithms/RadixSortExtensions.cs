@@ -115,12 +115,11 @@ namespace ILGPU.Algorithms
 
         #region IDisposable
 
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        /// <inheritdoc cref="AcceleratorObject.DisposeAcceleratorObject(bool)"/>
+        protected override void DisposeAcceleratorObject(bool disposing)
         {
             if (disposing)
                 bufferCache.Dispose();
-            base.Dispose(disposing);
         }
 
         #endregion
