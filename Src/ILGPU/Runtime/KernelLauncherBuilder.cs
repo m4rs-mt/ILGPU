@@ -93,6 +93,11 @@ namespace ILGPU.Runtime
             emitter.EmitNewObject(mainConstructor);
         }
 
+        private static readonly Type[] ReconstructIndex2DArguments =
+            new Type[] { typeof(int), typeof(Index2) };
+        private static readonly Type[] ReconstructIndex3DArguments =
+            new Type[] { typeof(int), typeof(Index3) };
+
         /// <summary>
         /// Emits code to convert a linear index to a specific target type.
         /// </summary>
@@ -123,14 +128,14 @@ namespace ILGPU.Runtime
                     emitter.EmitCall(
                         managedIndexType.GetMethod(
                             nameof(Index2.ReconstructIndex),
-                            BindingFlags.Public | BindingFlags.Static));
+                            ReconstructIndex2DArguments));
                     break;
                 case IndexType.Index3D:
                     loadDimension();
                     emitter.EmitCall(
                         managedIndexType.GetMethod(
                             nameof(Index3.ReconstructIndex),
-                            BindingFlags.Public | BindingFlags.Static));
+                            ReconstructIndex3DArguments));
                     break;
                 default:
                     throw new NotSupportedException(
