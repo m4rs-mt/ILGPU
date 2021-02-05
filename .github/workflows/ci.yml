@@ -83,7 +83,8 @@ jobs:
         working-directory: ./Src
       - name: Build templates
         # TargetFramework specified so this only runs once rather than per framework
-        run: dotnet msbuild -t:TextTemplateTransform -p:TargetFramework=NA Src
+        # WORKAROUND: maxCpuCount set to 1 to avoid parallelism-related issues
+        run: dotnet msbuild -t:TextTemplateTransform -p:TargetFramework=NA -m:1 Src
       - name: Release Build
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
       - name: CPU Tests
