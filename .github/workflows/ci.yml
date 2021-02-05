@@ -56,6 +56,7 @@ jobs:
       - name: Setup OS matrix
         id: setup-os-matrix
         run: |
+          echo "${{ toJson(github.event) }}"
           os='["ubuntu-latest","windows-latest","macos-latest"'
           [ "${{ github.event.repository.fork }}" == "false" ] && os="$os,\"cuda\""
           os="$os]"
