@@ -447,8 +447,42 @@ namespace ILGPU.Tests
 
             source.MemSetToZero();
             buffer.MemSetToZero();
+            Accelerator.Synchronize();
 
             Execute(buffer.Length, source.View, buffer.View);
+
+            var expected = Enumerable.Repeat(0, Length).ToArray();
+            Verify(buffer, expected);
+        }
+
+        internal static void LoopUnrolling_UCE_DCE_Kernel(
+            Index1 index,
+            ArrayView<int> view)
+        {
+            int value = 0;
+
+            for (int i = 0; i < 2; i++)
+            {
+                if (value < 1)
+                {
+                    int newValue = 0;
+                    if (newValue == 0)
+                    {
+                        value = newValue;
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_UCE_DCE_Kernel))]
+        public void LoopUnrolling_UCE_DCE()
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            buffer.MemSetToZero();
+            Accelerator.Synchronize();
+
+            Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(0, Length).ToArray();
             Verify(buffer, expected);
