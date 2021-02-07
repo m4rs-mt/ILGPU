@@ -61,7 +61,12 @@ namespace ILGPU.Backends
         /// <summary>
         /// An OpenCL source backend.
         /// </summary>
-        OpenCL
+        OpenCL,
+
+        /// <summary>
+        /// A SPIR-V backend.
+        /// </summary>
+        SPRIV
     }
 
     /// <summary>
