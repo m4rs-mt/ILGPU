@@ -1,0 +1,640 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ContentModelStore">
+    <e p="C:\Users\utku_\.nuget\packages\microsoft.net.test.sdk\16.7.1\build\netcoreapp2.1" t="Include">
+      <e p="Microsoft.NET.Test.Sdk.Program.cs" t="Include" />
+    </e>
+    <e p="C:\Users\utku_\.nuget\packages\microsoft.testplatform.testhost\16.7.1\build\netcoreapp2.1\x64\testhost.dll" t="Include" />
+    <e p="C:\Users\utku_\.nuget\packages\microsoft.testplatform.testhost\16.7.1\build\netcoreapp2.1\x64\testhost.exe" t="Include" />
+    <e p="C:\Users\utku_\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\net452\xunit.abstractions.dll" t="Include" />
+    <e p="C:\Users\utku_\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\net452\xunit.runner.reporters.net452.dll" t="Include" />
+    <e p="C:\Users\utku_\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\net452\xunit.runner.utility.net452.dll" t="Include" />
+    <e p="C:\Users\utku_\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\net452\xunit.runner.visualstudio.testadapter.dll" t="Include" />
+    <e p="C:\Users\utku_\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\netcoreapp2.1\xunit.runner.reporters.netcoreapp10.dll" t="Include" />
+    <e p="C:\Users\utku_\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\netcoreapp2.1\xunit.runner.utility.netcoreapp10.dll" t="Include" />
+    <e p="C:\Users\utku_\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\netcoreapp2.1\xunit.runner.visualstudio.dotnetcore.testadapter.dll" t="Include" />
+    <e p="C:\Users\utku_\AppData\Local\JetBrains\Rider2020.3\extResources" t="IncludeRecursive" />
+    <e p="C:\Users\utku_\AppData\Local\JetBrains\Rider2020.3\resharper-host\Local\Transient\Rider\v203\SolutionCaches\_ILGPU.-827881419.00" t="ExcludeRecursive" />
+    <e p="C:\Users\utku_\AppData\Roaming\JetBrains\Rider2020.3\consoles\db" t="IncludeRecursive" />
+    <e p="C:\Users\utku_\AppData\Roaming\JetBrains\Rider2020.3\extensions" t="IncludeRecursive" />
+    <e p="C:\Users\utku_\source\repos\ILGPU\bin\Debug\net47" t="ExcludeRecursive" />
+    <e p="C:\Users\utku_\source\repos\ILGPU\bin\Debug\netstandard2.1" t="ExcludeRecursive" />
+    <e p="C:\Users\utku_\source\repos\ILGPU\LICENSE-3RD-PARTY.txt" t="Include" />
+    <e p="C:\Users\utku_\source\repos\ILGPU\LICENSE.txt" t="Include" />
+    <e p="C:\Users\utku_\source\repos\ILGPU\Src" t="IncludeFlat">
+      <e p="ILGPU" t="IncludeRecursive">
+        <e p=".editorconfig" t="Include" />
+        <e p="ArrayView.cs" t="Include" />
+        <e p="ArrayViewExtensions.cs" t="Include" />
+        <e p="ArrayViews.cs" t="Include" />
+        <e p="ArrayViews.tt" t="Include" />
+        <e p="AssemblyAttributes.cs" t="Include" />
+        <e p="Atomic.cs" t="Include" />
+        <e p="AtomicFunctions.cs" t="Include" />
+        <e p="AtomicFunctions.tt" t="Include" />
+        <e p="Backends" t="Include">
+          <e p="Backend.cs" t="Include" />
+          <e p="CodeGeneratorBackend.cs" t="Include" />
+          <e p="CompiledKernel.cs" t="Include" />
+          <e p="EntryPoints" t="Include">
+            <e p="ArgumentMapper.cs" t="Include" />
+            <e p="EntryPoint.cs" t="Include" />
+            <e p="EntryPointDescription.cs" t="Include" />
+            <e p="ParameterCollection.cs" t="Include" />
+            <e p="SeparateViewEntryPoint.cs" t="Include" />
+          </e>
+          <e p="IBackendCodeGenerator.cs" t="Include" />
+          <e p="IBackendHook.cs" t="Include" />
+          <e p="IL" t="Include">
+            <e p="DefaultILBackend.cs" t="Include" />
+            <e p="ILBackend.cs" t="Include" />
+            <e p="ILCompiledKernel.cs" t="Include" />
+            <e p="ILEmitter.cs" t="Include" />
+            <e p="ILEmitterExtensions.cs" t="Include" />
+            <e p="RuntimeMethods.cs" t="Include" />
+            <e p="SkipCodeGenerationDefaultILBackend.cs" t="Include" />
+          </e>
+          <e p="InvalidCodeGenerationException.cs" t="Include" />
+          <e p="NotSupportedIntrinsicException.cs" t="Include" />
+          <e p="OpenCL" t="Include">
+            <e p="CLArgumentMapper.cs" t="Include" />
+            <e p="CLBackend.cs" t="Include" />
+            <e p="CLCodeGenerator.cs" t="Include" />
+            <e p="CLCodeGenerator.Emitter.cs" t="Include" />
+            <e p="CLCodeGenerator.Terminators.cs" t="Include" />
+            <e p="CLCodeGenerator.Values.cs" t="Include" />
+            <e p="CLCodeGenerator.Views.cs" t="Include" />
+            <e p="CLCompiledKernel.cs" t="Include" />
+            <e p="CLCVersion.cs" t="Include" />
+            <e p="CLFunctionGenerator.cs" t="Include" />
+            <e p="CLInstructions.cs" t="Include" />
+            <e p="CLInstructions.Data.cs" t="Include" />
+            <e p="CLIntrinsic.cs" t="Include" />
+            <e p="CLIntrinsics.cs" t="Include" />
+            <e p="CLKernelFunctionGenerator.cs" t="Include" />
+            <e p="CLKernelTypeGenerator.cs" t="Include" />
+            <e p="CLTypeGenerator.cs" t="Include" />
+            <e p="CLVariableAllocator.cs" t="Include" />
+            <e p="Transformations" t="Include">
+              <e p="CLAcceleratorSpecializer.cs" t="Include" />
+            </e>
+          </e>
+          <e p="PhiBindings.cs" t="Include" />
+          <e p="PointerViews" t="Include">
+            <e p="LowerPointerViews.cs" t="Include" />
+            <e p="Utilities.cs" t="Include" />
+            <e p="ViewArgumentMapper.cs" t="Include" />
+            <e p="ViewImplementation.cs" t="Include" />
+          </e>
+          <e p="PTX" t="Include">
+            <e p="Analyses" t="Include">
+              <e p="DefaultPTXBlockSchedule.cs" t="Include" />
+              <e p="OptimizedPTXBlockSchedule.cs" t="Include" />
+              <e p="PTXBlockSchedule.cs" t="Include" />
+            </e>
+            <e p="PTXArchitecture.cs" t="Include" />
+            <e p="PTXArgumentMapper.cs" t="Include" />
+            <e p="PTXBackend.cs" t="Include" />
+            <e p="PTXCodeGenerator.cs" t="Include" />
+            <e p="PTXCodeGenerator.Emitter.cs" t="Include" />
+            <e p="PTXCodeGenerator.Terminators.cs" t="Include" />
+            <e p="PTXCodeGenerator.Values.cs" t="Include" />
+            <e p="PTXCodeGenerator.Views.cs" t="Include" />
+            <e p="PTXCompiledKernel.cs" t="Include" />
+            <e p="PTXDebugInfoGenerator.cs" t="Include" />
+            <e p="PTXFunctionGenerator.cs" t="Include" />
+            <e p="PTXInstructions.cs" t="Include" />
+            <e p="PTXInstructions.Data.cs" t="Include" />
+            <e p="PTXInstructionSet.cs" t="Include" />
+            <e p="PTXIntrinsic.cs" t="Include" />
+            <e p="PTXIntrinsics.cs" t="Include" />
+            <e p="PTXIntrinsics.Generated.cs" t="Include" />
+            <e p="PTXIntrinsics.Generated.tt" t="Include" />
+            <e p="PTXKernelFunctionGenerator.cs" t="Include" />
+            <e p="PTXRegisterAllocator.cs" t="Include" />
+            <e p="Transformations" t="Include">
+              <e p="PTXAcceleratorSpecializer.cs" t="Include" />
+              <e p="PTXBlockScheduling.cs" t="Include" />
+            </e>
+          </e>
+          <e p="RegisterAllocator.cs" t="Include" />
+          <e p="SeparateViews" t="Include">
+            <e p="ViewArgumentMapper.cs" t="Include" />
+            <e p="ViewImplementation.cs" t="Include" />
+          </e>
+          <e p="SPIRV" t="Include">
+            <e p="SPIRVBackend.cs" t="Include" />
+            <e p="SPIRVCodeGenerator.cs" t="Include" />
+            <e p="SPIRVCodeGenerator.Emitter.cs" t="Include" />
+            <e p="SPIRVCodeGenerator.Terminators.cs" t="Include" />
+            <e p="SPIRVCodeGenerator.Values.cs" t="Include" />
+            <e p="SPIRVHeaders.cs" t="Include" />
+            <e p="SPIRVIntrinsic.cs" t="Include" />
+            <e p="SPIRVVariableAllocator.cs" t="Include" />
+            <e p="SPRIVTypeGenerator.cs" t="Include" />
+          </e>
+          <e p="VariableAllocator.cs" t="Include" />
+        </e>
+        <e p="BasicValueType.cs" t="Include" />
+        <e p="CapabilityNotSupportedException.cs" t="Include" />
+        <e p="Context.Constants.cs" t="Include" />
+        <e p="Context.cs" t="Include" />
+        <e p="ContextFlags.cs" t="Include" />
+        <e p="Frontend" t="Include">
+          <e p="Block.CFGBuilder.cs" t="Include" />
+          <e p="Block.cs" t="Include" />
+          <e p="CodeGenerator" t="Include">
+            <e p="Arithmetic.cs" t="Include" />
+            <e p="Arrays.cs" t="Include" />
+            <e p="Calls.cs" t="Include" />
+            <e p="CodeGenerator.cs" t="Include" />
+            <e p="Compare.cs" t="Include" />
+            <e p="Constants.cs" t="Include" />
+            <e p="ControlFlow.cs" t="Include" />
+            <e p="Convert.cs" t="Include" />
+            <e p="Driver.cs" t="Include" />
+            <e p="Fields.cs" t="Include" />
+            <e p="Objects.cs" t="Include" />
+            <e p="Variables.cs" t="Include" />
+          </e>
+          <e p="DebugInformation" t="Include">
+            <e p="AssemblyDebugInformation.cs" t="Include" />
+            <e p="DebugInformationManager.cs" t="Include" />
+            <e p="IDebugInformationEnumerator.cs" t="Include" />
+            <e p="LocalVariable.cs" t="Include" />
+            <e p="MetadataReaderOperation.cs" t="Include" />
+            <e p="MethodDebugInformation.cs" t="Include" />
+            <e p="MethodScope.cs" t="Include" />
+            <e p="SequencePoint.cs" t="Include" />
+            <e p="SequencePointEnumerator.cs" t="Include" />
+          </e>
+          <e p="DisassembledMethod.cs" t="Include" />
+          <e p="Disassembler.cs" t="Include" />
+          <e p="DisassemblerDriver.cs" t="Include" />
+          <e p="ExternalAttribute.cs" t="Include" />
+          <e p="ILFrontend.cs" t="Include" />
+          <e p="ILInstruction.cs" t="Include" />
+          <e p="ILOpCode.cs" t="Include" />
+          <e p="Intrinsic" t="Include">
+            <e p="AcceleratorIntrinsics.cs" t="Include" />
+            <e p="AtomicIntrinsics.cs" t="Include" />
+            <e p="CompareIntrinsics.cs" t="Include" />
+            <e p="ConvertIntrinsics.cs" t="Include" />
+            <e p="GridIntrinsics.cs" t="Include" />
+            <e p="GroupIntrinsics.cs" t="Include" />
+            <e p="InteropIntrinsics.cs" t="Include" />
+            <e p="Intrinsics.cs" t="Include" />
+            <e p="LocalMemoryIntrinsic.cs" t="Include" />
+            <e p="MathIntrinsics.cs" t="Include" />
+            <e p="MemoryBarrierIntrinsics.cs" t="Include" />
+            <e p="RemappedIntrinsics.cs" t="Include" />
+            <e p="RemappedIntrinsics.Generated.cs" t="Include" />
+            <e p="RemappedIntrinsics.Generated.tt" t="Include" />
+            <e p="SharedMemoryIntrinsics.cs" t="Include" />
+            <e p="UtilityIntrinsics.cs" t="Include" />
+            <e p="ViewIntrinsics.cs" t="Include" />
+            <e p="WarpIntrinsics.cs" t="Include" />
+          </e>
+          <e p="InvocationContext.cs" t="Include" />
+          <e p="VariableRef.cs" t="Include" />
+        </e>
+        <e p="Grid.cs" t="Include" />
+        <e p="Group.cs" t="Include" />
+        <e p="Half.cs" t="Include" />
+        <e p="HalfConversion.cs" t="Include" />
+        <e p="HalfConversion.tt" t="Include" />
+        <e p="ICache.cs" t="Include" />
+        <e p="IIndex.cs" t="Include" />
+        <e p="ILGPU.csproj" t="IncludeRecursive" />
+        <e p="IndexExtensions.cs" t="Include" />
+        <e p="IndexTypes.cs" t="Include" />
+        <e p="IndexTypes.tt" t="Include" />
+        <e p="InstanceId.cs" t="Include" />
+        <e p="InternalCompilerException.cs" t="Include" />
+        <e p="Interop.cs" t="Include" />
+        <e p="Interop.Generated.cs" t="Include" />
+        <e p="Interop.Generated.tt" t="Include" />
+        <e p="IntrinsicMath.BitOperations.cs" t="Include" />
+        <e p="IntrinsicMath.CPUOnly.cs" t="Include" />
+        <e p="IntrinsicMath.CPUOnly.tt" t="Include" />
+        <e p="IntrinsicMath.cs" t="Include" />
+        <e p="InvalidKernelOperationException.cs" t="Include" />
+        <e p="IR" t="Include">
+          <e p="AddressSpace.cs" t="Include" />
+          <e p="Analyses" t="Include">
+            <e p="Allocas.cs" t="Include" />
+            <e p="AnalysisValue.cs" t="Include" />
+            <e p="CFG.cs" t="Include" />
+            <e p="ControlFlowDirection.cs" t="Include" />
+            <e p="Dominators.cs" t="Include" />
+            <e p="FixPointAnalysis.cs" t="Include" />
+            <e p="Landscape.cs" t="Include" />
+            <e p="LoopInfo.cs" t="Include" />
+            <e p="Loops.cs" t="Include" />
+            <e p="Phis.cs" t="Include" />
+            <e p="PointerAddressSpaces.cs" t="Include" />
+            <e p="PointerAlignments.cs" t="Include" />
+            <e p="References.cs" t="Include" />
+            <e p="TraversalOrder.cs" t="Include" />
+          </e>
+          <e p="BasicBlock.cs" t="Include" />
+          <e p="BasicBlockCollection.cs" t="Include" />
+          <e p="BasicBlockMapping.cs" t="Include" />
+          <e p="Construction" t="Include">
+            <e p="Arithmetic.cs" t="Include" />
+            <e p="ArithmeticOperations.cs" t="Include" />
+            <e p="ArithmeticOperations.tt" t="Include" />
+            <e p="Atomics.cs" t="Include" />
+            <e p="BasicBlock.Builder.cs" t="Include" />
+            <e p="Cast.cs" t="Include" />
+            <e p="Compare.cs" t="Include" />
+            <e p="CompareOperations.cs" t="Include" />
+            <e p="CompareOperations.tt" t="Include" />
+            <e p="Convert.cs" t="Include" />
+            <e p="Debug.cs" t="Include" />
+            <e p="IOValues.cs" t="Include" />
+            <e p="IRBuilder.cs" t="Include" />
+            <e p="IRRebuilder.cs" t="Include" />
+            <e p="Memory.cs" t="Include" />
+            <e p="Method.Builder.cs" t="Include" />
+            <e p="Methods.cs" t="Include" />
+            <e p="Predicate.cs" t="Include" />
+            <e p="SSABuilder.cs" t="Include" />
+            <e p="Structures.cs" t="Include" />
+            <e p="Terminators.cs" t="Include" />
+            <e p="Threads.cs" t="Include" />
+            <e p="Types.cs" t="Include" />
+            <e p="Values.cs" t="Include" />
+            <e p="Views.cs" t="Include" />
+          </e>
+          <e p="IDumpable.cs" t="Include" />
+          <e p="ILocation.cs" t="Include" />
+          <e p="Intrinsics" t="Include">
+            <e p="IntrinsicImplementation.cs" t="Include" />
+            <e p="IntrinsicImplementationManager.cs" t="Include" />
+            <e p="IntrinsicImplementationProvider.cs" t="Include" />
+            <e p="IntrinsicMapping.cs" t="Include" />
+            <e p="IntrinsicMatcher.cs" t="Include" />
+            <e p="IntrinsicMatchers.cs" t="Include" />
+            <e p="IntrinsicMatchers.tt" t="Include" />
+          </e>
+          <e p="IRContext.cs" t="Include" />
+          <e p="Location.cs" t="Include" />
+          <e p="Method.cs" t="Include" />
+          <e p="MethodCollection.cs" t="Include" />
+          <e p="MethodHandle.cs" t="Include" />
+          <e p="MethodMapping.cs" t="Include" />
+          <e p="Node.cs" t="Include" />
+          <e p="NodeId.cs" t="Include" />
+          <e p="Rewriting" t="Include">
+            <e p="IRewriterContext.cs" t="Include" />
+            <e p="Rewriter.cs" t="Include" />
+            <e p="RewriterContext.cs" t="Include" />
+            <e p="SSARewriter.cs" t="Include" />
+            <e p="Structures.cs" t="Include" />
+          </e>
+          <e p="Transformations" t="Include">
+            <e p="AcceleratorSpecializer.cs" t="Include" />
+            <e p="CleanupBlocks.cs" t="Include" />
+            <e p="DeadCodeElimination.cs" t="Include" />
+            <e p="IfConversion.cs" t="Include" />
+            <e p="InferAddressSpaces.cs" t="Include" />
+            <e p="Inliner.cs" t="Include" />
+            <e p="IntrinsicResolver.cs" t="Include" />
+            <e p="IntrinsicSpecializer.cs" t="Include" />
+            <e p="LoopInvariantCodeMotion.cs" t="Include" />
+            <e p="LoopUnrolling.cs" t="Include" />
+            <e p="LowerStructures.cs" t="Include" />
+            <e p="LowerThreadIntrinsics.cs" t="Include" />
+            <e p="LowerTypes.cs" t="Include" />
+            <e p="LowerViews.cs" t="Include" />
+            <e p="Optimizer.cs" t="Include" />
+            <e p="SimplifyControlFlow.cs" t="Include" />
+            <e p="SSAConstruction.cs" t="Include" />
+            <e p="Transformation.cs" t="Include" />
+            <e p="Transformer.cs" t="Include" />
+            <e p="UnreachableCodeElimination.cs" t="Include" />
+          </e>
+          <e p="Types" t="Include">
+            <e p="HandleType.cs" t="Include" />
+            <e p="IIRTypeContext.cs" t="Include" />
+            <e p="IRBaseContext.Types.cs" t="Include" />
+            <e p="IRTypeContext.cs" t="Include" />
+            <e p="ObjectType.cs" t="Include" />
+            <e p="PaddingType.cs" t="Include" />
+            <e p="PointerTypes.cs" t="Include" />
+            <e p="PrimitiveTypes.cs" t="Include" />
+            <e p="StructureType.cs" t="Include" />
+            <e p="TypeConverter.cs" t="Include" />
+            <e p="TypeInformationManager.cs" t="Include" />
+            <e p="TypeNode.cs" t="Include" />
+            <e p="ValueTuples.cs" t="Include" />
+            <e p="ValueTuples.tt" t="Include" />
+            <e p="VoidType.cs" t="Include" />
+          </e>
+          <e p="ValueBuilder.cs" t="Include" />
+          <e p="Values" t="Include">
+            <e p="Arithmetic.cs" t="Include" />
+            <e p="Atomic.cs" t="Include" />
+            <e p="Cast.cs" t="Include" />
+            <e p="ClassValues.cs" t="Include" />
+            <e p="Compare.cs" t="Include" />
+            <e p="Constants.cs" t="Include" />
+            <e p="Convert.cs" t="Include" />
+            <e p="Debug.cs" t="Include" />
+            <e p="DeviceConstants.cs" t="Include" />
+            <e p="HandleValue.cs" t="Include" />
+            <e p="IOValues.cs" t="Include" />
+            <e p="IValueVisitor.cs" t="Include" />
+            <e p="Memory.cs" t="Include" />
+            <e p="MethodCall.cs" t="Include" />
+            <e p="Parameter.cs" t="Include" />
+            <e p="PhiValue.cs" t="Include" />
+            <e p="PointerValues.cs" t="Include" />
+            <e p="Predicate.cs" t="Include" />
+            <e p="StructureValues.cs" t="Include" />
+            <e p="Terminators.cs" t="Include" />
+            <e p="Threads.cs" t="Include" />
+            <e p="Undefined.cs" t="Include" />
+            <e p="Use.cs" t="Include" />
+            <e p="UseDistribution.cs" t="Include" />
+            <e p="Value.cs" t="Include" />
+            <e p="ValueKind.cs" t="Include" />
+            <e p="ValueReference.cs" t="Include" />
+            <e p="View.cs" t="Include" />
+          </e>
+          <e p="Verifier.cs" t="Include" />
+        </e>
+        <e p="KernelConfig.cs" t="Include" />
+        <e p="LocalMemory.cs" t="Include" />
+        <e p="MemoryFence.cs" t="Include" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="net47" t="Include">
+              <e p="ILGPU.AssemblyInfo.cs" t="Include" />
+            </e>
+            <e p="netstandard2.1" t="Include">
+              <e p="ILGPU.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="Properties" t="Include">
+          <e p="AssemblyInfo.cs" t="Include" />
+          <e p="ILGPU.nuspec.targets" t="Include" />
+        </e>
+        <e p="Resources" t="Include">
+          <e p="ErrorMessages.Designer.cs" t="Include" />
+          <e p="ErrorMessages.resx" t="Include" />
+          <e p="RuntimeErrorMessages.Designer.cs" t="Include" />
+          <e p="RuntimeErrorMessages.resx" t="Include" />
+        </e>
+        <e p="Runtime" t="Include">
+          <e p="Accelerator.cs" t="Include" />
+          <e p="Accelerator.GC.cs" t="Include" />
+          <e p="Accelerator.Launchers.cs" t="Include" />
+          <e p="AcceleratorException.cs" t="Include" />
+          <e p="AcceleratorId.cs" t="Include" />
+          <e p="AcceleratorObject.cs" t="Include" />
+          <e p="AcceleratorStream.cs" t="Include" />
+          <e p="ArrayViewSource.cs" t="Include" />
+          <e p="CPU" t="Include">
+            <e p="CPUAccelerator.cs" t="Include" />
+            <e p="CPUAcceleratorId.cs" t="Include" />
+            <e p="CPUAcceleratorTask.cs" t="Include" />
+            <e p="CPUKernel.cs" t="Include" />
+            <e p="CPUMemoryBuffer.cs" t="Include" />
+            <e p="CPURuntimeGroupContext.cs" t="Include" />
+            <e p="CPURuntimeThreadIndex.cs" t="Include" />
+            <e p="CPUStream.cs" t="Include" />
+          </e>
+          <e p="Cuda" t="Include">
+            <e p="CudaAccelerator.cs" t="Include" />
+            <e p="CudaAcceleratorFlags.cs" t="Include" />
+            <e p="CudaAcceleratorId.cs" t="Include" />
+            <e p="CudaAPI.cs" t="Include" />
+            <e p="CudaAPI.xml" t="Include" />
+            <e p="CudaCacheConfiguration.cs" t="Include" />
+            <e p="CudaDriverVersion.cs" t="Include" />
+            <e p="CudaException.cs" t="Include" />
+            <e p="CudaKernel.cs" t="Include" />
+            <e p="CudaMemoryBuffer.cs" t="Include" />
+            <e p="CudaMemoryType.cs" t="Include" />
+            <e p="CudaNativeMethods.cs" t="Include" />
+            <e p="CudaSharedMemoryConfiguration.cs" t="Include" />
+            <e p="CudaStream.cs" t="Include" />
+          </e>
+          <e p="CurrentAccelerator.cs" t="Include" />
+          <e p="DebugArrayView.cs" t="Include" />
+          <e p="ExchangeBuffer.cs" t="Include" />
+          <e p="ExchangeBufferExtensions.cs" t="Include" />
+          <e p="ExchangeBufferExtensions.tt" t="Include" />
+          <e p="IAcceleratorExtensionProvider.cs" t="Include" />
+          <e p="IMemoryBuffer.cs" t="Include" />
+          <e p="Kernel.cs" t="Include" />
+          <e p="KernelAccelerator.cs" t="Include" />
+          <e p="KernelCache.cs" t="Include" />
+          <e p="KernelInfo.cs" t="Include" />
+          <e p="KernelLauncherBuilder.cs" t="Include" />
+          <e p="KernelLoaders.cs" t="Include" />
+          <e p="KernelLoaders.tt" t="Include" />
+          <e p="KernelLoading.cs" t="Include" />
+          <e p="KernelSpecialization.cs" t="Include" />
+          <e p="MemoryBuffer.cs" t="Include" />
+          <e p="MemoryBufferCache.cs" t="Include" />
+          <e p="MemoryBufferExtensions.cs" t="Include" />
+          <e p="MemoryBuffers.cs" t="Include" />
+          <e p="MemoryBuffers.tt" t="Include" />
+          <e p="OpenCL" t="Include">
+            <e p="CLAccelerator.cs" t="Include" />
+            <e p="CLAcceleratorId.cs" t="Include" />
+            <e p="CLAPI.cs" t="Include" />
+            <e p="CLAPI.xml" t="Include" />
+            <e p="CLException.cs" t="Include" />
+            <e p="CLKernel.cs" t="Include" />
+            <e p="CLMemoryBuffer.cs" t="Include" />
+            <e p="CLNativeMethods.cs" t="Include" />
+            <e p="CLPlatformVersion.cs" t="Include" />
+            <e p="CLStream.cs" t="Include" />
+          </e>
+          <e p="PeerAccess.cs" t="Include" />
+          <e p="SpecializationCache.cs" t="Include" />
+          <e p="SpecializedValue.cs" t="Include" />
+        </e>
+        <e p="RuntimeAPI.cs" t="Include" />
+        <e p="RuntimeSystem.cs" t="Include" />
+        <e p="SharedMemory.cs" t="Include" />
+        <e p="Static" t="Include">
+          <e p="ArithmeticEnums.cs" t="Include" />
+          <e p="ArithmeticEnums.tt" t="Include" />
+          <e p="BinaryMathOperations.xml" t="Include" />
+          <e p="Capabilities.xml" t="Include" />
+          <e p="CapabilitiesImporter.ttinclude" t="Include" />
+          <e p="CapabilityContext.cs" t="Include" />
+          <e p="CapabilityContext.tt" t="Include" />
+          <e p="DllImporter.ttinclude" t="Include" />
+          <e p="DllImports.cs" t="Include" />
+          <e p="DllImports.tt" t="Include" />
+          <e p="DllImports.xml" t="Include" />
+          <e p="TernaryMathOperations.xml" t="Include" />
+          <e p="TypeInformation.ttinclude" t="Include" />
+          <e p="UnaryMathOperations.xml" t="Include" />
+        </e>
+        <e p="Util" t="Include">
+          <e p="DataBlocks.cs" t="Include" />
+          <e p="DataBlocks.tt" t="Include" />
+          <e p="DisposeBase.cs" t="Include" />
+          <e p="Extension.cs" t="Include" />
+          <e p="InlineList.cs" t="Include" />
+          <e p="MethodExtensions.cs" t="Include" />
+          <e p="PrimitiveDataBlocks.cs" t="Include" />
+          <e p="PrimitiveDataBlocks.tt" t="Include" />
+          <e p="ScopedLock.cs" t="Include" />
+          <e p="TypeExtensions.cs" t="Include" />
+          <e p="Utilities.cs" t="Include" />
+        </e>
+        <e p="VariableView.cs" t="Include" />
+        <e p="Warp.cs" t="Include" />
+      </e>
+      <e p="ILGPU.sln" t="IncludeFlat" />
+      <e p="ILGPU.Tests" t="IncludeRecursive">
+        <e p=".editorconfig" t="Include" />
+        <e p=".test.runsettings" t="Include" />
+        <e p=".test.tt" t="Include" />
+        <e p="Arrays.cs" t="Include" />
+        <e p="ArrayViews.cs" t="Include" />
+        <e p="AtomicCASOperations.cs" t="Include" />
+        <e p="AtomicCASOperations.tt" t="Include" />
+        <e p="AtomicOperations.cs" t="Include" />
+        <e p="AtomicOperations.tt" t="Include" />
+        <e p="BasicCalls.cs" t="Include" />
+        <e p="BasicCalls.Generated.cs" t="Include" />
+        <e p="BasicCalls.Generated.tt" t="Include" />
+        <e p="BasicIfs.cs" t="Include" />
+        <e p="BasicJumps.cs" t="Include" />
+        <e p="BasicLoops.cs" t="Include" />
+        <e p="BasicPhis.cs" t="Include" />
+        <e p="BasicSwitches.cs" t="Include" />
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="BinaryIntOperations.cs" t="Include" />
+        <e p="BinaryIntOperations.tt" t="Include" />
+        <e p="CompareFloatOperations.cs" t="Include" />
+        <e p="CompareFloatOperations.tt" t="Include" />
+        <e p="CompareIntOperations.cs" t="Include" />
+        <e p="CompareIntOperations.tt" t="Include" />
+        <e p="Configurations.txt" t="Include" />
+        <e p="ConvertFloatOperations.cs" t="Include" />
+        <e p="ConvertFloatOperations.tt" t="Include" />
+        <e p="ConvertIntOperations.cs" t="Include" />
+        <e p="ConvertIntOperations.tt" t="Include" />
+        <e p="DebugTests.cs" t="Include" />
+        <e p="DisassemblerTests.cs" t="Include" />
+        <e p="EnumValues.cs" t="Include" />
+        <e p="ExchangeBufferOperations.cs" t="Include" />
+        <e p="FixedBuffers.cs" t="Include" />
+        <e p="FixedBuffers.tt" t="Include" />
+        <e p="Generic" t="Include">
+          <e p="AssemblyAttributes.cs" t="Include" />
+          <e p="ConfigurationBase.cs" t="Include" />
+          <e p="ConfigurationBase.tt" t="Include" />
+          <e p="KernelMethodAttribute.cs" t="Include" />
+          <e p="TestBase.cs" t="Include" />
+          <e p="TestContext.cs" t="Include" />
+          <e p="TestData.cs" t="Include" />
+        </e>
+        <e p="GridOperations.cs" t="Include" />
+        <e p="GroupOperations.cs" t="Include" />
+        <e p="ILGPU.Tests.csproj" t="IncludeRecursive" />
+        <e p="Indices.cs" t="Include" />
+        <e p="InteropTests.cs" t="Include" />
+        <e p="KernelEntryPoints.cs" t="Include" />
+        <e p="MemoryBufferOperations.cs" t="Include" />
+        <e p="MemoryBufferOperations.tt" t="Include" />
+        <e p="MemoryCacheOperations.cs" t="Include" />
+        <e p="MemoryFenceOperations.cs" t="Include" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="net47" t="Include">
+              <e p="ILGPU.Tests.AssemblyInfo.cs" t="Include" />
+            </e>
+            <e p="netcoreapp3.1" t="Include">
+              <e p="ILGPU.Tests.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="ReinterpretCasts.cs" t="Include" />
+        <e p="ReinterpretCasts.tt" t="Include" />
+        <e p="SharedMemory.cs" t="Include" />
+        <e p="SizeOfValues.cs" t="Include" />
+        <e p="SpecializedKernels.cs" t="Include" />
+        <e p="StructureValues.cs" t="Include" />
+        <e p="UnaryIntOperations.cs" t="Include" />
+        <e p="UnaryIntOperations.tt" t="Include" />
+        <e p="ValueTuples.cs" t="Include" />
+        <e p="ValueTuples.tt" t="Include" />
+        <e p="WarpOperations.cs" t="Include" />
+      </e>
+      <e p="ILGPU.Tests.CPU" t="IncludeRecursive">
+        <e p=".editorconfig" t="Include" />
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="Configurations.cs" t="Include" />
+        <e p="Configurations.tt" t="Include" />
+        <e p="ILGPU.Tests.CPU.csproj" t="IncludeRecursive" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="net47" t="Include">
+              <e p="ILGPU.Tests.CPU.AssemblyInfo.cs" t="Include" />
+            </e>
+            <e p="netcoreapp3.1" t="Include">
+              <e p="ILGPU.Tests.CPU.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="TestContext.cs" t="Include" />
+        <e p="TestContexts.cs" t="Include" />
+        <e p="TestContexts.tt" t="Include" />
+      </e>
+      <e p="ILGPU.Tests.Cuda" t="IncludeRecursive">
+        <e p=".editorconfig" t="Include" />
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="Configurations.cs" t="Include" />
+        <e p="Configurations.tt" t="Include" />
+        <e p="ILGPU.Tests.Cuda.csproj" t="IncludeRecursive" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="net47" t="Include">
+              <e p="ILGPU.Tests.Cuda.AssemblyInfo.cs" t="Include" />
+            </e>
+            <e p="netcoreapp3.1" t="Include">
+              <e p="ILGPU.Tests.Cuda.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="TestContext.cs" t="Include" />
+        <e p="TestContexts.cs" t="Include" />
+        <e p="TestContexts.tt" t="Include" />
+      </e>
+      <e p="ILGPU.Tests.OpenCL" t="IncludeRecursive">
+        <e p=".editorconfig" t="Include" />
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="Configurations.cs" t="Include" />
+        <e p="Configurations.tt" t="Include" />
+        <e p="ILGPU.Tests.OpenCL.csproj" t="IncludeRecursive" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="net47" t="Include">
+              <e p="ILGPU.Tests.OpenCL.AssemblyInfo.cs" t="Include" />
+            </e>
+            <e p="netcoreapp3.1" t="Include">
+              <e p="ILGPU.Tests.OpenCL.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="TestContext.cs" t="Include" />
+        <e p="TestContexts.cs" t="Include" />
+        <e p="TestContexts.tt" t="Include" />
+      </e>
+      <e p="packages" t="ExcludeRecursive" />
+      <e p="Tests" t="Include" />
+    </e>
+  </component>
+</project>
