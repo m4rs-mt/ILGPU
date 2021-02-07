@@ -40,7 +40,7 @@
 // "Mask" in their name, and a parallel enum that has the shift
 // amount (1 << x) for each corresponding enumerant.
 
-
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 namespace ILGPU.Backends.SPIRV
 {
     public static class SPIRVHeaders

@@ -55,6 +55,7 @@ namespace ILGPU.Backends.SPIRV
             data = new SPIRVCodeGenerator.GeneratorArgs(
                 this,
                 entryPoint,
+                new SPRIVTypeGenerator(),
                 backendContext.SharedAllocations,
                 backendContext.DynamicSharedAllocations);
             return builder;

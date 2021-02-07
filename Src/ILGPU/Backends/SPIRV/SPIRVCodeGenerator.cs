@@ -21,12 +21,13 @@ namespace ILGPU.Backends.SPIRV
             internal GeneratorArgs(
                 SPIRVBackend backend,
                 EntryPoint entryPoint,
+                SPRIVTypeGenerator generator,
                 in AllocaKindInformation sharedAllocations,
                 in AllocaKindInformation dynamicSharedAllocations)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
-
+                TypeGenerator = generator;
                 SharedAllocations = sharedAllocations;
                 DynamicSharedAllocations = dynamicSharedAllocations;
             }
@@ -35,6 +36,11 @@ namespace ILGPU.Backends.SPIRV
             /// Returns the underlying backend.
             /// </summary>
             public SPIRVBackend Backend { get; }
+
+            /// <summary>
+            /// Returns the type generator
+            /// </summary>
+            public SPRIVTypeGenerator TypeGenerator { get; }
 
             /// <summary>
             /// Returns the current entry point.
@@ -56,7 +62,17 @@ namespace ILGPU.Backends.SPIRV
 
         #region Instance
 
-        public StringBuilder Builder { get; } = new StringBuilder();
+        public StringBuilder Builder { get; }
+
+        /// <summary>
+        /// Constructs a new code generator.
+        /// </summary>
+        /// <param name="args">The generator arguments.</param>
+        internal SPIRVCodeGenerator(in GeneratorArgs args)
+            : base(args.TypeGenerator)
+        {
+            Builder = new StringBuilder();
+        }
 
         #endregion
 

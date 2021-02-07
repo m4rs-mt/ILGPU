@@ -909,8 +909,8 @@ namespace ILGPU.Backends.PTX
 
         /// <summary>
         /// Begins a new command.
-        /// </summary>
-        /// <param name="commandString">The command to begin.</param>
+        /// </summary>command
+        /// <param name="commandString">The  to begin.</param>
         /// <param name="predicate">
         /// The predicate under which to execute the command.
         /// </param>

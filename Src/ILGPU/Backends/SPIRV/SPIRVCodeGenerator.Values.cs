@@ -1,10 +1,13 @@
-﻿using ILGPU.IR.Values;
+﻿using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using System;
 
 namespace ILGPU.Backends.SPIRV
 {
     partial class SPIRVCodeGenerator
     {
+        private int lastId = 1;
+
         public void GenerateCode(MethodCall methodCall) => throw new NotImplementedException();
 
         public void GenerateCode(PhiValue phiValue) => throw new NotImplementedException();
@@ -51,7 +54,10 @@ namespace ILGPU.Backends.SPIRV
 
         public void GenerateCode(LoadFieldAddress value) => throw new NotImplementedException();
 
-        public void GenerateCode(PrimitiveValue value) => throw new NotImplementedException();
+        public void GenerateCode(PrimitiveValue value)
+        {
+
+        }
 
         public void GenerateCode(StringValue value) => throw new NotImplementedException();
 
@@ -88,7 +94,5 @@ namespace ILGPU.Backends.SPIRV
         public void GenerateCode(SubWarpShuffle shuffle) => throw new NotImplementedException();
 
         public void GenerateCode(DebugAssertOperation debug) => throw new NotImplementedException();
-
-        public void GenerateCode(IfBranch branch) => throw new NotImplementedException();
     }
 }
