@@ -9,9 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using ILGPU.Algorithms.Resources;
 using System;
 
 namespace ILGPU.Runtime.Cuda.API
@@ -19,98 +16,116 @@ namespace ILGPU.Runtime.Cuda.API
     /// <summary>
     /// An implementation of the cuRAND API.
     /// </summary>
-    public abstract class CuRandAPI : RuntimeAPI
+    public abstract partial class CuRandAPI
     {
         #region Static
 
         /// <summary>
-        /// Creates a new cuRAND API wrapper implementation for the current platform.
+        /// Creates a new API wrapper.
         /// </summary>
-        /// <param name="context">The parent context.</param>
-        /// <param name="version">The API version.</param>
-        /// <returns>The created API instance.</returns>
-        public static CuRandAPI Create(Context context, CuRandAPIVersion version)
+        /// <param name="version">The cuRand version to use.</param>
+        /// <returns>The created API wrapper.</returns>
+        public static CuRandAPI Create(CuRandAPIVersion version)
         {
-            int intVersion = (int)version;
-            return context.RuntimeSystem.CreateDllWrapper<CuRandAPI>(
-                windows: $"curand64_{intVersion}",
-                linux: $"libcurand.so.{intVersion}",
-                macos: $"libcurand.{intVersion}.dylib",
-                ErrorMessages.NotSupportedCuRandAPI);
+            try
+            {
+                return CreateInternal(version);
+            }
+            catch (Exception ex) when (
+                ex is DllNotFoundException ||
+                ex is EntryPointNotFoundException)
+            {
+                return null;
+            }
         }
 
-        #endregion
-
-        #region Instance
-
+        /// <summary>
+        /// Constructs a new cuRAND API instance.
+        /// </summary>
         protected CuRandAPI() { }
-
-        #endregion
-
-        #region RuntimeAPI
-
-        public override bool IsSupported => true;
-
-        public override bool Init() => true;
 
         #endregion
 
         #region Methods
 
-        [DynamicImport("curandCreateGenerator")]
+        /// <summary>
+        /// Creates a new GPU generator.
+        /// </summary>
         public abstract CuRandStatus CreateGenerator(
             out IntPtr generator,
             CuRandRngType rngType);
 
-        [DynamicImport("curandCreateGeneratorHost")]
+        /// <summary>
+        /// Creates a new CPU generator.
+        /// </summary>
         public abstract CuRandStatus CreateGeneratorHost(
             out IntPtr generator,
             CuRandRngType rngType);
 
-        [DynamicImport("curandDestroyGenerator")]
+        /// <summary>
+        /// Destroys the given generator.
+        /// </summary>
         public abstract CuRandStatus DestoryGenerator(IntPtr generator);
 
-        [DynamicImport("curandGetVersion")]
+        /// <summary>
+        /// Determines the version of the API.
+        /// </summary>
         public abstract CuRandStatus GetVersion(out int version);
 
-        [DynamicImport("curandSetStream")]
+        /// <summary>
+        /// Sets the stream to use.
+        /// </summary>
         public abstract CuRandStatus SetStream(
             IntPtr generator,
             IntPtr stream);
 
-        [DynamicImport("curandSetPseudoRandomGeneratorSeed")]
+        /// <summary>
+        /// Sets the stream seed.
+        /// </summary>
         public abstract CuRandStatus SetSeed(
             IntPtr generator,
             long seed);
 
-        [DynamicImport("curandGenerateSeeds")]
+        /// <summary>
+        /// Generates internal seeds.
+        /// </summary>
         public abstract CuRandStatus GenerateSeeds(IntPtr generator);
 
-        [DynamicImport("curandGenerate")]
+        /// <summary>
+        /// Generates uniform unsigned integers.
+        /// </summary>
         public abstract CuRandStatus GenerateUInt(
             IntPtr generator,
             IntPtr outputPtr,
             IntPtr length);
 
-        [DynamicImport("curandGenerateLongLong")]
+        /// <summary>
+        /// Generates uniform unsigned longs.
+        /// </summary>
         public abstract CuRandStatus GenerateULong(
             IntPtr generator,
             IntPtr outputPtr,
             IntPtr length);
 
-        [DynamicImport("curandGenerateUniform")]
+        /// <summary>
+        /// Generates uniform unsigned floats.
+        /// </summary>
         public abstract CuRandStatus GenerateUniformFloat(
             IntPtr generator,
             IntPtr outputPtr,
             IntPtr length);
 
-        [DynamicImport("curandGenerateUniformDouble")]
+        /// <summary>
+        /// Generates uniform unsigned doubles.
+        /// </summary>
         public abstract CuRandStatus GenerateUniformDouble(
             IntPtr generator,
             IntPtr outputPtr,
             IntPtr length);
 
-        [DynamicImport("curandGenerateNormal")]
+        /// <summary>
+        /// Generates normally distributed floats.
+        /// </summary>
         public abstract CuRandStatus GenerateNormalFloat(
             IntPtr generator,
             IntPtr outputPtr,
@@ -118,7 +133,9 @@ namespace ILGPU.Runtime.Cuda.API
             float mean,
             float stddev);
 
-        [DynamicImport("curandGenerateNormalDouble")]
+        /// <summary>
+        /// Generates normally distributed doubles.
+        /// </summary>
         public abstract CuRandStatus GenerateNormalDouble(
             IntPtr generator,
             IntPtr outputPtr,
@@ -129,5 +146,3 @@ namespace ILGPU.Runtime.Cuda.API
         #endregion
     }
 }
-
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

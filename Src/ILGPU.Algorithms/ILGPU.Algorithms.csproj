@@ -52,6 +52,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>RadixSortOperations.tt</DependentUpon>
     </None>
+    <None Include="Runtime\Cuda\API\CuRandNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
+    </None>
   </ItemGroup>
 
   <PropertyGroup>
@@ -115,6 +120,10 @@
     <None Update="Runtime\Cuda\API\CuBlasNativeMethods.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuBlasNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuRandNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuRandNativeMethods.cs</LastGenOutput>
     </None>
     <None Update="ScanReduceOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -219,6 +228,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CuBlasNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuRandNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
     </Compile>
     <Compile Update="ScanReduceOperations.cs">
       <DesignTime>True</DesignTime>

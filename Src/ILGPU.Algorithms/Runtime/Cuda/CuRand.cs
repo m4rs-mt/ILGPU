@@ -186,10 +186,7 @@ namespace ILGPU.Runtime.Cuda
             CuRandAPIVersion apiVersion)
             : base(accelerator)
         {
-            if (accelerator == null)
-                throw new ArgumentNullException(nameof(accelerator));
-
-            API = CuRandAPI.Create(accelerator.Context, apiVersion);
+            API = CuRandAPI.Create(apiVersion);
 
             CuRandException.ThrowIfFailed(
                 API.CreateGenerator(out IntPtr nativePtr, rngType));
@@ -433,7 +430,11 @@ namespace ILGPU.Runtime.Cuda
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
 
-            API = CuRandAPI.Create(context, apiVersion);
+            // Note: We currently do not use the context parameter to instantiate the API.
+            // However, we do pass the context instance to this constructor to ensure
+            // upward compatibility.
+
+            API = CuRandAPI.Create(apiVersion);
 
             CuRandException.ThrowIfFailed(
                 API.CreateGeneratorHost(out IntPtr nativePtr, rngType));
