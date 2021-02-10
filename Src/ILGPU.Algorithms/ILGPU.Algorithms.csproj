@@ -108,7 +108,7 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuBlasMethodsLevel3.cs</LastGenOutput>
     </None>
-    <None Update="Runtime\Cuda\CuBlasNativeMethods.tt">
+    <None Update="Runtime\Cuda\API\CuBlasNativeMethods.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuBlasNativeMethods.cs</LastGenOutput>
     </None>
@@ -211,7 +211,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>CuBlasMethodsLevel3.tt</DependentUpon>
     </Compile>
-    <Compile Update="Runtime\Cuda\CuBlasNativeMethods.cs">
+    <Compile Update="Runtime\Cuda\API\CuBlasNativeMethods.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CuBlasNativeMethods.tt</DependentUpon>

@@ -10,14 +10,13 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Runtime.InteropServices;
 
 namespace ILGPU.Runtime.Cuda.API
 {
     /// <summary>
     /// A native cuBlas API interface.
     /// </summary>
-    abstract unsafe partial class CuBlasAPI
+    internal abstract unsafe partial class CuBlasAPI
     {
         #region Static
 
@@ -28,30 +27,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <returns>The created API wrapper.</returns>
         public static CuBlasAPI Create(CuBlasAPIVersion version)
         {
-            CuBlasAPI result = null;
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    if (version == CuBlasAPIVersion.V11)
-                        result = new WindowsAPI_V11();
-                    else if (version == CuBlasAPIVersion.V10)
-                        result = new WindowsAPI_V10();
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    if (version == CuBlasAPIVersion.V11)
-                        result = new MacOSAPI_V11();
-                    else if (version == CuBlasAPIVersion.V10)
-                        result = new MacOSAPI_V10();
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    if (version == CuBlasAPIVersion.V11)
-                        result = new LinuxAPI_V11();
-                    else if (version == CuBlasAPIVersion.V10)
-                        result = new LinuxAPI_V10();
-                }
+                return CreateInternal(version);
             }
             catch (Exception ex) when (
                 ex is DllNotFoundException ||
@@ -59,10 +37,52 @@ namespace ILGPU.Runtime.Cuda.API
             {
                 return null;
             }
-            return result;
         }
 
         protected CuBlasAPI() { }
+
+        #endregion
+
+        #region Methods
+        public abstract CuBlasStatus Create(out IntPtr handle);
+
+        public abstract CuBlasStatus GetVersion(
+            IntPtr handle,
+            out int version);
+
+        public abstract CuBlasStatus Free(IntPtr handle);
+
+        public abstract CuBlasStatus GetStream(
+            IntPtr handle,
+            out IntPtr stream);
+
+        public abstract CuBlasStatus SetStream(
+            IntPtr handle,
+            IntPtr stream);
+
+        public abstract CuBlasStatus GetPointerMode(
+            IntPtr handle,
+            out CuBlasPointerMode mode);
+
+        public abstract CuBlasStatus SetPointerMode(
+            IntPtr handle,
+            CuBlasPointerMode mode);
+
+        public abstract CuBlasStatus GetAtomicsMode(
+            IntPtr handle,
+            out CuBlasAtomicsMode mode);
+
+        public abstract CuBlasStatus SetAtomicsMode(
+            IntPtr handle,
+            CuBlasAtomicsMode mode);
+
+        public abstract CuBlasStatus GetMathMode(
+            IntPtr handle,
+            out CuBlasMathMode mode);
+
+        public abstract CuBlasStatus SetMathMode(
+            IntPtr handle,
+            CuBlasMathMode mode);
 
         #endregion
     }

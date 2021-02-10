@@ -253,10 +253,10 @@ Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
 Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
 Src/ILGPU.Algorithms/PTX/PTXMath.Round.cs
 Src/ILGPU.Algorithms/RadixSortOperations.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuBlasNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel1.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel2.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel3.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasNativeMethods.cs
 Src/ILGPU.Algorithms/ScanReduceOperations.cs
 Src/ILGPU.Algorithms/Sequencers.cs
 Src/ILGPU.Algorithms/TypeInformation.cs
