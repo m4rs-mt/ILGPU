@@ -29,7 +29,6 @@ bld/
 #wwwroot/
 
 # Rider cache files
-Src/.config/
 Src/.idea/
 
 # MSTest test Results
