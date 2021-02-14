@@ -1,0 +1,44 @@
+<#@ template language="C#" #>
+<#@ output extension=".cs"#>
+<#@ include file="SPIRVTypeMappings.ttinclude"#>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="System.IO" #>
+<#const string standardIndent = "    ";#>
+namespace ILGPU.Backends.SPIRV {
+
+<#
+    PushIndent(standardIndent);
+#>
+public interface ISPIRVBuilder {
+
+<#
+    PushIndent(standardIndent);
+    foreach (var instruction in grammar.Instructions)
+    {
+#>public void Generate<#= instruction.OpName #>(<#
+        if (instruction.Operands is not null)
+        {
+            instruction.Operands.RemoveAll(x => x.Kind == "IdResult");
+            for(int i = 0 ; i < instruction.Operands.Count; i++)
+            {
+                var operand = instruction.Operands[i];
+
+                var paramName = operand.Name ?? $"param{i}";
+#><#= typeMap[operand.Kind] + " " + paramName#><#
+                if (i != instruction.Operands.Count - 1)
+                {
+#>, <#
+                }
+            }
+        }
+#>);
+
+<#
+    }
+    PopIndent();
+#>
+}
+<#
+    PopIndent();
+#>
+}

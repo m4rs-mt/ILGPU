@@ -1,0 +1,80 @@
+<#@ template language="C#" #>
+<#@ include file="SPIRVTypeMappings.ttinclude"#>
+<#@ output extension=".cs"#>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="System.IO" #>
+<#const string standardIndent = "    ";#>
+namespace ILGPU.Backends.SPIRV {
+<#
+    PushIndent(standardIndent);
+
+    foreach (var kind in grammar.OperandKinds)
+    {
+        GenerateType(kind);
+    }
+
+    void GenerateType(SPIRVOperandKind kind)
+    {
+        switch (kind.Category)
+        {
+            case "BitEnum":
+                GenerateBitEnumType(kind);
+                break;
+            case "ValueEnum":
+                GenerateValueEnum(kind);
+                break;
+            case "Composite":
+                GenerateComposite(kind);
+                break;
+        }
+    }
+
+    void GenerateBitEnumType(SPIRVOperandKind kind)
+    {
+#>public enum <#= kind.Name#> {
+<#
+        PushIndent(standardIndent);
+        foreach (var enumerant in kind.Enumerants)
+        {
+#><#= enumerant.Name#> = <#= Convert.ToInt32(enumerant.Value, 16)#>,
+<#
+        }
+        PopIndent();
+#>}
+<#
+    }
+
+    void GenerateValueEnum(SPIRVOperandKind kind)
+    {
+#>public enum <#= kind.Name#> {
+<#
+        PushIndent(standardIndent);
+        foreach (var enumerant in kind.Enumerants)
+        {
+#><#= enumerant.Name#> = <#= Convert.ToInt32(enumerant.Value)#>,
+<#
+        }
+        PopIndent();
+#>}
+<#
+    }
+
+    void GenerateComposite(SPIRVOperandKind kind)
+    {
+#>public struct <#= kind.Name#> {
+<#
+        PushIndent(standardIndent);
+        for (int i = 0; i < kind.Bases.Count; i++)
+        {
+            string kindBase = kind.Bases[i];
+#>public <#= typeMap[kindBase]#> kindBase<#= i#>;
+<#
+        }
+        PopIndent();
+#>}
+<#
+    }
+
+    PopIndent();
+#>
+}

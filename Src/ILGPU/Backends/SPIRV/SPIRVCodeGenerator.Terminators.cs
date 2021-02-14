@@ -11,7 +11,8 @@ namespace ILGPU.Backends.SPIRV
         public void GenerateCode(UnconditionalBranch branch) =>
             throw new NotImplementedException();
 
-        public void GenerateCode(IfBranch branch) => throw new NotImplementedException();
+        public void GenerateCode(IfBranch branch) =>
+            throw new NotImplementedException();
 
         public void GenerateCode(SwitchBranch branch) =>
             throw new NotImplementedException();

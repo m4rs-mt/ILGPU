@@ -53,7 +53,7 @@ namespace ILGPU.Backends.SPIRV
         {
             currentId = lastId + 1;
             string idString = $"%{lastId}";
-            string def = $"{idString} {nameof(SPIRVHeaders.Op.OpTypeVoid)}";
+            string def = $"{idString} OpTypeVoid ";
             nodeToIdMapping[typeNode] = idString;
             return def;
         }
@@ -66,7 +66,7 @@ namespace ILGPU.Backends.SPIRV
 
             if (typeNode.BasicValueType.IsInt())
             {
-                def += $"{nameof(SPIRVHeaders.Op.OpTypeInt)} ";
+                def += "OpTypeInt ";
                 switch (typeNode.BasicValueType)
                 {
                     case BasicValueType.Int1:
@@ -88,7 +88,7 @@ namespace ILGPU.Backends.SPIRV
             }
             else if (typeNode.BasicValueType.IsFloat())
             {
-                def += $"{nameof(SPIRVHeaders.Op.OpTypeFloat)} ";
+                def += "OpTypeFloat ";
                 switch (typeNode.BasicValueType)
                 {
                     case BasicValueType.Float16:

@@ -139,6 +139,18 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
         </None>
+        <None Update="Backends\SPIRV\SPIRVJSONReader.ttinclude">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>SPIRVBuilderHelpers.cs</LastGenOutput>
+        </None>
+        <None Update="Backends\SPIRV\ISPIRVBuilder.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>ISPIRVBuilder.cs</LastGenOutput>
+        </None>
+        <None Update="Backends\SPIRV\SPIRVComplexTypes.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>SPIRVComplexTypes.cs</LastGenOutput>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -251,6 +263,16 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Backends\SPIRV\ISPIRVBuilder.cs">
+          <AutoGen>True</AutoGen>
+          <DesignTime>True</DesignTime>
+          <DependentUpon>ISPIRVBuilder.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Backends\SPIRV\SPIRVComplexTypes.cs">
+          <AutoGen>True</AutoGen>
+          <DesignTime>True</DesignTime>
+          <DependentUpon>SPIRVComplexTypes.tt</DependentUpon>
         </Compile>
     </ItemGroup>
     <ItemGroup>

@@ -1,0 +1,50 @@
+<#@ include file="SPIRVJSONReader.ttinclude"#>
+<#
+    var typeMap = new Dictionary<string, string>();
+
+    foreach (var kind in grammar.OperandKinds)
+    {
+        typeMap[kind.Name] = kind.Category switch
+        {
+            "Id" => MapIdType(),
+            "Literal" => MapLiteralType(kind.Name),
+            _ => MapComplexType(kind.Name)
+        };
+    }
+#>
+<#
+    string MapIdType()
+    {
+        return "int";
+    }
+
+    string MapLiteralType(string type)
+    {
+        string paramType = "object";
+
+        switch (type)
+        {
+            case "LiteralSpecConstantOpInteger":
+            case "LiteralInteger":
+                paramType = "int";
+                break;
+            case "LiteralString":
+                paramType = "string";
+                break;
+            case "LiteralContextDependentNumber":
+                paramType = "double";
+                break;
+            case "LiteralExtInstInteger":
+                paramType = "uint";
+                break;
+        }
+
+        return paramType;
+    }
+
+    string MapComplexType(string type)
+    {
+        //Complex types are generate by SPIRVComplexTypes.tt
+        return type;
+    }
+#>
