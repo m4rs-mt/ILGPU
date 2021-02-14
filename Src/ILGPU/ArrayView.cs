@@ -495,7 +495,7 @@ namespace ILGPU
         /// <param name="extent">The extent (number of elements).</param>
         public ArrayView(ArrayView<T> baseView, TIndex extent)
         {
-            Trace.Assert(baseView.Length <= extent.Size, "Extent out of range");
+            Trace.Assert(extent.Size <= baseView.Length, "Extent out of range");
             BaseView = baseView;
             Extent = extent;
         }
