@@ -141,7 +141,7 @@
         </None>
         <None Update="Backends\SPIRV\SPIRVJSONReader.ttinclude">
           <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>SPIRVBuilderHelpers.cs</LastGenOutput>
+          <LastGenOutput>SPIRVJSONReader.cs</LastGenOutput>
         </None>
         <None Update="Backends\SPIRV\ISPIRVBuilder.tt">
           <Generator>TextTemplatingFileGenerator</Generator>

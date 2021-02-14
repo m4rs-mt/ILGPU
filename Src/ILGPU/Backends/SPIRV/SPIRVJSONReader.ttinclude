@@ -3,6 +3,8 @@
 <#@ import namespace="System.Runtime.Serialization"#>
 <#@ assembly name="System.Runtime.Serialization.Json"#>
 <#@ import namespace="System.Runtime.Serialization.Json"#>
+<#@ import namespace="System.IO"#>
+<#@ assembly name="System.Xml"#>
 <#
     var json = new DataContractJsonSerializer(typeof(SPIRVGrammar));
     var file = File.Open("spirv.core.grammar.json", FileMode.Open);
