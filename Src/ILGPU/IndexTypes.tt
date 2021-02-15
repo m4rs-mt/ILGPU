@@ -261,26 +261,15 @@ namespace ILGPU
         /// <param name="linearIndex">The linear index.</param>
         /// <returns>The reconstructed index.</returns>
         public readonly <#= name #> ReconstructIndex(int linearIndex) =>
-<# if (def.IsIntIndex) { #>
             ReconstructIndex(linearIndex, this);
-<# } else { #>
-            ReconstructIndex((long)linearIndex);
-<# } #>
 
         /// <summary>
         /// Reconstructs an index from a linear index.
         /// </summary>
         /// <param name="linearIndex">The linear index.</param>
         /// <returns>The reconstructed index.</returns>
-        public readonly <#= name #> ReconstructIndex(long linearIndex)
-<# if (def.IsIntIndex) { #>
-        {
-            IndexTypeExtensions.AssertIntIndexRange(linearIndex);
-            return ReconstructIndex((int)linearIndex, this);
-        }
-<# } else { #>
-        => ReconstructIndex(linearIndex, this);
-<# } #>
+        public readonly <#= name #> ReconstructIndex(long linearIndex) =>
+            ReconstructIndex(linearIndex, this);
 
         #endregion
 
@@ -633,6 +622,22 @@ namespace ILGPU
             <#= name #> dimension) =>
             linearIndex;
 
+<# if (def.IsIntIndex) { #>
+        /// <summary>
+        /// Reconstructs a 1D index from a linear index.
+        /// </summary>
+        /// <param name="linearIndex">The linear index.</param>
+        /// <param name="dimension">The 1D dimension for reconstruction.</param>
+        /// <returns>The reconstructed 1D index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= name #> ReconstructIndex(
+            long linearIndex,
+            <#= name #> dimension) {
+            IndexTypeExtensions.AssertIntIndexRange(linearIndex);
+            return linearIndex;
+        }
+<# } #>
+
         /// <summary>
         /// Implicitly converts an index to an int.
         /// </summary>
@@ -688,6 +693,25 @@ namespace ILGPU
             <#= baseType #> y = linearIndex / dimension.X;
             return new <#= name #>(x, y);
         }
+
+<# if (def.IsIntIndex) { #>
+        /// <summary>
+        /// Reconstructs a 2D index from a linear index.
+        /// </summary>
+        /// <param name="linearIndex">The linear index.</param>
+        /// <param name="dimension">The 2D dimension for reconstruction.</param>
+        /// <returns>The reconstructed 2D index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= name #> ReconstructIndex(
+            long linearIndex,
+            <#= name #> dimension)
+        {
+            long x = linearIndex % dimension.X;
+            long y = linearIndex / dimension.X;
+            IndexTypeExtensions.AssertIntIndexRange(y);
+            return new <#= name #>((int)x, (int)y);
+        }
+<# } #>
     }
 
 <#  } #>
@@ -725,6 +749,27 @@ namespace ILGPU
             <#= baseType #> z = yz / dimension.Y;
             return new <#= name #>(x, y, z);
         }
+
+<# if (def.IsIntIndex) { #>
+        /// <summary>
+        /// Reconstructs a 3D index from a linear index.
+        /// </summary>
+        /// <param name="linearIndex">The linear index.</param>
+        /// <param name="dimension">The 3D dimension for reconstruction.</param>
+        /// <returns>The reconstructed 3D index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= name #> ReconstructIndex(
+            long linearIndex,
+            <#= name #> dimension)
+        {
+            long x = linearIndex % dimension.X;
+            long yz = linearIndex / dimension.X;
+            long y = yz % dimension.Y;
+            long z = yz / dimension.Y;
+            IndexTypeExtensions.AssertIntIndexRange(z);
+            return new <#= name #>((int)x, (int)y, (int)z);
+        }
+<# } #>
     }
 
 <#  } #>

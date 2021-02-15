@@ -101,6 +101,7 @@ namespace ILGPU.Backends.EntryPoints
                 parameterTypes.Add(type);
             }
             Parameters = new ParameterCollection(parameterTypes.MoveToImmutable());
+
             Validate();
         }
 
@@ -112,6 +113,12 @@ namespace ILGPU.Backends.EntryPoints
         /// Returns the kernel method.
         /// </summary>
         public MethodInfo MethodSource { get; }
+
+        /// <summary>
+        /// Returns the name of the underlying entry point to be used in the scope of
+        /// loaded runtime <see cref="Kernel"/> instances.
+        /// </summary>
+        public readonly string Name => KernelNameAttribute.GetKernelName(MethodSource);
 
         /// <summary>
         /// Returns the associated index type.

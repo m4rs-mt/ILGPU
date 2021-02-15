@@ -49,11 +49,26 @@ jobs:
             Exit 1
           }
 
+  # Setup the OS matrix so that CUDA tests do not run on forks, as it needs self-hosted runners
+  setup-os-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup OS matrix
+        id: setup-os-matrix
+        run: |
+          os='["ubuntu-latest","windows-latest","macos-latest"'
+          [ "${{ github.event.repository.fork }}" == "false" ] && os="$os,\"cuda\""
+          os="$os]"
+          echo "::set-output name=os::$os"
+    outputs:
+      os: ${{ steps.setup-os-matrix.outputs.os }}
+
   build-and-test:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: setup-os-matrix
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest, cuda]
+        os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -68,7 +83,8 @@ jobs:
         working-directory: ./Src
       - name: Build templates
         # TargetFramework specified so this only runs once rather than per framework
-        run: dotnet msbuild -t:TextTemplateTransform -p:TargetFramework=NA Src
+        # WORKAROUND: maxCpuCount set to 1 to avoid parallelism-related issues
+        run: dotnet msbuild -t:TextTemplateTransform -p:TargetFramework=NA -m:1 Src
       - name: Release Build
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
       - name: CPU Tests

@@ -790,7 +790,7 @@ namespace ILGPU.IR.Values
                 {
                     Location.Assert(!value.Type.IsStructureType);
                     Location.Assert(
-                        value.Type == Parent[Count] ||
+                        value.Type == Parent[access.Index] ||
                         value.ResolveAs<UndefinedValue>() != null);
 
                     builder[access.Index] = value;

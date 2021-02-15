@@ -205,6 +205,11 @@ namespace ILGPU.Backends
         public MethodInfo SourceMethod => EntryPoint.MethodInfo;
 
         /// <summary>
+        /// Returns the associated kernel function name.
+        /// </summary>
+        public string Name => EntryPoint.Name;
+
+        /// <summary>
         /// Returns the index type of the entry point.
         /// </summary>
         public IndexType IndexType => EntryPoint.IndexType;
@@ -213,6 +218,11 @@ namespace ILGPU.Backends
         /// Returns the associated kernel specialization.
         /// </summary>
         public KernelSpecialization Specialization => EntryPoint.Specialization;
+
+        /// <summary>
+        /// Returns the number of uniform parameters.
+        /// </summary>
+        public int NumParameters => EntryPoint.Parameters.Count;
 
         /// <summary>
         /// Returns the internally used entry point.

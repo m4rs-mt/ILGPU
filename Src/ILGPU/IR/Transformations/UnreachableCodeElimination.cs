@@ -124,8 +124,15 @@ namespace ILGPU.IR.Transformations
             PhiArgumentRemapper remapper,
             PhiValue phiValue)
         {
+            // Check whether this phi has become unreachable
             if (!remapper.IsReachable(phiValue.BasicBlock))
                 return;
+
+            // Check whether this phi has been replaced due to a previous simplification
+            if (phiValue.IsReplaced)
+                return;
+
+            // Remap all arguments and simplify phi values recursively
             phiValue.RemapArguments(context.GetMethodBuilder(), remapper);
         }
 

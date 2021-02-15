@@ -147,7 +147,7 @@ namespace ILGPU.Backends.PTX
         {
             Builder.AppendLine();
             Builder.Append(".visible .entry ");
-            Builder.Append(PTXCompiledKernel.EntryName);
+            Builder.Append(EntryPoint.Name);
             Builder.AppendLine("(");
 
             var parameterLogic = new KernelParameterSetupLogic(EntryPoint, this);

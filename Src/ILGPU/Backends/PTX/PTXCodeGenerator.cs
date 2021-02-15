@@ -281,17 +281,8 @@ namespace ILGPU.Backends.PTX
         /// <param name="name">The source name.</param>
         /// <param name="nodeId">The source node id.</param>
         /// <returns>The resolved PTX name.</returns>
-        private static string GetCompatibleName(string name, NodeId nodeId)
-        {
-            var chars = name.ToCharArray();
-            for (int i = 0, e = chars.Length; i < e; ++i)
-            {
-                ref var charValue = ref chars[i];
-                if (!char.IsLetterOrDigit(charValue))
-                    charValue = '_';
-            }
-            return new string(chars) + nodeId.ToString();
-        }
+        private static string GetCompatibleName(string name, NodeId nodeId) =>
+            KernelNameAttribute.GetCompatibleName(name) + nodeId.ToString();
 
         /// <summary>
         /// Returns the PTX function name for the given function.

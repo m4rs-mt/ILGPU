@@ -277,9 +277,8 @@ namespace ILGPU.Runtime
             : base(accelerator)
         {
             Debug.Assert(compiledKernel != null, "Invalid compiled kernel");
-            Specialization = compiledKernel.Specialization;
+            CompiledKernel = compiledKernel;
             Launcher = launcher;
-            NumParameters = compiledKernel.EntryPoint.Parameters.Count;
         }
 
         #endregion
@@ -294,12 +293,26 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the associated specialization.
         /// </summary>
-        public KernelSpecialization Specialization { get; }
+        public KernelSpecialization Specialization => CompiledKernel.Specialization;
 
         /// <summary>
         /// Returns the number of uniform parameters.
         /// </summary>
-        public int NumParameters { get; }
+        public int NumParameters => CompiledKernel.NumParameters;
+
+        /// <summary>
+        /// Returns information about all functions in the compiled kernel.
+        /// </summary>
+        /// <remarks>
+        /// This instance will be available when the
+        /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
+        /// </remarks>
+        public CompiledKernel.KernelInfo Info => CompiledKernel.Info;
+
+        /// <summary>
+        /// Returns the associated compiled kernel object.
+        /// </summary>
+        public CompiledKernel CompiledKernel { get; }
 
         #endregion
 
@@ -411,5 +424,45 @@ namespace ILGPU.Runtime
             kernelDelegate.TryGetKernel(out var kernel)
             ? kernel
             : throw new InvalidOperationException();
+
+        /// <summary>
+        /// Returns the compiled kernel object that is associated with the given kernel
+        /// delegate handle.
+        /// </summary>
+        /// <typeparam name="TDelegate">The kernel-delegate type.</typeparam>
+        /// <param name="kernelDelegate">The kernel-delegate instance.</param>
+        /// <returns>The compiled kernel object.</returns>
+        public static CompiledKernel GetCompiledKernel<TDelegate>(
+            this TDelegate kernelDelegate)
+            where TDelegate : Delegate =>
+            kernelDelegate.GetKernel().CompiledKernel;
+
+        /// <summary>
+        /// Returns the kernel specialization that is associated with the given kernel
+        /// delegate handle.
+        /// </summary>
+        /// <typeparam name="TDelegate">The kernel-delegate type.</typeparam>
+        /// <param name="kernelDelegate">The kernel-delegate instance.</param>
+        /// <returns>The kernel specialization instance.</returns>
+        public static KernelSpecialization GetKernelSpecialization<TDelegate>(
+            this TDelegate kernelDelegate)
+            where TDelegate : Delegate =>
+            kernelDelegate.GetKernel().Specialization;
+
+        /// <summary>
+        /// Returns the kernel compilation information (if any) that is associated with
+        /// the given kernel delegate handle.
+        /// </summary>
+        /// <typeparam name="TDelegate">The kernel-delegate type.</typeparam>
+        /// <param name="kernelDelegate">The kernel-delegate instance.</param>
+        /// <returns>The kernel specialization instance.</returns>
+        /// <remarks>
+        /// This instance will be available when the
+        /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
+        /// </remarks>
+        public static CompiledKernel.KernelInfo GetKernelInfo<TDelegate>(
+            this TDelegate kernelDelegate)
+            where TDelegate : Delegate =>
+            kernelDelegate.GetKernel().Info;
     }
 }

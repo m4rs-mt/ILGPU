@@ -351,15 +351,20 @@ namespace ILGPU.Backends.EntryPoints
             /// <summary>
             /// Constructs a new view source.
             /// </summary>
+            /// <param name="typeInformationManager">
+            /// The parent type information manager.
+            /// </param>
             /// <param name="source">The underlying source.</param>
             /// <param name="viewParameter">The view parameter to map.</param>
             public ViewSource(
+                TypeInformationManager typeInformationManager,
                 in TSource source,
                 in SeparateViewEntryPoint.ViewParameter viewParameter)
             {
                 Source = source;
                 SourceType = viewParameter.ViewType;
-                ParameterType = viewParameter.ParameterType;
+                ParameterType = typeInformationManager.GetTypeInfo(
+                    viewParameter.ParameterType);
                 AccessChain = viewParameter.SourceChain;
             }
 
@@ -914,10 +919,14 @@ namespace ILGPU.Backends.EntryPoints
         /// <typeparam name="TMappingHandler">The handler type.</typeparam>
         /// <param name="emitter">The target emitter to write to.</param>
         /// <param name="mappingHandler">The target mapping handler to use.</param>
+        /// <param name="typeInformationManager">
+        /// The parent type information manager.
+        /// </param>
         /// <param name="entryPoint">The entry point to use.</param>
         protected static void MapViews<TILEmitter, TMappingHandler>(
             in TILEmitter emitter,
             in TMappingHandler mappingHandler,
+            TypeInformationManager typeInformationManager,
             SeparateViewEntryPoint entryPoint)
             where TILEmitter : struct, IILEmitter
             where TMappingHandler : struct, ISeparateViewMappingHandler
@@ -948,6 +957,7 @@ namespace ILGPU.Backends.EntryPoints
                 foreach (var view in views)
                 {
                     var viewSource = new ViewSource<ArgumentSource>(
+                        typeInformationManager,
                         argumentSource,
                         view);
                     mappingHandler.MapViewArgument(
