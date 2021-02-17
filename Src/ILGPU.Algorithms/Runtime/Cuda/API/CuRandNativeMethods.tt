@@ -18,6 +18,10 @@
 <#
 var apis = new (string, string, string, string)[]
 {
+    ("CuRand_WindowsAPI_V9",  "curand64_9",         "Windows", "V9"),
+    ("CuRand_LinuxAPI_V9",    "libcurand.so.9",     "Linux",   "V9"),
+    ("CuRand_MacOSAPI_V9",    "libcurand.9.dylib",  "OSX",     "V9"),
+
     ("CuRand_WindowsAPI_V10", "curand64_10",        "Windows", "V10"),
     ("CuRand_LinuxAPI_V10",   "libcurand.so.10",    "Linux",   "V10"),
     ("CuRand_MacOSAPI_V10",   "libcurand.10.dylib", "OSX",     "V10"),

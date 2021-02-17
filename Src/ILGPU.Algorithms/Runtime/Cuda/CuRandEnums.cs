@@ -54,6 +54,11 @@ namespace ILGPU.Runtime.Cuda
     public enum CuRandAPIVersion : int
     {
         /// <summary>
+        /// Version 9 of the cuRand library.
+        /// </summary>
+        V9 = 9,
+
+        /// <summary>
         /// Version 10 of the cuRand library.
         /// </summary>
         V10 = 10,
