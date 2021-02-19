@@ -14,6 +14,8 @@ using ILGPU.IR.Analyses.TraversalOrders;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable CS0282 // There is no defined ordering between fields in
