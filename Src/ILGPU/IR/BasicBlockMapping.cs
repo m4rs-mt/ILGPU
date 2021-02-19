@@ -14,8 +14,6 @@ using ILGPU.IR.Analyses.TraversalOrders;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable CS0282 // There is no defined ordering between fields in
@@ -101,11 +99,6 @@ namespace ILGPU.IR
         /// <summary>
         /// Initializes the debug part of this block set.
         /// </summary>
-        [SuppressMessage(
-            "Performance",
-            "CA1822:Mark members as static",
-            Justification = "For debugging purposes only")]
-        [Conditional("DEBUG")]
         partial void InitBlockSet();
 
         #endregion
@@ -148,11 +141,6 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="block">The basic block.</param>
         /// <param name="added">True, whether the block has been added.</param>
-        [SuppressMessage(
-            "Performance",
-            "CA1822:Mark members as static",
-            Justification = "For debugging purposes only")]
-        [Conditional("DEBUG")]
         readonly partial void AssertAdd(BasicBlock block, bool added);
 
         /// <summary>
@@ -184,11 +172,6 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="block">The basic block.</param>
         /// <param name="contained">True, whether the block is contained.</param>
-        [SuppressMessage(
-            "Performance",
-            "CA1822:Mark members as static",
-            Justification = "For debugging purposes only")]
-        [Conditional("DEBUG")]
         readonly partial void AssertContained(BasicBlock block, bool contained);
 
         /// <summary>
@@ -212,11 +195,6 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="block">The basic block.</param>
         /// <param name="removed">True, whether the block has been removed.</param>
-        [SuppressMessage(
-            "Performance",
-            "CA1822:Mark members as static",
-            Justification = "For debugging purposes only")]
-        [Conditional("DEBUG")]
         readonly partial void AssertRemoved(BasicBlock block, bool removed);
 
         /// <summary>
@@ -246,11 +224,6 @@ namespace ILGPU.IR
         /// <summary>
         /// Asserts that the set has been cleared.
         /// </summary>
-        [SuppressMessage(
-            "Performance",
-            "CA1822:Mark members as static",
-            Justification = "For debugging purposes only")]
-        [Conditional("DEBUG")]
         readonly partial void AssertCleared();
 
         /// <summary>
@@ -269,10 +242,6 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents a set list of basic blocks.
     /// </summary>
-    [SuppressMessage(
-        "Naming",
-        "CA1710:Identifiers should have correct suffix",
-        Justification = "The collection ends in list")]
     public struct BasicBlockSetList : IReadOnlyList<BasicBlock>
     {
         #region Static
@@ -415,10 +384,6 @@ namespace ILGPU.IR
     /// A mapping of basic block to values.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    [SuppressMessage(
-        "Naming",
-        "CA1710:Identifiers should have correct suffix",
-        Justification = "The collection ends in map")]
     public partial struct BasicBlockMap<T> : IReadOnlyCollection<(BasicBlock, T)>
     {
         #region Nested Types
@@ -524,11 +489,6 @@ namespace ILGPU.IR
         /// <summary>
         /// Initializes the debug part of this block map.
         /// </summary>
-        [SuppressMessage(
-            "Performance",
-            "CA1822:Mark members as static",
-            Justification = "For debugging purposes only")]
-        [Conditional("DEBUG")]
         partial void InitBlockMap();
 
         #endregion
@@ -585,11 +545,6 @@ namespace ILGPU.IR
         /// <param name="block">The basic block.</param>
         /// <param name="value">The value.</param>
         /// <param name="added">True, whether the block has been added.</param>
-        [SuppressMessage(
-            "Performance",
-            "CA1822:Mark members as static",
-            Justification = "For debugging purposes only")]
-        [Conditional("DEBUG")]
         readonly partial void AssertAdd(
             BasicBlock block,
             in T value,
@@ -617,11 +572,6 @@ namespace ILGPU.IR
         /// <param name="block">The basic block.</param>
         /// <param name="value">The value (if any).</param>
         /// <param name="contained">True, whether the block is contained.</param>
-        [SuppressMessage(
-            "Performance",
-            "CA1822:Mark members as static",
-            Justification = "For debugging purposes only")]
-        [Conditional("DEBUG")]
         readonly partial void AssertContained(
             BasicBlock block,
             in T value,
@@ -735,11 +685,6 @@ namespace ILGPU.IR
         /// <summary>
         /// Asserts that the map has been cleared.
         /// </summary>
-        [SuppressMessage(
-            "Performance",
-            "CA1822:Mark members as static",
-            Justification = "For debugging purposes only")]
-        [Conditional("DEBUG")]
         readonly partial void AssertCleared();
 
         /// <summary>
@@ -867,58 +812,6 @@ namespace ILGPU.IR
             blockMap.Clear();
             EntryBlock.Assert(Count == blockMap.Count);
         }
-
-        #endregion
-    }
-#else
-    partial struct BasicBlockSet
-    {
-        #region Instance
-
-        /// <summary cref="InitBlockSet"/>
-        partial void InitBlockSet() { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="AssertAdd(BasicBlock, bool)"/>
-        readonly partial void AssertAdd(BasicBlock block, bool added) { }
-
-        /// <summary cref="AssertContained(BasicBlock, bool)"/>
-        readonly partial void AssertContained(BasicBlock block, bool contained) { }
-
-        /// <summary cref="AssertCleared()"/>
-        readonly partial void AssertCleared() { }
-
-        #endregion
-    }
-
-    partial struct BasicBlockMap<T>
-    {
-        #region Instance
-
-        /// <summary cref="InitBlockMap"/>
-        partial void InitBlockMap() { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="AssertAdd(BasicBlock, in T, bool)"/>
-        readonly partial void AssertAdd(
-            BasicBlock block,
-            in T value,
-            bool added) { }
-
-        /// <summary cref="AssertContained(BasicBlock, in T, bool)"/>
-        readonly partial void AssertContained(
-            BasicBlock block,
-            in T value,
-            bool contained) { }
-
-        /// <summary cref="AssertCleared()"/>
-        readonly partial void AssertCleared() { }
 
         #endregion
     }
