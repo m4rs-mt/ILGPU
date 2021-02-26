@@ -20,6 +20,27 @@ namespace ILGPU.Frontend
     partial class CodeGenerator
     {
         /// <summary>
+        /// Helper function to compute field refence for the specified field of a type.
+        /// </summary>
+        /// <param name="type">The type node.</param>
+        /// <param name="field">The field.</param>
+        /// <returns>The target field span.</returns>
+        private FieldSpan ComputeFieldSpan(TypeNode type, FieldInfo field)
+        {
+            var typeInfo = TypeContext.GetTypeInfo(field.FieldType);
+            var parentInfo = TypeContext.GetTypeInfo(field.DeclaringType);
+            var fieldIndex = parentInfo.GetAbsoluteIndex(field);
+
+            if (type.IsStructureType)
+            {
+                var structureType = type.As<StructureType>(Location);
+                fieldIndex = structureType.RemapFieldIndex(fieldIndex);
+            }
+
+            return new FieldSpan(fieldIndex, typeInfo.NumFlattendedFields);
+        }
+
+        /// <summary>
         /// Loads the value of a field specified by the given metadata token.
         /// </summary>
         /// <param name="field">The field.</param>
@@ -44,18 +65,14 @@ namespace ILGPU.Frontend
             else
             {
                 // Load field from value
-                var typeInfo = TypeContext.GetTypeInfo(field.FieldType);
-                var parentInfo = TypeContext.GetTypeInfo(field.DeclaringType);
-                int absoluteIndex = parentInfo.GetAbsoluteIndex(field);
+                var fieldSpan = ComputeFieldSpan(fieldValue.Type, field);
 
                 // Check whether we have to get multiple elements
                 var getField = Builder.CreateGetField(
                     Location,
                     fieldValue,
-                    new FieldSpan(
-                        absoluteIndex,
-                        typeInfo.NumFlattendedFields));
-                if (typeInfo.NumFlattendedFields == 1)
+                    fieldSpan);
+                if (fieldSpan.Span == 1)
                 {
                     Block.Push(LoadOntoEvaluationStack(
                         getField,
@@ -76,29 +93,18 @@ namespace ILGPU.Frontend
         {
             if (field == null)
                 throw Location.GetInvalidOperationException();
-            var parentType = field.DeclaringType;
             var targetPointerType = Builder.CreatePointerType(
-                Builder.CreateType(parentType),
+                Builder.CreateType(field.DeclaringType),
                 MemoryAddressSpace.Generic);
             var address = Block.Pop(
                 targetPointerType,
                 ConvertFlags.None);
 
-            var typeInfo = TypeContext.GetTypeInfo(field.FieldType);
-            var parentInfo = TypeContext.GetTypeInfo(parentType);
-            int absoluteIndex = parentInfo.GetAbsoluteIndex(field);
-
-            if (targetPointerType.ElementType.IsStructureType)
-            {
-                var structureType =
-                    targetPointerType.ElementType.As<StructureType>(Location);
-                absoluteIndex = structureType.RemapFieldIndex(absoluteIndex);
-            }
-
+            var fieldSpan = ComputeFieldSpan(targetPointerType.ElementType, field);
             var fieldAddress = Builder.CreateLoadFieldAddress(
                 Location,
                 address,
-                new FieldSpan(absoluteIndex, typeInfo.NumFlattendedFields));
+                fieldSpan);
             Block.Push(fieldAddress);
         }
 
