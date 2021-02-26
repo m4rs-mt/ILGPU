@@ -426,6 +426,52 @@ namespace ILGPU.Tests
             var expected = new int[] { 42 };
             Verify(output, expected);
         }
+
+        public unsafe struct FieldStruct
+        {
+            public fixed int Array[3];
+            public int Cursor;
+        }
+
+        internal static void StructureFixedBufferGetFieldKernel(
+            Index1 index, ArrayView<int> output)
+        {
+            var a = new FieldStruct();
+            if (a.Cursor > 0)
+            {
+                output[index] = index;
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StructureFixedBufferGetFieldKernel))]
+        public void StructureFixedBufferGetField()
+        {
+            using var output = Accelerator.Allocate<int>(1);
+            output.MemSetToZero();
+            Execute(1, output.View);
+
+            var expected = new int[] { 0 };
+            Verify(output, expected);
+        }
+
+        internal static void StructureFixedBufferSetFieldKernel(
+            Index1 index, ArrayView<int> output)
+        {
+            var a = new FieldStruct { Cursor = 42 };
+            output[index] = a.Cursor;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StructureFixedBufferSetFieldKernel))]
+        public void StructureFixedBufferSetField()
+        {
+            using var output = Accelerator.Allocate<int>(1);
+            Execute(1, output.View);
+
+            var expected = new int[] { 42 };
+            Verify(output, expected);
+        }
     }
 }
 
