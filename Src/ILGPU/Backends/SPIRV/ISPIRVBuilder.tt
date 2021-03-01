@@ -16,7 +16,7 @@ public interface ISPIRVBuilder {
     foreach (var instruction in grammar.Instructions.Instructions)
     {
 #>public void Generate<#= instruction.OpName #>(<#
-        if (instruction.Operands?.Operands is not null)
+        if (instruction.Operands?.Operands != null)
         {
             var list = instruction.Operands.Operands;
             list.RemoveAll(x => x.Kind == "IdResult");
