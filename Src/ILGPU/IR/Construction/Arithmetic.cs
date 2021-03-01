@@ -50,7 +50,7 @@ namespace ILGPU.IR.Construction
             ArithmeticFlags flags)
         {
             // Check for constants
-            if (UseConstantPropagation && node is PrimitiveValue value)
+            if (node is PrimitiveValue value)
                 return UnaryArithmeticFoldConstants(location, value, kind);
 
             return
@@ -154,7 +154,7 @@ namespace ILGPU.IR.Construction
             VerifyBinaryArithmeticOperands(location, left, right, kind);
 
             Value simplified;
-            if (UseConstantPropagation && right is PrimitiveValue rightValue)
+            if (right is PrimitiveValue rightValue)
             {
                 // Check for constants
                 if (left is PrimitiveValue leftPrimitive)
@@ -298,27 +298,24 @@ namespace ILGPU.IR.Construction
             TernaryArithmeticKind kind,
             ArithmeticFlags flags)
         {
-            if (UseConstantPropagation)
+            // Check for constants
+            if (first is PrimitiveValue firstValue &&
+                second is PrimitiveValue secondValue)
             {
-                // Check for constants
-                if (first is PrimitiveValue firstValue &&
-                    second is PrimitiveValue secondValue)
-                {
-                    var value = BinaryArithmeticFoldConstants(
-                        location,
-                        firstValue,
-                        secondValue,
-                        TernaryArithmeticValue.GetLeftBinaryKind(kind),
-                        flags);
+                var value = BinaryArithmeticFoldConstants(
+                    location,
+                    firstValue,
+                    secondValue,
+                    TernaryArithmeticValue.GetLeftBinaryKind(kind),
+                    flags);
 
-                    // Try to fold right hand side as well
-                    var rightOperation = TernaryArithmeticValue.GetRightBinaryKind(kind);
-                    return CreateArithmetic(
-                        location,
-                        value,
-                        third,
-                        rightOperation);
-                }
+                // Try to fold right hand side as well
+                var rightOperation = TernaryArithmeticValue.GetRightBinaryKind(kind);
+                return CreateArithmetic(
+                    location,
+                    value,
+                    third,
+                    rightOperation);
             }
 
             return Append(new TernaryArithmeticValue(
