@@ -2,7 +2,7 @@
 <#@ output extension=".cs"#>
 <#@ include file="SPIRVTypeMappings.ttinclude"#>
 <#@ assembly name="System.Xml" #>
-<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Xml.Serialization" #>
 <#const string standardIndent = "    ";#>
 namespace ILGPU.Backends.SPIRV {
 
@@ -13,19 +13,20 @@ public interface ISPIRVBuilder {
 
 <#
     PushIndent(standardIndent);
-    foreach (var instruction in grammar.Instructions)
+    foreach (var instruction in grammar.Instructions.Instructions)
     {
 #>public void Generate<#= instruction.OpName #>(<#
-        if (instruction.Operands is not null)
+        if (instruction.Operands?.Operands is not null)
         {
-            instruction.Operands.RemoveAll(x => x.Kind == "IdResult");
-            for(int i = 0 ; i < instruction.Operands.Count; i++)
+            var list = instruction.Operands.Operands;
+            list.RemoveAll(x => x.Kind == "IdResult");
+            for(int i = 0 ; i < list.Count; i++)
             {
-                var operand = instruction.Operands[i];
+                var operand = list[i];
 
                 var paramName = operand.Name ?? $"param{i}";
 #><#= typeMap[operand.Kind] + " " + paramName#><#
-                if (i != instruction.Operands.Count - 1)
+                if (i != list.Count - 1)
                 {
 #>, <#
                 }

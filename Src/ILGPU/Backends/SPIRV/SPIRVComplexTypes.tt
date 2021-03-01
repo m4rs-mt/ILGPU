@@ -2,13 +2,13 @@
 <#@ include file="SPIRVTypeMappings.ttinclude"#>
 <#@ output extension=".cs"#>
 <#@ assembly name="System.Xml" #>
-<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Xml.Serialization" #>
 <#const string standardIndent = "    ";#>
 namespace ILGPU.Backends.SPIRV {
 <#
     PushIndent(standardIndent);
 
-    foreach (var kind in grammar.OperandKinds)
+    foreach (var kind in grammar.OperandKinds.OperandKinds)
     {
         GenerateType(kind);
     }
@@ -34,7 +34,7 @@ namespace ILGPU.Backends.SPIRV {
 #>public enum <#= kind.Name#> {
 <#
         PushIndent(standardIndent);
-        foreach (var enumerant in kind.Enumerants)
+        foreach (var enumerant in kind.Enumerants.Enumerants)
         {
 #><#= enumerant.Name#> = <#= Convert.ToInt32(enumerant.Value, 16)#>,
 <#
@@ -49,7 +49,7 @@ namespace ILGPU.Backends.SPIRV {
 #>public enum <#= kind.Name#> {
 <#
         PushIndent(standardIndent);
-        foreach (var enumerant in kind.Enumerants)
+        foreach (var enumerant in kind.Enumerants.Enumerants)
         {
 #><#= enumerant.Name#> = <#= Convert.ToInt32(enumerant.Value)#>,
 <#
@@ -66,7 +66,7 @@ namespace ILGPU.Backends.SPIRV {
         PushIndent(standardIndent);
         for (int i = 0; i < kind.Bases.Count; i++)
         {
-            string kindBase = kind.Bases[i];
+            string kindBase = kind.Bases[i].Base;
 #>public <#= typeMap[kindBase]#> kindBase<#= i#>;
 <#
         }

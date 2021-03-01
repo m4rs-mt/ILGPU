@@ -1,8 +1,8 @@
-<#@ include file="SPIRVJSONReader.ttinclude"#>
+<#@ include file="SPIRVXMLReader.ttinclude"#>
 <#
     var typeMap = new Dictionary<string, string>();
 
-    foreach (var kind in grammar.OperandKinds)
+    foreach (var kind in grammar.OperandKinds.OperandKinds)
     {
         typeMap[kind.Name] = kind.Category switch
         {
