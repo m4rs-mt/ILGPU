@@ -33,8 +33,6 @@ namespace ILGPU.IR.Construction
         {
             BasicBlock = basicBlock;
             BaseContext = Method.BaseContext;
-            UseConstantPropagation = !BaseContext.HasFlags(
-                ContextFlags.DisableConstantPropagation);
         }
 
         #endregion
@@ -55,11 +53,6 @@ namespace ILGPU.IR.Construction
         /// Returns the associated basic block.
         /// </summary>
         public BasicBlock BasicBlock { get; }
-
-        /// <summary>
-        /// True, if the IR builder should use constant propagation.
-        /// </summary>
-        public bool UseConstantPropagation { get; }
 
         #endregion
 

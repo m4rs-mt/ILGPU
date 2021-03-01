@@ -139,6 +139,7 @@ namespace ILGPU
         /// Disables the on-the-fly constant propagation functionality
         /// (e.g. for debugging purposes).
         /// </summary>
+        [Obsolete("This flag is no longer supported.")]
         DisableConstantPropagation = 1 << 20,
 
         /// <summary>

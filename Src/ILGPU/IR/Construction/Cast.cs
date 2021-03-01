@@ -158,7 +158,7 @@ namespace ILGPU.IR.Construction
             Value node)
         {
             var primitiveType = node.Type.As<PrimitiveType>(location);
-            if (UseConstantPropagation && node is PrimitiveValue primitive)
+            if (node is PrimitiveValue primitive)
             {
                 return primitiveType.BasicValueType switch
                 {
@@ -204,7 +204,7 @@ namespace ILGPU.IR.Construction
             Value node)
         {
             var primitiveType = node.Type.As<PrimitiveType>(location);
-            if (UseConstantPropagation && node is PrimitiveValue primitive)
+            if (node is PrimitiveValue primitive)
             {
                 return primitiveType.BasicValueType switch
                 {

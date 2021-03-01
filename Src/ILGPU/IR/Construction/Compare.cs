@@ -52,59 +52,56 @@ namespace ILGPU.IR.Construction
             CompareKind kind,
             CompareFlags flags)
         {
-            if (UseConstantPropagation)
+            var leftValue = left as PrimitiveValue;
+            var rightValue = right as PrimitiveValue;
+            if (leftValue != null && rightValue != null)
             {
-                var leftValue = left as PrimitiveValue;
-                var rightValue = right as PrimitiveValue;
-                if (leftValue != null && rightValue != null)
-                {
-                    return CompareFoldConstants(
-                        location,
-                        leftValue,
-                        rightValue,
-                        kind,
-                        flags);
-                }
+                return CompareFoldConstants(
+                    location,
+                    leftValue,
+                    rightValue,
+                    kind,
+                    flags);
+            }
 
-                // Check whether we should move constants to the RHS
-                if (leftValue != null)
-                {
-                    // Adjust the compare kind and flags for swapping both operands
-                    kind = CompareValue.SwapOperands(
-                        kind,
-                        left.BasicValueType,
-                        right.BasicValueType,
-                        ref flags);
+            // Check whether we should move constants to the RHS
+            if (leftValue != null)
+            {
+                // Adjust the compare kind and flags for swapping both operands
+                kind = CompareValue.SwapOperands(
+                    kind,
+                    left.BasicValueType,
+                    right.BasicValueType,
+                    ref flags);
 
-                    // Create a new compare value using the updated kind and flags
-                    return CreateCompare(
-                        location,
-                        right,
-                        left,
-                        kind,
-                        flags);
-                }
+                // Create a new compare value using the updated kind and flags
+                return CreateCompare(
+                    location,
+                    right,
+                    left,
+                    kind,
+                    flags);
+            }
 
-                if (left.Type is PrimitiveType leftType &&
-                    leftType.BasicValueType == BasicValueType.Int1)
+            if (left.Type is PrimitiveType leftType &&
+                leftType.BasicValueType == BasicValueType.Int1)
+            {
+                // Bool comparison -> convert to logical operation
+                if (rightValue != null)
                 {
-                    // Bool comparison -> convert to logical operation
-                    if (rightValue != null)
-                    {
-                        return kind == CompareKind.Equal
-                            ? rightValue.Int1Value
-                                ? (ValueReference)left
-                                : CreateArithmetic(
-                                    location,
-                                    left,
-                                    UnaryArithmeticKind.Not)
-                            : rightValue.Int1Value
-                                ? CreateArithmetic(
-                                    location,
-                                    left,
-                                    UnaryArithmeticKind.Not)
-                                : (ValueReference)left;
-                    }
+                    return kind == CompareKind.Equal
+                        ? rightValue.Int1Value
+                            ? (ValueReference)left
+                            : CreateArithmetic(
+                                location,
+                                left,
+                                UnaryArithmeticKind.Not)
+                        : rightValue.Int1Value
+                            ? CreateArithmetic(
+                                location,
+                                left,
+                                UnaryArithmeticKind.Not)
+                            : (ValueReference)left;
                 }
             }
 

@@ -172,7 +172,7 @@ namespace ILGPU.IR.Construction
 
 
             // Match primitive types
-            if (UseConstantPropagation && node is PrimitiveValue value)
+            if (node is PrimitiveValue value)
             {
                 var targetBasicValueType = targetType.BasicValueType;
 
