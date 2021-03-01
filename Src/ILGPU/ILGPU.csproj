@@ -139,7 +139,7 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
         </None>
-        <None Update="Backends\SPIRV\SPIRVJSONReader.ttinclude">
+        <None Update="Backends\SPIRV\SPIRVXMLReader.ttinclude">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>SPIRVJSONReader.cs</LastGenOutput>
         </None>

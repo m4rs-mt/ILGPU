@@ -3,7 +3,7 @@
 <#@ assembly name="System.Xml"#>
 <#
     var xml = new XmlSerializer(typeof(SPIRVGrammar));
-    using var file = File.Open("spirv.grammar.xml", FileMode.Open);
+    using var file = File.Open("Backends/SPIRV/spirv.grammar.xml", FileMode.Open);
 
     var grammar = (SPIRVGrammar) xml.Deserialize(file);
 
