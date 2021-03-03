@@ -178,15 +178,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Intrinsic accelerators broken (contact developers).
-        /// </summary>
-        internal static string IntrinsicAcceleratorsBroken {
-            get {
-                return ResourceManager.GetString("IntrinsicAcceleratorsBroken", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Dynamic shared memory elements specified but the kernel does not support dynamic shared memory bindings.
         /// </summary>
         internal static string InvalidDynamicSharedMemoryConfiguration {
