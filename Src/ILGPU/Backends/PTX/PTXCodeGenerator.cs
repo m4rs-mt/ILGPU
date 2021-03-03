@@ -16,6 +16,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Runtime.Cuda;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
@@ -35,18 +36,18 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The supported PTX instruction sets (in descending order).
         /// </summary>
-        public static readonly IEnumerable<PTXInstructionSet> SupportedInstructionSets =
+        public static readonly IEnumerable<CudaInstructionSet> SupportedInstructionSets =
             ImmutableSortedSet.Create(
-                Comparer<PTXInstructionSet>.Create((first, second) =>
+                Comparer<CudaInstructionSet>.Create((first, second) =>
                     second.CompareTo(first)),
-                PTXInstructionSet.ISA_71,
-                PTXInstructionSet.ISA_70,
-                PTXInstructionSet.ISA_65,
-                PTXInstructionSet.ISA_64,
-                PTXInstructionSet.ISA_63,
-                PTXInstructionSet.ISA_62,
-                PTXInstructionSet.ISA_61,
-                PTXInstructionSet.ISA_60);
+                CudaInstructionSet.ISA_71,
+                CudaInstructionSet.ISA_70,
+                CudaInstructionSet.ISA_65,
+                CudaInstructionSet.ISA_64,
+                CudaInstructionSet.ISA_63,
+                CudaInstructionSet.ISA_62,
+                CudaInstructionSet.ISA_61,
+                CudaInstructionSet.ISA_60);
 
         /// <summary>
         /// The name for the globally registered dynamic shared memory alloca (if any).
@@ -70,13 +71,13 @@ namespace ILGPU.Backends.PTX
             internal GeneratorArgs(
                 PTXBackend backend,
                 EntryPoint entryPoint,
-                ContextFlags contextFlags,
+                ContextProperties contextProperties,
                 PTXDebugInfoGenerator debugInfoGenerator,
                 PointerAlignments.AlignmentInfo pointerAlignments)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
-                ContextFlags = contextFlags;
+                Properties = contextProperties;
                 DebugInfoGenerator = debugInfoGenerator;
                 PointerAlignments = pointerAlignments;
             }
@@ -92,9 +93,9 @@ namespace ILGPU.Backends.PTX
             public EntryPoint EntryPoint { get; }
 
             /// <summary>
-            /// Returns the current context flags.
+            /// Returns the current context properties.
             /// </summary>
-            public ContextFlags ContextFlags { get; }
+            public ContextProperties Properties { get; }
 
             /// <summary>
             /// Returns the debug-information code generator.
@@ -309,7 +310,7 @@ namespace ILGPU.Backends.PTX
 
         #region Instance
 
-        private int labelCounter = 0;
+        private int labelCounter;
         private readonly Dictionary<BasicBlock, string> blockLookup =
             new Dictionary<BasicBlock, string>();
         private readonly Dictionary<(Encoding, string), string> stringConstants =
@@ -331,8 +332,8 @@ namespace ILGPU.Backends.PTX
             Allocas = allocas;
 
             Architecture = args.Backend.Architecture;
-            FastMath = args.ContextFlags.HasFlags(ContextFlags.FastMath);
-            EnableAssertions = args.ContextFlags.HasFlags(ContextFlags.EnableAssertions);
+            FastMath = args.Properties.MathMode >= MathMode.Fast;
+            EnableAssertions = args.Properties.EnableAssertions;
 
             labelPrefix = "L_" + Method.Id.ToString();
             ReturnParamName = "retval_" + Method.Id;
@@ -342,7 +343,7 @@ namespace ILGPU.Backends.PTX
 
             // Use the defined PTX backend block schedule to avoid unnecessary branches
             Schedule =
-                args.ContextFlags.HasFlags(ContextFlags.EnhancedPTXBackendFeatures)
+                args.Properties.GetPTXBackendMode() == PTXBackendMode.Enhanced
                 ? Method.Blocks.CreateOptimizedPTXSchedule()
                 : Method.Blocks.CreateDefaultPTXSchedule();
         }
@@ -369,7 +370,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the currently used PTX architecture.
         /// </summary>
-        public PTXArchitecture Architecture { get; }
+        public CudaArchitecture Architecture { get; }
 
         /// <summary>
         /// Returns the associated debug information generator.
@@ -1015,9 +1016,9 @@ namespace ILGPU.Backends.PTX
                 declBuilder.Append(stringConstant.Value);
 
                 var stringBytes = encoding.GetBytes(stringValue);
-                declBuilder.Append("[");
+                declBuilder.Append('[');
                 declBuilder.Append(stringBytes.Length + 1);
-                declBuilder.Append("]");
+                declBuilder.Append(']');
                 declBuilder.Append(" = {");
                 foreach (var value in stringBytes)
                 {
