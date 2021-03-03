@@ -870,4 +870,18 @@ namespace ILGPU.Backends
 
         #endregion
     }
+
+    /// <summary>
+    /// Extension methods for backend related objects.
+    /// </summary>
+    public static class BackendExtensions
+    {
+        /// <summary>
+        /// Gets the underlying backend from the given accelerator.
+        /// </summary>
+        /// <param name="accelerator">The accelerator instance.</param>
+        /// <returns>The associated accelerator backend.</returns>
+        public static Backend GetBackend(this Accelerator accelerator) =>
+            accelerator.Backend;
+    }
 }
