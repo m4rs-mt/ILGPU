@@ -1,5 +1,4 @@
-﻿using ILGPU.IR.Transformations;
-using ILGPU.Runtime.CPU;
+﻿using ILGPU.Runtime.CPU;
 using System;
 
 namespace ILGPU.Tests.CPU
@@ -9,9 +8,9 @@ namespace ILGPU.Tests.CPU
     /// </summary>
     /// <remarks>
     /// The CPU simulation mode can be change via the environment variable
-    /// <see cref="CPUTestContext.CPUKindEnvVariable"/>. The content should be the raw
+    /// <see cref="CPUKindEnvVariable"/>. The content should be the raw
     /// string representation of one of the enumeration members of
-    /// <see cref="CPUAcceleratorKind"/>
+    /// <see cref="CPUDeviceKind"/>
     /// </remarks>
     public abstract class CPUTestContext : TestContext
     {
@@ -21,23 +20,21 @@ namespace ILGPU.Tests.CPU
         public static readonly string CPUKindEnvVariable = "ILGPU_CPU_TEST_KIND";
 
         /// <summary>
-        /// Creates a new CPU accelerator based on the configuration provided via
-        /// the environment variable <see cref="CPUKindEnvVariable"/>.
+        /// Gets the <see cref="CPUDeviceKind"/> based on the environment variable
+        /// <see cref="CPUKindEnvVariable"/>.
         /// </summary>
-        /// <param name="context">The parent context to use.</param>
-        /// <returns>The created (parallel) CPU accelerator instance.</returns>
         /// <remarks>
         /// If the environment variables does not exists or does not contain a valid kind
-        /// (specified by the <see cref="CPUAcceleratorKind"/> enumeration), this
+        /// (specified by the <see cref="CPUDeviceKind"/> enumeration), this
         /// function creates a simulator compatible with the kind
-        /// <see cref="CPUAcceleratorKind.Default"/>.
+        /// <see cref="CPUDeviceKind.Default"/>.
         /// </remarks>
-        private static CPUAccelerator CreateCPUAccelerator(Context context)
+        private static CPUDeviceKind GetCPUDeviceKind()
         {
             var cpuConfig = Environment.GetEnvironmentVariable(CPUKindEnvVariable);
-            if (!Enum.TryParse(cpuConfig, out CPUAcceleratorKind kind))
-                kind = CPUAcceleratorKind.Default;
-            return CPUAccelerator.Create(context, kind, CPUAcceleratorMode.Parallel);
+            return Enum.TryParse(cpuConfig, out CPUDeviceKind kind)
+                ? kind
+                : CPUDeviceKind.Default;
         }
 
         /// <summary>
@@ -47,11 +44,11 @@ namespace ILGPU.Tests.CPU
         /// <param name="prepareContext">The context preparation handler.</param>
         protected CPUTestContext(
             OptimizationLevel optimizationLevel,
-            Action<Context> prepareContext)
+            Action<Context.Builder> prepareContext)
             : base(
                   optimizationLevel,
-                  prepareContext,
-                  CreateCPUAccelerator)
+                  builder => prepareContext(builder.CPU(GetCPUDeviceKind())),
+                  context => context.CreateCPUAccelerator(0))
         { }
 
         /// <summary>
@@ -59,7 +56,7 @@ namespace ILGPU.Tests.CPU
         /// </summary>
         /// <param name="optimizationLevel">The optimization level to use.</param>
         public CPUTestContext(OptimizationLevel optimizationLevel)
-            : this(optimizationLevel, null)
+            : this(optimizationLevel, _ => { })
         { }
     }
 }
