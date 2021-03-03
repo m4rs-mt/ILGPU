@@ -160,7 +160,7 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Instance
 
-        internal CLCapabilityContext(CLAcceleratorId accelId)
+        internal CLCapabilityContext(CLDevice device)
         {
             var extensions = ImmutableArray.CreateBuilder<string>();
 <#
@@ -169,7 +169,7 @@ namespace ILGPU.Runtime.OpenCL
 #>
             <#= c.Name #> = false;
 <#      } else { #>
-            <#= c.Name #> = accelId.HasAllExtensions(<#= c.Name #>Extensions);
+            <#= c.Name #> = device.HasAllExtensions(<#= c.Name #>Extensions);
             if (<#= c.Name #>)
                 extensions.AddRange(<#= c.Name #>Extensions);
 <#
