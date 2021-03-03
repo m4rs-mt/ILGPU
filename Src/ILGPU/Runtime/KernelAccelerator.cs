@@ -31,9 +31,9 @@ namespace ILGPU.Runtime
         /// Constructs a new kernel accelerator.
         /// </summary>
         /// <param name="context">The target context.</param>
-        /// <param name="type">The target accelerator type.</param>
-        protected KernelAccelerator(Context context, AcceleratorType type)
-            : base(context, type)
+        /// <param name="device">The device.</param>
+        protected KernelAccelerator(Context context, Device device)
+            : base(context, device)
         { }
 
         #endregion
