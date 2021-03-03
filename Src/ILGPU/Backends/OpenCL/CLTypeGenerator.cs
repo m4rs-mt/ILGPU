@@ -188,7 +188,7 @@ namespace ILGPU.Backends.OpenCL
             foreach (var basicValueType in IRTypeContext.BasicValueTypes)
             {
                 if (basicValueType == BasicValueType.Float64
-                    && TypeContext.ContextFlags.HasFlags(ContextFlags.Force32BitFloats))
+                    && TypeContext.MathMode == MathMode.Fast32BitOnly)
                 {
                     continue;
                 }

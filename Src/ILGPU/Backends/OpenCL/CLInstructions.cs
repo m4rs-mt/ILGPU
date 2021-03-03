@@ -172,7 +172,7 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="operation">The resolved shuffle operation.</param>
         /// <returns>True, if the operation could be resolved.</returns>
         public static bool TryGetShuffleOperation(
-            CLAcceleratorVendor vendor,
+            CLDeviceVendor vendor,
             ShuffleKind kind,
             out string operation) =>
             ShuffleOperations.TryGetValue((vendor, kind), out operation);
