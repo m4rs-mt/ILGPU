@@ -21,6 +21,23 @@ using System.Text;
 namespace ILGPU.Backends.PTX
 {
     /// <summary>
+    /// Specifies which PTX backend-specific features should be used.
+    /// </summary>
+    public enum PTXBackendMode
+    {
+        /// <summary>
+        /// Enforces the use of the default PTX backend features.
+        /// </summary>
+        Default,
+
+        /// <summary>
+        /// Enables the use of enhanced PTX backend features to improve
+        /// performance of the kernel programs being generated.
+        /// </summary>
+        Enhanced
+    }
+
+    /// <summary>
     /// Represents a PTX (Cuda) backend.
     /// </summary>
     public sealed class PTXBackend :
@@ -232,5 +249,39 @@ namespace ILGPU.Backends.PTX
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// Extension methods for context specific objects.
+    /// </summary>
+    public static class PTXContextExtensions
+    {
+        /// <summary>
+        /// Specifies a <see cref="PTXBackendMode"/> (will default to
+        /// <see cref="PTXBackendMode.Default"/> if not specifies).
+        /// </summary>
+        /// <param name="builder">The current builder.</param>
+        /// <param name="mode">The backend mode to use.</param>
+        /// <returns>The current builder instance.</returns>
+        public static Context.Builder PTXBackend(
+            this Context.Builder builder,
+            PTXBackendMode mode)
+        {
+            builder.SetExtensionProperty(nameof(PTXBackendMode), mode);
+            return builder;
+        }
+
+        /// <summary>
+        /// Gets the current <see cref="PTXBackendMode"/>.
+        /// </summary>
+        /// <param name="properties">The current properties instance.</param>
+        /// <returns>The current PTX backend.</returns>
+        public static PTXBackendMode GetPTXBackendMode(
+            this ContextProperties properties) =>
+            properties.GetExtensionProperty(
+                nameof(PTXBackendMode),
+                properties.OptimizationLevel > OptimizationLevel.O1
+                ? PTXBackendMode.Enhanced
+                : PTXBackendMode.Default);
     }
 }
