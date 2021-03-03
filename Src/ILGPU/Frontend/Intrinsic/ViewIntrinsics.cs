@@ -159,7 +159,7 @@ namespace ILGPU.Frontend.Intrinsic
             var location = context.Location;
 
             // Build a new assertion
-            if (context.Context.HasFlags(ContextFlags.EnableAssertions))
+            if (context.Properties.EnableAssertions)
             {
                 // Convert the index to 'long'.
                 var index64 = index.BasicValueType == BasicValueType.Int64
@@ -257,7 +257,7 @@ namespace ILGPU.Frontend.Intrinsic
             var location = context.Location;
 
             // Build a new assertion
-            if (context.Context.HasFlags(ContextFlags.EnableAssertions))
+            if (context.Properties.EnableAssertions)
             {
                 // When reading the length of a 64-bit ArrayView as a 32-bit value,
                 // the upper 32 bits will be discarded. This will cause truncation

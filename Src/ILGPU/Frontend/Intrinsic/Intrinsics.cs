@@ -413,7 +413,7 @@ namespace ILGPU.Frontend.Intrinsic
             int index)
         {
             // Skip all further code generation passes
-            if (!context.Context.HasFlags(ContextFlags.EnableAssertions))
+            if (!context.Properties.EnableAssertions)
                 return;
 
             // Declare and call the verification method
