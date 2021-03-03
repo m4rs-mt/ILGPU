@@ -219,17 +219,6 @@ namespace ILGPU.IR
 
         #endregion
 
-        #region Methods
-
-        /// <summary>
-        /// Returns true if the current context has the given flags.
-        /// </summary>
-        /// <param name="flags">The flags to check.</param>
-        /// <returns>True, if the current context has the given flags.</returns>
-        public readonly bool HasFlags(ContextFlags flags) => Context.HasFlags(flags);
-
-        #endregion
-
         #region ILocation
 
         /// <summary>

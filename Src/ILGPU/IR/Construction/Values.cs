@@ -263,7 +263,7 @@ namespace ILGPU.IR.Construction
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(Location location, double value) =>
-            BaseContext.HasFlags(ContextFlags.Force32BitFloats)
+            BaseContext.Properties.MathMode == MathMode.Fast32BitOnly
             ? CreatePrimitiveValue(location, (float)value)
             : Append(new PrimitiveValue(
                 GetInitializer(location),
