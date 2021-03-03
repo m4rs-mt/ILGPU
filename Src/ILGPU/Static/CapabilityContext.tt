@@ -93,10 +93,10 @@ namespace ILGPU.Runtime.Cuda
     {
         #region Instance
 
-        internal CudaCapabilityContext(PTXArchitecture arch)
+        internal CudaCapabilityContext(CudaArchitecture arch)
         {
 <# foreach (var c in commonCapabilities.Concat(cudaCapabilities)) { #>
-            <#= c.Name #> = arch >= PTXArchitecture.<#= c.Cuda.MinPTX #>;
+            <#= c.Name #> = arch >= CudaArchitecture.<#= c.Cuda.MinPTX #>;
 <# } #>
         }
 
@@ -123,7 +123,7 @@ namespace ILGPU.Runtime.Cuda
             new CapabilityNotSupportedException(
                 string.Format(ErrorMessages.CapabilityNotSupportedCuda,
                     "<#= c.FeatureName #>",
-                    PTXArchitecture.<#= c.Cuda.MinPTX #>));
+                    CudaArchitecture.<#= c.Cuda.MinPTX #>));
 
 <# } #>
         #endregion

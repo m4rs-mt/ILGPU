@@ -10,14 +10,12 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
     /// Represents the accelerator flags for a Cuda accelerator.
     /// </summary>
-    [SuppressMessage("Microsoft.Design", "CA1008:EnumsShouldHaveZeroValue")]
     [Flags]
     public enum CudaAcceleratorFlags
     {
