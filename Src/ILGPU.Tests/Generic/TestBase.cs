@@ -1,4 +1,5 @@
-﻿using ILGPU.Backends.EntryPoints;
+﻿using ILGPU.Backends;
+using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
@@ -108,7 +109,7 @@ namespace ILGPU.Tests
             using var stream = Accelerator.CreateStream();
 
             // Compile kernel manually and load the compiled kernel into the accelerator
-            var backend = Accelerator.Backend;
+            var backend = Accelerator.GetBackend();
             Output.WriteLine($"Compiling '{kernel.Name}'");
             var entryPoint = typeof(TIndex) == typeof(KernelConfig)
                 ? EntryPointDescription.FromExplicitlyGroupedKernel(kernel)
