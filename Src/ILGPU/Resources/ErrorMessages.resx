@@ -258,9 +258,6 @@
   <data name="CouldNotFindCorrespondingIRMethod" xml:space="preserve">
     <value>Could not find IR method that corresponds to the method handle '{0}'</value>
   </data>
-  <data name="IntrinsicAcceleratorsBroken" xml:space="preserve">
-    <value>Intrinsic accelerators broken (contact developers)</value>
-  </data>
   <data name="InvalidKernelOperation" xml:space="preserve">
     <value>This operation can only be called from an ILGPU kernel</value>
   </data>
