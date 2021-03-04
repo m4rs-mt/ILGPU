@@ -28,9 +28,6 @@ bld/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
-# Rider cache files
-Src/.idea/
-
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
@@ -248,9 +245,6 @@ ModelManifest.xml
 
 # Doxygen ignore
 .doxygen
-
-# Ignore grammar files
-Src/ILGPU/Backends/SPIRV/spirv.core.grammar.json
 
 # Ignore specific template outputs
 Src/ILGPU/ArrayViews.cs
