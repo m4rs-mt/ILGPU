@@ -26,7 +26,11 @@ namespace ILGPU.Backends.SPIRV
         /// <remarks>
         /// This will generate THE ENTIRE DEFINITION, including assignment to and id etc.
         /// </remarks>
-        public string GetOrGenerateTypeDefinition(TypeNode typeNode, int lastId, out int currentId)
+        public string GetOrGenerateTypeDefinition(
+            TypeNode typeNode,
+            int lastId,
+            out int currentId
+            )
         {
             Debug.Assert(!(typeNode is ViewType), "Invalid view type");
 
@@ -58,7 +62,11 @@ namespace ILGPU.Backends.SPIRV
             return def;
         }
 
-        private string GeneratePrimitiveType(PrimitiveType typeNode, int lastId, out int currentId)
+        private string GeneratePrimitiveType(
+            PrimitiveType typeNode,
+            int lastId,
+            out int currentId
+            )
         {
             currentId = lastId + 1;
             string idString = $"%{lastId}";
