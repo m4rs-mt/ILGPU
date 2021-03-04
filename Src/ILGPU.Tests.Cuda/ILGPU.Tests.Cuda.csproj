@@ -29,6 +29,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+    <PackageReference Include="T4.Build" Version="0.1.1" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
@@ -77,5 +78,4 @@
     </Compile>
   </ItemGroup>
 
-  <Import Project="..\TextTransform.targets" />
 </Project>
