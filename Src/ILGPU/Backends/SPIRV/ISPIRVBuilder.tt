@@ -3,43 +3,108 @@
 <#@ include file="SPIRVTypeMappings.ttinclude"#>
 <#@ assembly name="System.Xml" #>
 <#@ import namespace="System.Xml.Serialization" #>
-<#const string standardIndent = "    ";#>
+<#
+    const string standardIndent = "    ";
+
+    bool IsInstructionCLSCompliant(SPIRVOp inst)
+    {
+        var list = inst.Operands?.Operands;
+        if (list != null)
+        {
+            foreach(var operand in list)
+            {
+                if (!IsCLSCompliant(typeMap[operand.Kind]))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return true;
+    }
+
+    string GenerateReturnType(SPIRVOp inst)
+    {
+        var list = inst.Operands?.Operands;
+
+        var ret = "void";
+        if (list != null && list.Exists(op => op.Kind == "IdResult"))
+            ret = "uint";
+
+        return ret;
+    }
+
+    string GenerateParam(SPIRVOpKind operand, string paramName)
+    {
+        var type = typeMap[operand.Kind];
+        var fullParam = $"{type} {paramName}";
+        if (operand.Quantifier == "*")
+        {
+            fullParam = $"params {type}[] {paramName}";
+        }
+        else if (operand.Quantifier == "?")
+        {
+            fullParam = $"{type}? {paramName} = null";
+        }
+
+        return fullParam;
+    }
+#>
+using System;
+
+#nullable enable
+#pragma warning disable 1591
+
 namespace ILGPU.Backends.SPIRV {
 
 <#
-    PushIndent(standardIndent);
+        PushIndent(standardIndent);
 #>
+/// <summary>
+/// Defines methods that need to be implemented in order to generate
+/// any instruction in the SPIR-V specification.
+/// </summary>
+[CLSCompliant(false)]
 public interface ISPIRVBuilder {
 
 <#
-    PushIndent(standardIndent);
-    foreach (var instruction in grammar.Instructions.Instructions)
-    {
-#>public void Generate<#= instruction.OpName #>(<#
-        if (instruction.Operands?.Operands != null)
+        PushIndent(standardIndent);
+        foreach (var instruction in grammar.Instructions.Instructions)
         {
-            var list = instruction.Operands.Operands;
-            list.RemoveAll(x => x.Kind == "IdResult");
-            for(int i = 0 ; i < list.Count; i++)
+            if (!IsInstructionCLSCompliant(instruction))
             {
-                var operand = list[i];
+#>[CLSCompliant(false)]
+<#
+            }
+            var list = instruction.Operands?.Operands;
 
-                var paramName = operand.Name ?? $"param{i}";
-#><#= typeMap[operand.Kind] + " " + paramName#><#
-                if (i != list.Count - 1)
+            var returnType = GenerateReturnType(instruction);
+
+#>public <#= returnType#> Generate<#= instruction.OpName #>(<#
+
+            if (list != null)
+            {
+                for (int i = 0; i < list.Count; i++)
                 {
+                    var operand = list[i];
+                    var paramName = operand.Name ?? $"param{i}";
+                    var fullParam = GenerateParam(operand, paramName);
+#><#=fullParam #><#
+                    if (i != list.Count - 1)
+                    {
 #>, <#
+                    }
                 }
             }
-        }
 #>);
 
 <#
-    }
-    PopIndent();
+        }
+        PopIndent();
 #>
 }
 <#
-    PopIndent();
+        PopIndent();
 #>
 }
+#pragma warning enable 1591

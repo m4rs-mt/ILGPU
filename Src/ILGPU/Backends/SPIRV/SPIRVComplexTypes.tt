@@ -64,10 +64,10 @@ namespace ILGPU.Backends.SPIRV {
 #>public struct <#= kind.Name#> {
 <#
         PushIndent(standardIndent);
-        for (int i = 0; i < kind.Bases.Count; i++)
+        for (int i = 0; i < kind.Bases.Bases.Count; i++)
         {
-            string kindBase = kind.Bases[i].Base;
-#>public <#= typeMap[kindBase]#> kindBase<#= i#>;
+            string kindBase = kind.Bases.Bases[i];
+#>public <#= typeMap[kindBase]#> base<#= i#>;
 <#
         }
         PopIndent();

@@ -15,7 +15,7 @@
 <#
     string MapIdType()
     {
-        return "int";
+        return "uint";
     }
 
     string MapLiteralType(string type)
@@ -26,7 +26,7 @@
         {
             case "LiteralSpecConstantOpInteger":
             case "LiteralInteger":
-                paramType = "int";
+                paramType = "uint";
                 break;
             case "LiteralString":
                 paramType = "string";
@@ -47,4 +47,7 @@
         //Complex types are generate by SPIRVComplexTypes.tt
         return type;
     }
+
+    bool IsCLSCompliant(string type) =>
+        type != "sbyte" && type != "uint" && type != "ulong" && type != "ushort";
 #>
