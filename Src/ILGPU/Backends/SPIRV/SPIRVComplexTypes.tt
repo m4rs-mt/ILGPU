@@ -1,4 +1,4 @@
-<#@ template language="C#" #>
+<#@ template hostspecific="true" language="C#" #>
 <#@ include file="SPIRVTypeMappings.ttinclude"#>
 <#@ output extension=".cs"#>
 <#@ assembly name="System.Xml" #>
@@ -6,6 +6,9 @@
 <#const string standardIndent = "    ";#>
 namespace ILGPU.Backends.SPIRV {
 <#
+    var grammar = LoadGrammar();
+    var typeMap = LoadTypeMap();
+
     PushIndent(standardIndent);
 
     foreach (var kind in grammar.OperandKinds.OperandKinds)

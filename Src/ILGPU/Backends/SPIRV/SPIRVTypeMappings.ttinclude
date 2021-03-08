@@ -1,18 +1,32 @@
 <#@ include file="SPIRVXMLReader.ttinclude"#>
-<#
-    var typeMap = new Dictionary<string, string>();
+<#+
+    Dictionary<string, string> _typeMapCache = null;
 
-    foreach (var kind in grammar.OperandKinds.OperandKinds)
+    public Dictionary<string, string> LoadTypeMap()
     {
-        typeMap[kind.Name] = kind.Category switch
+        if (_typeMapCache != null)
         {
-            "Id" => MapIdType(),
-            "Literal" => MapLiteralType(kind.Name),
-            _ => MapComplexType(kind.Name)
-        };
+            return _typeMapCache;
+        }
+
+        var grammar = LoadGrammar();
+        var typeMap = new Dictionary<string, string>();
+
+        foreach (var kind in grammar.OperandKinds.OperandKinds)
+        {
+            typeMap[kind.Name] = kind.Category switch
+            {
+                "Id" => MapIdType(),
+                "Literal" => MapLiteralType(kind.Name),
+                _ => MapComplexType(kind.Name)
+                };
+        }
+
+        _typeMapCache = typeMap;
+        return typeMap;
     }
 #>
-<#
+<#+
     string MapIdType()
     {
         return "uint";

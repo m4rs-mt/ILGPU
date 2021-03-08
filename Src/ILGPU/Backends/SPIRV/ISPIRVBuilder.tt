@@ -1,9 +1,12 @@
-<#@ template language="C#" #>
+<#@ template hostspecific="true" language="C#" #>
 <#@ output extension=".cs"#>
 <#@ include file="SPIRVTypeMappings.ttinclude"#>
 <#@ assembly name="System.Xml" #>
 <#@ import namespace="System.Xml.Serialization" #>
+<#@ import namespace="System.Threading" #>
 <#
+    var grammar = LoadGrammar();
+    var typeMap = LoadTypeMap();
     const string standardIndent = "    ";
 
     bool IsInstructionCLSCompliant(SPIRVOp inst)
