@@ -63,7 +63,7 @@
 #>
 <#+
     Dictionary<string, bool> _clsMapCache = null;
-    readonly List<string> nonClsCompliantPrimTypes = new() {"sbyte", "uint", "ulong", "ushort"};
+    readonly List<string> nonClsCompliantPrimTypes = new List<string> {"sbyte", "uint", "ulong", "ushort"};
 
     Dictionary<string, bool> LoadCLSComplianceMap()
     {
