@@ -6,6 +6,8 @@
 <#const string standardIndent = "    ";#>
 #pragma warning disable 1591
 
+using System;
+
 namespace ILGPU.Backends.SPIRV {
 <#
     var grammar = LoadGrammar();
@@ -72,6 +74,11 @@ namespace ILGPU.Backends.SPIRV {
         for (int i = 0; i < kind.Bases.Bases.Count; i++)
         {
             string kindBase = kind.Bases.Bases[i];
+            if (!IsCLSCompliant(kindBase))
+            {
+#>[CLSCompliant(false)]
+<#
+            }
 #>public <#= typeMap[kindBase]#> base<#= i#>;
 <#
         }
