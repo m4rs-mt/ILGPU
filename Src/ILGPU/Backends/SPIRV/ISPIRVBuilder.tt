@@ -16,7 +16,7 @@
         {
             foreach(var operand in list)
             {
-                if (!IsCLSCompliant(typeMap[operand.Kind]))
+                if (!IsCLSCompliant(operand.Type))
                 {
                     return false;
                 }
@@ -31,15 +31,15 @@
         var list = inst.Operands?.Operands;
 
         var ret = "void";
-        if (list != null && list.Exists(op => op.Kind == "IdResult"))
+        if (list != null && list.Exists(op => op.Type == "IdResult"))
             ret = "uint";
 
         return ret;
     }
 
-    string GenerateParam(SPIRVOpKind operand, string paramName)
+    string GenerateParam(SPIRVOperand operand, string paramName)
     {
-        var type = typeMap[operand.Kind];
+        var type = typeMap[operand.Type];
         var fullParam = $"{type} {paramName}";
         if (operand.Quantifier == "*")
         {
@@ -110,4 +110,4 @@ public interface ISPIRVBuilder {
         PopIndent();
 #>
 }
-#pragma warning enable 1591
+#pragma warning restore 1591

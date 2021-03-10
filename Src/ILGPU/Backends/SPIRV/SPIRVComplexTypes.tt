@@ -4,6 +4,8 @@
 <#@ assembly name="System.Xml" #>
 <#@ import namespace="System.Xml.Serialization" #>
 <#const string standardIndent = "    ";#>
+#pragma warning disable 1591
+
 namespace ILGPU.Backends.SPIRV {
 <#
     var grammar = LoadGrammar();
@@ -11,12 +13,12 @@ namespace ILGPU.Backends.SPIRV {
 
     PushIndent(standardIndent);
 
-    foreach (var kind in grammar.OperandKinds.OperandKinds)
+    foreach (var kind in grammar.Types.Types)
     {
         GenerateType(kind);
     }
 
-    void GenerateType(SPIRVOperandKind kind)
+    void GenerateType(SPIRVType kind)
     {
         switch (kind.Category)
         {
@@ -32,7 +34,7 @@ namespace ILGPU.Backends.SPIRV {
         }
     }
 
-    void GenerateBitEnumType(SPIRVOperandKind kind)
+    void GenerateBitEnumType(SPIRVType kind)
     {
 #>public enum <#= kind.Name#> {
 <#
@@ -47,7 +49,7 @@ namespace ILGPU.Backends.SPIRV {
 <#
     }
 
-    void GenerateValueEnum(SPIRVOperandKind kind)
+    void GenerateValueEnum(SPIRVType kind)
     {
 #>public enum <#= kind.Name#> {
 <#
@@ -62,7 +64,7 @@ namespace ILGPU.Backends.SPIRV {
 <#
     }
 
-    void GenerateComposite(SPIRVOperandKind kind)
+    void GenerateComposite(SPIRVType kind)
     {
 #>public struct <#= kind.Name#> {
 <#
@@ -81,3 +83,4 @@ namespace ILGPU.Backends.SPIRV {
     PopIndent();
 #>
 }
+#pragma warning restore 1591

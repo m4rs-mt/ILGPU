@@ -2,7 +2,7 @@
 <#+
     Dictionary<string, string> _typeMapCache = null;
 
-    public Dictionary<string, string> LoadTypeMap()
+    Dictionary<string, string> LoadTypeMap()
     {
         if (_typeMapCache != null)
         {
@@ -12,7 +12,7 @@
         var grammar = LoadGrammar();
         var typeMap = new Dictionary<string, string>();
 
-        foreach (var kind in grammar.OperandKinds.OperandKinds)
+        foreach (var kind in grammar.Types.Types)
         {
             typeMap[kind.Name] = kind.Category switch
             {
@@ -25,8 +25,7 @@
         _typeMapCache = typeMap;
         return typeMap;
     }
-#>
-<#+
+
     string MapIdType()
     {
         return "uint";
@@ -61,7 +60,47 @@
         //Complex types are generate by SPIRVComplexTypes.tt
         return type;
     }
+#>
+<#+
+    Dictionary<string, bool> _clsMapCache = null;
+    readonly List<string> nonClsCompliantPrimTypes = new() {"sbyte", "uint", "ulong", "ushort"};
 
-    bool IsCLSCompliant(string type) =>
-        type != "sbyte" && type != "uint" && type != "ulong" && type != "ushort";
+    Dictionary<string, bool> LoadCLSComplianceMap()
+    {
+        if (_clsMapCache != null)
+        {
+            return _clsMapCache;
+        }
+
+        var grammar = LoadGrammar();
+        var typeMap = LoadTypeMap();
+        var clsMap = new Dictionary<string, bool>();
+
+        foreach (var kind in grammar.Types.Types)
+        {
+            var typename = kind.Name;
+
+            if (kind.Bases?.Bases != null)
+            {
+                clsMap[typename] = kind.Bases.Bases.TrueForAll(
+                    t => !nonClsCompliantPrimTypes.Contains(typeMap[t]));
+            }
+
+            if (nonClsCompliantPrimTypes.Contains(typeMap[typename]))
+            {
+                clsMap[typename] = false;
+                continue;
+            }
+            clsMap[typename] = true;
+        }
+
+        _clsMapCache = clsMap;
+        return clsMap;
+    }
+
+    bool IsCLSCompliant(string type)
+    {
+        var map = LoadCLSComplianceMap();
+        return map[type];
+    }
 #>
