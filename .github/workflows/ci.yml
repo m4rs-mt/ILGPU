@@ -78,6 +78,8 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 3.1.407
+      - name: Pin .NET Core SDK
+        run: dotnet new globaljson --sdk-version 3.1.407
       - name: Restore tools
         run: dotnet tool restore
         working-directory: ./Src
