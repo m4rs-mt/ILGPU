@@ -13,10 +13,6 @@ ILGPU requires Visual Studio 2019 (Community edition or higher).
 Use the provided Visual Studio solution to build the ILGPU libs
 in the desired configurations (Debug/Release).
 
-Note: T4 (*.tt) text templates must be converted manually depending on the Visual Studio version.
-To transform them, right-click a text template and select `Run Custom Tool`.
-Alternatively, you can open and save any text template in Visual Studio.
-
 # Tests
 
 Sometimes the XUnit test runner stops execution when all tests are run in parallel.
