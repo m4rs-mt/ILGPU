@@ -77,7 +77,7 @@ jobs:
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 3.1.300
+          dotnet-version: 3.1.407
       - name: Restore tools
         run: dotnet tool restore
         working-directory: ./Src
