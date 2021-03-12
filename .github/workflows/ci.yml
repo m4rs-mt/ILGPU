@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+env:
+  DOTNET_NOLOGO: true
+
 jobs:
   check-style:
     runs-on: windows-latest
