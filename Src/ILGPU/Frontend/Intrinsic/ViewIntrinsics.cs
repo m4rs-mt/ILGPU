@@ -161,20 +161,20 @@ namespace ILGPU.Frontend.Intrinsic
             // Build a new assertion
             if (context.Context.HasFlags(ContextFlags.EnableAssertions))
             {
+                // Convert the index to 'long'.
+                var index64 = index.BasicValueType == BasicValueType.Int64
+                    ? index
+                    : builder.CreateConvertToInt64(location, index).Resolve();
+
                 // Determine base offset and max length
-                var baseOffset = builder.CreatePrimitiveValue(
-                    location,
-                    index.BasicValueType,
-                    0L);
-                var viewLength = index.BasicValueType == BasicValueType.Int64
-                    ? builder.CreateGetViewLongLength(location, instanceValue)
-                    : builder.CreateGetViewLength(location, instanceValue);
+                var baseOffset = builder.CreatePrimitiveValue(location, 0L);
+                var viewLength = builder.CreateGetViewLongLength(location, instanceValue);
 
                 // Verify the lower bound, which must be >= 0 in all cases:
                 // index >= 0
                 var lowerBoundsCheck = builder.CreateCompare(
                     location,
-                    index,
+                    index64,
                     baseOffset,
                     CompareKind.GreaterEqual);
 
@@ -186,11 +186,11 @@ namespace ILGPU.Frontend.Intrinsic
                     builder.CreateCompare(
                         location,
                         viewLength,
-                        builder.CreatePrimitiveValue(location, 0),
+                        builder.CreatePrimitiveValue(location, 0L),
                         CompareKind.LessThan),
                     builder.CreateCompare(
                         location,
-                        index,
+                        index64,
                         viewLength,
                         CompareKind.LessThan),
                     BinaryArithmeticKind.Or);
