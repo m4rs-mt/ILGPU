@@ -229,11 +229,7 @@ namespace ILGPU
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             [ViewIntrinsic(ViewIntrinsicKind.GetViewElementAddressByIndex)]
-            get
-            {
-                IndexTypeExtensions.AssertIntIndex(Length);
-                return ref this[(long)index.X];
-            }
+            get => ref this[(long)index.X];
         }
 
         /// <summary>
@@ -257,11 +253,7 @@ namespace ILGPU
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             [ViewIntrinsic(ViewIntrinsicKind.GetViewElementAddress)]
-            get
-            {
-                IndexTypeExtensions.AssertIntIndex(Length);
-                return ref this[(long)index];
-            }
+            get => ref this[(long)index];
         }
 
         /// <summary>
@@ -360,11 +352,8 @@ namespace ILGPU
         /// <returns>The new sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [ViewIntrinsic(ViewIntrinsicKind.GetSubView)]
-        public ArrayView<T> GetSubView(int index, int subViewLength)
-        {
-            IndexTypeExtensions.AssertIntIndexRange(Length);
-            return GetSubView((long)index, subViewLength);
-        }
+        public ArrayView<T> GetSubView(int index, int subViewLength) =>
+            GetSubView((long)index, subViewLength);
 
         /// <summary>
         /// Returns a sub view of the current view starting at the given offset.
