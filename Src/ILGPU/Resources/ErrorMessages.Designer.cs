@@ -259,7 +259,16 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to &apos;{0}&apos; in file &apos;{1}&apos;, line {2} column {3}.
+        ///   Looks up a localized string similar to -.
+        /// </summary>
+        internal static string LocationCompilationStackLinePrefix {
+            get {
+                return ResourceManager.GetString("LocationCompilationStackLinePrefix", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} in file &apos;{1}&apos;, line {2} column {3}.
         /// </summary>
         internal static string LocationFileMessageL1C1 {
             get {
@@ -268,7 +277,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to &apos;{0}&apos; in file &apos;{1}&apos;, line {2} column {3} to {4}.
+        ///   Looks up a localized string similar to {0} in file &apos;{1}&apos;, line {2} column {3} to {4}.
         /// </summary>
         internal static string LocationFileMessageL1C2 {
             get {
@@ -277,7 +286,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to &apos;{0}&apos; in file &apos;{1}&apos;, line {2} column {3} to line {4} column {5}.
+        ///   Looks up a localized string similar to {0} in file &apos;{1}&apos;, line {2} column {3} to line {4} column {5}.
         /// </summary>
         internal static string LocationFileMessageL2C2 {
             get {
@@ -286,7 +295,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to &apos;{0}&apos; in method {1} declared in type {2}.
+        ///   Looks up a localized string similar to {0} in method {1} declared in type {2}.
         /// </summary>
         internal static string LocationMethodMessage {
             get {

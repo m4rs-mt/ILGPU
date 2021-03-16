@@ -36,9 +36,11 @@ namespace ILGPU.Frontend
         {
             public ProcessingEntry(
                 MethodBase method,
+                CompilationStackLocation compilationStackLocation,
                 CodeGenerationResult result)
             {
                 Method = method;
+                CompilationStackLocation = compilationStackLocation;
                 Result = result;
             }
 
@@ -46,6 +48,11 @@ namespace ILGPU.Frontend
             /// Returns the method.
             /// </summary>
             public MethodBase Method { get; }
+
+            /// <summary>
+            /// Returns the source location.
+            /// </summary>
+            public CompilationStackLocation CompilationStackLocation { get; }
 
             /// <summary>
             /// Returns the processing future.
@@ -159,7 +166,7 @@ namespace ILGPU.Frontend
             Justification = "Must be caught to propagate errors")]
         private void DoWork()
         {
-            var detectedMethods = new HashSet<MethodBase>();
+            var detectedMethods = new Dictionary<MethodBase, CompilationStackLocation>();
             for (; ; )
             {
                 ProcessingEntry current;
@@ -185,6 +192,7 @@ namespace ILGPU.Frontend
                     codeGenerationPhase.GenerateCodeInternal(
                         current.Method,
                         current.IsExternalRequest,
+                        current.CompilationStackLocation,
                         detectedMethods,
                         out Method method);
                     current.SetResult(method);
@@ -203,8 +211,12 @@ namespace ILGPU.Frontend
                     try
                     {
                         foreach (var detectedMethod in detectedMethods)
-                            processing.Push(new ProcessingEntry(detectedMethod, null));
-
+                        {
+                            processing.Push(new ProcessingEntry(
+                                detectedMethod.Key,
+                                detectedMethod.Value,
+                                null));
+                        }
                     }
                     catch (Exception e)
                     {
@@ -237,7 +249,10 @@ namespace ILGPU.Frontend
             lock (processingSyncObject)
             {
                 driverNotifier.Reset();
-                processing.Push(new ProcessingEntry(method, result));
+                processing.Push(new ProcessingEntry(
+                    method,
+                    new CompilationStackLocation(new Method.MethodLocation(method)),
+                    result));
                 Monitor.Pulse(processingSyncObject);
             }
             return result;
@@ -430,12 +445,14 @@ namespace ILGPU.Frontend
         /// <param name="isExternalRequest">
         /// True, if processing of this method was requested by a user.
         /// </param>
+        /// <param name="compilationStackLocation">The source location.</param>
         /// <param name="detectedMethods">The set of newly detected methods.</param>
         /// <param name="generatedMethod">The resolved IR method.</param>
         internal void GenerateCodeInternal(
             MethodBase method,
             bool isExternalRequest,
-            HashSet<MethodBase> detectedMethods,
+            CompilationStackLocation compilationStackLocation,
+            Dictionary<MethodBase, CompilationStackLocation> detectedMethods,
             out Method generatedMethod)
         {
             ILocation location = null;
@@ -459,6 +476,7 @@ namespace ILGPU.Frontend
                         Context,
                         builder,
                         disassembledMethod,
+                        compilationStackLocation,
                         detectedMethods);
                     codeGenerator.GenerateCode();
                 }
