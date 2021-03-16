@@ -150,17 +150,12 @@ namespace ILGPU.Frontend.DebugInformation
             public DebugInformationManager Parent { get; }
 
             /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
-            [SuppressMessage(
-                "Microsoft.Design",
-                "CA1031:DoNotCatchGeneralExceptionTypes",
-                Justification = "Loading exceptions will be published on the " +
-                "debug output")]
             public bool Load(
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)
             {
                 assemblyDebugInformation = null;
-                if (assembly.IsDynamic)
+                if (assembly.IsDynamic || string.IsNullOrEmpty(assembly.Location))
                     return false;
 
                 var debugDir = Path.GetDirectoryName(assembly.Location);
