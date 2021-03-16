@@ -189,12 +189,29 @@ namespace ILGPU.IR
         /// Formats the given message to include detailed file location information.
         /// </summary>
         public override string FormatErrorMessage(string message) =>
-            string.Format(
-                ErrorMessages.LocationFileMessage,
+            StartLine == EndLine
+            ? StartColumn == EndColumn
+                ? string.Format(
+                    ErrorMessages.LocationFileMessageL1C1,
+                        message,
+                        FileName,
+                        StartLine,
+                        StartColumn)
+                : string.Format(
+                    ErrorMessages.LocationFileMessageL1C2,
+                        message,
+                        FileName,
+                        StartLine,
+                        StartColumn,
+                        EndColumn)
+            : string.Format(
+                ErrorMessages.LocationFileMessageL2C2,
                 message,
                 FileName,
-                StartLine.ToString(),
-                EndLine.ToString());
+                StartLine,
+                StartColumn,
+                EndLine,
+                EndColumn);
 
         /// <summary>
         /// Merges this location with the other one.
