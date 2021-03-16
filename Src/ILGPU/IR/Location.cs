@@ -11,9 +11,11 @@
 
 using ILGPU.Resources;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace ILGPU.IR
 {
@@ -260,6 +262,110 @@ namespace ILGPU.IR
         /// </returns>
         public override string ToString() =>
             $"{FileName}({StartLine}, {StartColumn}, {EndLine}, {EndColumn})";
+
+        #endregion
+    }
+
+    /// <summary>
+    /// A collection of locations than is manipulated as a stack.
+    /// </summary>
+    public sealed class CompilationStackLocation : Location
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new stack location.
+        /// </summary>
+        /// <param name="location">The initial location.</param>
+        public CompilationStackLocation(Location location)
+        {
+            if (location == null)
+                throw new ArgumentNullException(nameof(location));
+            Stack = ImmutableStack.Create(location);
+        }
+
+        /// <summary>
+        /// Constructs a new stack location.
+        /// </summary>
+        /// <param name="locations">The initial locations.</param>
+        internal CompilationStackLocation(ImmutableStack<Location> locations)
+        {
+            if (locations == null || locations.IsEmpty)
+                throw new ArgumentNullException(nameof(locations));
+            Stack = locations;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the stack of locations.
+        /// </summary>
+        private ImmutableStack<Location> Stack { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Formats the given message to include detailed location information.
+        /// </summary>
+        public override string FormatErrorMessage(string message)
+        {
+            var builder = new StringBuilder(message);
+            foreach (var location in Stack)
+            {
+                var line = location.FormatErrorMessage(string.Empty);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    builder.AppendLine();
+                    builder.Append(ErrorMessages.LocationCompilationStackLinePrefix);
+                    builder.Append(line);
+                }
+            }
+
+            return builder.ToString();
+        }
+
+        /// <summary>
+        /// Merges this location with the other one.
+        /// </summary>
+        /// <param name="other">The other one to merge with.</param>
+        /// <returns>The merged location.</returns>
+        public CompilationStackLocation Append(Location other) =>
+            new CompilationStackLocation(Stack.Push(other));
+
+        #endregion
+
+        #region Object
+
+        /// <summary>
+        /// Returns true if the given object is equal to the current location.
+        /// </summary>
+        /// <param name="obj">The other location.</param>
+        /// <returns>
+        /// True, if the given object is equal to the current location.
+        /// </returns>
+        public override bool Equals(object obj) =>
+            obj is CompilationStackLocation other &&
+            Stack == other.Stack;
+
+        /// <summary>
+        /// Returns the hash code of this sequence point.
+        /// </summary>
+        /// <returns>The hash code of this sequence point.</returns>
+        public override int GetHashCode() =>
+            Stack.GetHashCode();
+
+        /// <summary>
+        /// Returns the location information of this sequence point.
+        /// </summary>
+        /// <returns>
+        /// The location information string that represents this sequence point.
+        /// </returns>
+        public override string ToString() =>
+            $"{FormatErrorMessage(string.Empty)})";
 
         #endregion
     }

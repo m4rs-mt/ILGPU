@@ -301,16 +301,19 @@
     <value>Invalid null value</value>
   </data>
   <data name="LocationFileMessageL1C1" xml:space="preserve">
-    <value>'{0}' in file '{1}', line {2} column {3}</value>
+    <value>{0} in file '{1}', line {2} column {3}</value>
   </data>
   <data name="LocationFileMessageL1C2" xml:space="preserve">
-    <value>'{0}' in file '{1}', line {2} column {3} to {4}</value>
+    <value>{0} in file '{1}', line {2} column {3} to {4}</value>
   </data>
   <data name="LocationFileMessageL2C2" xml:space="preserve">
-    <value>'{0}' in file '{1}', line {2} column {3} to line {4} column {5}</value>
+    <value>{0} in file '{1}', line {2} column {3} to line {4} column {5}</value>
   </data>
   <data name="LocationMethodMessage" xml:space="preserve">
-    <value>'{0}' in method {1} declared in type {2}</value>
+    <value>{0} in method {1} declared in type {2}</value>
+  </data>
+  <data name="LocationCompilationStackLinePrefix" xml:space="preserve">
+    <value>-</value>
   </data>
   <data name="LocationTypeMessage" xml:space="preserve">
     <value>'{0}' related to type {1} (managed type '{2}')</value>
