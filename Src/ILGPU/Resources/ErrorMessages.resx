@@ -300,8 +300,14 @@
   <data name="InternalCompilerErrorNull" xml:space="preserve">
     <value>Invalid null value</value>
   </data>
-  <data name="LocationFileMessage" xml:space="preserve">
-    <value>'{0}' in file '{1}' lines {2} - {3}</value>
+  <data name="LocationFileMessageL1C1" xml:space="preserve">
+    <value>'{0}' in file '{1}', line {2} column {3}</value>
+  </data>
+  <data name="LocationFileMessageL1C2" xml:space="preserve">
+    <value>'{0}' in file '{1}', line {2} column {3} to {4}</value>
+  </data>
+  <data name="LocationFileMessageL2C2" xml:space="preserve">
+    <value>'{0}' in file '{1}', line {2} column {3} to line {4} column {5}</value>
   </data>
   <data name="LocationMethodMessage" xml:space="preserve">
     <value>'{0}' in method {1} declared in type {2}</value>
