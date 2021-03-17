@@ -251,7 +251,6 @@ Src/ILGPU.Algorithms/HistogramLaunchers.cs
 Src/ILGPU.Algorithms/HistogramOperations.cs
 Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
 Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
-Src/ILGPU.Algorithms/PTX/PTXMath.Round.cs
 Src/ILGPU.Algorithms/RadixSortOperations.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/CuRandNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/CuBlasNativeMethods.cs
@@ -266,6 +265,7 @@ Src/ILGPU.Algorithms/XMath/Cordic.cs
 Src/ILGPU.Algorithms/XMath/Cordic.Log.cs
 Src/ILGPU.Algorithms/XMath/Cordic.Pow.cs
 Src/ILGPU.Algorithms/XMath/Cordic.Trig.cs
+Src/ILGPU.Algorithms/XMath/RoundingModes.cs
 
 # Generated test source files
 Src/ILGPU.Algorithms.Tests/Generic/ConfigurationBase.cs

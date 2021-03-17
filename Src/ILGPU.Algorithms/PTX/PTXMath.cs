@@ -186,22 +186,22 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="XMath.Floor(double)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Floor(double value) =>
-            RoundToNegativeInfinity(value);
+            XMath.RoundingModes.RoundToNegativeInfinity(value);
 
         /// <summary cref="XMath.Floor(float)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Floor(float value) =>
-            RoundToNegativeInfinity(value);
+            XMath.RoundingModes.RoundToNegativeInfinity(value);
 
         /// <summary cref="XMath.Ceiling(double)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Ceiling(double value) =>
-            RoundToPositiveInfinity(value);
+            XMath.RoundingModes.RoundToPositiveInfinity(value);
 
         /// <summary cref="XMath.Ceiling(float)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Ceiling(float value) =>
-            RoundToPositiveInfinity(value);
+            XMath.RoundingModes.RoundToPositiveInfinity(value);
 
         #endregion
 
@@ -804,6 +804,30 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Log2(float value) =>
             throw new NotImplementedException();
+
+        #endregion
+
+        #region Round
+
+        /// <summary cref="XMath.RoundToEven(double)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double RoundToEven(double value) =>
+            XMath.RoundingModes.RoundToEven(value);
+
+        /// <summary cref="XMath.RoundToEven(float)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float RoundToEven(float value) =>
+            XMath.RoundingModes.RoundToEven(value);
+
+        /// <summary cref="XMath.RoundAwayFromZero(double)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double RoundAwayFromZero(double value) =>
+            XMath.RoundingModes.RoundAwayFromZero(value);
+
+        /// <summary cref="XMath.RoundAwayFromZero(float)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float RoundAwayFromZero(float value) =>
+            XMath.RoundingModes.RoundAwayFromZero(value);
 
         #endregion
     }

@@ -97,10 +97,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>PTXContext.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PTX\PTXMath.Round.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>PTXMath.Round.cs</LastGenOutput>
-    </None>
     <None Update="RadixSortOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
@@ -156,6 +152,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Cordic.Trig.cs</LastGenOutput>
     </None>
+    <None Update="XMath\RoundingModes.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RoundingModes.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -193,11 +193,6 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PTXContext.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="PTX\PTXMath.Round.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>PTXMath.Round.tt</DependentUpon>
     </Compile>
     <Compile Update="RadixSortOperations.cs">
       <DesignTime>True</DesignTime>
@@ -268,6 +263,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Cordic.Trig.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\RoundingModes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RoundingModes.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 
