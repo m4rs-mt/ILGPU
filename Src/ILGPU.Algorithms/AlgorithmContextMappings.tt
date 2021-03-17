@@ -28,6 +28,11 @@ namespace ILGPU
         /// </summary>
         private static void RegisterMathRemappings()
         {
+            var systemMathType = typeof(System.Math);
+#if !NETFRAMEWORK
+            var systemMathFType = typeof(System.MathF);
+#endif
+
             // Register math remappings
 <# foreach (var (name, types) in DefaultMathFunctions) { #>
             RemappedIntrinsics.AddRemapping(
@@ -52,6 +57,48 @@ namespace ILGPU
                 "<#= name #>",
                 typeof(<#= type #>), typeof(<#= type #>));
 <# } #>
+
+            // Register System.Math Round/Truncate remappings
+<#
+    foreach (var floatType in AtomicFloatTypes) {
+        var isFloat32 = floatType.Type == "float";
+        var remapSourceType = isFloat32 ? "systemMathFType" : "systemMathType";
+#>
+<#      if (isFloat32) { #>
+#if !NETFRAMEWORK
+<#      } #>
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Round",
+                typeof(<#= floatType.Type #>));
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Round",
+                typeof(<#= floatType.Type #>), typeof(int));
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Round",
+                typeof(<#= floatType.Type #>), typeof(System.MidpointRounding));
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Round",
+                typeof(<#= floatType.Type #>),
+                typeof(int),
+                typeof(System.MidpointRounding));
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Truncate",
+                typeof(<#= floatType.Type #>));
+<#      if (isFloat32) { #>
+#endif
+<#      } #>
+<# } #>
+
         }
     }
 }
