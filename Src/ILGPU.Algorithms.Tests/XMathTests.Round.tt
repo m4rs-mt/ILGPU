@@ -48,6 +48,55 @@ using Xunit;
 
         new RoundFunction("Ceiling",    "float" ,   "{0}.Ceiling({1})"),
         new RoundFunction("Ceiling",    "double",   "{0}.Ceiling({1})"),
+
+        // Round(floatType, int)
+        new RoundFunction(
+            "Round4",
+            "Round",
+            "float",
+            4,
+            null,
+            "{0}.Round({1}, {2})"),
+        new RoundFunction(
+            "Round4",
+            "Round",
+            "double",
+            4,
+            null,
+            "{0}.Round({1}, {2})"),
+
+        // Round(floatType, MidpointRounding)
+        new RoundFunction(
+            "RoundModeToZero",
+            "Round",
+            "float",
+            null,
+            2, // MidpointRounding.ToZero
+            "{0}.Round({1}, (MidpointRounding){3})"),
+        new RoundFunction(
+            "RoundModeToZero",
+            "Round",
+            "double",
+            null,
+            2, // MidpointRounding.ToZero
+            "{0}.Round({1}, (MidpointRounding){3})"),
+
+        // Round(floatType, int, MidpointRounding)
+        new RoundFunction(
+            "Round6ToPositiveInfinity",
+            "Round",
+            "float",
+            6,
+            4, // MidpointRounding.ToPositiveInfinity
+            "{0}.Round({1}, {2}, (MidpointRounding){3})"),
+        new RoundFunction(
+            "Round6ToPositiveInfinity",
+             "Round",
+            "double",
+            6,
+            4, // MidpointRounding.ToPositiveInfinity
+            "{0}.Round({1}, {2}, (MidpointRounding){3})"),
+
     };
 #>
 namespace ILGPU.Algorithms.Tests
@@ -103,12 +152,30 @@ namespace ILGPU.Algorithms.Tests
 <#
     foreach (var function in roundFunctions)
     {
+        // net47 and netstandard2.1 only support MidpointRounding.ToEven (0)
+        // and MidpointRounding.AwayFromZero (1).
+        bool restrictedRoundingMode =
+            function.RoundingMode.HasValue &&
+            function.RoundingMode.Value > (int)MidpointRounding.AwayFromZero;
+        if (restrictedRoundingMode)
+        {
+#>
+
+#if !NETFRAMEWORK // If MidpointRounding mode not supported
+<#      } #>
         internal static void <#= function.KernelName #>(
             Index1 index,
             ArrayView<<#= function.DataType #>> input,
             ArrayView<<#= function.DataType #>> output)
         {
-            output[index] = XMath.<#= function.Name #>(input[index]);
+            output[index] = XMath.<#= function.MethodName #>(input[index]
+<#      if (function.Digits.HasValue) { #>
+                , <#= function.Digits.Value #>
+<#      } #>
+<#      if (function.RoundingMode.HasValue) { #>
+                , (MidpointRounding)<#= function.RoundingMode.Value #>
+<#      } #>
+                );
         }
 
         [Theory]
@@ -122,13 +189,17 @@ namespace ILGPU.Algorithms.Tests
                 <#= string.Format(
                         function.ExpectedFormatString,
                         "(" + function.DataType + ")Math",
-                        "value")
+                        "value",
+                        function.Digits,
+                        function.RoundingMode)
                 #>
 #else
                 <#= string.Format(
                         function.ExpectedFormatString,
                         "Math" + function.MathSuffix,
-                        "value")
+                        "value",
+                        function.Digits,
+                        function.RoundingMode)
                 #>
 #endif
             };
@@ -140,6 +211,9 @@ namespace ILGPU.Algorithms.Tests
             Verify(output, expected);
         }
 
+<# if (restrictedRoundingMode) { #>
+#endif
+<#      } #>
 <# } #>
     }
 }
@@ -147,11 +221,27 @@ namespace ILGPU.Algorithms.Tests
     class RoundFunction : XMathFunctionBase
     {
         public RoundFunction(string name, string dataType, string expectedFormatString)
+            : this(name, name, dataType, default, default, expectedFormatString)
+        { }
+
+        public RoundFunction(
+            string name,
+            string methodName,
+            string dataType,
+            int? digits,
+            int? mode,
+            string expectedFormatString)
             : base(name, dataType)
         {
+            MethodName = methodName;
             ExpectedFormatString = expectedFormatString;
+            Digits = digits;
+            RoundingMode = mode;
         }
 
+        public string MethodName { get; }
         public string ExpectedFormatString { get; }
+        public int? Digits { get; }
+        public int? RoundingMode { get; }
     }
 #>

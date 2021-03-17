@@ -33,6 +33,12 @@ using System.Runtime.CompilerServices;
         new RoundingFunction("RoundToEven", "float"),
         new RoundingFunction("RoundToEven", "double"),
     };
+
+    var midpointRoundingFunctions = new []
+    {
+        new RoundingFunction("Round", "float"),
+        new RoundingFunction("Round", "double"),
+    };
 #>
 
 namespace ILGPU.Algorithms
@@ -146,7 +152,8 @@ namespace ILGPU.Algorithms
                 }
                 else
                 {
-                    // The value has fractional bits, so we need to determine the rounding.
+                    // The value has fractional bits, so we need to determine the
+                    // rounding.
                     var mantissa = bits & <#= function.FloatTypeName #>MantissaMask;
                     var midpoint = 1<#= function.IntValueSuffix #>
                         << (<#= function.FloatTypeName #>NumMantissaBits - exponent - 1);
@@ -156,8 +163,8 @@ namespace ILGPU.Algorithms
 
 <#      if (function.Name == "RoundToNegativeInfinity") { #>
                     // If the value is positive, discard any fractional bits.
-                    // If the value is negative, the fractional bits will round to the next
-                    // smaller integer.
+                    // If the value is negative, the fractional bits will round to the
+                    // next smaller integer.
                     return Utilities.Select(
                         (bits & <#= function.FloatTypeName #>SignMask) == 0
                         || fractional <= 0,
@@ -165,8 +172,8 @@ namespace ILGPU.Algorithms
                         Interop.IntAsFloat(truncatedValue + (midpoint << 1)));
 <#      } else if (function.Name == "RoundToPositiveInfinity") { #>
                     // If the value is negative, discard any fractional bits.
-                    // If the value is positive, the fractional bits will round to the next
-                    // larger integer.
+                    // If the value is positive, the fractional bits will round to the
+                    // next larger integer.
                     return Utilities.Select(
                         (bits & <#= function.FloatTypeName #>SignMask) != 0
                         || fractional <= 0,
@@ -181,8 +188,9 @@ namespace ILGPU.Algorithms
                         Interop.IntAsFloat(truncatedValue),
                         Interop.IntAsFloat(truncatedValue + (midpoint << 1)));
 <#      } else if (function.Name == "RoundToEven") { #>
-                    // If the fraction is < 0.5, discarding the fractional bits. Otherwise,
-                    // the fraction is > 0.5, so it should be rounded up by adding "one".
+                    // If the fraction is < 0.5, discarding the fractional bits.
+                    // Otherwise, the fraction is > 0.5, so it should be rounded up by
+                    // adding "one".
                     //
                     // If the fraction == 0.5, and the value is already even, discard the
                     // fractional bits. Otherwise, the number is odd, so round it to the
@@ -212,6 +220,132 @@ namespace ILGPU.Algorithms
             }
 
 <# } #>
+<# foreach (var function in midpointRoundingFunctions) { #>
+            /// <summary>
+            /// Rounds the value to the nearest value (halfway cases are rounded to even).
+            /// </summary>
+            /// <param name="value">The value.</param>
+            /// <returns>The nearest value.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static <#= function.FloatType #> Round(
+                <#= function.FloatType #> value) =>
+                Round(value, MidpointRounding.ToEven);
+
+            /// <summary>
+            /// Rounds the value to the nearest value (halfway cases are rounded to even).
+            /// </summary>
+            /// <param name="value">The value.</param>
+            /// <param name="digits">
+            /// The number of fractional digits in the return value.
+            /// </param>
+            /// <returns>The nearest value.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static <#= function.FloatType #> Round(
+                <#= function.FloatType #> value,
+                int digits) =>
+                Round(value, digits, MidpointRounding.ToEven);
+
+            /// <summary>
+            /// Rounds the value to the nearest value.
+            /// </summary>
+            /// <param name="value">The value.</param>
+            /// <param name="mode">
+            /// Specifiies how to round value if it is midway between two numbers.
+            /// </param>
+            /// <returns>The nearest value.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static <#= function.FloatType #> Round(
+                <#= function.FloatType #> value,
+                MidpointRounding mode) =>
+                Round(value, 0, mode);
+
+            /// <summary>
+            /// Rounds the value to the nearest value.
+            /// </summary>
+            /// <param name="value">The value.</param>
+            /// <param name="digits">
+            /// The number of fractional digits in the return value.
+            /// </param>
+            /// <param name="mode">
+            /// Specifiies how to round value if it is midway between two numbers.
+            /// </param>
+            /// <returns>The nearest value.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static <#= function.FloatType #> Round(
+                <#= function.FloatType #> value,
+                int digits,
+                MidpointRounding mode)
+            {
+                var result = value;
+
+                // Only need to do work if the supplied value is smaller than the minimum
+                // that we can round.
+<#      int maxDigits = function.FloatType == "float" ? 6 : 15; #>
+                if (XMath.Abs(result) <
+                    1e<#= maxDigits + 1 #><#= function.FloatValueSuffix #>)
+                {
+                    // Shift the input value by the number of digits requested.
+                    // If digits < 0, fallback to 0 digits.
+                    // If digits > <#= maxDigits #>, fallback to <#= maxDigits #>.
+                    <#= function.FloatType #> multiplier = digits switch
+                        {
+                            int d when d <= 0 => 1e0<#= function.FloatValueSuffix #>,
+<#      for (var d = 1; d < maxDigits; d++) { #>
+                            <#= d #> => 1e<#= d #><#= function.FloatValueSuffix #>,
+<#      } #>
+                            _ => 1e<#= maxDigits #><#= function.FloatValueSuffix #>
+                        };
+
+                    // NOTE: net47 and netstandard2.1 only support the first two modes:
+                    // In order to fully support netcoreapp3.1 and net5.0, we convert
+                    // the mode to an integer.
+                    //
+                    // This is also a workaround for the T4 template not supporting the
+                    // newer rounding modes.
+                    //
+                    // This has the side effect of adding extra functionality to net47
+                    // and netstandard2.1.
+                    //
+                    // 0 - MidpointRounding.ToEven
+                    // 1 - MidpointRounding.AwayFromZero
+                    // 2 - MidpointRounding.ToZero
+                    // 3 - MidpointRounding.ToNegativeInfinity
+                    // 4 - MidpointRounding.ToPositiveInfinity
+                    //
+                    // If the rounding mode is out of range, fallback to the
+                    // default MidpointRounding.ToEven.
+                    result *= multiplier;
+                    result = (int)mode switch
+                    {
+                        0 => XMath.RoundToEven(result),
+                        1 => XMath.RoundAwayFromZero(result),
+                        2 => RoundToZero(result),
+                        3 => RoundToNegativeInfinity(result),
+                        4 => RoundToPositiveInfinity(result),
+                        _ => XMath.RoundToEven(result)
+                    };
+                    result /= multiplier;
+                }
+
+                return result;
+            }
+
+<# } #>
+            /// <summary>
+            /// Rounds the value to the nearest value (halfway cases are rounded to zero).
+            /// </summary>
+            /// <param name="value">The value.</param>
+            /// <returns>The nearest value.</returns>
+            public static double RoundToZero(double value) =>
+                Truncate(value);
+
+            /// <summary>
+            /// Rounds the value to the nearest value (halfway cases are rounded to zero).
+            /// </summary>
+            /// <param name="value">The value.</param>
+            /// <returns>The nearest value.</returns>
+            public static float RoundToZero(float value) =>
+                Truncate(value);
         }
     }
 }

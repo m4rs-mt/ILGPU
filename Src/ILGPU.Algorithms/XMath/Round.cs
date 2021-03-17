@@ -19,6 +19,102 @@ namespace ILGPU.Algorithms
     partial class XMath
     {
         /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded to even).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double Round(double value) =>
+            Round(value, 0, MidpointRounding.ToEven);
+
+        /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded to even).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Round(float value) =>
+            Round(value, 0, MidpointRounding.ToEven);
+
+        /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded to even).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="digits">
+        /// The number of fractional digits in the return value.
+        /// </param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double Round(double value, int digits) =>
+            Round(value, digits, MidpointRounding.ToEven);
+
+        /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded to even).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="digits">
+        /// The number of fractional digits in the return value.
+        /// </param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Round(float value, int digits) =>
+            Round(value, digits, MidpointRounding.ToEven);
+
+        /// <summary>
+        /// Rounds the value to the nearest value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="mode">
+        /// Specifiies how to round value if it is midway between two numbers.
+        /// </param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double Round(double value, MidpointRounding mode) =>
+            Round(value, 0, mode);
+
+        /// <summary>
+        /// Rounds the value to the nearest value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="mode">
+        /// Specifiies how to round value if it is midway between two numbers.
+        /// </param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Round(float value, MidpointRounding mode) =>
+            Round(value, 0, mode);
+
+        /// <summary>
+        /// Rounds the value to the nearest value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="digits">
+        /// The number of fractional digits in the return value.
+        /// </param>
+        /// <param name="mode">
+        /// Specifiies how to round value if it is midway between two numbers.
+        /// </param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double Round(double value, int digits, MidpointRounding mode) =>
+            RoundingModes.Round(value, digits, mode);
+
+        /// <summary>
+        /// Rounds the value to the nearest value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="digits">
+        /// The number of fractional digits in the return value.
+        /// </param>
+        /// <param name="mode">
+        /// Specifiies how to round value if it is midway between two numbers.
+        /// </param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Round(float value, int digits, MidpointRounding mode) =>
+            RoundingModes.Round(value, digits, mode);
+
+        /// <summary>
         /// Rounds the value to the nearest value (halfway cases are rounded away from
         /// zero).
         /// </summary>
