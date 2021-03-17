@@ -226,4 +226,10 @@
         <Call>IntrinsicMath.CPUOnly.Log</Call>
         <Implementation>{MathType}.Log({Value0}, {Value1})</Implementation>
     </Operation>
+
+    <Operation Name="CopySignF">
+        <Summary>The copy sign operation.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CopySign</Call>
+    </Operation>
 </Operations>

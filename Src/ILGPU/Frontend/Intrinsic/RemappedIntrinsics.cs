@@ -73,6 +73,7 @@ namespace ILGPU.Frontend.Intrinsic
 
             RegisterMathRemappings();
             RegisterBitConverterRemappings();
+            RegisterCopySignRemappings();
         }
 
         #endregion
@@ -197,6 +198,28 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(BitConverter),
                 nameof(System.BitConverter.Int32BitsToSingle),
                 typeof(int));
+#endif
+        }
+
+        #endregion
+
+        #region CopySign remappings
+
+        private static void RegisterCopySignRemappings()
+        {
+#if !NETFRAMEWORK
+            AddRemapping(
+                typeof(Math),
+                MathType,
+                "CopySign",
+                typeof(double),
+                typeof(double));
+            AddRemapping(
+                typeof(MathF),
+                MathType,
+                "CopySign",
+                typeof(float),
+                typeof(float));
 #endif
         }
 
