@@ -84,7 +84,10 @@ namespace ILGPU.Runtime
             base.Dispose(disposing);
 
             // Leave the dispose functionality to the associated accelerator object
-            Accelerator?.DisposeChildObject_AcceleratorObject(this, disposing);
+            if (Accelerator != null)
+                Accelerator.DisposeChildObject_AcceleratorObject(this, disposing);
+            else
+                DisposeAcceleratorObject_Accelerator(disposing);
         }
 
         /// <summary>
