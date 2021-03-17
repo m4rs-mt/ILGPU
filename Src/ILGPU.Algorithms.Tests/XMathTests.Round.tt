@@ -54,9 +54,16 @@ namespace ILGPU.Algorithms.Tests
 {
     partial class XMathTests
     {
-<# foreach (var function in roundFunctions) { #>
+<#
+    // Share the theory data per float data type.
+    var roundingDataTypes =
+        roundFunctions
+        .GroupBy(x => x.DataType)
+        .Select(x => x.First());
+    foreach (var function in roundingDataTypes) {
+#>
         public static TheoryData<<#= function.DataType #>>
-            <#= function.TestName #>TestData =>
+            Rounding<#= ToUpperFirst(function.DataType) #>TestData =>
             new TheoryData<<#= function.DataType #>>
             {
                 0.0<#= function.ValueSuffix #>,
@@ -92,6 +99,10 @@ namespace ILGPU.Algorithms.Tests
                 <#= function.DataType #>.NegativeInfinity,
             };
 
+<# } #>
+<#
+    foreach (var function in roundFunctions)
+    {
         internal static void <#= function.KernelName #>(
             Index1 index,
             ArrayView<<#= function.DataType #>> input,
@@ -101,7 +112,7 @@ namespace ILGPU.Algorithms.Tests
         }
 
         [Theory]
-        [MemberData(nameof(<#= function.TestName #>TestData))]
+        [MemberData(nameof(Rounding<#= ToUpperFirst(function.DataType) #>TestData))]
         [KernelMethod(nameof(<#= function.KernelName #>))]
         public void <#= function.TestName #>(<#= function.DataType #> value)
         {
