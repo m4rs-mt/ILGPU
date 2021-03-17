@@ -329,8 +329,12 @@ namespace ILGPU.Runtime
         /// </summary>
         private void InitKernelCache()
         {
-            if (Context.HasFlags(ContextFlags.DisableKernelCaching))
+            var cachingMode = Context.Properties.CachingMode;
+            if (cachingMode == CachingMode.NoKernelCaching ||
+                cachingMode == CachingMode.Disabled)
+            {
                 return;
+            }
 
             compiledKernelCache = new Dictionary<
                 CachedCompiledKernelKey,

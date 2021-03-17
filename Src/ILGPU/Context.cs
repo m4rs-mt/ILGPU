@@ -11,8 +11,6 @@
 
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
-using ILGPU.Backends.OpenCL;
-using ILGPU.Backends.PTX;
 using ILGPU.Frontend;
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
@@ -21,10 +19,13 @@ using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.Resources;
 using ILGPU.Runtime;
+using ILGPU.Runtime.CPU;
 using ILGPU.Util;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -44,6 +45,117 @@ namespace ILGPU
     /// <remarks>Members of this class are thread-safe.</remarks>
     public sealed partial class Context : CachedExtensionBase<ContextExtension>
     {
+        #region Constants
+
+        /// <summary>
+        /// The name of the dynamic runtime assembly.
+        /// </summary>
+        public const string RuntimeAssemblyName = RuntimeSystem.AssemblyName;
+
+        /// <summary>
+        /// Represents the general ILGPU assembly name.
+        /// </summary>
+        public const string AssemblyName = "ILGPU";
+
+        /// <summary>
+        /// Represents the general ILGPU assembly module name.
+        /// </summary>
+        public const string FullAssemblyModuleName = AssemblyName + ".dll";
+
+        #endregion
+
+        #region Nested Types
+
+        /// <summary>
+        /// Represents an enumerable collection of all devices of a specific type.
+        /// </summary>
+        /// <typeparam name="TDevice">The device class type.</typeparam>
+        public readonly ref struct DeviceCollection<TDevice>
+            where TDevice : Device
+        {
+            #region Nested Types
+
+            /// <summary>
+            /// Returns an enumerator to enumerate all registered devices of the parent
+            /// type.
+            /// </summary>
+            public ref struct Enumerator
+            {
+                private List<Device>.Enumerator enumerator;
+
+                /// <summary>
+                /// Constructs a new use enumerator.
+                /// </summary>
+                /// <param name="devices">The list of all devices.</param>
+                internal Enumerator(List<Device> devices)
+                {
+                    enumerator = devices.GetEnumerator();
+                }
+
+                /// <summary>
+                /// Returns the current use.
+                /// </summary>
+                public TDevice Current => enumerator.Current as TDevice;
+
+                /// <summary cref="IEnumerator.MoveNext"/>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public bool MoveNext() => enumerator.MoveNext();
+            }
+
+            #endregion
+
+            private readonly List<Device> devices;
+
+            /// <summary>
+            /// Constructs a new device collection.
+            /// </summary>
+                /// <param name="deviceList">The list of all devices.</param>
+            internal DeviceCollection(List<Device> deviceList)
+            {
+                devices = deviceList;
+            }
+
+            /// <summary>
+            /// Returns the device type of this collection.
+            /// </summary>
+            public readonly AcceleratorType AcceleratorType =>
+                DeviceTypeAttribute.GetAcceleratorType(typeof(TDevice));
+
+            /// <summary>
+            /// Returns the number of registered devices.
+            /// </summary>
+            public readonly int Count => devices.Count;
+
+            /// <summary>
+            /// Returns the i-th device.
+            /// </summary>
+            /// <param name="deviceIndex">
+            /// The relative device index of the specific device type. 0 here refers to
+            /// the first device of this type, 1 to the second, etc.
+            /// </param>
+            /// <returns>The i-th device.</returns>
+            public readonly TDevice this[int deviceIndex]
+            {
+                get
+                {
+                    if (deviceIndex < 0)
+                        throw new ArgumentOutOfRangeException(nameof(deviceIndex));
+                    return deviceIndex < Count
+                        ? devices[deviceIndex] as TDevice
+                        : throw new NotSupportedException(
+                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                }
+            }
+
+            /// <summary>
+            /// Returns an enumerator to enumerate all uses devices.
+            /// </summary>
+            /// <returns>The enumerator.</returns>
+            public readonly Enumerator GetEnumerator() => new Enumerator(devices);
+        }
+
+        #endregion
+
         #region Static
 
         /// <summary>
@@ -60,14 +172,6 @@ namespace ILGPU
         /// <summary>
         /// Initializes all static context attributes.
         /// </summary>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1810:InitializeReferenceTypeStaticFieldsInline",
-            Justification = "Complex initialization logic is required in this case")]
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1065:DoNotRaiseExceptionsInUnexpectedLocations",
-            Justification = "Internal initialization check that should never fail")]
         static Context()
         {
             var versionString = Assembly.GetExecutingAssembly().
@@ -81,13 +185,6 @@ namespace ILGPU
                 typeof(MethodImplAttribute).GetConstructor(
                     new Type[] { typeof(MethodImplOptions) }),
                 new object[] { MethodImplOptions.AggressiveInlining });
-
-            // Ensure initialized runtime
-            if (Accelerator.Accelerators.Length < 1)
-            {
-                throw new TypeLoadException(
-                    ErrorMessages.IntrinsicAcceleratorsBroken);
-            }
         }
 
         #endregion
@@ -103,73 +200,52 @@ namespace ILGPU
 
         #region Instance
 
+        /// <summary>
+        /// The global counter for all method handles.
+        /// </summary>
         private long methodHandleCounter = 0;
 
+        /// <summary>
+        /// The synchronization semaphore for frontend workers.
+        /// </summary>
         private readonly SemaphoreSlim codeGenerationSemaphore = new SemaphoreSlim(1);
 
         /// <summary>
-        /// Constructs a new ILGPU main context
+        /// An internal mapping of accelerator types to individual devices.
         /// </summary>
-        public Context()
-            : this(DefaultFlags)
-        { }
+        private readonly Dictionary<AcceleratorType, List<Device>> deviceMapping;
 
         /// <summary>
         /// Constructs a new ILGPU main context
         /// </summary>
-        /// <param name="flags">The context flags.</param>
-        public Context(ContextFlags flags)
-            : this(flags, OptimizationLevel.Release)
-        { }
-
-        /// <summary>
-        /// Constructs a new ILGPU main context
-        /// </summary>
-        /// <param name="optimizationLevel">The optimization level.</param>
-        public Context(OptimizationLevel optimizationLevel)
-            : this(DefaultFlags, optimizationLevel)
-        { }
-
-        /// <summary>
-        /// Constructs a new ILGPU main context
-        /// </summary>
-        /// <param name="optimizationLevel">The optimization level.</param>
-        /// <param name="flags">The context flags.</param>
-        public Context(ContextFlags flags, OptimizationLevel optimizationLevel)
+        /// <param name="builder">The parent builder instance.</param>
+        /// <param name="devices">The array of accelerator descriptions.</param>
+        internal Context(
+            Builder builder,
+            ImmutableArray<Device> devices)
         {
-            // Enable debug information automatically when a debugger is attached
-            if (Debugger.IsAttached)
-                flags |= DefaultDebug;
-
             InstanceId = InstanceId.CreateNew();
-            OptimizationLevel = optimizationLevel;
-            Flags = flags.Prepare();
             TargetPlatform = Backend.RuntimePlatform;
             RuntimeSystem = new RuntimeSystem();
-
-            // Initialize enhanced PTX backend feature flags
-            if (optimizationLevel > OptimizationLevel.O1 &&
-                !Flags.HasFlags(ContextFlags.DefaultPTXBackendFeatures))
-            {
-                Flags |= ContextFlags.EnhancedPTXBackendFeatures;
-            }
+            Properties = builder.InstantiateProperties();
 
             // Initialize verifier
-            Verifier = flags.HasFlags(ContextFlags.EnableVerifier)
-                ? Verifier.Instance
-                : Verifier.Empty;
+            Verifier = builder.EnableVerifier ? Verifier.Instance : Verifier.Empty;
 
             // Initialize main contexts
             TypeContext = new IRTypeContext(this);
             IRContext = new IRContext(this);
 
+            // Initialize intrinsic manager
+            IntrinsicManager = builder.IntrinsicManager;
+
             // Create frontend
             DebugInformationManager frontendDebugInformationManager =
-                HasFlags(ContextFlags.EnableDebugSymbols)
+                Properties.DebugSymbolsMode > DebugSymbolsMode.Disabled
                 ? DebugInformationManager
                 : null;
 
-            ILFrontend = HasFlags(ContextFlags.EnableParallelCodeGenerationInFrontend)
+            ILFrontend = builder.EnableParallelCodeGenerationInFrontend
                 ? new ILFrontend(this, frontendDebugInformationManager)
                 : new ILFrontend(this, frontendDebugInformationManager, 1);
 
@@ -178,14 +254,29 @@ namespace ILGPU
 
             // Initialize default transformer
             ContextTransformer = Optimizer.CreateTransformer(
-                OptimizationLevel,
+                Properties.OptimizationLevel,
                 TransformerConfiguration.Transformed,
-                Flags);
+                Properties.InliningMode);
 
-            // Intrinsics
-            IntrinsicManager = new IntrinsicImplementationManager();
-            InitIntrinsics();
+            // Initialize all devices
+            Devices = devices;
+            if (devices.IsDefaultOrEmpty)
+            {
+                // Add a default CPU device
+                Devices = ImmutableArray.Create<Device>(CPUDevice.Default);
+            }
 
+            // Create a mapping
+            deviceMapping = new Dictionary<AcceleratorType, List<Device>>(Devices.Length);
+            foreach (var device in Devices)
+            {
+                if (!deviceMapping.TryGetValue(device.AcceleratorType, out var devs))
+                {
+                    devs = new List<Device>(8);
+                    deviceMapping.Add(device.AcceleratorType, devs);
+                }
+                devs.Add(device);
+            }
         }
 
         #endregion
@@ -198,6 +289,11 @@ namespace ILGPU
         internal InstanceId InstanceId { get; }
 
         /// <summary>
+        /// All registered devices.
+        /// </summary>
+        public ImmutableArray<Device> Devices { get; }
+
+        /// <summary>
         /// Returns the current target platform.
         /// </summary>
         public TargetPlatform TargetPlatform { get; }
@@ -208,14 +304,18 @@ namespace ILGPU
         public RuntimeSystem RuntimeSystem { get; }
 
         /// <summary>
-        /// Returns the main IR context.
+        /// Returns true if this context uses assertion checks.
         /// </summary>
-        public IRContext IRContext { get; }
+        public ContextProperties Properties { get; }
+
+        #endregion
+
+        #region Internal Properties
 
         /// <summary>
-        /// Returns the associated context flags.
+        /// Returns the main IR context.
         /// </summary>
-        public ContextFlags Flags { get; }
+        internal IRContext IRContext { get; }
 
         /// <summary>
         /// Returns the associated IL frontend.
@@ -233,50 +333,57 @@ namespace ILGPU
         internal Verifier Verifier { get; }
 
         /// <summary>
-        /// Returns the optimization level.
-        /// </summary>
-        public OptimizationLevel OptimizationLevel { get; }
-
-        /// <summary>
         /// Returns the main debug-information manager.
         /// </summary>
-        public DebugInformationManager DebugInformationManager { get; } =
+        internal DebugInformationManager DebugInformationManager { get; } =
             new DebugInformationManager();
 
         /// <summary>
         /// Returns the main type context.
         /// </summary>
-        public IRTypeContext TypeContext { get; }
+        internal IRTypeContext TypeContext { get; }
 
         /// <summary>
         /// Returns the default context transformer.
         /// </summary>
-        public Transformer ContextTransformer { get; }
+        internal Transformer ContextTransformer { get; }
 
         /// <summary>
         /// Returns the underlying intrinsic manager.
         /// </summary>
-        public IntrinsicImplementationManager IntrinsicManager { get; }
+        internal IntrinsicImplementationManager IntrinsicManager { get; }
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Initializes all intrinsics.
+        /// Gets a specific device of the given type using a relative device index.
         /// </summary>
-        private void InitIntrinsics()
-        {
-            PTXIntrinsics.Register(IntrinsicManager);
-            CLIntrinsics.Register(IntrinsicManager);
-        }
+        /// <typeparam name="TDevice">The device class type.</typeparam>
+        /// <param name="deviceIndex">
+        /// The relative device index of the specific device type. 0 here refers to the
+        /// first device of this type, 1 to the second, etc.
+        /// </param>
+        /// <returns>The device instance.</returns>
+        public TDevice GetDevice<TDevice>(int deviceIndex)
+            where TDevice : Device =>
+            GetDevices<TDevice>()[deviceIndex];
 
         /// <summary>
-        /// Returns true if the current context has the given flags.
+        /// Gets all devices of the given type.
         /// </summary>
-        /// <param name="flags">The flags to check.</param>
-        /// <returns>True, if the current context has the given flags.</returns>
-        public bool HasFlags(ContextFlags flags) => Flags.HasFlags(flags);
+        /// <typeparam name="TDevice">The device class type.</typeparam>
+        /// <returns>All device instances.</returns>
+        public DeviceCollection<TDevice> GetDevices<TDevice>()
+            where TDevice : Device
+        {
+            var type = DeviceTypeAttribute.GetAcceleratorType(typeof(TDevice));
+            return deviceMapping.TryGetValue(type, out var devices)
+                ? new DeviceCollection<TDevice>(devices)
+                : throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedTargetAccelerator);
+        }
 
         /// <summary>
         /// Creates a new unique method handle.
@@ -353,6 +460,16 @@ namespace ILGPU
         /// <param name="accelerator">The new accelerator.</param>
         internal void OnAcceleratorCreated(Accelerator accelerator) =>
             AcceleratorCreated?.Invoke(this, accelerator);
+
+        #endregion
+
+        #region Enumerable
+
+        /// <summary>
+        /// Returns an accelerator description enumerator.
+        /// </summary>
+        public ImmutableArray<Device>.Enumerator GetEnumerator() =>
+            Devices.GetEnumerator();
 
         #endregion
 

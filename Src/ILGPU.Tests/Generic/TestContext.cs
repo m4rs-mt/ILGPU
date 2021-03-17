@@ -1,5 +1,4 @@
-﻿using ILGPU.IR.Transformations;
-using ILGPU.Runtime;
+﻿using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 
@@ -21,13 +20,11 @@ namespace ILGPU.Tests
         /// <param name="createAccelerator">Creates a new accelerator.</param>
         protected TestContext(
             OptimizationLevel level,
-            Action<Context> prepareContext,
+            Action<Context.Builder> prepareContext,
             Func<Context, Accelerator> createAccelerator)
         {
-            Context = new Context(
-                ContextFlags.EnableAssertions | ContextFlags.EnableVerifier,
-                level);
-            prepareContext?.Invoke(Context);
+            Context = Context.Create(builder =>
+                prepareContext(builder.Assertions().Verify().Optimize(level)));
             Accelerator = createAccelerator(Context);
         }
 
@@ -39,7 +36,8 @@ namespace ILGPU.Tests
         /// <summary>
         /// Returns the associated optimization level.
         /// </summary>
-        public OptimizationLevel OptimizationLevel => Context.OptimizationLevel;
+        public OptimizationLevel OptimizationLevel =>
+            Context.Properties.OptimizationLevel;
 
         /// <summary>
         /// Returns the current accelerator.

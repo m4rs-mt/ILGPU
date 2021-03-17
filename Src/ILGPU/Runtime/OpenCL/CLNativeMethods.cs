@@ -9,11 +9,9 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-#pragma warning disable IDE1006 // Naming Styles
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Runtime.OpenCL
 {
@@ -81,8 +79,6 @@ namespace ILGPU.Runtime.OpenCL
         CL_INVALID_DEVICE_PARTITION_COUNT = -68,
     }
 
-    [SuppressMessage("Microsoft.Design", "CA1008:Enums should have zero value",
-        Justification = "Interop enum")]
     public enum CLPlatformInfoType : int
     {
         CL_PLATFORM_PROFILE = 0x0900,
@@ -92,8 +88,6 @@ namespace ILGPU.Runtime.OpenCL
         CL_PLATFORM_EXTENSIONS = 0x0904,
     }
 
-    [SuppressMessage("Microsoft.Design", "CA1008:Enums should have zero value",
-        Justification = "Interop enum")]
     public enum CLDeviceType : int
     {
         CL_DEVICE_TYPE_DEFAULT = 1 << 0,
@@ -104,8 +98,6 @@ namespace ILGPU.Runtime.OpenCL
         CL_DEVICE_TYPE_ALL = -1
     }
 
-    [SuppressMessage("Microsoft.Design", "CA1008:Enums should have zero value",
-        Justification = "Interop enum")]
     public enum CLDeviceInfoType : int
     {
         CL_DEVICE_TYPE = 0x1000,
@@ -232,8 +224,6 @@ namespace ILGPU.Runtime.OpenCL
         CL_DEVICE_PCI_SLOT_ID_NV = 0x4009,
     }
 
-    [SuppressMessage("Design", "CA1028:Enum Storage should be Int32",
-        Justification = "Interop enum")]
     [Flags]
     public enum CLBufferFlags : long
     {
@@ -250,8 +240,6 @@ namespace ILGPU.Runtime.OpenCL
         CL_MEM_KERNEL_READ_AND_WRITE = 1 << 12,
     }
 
-    [SuppressMessage("Microsoft.Design", "CA1008:Enums should have zero value",
-        Justification = "Interop enum")]
     public enum CLKernelWorkGroupInfoType : int
     {
         CL_KERNEL_WORK_GROUP_SIZE = 0x11B0,
@@ -262,8 +250,6 @@ namespace ILGPU.Runtime.OpenCL
         CL_KERNEL_GLOBAL_WORK_SIZE = 0x11B5,
     }
 
-    [SuppressMessage("Microsoft.Design", "CA1008:Enums should have zero value",
-        Justification = "Interop enum")]
     public enum CLKernelSubGroupInfoType : int
     {
         CL_KERNEL_MAX_SUB_GROUP_SIZE_FOR_NDRANGE_KHR = 0x2033,
@@ -271,8 +257,6 @@ namespace ILGPU.Runtime.OpenCL
         CL_KERNEL_LOCAL_SIZE_FOR_SUB_GROUP_COUNT = 0x11B8
     }
 
-    [SuppressMessage("Microsoft.Design", "CA1008:Enums should have zero value",
-        Justification = "Interop enum")]
     public enum CLProgramInfo : int
     {
         CL_PROGRAM_REFERENCE_COUNT = 0x1160,
@@ -286,8 +270,6 @@ namespace ILGPU.Runtime.OpenCL
         CL_PROGRAM_KERNEL_NAMES = 0x1168,
     }
 
-    [SuppressMessage("Microsoft.Design", "CA1008:Enums should have zero value",
-        Justification = "Interop enum")]
     public enum CLProgramBuildInfo : int
     {
         CL_PROGRAM_BUILD_STATUS = 0x1181,
@@ -299,4 +281,3 @@ namespace ILGPU.Runtime.OpenCL
 }
 
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
-#pragma warning restore IDE1006 // Naming Styles

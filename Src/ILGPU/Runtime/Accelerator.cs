@@ -14,7 +14,7 @@ using ILGPU.Frontend.Intrinsic;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
-using System.Collections.Immutable;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -43,6 +43,24 @@ namespace ILGPU.Runtime
     }
 
     /// <summary>
+    /// An abstract builder type for accelerators.
+    /// </summary>
+    public interface IAcceleratorBuilder
+    {
+        /// <summary>
+        /// Returns the type of the associated accelerator.
+        /// </summary>
+        AcceleratorType AcceleratorType { get; }
+
+        /// <summary>
+        /// Creates a new accelerator instance.
+        /// </summary>
+        /// <param name="context">The context instance.</param>
+        /// <returns>The created accelerator instance.</returns>
+        Accelerator CreateAccelerator(Context context);
+    }
+
+    /// <summary>
     /// Represents an abstract accelerator extension that can store additional data.
     /// </summary>
     public abstract class AcceleratorExtension : CachedExtension { }
@@ -52,50 +70,10 @@ namespace ILGPU.Runtime
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
     public abstract partial class Accelerator :
-        CachedExtensionBase<AcceleratorExtension>
+        CachedExtensionBase<AcceleratorExtension>,
+        IDevice
     {
         #region Static
-
-        /// <summary>
-        /// Detects all accelerators.
-        /// </summary>
-        static Accelerator()
-        {
-            var accelerators = ImmutableArray.CreateBuilder<AcceleratorId>(4);
-            accelerators.AddRange(CPU.CPUAccelerator.CPUAccelerators);
-            accelerators.AddRange(Cuda.CudaAccelerator.CudaAccelerators);
-            accelerators.AddRange(OpenCL.CLAccelerator.CLAccelerators);
-            Accelerators = accelerators.ToImmutable();
-        }
-
-        /// <summary>
-        /// Represents all available accelerators.
-        /// </summary>
-        public static ImmutableArray<AcceleratorId> Accelerators { get; }
-
-        /// <summary>
-        /// Creates the specified accelerator using the provided accelerator id.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="acceleratorId">The specified accelerator id.</param>
-        /// <returns>The created accelerator.</returns>
-        public static Accelerator Create(Context context, AcceleratorId acceleratorId)
-        {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            return acceleratorId switch
-            {
-                CPU.CPUAcceleratorId _ => new CPU.CPUAccelerator(context),
-                Cuda.CudaAcceleratorId cudaId =>
-                    new Cuda.CudaAccelerator(context, cudaId.DeviceId),
-                OpenCL.CLAcceleratorId clId =>
-                    new OpenCL.CLAccelerator(context, clId),
-                _ => throw new ArgumentException(
-                    RuntimeErrorMessages.NotSupportedTargetAccelerator,
-                    nameof(acceleratorId)),
-            };
-        }
 
         /// <summary>
         /// Returns the current accelerator type.
@@ -145,11 +123,14 @@ namespace ILGPU.Runtime
         /// Constructs a new accelerator.
         /// </summary>
         /// <param name="context">The target context.</param>
-        /// <param name="type">The target accelerator type.</param>
-        internal Accelerator(Context context, AcceleratorType type)
+        /// <param name="device">The device.</param>
+        protected Accelerator(Context context, Device device)
         {
-            Context = context ?? throw new ArgumentNullException(nameof(context));
-            AcceleratorType = type;
+            Context = context
+                ?? throw new ArgumentNullException(nameof(context));
+            Device = device
+                ?? throw new ArgumentNullException(nameof(device));
+            WarpSize = device.WarpSize;
             InstanceId = InstanceId.CreateNew();
 
             InitKernelCache();
@@ -174,14 +155,14 @@ namespace ILGPU.Runtime
         public Context Context { get; }
 
         /// <summary>
+        /// Returns the parent device.
+        /// </summary>
+        public Device Device { get; }
+
+        /// <summary>
         /// Returns the default stream of this accelerator.
         /// </summary>
         public AcceleratorStream DefaultStream { get; protected set; }
-
-        /// <summary>
-        /// Returns the type of the accelerator.
-        /// </summary>
-        public AcceleratorType AcceleratorType { get; }
 
         /// <summary>
         /// Returns the current native accelerator pointer.
@@ -191,67 +172,6 @@ namespace ILGPU.Runtime
             get => nativePtr;
             protected set => nativePtr = value;
         }
-
-        /// <summary>
-        /// Returns the name of the device.
-        /// </summary>
-        public string Name { get; protected set; }
-
-        /// <summary>
-        /// Returns the memory size in bytes.
-        /// </summary>
-        public long MemorySize { get; protected set; }
-
-        /// <summary>
-        /// Returns the max grid size.
-        /// </summary>
-        public Index3 MaxGridSize { get; protected set; }
-
-        /// <summary>
-        /// Returns the max group size.
-        /// </summary>
-        public Index3 MaxGroupSize { get; protected set; }
-
-        /// <summary>
-        /// Returns the maximum number of threads in a group.
-        /// </summary>
-        public int MaxNumThreadsPerGroup { get; protected set; }
-
-        /// <summary>
-        /// Returns the maximum number of threads in a group.
-        /// </summary>
-        [Obsolete("Use MaxNumThreadsPerGroup instead")]
-        public int MaxThreadsPerGroup => MaxNumThreadsPerGroup;
-
-        /// <summary>
-        /// Returns the maximum number of shared memory per thread group in bytes.
-        /// </summary>
-        public int MaxSharedMemoryPerGroup { get; protected set; }
-
-        /// <summary>
-        /// Returns the maximum number of constant memory in bytes.
-        /// </summary>
-        public int MaxConstantMemory { get; protected set; }
-
-        /// <summary>
-        /// Return the warp size.
-        /// </summary>
-        public int WarpSize { get; protected set; }
-
-        /// <summary>
-        /// Returns the number of available multiprocessors.
-        /// </summary>
-        public int NumMultiprocessors { get; protected set; }
-
-        /// <summary>
-        /// Returns the maximum number of threads per multiprocessor.
-        /// </summary>
-        public int MaxNumThreadsPerMultiprocessor { get; protected set; }
-
-        /// <summary>
-        /// Returns the maximum number of threads of this accelerator.
-        /// </summary>
-        public int MaxNumThreads => NumMultiprocessors * MaxNumThreadsPerMultiprocessor;
 
         /// <summary>
         /// Returns a kernel extent (a grouped index) with the maximum number of groups
@@ -266,12 +186,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the primary backend of this accelerator.
         /// </summary>
-        public Backend Backend { get; private set; }
-
-        /// <summary>
-        /// Returns the supported capabilities of this accelerator.
-        /// </summary>
-        public CapabilityContext Capabilities { get; protected set; }
+        internal Backend Backend { get; private set; }
 
         /// <summary>
         /// Returns the default memory-buffer cache that can be used by several
@@ -290,7 +205,6 @@ namespace ILGPU.Runtime
         protected void Init(Backend backend)
         {
             Backend = backend;
-            Capabilities = backend.Capabilities;
             OnAcceleratorCreated();
         }
 
@@ -451,78 +365,6 @@ namespace ILGPU.Runtime
                 ClearLaunchCache_SyncRoot();
                 base.ClearCache(mode);
             }
-        }
-
-        /// <summary>
-        /// Prints device information to the standard <see cref="Console.Out"/> stream.
-        /// </summary>
-        public void PrintInformation() => PrintInformation(Console.Out);
-
-        /// <summary>
-        /// Prints device information to the given text writer.
-        /// </summary>
-        /// <param name="writer">The target text writer to write to.</param>
-        public void PrintInformation(TextWriter writer)
-        {
-            if (writer is null)
-                throw new ArgumentNullException(nameof(writer));
-
-            PrintHeader(writer);
-            PrintGeneralInfo(writer);
-        }
-
-        /// <summary>
-        /// Prints general header information that should appear at the top.
-        /// </summary>
-        /// <param name="writer">The target text writer to write to.</param>
-        protected virtual void PrintHeader(TextWriter writer)
-        {
-            writer.Write("Device: ");
-            writer.Write(Name);
-            writer.WriteLine(" [ILGPU InstanceId: {0}]", InstanceId);
-        }
-
-        /// <summary>
-        /// Print general GPU specific information to the given text writer.
-        /// </summary>
-        /// <param name="writer">The target text writer to write to.</param>
-        protected virtual void PrintGeneralInfo(TextWriter writer)
-        {
-            writer.Write("  Number of multiprocessors:               ");
-            writer.WriteLine(NumMultiprocessors);
-
-            writer.Write("  Max number of threads/multiprocessor:    ");
-            writer.WriteLine(MaxNumThreadsPerMultiprocessor);
-
-            writer.Write("  Max number of threads/group:             ");
-            writer.WriteLine(MaxNumThreadsPerGroup);
-
-            writer.Write("  Max number of total threads:             ");
-            writer.WriteLine(MaxNumThreads);
-
-            writer.Write("  Max dimension of a group size:           ");
-            writer.WriteLine(MaxGroupSize.ToString());
-
-            writer.Write("  Max dimension of a grid size:            ");
-            writer.WriteLine(MaxGridSize.ToString());
-
-            writer.Write("  Total amount of global memory:           ");
-            writer.WriteLine(
-                "{0} bytes, {1} MB",
-                MemorySize,
-                MemorySize / (1024 * 1024));
-
-            writer.Write("  Total amount of constant memory:         ");
-            writer.WriteLine(
-                "{0} bytes, {1} KB",
-                MaxConstantMemory,
-                MaxConstantMemory / 1024);
-
-            writer.Write("  Total amount of shared memory per group: ");
-            writer.WriteLine(
-                "{0} bytes, {1} KB",
-                MaxSharedMemoryPerGroup,
-                MaxSharedMemoryPerGroup / 1024);
         }
 
         #endregion
@@ -870,6 +712,83 @@ namespace ILGPU.Runtime
 
         #endregion
 
+        #region IDevice
+
+        /// <summary>
+        /// Returns the type of the accelerator.
+        /// </summary>
+        public AcceleratorType AcceleratorType => Device.AcceleratorType;
+
+        /// <summary>
+        /// Returns the name of the device.
+        /// </summary>
+        public string Name => Device.Name;
+
+        /// <summary>
+        /// Returns the memory size in bytes.
+        /// </summary>
+        public long MemorySize => Device.MemorySize;
+
+        /// <summary>
+        /// Returns the max grid size.
+        /// </summary>
+        public Index3 MaxGridSize => Device.MaxGridSize;
+
+        /// <summary>
+        /// Returns the max group size.
+        /// </summary>
+        public Index3 MaxGroupSize => Device.MaxGroupSize;
+
+        /// <summary>
+        /// Returns the maximum number of threads in a group.
+        /// </summary>
+        public int MaxNumThreadsPerGroup => Device.MaxNumThreadsPerGroup;
+
+        /// <summary>
+        /// Returns the maximum number of shared memory per thread group in bytes.
+        /// </summary>
+        public int MaxSharedMemoryPerGroup => Device.MaxSharedMemoryPerGroup;
+
+        /// <summary>
+        /// Returns the maximum number of constant memory in bytes.
+        /// </summary>
+        public int MaxConstantMemory => Device.MaxConstantMemory;
+
+        /// <summary>
+        /// Return the warp size.
+        /// </summary>
+        public int WarpSize { get; protected set; }
+
+        /// <summary>
+        /// Returns the number of available multiprocessors.
+        /// </summary>
+        public int NumMultiprocessors => Device.NumMultiprocessors;
+
+        /// <summary>
+        /// Returns the maximum number of threads per multiprocessor.
+        /// </summary>
+        public int MaxNumThreadsPerMultiprocessor =>
+            Device.MaxNumThreadsPerMultiprocessor;
+
+        /// <summary>
+        /// Returns the maximum number of threads of this accelerator.
+        /// </summary>
+        public int MaxNumThreads => Device.MaxNumThreads;
+
+        /// <summary>
+        /// Returns the supported capabilities of this accelerator.
+        /// </summary>
+        public CapabilityContext Capabilities => Device.Capabilities;
+
+        /// <summary>
+        /// Prints device information to the given text writer.
+        /// </summary>
+        /// <param name="writer">The target text writer to write to.</param>
+        public void PrintInformation(TextWriter writer) =>
+            Device.PrintInformation(writer);
+
+        #endregion
+
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
@@ -928,10 +847,7 @@ namespace ILGPU.Runtime
         /// Returns the string representation of this accelerator.
         /// </summary>
         /// <returns>The string representation of this accelerator.</returns>
-        public override string ToString() =>
-            $"{Name} [WarpSize: {WarpSize}, " +
-            $"MaxNumThreadsPerGroup: {MaxNumThreadsPerGroup}, " +
-            $"MemorySize: {MemorySize}]";
+        public override string ToString() => Device.ToString();
 
         #endregion
     }

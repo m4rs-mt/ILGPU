@@ -37,6 +37,7 @@ var fp16Ops = new (string, string, string, string)[]
 #>
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
+using ILGPU.Runtime.Cuda;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.PTX
@@ -150,7 +151,7 @@ namespace ILGPU.Backends.PTX
                 BasicValueType.Float16,
                 CreateFP16Intrinsic(
                     nameof(HalfExtensions.<#= name #>),
-                    <#= sm != null ? $"PTXArchitecture.{sm}" : "null" #>));
+                    <#= sm != null ? $"CudaArchitecture.{sm}" : "null" #>));
 <# } #>
         }
 

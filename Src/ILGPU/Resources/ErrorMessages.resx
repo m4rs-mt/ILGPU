@@ -258,9 +258,6 @@
   <data name="CouldNotFindCorrespondingIRMethod" xml:space="preserve">
     <value>Could not find IR method that corresponds to the method handle '{0}'</value>
   </data>
-  <data name="IntrinsicAcceleratorsBroken" xml:space="preserve">
-    <value>Intrinsic accelerators broken (contact developers)</value>
-  </data>
   <data name="InvalidKernelOperation" xml:space="preserve">
     <value>This operation can only be called from an ILGPU kernel</value>
   </data>
@@ -300,11 +297,20 @@
   <data name="InternalCompilerErrorNull" xml:space="preserve">
     <value>Invalid null value</value>
   </data>
-  <data name="LocationFileMessage" xml:space="preserve">
-    <value>'{0}' in file '{1}' lines {2} - {3}</value>
+  <data name="LocationFileMessageL1C1" xml:space="preserve">
+    <value>{0} in file '{1}', line {2} column {3}</value>
+  </data>
+  <data name="LocationFileMessageL1C2" xml:space="preserve">
+    <value>{0} in file '{1}', line {2} column {3} to {4}</value>
+  </data>
+  <data name="LocationFileMessageL2C2" xml:space="preserve">
+    <value>{0} in file '{1}', line {2} column {3} to line {4} column {5}</value>
   </data>
   <data name="LocationMethodMessage" xml:space="preserve">
-    <value>'{0}' in method {1} declared in type {2}</value>
+    <value>{0} in method {1} declared in type {2}</value>
+  </data>
+  <data name="LocationCompilationStackLinePrefix" xml:space="preserve">
+    <value>-</value>
   </data>
   <data name="LocationTypeMessage" xml:space="preserve">
     <value>'{0}' related to type {1} (managed type '{2}')</value>

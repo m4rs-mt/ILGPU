@@ -13,7 +13,6 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -88,15 +87,6 @@ namespace ILGPU.Frontend.DebugInformation
             public string PDBFileName { get; }
 
             /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
-            [SuppressMessage(
-                "Microsoft.Design",
-                "CA1031:DoNotCatchGeneralExceptionTypes",
-                Justification = "Loading exceptions will be published on the " +
-                "debug output")]
-            [SuppressMessage(
-                "Reliability",
-                "CA2000:Dispose objects before losing scope",
-                Justification = "Stream will be used internally and disposed later")]
             public bool Load(
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)
@@ -150,17 +140,12 @@ namespace ILGPU.Frontend.DebugInformation
             public DebugInformationManager Parent { get; }
 
             /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
-            [SuppressMessage(
-                "Microsoft.Design",
-                "CA1031:DoNotCatchGeneralExceptionTypes",
-                Justification = "Loading exceptions will be published on the " +
-                "debug output")]
             public bool Load(
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)
             {
                 assemblyDebugInformation = null;
-                if (assembly.IsDynamic)
+                if (assembly.IsDynamic || string.IsNullOrEmpty(assembly.Location))
                     return false;
 
                 var debugDir = Path.GetDirectoryName(assembly.Location);
@@ -202,11 +187,6 @@ namespace ILGPU.Frontend.DebugInformation
             public Stream PDBStream { get; }
 
             /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
-            [SuppressMessage(
-                "Microsoft.Design",
-                "CA1031:DoNotCatchGeneralExceptionTypes",
-                Justification = "Loading exceptions will be published on the " +
-                "debug output")]
             public bool Load(
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)
@@ -431,10 +411,6 @@ namespace ILGPU.Frontend.DebugInformation
         /// Loaded debug information (or null).
         /// </param>
         /// <returns>True, if debug information could be loaded.</returns>
-        [SuppressMessage(
-            "Reliability",
-            "CA2000:Dispose objects before losing scope",
-            Justification = "References will be disposed in Dispose method")]
         public bool TryLoadDebugInformation(
             MethodBase methodBase,
             out MethodDebugInformation methodDebugInformation)

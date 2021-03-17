@@ -141,6 +141,12 @@
   <data name="InvalidCustomGroupSize" xml:space="preserve">
     <value>Invalid custom group size &gt; 0 in a grouped-index scenario</value>
   </data>
+  <data name="InvalidDeviceTypeAttribute" xml:space="preserve">
+    <value>The parent device class is not annotated with the DeviceTypeAttribute</value>
+  </data>
+  <data name="InvalidDowngradeOfDebugSymbols" xml:space="preserve">
+    <value>Invalid downgrade of debug symbols mode.</value>
+  </data>
   <data name="InvalidGridDimension" xml:space="preserve">
     <value>Invalid grid dimension</value>
   </data>

@@ -102,8 +102,8 @@ namespace ILGPU.Backends
             /// Returns detailed information about all shared allocations.
             /// </summary>
             /// <remarks>
-            /// This information will be populated if the flag
-            /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
+            /// This information will be populated if the property
+            /// <see cref="ContextProperties.EnableKernelInformation"/> is enabled.
             /// </remarks>
             public AllocaKindInformation SharedAllocations { get; }
 
@@ -111,8 +111,8 @@ namespace ILGPU.Backends
             /// Returns information about all functions in the compiled kernel.
             /// </summary>
             /// <remarks>
-            /// This array will be populated if the flag
-            /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
+            /// This array will be populated if the property
+            /// <see cref="ContextProperties.EnableKernelInformation"/> is enabled.
             /// </remarks>
             public ImmutableArray<FunctionInfo> Functions { get; }
 
@@ -233,8 +233,8 @@ namespace ILGPU.Backends
         /// Returns information about all functions in the compiled kernel.
         /// </summary>
         /// <remarks>
-        /// This instance will be available when the
-        /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
+        /// This instance will be available when the property
+        /// <see cref="ContextProperties.EnableKernelInformation"/> is enabled.
         /// </remarks>
         public KernelInfo Info { get; }
 

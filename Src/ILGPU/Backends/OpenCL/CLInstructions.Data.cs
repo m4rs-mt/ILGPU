@@ -206,24 +206,24 @@ namespace ILGPU.Backends.OpenCL
         };
 
         private static readonly Dictionary<
-            (CLAcceleratorVendor, ShuffleKind),
+            (CLDeviceVendor, ShuffleKind),
             string> ShuffleOperations =
-            new Dictionary<(CLAcceleratorVendor, ShuffleKind), string>()
+            new Dictionary<(CLDeviceVendor, ShuffleKind), string>()
             {
                 {
-                    (CLAcceleratorVendor.Intel, ShuffleKind.Generic),
+                    (CLDeviceVendor.Intel, ShuffleKind.Generic),
                     "intel_sub_group_shuffle"
                 },
                 {
-                    (CLAcceleratorVendor.Intel, ShuffleKind.Down),
+                    (CLDeviceVendor.Intel, ShuffleKind.Down),
                     "intel_sub_group_shuffle_down"
                 },
                 {
-                    (CLAcceleratorVendor.Intel, ShuffleKind.Up),
+                    (CLDeviceVendor.Intel, ShuffleKind.Up),
                     "intel_sub_group_shuffle_up"
                 },
                 {
-                    (CLAcceleratorVendor.Intel, ShuffleKind.Xor),
+                    (CLDeviceVendor.Intel, ShuffleKind.Xor),
                     "intel_sub_group_shuffle_xor"
                 },
             };

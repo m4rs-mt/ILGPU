@@ -534,8 +534,8 @@ namespace ILGPU.Runtime
         /// <#= delegateParams.KernelLaunchParamsDocumentation #>
         /// <remarks>
         /// Uses the internal launcher cache that explicitly caches all launched kernels
-        /// using strong references. To avoid caching use the context flag
-        /// <see cref="ContextFlags.DisableKernelLaunchCaching" />.
+        /// using strong references. To avoid caching use the context caching mode
+        /// <see cref="CachingMode.NoKernelCaching" />.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Launch<<#= delegateParams.TypeParams #>>(
@@ -562,8 +562,8 @@ namespace ILGPU.Runtime
         /// <#= delegateParams.KernelLaunchParamsDocumentation #>
         /// <remarks>
         /// Uses the internal launcher cache that explicitly caches all launched kernels
-        /// using strong references. To avoid caching use the context flag
-        /// <see cref="ContextFlags.DisableKernelLaunchCaching" />.
+        /// using strong references. To avoid caching use the context caching mode
+        /// <see cref="CachingMode.NoKernelCaching" />.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Launch<<#= delegateParams.TypeParams #>>(
@@ -589,8 +589,8 @@ namespace ILGPU.Runtime
         /// <#= delegateParams.KernelLaunchParamsDocumentation #>
         /// <remarks>
         /// Uses the internal launcher cache that explicitly caches all launched kernels
-        /// using strong references. To avoid caching use the context flag
-        /// <see cref="ContextFlags.DisableKernelLaunchCaching" />.
+        /// using strong references. To avoid caching use the context caching mode
+        /// <see cref="CachingMode.NoKernelCaching" />.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void LaunchAutoGrouped<TIndex, <#= delegateParams.TypeParams #>>(
@@ -619,8 +619,8 @@ namespace ILGPU.Runtime
         /// <#= delegateParams.KernelLaunchParamsDocumentation #>
         /// <remarks>
         /// Uses the internal launcher cache that explicitly caches all launched kernels
-        /// using strong references. To avoid caching use the context flag
-        /// <see cref="ContextFlags.DisableKernelLaunchCaching" />.
+        /// using strong references. To avoid caching use the context caching mode
+        /// <see cref="CachingMode.NoKernelCaching" />.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void LaunchAutoGrouped<TIndex, <#= delegateParams.TypeParams #>>(

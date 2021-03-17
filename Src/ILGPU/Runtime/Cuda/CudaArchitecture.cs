@@ -3,101 +3,100 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: PTXArchitecture.cs
+// File: CudaArchitecture.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Resources;
 using System;
 using System.Diagnostics;
 
-namespace ILGPU.Backends
+namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
-    /// Represents a PTX architecture.
+    /// Represents a Cuda architecture.
     /// </summary>
-    public readonly struct PTXArchitecture :
-        IEquatable<PTXArchitecture>,
-        IComparable<PTXArchitecture>
+    public readonly struct CudaArchitecture :
+        IEquatable<CudaArchitecture>,
+        IComparable<CudaArchitecture>
     {
         #region Constants
 
         /// <summary>
         /// The 3.0 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_30 = new PTXArchitecture(3, 0);
+        public static readonly CudaArchitecture SM_30 = new CudaArchitecture(3, 0);
 
         /// <summary>
         /// The 3.2 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_32 = new PTXArchitecture(3, 2);
+        public static readonly CudaArchitecture SM_32 = new CudaArchitecture(3, 2);
 
         /// <summary>
         /// The 3.5 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_35 = new PTXArchitecture(3, 5);
+        public static readonly CudaArchitecture SM_35 = new CudaArchitecture(3, 5);
 
         /// <summary>
         /// The 3.7 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_37 = new PTXArchitecture(3, 7);
+        public static readonly CudaArchitecture SM_37 = new CudaArchitecture(3, 7);
 
         /// <summary>
         /// The 5.0 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_50 = new PTXArchitecture(5, 0);
+        public static readonly CudaArchitecture SM_50 = new CudaArchitecture(5, 0);
 
         /// <summary>
         /// The 5.2 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_52 = new PTXArchitecture(5, 2);
+        public static readonly CudaArchitecture SM_52 = new CudaArchitecture(5, 2);
 
         /// <summary>
         /// The 5.3 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_53 = new PTXArchitecture(5, 3);
+        public static readonly CudaArchitecture SM_53 = new CudaArchitecture(5, 3);
 
         /// <summary>
         /// The 6.0 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_60 = new PTXArchitecture(6, 0);
+        public static readonly CudaArchitecture SM_60 = new CudaArchitecture(6, 0);
 
         /// <summary>
         /// The 6.1 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_61 = new PTXArchitecture(6, 1);
+        public static readonly CudaArchitecture SM_61 = new CudaArchitecture(6, 1);
 
         /// <summary>
         /// The 6.2 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_62 = new PTXArchitecture(6, 2);
+        public static readonly CudaArchitecture SM_62 = new CudaArchitecture(6, 2);
 
         /// <summary>
         /// The 7.0 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_70 = new PTXArchitecture(7, 0);
+        public static readonly CudaArchitecture SM_70 = new CudaArchitecture(7, 0);
 
         /// <summary>
         /// The 7.2 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_72 = new PTXArchitecture(7, 2);
+        public static readonly CudaArchitecture SM_72 = new CudaArchitecture(7, 2);
 
         /// <summary>
         /// The 7.5 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_75 = new PTXArchitecture(7, 5);
+        public static readonly CudaArchitecture SM_75 = new CudaArchitecture(7, 5);
 
         /// <summary>
         /// The 8.0 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_80 = new PTXArchitecture(8, 0);
+        public static readonly CudaArchitecture SM_80 = new CudaArchitecture(8, 0);
 
         /// <summary>
         /// The 8.6 architecture.
         /// </summary>
-        public static readonly PTXArchitecture SM_86 = new PTXArchitecture(8, 6);
+        public static readonly CudaArchitecture SM_86 = new CudaArchitecture(8, 6);
 
         #endregion
 
@@ -108,7 +107,7 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="major">The major version.</param>
         /// <param name="minor">The minor version.</param>
-        public PTXArchitecture(int major, int minor)
+        public CudaArchitecture(int major, int minor)
         {
             Major = major;
             Minor = minor;
@@ -125,7 +124,7 @@ namespace ILGPU.Backends
         /// <returns>
         /// True, if the given architecture is equal to this architecture.
         /// </returns>
-        public bool Equals(PTXArchitecture other) => this == other;
+        public bool Equals(CudaArchitecture other) => this == other;
 
         #endregion
 
@@ -136,7 +135,7 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="other">The object to compare to.</param>
         /// <returns>The comparison result.</returns>
-        public int CompareTo(PTXArchitecture other)
+        public int CompareTo(CudaArchitecture other)
         {
             if (this < other)
                 return -1;
@@ -171,7 +170,7 @@ namespace ILGPU.Backends
         /// <returns>True,
         /// if the given object is equal to this architecture.</returns>
         public override bool Equals(object obj) =>
-            obj is PTXArchitecture architecture && architecture == this;
+            obj is CudaArchitecture architecture && architecture == this;
 
         /// <summary>
         /// Returns the hash code of this architecture.
@@ -198,8 +197,8 @@ namespace ILGPU.Backends
         /// True, if the first and the second architecture are the same.
         /// </returns>
         public static bool operator ==(
-            PTXArchitecture first,
-            PTXArchitecture second) =>
+            CudaArchitecture first,
+            CudaArchitecture second) =>
             first.Major == second.Major && first.Minor == second.Minor;
 
         /// <summary>
@@ -211,8 +210,8 @@ namespace ILGPU.Backends
         /// True, if the first and the second architecture are not the same.
         /// </returns>
         public static bool operator !=(
-            PTXArchitecture first,
-            PTXArchitecture second) =>
+            CudaArchitecture first,
+            CudaArchitecture second) =>
             first.Major != second.Major || first.Minor != second.Minor;
 
         /// <summary>
@@ -224,8 +223,8 @@ namespace ILGPU.Backends
         /// True, if the first architecture is smaller than the second one.
         /// </returns>
         public static bool operator <(
-            PTXArchitecture first,
-            PTXArchitecture second) =>
+            CudaArchitecture first,
+            CudaArchitecture second) =>
             first.Major < second.Major ||
             first.Major == second.Major && first.Minor < second.Minor;
 
@@ -239,8 +238,8 @@ namespace ILGPU.Backends
         /// True, if the first architecture is less or equal to the second architecture.
         /// </returns>
         public static bool operator <=(
-            PTXArchitecture first,
-            PTXArchitecture second) =>
+            CudaArchitecture first,
+            CudaArchitecture second) =>
             first.Major < second.Major ||
             first.Major == second.Major && first.Minor <= second.Minor;
 
@@ -253,8 +252,8 @@ namespace ILGPU.Backends
         /// True, if the first architecture is greater than the second one.
         /// </returns>
         public static bool operator >(
-            PTXArchitecture first,
-            PTXArchitecture second) =>
+            CudaArchitecture first,
+            CudaArchitecture second) =>
             first.Major > second.Major ||
             first.Major == second.Major && first.Minor > second.Minor;
 
@@ -269,35 +268,10 @@ namespace ILGPU.Backends
         /// architecture.
         /// </returns>
         public static bool operator >=(
-            PTXArchitecture first,
-            PTXArchitecture second) =>
+            CudaArchitecture first,
+            CudaArchitecture second) =>
             first.Major > second.Major ||
             first.Major == second.Major && first.Minor >= second.Minor;
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Utilities for the <see cref="PTXArchitecture"/> enumeration.
-    /// </summary>
-    public static class PTXArchitectureUtils
-    {
-        #region Static
-
-        /// <summary>
-        /// Resolves the PTX architecture for the given major and minor versions.
-        /// </summary>
-        /// <param name="major">The major version.</param>
-        /// <param name="minor">The minor version.</param>
-        /// <returns>The resolved PTX version.</returns>
-        public static PTXArchitecture GetArchitecture(int major, int minor)
-        {
-            var architecture = new PTXArchitecture(major, minor);
-            return architecture >= PTXArchitecture.SM_30
-            ? architecture
-            : throw new NotSupportedException(
-                RuntimeErrorMessages.NotSupportedPTXArchitecture);
-        }
 
         #endregion
     }

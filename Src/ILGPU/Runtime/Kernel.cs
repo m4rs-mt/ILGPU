@@ -304,8 +304,8 @@ namespace ILGPU.Runtime
         /// Returns information about all functions in the compiled kernel.
         /// </summary>
         /// <remarks>
-        /// This instance will be available when the
-        /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
+        /// This instance will be available when the property
+        /// <see cref="ContextProperties.EnableKernelInformation"/> is enabled.
         /// </remarks>
         public CompiledKernel.KernelInfo Info => CompiledKernel.Info;
 
@@ -457,8 +457,8 @@ namespace ILGPU.Runtime
         /// <param name="kernelDelegate">The kernel-delegate instance.</param>
         /// <returns>The kernel specialization instance.</returns>
         /// <remarks>
-        /// This instance will be available when the
-        /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
+        /// This instance will be available when the property
+        /// <see cref="ContextProperties.EnableKernelInformation"/> is enabled.
         /// </remarks>
         public static CompiledKernel.KernelInfo GetKernelInfo<TDelegate>(
             this TDelegate kernelDelegate)

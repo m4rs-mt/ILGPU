@@ -63,6 +63,11 @@ namespace ILGPU.IR
         public Context Context { get; }
 
         /// <summary>
+        /// Returns the main context properties.
+        /// </summary>
+        public ContextProperties Properties => Context.Properties;
+
+        /// <summary>
         /// Returns the current verifier instance.
         /// </summary>
         internal Verifier Verifier => Context.Verifier;
@@ -76,23 +81,6 @@ namespace ILGPU.IR
         /// Returns an undefined value.
         /// </summary>
         public UndefinedValue UndefinedValue { get; }
-
-        /// <summary>
-        /// Returns the associated flags.
-        /// </summary>
-        public ContextFlags Flags => Context.Flags;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns true if the current context has the given flags.
-        /// </summary>
-        /// <param name="flags">The flags to check.</param>
-        /// <returns>True, if the current context has the given flags.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasFlags(ContextFlags flags) => Context.HasFlags(flags);
 
         #endregion
     }

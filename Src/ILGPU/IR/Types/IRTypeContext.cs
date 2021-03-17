@@ -76,9 +76,9 @@ namespace ILGPU.IR.Types
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
 
-            ContextFlags = context.Flags;
             TargetPlatform = context.TargetPlatform;
             RuntimeSystem = context.RuntimeSystem;
+            MathMode = context.Properties.MathMode;
 
             VoidType = new VoidType(this);
             StringType = new StringType(this);
@@ -91,7 +91,7 @@ namespace ILGPU.IR.Types
 
             foreach (var type in BasicValueTypes)
                 basicValueTypes[(int)type] = new PrimitiveType(this, type);
-            if (context.HasFlags(ContextFlags.Force32BitFloats))
+            if (MathMode == MathMode.Fast32BitOnly)
             {
                 basicValueTypes[
                     (int)BasicValueType.Float64] = basicValueTypes[
@@ -111,11 +111,6 @@ namespace ILGPU.IR.Types
         #region Properties
 
         /// <summary>
-        /// Returns the associated context flags.
-        /// </summary>
-        public ContextFlags ContextFlags { get; }
-
-        /// <summary>
         /// Returns the associated target platform for all pointer-based types.
         /// </summary>
         public TargetPlatform TargetPlatform { get; }
@@ -124,6 +119,11 @@ namespace ILGPU.IR.Types
         /// Returns the parent runtime system.
         /// </summary>
         public RuntimeSystem RuntimeSystem { get; }
+
+        /// <summary>
+        /// Returns the current math mode.
+        /// </summary>
+        public MathMode MathMode { get; }
 
         /// <summary>
         /// Returns the void type.

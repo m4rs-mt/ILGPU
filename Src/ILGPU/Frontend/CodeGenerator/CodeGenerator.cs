@@ -46,17 +46,20 @@ namespace ILGPU.Frontend
         /// <param name="disassembledMethod">
         /// The corresponding disassembled method.
         /// </param>
+        /// <param name="compilationStackLocation">The source location.</param>
         /// <param name="detectedMethods">The set of newly detected methods.</param>
         public CodeGenerator(
             ILFrontend frontend,
             IRContext context,
             Method.Builder methodBuilder,
             DisassembledMethod disassembledMethod,
-            HashSet<MethodBase> detectedMethods)
+            CompilationStackLocation compilationStackLocation,
+            Dictionary<MethodBase, CompilationStackLocation> detectedMethods)
         {
             Frontend = frontend;
             Context = context;
             DisassembledMethod = disassembledMethod;
+            CompilationStackLocation = compilationStackLocation;
             DetectedMethods = detectedMethods;
 
             cfgBuilder = new Block.CFGBuilder(this, methodBuilder);
@@ -174,7 +177,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the set of detected methods.
         /// </summary>
-        private HashSet<MethodBase> DetectedMethods { get; }
+        private Dictionary<MethodBase, CompilationStackLocation> DetectedMethods { get; }
 
         /// <summary>
         /// Returns the associated frontend.
@@ -215,6 +218,11 @@ namespace ILGPU.Frontend
         /// Returns the entry block.
         /// </summary>
         public Block EntryBlock { get; }
+
+        /// <summary>
+        /// Gets or sets the source location.
+        /// </summary>
+        private CompilationStackLocation CompilationStackLocation { get; }
 
         #endregion
 
@@ -260,8 +268,14 @@ namespace ILGPU.Frontend
             // current IR context.
             var result = Context.Declare(methodBase, out bool created);
 
-            if (created && result.HasImplementation)
-                DetectedMethods.Add(methodBase);
+            if (created &&
+                result.HasImplementation &&
+                !DetectedMethods.ContainsKey(methodBase))
+            {
+                DetectedMethods.Add(
+                    methodBase,
+                    CompilationStackLocation.Append(Location));
+            }
             return result;
         }
 
@@ -330,14 +344,15 @@ namespace ILGPU.Frontend
                 catch (Exception e)
                 {
                     // Wrap generic exceptions with location information.
-                    throw Location.GetException(e);
+                    throw CompilationStackLocation.Append(Location).GetException(e);
                 }
                 if (!generated)
                 {
-                    throw Location.GetNotSupportedException(
-                        ErrorMessages.NotSupportedInstruction,
-                        instruction,
-                        Method.Name);
+                    throw CompilationStackLocation.Append(Location)
+                        .GetNotSupportedException(
+                            ErrorMessages.NotSupportedInstruction,
+                            instruction,
+                            Method.Name);
                 }
             }
 
@@ -385,9 +400,12 @@ namespace ILGPU.Frontend
                     "System.Reflection",
                     StringComparison.OrdinalIgnoreCase))
             {
-                throw Location.GetNotSupportedException(
-                    ErrorMessages.NotSupportedRuntimeMethod,
-                    method.Name);
+                throw CompilationStackLocation
+                    .Append(Location)
+                    .Append(new Method.MethodLocation(method))
+                    .GetNotSupportedException(
+                        ErrorMessages.NotSupportedRuntimeMethod,
+                        method.Name);
             }
         }
 
@@ -403,9 +421,9 @@ namespace ILGPU.Frontend
             bool isInitOnly = (field.Attributes & FieldAttributes.InitOnly) !=
                 FieldAttributes.InitOnly;
             if (isInitOnly &&
-                !Context.HasFlags(ContextFlags.InlineMutableStaticFieldValues))
+                Context.Properties.StaticFieldMode < StaticFieldMode.MutableStaticFields)
             {
-                throw Location.GetNotSupportedException(
+                throw CompilationStackLocation.Append(Location).GetNotSupportedException(
                     ErrorMessages.NotSupportedLoadOfStaticField,
                     field);
             }
@@ -420,9 +438,9 @@ namespace ILGPU.Frontend
         {
             Debug.Assert(field != null || !field.IsStatic, "Invalid field");
 
-            if (!Context.HasFlags(ContextFlags.IgnoreStaticFieldStores))
+            if (Context.Properties.StaticFieldMode < StaticFieldMode.Aggressive)
             {
-                throw Location.GetNotSupportedException(
+                throw CompilationStackLocation.Append(Location).GetNotSupportedException(
                     ErrorMessages.NotSupportedStoreToStaticField,
                     field);
             }
@@ -480,7 +498,10 @@ namespace ILGPU.Frontend
             ConvertFlags flags)
         {
             if (type == null || !address.Type.IsPointerType)
-                throw Location.GetInvalidOperationException();
+            {
+                throw CompilationStackLocation.Append(Location)
+                    .GetInvalidOperationException();
+            }
 
             address = CreateConversion(
                 address,
@@ -499,7 +520,10 @@ namespace ILGPU.Frontend
         private void CreateStore(Value address, Value value)
         {
             if (!address.Type.IsPointerType)
-                throw Location.GetInvalidOperationException();
+            {
+                throw CompilationStackLocation.Append(Location)
+                    .GetInvalidOperationException();
+            }
 
             address = CreateConversion(
                 address,

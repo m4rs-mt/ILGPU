@@ -55,8 +55,12 @@ namespace ILGPU.Runtime
         /// </summary>
         private void InitLaunchCache()
         {
-            if (Context.HasFlags(ContextFlags.DisableKernelLaunchCaching))
+            var cachingMode = Context.Properties.CachingMode;
+            if (cachingMode == CachingMode.NoLaunchCaching ||
+                cachingMode == CachingMode.Disabled)
+            {
                 return;
+            }
 
             launchCache = new Dictionary<Delegate, Delegate>();
         }
