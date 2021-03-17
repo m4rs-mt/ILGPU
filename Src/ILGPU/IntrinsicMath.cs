@@ -654,5 +654,43 @@ namespace ILGPU
         public static long ComposeLong(IntegerParts parts) => (long)ComposeULong(parts);
 
         #endregion
+
+        #region CopySign
+
+        /// <summary>
+        /// Returns a value with the magnitude of x and the sign of y.
+        /// </summary>
+        /// <param name="x">A number whose magnitude is used in the result.</param>
+        /// <param name="y">A number whose sign is the used in the result.</param>
+        /// <returns>A value with the magnitude of x and the sign of y.</returns>
+        [MathIntrinsic(MathIntrinsicKind.CopySignF)]
+        public static double CopySign(double x, double y) =>
+#if !NETFRAMEWORK && !NETSTANDARD
+            Math.CopySign(x, y)
+#else
+            // NB: net47 and netstandard2.1 do not support Math.CopySign.
+            Interop.IntAsFloat(
+                (Interop.FloatAsInt(x) & ~(1UL << 63)) |
+                (Interop.FloatAsInt(y) & (1UL << 63)));
+#endif
+
+        /// <summary>
+        /// Returns a value with the magnitude of x and the sign of y.
+        /// </summary>
+        /// <param name="x">A number whose magnitude is used in the result.</param>
+        /// <param name="y">A number whose sign is the used in the result.</param>
+        /// <returns>A value with the magnitude of x and the sign of y.</returns>
+        [MathIntrinsic(MathIntrinsicKind.CopySignF)]
+        public static float CopySign(float x, float y) =>
+#if !NETFRAMEWORK && !NETSTANDARD
+            Math.CopySign(x, y)
+#else
+            // NB: net47 and netstandard2.1 do not support Math.CopySign.
+            Interop.IntAsFloat(
+                (Interop.FloatAsInt(x) & ~(1U << 31)) |
+                (Interop.FloatAsInt(y) & (1U << 31)));
+#endif
+
+        #endregion
     }
 }
