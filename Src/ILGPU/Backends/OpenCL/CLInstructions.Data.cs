@@ -369,6 +369,8 @@ namespace ILGPU.Backends.OpenCL
 
                 { (BinaryArithmeticKind.Atan2F, true), ("atan2", true) },
                 { (BinaryArithmeticKind.PowF, true), ("pow", true) },
+
+                { (BinaryArithmeticKind.CopySignF, true), ("copysign", true) },
             };
 
         private static readonly Dictionary<

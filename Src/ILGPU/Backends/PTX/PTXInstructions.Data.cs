@@ -604,6 +604,9 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.Float16), "min.f16" },
                 { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.Float32), "min.f32" },
                 { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.Float64), "min.f64" },
+
+                { (BinaryArithmeticKind.CopySignF, ArithmeticBasicValueType.Float32), "copysign.f32" },
+                { (BinaryArithmeticKind.CopySignF, ArithmeticBasicValueType.Float64), "copysign.f64" },
             };
 
         private static readonly Dictionary<(BinaryArithmeticKind, ArithmeticBasicValueType), string> BinaryArithmeticOperationsFastMath =
