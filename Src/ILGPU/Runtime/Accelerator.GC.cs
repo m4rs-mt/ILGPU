@@ -40,6 +40,7 @@ namespace ILGPU.Runtime
             gcThread = new Thread(GCThread)
             {
                 Name = $"ILGPU_{InstanceId}_GCThread",
+                IsBackground = true,
             };
             gcThread.Start();
         }
