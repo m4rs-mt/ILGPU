@@ -12,6 +12,7 @@
 using ILGPU.AtomicOperations;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
+using ILGPU.Runtime.Cuda;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -45,8 +46,8 @@ namespace ILGPU.Backends.PTX
         private static PTXIntrinsic CreateIntrinsic(
             string name,
             IntrinsicImplementationMode mode,
-            PTXArchitecture? minArchitecture,
-            PTXArchitecture maxArchitecture) =>
+            CudaArchitecture? minArchitecture,
+            CudaArchitecture maxArchitecture) =>
             new PTXIntrinsic(
                 PTXIntrinsicsType,
                 name,
@@ -73,7 +74,7 @@ namespace ILGPU.Backends.PTX
         /// <returns>The created intrinsic.</returns>
         private static PTXIntrinsic CreateFP16Intrinsic(
             string name,
-            PTXArchitecture? maxArchitecture) =>
+            CudaArchitecture? maxArchitecture) =>
             maxArchitecture.HasValue
             ? new PTXIntrinsic(
                 HalfType,
@@ -112,7 +113,7 @@ namespace ILGPU.Backends.PTX
                     nameof(AtomicAddF64),
                     IntrinsicImplementationMode.Redirect,
                     null,
-                    PTXArchitecture.SM_60));
+                    CudaArchitecture.SM_60));
 
         /// <summary>
         /// Represents an atomic compare-exchange operation of type double.

@@ -43,16 +43,14 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Initializes the internal execution engine.
         /// </summary>
-        /// <param name="numWarpsPerMultiprocessor">The number of warps per mp.</param>
         /// <param name="threadPriority">The desired thread priority.</param>
-        private void InitExecutionEngine(
-            int numWarpsPerMultiprocessor,
-            ThreadPriority threadPriority)
+        private void InitExecutionEngine(ThreadPriority threadPriority)
         {
             threads = new Thread[NumThreads];
             finishedEventPerMultiprocessor = new Barrier(NumMultiprocessors + 1);
 
             // Setup all warp and group contexts
+            int numWarpsPerMultiprocessor = MaxNumThreadsPerMultiprocessor / WarpSize;
             warpContexts = new CPURuntimeWarpContext[
                 NumMultiprocessors,
                 numWarpsPerMultiprocessor];

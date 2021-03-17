@@ -133,6 +133,24 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The parent device class is not annotated with the DeviceTypeAttribute.
+        /// </summary>
+        internal static string InvalidDeviceTypeAttribute {
+            get {
+                return ResourceManager.GetString("InvalidDeviceTypeAttribute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid downgrade of debug symbols mode..
+        /// </summary>
+        internal static string InvalidDowngradeOfDebugSymbols {
+            get {
+                return ResourceManager.GetString("InvalidDowngradeOfDebugSymbols", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid grid dimension.
         /// </summary>
         internal static string InvalidGridDimension {

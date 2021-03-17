@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Intrinsics;
+using ILGPU.Runtime.Cuda;
 using System;
 using System.Reflection;
 
@@ -74,7 +75,7 @@ namespace ILGPU.Backends.PTX
         public PTXIntrinsic(
             Type handlerType,
             IntrinsicImplementationMode mode,
-            PTXArchitecture minArchitecture)
+            CudaArchitecture minArchitecture)
             : this(handlerType, mode)
         {
             MinArchitecture = minArchitecture;
@@ -108,7 +109,7 @@ namespace ILGPU.Backends.PTX
             Type handlerType,
             string methodName,
             IntrinsicImplementationMode mode,
-            PTXArchitecture minArchitecture)
+            CudaArchitecture minArchitecture)
             : base(
                   BackendType.PTX,
                   handlerType,
@@ -130,8 +131,8 @@ namespace ILGPU.Backends.PTX
             Type handlerType,
             string methodName,
             IntrinsicImplementationMode mode,
-            PTXArchitecture? minArchitecture,
-            PTXArchitecture maxArchitecture)
+            CudaArchitecture? minArchitecture,
+            CudaArchitecture maxArchitecture)
             : base(
                   BackendType.PTX,
                   handlerType,
@@ -153,7 +154,7 @@ namespace ILGPU.Backends.PTX
         /// This intrinsic will be used for any architecture greater than or equal this
         /// value.
         /// </remarks>
-        public PTXArchitecture? MinArchitecture { get; }
+        public CudaArchitecture? MinArchitecture { get; }
 
         /// <summary>
         /// Returns the associated architecture (if any).
@@ -161,7 +162,7 @@ namespace ILGPU.Backends.PTX
         /// <remarks>
         /// This intrinsic will be used for any architecture less than this value.
         /// </remarks>
-        public PTXArchitecture? MaxArchitecture { get; }
+        public CudaArchitecture? MaxArchitecture { get; }
 
         #endregion
 

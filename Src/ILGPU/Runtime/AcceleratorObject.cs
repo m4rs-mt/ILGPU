@@ -161,14 +161,9 @@ namespace ILGPU.Runtime
         #region Properties
 
         /// <summary>
-        /// Returns the number of the registered child objects that depend
-        /// on this accelerator object.
+        /// Returns the number of the registered child objects that depend on this
+        /// accelerator object.
         /// </summary>
-        /// <remarks>
-        /// Note that this number is affected by the flags
-        /// <see cref="ContextFlags.DisableAutomaticBufferDisposal"/> and
-        /// <see cref="ContextFlags.DisableAutomaticKernelDisposal"/>.
-        /// </remarks>
         public int NumberChildObjects
         {
             get

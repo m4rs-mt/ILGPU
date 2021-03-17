@@ -15,7 +15,6 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using static ILGPU.Runtime.OpenCL.CLAPI;
@@ -23,45 +22,10 @@ using static ILGPU.Runtime.OpenCL.CLAPI;
 namespace ILGPU.Runtime.OpenCL
 {
     /// <summary>
-    /// Represents the major OpenCL accelerator vendor.
-    /// </summary>
-    public enum CLAcceleratorVendor
-    {
-        /// <summary>
-        /// Represents an AMD accelerator.
-        /// </summary>
-        AMD,
-
-        /// <summary>
-        /// Represents an Intel accelerator.
-        /// </summary>
-        Intel,
-
-        /// <summary>
-        /// Represents an NVIDIA accelerator.
-        /// </summary>
-        Nvidia,
-
-        /// <summary>
-        /// Represents another OpenCL device vendor.
-        /// </summary>
-        Other
-    }
-
-    /// <summary>
     /// Represents an OpenCL accelerator (CPU or GPU device).
     /// </summary>
     public sealed class CLAccelerator : KernelAccelerator<CLCompiledKernel, CLKernel>
     {
-        #region Constants
-
-        /// <summary>
-        /// The maximum number of devices per platform.
-        /// </summary>
-        private const int MaxNumDevicesPerPlatform = 64;
-
-        #endregion
-
         #region Static
 
         /// <summary>
@@ -124,91 +88,6 @@ namespace ILGPU.Runtime.OpenCL
                 "cl_khr_subgroups",
                 "cl_intel_subgroups");
 
-        /// <summary>
-        /// Detects all OpenCL accelerators.
-        /// </summary>
-        static CLAccelerator()
-        {
-            var accelerators = ImmutableArray.CreateBuilder<CLAcceleratorId>();
-            var allAccelerators = ImmutableArray.CreateBuilder<CLAcceleratorId>();
-            var devices = new IntPtr[MaxNumDevicesPerPlatform];
-
-            try
-            {
-                // Resolve all platforms
-                if (!CurrentAPI.IsSupported ||
-                    CurrentAPI.GetNumPlatforms(out int numPlatforms) !=
-                    CLError.CL_SUCCESS ||
-                    numPlatforms < 1)
-                {
-                    return;
-                }
-
-                var platforms = new IntPtr[numPlatforms];
-                if (CurrentAPI.GetPlatforms(platforms, out numPlatforms) !=
-                    CLError.CL_SUCCESS)
-                {
-                    return;
-                }
-
-                foreach (var platform in platforms)
-                {
-                    // Resolve all devices
-                    int numDevices = devices.Length;
-                    Array.Clear(devices, 0, numDevices);
-
-                    if (CurrentAPI.GetDevices(
-                        platform,
-                        CLDeviceType.CL_DEVICE_TYPE_ALL,
-                        devices,
-                        out numDevices) != CLError.CL_SUCCESS)
-                    {
-                        continue;
-                    }
-
-                    for (int i = 0; i < numDevices; ++i)
-                    {
-                        // Resolve device and ignore invalid devices
-                        var device = devices[i];
-                        if (device == IntPtr.Zero)
-                            continue;
-
-                        // Check for available device
-                        if (CurrentAPI.GetDeviceInfo<int>(
-                            device,
-                            CLDeviceInfoType.CL_DEVICE_AVAILABLE) == 0)
-                        {
-                            continue;
-                        }
-
-                        var acceleratorId = new CLAcceleratorId(platform, device);
-                        allAccelerators.Add(acceleratorId);
-                        if (acceleratorId.CVersion >= CLBackend.MinimumVersion)
-                            accelerators.Add(acceleratorId);
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // Ignore API-specific exceptions at this point
-            }
-            finally
-            {
-                CLAccelerators = accelerators.ToImmutable();
-                AllCLAccelerators = allAccelerators.ToImmutable();
-            }
-        }
-
-        /// <summary>
-        /// Represents the list of available and supported OpenCL accelerators.
-        /// </summary>
-        public static ImmutableArray<CLAcceleratorId> CLAccelerators { get; }
-
-        /// <summary>
-        /// Represents the list of all available OpenCL accelerators.
-        /// </summary>
-        public static ImmutableArray<CLAcceleratorId> AllCLAccelerators { get; }
-
         #endregion
 
         #region Instance
@@ -217,106 +96,22 @@ namespace ILGPU.Runtime.OpenCL
         /// Constructs a new OpenCL accelerator.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
-        /// <param name="acceleratorId">The accelerator id.</param>
-        public CLAccelerator(Context context, CLAcceleratorId acceleratorId)
-            : base(context, AcceleratorType.OpenCL)
+        /// <param name="description">The accelerator description.</param>
+        internal CLAccelerator(Context context, CLDevice description)
+            : base(context, description)
         {
-            if (acceleratorId == null)
-                throw new ArgumentNullException(nameof(acceleratorId));
-
             Backends.Backend.EnsureRunningOnNativePlatform();
-
-            PlatformId = acceleratorId.PlatformId;
-            DeviceId = acceleratorId.DeviceId;
-            CVersion = acceleratorId.CVersion;
-
-            PlatformName = CurrentAPI.GetPlatformInfo(
-                PlatformId,
-                CLPlatformInfoType.CL_PLATFORM_NAME);
-            PlatformVersion = CLPlatformVersion.TryParse(
-                CurrentAPI.GetPlatformInfo(
-                    PlatformId,
-                    CLPlatformInfoType.CL_PLATFORM_VERSION),
-                out var platformVersion)
-                ? platformVersion
-                : CLPlatformVersion.CL10;
-
-            VendorName = CurrentAPI.GetPlatformInfo(
-                PlatformId,
-                CLPlatformInfoType.CL_PLATFORM_VENDOR);
 
             // Create new context
             CLException.ThrowIfFailed(
                 CurrentAPI.CreateContext(DeviceId, out var contextPtr));
             NativePtr = contextPtr;
 
-            // Resolve device info
-            Name = CurrentAPI.GetDeviceInfo(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_NAME);
-
-            MemorySize = CurrentAPI.GetDeviceInfo<long>(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_GLOBAL_MEM_SIZE);
-
-            DeviceType = (CLDeviceType)CurrentAPI.GetDeviceInfo<long>(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_TYPE);
-
-            // Max grid size
-            int workItemDimensions = IntrinsicMath.Max(CurrentAPI.GetDeviceInfo<int>(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS), 3);
-            var workItemSizes = new IntPtr[workItemDimensions];
-            CurrentAPI.GetDeviceInfo(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_SIZES,
-                workItemSizes);
-            MaxGridSize = new Index3(
-                workItemSizes[0].ToInt32(),
-                workItemSizes[1].ToInt32(),
-                workItemSizes[2].ToInt32());
-
-            // Resolve max threads per group
-            MaxNumThreadsPerGroup = CurrentAPI.GetDeviceInfo<IntPtr>(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_MAX_WORK_GROUP_SIZE).ToInt32();
-            MaxGroupSize = new Index3(
-                MaxNumThreadsPerGroup,
-                MaxNumThreadsPerGroup,
-                MaxNumThreadsPerGroup);
-
-            // Resolve max shared memory per block
-            MaxSharedMemoryPerGroup = (int)IntrinsicMath.Min(
-                CurrentAPI.GetDeviceInfo<long>(
-                    DeviceId,
-                    CLDeviceInfoType.CL_DEVICE_LOCAL_MEM_SIZE),
-                int.MaxValue);
-
-            // Resolve total constant memory
-            MaxConstantMemory = (int)CurrentAPI.GetDeviceInfo<long>(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_MAX_PARAMETER_SIZE);
-
-            // Resolve clock rate
-            ClockRate = CurrentAPI.GetDeviceInfo<int>(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_MAX_CLOCK_FREQUENCY);
-
-            // Resolve number of multiprocessors
-            NumMultiprocessors = CurrentAPI.GetDeviceInfo<int>(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_MAX_COMPUTE_UNITS);
-
-            // Result max number of threads per multiprocessor
-            MaxNumThreadsPerMultiprocessor = MaxNumThreadsPerGroup;
-
-            base.Capabilities = new CLCapabilityContext(acceleratorId);
-
             Bind();
-            InitVendorFeatures();
-            InitSubGroupSupport(acceleratorId);
             DefaultStream = CreateStreamInternal();
+
+            InitVendorFeatures();
+            InitSubGroupSupport(description);
             Init(new CLBackend(Context, Capabilities, Vendor));
         }
 
@@ -326,64 +121,35 @@ namespace ILGPU.Runtime.OpenCL
         private void InitVendorFeatures()
         {
             // Check major vendor features
-            if (CurrentAPI.GetDeviceInfo(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_WARP_SIZE_NV,
-                out int warpSize) == CLError.CL_SUCCESS)
+            if (Device.Vendor == CLDeviceVendor.Nvidia ||
+                Device.Vendor == CLDeviceVendor.AMD)
             {
-                // Nvidia platform
-                WarpSize = warpSize;
-                Vendor = CLAcceleratorVendor.Nvidia;
-
-                int major = CurrentAPI.GetDeviceInfo<int>(
-                    DeviceId,
-                    CLDeviceInfoType.CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV);
-                int minor = CurrentAPI.GetDeviceInfo<int>(
-                    DeviceId,
-                    CLDeviceInfoType.CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV);
-                if (major < 7 || major == 7 && minor < 5)
-                    MaxNumThreadsPerMultiprocessor *= 2;
+                return;
             }
-            else if (CurrentAPI.GetDeviceInfo(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_WAVEFRONT_WIDTH_AMD,
-                out int wavefrontSize) == CLError.CL_SUCCESS)
+            // Compile dummy kernel to resolve additional information
+            CLException.ThrowIfFailed(CLKernel.LoadKernel(
+                this,
+                DummyKernelName,
+                DummyKernelSource,
+                CVersion,
+                out IntPtr programPtr,
+                out IntPtr kernelPtr,
+                out var _));
+            try
             {
-                // AMD platform
-                WarpSize = wavefrontSize;
-                Vendor = CLAcceleratorVendor.AMD;
+                // Resolve information
+                WarpSize = CurrentAPI.GetKernelWorkGroupInfo<IntPtr>(
+                    kernelPtr,
+                    DeviceId,
+                    CLKernelWorkGroupInfoType
+                        .CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE).ToInt32();
             }
-            else
+            finally
             {
-                Vendor = VendorName.Contains(CLAcceleratorVendor.Intel.ToString()) ?
-                    CLAcceleratorVendor.Intel :
-                    CLAcceleratorVendor.Other;
-
-                // Compile dummy kernel to resolve additional information
-                CLException.ThrowIfFailed(CLKernel.LoadKernel(
-                    this,
-                    DummyKernelName,
-                    DummyKernelSource,
-                    CVersion,
-                    out IntPtr programPtr,
-                    out IntPtr kernelPtr,
-                    out var _));
-                try
-                {
-                    // Resolve information
-                    WarpSize = CurrentAPI.GetKernelWorkGroupInfo<IntPtr>(
-                        kernelPtr,
-                        DeviceId,
-                        CLKernelWorkGroupInfoType
-                            .CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE).ToInt32();
-                }
-                finally
-                {
-                    CLException.ThrowIfFailed(
-                        CurrentAPI.ReleaseKernel(kernelPtr));
-                    CLException.ThrowIfFailed(
-                        CurrentAPI.ReleaseProgram(programPtr));
-                }
+                CLException.ThrowIfFailed(
+                    CurrentAPI.ReleaseKernel(kernelPtr));
+                CLException.ThrowIfFailed(
+                    CurrentAPI.ReleaseProgram(programPtr));
             }
         }
 
@@ -391,7 +157,7 @@ namespace ILGPU.Runtime.OpenCL
         /// Initializes support for sub groups.
         /// </summary>
         /// <param name="acceleratorId">The current accelerator id.</param>
-        private void InitSubGroupSupport(CLAcceleratorId acceleratorId)
+        private void InitSubGroupSupport(CLDevice acceleratorId)
         {
             // Check sub group support
             Capabilities.SubGroups = acceleratorId.HasAnyExtension(SubGroupExtensions);
@@ -448,61 +214,54 @@ namespace ILGPU.Runtime.OpenCL
         #region Properties
 
         /// <summary>
+        /// Returns the parent OpenCL device.
+        /// </summary>
+        public new CLDevice Device => base.Device as CLDevice;
+
+        /// <summary>
         /// Returns the native OpenCL platform id.
         /// </summary>
-        public IntPtr PlatformId { get; }
+        public IntPtr PlatformId => Device.PlatformId;
 
         /// <summary>
         /// Returns the associated platform name.
         /// </summary>
-        public string PlatformName { get; }
+        public string PlatformName => Device.PlatformName;
 
         /// <summary>
         /// Returns the associated platform version.
         /// </summary>
-        public CLPlatformVersion PlatformVersion { get; }
+        public CLPlatformVersion PlatformVersion => Device.PlatformVersion;
 
         /// <summary>
         /// Returns the associated vendor.
         /// </summary>
-        public string VendorName { get; }
+        public string VendorName => Device.VendorName;
 
         /// <summary>
         /// Returns the main accelerator vendor type.
         /// </summary>
-        public CLAcceleratorVendor Vendor { get; private set; }
+        public CLDeviceVendor Vendor => Device.Vendor;
 
         /// <summary>
         /// Returns the native OpenCL device id.
         /// </summary>
-        public IntPtr DeviceId { get; }
+        public IntPtr DeviceId => Device.DeviceId;
 
         /// <summary>
         /// Returns the OpenCL device type.
         /// </summary>
-        public CLDeviceType DeviceType { get; }
-
-        /// <summary>
-        /// Returns the native OpenCL-context ptr.
-        /// </summary>
-        [Obsolete("Use NativePtr instead")]
-        public IntPtr ContextPtr => NativePtr;
+        public CLDeviceType DeviceType => Device.DeviceType;
 
         /// <summary>
         /// Returns the clock rate.
         /// </summary>
-        public int ClockRate { get; }
+        public int ClockRate => Device.ClockRate;
 
         /// <summary>
         /// Returns the supported OpenCL C version.
         /// </summary>
-        public CLCVersion CVersion { get; }
-
-        /// <summary>
-        /// Returns true if this accelerator has sub-group support.
-        /// </summary>
-        [Obsolete("Use Capabilities instead")]
-        public bool SubGroupSupport => Capabilities.SubGroups;
+        public CLCVersion CVersion => Device.CVersion;
 
         /// <summary>
         /// Returns the OpenCL backend of this accelerator.
@@ -512,53 +271,11 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Returns the capabilities of this accelerator.
         /// </summary>
-        public new CLCapabilityContext Capabilities =>
-            base.Capabilities as CLCapabilityContext;
+        public new CLCapabilityContext Capabilities => Device.Capabilities;
 
         #endregion
 
         #region Methods
-
-        /// <inheritdoc/>
-        protected override void PrintHeader(TextWriter writer)
-        {
-            base.PrintHeader(writer);
-
-            writer.Write("  Platform name:                           ");
-            writer.WriteLine(PlatformName);
-
-            writer.Write("  Platform version:                        ");
-            writer.WriteLine(PlatformVersion.ToString());
-
-            writer.Write("  Vendor name:                             ");
-            writer.WriteLine(VendorName);
-
-            writer.Write("  Vendor:                                  ");
-            writer.WriteLine(Vendor.ToString());
-
-            writer.Write("  Device type:                             ");
-            writer.WriteLine(DeviceType.ToString());
-
-            writer.Write("  Clock rate:                              ");
-            writer.Write(ClockRate);
-            writer.WriteLine(" MHz");
-        }
-
-        /// <inheritdoc/>
-        protected override void PrintGeneralInfo(TextWriter writer)
-        {
-            writer.Write("  OpenCL C version:                        ");
-            writer.WriteLine(CVersion.ToString());
-
-            writer.Write("  Has FP16 support:                        ");
-            writer.WriteLine(Capabilities.Float16);
-
-            writer.Write("  Has Int64 atomics support:               ");
-            writer.WriteLine(Capabilities.Int64_Atomics);
-
-            writer.Write("  Has sub group support:                   ");
-            writer.WriteLine(Capabilities.SubGroups);
-        }
 
         /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}(
         /// TExtensionProvider)"/>

@@ -11,40 +11,10 @@
 
 using ILGPU.Backends.PointerViews;
 using System;
+using static ILGPU.Context;
 
 namespace ILGPU.IR.Transformations
 {
-    /// <summary>
-    /// Represent an optimization level.
-    /// </summary>
-    public enum OptimizationLevel
-    {
-        /// <summary>
-        /// Defaults to O0.
-        /// </summary>
-        Debug = O0,
-
-        /// <summary>
-        /// Defaults to O1.
-        /// </summary>
-        Release = O1,
-
-        /// <summary>
-        /// Lightweight (required) transformations only.
-        /// </summary>
-        O0 = 0,
-
-        /// <summary>
-        /// Default release mode transformations.
-        /// </summary>
-        O1 = 1,
-
-        /// <summary>
-        /// Expensive transformations.
-        /// </summary>
-        O2 = 2,
-    }
-
     /// <summary>
     /// Realizes utility helpers to perform and initialize transformations
     /// based on an <see cref="OptimizationLevel"/>.
@@ -59,7 +29,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Internal mapping from optimization levels to handlers.
         /// </summary>
-        private static readonly Action<Transformer.Builder, ContextFlags>[]
+        private static readonly Action<Transformer.Builder, InliningMode>[]
             OptimizationHandlers =
             {
                 AddO0Optimizations,
@@ -72,29 +42,29 @@ namespace ILGPU.IR.Transformations
         /// optimization transformations.
         /// </summary>
         /// <param name="builder">The transformation manager to populate.</param>
-        /// <param name="contextFlags">The context flags.</param>
+        /// <param name="inliningMode">The inlining mode to use.</param>
         /// <param name="level">The desired optimization level.</param>
         /// <returns>The maximum number of iterations.</returns>
         public static void AddOptimizations(
             this Transformer.Builder builder,
-            ContextFlags contextFlags,
+            InliningMode inliningMode,
             OptimizationLevel level)
         {
             if (level < OptimizationLevel.O0 || level > OptimizationLevel.O2)
                 throw new ArgumentOutOfRangeException(nameof(level));
-            OptimizationHandlers[(int)level](builder, contextFlags);
+            OptimizationHandlers[(int)level](builder, inliningMode);
         }
 
         /// <summary>
         /// Adds basic optimization transformations.
         /// </summary>
         /// <param name="builder">The transformation manager to populate.</param>
-        /// <param name="contextFlags">The context flags.</param>
+        /// <param name="inliningMode">The inlining mode to use.</param>
         public static void AddBasicOptimizations(
             this Transformer.Builder builder,
-            ContextFlags contextFlags)
+            InliningMode inliningMode)
         {
-            if (!contextFlags.HasFlags(ContextFlags.NoInlining))
+            if (inliningMode != InliningMode.Disabled)
                 builder.Add(new Inliner());
             builder.Add(new SimplifyControlFlow());
             builder.Add(new SSAConstruction());
@@ -164,12 +134,12 @@ namespace ILGPU.IR.Transformations
         /// <param name="acceleratorSpecializer">
         /// An instance of an <see cref="AcceleratorSpecializer"/> class.
         /// </param>
-        /// <param name="contextFlags">The context flags.</param>
+        /// <param name="inliningMode">The inlining mode to use.</param>
         /// <param name="level">The desired optimization level.</param>
         public static void AddBackendOptimizations(
             this Transformer.Builder builder,
             AcceleratorSpecializer acceleratorSpecializer,
-            ContextFlags contextFlags,
+            InliningMode inliningMode,
             OptimizationLevel level)
         {
             // Specialize accelerator properties and views
@@ -178,7 +148,7 @@ namespace ILGPU.IR.Transformations
 
             // Perform an additional inlining pass to specialize small device-specific
             // functions that could have been introduced
-            if (!contextFlags.HasFlags(ContextFlags.NoInlining))
+            if (inliningMode != InliningMode.Disabled)
                 builder.Add(new Inliner());
 
             // Skip further optimizations in debug mode
@@ -216,12 +186,12 @@ namespace ILGPU.IR.Transformations
         /// Populates the given transformation manager with O0 optimizations.
         /// </summary>
         /// <param name="builder">The transformation manager to populate.</param>
-        /// <param name="contextFlags">The context flags.</param>
+        /// <param name="inliningMode">The inlining mode to use.</param>
         public static void AddO0Optimizations(
             this Transformer.Builder builder,
-            ContextFlags contextFlags)
+            InliningMode inliningMode)
         {
-            builder.AddBasicOptimizations(contextFlags);
+            builder.AddBasicOptimizations(inliningMode);
             builder.AddAddressSpaceOptimizations();
         }
 
@@ -229,12 +199,12 @@ namespace ILGPU.IR.Transformations
         /// Populates the given transformation manager with O1 optimizations.
         /// </summary>
         /// <param name="builder">The transformation manager to populate.</param>
-        /// <param name="contextFlags">The context flags.</param>
+        /// <param name="inliningMode">The inlining mode to use.</param>
         public static void AddO1Optimizations(
             this Transformer.Builder builder,
-            ContextFlags contextFlags)
+            InliningMode inliningMode)
         {
-            builder.AddBasicOptimizations(contextFlags);
+            builder.AddBasicOptimizations(inliningMode);
             builder.AddStructureOptimizations();
             builder.AddLoopOptimizations();
             builder.AddConditionalOptimizations();
@@ -245,12 +215,12 @@ namespace ILGPU.IR.Transformations
         /// Populates the given transformation manager with O2 optimizations.
         /// </summary>
         /// <param name="builder">The transformation manager to populate.</param>
-        /// <param name="contextFlags">The context flags.</param>
+        /// <param name="inliningMode">The inlining mode to use.</param>
         public static void AddO2Optimizations(
             this Transformer.Builder builder,
-            ContextFlags contextFlags)
+            InliningMode inliningMode)
         {
-            builder.AddBasicOptimizations(contextFlags);
+            builder.AddBasicOptimizations(inliningMode);
             builder.AddStructureOptimizations();
             builder.AddLoopOptimizations();
 
@@ -270,15 +240,15 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         /// <param name="level">The level.</param>
         /// <param name="configuration">The transformer configuration.</param>
-        /// <param name="contextFlags">The context flags.</param>
+        /// <param name="inliningMode">The inlining mode to use.</param>
         /// <returns>The created transformer.</returns>
         public static Transformer CreateTransformer(
             this OptimizationLevel level,
             TransformerConfiguration configuration,
-            ContextFlags contextFlags)
+            InliningMode inliningMode)
         {
             var builder = Transformer.CreateBuilder(configuration);
-            builder.AddOptimizations(contextFlags, level);
+            builder.AddOptimizations(inliningMode, level);
             return builder.ToTransformer();
         }
     }

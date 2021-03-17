@@ -76,8 +76,8 @@ namespace ILGPU.Frontend.Intrinsic
                 context[paramOffset++]);
             return attribute.IntrinsicKind switch
             {
-                ViewIntrinsicKind.GetViewLength => builder.CreateGetViewLength(
-                    location,
+                ViewIntrinsicKind.GetViewLength => GetViewLength(
+                    ref context,
                     instanceValue),
                 ViewIntrinsicKind.GetViewLongLength => builder.CreateGetViewLongLength(
                     location,
@@ -120,7 +120,7 @@ namespace ILGPU.Frontend.Intrinsic
                     CompareKind.GreaterThan),
                 ViewIntrinsicKind.GetViewExtent => builder.CreateIndex(
                     location,
-                    builder.CreateGetViewLength(location, instanceValue)),
+                    GetViewLength(ref context, instanceValue)),
                 ViewIntrinsicKind.GetViewLongExtent => builder.CreateIndex(
                     location,
                     builder.CreateGetViewLongLength(location, instanceValue)),
@@ -159,22 +159,22 @@ namespace ILGPU.Frontend.Intrinsic
             var location = context.Location;
 
             // Build a new assertion
-            if (context.Context.HasFlags(ContextFlags.EnableAssertions))
+            if (context.Properties.EnableAssertions)
             {
+                // Convert the index to 'long'.
+                var index64 = index.BasicValueType == BasicValueType.Int64
+                    ? index
+                    : builder.CreateConvertToInt64(location, index).Resolve();
+
                 // Determine base offset and max length
-                var baseOffset = builder.CreatePrimitiveValue(
-                    location,
-                    index.BasicValueType,
-                    0L);
-                var viewLength = index.BasicValueType == BasicValueType.Int64
-                    ? builder.CreateGetViewLongLength(location, instanceValue)
-                    : builder.CreateGetViewLength(location, instanceValue);
+                var baseOffset = builder.CreatePrimitiveValue(location, 0L);
+                var viewLength = builder.CreateGetViewLongLength(location, instanceValue);
 
                 // Verify the lower bound, which must be >= 0 in all cases:
                 // index >= 0
                 var lowerBoundsCheck = builder.CreateCompare(
                     location,
-                    index,
+                    index64,
                     baseOffset,
                     CompareKind.GreaterEqual);
 
@@ -186,11 +186,11 @@ namespace ILGPU.Frontend.Intrinsic
                     builder.CreateCompare(
                         location,
                         viewLength,
-                        builder.CreatePrimitiveValue(location, 0),
+                        builder.CreatePrimitiveValue(location, 0L),
                         CompareKind.LessThan),
                     builder.CreateCompare(
                         location,
-                        index,
+                        index64,
                         viewLength,
                         CompareKind.LessThan),
                     BinaryArithmeticKind.Or);
@@ -244,6 +244,48 @@ namespace ILGPU.Frontend.Intrinsic
             for (int i = 1, e = context.NumArguments; i < e; ++i)
                 callBuilder.Add(context[i]);
             return callBuilder.Seal();
+        }
+
+        /// <summary>
+        /// Constructs a new view length that is bounds checked in debug mode.
+        /// </summary>
+        private static ValueReference GetViewLength(
+            ref InvocationContext context,
+            Value instanceValue)
+        {
+            var builder = context.Builder;
+            var location = context.Location;
+
+            // Build a new assertion
+            if (context.Properties.EnableAssertions)
+            {
+                // When reading the length of a 64-bit ArrayView as a 32-bit value,
+                // the upper 32 bits will be discarded. This will cause truncation
+                // when the length is greater than int.MaxValue.
+                //
+                // Verify the bounds:
+                // viewLength >= 0 && viewLength <= int.MaxValue
+                var viewLength = builder.CreateGetViewLongLength(location, instanceValue);
+                var inRange = builder.CreateArithmetic(
+                    location,
+                    builder.CreateCompare(
+                        location,
+                        viewLength,
+                        builder.CreatePrimitiveValue(location, 0L),
+                        CompareKind.GreaterEqual),
+                    builder.CreateCompare(
+                        location,
+                        viewLength,
+                        builder.CreatePrimitiveValue(location, (long)int.MaxValue),
+                        CompareKind.LessEqual),
+                    BinaryArithmeticKind.And);
+                builder.CreateDebugAssert(
+                    location,
+                    inRange,
+                    builder.CreatePrimitiveValue(location, "32-bit index out of range"));
+            }
+
+            return builder.CreateGetViewLength(location, instanceValue);
         }
     }
 }

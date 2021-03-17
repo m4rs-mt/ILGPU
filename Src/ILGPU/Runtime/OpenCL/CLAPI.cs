@@ -123,7 +123,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="platforms">The target platform ids to fill.</param>
         /// <param name="numPlatforms">The resolved number of platforms.</param>
         /// <returns>The error code.</returns>
-        public CLError GetPlatforms(IntPtr[] platforms, out int numPlatforms)
+        public CLError GetPlatforms(IntPtr[] platforms, ref int numPlatforms)
         {
             Debug.Assert(platforms != null, "Invalid platform ids");
             fixed (IntPtr* ptr = &platforms[0])

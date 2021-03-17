@@ -32,7 +32,7 @@ namespace ILGPU
         /// <summary>
         /// The name of the dynamic runtime assembly.
         /// </summary>
-        public const string AssemblyName = "ILGPURuntime";
+        internal const string AssemblyName = "ILGPURuntime";
 
         /// <summary>
         /// A custom runtime type name.

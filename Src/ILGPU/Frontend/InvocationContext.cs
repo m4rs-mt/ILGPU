@@ -85,6 +85,11 @@ namespace ILGPU.Frontend
         public IRContext Context => CodeGenerator.Context;
 
         /// <summary>
+        /// Returns the current context properties.
+        /// </summary>
+        public ContextProperties Properties => Context.Properties;
+
+        /// <summary>
         /// Returns the current type context.
         /// </summary>
         public IRTypeContext TypeContext => CodeGenerator.TypeContext;

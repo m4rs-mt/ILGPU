@@ -3,7 +3,7 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: PTXInstructionSet.cs
+// File: CudaInstructionSet.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
@@ -12,103 +12,103 @@
 using System;
 using System.Diagnostics;
 
-namespace ILGPU.Backends
+namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
-    /// Represents a PTX ISA (Instruction Set Architecture).
+    /// Represents a Cuda (PTX) ISA (Instruction Set Architecture).
     /// </summary>
     [DebuggerDisplay("ISA {Major}.{Minor}")]
-    public readonly struct PTXInstructionSet :
-        IEquatable<PTXInstructionSet>,
-        IComparable<PTXInstructionSet>
+    public readonly struct CudaInstructionSet :
+        IEquatable<CudaInstructionSet>,
+        IComparable<CudaInstructionSet>
     {
         #region Constants
 
         /// <summary>
         /// The 3.0 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_30 = new PTXInstructionSet(3, 0);
+        public static readonly CudaInstructionSet ISA_30 = new CudaInstructionSet(3, 0);
 
         /// <summary>
         /// The 3.1 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_31 = new PTXInstructionSet(3, 1);
+        public static readonly CudaInstructionSet ISA_31 = new CudaInstructionSet(3, 1);
 
         /// <summary>
         /// The 3.2 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_32 = new PTXInstructionSet(3, 2);
+        public static readonly CudaInstructionSet ISA_32 = new CudaInstructionSet(3, 2);
 
         /// <summary>
         /// The 4.0 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_40 = new PTXInstructionSet(4, 0);
+        public static readonly CudaInstructionSet ISA_40 = new CudaInstructionSet(4, 0);
 
         /// <summary>
         /// The 4.1 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_41 = new PTXInstructionSet(4, 1);
+        public static readonly CudaInstructionSet ISA_41 = new CudaInstructionSet(4, 1);
 
         /// <summary>
         /// The 4.2 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_42 = new PTXInstructionSet(4, 2);
+        public static readonly CudaInstructionSet ISA_42 = new CudaInstructionSet(4, 2);
 
         /// <summary>
         /// The 4.3 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_43 = new PTXInstructionSet(4, 3);
+        public static readonly CudaInstructionSet ISA_43 = new CudaInstructionSet(4, 3);
 
         /// <summary>
         /// The 5.0 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_50 = new PTXInstructionSet(5, 0);
+        public static readonly CudaInstructionSet ISA_50 = new CudaInstructionSet(5, 0);
 
         /// <summary>
         /// The 6.0 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_60 = new PTXInstructionSet(6, 0);
+        public static readonly CudaInstructionSet ISA_60 = new CudaInstructionSet(6, 0);
 
         /// <summary>
         /// The 6.1 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_61 = new PTXInstructionSet(6, 1);
+        public static readonly CudaInstructionSet ISA_61 = new CudaInstructionSet(6, 1);
 
         /// <summary>
         /// The 6.2 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_62 = new PTXInstructionSet(6, 2);
+        public static readonly CudaInstructionSet ISA_62 = new CudaInstructionSet(6, 2);
 
         /// <summary>
         /// The 6.3 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_63 = new PTXInstructionSet(6, 3);
+        public static readonly CudaInstructionSet ISA_63 = new CudaInstructionSet(6, 3);
 
         /// <summary>
         /// The 6.4 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_64 = new PTXInstructionSet(6, 4);
+        public static readonly CudaInstructionSet ISA_64 = new CudaInstructionSet(6, 4);
 
         /// <summary>
         /// The 6.5 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_65 = new PTXInstructionSet(6, 5);
+        public static readonly CudaInstructionSet ISA_65 = new CudaInstructionSet(6, 5);
 
         /// <summary>
         /// The 7.0 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_70 = new PTXInstructionSet(7, 0);
+        public static readonly CudaInstructionSet ISA_70 = new CudaInstructionSet(7, 0);
 
         /// <summary>
         /// The 7.1 ISA.
         /// </summary>
-        public static readonly PTXInstructionSet ISA_71 = new PTXInstructionSet(7, 1);
+        public static readonly CudaInstructionSet ISA_71 = new CudaInstructionSet(7, 1);
 
         #endregion
 
         #region Instance
 
-        private PTXInstructionSet(int major, int minor)
+        private CudaInstructionSet(int major, int minor)
         {
             Major = major;
             Minor = minor;
@@ -125,7 +125,7 @@ namespace ILGPU.Backends
         /// <returns>
         /// True, if the given instruction set is equal to this instruction set.
         /// </returns>
-        public bool Equals(PTXInstructionSet other) => this == other;
+        public bool Equals(CudaInstructionSet other) => this == other;
 
         #endregion
 
@@ -136,7 +136,7 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="other">The object to compare to.</param>
         /// <returns>The comparison result.</returns>
-        public int CompareTo(PTXInstructionSet other)
+        public int CompareTo(CudaInstructionSet other)
         {
             if (this < other)
                 return -1;
@@ -171,7 +171,7 @@ namespace ILGPU.Backends
         /// <returns>True,
         /// if the given object is equal to this instruction set.</returns>
         public override bool Equals(object obj) =>
-            obj is PTXInstructionSet instructionSet && instructionSet == this;
+            obj is CudaInstructionSet instructionSet && instructionSet == this;
 
         /// <summary>
         /// Returns the hash code of this instruction set.
@@ -198,8 +198,8 @@ namespace ILGPU.Backends
         /// True, if the first and the second instruction set are the same.
         /// </returns>
         public static bool operator ==(
-            PTXInstructionSet first,
-            PTXInstructionSet second) =>
+            CudaInstructionSet first,
+            CudaInstructionSet second) =>
             first.Major == second.Major && first.Minor == second.Minor;
 
         /// <summary>
@@ -211,8 +211,8 @@ namespace ILGPU.Backends
         /// True, if the first and the second instruction set are not the same.
         /// </returns>
         public static bool operator !=(
-            PTXInstructionSet first,
-            PTXInstructionSet second) =>
+            CudaInstructionSet first,
+            CudaInstructionSet second) =>
             first.Major != second.Major || first.Minor != second.Minor;
 
         /// <summary>
@@ -224,8 +224,8 @@ namespace ILGPU.Backends
         /// True, if the first instruction set is smaller than the second one.
         /// </returns>
         public static bool operator <(
-            PTXInstructionSet first,
-            PTXInstructionSet second) =>
+            CudaInstructionSet first,
+            CudaInstructionSet second) =>
             first.Major < second.Major ||
             first.Major == second.Major && first.Minor < second.Minor;
 
@@ -240,8 +240,8 @@ namespace ILGPU.Backends
         /// set.
         /// </returns>
         public static bool operator <=(
-            PTXInstructionSet first,
-            PTXInstructionSet second) =>
+            CudaInstructionSet first,
+            CudaInstructionSet second) =>
             first.Major < second.Major ||
             first.Major == second.Major && first.Minor <= second.Minor;
 
@@ -254,8 +254,8 @@ namespace ILGPU.Backends
         /// True, if the first instruction set is greater than the second one.
         /// </returns>
         public static bool operator >(
-            PTXInstructionSet first,
-            PTXInstructionSet second) =>
+            CudaInstructionSet first,
+            CudaInstructionSet second) =>
             first.Major > second.Major ||
             first.Major == second.Major && first.Minor > second.Minor;
 
@@ -270,8 +270,8 @@ namespace ILGPU.Backends
         /// instruction set.
         /// </returns>
         public static bool operator >=(
-            PTXInstructionSet first,
-            PTXInstructionSet second) =>
+            CudaInstructionSet first,
+            CudaInstructionSet second) =>
             first.Major > second.Major ||
             first.Major == second.Major && first.Minor >= second.Minor;
 
