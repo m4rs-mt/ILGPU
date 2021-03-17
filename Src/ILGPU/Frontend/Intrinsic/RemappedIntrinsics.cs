@@ -72,6 +72,7 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(double));
 
             RegisterMathRemappings();
+            RegisterBitConverterRemappings();
         }
 
         #endregion
@@ -138,6 +139,65 @@ namespace ILGPU.Frontend.Intrinsic
         {
             if (FunctionRemappers.TryGetValue(context.Method, out var remapper))
                 remapper(ref context);
+        }
+
+        #endregion
+
+        #region BitConverter remappings
+
+        /// <summary>
+        /// Internal class to handle the signed/unsigned difference between functions
+        /// of <see cref="System.BitConverter"/> and <see cref="Interop"/>.
+        /// </summary>
+        static class BitConverter
+        {
+            /// <summary cref="System.BitConverter.DoubleToInt64Bits(double)"/>
+            public static long DoubleToInt64Bits(double value) =>
+                (long)Interop.FloatAsInt(value);
+
+            /// <summary cref="System.BitConverter.Int64BitsToDouble(long)"/>
+            public static double Int64BitsToDouble(long value) =>
+                Interop.IntAsFloat((ulong)value);
+
+#if !NETFRAMEWORK
+            /// <summary cref="System.BitConverter.SingleToInt32Bits(float)"/>
+            public static int SingleToInt32Bits(float value) =>
+                (int)Interop.FloatAsInt(value);
+
+            /// <summary cref="System.BitConverter.Int32BitsToSingle(int)"/>
+            public static float Int32BitsToSingle(int value) =>
+                Interop.IntAsFloat((uint)value);
+#endif
+        }
+
+        /// <summary>
+        /// Registers instrinsic mappings for BitConverter functions.
+        /// </summary>
+        private static void RegisterBitConverterRemappings()
+        {
+            AddRemapping(
+                typeof(System.BitConverter),
+                typeof(BitConverter),
+                nameof(System.BitConverter.DoubleToInt64Bits),
+                typeof(double));
+            AddRemapping(
+                typeof(System.BitConverter),
+                typeof(BitConverter),
+                nameof(System.BitConverter.Int64BitsToDouble),
+                typeof(long));
+
+#if !NETFRAMEWORK
+            AddRemapping(
+                typeof(System.BitConverter),
+                typeof(BitConverter),
+                nameof(System.BitConverter.SingleToInt32Bits),
+                typeof(float));
+            AddRemapping(
+                typeof(System.BitConverter),
+                typeof(BitConverter),
+                nameof(System.BitConverter.Int32BitsToSingle),
+                typeof(int));
+#endif
         }
 
         #endregion
