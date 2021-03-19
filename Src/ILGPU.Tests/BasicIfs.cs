@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using ILGPU.Runtime;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -347,6 +348,56 @@ namespace ILGPU.Tests
 
             Verify(buffer, Enumerable.Repeat(42, Length).ToArray());
             Verify(buffer2, Enumerable.Repeat(23, Length).ToArray());
+        }
+
+        internal static void SwitchWithConstantConditionKernel(
+            Index1 index,
+            ArrayView<int> data)
+        {
+            var mode = 2;
+            data[index] = mode switch
+            {
+                0 => 11,
+                1 => 22,
+                2 => 33,
+                _ => 44
+            };
+        }
+
+        [Fact]
+        [KernelMethod(nameof(SwitchWithConstantConditionKernel))]
+        public void SwitchWithConstantCondition()
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View);
+            Verify(buffer, Enumerable.Repeat(33, Length).ToArray());
+        }
+
+        internal static void SwitchWithVariableConditionKernel(
+            Index1 index,
+            ArrayView<int> input,
+            ArrayView<int> output)
+        {
+            output[index] = input[index] switch
+            {
+                0 => 11,
+                1 => 22,
+                2 => 33,
+                _ => 44
+            };
+        }
+
+        [Fact]
+        [KernelMethod(nameof(SwitchWithVariableConditionKernel))]
+        public void SwitchWithVariableCondition()
+        {
+            var inputArray = new[] { 0, 1, 2, 3, 4, 3, 2, 1, 0 };
+            var expected = new[] { 11, 22, 33, 44, 44, 44, 33, 22, 11 };
+
+            using var input = Accelerator.Allocate(inputArray);
+            using var output = Accelerator.Allocate<int>(inputArray.Length);
+            Execute(input.Length, input.View, output.View);
+            Verify(output, expected);
         }
     }
 }
