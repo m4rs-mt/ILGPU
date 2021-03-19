@@ -61,28 +61,21 @@ namespace ILGPU.Backends.OpenCL
         public void GenerateCode(SwitchBranch branch)
         {
             var condition = Load(branch.Condition);
-            AppendIndent();
-            Builder.Append("switch (");
-            Builder.Append(condition.ToString());
-            Builder.AppendLine(")");
+            var indentStr = new string('\t', Indent);
 
-            AppendIndent();
-            Builder.AppendLine("{");
-
+            using var statement = BeginStatement($"switch ({condition}) {{\n");
             for (int i = 0, e = branch.NumCasesWithoutDefault; i < e; ++i)
             {
-                Builder.Append("case ");
-                Builder.Append(i.ToString());
-                Builder.AppendLine(":");
-                PushAndAppendIndent();
-                GotoStatement(branch.GetCaseTarget(i));
-                PopIndent();
+                statement.AppendOperation("{0}case {1}:\n{0}\t{2} {3};\n",
+                    indentStr,
+                    i,
+                    CLInstructions.GotoStatement,
+                    branch.GetCaseTarget(i));
             }
-
-            AppendIndent();
-            Builder.AppendLine("default:");
-            GotoStatement(branch.Targets[0]);
-            Builder.AppendLine("}");
+            statement.AppendOperation("{0}default:\n{0}\t{1} {2};\n{0}}}",
+                indentStr,
+                CLInstructions.GotoStatement,
+                branch.Targets[0]);
         }
     }
 }
