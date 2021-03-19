@@ -15,6 +15,7 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
 <#
 var fp16Ops = new (string, string, string, string)[]
 {

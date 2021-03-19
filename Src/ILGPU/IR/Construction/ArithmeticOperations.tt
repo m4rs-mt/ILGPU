@@ -15,6 +15,7 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
 <#
 string rootPath = Host.ResolvePath("../../Static");
 var unaryOps = GetUnaryMathOps(rootPath);
