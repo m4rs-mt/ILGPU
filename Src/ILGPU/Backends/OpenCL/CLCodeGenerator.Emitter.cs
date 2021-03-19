@@ -12,6 +12,8 @@
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -435,8 +437,121 @@ namespace ILGPU.Backends.OpenCL
             /// Append the given operation.
             /// </summary>
             /// <param name="operation">The operation to append.</param>
-            public void AppendOperation(string operation) =>
-                stringBuilder.Append(operation);
+            public void AppendOperation(FormattableString operation) =>
+                AppendOperation(operation.Format, operation.GetArguments());
+
+            /// <summary>
+            /// Append the given operation.
+            /// </summary>
+            /// <param name="operation">The operation to append.</param>
+            public void AppendOperation(RawString operation) =>
+                stringBuilder.Append(operation.Value);
+
+            /// <summary>
+            /// Append the given operation.
+            /// </summary>
+            /// <param name="operation">The operation to append.</param>
+            /// <param name="arguments">The string format arguments.</param>
+            public void AppendOperation(
+                RawString operation,
+                params object[] arguments)
+            {
+                var formatExpression = operation.Value;
+                if (!FormatString.TryParse(formatExpression, out var expressions))
+                {
+                    throw new NotSupportedException(string.Format(
+                        ErrorMessages.NotSupportedWriteFormat,
+                        formatExpression));
+                }
+
+                // Validate all expressions
+                foreach (var expression in expressions)
+                {
+                    if (!expression.HasArgument)
+                        continue;
+                    if (expression.Argument < 0 ||
+                        expression.Argument >= arguments.Length)
+                    {
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedWriteFormatArgumentRef,
+                            formatExpression,
+                            expression.Argument));
+                    }
+                }
+
+                // Emit the operation
+                foreach (var expression in expressions)
+                {
+                    if (!expression.HasArgument)
+                    {
+                        AppendOperation(expression.String);
+                    }
+                    else
+                    {
+                        var argument = arguments[expression.Argument];
+                        var argumentType = argument.GetType();
+                        switch (Type.GetTypeCode(argumentType))
+                        {
+                            case TypeCode.Boolean:
+                                AppendConstant((bool)argument ? 1 : 0);
+                                break;
+                            case TypeCode.SByte:
+                                AppendConstant((sbyte)argument);
+                                break;
+                            case TypeCode.Byte:
+                                AppendConstant((byte)argument);
+                                break;
+                            case TypeCode.Int16:
+                                AppendConstant((short)argument);
+                                break;
+                            case TypeCode.UInt16:
+                                AppendConstant((ushort)argument);
+                                break;
+                            case TypeCode.Int32:
+                                AppendConstant((int)argument);
+                                break;
+                            case TypeCode.UInt32:
+                                AppendConstant((uint)argument);
+                                break;
+                            case TypeCode.Int64:
+                                AppendConstant((long)argument);
+                                break;
+                            case TypeCode.UInt64:
+                                AppendConstant((ulong)argument);
+                                break;
+                            case TypeCode.Single:
+                                AppendConstant((float)argument);
+                                break;
+                            case TypeCode.Double:
+                                AppendConstant((double)argument);
+                                break;
+                            case TypeCode.String:
+                                AppendOperation((string)argument);
+                                break;
+                            default:
+                                if (argument is Variable variable)
+                                {
+                                    Append(variable);
+                                    break;
+                                }
+                                else if (argument is BasicBlock block)
+                                {
+                                    AppendOperation(CodeGenerator.blockLookup[block]);
+                                    break;
+                                }
+                                else if (argumentType == typeof(Half))
+                                {
+                                    AppendConstant((Half)argument);
+                                    break;
+                                }
+                                throw new NotSupportedException(string.Format(
+                                    ErrorMessages.NotSupportedWriteFormatArgumentType,
+                                    formatExpression,
+                                    argument.GetType().ToString()));
+                        }
+                    }
+                }
+            }
 
             /// <summary>
             /// Appends a constant.
@@ -683,10 +798,22 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="command">The initial command to emit.</param>
         /// <returns>The created statement emitter.</returns>
-        public StatementEmitter BeginStatement(string command)
+        public StatementEmitter BeginStatement(RawString command)
         {
             var emitter = new StatementEmitter(this);
-            emitter.AppendCommand(command);
+            emitter.AppendCommand(command.Value);
+            return emitter;
+        }
+
+        /// <summary>
+        /// Begins a new statement.
+        /// </summary>
+        /// <param name="command">The initial command to emit.</param>
+        /// <returns>The created statement emitter.</returns>
+        public StatementEmitter BeginStatement(FormattableString command)
+        {
+            var emitter = new StatementEmitter(this);
+            emitter.AppendOperation(command);
             return emitter;
         }
 
