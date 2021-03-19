@@ -11,7 +11,7 @@
 
 using ILGPU.IR.Values;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
-    ILGPU.IR.Values.WriteToOutput.FormatExpression>;
+    ILGPU.Util.FormatString.FormatExpression>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Construction
