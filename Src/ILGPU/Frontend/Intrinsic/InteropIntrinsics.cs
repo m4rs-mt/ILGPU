@@ -133,7 +133,7 @@ namespace ILGPU.Frontend.Intrinsic
         {
             // Parse format expression and ensure valid argument references
             var location = context.Location;
-            if (!WriteToOutput.TryParse(formatExpression, out var expressions))
+            if (!FormatString.TryParse(formatExpression, out var expressions))
             {
                 throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedWriteFormat,
