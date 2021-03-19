@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
     ILGPU.Util.FormatString.FormatExpression>;
 
@@ -29,6 +30,14 @@ namespace ILGPU.Util
         /// </summary>
         public readonly struct FormatExpression
         {
+            /// <summary>
+            /// Constructs a new format expression.
+            /// </summary>
+            /// <param name="string">The string expression.</param>
+            public FormatExpression(ReadOnlySpan<char> @string)
+                : this(@string.ToString())
+            { }
+
             /// <summary>
             /// Constructs a new format expression.
             /// </summary>
@@ -79,42 +88,83 @@ namespace ILGPU.Util
 
             // Search for '{xyz}' patterns
             var result = ImmutableArray.CreateBuilder<FormatExpression>(10);
-            while (formatExpression.Length > 0)
+            var expression = formatExpression.AsSpan();
+            var inArgumentPart = false;
+
+            while (expression.Length > 0)
             {
                 // Search for next {
-                int startIndex = formatExpression.IndexOf('{', 0);
-                if (startIndex < 0)
+                int foundIndex = expression.IndexOfAny(new[] { '{', '}' });
+                if (foundIndex < 0)
                 {
-                    result.Add(new FormatExpression(formatExpression));
+                    result.Add(new FormatExpression(expression));
                     break;
-                }
-                else if (startIndex > 0)
-                {
-                    result.Add(new FormatExpression(
-                        formatExpression.Substring(0, startIndex)));
                 }
 
-                // Search for next }
-                int endIndex = formatExpression.IndexOf('}', startIndex);
-                if (endIndex < 0)
+                var foundOpenBracket = expression[foundIndex] == '{';
+                var escaped =
+                    foundIndex + 1 < expression.Length &&
+                    expression[foundIndex] == expression[foundIndex + 1];
+                if (foundOpenBracket)
                 {
-                    result.Add(new FormatExpression(formatExpression));
-                    break;
+                    // Cannot start another argument when one is already opened.
+                    if (inArgumentPart)
+                        return false;
+                    if (escaped)
+                    {
+                        result.Add(new FormatExpression(
+                            expression.Slice(0, foundIndex + 1)));
+                        expression = expression.Slice(foundIndex + 2);
+                    }
+                    else
+                    {
+                        // Open new {
+                        inArgumentPart = true;
+                        if (foundIndex > 0)
+                        {
+                            result.Add(new FormatExpression(
+                                expression.Slice(0, foundIndex)));
+                        }
+                        expression = expression.Slice(foundIndex + 1);
+                    }
+                    continue;
+                }
+
+                Debug.Assert(!foundOpenBracket);
+                if (!inArgumentPart)
+                {
+                    // Handle escaping }
+                    if (escaped)
+                    {
+                        result.Add(new FormatExpression(
+                            expression.Slice(0, foundIndex + 1)));
+                        expression = expression.Slice(foundIndex + 2);
+                    }
+                    else
+                    {
+                        // Cannot have singular } without opening {
+                        return false;
+                    }
+                    continue;
                 }
 
                 // Check sub expression
-                var subExpr = formatExpression.Substring(
-                    startIndex + 1,
-                    endIndex - startIndex - 1);
+                var endIndex = foundIndex;
+                var subExpr = expression.Slice(0, endIndex);
 
                 // Check whether the argument can be resolved to an integer
-                if (!int.TryParse(subExpr, out int argument) || argument < 0)
+                if (!int.TryParse(subExpr.ToString(), out int argument) || argument < 0)
                     return false;
 
                 // Append current argument
                 result.Add(new FormatExpression(argument));
-                formatExpression = formatExpression.Substring(endIndex + 1);
+                expression = expression.Slice(endIndex + 1);
+                inArgumentPart = false;
             }
+
+            // Open { without matching }
+            if (inArgumentPart)
+                result.Add(new FormatExpression("{".AsSpan()));
 
             expressions = result.ToImmutable();
             return true;

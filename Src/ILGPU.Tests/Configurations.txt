@@ -40,3 +40,5 @@ BasicIfs: Debug, Release, O2
 BasicLoops: Debug, Release, O2
 BasicSwitches: Debug, Release, O2
 BasicPhis: Debug, Release, O2
+
+FormatStringTests: Debug, Release, O2
