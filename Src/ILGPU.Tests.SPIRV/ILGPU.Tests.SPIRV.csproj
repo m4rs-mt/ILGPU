@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net47;netcoreapp3.1</TargetFrameworks>
+        <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp3.1</TargetFrameworks>
+
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Channel)' == 'experimental'">
+        <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\ILGPU.Tests\.test.runsettings</RunSettingsFilePath>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="GitHubActionsTestLogger" Version="1.1.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
+        <PackageReference Include="xunit" Version="2.4.1" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
+        <ProjectReference Include="..\ILGPU.Tests\ILGPU.Tests.csproj" />
+    </ItemGroup>
+</Project>

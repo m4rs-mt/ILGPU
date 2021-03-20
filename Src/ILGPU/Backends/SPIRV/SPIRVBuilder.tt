@@ -117,13 +117,18 @@ public class SPIRVBuilder {
 #>) {
 <#
         PushIndent(standardIndent);
+#>var tempList = new List<uint>();
+<#
         foreach (var param in parameters)
         {
-#>Instructions.AddRange(SPIRVBuilderUtils.ToUintList(<#= param #>));
+#>tempList.AddRange(SPIRVBuilderUtils.ToUintList(<#= param #>));
 <#
         }
-        PopIndent();
-#>
+#><#// Add 1 to the word count for the first word (what we are creating here)#>
+uint combinedWord = SPIRVBuilderUtils.JoinOpCodeWordCount(<#= instruction.OpCode#>, (ushort) (tempList.Count + 1));
+Instructions.Add(combinedWord);
+Instructions.AddRange(tempList);
+<# PopIndent(); #>
 }
 
 <#
