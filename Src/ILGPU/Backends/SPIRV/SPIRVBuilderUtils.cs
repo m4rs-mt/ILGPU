@@ -33,7 +33,8 @@ namespace ILGPU.Backends.SPIRV
                     BindingFlags.NonPublic |
                     BindingFlags.Public))
                 {
-                    // Infinite loop is impossible because all spirv structs have primitive bases
+                    // Infinite loop is impossible because all
+                    // SPIRV structs have primitive bases
                     list.AddRange(ToUintList(field.GetValue(obj)));
                 }
 

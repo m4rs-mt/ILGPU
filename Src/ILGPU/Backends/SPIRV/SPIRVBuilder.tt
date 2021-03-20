@@ -125,7 +125,9 @@ public class SPIRVBuilder {
 <#
         }
 #><#// Add 1 to the word count for the first word (what we are creating here)#>
-uint combinedWord = SPIRVBuilderUtils.JoinOpCodeWordCount(<#= instruction.OpCode#>, (ushort) (tempList.Count + 1));
+ushort opCode = <#= instruction.OpCode#>;
+ushort wordCount = (ushort) (tempList.Count + 1);
+uint combinedWord = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
 Instructions.Add(combinedWord);
 Instructions.AddRange(tempList);
 <# PopIndent(); #>

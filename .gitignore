@@ -271,7 +271,7 @@ Src/ILGPU/Static/DllImports.cs
 Src/ILGPU/TypeInformation.cs
 Src/ILGPU/Util/DataBlocks.cs
 Src/ILGPU/Util/PrimitiveDataBlocks.cs
-Src/ILGPU/Backends/SPIRV/ISPIRVBuilder.cs
+Src/ILGPU/Backends/SPIRV/SPIRVBuilder.cs
 Src/ILGPU/Backends/SPIRV/SPIRVComplexTypes.cs
 
 # Generated test source files

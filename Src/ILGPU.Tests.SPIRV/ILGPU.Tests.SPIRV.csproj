@@ -35,4 +35,6 @@
         <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
         <ProjectReference Include="..\ILGPU.Tests\ILGPU.Tests.csproj" />
     </ItemGroup>
+
+    <Import Project="..\TextTransform.targets" />
 </Project>
