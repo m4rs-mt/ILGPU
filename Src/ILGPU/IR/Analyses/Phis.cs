@@ -23,10 +23,6 @@ namespace ILGPU.IR.Analyses
     /// <summary>
     /// Gathers all phis in a basic block.
     /// </summary>
-    [SuppressMessage(
-        "Microsoft.Naming",
-        "CA1710: IdentifiersShouldHaveCorrectSuffix",
-        Justification = "This is the correct name of the current entity")]
     public readonly ref struct Phis
     {
         #region Nested Types

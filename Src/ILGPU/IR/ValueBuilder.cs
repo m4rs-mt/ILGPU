@@ -82,10 +82,6 @@ namespace ILGPU.IR
         /// <summary>
         /// The nested builder.
         /// </summary>
-        [SuppressMessage(
-            "Style",
-            "IDE0044:Add readonly modifier",
-            Justification = "Cannot be readonly since it will be updated in place.")]
         private TBuilder nestedBuilder;
 
         /// <summary>

@@ -24,9 +24,6 @@ namespace ILGPU.IR.Construction
         /// <param name="type">The type of the allocation.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <returns>A node that represents the alloca operation.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateAlloca(
             Location location,
             TypeNode type,
@@ -47,9 +44,6 @@ namespace ILGPU.IR.Construction
         /// <param name="type">The type of the allocation.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <returns>A node that represents the alloca operation.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateStaticAllocaArray(
             Location location,
             Value arrayLength,
@@ -68,9 +62,6 @@ namespace ILGPU.IR.Construction
         /// <param name="type">The type of the allocation.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <returns>A node that represents the alloca operation.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateDynamicAllocaArray(
             Location location,
             TypeNode type,
@@ -91,9 +82,6 @@ namespace ILGPU.IR.Construction
         /// The array length (number of elements to allocate or undefined).
         /// </param>
         /// <returns>A node that represents the alloca operation.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         internal ValueReference CreateAlloca(
             Location location,
             TypeNode type,
@@ -122,9 +110,6 @@ namespace ILGPU.IR.Construction
         /// <param name="location">The current location.</param>
         /// <param name="source">The source address.</param>
         /// <returns>A node that represents the load operation.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateLoad(
             Location location,
             Value source)
@@ -143,9 +128,6 @@ namespace ILGPU.IR.Construction
         /// <param name="target">The target address.</param>
         /// <param name="value">The value to store.</param>
         /// <returns>A node that represents the store operation.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateStore(
             Location location,
             Value target,
@@ -167,9 +149,6 @@ namespace ILGPU.IR.Construction
         /// <param name="location">The current location.</param>
         /// <param name="kind">The type of the memory barrier.</param>
         /// <returns>A node that represents the memory barrier.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateMemoryBarrier(
             Location location,
             MemoryBarrierKind kind) =>

@@ -913,7 +913,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Performs no operation.
         /// </summary>
-        protected override void FinishProcessing(in MethodDataProvider _) { }
+        protected override void FinishProcessing(in MethodDataProvider intermediate) { }
 
         #endregion
     }

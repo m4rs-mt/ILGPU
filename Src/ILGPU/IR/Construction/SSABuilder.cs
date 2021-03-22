@@ -159,7 +159,7 @@ namespace ILGPU.IR.Construction
             /// <summary>
             /// Represents the internal marker value.
             /// </summary>
-            private int markerValue = 0;
+            private int markerValue;
 
             /// <summary>
             /// Represents the current block builder.
@@ -502,7 +502,7 @@ namespace ILGPU.IR.Construction
 
         #region Instance
 
-        private int markerValue = 0;
+        private int markerValue;
         private readonly BasicBlockMap<ValueContainer> mapping;
 
         /// <summary>

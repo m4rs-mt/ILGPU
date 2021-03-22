@@ -165,12 +165,27 @@ namespace ILGPU.IR.Types
             MemoryAddressSpace addressSpace)
             : base(typeContext, elementType, addressSpace)
         {
-            Size = Alignment =
-                typeContext.TargetPlatform == TargetPlatform.X86
-                ? 4
-                : 8;
+            if (typeContext.TargetPlatform == TargetPlatform.X86)
+            {
+                Size = Alignment = 4;
+                BasicValueType = BasicValueType.Int32;
+            }
+            else
+            {
+                Size = Alignment = 8;
+                BasicValueType = BasicValueType.Int64;
+            }
             AddFlags(TypeFlags.PointerDependent);
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the associated basic value type.
+        /// </summary>
+        public override BasicValueType BasicValueType { get; }
 
         #endregion
 

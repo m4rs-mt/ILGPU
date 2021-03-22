@@ -23,9 +23,6 @@ namespace ILGPU.IR.Construction
         /// <param name="predicate">The barrier predicate.</param>
         /// <param name="kind">The barrier kind.</param>
         /// <returns>A node that represents the barrier.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public MemoryValue CreateBarrier(
             Location location,
             Value predicate,
@@ -45,9 +42,6 @@ namespace ILGPU.IR.Construction
         /// <param name="location">The current location.</param>
         /// <param name="kind">The barrier kind.</param>
         /// <returns>A node that represents the barrier.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public MemoryValue CreateBarrier(
             Location location,
             BarrierKind kind) =>

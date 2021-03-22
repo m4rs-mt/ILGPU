@@ -53,10 +53,10 @@ namespace ILGPU.IR.Transformations
             /// Lowers a broadcast value by constructing a new one.
             /// </summary>
             public ValueReference Lower(
-                BasicBlock.Builder blockBuilder,
+                BasicBlock.Builder builder,
                 Broadcast source,
                 Value newVariable) =>
-                blockBuilder.CreateBroadcast(
+                builder.CreateBroadcast(
                     source.Location,
                     newVariable,
                     source.Origin,
@@ -73,10 +73,10 @@ namespace ILGPU.IR.Transformations
             /// Lowers a warp shuffle value by constructing a new one.
             /// </summary>
             public ValueReference Lower(
-                BasicBlock.Builder blockBuilder,
+                BasicBlock.Builder builder,
                 WarpShuffle source,
                 Value newVariable) =>
-                blockBuilder.CreateShuffle(
+                builder.CreateShuffle(
                     source.Location,
                     newVariable,
                     source.Origin,
@@ -93,10 +93,10 @@ namespace ILGPU.IR.Transformations
             /// Lowers a sub warp shuffle value by constructing a new one.
             /// </summary>
             public ValueReference Lower(
-                BasicBlock.Builder blockBuilder,
+                BasicBlock.Builder builder,
                 SubWarpShuffle source,
                 Value newVariable) =>
-                blockBuilder.CreateShuffle(
+                builder.CreateShuffle(
                     source.Location,
                     newVariable,
                     source.Origin,

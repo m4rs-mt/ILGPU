@@ -346,18 +346,12 @@ namespace ILGPU.IR.Intrinsics
         /// <summary>
         /// All value implementation entries.
         /// </summary>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         private readonly T[,] entries;
 
         /// <summary>
         /// Constructs a new abstract intrinsic value matcher.
         /// </summary>
         /// <param name="valueKind">The value kind.</param>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         protected TypedIntrinsicValueMatcher(ValueKind valueKind)
             : base(valueKind)
         {
@@ -376,9 +370,6 @@ namespace ILGPU.IR.Intrinsics
         /// <param name="index">The element index.</param>
         /// <param name="basicValueType">The basic-value type.</param>
         /// <returns>The resolved reference.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1023:IndexersShouldNotBeMultidimensional")]
         protected T this[int index, BasicValueType basicValueType]
         {
             get => entries[index, (int)basicValueType];

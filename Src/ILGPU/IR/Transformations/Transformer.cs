@@ -11,8 +11,6 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
 {
@@ -79,7 +77,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Returns a compatible collection predicate.
         /// </summary>
-        public readonly MethodCollections.ToTransform GetPredicate() =>
+        public readonly MethodCollections.ToTransform Predicate =>
             new MethodCollections.ToTransform(RequiredFlags);
     }
 

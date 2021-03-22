@@ -29,7 +29,7 @@ namespace ILGPU.IR
         /// <summary>
         /// An empty method handle.
         /// </summary>
-        public static readonly MethodHandle Empty = default;
+        public static readonly MethodHandle Empty;
 
         /// <summary>
         /// Reconstructs a method handle from a serialization string.

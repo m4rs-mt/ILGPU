@@ -469,7 +469,7 @@ namespace ILGPU.IR
             // Synchronize all accesses below using a write scope
             using var writeScope = irLock.EnterWriteScope();
 
-            var toTransform = GetMethodCollection_Sync(configuration.GetPredicate());
+            var toTransform = GetMethodCollection_Sync(configuration.Predicate);
             if (toTransform.Count < 1)
                 return;
 

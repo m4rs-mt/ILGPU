@@ -41,10 +41,6 @@ namespace ILGPU.IR.Analyses
     /// </summary>
     /// <typeparam name="TOrder">The underlying block order.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    [SuppressMessage(
-        "Microsoft.Naming",
-        "CA1710:IdentifiersShouldHaveCorrectSuffix",
-        Justification = "CFG stands for Control Flow Graph and not CFGCollection")]
     public sealed class CFG<TOrder, TDirection> :
         IReadOnlyCollection<CFG<TOrder, TDirection>.Node>
         where TOrder : struct, ITraversalOrder
@@ -64,10 +60,6 @@ namespace ILGPU.IR.Analyses
             /// </summary>
             public ref struct Enumerator
             {
-                [SuppressMessage(
-                    "Style",
-                    "IDE0044:Add readonly modifier",
-                    Justification = "This instance variable will be modified")]
                 private ReadOnlySpan<BasicBlock>.Enumerator nestedEnumerator;
 
                 internal Enumerator(
