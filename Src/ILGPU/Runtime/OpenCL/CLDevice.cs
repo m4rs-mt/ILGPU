@@ -472,15 +472,15 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <inheritdoc/>
-        protected override Accelerator CreateAcceleratorInternal(Context context) =>
-            CreateAccelerator(context);
+        public override Accelerator CreateAccelerator(Context context) =>
+            CreateCLAccelerator(context);
 
         /// <summary>
         /// Creates a new OpenCL accelerator.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <returns>The created OpenCL accelerator.</returns>
-        public CLAccelerator CreateAccelerator(Context context) =>
+        public CLAccelerator CreateCLAccelerator(Context context) =>
             new CLAccelerator(context, this);
 
         /// <summary>

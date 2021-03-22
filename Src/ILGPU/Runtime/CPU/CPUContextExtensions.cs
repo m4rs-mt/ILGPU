@@ -110,7 +110,7 @@ namespace ILGPU.Runtime.CPU
             this Context context,
             int cpuDeviceIndex) =>
             context.GetCPUDevice(cpuDeviceIndex)
-                .CreateAccelerator(context);
+                .CreateCPUAccelerator(context);
 
         /// <summary>
         /// Creates a new CPU accelerator with default thread priority.
@@ -127,7 +127,7 @@ namespace ILGPU.Runtime.CPU
             int cpuDeviceIndex,
             CPUAcceleratorMode mode) =>
             context.GetCPUDevice(cpuDeviceIndex)
-                .CreateAccelerator(context, mode);
+                .CreateCPUAccelerator(context, mode);
 
         /// <summary>
         /// Creates a new CPU accelerator.
@@ -148,7 +148,7 @@ namespace ILGPU.Runtime.CPU
             CPUAcceleratorMode mode,
             ThreadPriority threadPriority) =>
             context.GetCPUDevice(cpuDeviceIndex)
-                .CreateAccelerator(context, mode, threadPriority);
+                .CreateCPUAccelerator(context, mode, threadPriority);
 
         #endregion
     }

@@ -60,7 +60,7 @@ namespace ILGPU.Runtime.OpenCL
         /// OpenCL device, 1 to the second, etc.
         /// </param>
         /// <returns>The registered OpenCL device.</returns>
-        public static CLDevice GetOpenCLDevice(
+        public static CLDevice GetCLDevice(
             this Context context,
             int clDeviceIndex) =>
             context.GetDevice<CLDevice>(clDeviceIndex);
@@ -70,7 +70,7 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <returns>All registered OpenCL devices.</returns>
-        public static Context.DeviceCollection<CLDevice> GetOpenCLDevices(
+        public static Context.DeviceCollection<CLDevice> GetCLDevices(
             this Context context) =>
             context.GetDevices<CLDevice>();
 
@@ -83,11 +83,11 @@ namespace ILGPU.Runtime.OpenCL
         /// OpenCL device, 1 to the second, etc.
         /// </param>
         /// <returns>The created OpenCL accelerator.</returns>
-        public static CLAccelerator CreateOpenCLAccelerator(
+        public static CLAccelerator CreateCLAccelerator(
             this Context context,
             int clDeviceIndex) =>
-            context.GetOpenCLDevice(clDeviceIndex)
-                .CreateAccelerator(context);
+            context.GetCLDevice(clDeviceIndex)
+                .CreateCLAccelerator(context);
 
         #endregion
     }
