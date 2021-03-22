@@ -26,7 +26,7 @@ namespace ILGPU.Tests.Cuda
         /// Creates a new test context instance.
         /// </summary>
         /// <param name="optimizationLevel">The optimization level to use.</param>
-        public CudaTestContext(OptimizationLevel optimizationLevel)
+        protected CudaTestContext(OptimizationLevel optimizationLevel)
             : this(optimizationLevel, _ => { })
         { }
     }

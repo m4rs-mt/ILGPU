@@ -19,14 +19,14 @@ namespace ILGPU.Tests.OpenCL
             : base(
                   optimizationLevel,
                   builder => prepareContext(builder.OpenCL()),
-                  context => context.CreateOpenCLAccelerator(0))
+                  context => context.CreateCLAccelerator(0))
         { }
 
         /// <summary>
         /// Creates a new test context instance.
         /// </summary>
         /// <param name="optimizationLevel">The optimization level to use.</param>
-        public CLTestContext(OptimizationLevel optimizationLevel)
+        protected CLTestContext(OptimizationLevel optimizationLevel)
             : this(optimizationLevel, _ => { })
         { }
     }

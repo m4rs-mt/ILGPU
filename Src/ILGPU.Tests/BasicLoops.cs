@@ -3,6 +3,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 #pragma warning disable CS0162
+#pragma warning disable CA1508 // Avoid dead conditional code
 
 namespace ILGPU.Tests
 {
@@ -490,4 +491,5 @@ namespace ILGPU.Tests
     }
 }
 
+#pragma warning restore CA1508 // Avoid dead conditional code
 #pragma warning restore CS0162
