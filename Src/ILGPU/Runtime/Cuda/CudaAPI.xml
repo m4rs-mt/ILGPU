@@ -33,7 +33,7 @@
     </Import>
     <Import Name="cuDeviceGetAttribute">
         <Parameter Name="value" Type="int" Flags="Out" />
-        <Parameter Name="attribute" Type="DeviceAttribute" />
+        <Parameter Name="attribute" Type="DeviceAttributeKind" />
         <Parameter Name="device" Type="int" />
     </Import>
     <Import Name="cuCtxCreate_v2">

@@ -28,12 +28,6 @@ namespace ILGPU.Runtime
         PreferPageLockedMemory = 0,
 
         /// <summary>
-        /// Prefer paged locked memory for improved transfer speeds.
-        /// </summary>
-        [Obsolete("Use PreferPageLockedMemory instead")]
-        PreferPagedLockedMemory = PreferPageLockedMemory,
-
-        /// <summary>
         /// Allocate CPU memory in pageable memory to leverage virtual memory.
         /// </summary>
         UsePageablememory = 1,

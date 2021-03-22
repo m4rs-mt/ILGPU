@@ -41,7 +41,7 @@ namespace ILGPU.Runtime
         /// <returns>The allocated <#= dimensionName #> exchange buffer.</returns>
         /// <remarks>
         /// This function uses the default buffer allocation mode.
-        /// <see cref="ExchangeBufferMode.PreferPagedLockedMemory"/>
+        /// <see cref="ExchangeBufferMode.PreferPageLockedMemory"/>
         /// </remarks>
         public static <#= typeName #><T> AllocateExchangeBuffer<T>(
             this Accelerator accelerator,

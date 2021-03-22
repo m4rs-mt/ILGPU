@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning disable CA1069 // Enums values should not be duplicated
 
 using System;
 
@@ -280,4 +281,5 @@ namespace ILGPU.Runtime.OpenCL
     }
 }
 
+#pragma warning restore CA1069 // Enums values should not be duplicated
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

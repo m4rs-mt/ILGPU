@@ -146,7 +146,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="attribute">The device attribute.</param>
         /// <param name="device">The device.</param>
         /// <returns>The resolved value.</returns>
-        public int GetDeviceAttribute(DeviceAttribute attribute, int device)
+        public int GetDeviceAttribute(DeviceAttributeKind attribute, int device)
         {
             CudaException.ThrowIfFailed(
                 cuDeviceGetAttribute(out int value, attribute, device));
@@ -167,7 +167,7 @@ namespace ILGPU.Runtime.Cuda
         {
             var error = cuDeviceGetAttribute(
                 out major,
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
                 device);
             if (error != CudaError.CUDA_SUCCESS)
             {
@@ -176,7 +176,7 @@ namespace ILGPU.Runtime.Cuda
             }
             return cuDeviceGetAttribute(
                 out minor,
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
                 device);
         }
 

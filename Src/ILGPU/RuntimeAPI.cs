@@ -158,12 +158,12 @@ namespace ILGPU
         /// <summary>
         /// Enables or disabled best-fit mapping when mapping ANSI characters.
         /// </summary>
-        public bool BestFitMapping { get; set; } = false;
+        public bool BestFitMapping { get; set; }
 
         /// <summary>
         /// If true, it throws an exception in the case of an unmappable character.
         /// </summary>
-        public bool ThrowOnUnmappableChar { get; set; } = false;
+        public bool ThrowOnUnmappableChar { get; set; }
 
         #endregion
 

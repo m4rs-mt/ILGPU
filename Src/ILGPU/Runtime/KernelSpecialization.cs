@@ -24,7 +24,7 @@ namespace ILGPU.Runtime
         /// Represents an empty (or *no*) specialization that allows the compiler to
         /// freely decide on its own.
         /// </summary>
-        public static readonly KernelSpecialization Empty = new KernelSpecialization();
+        public static readonly KernelSpecialization Empty;
 
         #endregion
 

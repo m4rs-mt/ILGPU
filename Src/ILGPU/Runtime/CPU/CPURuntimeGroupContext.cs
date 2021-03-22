@@ -291,7 +291,7 @@ namespace ILGPU.Runtime.CPU
         /// This method does not perform any operation at the moment.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void BeginParallelThreadProcessing() { }
+        internal static void BeginParallelThreadProcessing() { }
 
         /// <summary>
         /// This method waits for all threads in this group to complete.
@@ -324,7 +324,7 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// The internal index of the currently active thread.
         /// </summary>
-        private volatile int activeThreadIndex = 0;
+        private volatile int activeThreadIndex;
 
         public SequentialCPURuntimeGroupContext(CPUAccelerator accelerator)
             : base(accelerator)

@@ -172,24 +172,24 @@ namespace ILGPU.Runtime.Cuda
 
             // Resolve clock rate
             ClockRate = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_CLOCK_RATE, DeviceId) / 1000;
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_CLOCK_RATE, DeviceId) / 1000;
 
             // Resolve warp size
             WarpSize = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_WARP_SIZE, DeviceId);
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_WARP_SIZE, DeviceId);
 
             // Resolve number of multiprocessors
             NumMultiprocessors = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, DeviceId);
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, DeviceId);
 
             // Result max number of threads per multiprocessor
             MaxNumThreadsPerMultiprocessor = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,
                 DeviceId);
 
             // Resolve the current driver mode
             DriverMode = (DeviceDriverMode)CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_TCC_DRIVER,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_TCC_DRIVER,
                 DeviceId);
         }
 
@@ -229,24 +229,24 @@ namespace ILGPU.Runtime.Cuda
             // Resolve max grid size
             MaxGridSize = new Index3(
                 CurrentAPI.GetDeviceAttribute(
-                    DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X, DeviceId),
+                    DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X, DeviceId),
                 CurrentAPI.GetDeviceAttribute(
-                    DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y, DeviceId),
+                    DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y, DeviceId),
                 CurrentAPI.GetDeviceAttribute(
-                    DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z, DeviceId));
+                    DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z, DeviceId));
 
             // Resolve max group size
             MaxGroupSize = new Index3(
                 CurrentAPI.GetDeviceAttribute(
-                    DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X, DeviceId),
+                    DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X, DeviceId),
                 CurrentAPI.GetDeviceAttribute(
-                    DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Y, DeviceId),
+                    DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Y, DeviceId),
                 CurrentAPI.GetDeviceAttribute(
-                    DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z, DeviceId));
+                    DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z, DeviceId));
 
             // Resolve max threads per group
             MaxNumThreadsPerGroup = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, DeviceId);
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, DeviceId);
         }
 
         /// <summary>
@@ -261,25 +261,28 @@ namespace ILGPU.Runtime.Cuda
 
             // Resolve max shared memory per block
             MaxSharedMemoryPerGroup = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK,
                 DeviceId);
 
             // Resolve the maximum amount of shared memory per multiprocessor
             MaxSharedMemoryPerMultiprocessor = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_MULTIPROCESSOR,
+                DeviceAttributeKind.
+                    CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_MULTIPROCESSOR,
                 DeviceId);
 
             // Resolve total constant memory
             MaxConstantMemory = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, DeviceId);
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, DeviceId);
 
             // Resolve memory clock rate
             MemoryClockRate = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE, DeviceId) / 1000;
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE, DeviceId)
+                / 1000;
 
             // Resolve the bus width
             MemoryBusWidth = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_GLOBAL_MEMORY_BUS_WIDTH, DeviceId);
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_GLOBAL_MEMORY_BUS_WIDTH,
+                DeviceId);
         }
 
         /// <summary>
@@ -289,36 +292,37 @@ namespace ILGPU.Runtime.Cuda
         {
             // Resolve the L2 cache size
             L2CacheSize = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_L2_CACHE_SIZE, DeviceId);
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_L2_CACHE_SIZE, DeviceId);
 
             // Resolve the total number of registers per multiprocessor
             TotalNumRegistersPerMultiprocessor = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_MULTIPROCESSOR,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_MULTIPROCESSOR,
                 DeviceId);
 
             // Resolve the total number of registers per group
             TotalNumRegistersPerGroup = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK, DeviceId);
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK,
+                DeviceId);
 
             // Resolve the max memory pitch
             MaxMemoryPitch = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_PITCH, DeviceId);
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_PITCH, DeviceId);
 
             // Resolve the number of concurrent copy engines
             NumConcurrentCopyEngines = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT, DeviceId);
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT, DeviceId);
 
             // Resolve whether this device has ECC support
             HasECCSupport = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_ECC_ENABLED, DeviceId) != 0;
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_ECC_ENABLED, DeviceId) != 0;
 
             // Resolve whether this device supports managed memory
             SupportsManagedMemory = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MANAGED_MEMORY, DeviceId) != 0;
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MANAGED_MEMORY, DeviceId) != 0;
 
             // Resolve whether this device supports compute preemption
             SupportsComputePreemption = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_PREEMPTION_SUPPORTED,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_COMPUTE_PREEMPTION_SUPPORTED,
                 DeviceId) != 0;
         }
 
@@ -329,17 +333,17 @@ namespace ILGPU.Runtime.Cuda
         {
             // Resolve the PCI domain id
             PCIDomainId = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID,
                 DeviceId);
 
             // Resolve the PCI device id
             PCIBusId = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_PCI_BUS_ID,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_PCI_BUS_ID,
                 DeviceId);
 
             // Resolve the PCI device id
             PCIDeviceId = CurrentAPI.GetDeviceAttribute(
-                DeviceAttribute.CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID,
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID,
                 DeviceId);
         }
 

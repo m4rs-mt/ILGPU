@@ -18,6 +18,8 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
 
+#pragma warning disable CA1508 // Avoid dead conditional code
+
 namespace ILGPU.Runtime.CPU
 {
     /// <summary>
@@ -371,3 +373,5 @@ namespace ILGPU.Runtime.CPU
         #endregion
     }
 }
+
+#pragma warning restore CA1508 // Avoid dead conditional code

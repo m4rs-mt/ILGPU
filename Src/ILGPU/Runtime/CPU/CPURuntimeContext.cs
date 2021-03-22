@@ -109,7 +109,7 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// The global memory lock variable.
         /// </summary>
-        private volatile int memoryLock = 0;
+        private volatile int memoryLock;
 
         /// <summary>
         /// A temporary location for broadcast values.

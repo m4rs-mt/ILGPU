@@ -13,6 +13,7 @@ using ILGPU.Backends.IL;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -83,11 +84,9 @@ namespace ILGPU
             public readonly void Dispose()
             {
                 // Verify the assembly version
-                if (AssemblyVersion != Parent.assemblyVersion)
-                {
-                    throw new InvalidOperationException(
-                        RuntimeErrorMessages.InvalidConcurrentModification);
-                }
+                Trace.Assert(
+                    AssemblyVersion == Parent.assemblyVersion,
+                    RuntimeErrorMessages.InvalidConcurrentModification);
                 writeScope.Dispose();
             }
         }
@@ -371,7 +370,7 @@ namespace ILGPU
         /// <summary>
         /// The globally unique assembly version.
         /// </summary>
-        private static volatile int globalAssemblyVersion = 0;
+        private static volatile int globalAssemblyVersion;
 
         /// <summary>
         /// Determines the next global assembly version.
@@ -390,7 +389,7 @@ namespace ILGPU
         private ModuleBuilder moduleBuilder;
 
         private volatile int assemblyVersion;
-        private volatile int typeBuilderIdx = 0;
+        private volatile int typeBuilderIdx;
 
         /// <summary>
         /// Constructs a new runtime system.
