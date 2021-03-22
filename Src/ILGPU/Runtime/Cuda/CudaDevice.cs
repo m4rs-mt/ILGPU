@@ -462,8 +462,8 @@ namespace ILGPU.Runtime.Cuda
         #region Methods
 
         /// <inheritdoc/>
-        protected override Accelerator CreateAcceleratorInternal(Context context) =>
-            CreateAccelerator(context);
+        public override Accelerator CreateAccelerator(Context context) =>
+            CreateCudaAccelerator(context);
 
         /// <summary>
         /// Creates a new Cuda accelerator using
@@ -471,8 +471,8 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <returns>The created Cuda accelerator.</returns>
-        public CudaAccelerator CreateAccelerator(Context context) =>
-            CreateAccelerator(context, CudaAcceleratorFlags.ScheduleAuto);
+        public CudaAccelerator CreateCudaAccelerator(Context context) =>
+            CreateCudaAccelerator(context, CudaAcceleratorFlags.ScheduleAuto);
 
         /// <summary>
         /// Creates a new Cuda accelerator.
@@ -480,7 +480,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="context">The ILGPU context.</param>
         /// <param name="acceleratorFlags">The accelerator flags.</param>
         /// <returns>The created Cuda accelerator.</returns>
-        public CudaAccelerator CreateAccelerator(
+        public CudaAccelerator CreateCudaAccelerator(
             Context context,
             CudaAcceleratorFlags acceleratorFlags) =>
             new CudaAccelerator(context, this, acceleratorFlags);

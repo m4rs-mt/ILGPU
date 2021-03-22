@@ -89,7 +89,7 @@ namespace ILGPU.Runtime.Cuda
             this Context context,
             int cudaDeviceIndex) =>
             context.GetCudaDevice(cudaDeviceIndex)
-                .CreateAccelerator(context);
+                .CreateCudaAccelerator(context);
 
         /// <summary>
         /// Creates a new Cuda accelerator.
@@ -106,7 +106,7 @@ namespace ILGPU.Runtime.Cuda
             int cudaDeviceIndex,
             CudaAcceleratorFlags acceleratorFlags) =>
             context.GetCudaDevice(cudaDeviceIndex)
-                .CreateAccelerator(context, acceleratorFlags);
+                .CreateCudaAccelerator(context, acceleratorFlags);
 
         #endregion
     }

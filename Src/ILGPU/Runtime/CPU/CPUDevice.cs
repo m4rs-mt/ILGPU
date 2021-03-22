@@ -253,8 +253,8 @@ namespace ILGPU.Runtime.CPU
         #region Methods
 
         /// <inheritdoc/>
-        protected override Accelerator CreateAcceleratorInternal(Context context) =>
-            CreateAccelerator(context);
+        public override Accelerator CreateAccelerator(Context context) =>
+            CreateCPUAccelerator(context);
 
         /// <summary>
         /// Creates a new CPU accelerator using <see cref="CPUAcceleratorMode.Auto"/>
@@ -262,8 +262,8 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <returns>The created CPU accelerator.</returns>
-        public CPUAccelerator CreateAccelerator(Context context) =>
-            CreateAccelerator(context, CPUAcceleratorMode.Auto);
+        public CPUAccelerator CreateCPUAccelerator(Context context) =>
+            CreateCPUAccelerator(context, CPUAcceleratorMode.Auto);
 
         /// <summary>
         /// Creates a new CPU accelerator with default thread priority.
@@ -271,10 +271,10 @@ namespace ILGPU.Runtime.CPU
         /// <param name="context">The ILGPU context.</param>
         /// <param name="mode">The CPU accelerator mode.</param>
         /// <returns>The created CPU accelerator.</returns>
-        public CPUAccelerator CreateAccelerator(
+        public CPUAccelerator CreateCPUAccelerator(
             Context context,
             CPUAcceleratorMode mode) =>
-            CreateAccelerator(context, mode, ThreadPriority.Normal);
+            CreateCPUAccelerator(context, mode, ThreadPriority.Normal);
 
         /// <summary>
         /// Creates a new CPU accelerator.
@@ -285,7 +285,7 @@ namespace ILGPU.Runtime.CPU
         /// The thread priority of the execution threads.
         /// </param>
         /// <returns>The created CPU accelerator.</returns>
-        public CPUAccelerator CreateAccelerator(
+        public CPUAccelerator CreateCPUAccelerator(
             Context context,
             CPUAcceleratorMode mode,
             ThreadPriority threadPriority) =>

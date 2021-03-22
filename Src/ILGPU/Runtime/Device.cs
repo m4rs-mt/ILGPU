@@ -195,15 +195,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="context">The context instance.</param>
         /// <returns>The created accelerator instance.</returns>
-        Accelerator IAcceleratorBuilder.CreateAccelerator(Context context) =>
-            CreateAcceleratorInternal(context);
-
-        /// <summary>
-        /// Creates a new accelerator instance.
-        /// </summary>
-        /// <param name="context">The context instance.</param>
-        /// <returns>The created accelerator instance.</returns>
-        protected abstract Accelerator CreateAcceleratorInternal(Context context);
+        public abstract Accelerator CreateAccelerator(Context context);
 
         /// <summary>
         /// Prints device information to the given text writer.
