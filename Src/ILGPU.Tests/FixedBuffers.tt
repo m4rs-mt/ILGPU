@@ -44,11 +44,11 @@ namespace ILGPU.Tests
                 info.AddValue(nameof(Data) + i, Data[i]);
         }
 
-        public bool Equals(FixedBufferStruct<#= type.Name #> buffer)
+        public bool Equals(FixedBufferStruct<#= type.Name #> other)
         {
             for (int i = 0; i < FixedBuffers.Length; ++i)
             {
-                if (Data[i] != buffer.Data[i])
+                if (Data[i] != other.Data[i])
                     return false;
             }
             return true;
@@ -97,15 +97,15 @@ namespace ILGPU.Tests
             }
         }
 
-        public bool Equals(MultiFixedBufferStruct<#= type.Name #> buffer)
+        public bool Equals(MultiFixedBufferStruct<#= type.Name #> other)
         {
             for (int i = 0; i < FixedBuffers.Length; ++i)
             {
-                if (A[i] != buffer.A[i])
+                if (A[i] != other.A[i])
                     return false;
-                if (B[i] != buffer.B[i])
+                if (B[i] != other.B[i])
                     return false;
-                if (C[i] != buffer.C[i])
+                if (C[i] != other.C[i])
                     return false;
             }
             return true;

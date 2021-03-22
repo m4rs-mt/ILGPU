@@ -55,7 +55,7 @@ namespace ILGPU.Tests.CPU
         /// Creates a new test context instance.
         /// </summary>
         /// <param name="optimizationLevel">The optimization level to use.</param>
-        public CPUTestContext(OptimizationLevel optimizationLevel)
+        protected CPUTestContext(OptimizationLevel optimizationLevel)
             : this(optimizationLevel, _ => { })
         { }
     }

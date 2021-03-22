@@ -17,13 +17,13 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        public static IEnumerable<object[]> GetNumbers()
+        public static TheoryData<object> Numbers => new TheoryData<object>
         {
-            yield return new object[] { 10 };
-            yield return new object[] { -10 };
-            yield return new object[] { int.MaxValue };
-            yield return new object[] { int.MinValue };
-        }
+            { 10 },
+            { -10 },
+            { int.MaxValue },
+            { int.MinValue },
+        };
 
         internal static void CopyKernel(
             Index1 index,
@@ -33,7 +33,7 @@ namespace ILGPU.Tests
         }
 
         [Theory]
-        [MemberData(nameof(GetNumbers))]
+        [MemberData(nameof(Numbers))]
         [KernelMethod(nameof(CopyKernel))]
         public void Copy(long constant)
         {
@@ -65,7 +65,7 @@ namespace ILGPU.Tests
         }
 
         [Theory]
-        [MemberData(nameof(GetNumbers))]
+        [MemberData(nameof(Numbers))]
         [KernelMethod(nameof(Copy2DKernel))]
         public void Copy2D(long constant)
         {
@@ -100,7 +100,7 @@ namespace ILGPU.Tests
         }
 
         [Theory]
-        [MemberData(nameof(GetNumbers))]
+        [MemberData(nameof(Numbers))]
         [KernelMethod(nameof(Copy3DKernel))]
         public void Copy3D(long constant)
         {
