@@ -45,19 +45,16 @@ namespace ILGPU.Backends
         /// <param name="context">The context to use.</param>
         /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="backendType">The backend type.</param>
-        /// <param name="backendFlags">The backend flags.</param>
         /// <param name="argumentMapper">The argument mapper to use.</param>
         protected CodeGeneratorBackend(
             Context context,
             CapabilityContext capabilities,
             BackendType backendType,
-            BackendFlags backendFlags,
             ArgumentMapper argumentMapper)
             : base(
                   context,
                   capabilities,
                   backendType,
-                  backendFlags,
                   argumentMapper)
         { }
 

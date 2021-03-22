@@ -88,7 +88,6 @@ namespace ILGPU.Backends.PTX
                   context,
                   capabilities,
                   BackendType.PTX,
-                  BackendFlags.None,
                   new PTXArgumentMapper(context))
         {
             Architecture = architecture;

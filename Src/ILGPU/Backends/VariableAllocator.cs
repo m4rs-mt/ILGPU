@@ -195,7 +195,7 @@ namespace ILGPU.Backends
 
         private readonly Dictionary<Value, Variable> variableLookup =
             new Dictionary<Value, Variable>();
-        private int idCounter = 0;
+        private int idCounter;
 
         /// <summary>
         /// Constructs a new variable allocator.

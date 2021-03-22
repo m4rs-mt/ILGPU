@@ -60,7 +60,6 @@ namespace ILGPU.Backends.OpenCL
                   context,
                   capabilities,
                   BackendType.OpenCL,
-                  BackendFlags.None,
                   new CLArgumentMapper(context))
         {
             Vendor = vendor;

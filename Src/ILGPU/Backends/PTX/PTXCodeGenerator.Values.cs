@@ -36,7 +36,7 @@ namespace ILGPU.Backends.PTX
             {
                 var argument = methodCall.Nodes[i];
                 var paramName = CallParamName + i;
-                Builder.Append("\t");
+                Builder.Append('\t');
                 AppendParamDeclaration(Builder, argument.Type, paramName);
                 Builder.AppendLine(";");
 
@@ -49,11 +49,11 @@ namespace ILGPU.Backends.PTX
             var returnType = target.ReturnType;
             if (!returnType.IsVoidType)
             {
-                Builder.Append("\t");
+                Builder.Append('\t');
                 AppendParamDeclaration(Builder, returnType, ReturnValueName);
                 Builder.AppendLine(";");
                 Builder.Append("\tcall ");
-                Builder.Append("(");
+                Builder.Append('(');
                 Builder.Append(ReturnValueName);
                 Builder.Append("), ");
             }

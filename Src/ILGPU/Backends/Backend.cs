@@ -65,18 +65,6 @@ namespace ILGPU.Backends
     }
 
     /// <summary>
-    /// Represents general backend-specific code-generation flags.
-    /// </summary>
-    [Flags]
-    public enum BackendFlags : int
-    {
-        /// <summary>
-        /// The default flags (none).
-        /// </summary>
-        None = 0,
-    }
-
-    /// <summary>
     /// Represents an abstract backend extensions that can store additional data.
     /// </summary>
     public abstract class BackendExtension : CachedExtension { }
@@ -449,19 +437,16 @@ namespace ILGPU.Backends
         /// <param name="context">The context to use.</param>
         /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="backendType">The backend type.</param>
-        /// <param name="backendFlags">The backend flags.</param>
         /// <param name="argumentMapper">The argument mapper to use.</param>
         protected Backend(
             Context context,
             CapabilityContext capabilities,
             BackendType backendType,
-            BackendFlags backendFlags,
             ArgumentMapper argumentMapper)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             Capabilities = capabilities;
             BackendType = backendType;
-            BackendFlags = backendFlags;
             ArgumentMapper = argumentMapper;
 
             // Setup custom pointer types
@@ -496,11 +481,6 @@ namespace ILGPU.Backends
         /// Returns the associated backend type.
         /// </summary>
         public BackendType BackendType { get; }
-
-        /// <summary>
-        /// Returns the associated backend flags.
-        /// </summary>
-        public BackendFlags BackendFlags { get; }
 
         /// <summary>
         /// Returns the target platform.
@@ -781,15 +761,13 @@ namespace ILGPU.Backends
         /// <param name="context">The context to use.</param>
         /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="backendType">The backend type.</param>
-        /// <param name="backendFlags">The backend flags.</param>
         /// <param name="argumentMapper">The argument mapper to use.</param>
         protected Backend(
             Context context,
             CapabilityContext capabilities,
             BackendType backendType,
-            BackendFlags backendFlags,
             ArgumentMapper argumentMapper)
-            : base(context, capabilities, backendType, backendFlags, argumentMapper)
+            : base(context, capabilities, backendType, argumentMapper)
         { }
 
         #endregion

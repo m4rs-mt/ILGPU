@@ -123,46 +123,46 @@ namespace ILGPU.Backends
             /// <summary>
             /// Dumps kernel information to the given text writer.
             /// </summary>
-            /// <param name="writer">The text writer.</param>
-            public virtual void Dump(TextWriter writer)
+            /// <param name="textWriter">The text writer.</param>
+            public virtual void Dump(TextWriter textWriter)
             {
-                if (writer == null)
-                    throw new ArgumentNullException(nameof(writer));
+                if (textWriter == null)
+                    throw new ArgumentNullException(nameof(textWriter));
 
                 // Shared memory
                 if (SharedAllocations.TotalSize > 0)
                 {
-                    writer.WriteLine("Shared Memory:");
-                    writer.Write("\tTotal Size: ");
-                    writer.Write(SharedAllocations.TotalSize);
-                    writer.WriteLine(" bytes");
+                    textWriter.WriteLine("Shared Memory:");
+                    textWriter.Write("\tTotal Size: ");
+                    textWriter.Write(SharedAllocations.TotalSize);
+                    textWriter.WriteLine(" bytes");
 
                     foreach (var alloc in SharedAllocations)
                     {
-                        writer.Write("\t");
-                        writer.Write(alloc.ElementType.ToString());
-                        writer.Write('[');
-                        writer.Write(alloc.ArraySize);
-                        writer.Write("] ");
-                        writer.Write(alloc.TotalSize);
-                        writer.WriteLine(" bytes");
+                        textWriter.Write("\t");
+                        textWriter.Write(alloc.ElementType.ToString());
+                        textWriter.Write('[');
+                        textWriter.Write(alloc.ArraySize);
+                        textWriter.Write("] ");
+                        textWriter.Write(alloc.TotalSize);
+                        textWriter.WriteLine(" bytes");
                     }
                 }
 
                 // Information about methods, calls and local memory sizes
                 if (!Functions.IsDefaultOrEmpty)
                 {
-                    writer.WriteLine("Functions:");
+                    textWriter.WriteLine("Functions:");
                     for (int i = 0, e = Functions.Length; i < e; ++i)
                     {
                         ref readonly var functionRef = ref Functions.ItemRef(i);
                         var methodName = functionRef.Method?.Name ?? functionRef.Name;
-                        writer.Write('\t');
-                        writer.WriteLine(methodName);
+                        textWriter.Write('\t');
+                        textWriter.WriteLine(methodName);
 
-                        writer.Write("\t\tLocal Memory: ");
-                        writer.WriteLine(functionRef.LocalMemorySize);
-                        writer.WriteLine(" bytes");
+                        textWriter.Write("\t\tLocal Memory: ");
+                        textWriter.WriteLine(functionRef.LocalMemorySize);
+                        textWriter.WriteLine(" bytes");
                     }
                 }
             }

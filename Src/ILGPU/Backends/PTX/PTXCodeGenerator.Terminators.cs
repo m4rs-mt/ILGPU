@@ -45,7 +45,7 @@ namespace ILGPU.Backends.PTX
             var condition = EnsureHardwareRegister(primitiveCondition);
 
             // Use the actual branch targets from the schedule
-            var (trueTarget, falseTarget) = branch.GetNotInvertedBranchTargets();
+            var (trueTarget, falseTarget) = branch.NotInvertedBranchTargets;
 
             // The current schedule has inverted all if conditions with implicit branch
             // targets to simplify the work of the PTX assembler

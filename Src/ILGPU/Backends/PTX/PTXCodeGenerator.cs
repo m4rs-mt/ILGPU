@@ -436,8 +436,7 @@ namespace ILGPU.Backends.PTX
             builder.Append(GenerateConstantDeclarations());
 
         /// <summary cref="IBackendCodeGenerator{TKernelBuilder}.Merge(TKernelBuilder)"/>
-        public void Merge(StringBuilder builder) =>
-            builder.Append(Builder.ToString());
+        public void Merge(StringBuilder builder) => builder.Append(Builder);
 
         #endregion
 

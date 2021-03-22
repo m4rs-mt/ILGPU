@@ -69,20 +69,17 @@ namespace ILGPU.Backends.IL
         /// </summary>
         /// <param name="context">The context to use.</param>
         /// <param name="capabilities">The supported capabilities.</param>
-        /// <param name="backendFlags">The backend flags.</param>
         /// <param name="warpSize">The current warp size.</param>
         /// <param name="argumentMapper">The argument mapper to use.</param>
         internal ILBackend(
             Context context,
             CapabilityContext capabilities,
-            BackendFlags backendFlags,
             int warpSize,
             ArgumentMapper argumentMapper)
             : base(
                   context,
                   capabilities,
                   BackendType.IL,
-                  backendFlags,
                   argumentMapper)
         {
             WarpSize = warpSize;

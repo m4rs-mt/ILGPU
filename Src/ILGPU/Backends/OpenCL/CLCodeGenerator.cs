@@ -258,7 +258,7 @@ namespace ILGPU.Backends.OpenCL
 
         #region Instance
 
-        private int labelCounter = 0;
+        private int labelCounter;
         private readonly Dictionary<BasicBlock, string> blockLookup =
             new Dictionary<BasicBlock, string>();
         private readonly string labelPrefix;
@@ -337,8 +337,7 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary cref="IBackendCodeGenerator{TKernelBuilder}.Merge(TKernelBuilder)"/>
-        public void Merge(StringBuilder builder) =>
-            builder.Append(Builder.ToString());
+        public void Merge(StringBuilder builder) => builder.Append(Builder);
 
         #endregion
 
