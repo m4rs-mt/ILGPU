@@ -93,6 +93,7 @@ namespace <#= imports.Namespace #>
             , ThrowOnUnmappableChar = true
 <#          } #>
         )]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
         internal static extern <#= imports.GetReturnType(entryPoint) #>
             <#= entryPoint.Name #>_Import(
 <#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
