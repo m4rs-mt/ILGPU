@@ -27,7 +27,7 @@ namespace ILGPU
         /// <summary>
         /// A shared static instance id counter.
         /// </summary>
-        private static long instanceIdCounter = 0;
+        private static long instanceIdCounter;
 
         /// <summary>
         /// Creates a new unique instance id.

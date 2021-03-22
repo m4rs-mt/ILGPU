@@ -23,15 +23,27 @@ namespace ILGPU.Util
     /// </summary>
     public struct RawString
     {
-        /// <summary>
-        /// The string value.
-        /// </summary>
-        public string Value { get; }
+        private RawString(char value)
+        {
+            Value = value.ToString();
+        }
 
         private RawString(string value)
         {
             Value = value;
         }
+
+        /// <summary>
+        /// The string value.
+        /// </summary>
+        public string Value { get; }
+
+        /// <summary>
+        /// Implicit conversion from char.
+        /// </summary>
+        /// <param name="value">The char value.</param>
+        public static implicit operator RawString(char value) =>
+            new RawString(value);
 
         /// <summary>
         /// Implicit conversion from string.

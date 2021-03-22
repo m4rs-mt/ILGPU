@@ -79,10 +79,6 @@ namespace ILGPU
         /// Computes the size of the given type.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1004:GenericMethodsShouldProvideTypeParameter",
-            Justification = "Matches signature of Marshal.SizeOf")]
         [InteropIntrinsic(InteropIntrinsicKind.SizeOf)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int SizeOf<T>()
@@ -126,11 +122,6 @@ namespace ILGPU
         /// The number of required <typeparamref name="TFirst"/> instances to store an
         /// instance of type <typeparamref name="TSecond"/>.
         /// </returns>
-        [SuppressMessage(
-           "Microsoft.Design",
-            "CA1004:GenericMethodsShouldProvideTypeParameter",
-            Justification = "The type is required for the computation of the " +
-            "field offset")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use ComputeRelativeSizeOf<TFirst, TSecond>(int) instead")]
         public static long ComputeRelativeSizeOf<TFirst, TSecond>()
@@ -179,11 +170,6 @@ namespace ILGPU
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="fieldName">The name of the target field.</param>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1004:GenericMethodsShouldProvideTypeParameter",
-            Justification = "The type is required for the computation of the " +
-            "field offset")]
         [InteropIntrinsic(InteropIntrinsicKind.OffsetOf)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int OffsetOf<T>(string fieldName)
