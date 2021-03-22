@@ -11,6 +11,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace ILGPU.Util
@@ -27,13 +28,13 @@ namespace ILGPU.Util
         /// <see cref="Dispose(bool)"/> function.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private volatile int disposeBarrier = 0;
+        private volatile int disposeBarrier;
 
         /// <summary>
         /// Tracks whether the object has been disposed.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private volatile bool isDisposed = false;
+        private volatile bool isDisposed;
 
         #endregion
 
@@ -96,6 +97,10 @@ namespace ILGPU.Util
         /// <summary>
         /// Triggers the 'dispose' functionality of this object.
         /// </summary>
+        [SuppressMessage(
+            "Design",
+            "CA1063:Implement IDisposable Correctly",
+            Justification = "We use a custom thread-safe dispose driver")]
         public void Dispose()
         {
             // Suppress the invocation of the finalizer first since the internal
@@ -107,6 +112,10 @@ namespace ILGPU.Util
         /// <summary>
         /// The custom finalizer for dispose-base objects.
         /// </summary>
+        [SuppressMessage(
+            "Design",
+            "CA1063:Implement IDisposable Correctly",
+            Justification = "We use a custom thread-safe dispose driver")]
         ~DisposeBase()
         {
             DisposeDriver(false);
