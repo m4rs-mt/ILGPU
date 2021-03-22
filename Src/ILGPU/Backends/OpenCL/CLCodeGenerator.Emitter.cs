@@ -224,6 +224,17 @@ namespace ILGPU.Backends.OpenCL
             /// Appends the given raw command.
             /// </summary>
             /// <param name="command">The command to append.</param>
+            public void AppendCommand(char command)
+            {
+                stringBuilder.Append(' ');
+                stringBuilder.Append(command);
+                stringBuilder.Append(' ');
+            }
+
+            /// <summary>
+            /// Appends the given raw command.
+            /// </summary>
+            /// <param name="command">The command to append.</param>
             public void AppendCommand(string command)
             {
                 stringBuilder.Append(' ');

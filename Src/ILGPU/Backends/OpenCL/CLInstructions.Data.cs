@@ -20,27 +20,27 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// An address-of operation.
         /// </summary>
-        public const string AddressOfOperation = "&";
+        public const char AddressOfOperation = '&';
 
         /// <summary>
         /// A dereference operation.
         /// </summary>
-        public const string DereferenceOperation = "*";
+        public const char DereferenceOperation = '*';
 
         /// <summary>
         /// An assignment operation.
         /// </summary>
-        public const string AssignmentOperation = "=";
+        public const char AssignmentOperation = '=';
 
         /// <summary>
         /// The first part of a select operation.
         /// </summary>
-        public const string SelectOperation1 = "?";
+        public const char SelectOperation1 = '?';
 
         /// <summary>
         /// The second part of a select operation.
         /// </summary>
-        public const string SelectOperation2 = ":";
+        public const char SelectOperation2 = ':';
 
         /// <summary>
         /// A structure type prefix.

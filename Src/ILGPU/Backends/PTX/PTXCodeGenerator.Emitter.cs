@@ -363,7 +363,7 @@ namespace ILGPU.Backends.PTX
                 stringBuilder.Append(value);
                 if (offset > 0)
                 {
-                    stringBuilder.Append("+");
+                    stringBuilder.Append('+');
                     stringBuilder.Append(offset);
                 }
                 stringBuilder.Append(']');

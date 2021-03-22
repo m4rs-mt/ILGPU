@@ -60,7 +60,7 @@ namespace ILGPU.Backends.PTX
             var returnType = Method.ReturnType;
             if (!returnType.IsVoidType)
             {
-                targetBuilder.Append("(");
+                targetBuilder.Append('(');
                 AppendParamDeclaration(targetBuilder, returnType, ReturnParamName);
                 targetBuilder.Append(") ");
             }

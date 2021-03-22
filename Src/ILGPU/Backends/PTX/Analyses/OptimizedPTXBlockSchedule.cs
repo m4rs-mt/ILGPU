@@ -124,7 +124,7 @@ namespace ILGPU.Backends.PTX.Analyses
             var pred = block.Predecessors[0];
             if (pred.Terminator is IfBranch ifBranch)
             {
-                var (trueTarget, _) = ifBranch.GetNotInvertedBranchTargets();
+                var (trueTarget, _) = ifBranch.NotInvertedBranchTargets;
                 return block != trueTarget || !IsImplicitSuccessor(pred, block);
             }
 
