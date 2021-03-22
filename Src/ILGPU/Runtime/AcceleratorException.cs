@@ -23,7 +23,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Initializes a new instance of the AcceleratorException class.
         /// </summary>
-        public AcceleratorException()
+        protected AcceleratorException()
         { }
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace ILGPU.Runtime
         /// with a specified error message.
         /// </summary>
         /// <param name="message">The message that describes the error.</param>
-        public AcceleratorException(string message)
+        protected AcceleratorException(string message)
             : base(message)
         { }
 
@@ -47,7 +47,7 @@ namespace ILGPU.Runtime
         /// The exception that is the cause of the current exception, or a null reference
         /// if no inner exception is specified.
         /// </param>
-        public AcceleratorException(string message, Exception innerException)
+        protected AcceleratorException(string message, Exception innerException)
             : base(message, innerException)
         { }
 

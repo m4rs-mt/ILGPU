@@ -303,6 +303,11 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Init vendor-specific features.
         /// </summary>
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "string.GetHashCode(StringComparison) not " +
+            "available in net47")]
         private void InitVendorAndWarpSizeInfo()
         {
             VendorName = CurrentAPI.GetPlatformInfo(

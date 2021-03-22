@@ -16,6 +16,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 
@@ -110,6 +111,10 @@ namespace ILGPU.Runtime
         /// The default memory cache for operations that require additional
         /// temporary memory.
         /// </summary>
+        [SuppressMessage(
+            "Usage",
+            "CA2213:Disposable fields should be disposed",
+            Justification = "Will be automatically disposed")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly MemoryBufferCache memoryCache;
 

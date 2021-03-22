@@ -103,10 +103,6 @@ namespace ILGPU.Runtime
         /// Note that the input array will stored as a transposed array to match the
         /// target layout.
         /// </remarks>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "source")]
         public void CopyFrom(
             T[,] source,
             LongIndex2 sourceOffset,
@@ -131,10 +127,6 @@ namespace ILGPU.Runtime
         /// Note that the input array will stored as a transposed array to match the
         /// target layout.
         /// </remarks>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "source")]
         public void CopyFrom(
             AcceleratorStream stream,
             T[,] source,
@@ -301,10 +293,6 @@ namespace ILGPU.Runtime
         /// Note that the output array will contain the data as a transposed array to
         /// match the source layout.
         /// </remarks>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "target")]
         public void CopyTo(
             T[,] target,
             LongIndex2 sourceOffset,
@@ -329,10 +317,6 @@ namespace ILGPU.Runtime
         /// Note that the output array will contain the data as a transposed array to
         /// match the source layout.
         /// </remarks>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "target")]
         public void CopyTo(
             AcceleratorStream stream,
             T[,] target,
@@ -477,9 +461,6 @@ namespace ILGPU.Runtime
         /// the default accelerator stream.
         /// </summary>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,] GetAs2DArray() => GetAs2DArray(Accelerator.DefaultStream);
 
         /// <summary>
@@ -487,9 +468,6 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,] GetAs2DArray(AcceleratorStream stream) =>
             GetAs2DArray(stream, default, Extent);
 
@@ -500,9 +478,6 @@ namespace ILGPU.Runtime
         /// <param name="offset">The offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,] GetAs2DArray(LongIndex2 offset, LongIndex2 extent) =>
             GetAs2DArray(Accelerator.DefaultStream, offset, extent);
 
@@ -513,9 +488,6 @@ namespace ILGPU.Runtime
         /// <param name="offset">The offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,] GetAs2DArray(
             AcceleratorStream stream,
             LongIndex2 offset,
@@ -580,10 +552,6 @@ namespace ILGPU.Runtime
         /// Note that the input array will stored as a transposed array to match the
         /// target layout.
         /// </remarks>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "source")]
         public void CopyFrom(
             T[,,] source,
             LongIndex3 sourceOffset,
@@ -608,10 +576,6 @@ namespace ILGPU.Runtime
         /// Note that the input array will stored as a transposed array to match the
         /// target layout.
         /// </remarks>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "source")]
         public void CopyFrom(
             AcceleratorStream stream,
             T[,,] source,
@@ -795,10 +759,6 @@ namespace ILGPU.Runtime
         /// Note that the output array will contain the data as a transposed array to
         /// match the source layout.
         /// </remarks>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "target")]
         public void CopyTo(
             T[,,] target,
             LongIndex3 sourceOffset,
@@ -823,10 +783,6 @@ namespace ILGPU.Runtime
         /// Note that the output array will contain the data as a transposed array to
         /// match the source layout.
         /// </remarks>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "target")]
         public void CopyTo(
             AcceleratorStream stream,
             T[,,] target,
@@ -992,9 +948,6 @@ namespace ILGPU.Runtime
         /// the default accelerator stream.
         /// </summary>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,,] GetAs3DArray() => GetAs3DArray(Accelerator.DefaultStream);
 
         /// <summary>
@@ -1002,9 +955,6 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,,] GetAs3DArray(AcceleratorStream stream) =>
             GetAs3DArray(stream, default, Extent);
 
@@ -1015,9 +965,6 @@ namespace ILGPU.Runtime
         /// <param name="offset">The offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,,] GetAs3DArray(LongIndex3 offset, LongIndex3 extent) =>
             GetAs3DArray(Accelerator.DefaultStream, offset, extent);
 
@@ -1028,9 +975,6 @@ namespace ILGPU.Runtime
         /// <param name="offset">The offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,,] GetAs3DArray(
             AcceleratorStream stream,
             LongIndex3 offset,

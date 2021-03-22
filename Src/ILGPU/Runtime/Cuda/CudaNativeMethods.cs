@@ -8,7 +8,10 @@
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
+
+#pragma warning disable CA1711 // Identifiers should not have incorrect suffix
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning disable CA1069 // Enums values should not be duplicated
 
 using System;
 
@@ -26,6 +29,7 @@ namespace ILGPU.Runtime.Cuda
         /// Specifies a blocking stream.
         /// </summary>
         CU_STREAM_DEFAULT = 0,
+
         /// <summary>
         /// Specifies a non-blocking stream. Used if no other flag is specified.
         /// </summary>
@@ -48,7 +52,10 @@ namespace ILGPU.Runtime.Cuda
         TCC = 1,
     }
 
-    public enum DeviceAttribute
+    /// <summary>
+    /// Specifies a specific attribute kind of a Cuda device.
+    /// </summary>
+    public enum DeviceAttributeKind
     {
         CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK = 1,
         CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X = 2,
@@ -244,4 +251,6 @@ namespace ILGPU.Runtime.Cuda
     #endregion
 }
 
+#pragma warning restore CA1069 // Enums values should not be duplicated
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning restore CA1711 // Identifiers should not have incorrect suffix

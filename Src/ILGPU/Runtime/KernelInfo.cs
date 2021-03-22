@@ -99,23 +99,23 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Dumps kernel information to the given text writer.
         /// </summary>
-        /// <param name="writer">The text writer.</param>
-        public override void Dump(TextWriter writer)
+        /// <param name="textWriter">The text writer.</param>
+        public override void Dump(TextWriter textWriter)
         {
-            base.Dump(writer);
+            base.Dump(textWriter);
 
             // Group and grid dimensions
             if (MinGroupSize.HasValue)
             {
-                writer.Write(nameof(MinGroupSize));
-                writer.Write(' ');
-                writer.WriteLine(MinGroupSize);
+                textWriter.Write(nameof(MinGroupSize));
+                textWriter.Write(' ');
+                textWriter.WriteLine(MinGroupSize);
             }
             if (MinGridSize.HasValue)
             {
-                writer.Write(nameof(MinGridSize));
-                writer.Write(' ');
-                writer.WriteLine(MinGridSize);
+                textWriter.Write(nameof(MinGridSize));
+                textWriter.Write(' ');
+                textWriter.WriteLine(MinGridSize);
             }
         }
 

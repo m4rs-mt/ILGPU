@@ -37,11 +37,33 @@ namespace ILGPU.Runtime.Cuda
         /// Constructs a new Cuda exception.
         /// </summary>
         /// <param name="error">The Cuda runtime error.</param>
-        private CudaException(CudaError error)
+        public CudaException(CudaError error)
             : base(CurrentAPI.GetErrorString(error))
         {
             Error = error.ToString();
         }
+
+        /// <summary>
+        /// Constructs a new Cuda exception.
+        /// </summary>
+        /// <param name="message">The message that describes the error.</param>
+        public CudaException(string message)
+            : base(message)
+        { }
+
+        /// <summary>
+        /// Constructs a new Cuda exception.
+        /// </summary>
+        /// <param name="message">
+        /// The error message that explains the reason for the exception.
+        /// </param>
+        /// <param name="innerException">
+        /// The exception that is the cause of the current exception, or a null reference
+        /// if no inner exception is specified.
+        /// </param>
+        public CudaException(string message, Exception innerException)
+            : base(message, innerException)
+        { }
 
         /// <summary cref="Exception(SerializationInfo, StreamingContext)"/>
         private CudaException(SerializationInfo info, StreamingContext context)
