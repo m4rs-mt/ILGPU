@@ -121,11 +121,6 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Represents a single strongly-connected component.
         /// </summary>
-        [SuppressMessage(
-            "Microsoft.Naming",
-            "CA1710: IdentifiersShouldHaveCorrectSuffix",
-            Justification = "This is a single Loop object; adding a collection suffix " +
-            "would be misleading")]
         public sealed class Node
         {
             #region Instance

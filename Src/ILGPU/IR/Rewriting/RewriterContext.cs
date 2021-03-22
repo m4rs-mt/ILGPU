@@ -174,7 +174,7 @@ namespace ILGPU.IR.Rewriting
         public RewriterContext CreateContext(
             BasicBlock.Builder builder,
             HashSet<Value> converted,
-            T _) =>
+            T data) =>
             new RewriterContext(builder, converted);
     }
 }

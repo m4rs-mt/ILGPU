@@ -68,7 +68,7 @@ namespace ILGPU.IR.Transformations
         protected override bool PerformTransformation(
             Method.Builder builder,
             IntrinsicImplementationProvider<TDelegate>.
-                IRSpecializationPhase specializationPhase)
+                IRSpecializationPhase intermediate)
         {
             // Check whether we are currently processing an intrinsic method
             var blocks = builder.SourceBlocks;
@@ -78,9 +78,9 @@ namespace ILGPU.IR.Transformations
             foreach (Value value in blocks.Values)
             {
                 if (value is MethodCall methodCall)
-                    applied |= specializationPhase.RegisterIntrinsic(methodCall.Target);
+                    applied |= intermediate.RegisterIntrinsic(methodCall.Target);
                 else
-                    applied |= specializationPhase.RegisterIntrinsic(value);
+                    applied |= intermediate.RegisterIntrinsic(value);
             }
 
             return applied;

@@ -102,6 +102,6 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new view conversion pass.
         /// </summary>
-        public LowerViews() { }
+        protected LowerViews() { }
     }
 }

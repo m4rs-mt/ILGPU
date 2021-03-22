@@ -21,6 +21,8 @@ using FormatArray = System.Collections.Immutable.ImmutableArray<
     ILGPU.Util.FormatString.FormatExpression>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
+#pragma warning disable CA1307 // Specify StringComparison for clarity
+
 namespace ILGPU.IR.Values
 {
     /// <summary>
@@ -331,3 +333,5 @@ namespace ILGPU.IR.Values
         #endregion
     }
 }
+
+#pragma warning restore CA1307 // Specify StringComparison for clarity

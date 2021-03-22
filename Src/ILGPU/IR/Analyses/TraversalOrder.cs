@@ -144,10 +144,6 @@ namespace ILGPU.IR.Analyses.TraversalOrders
     /// computation.
     /// </summary>
     /// <typeparam name="TOther">The other view.</typeparam>
-    [SuppressMessage(
-        "Design",
-        "CA1040:Avoid empty interfaces",
-        Justification = "Used for generic constraints")]
     public interface ICompatibleTraversalOrder<TOther>
         where TOther : struct, ITraversalOrder
     { }

@@ -322,7 +322,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new type conversion pass.
         /// </summary>
-        public LowerTypes() { }
+        protected LowerTypes() { }
 
         #endregion
 

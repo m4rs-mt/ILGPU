@@ -518,20 +518,19 @@ namespace ILGPU.IR.Values
         public bool IsInverted =>
             (Flags & IfBranchFlags.IsInverted) != IfBranchFlags.None;
 
-        #endregion
-
-        #region Methods
-
         /// <summary>
         /// Returns the original branch targets of the given if branch taking the
         /// current <see cref="IfBranchFlags.IsInverted"/> flag into account.
         /// </summary>
-        /// <returns>The actual source branch targets.</returns>
         public (BasicBlock TrueTarget, BasicBlock FalseTarget)
-            GetNotInvertedBranchTargets() =>
+            NotInvertedBranchTargets =>
             IsInverted
             ? (FalseTarget, TrueTarget)
             : (TrueTarget, FalseTarget);
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Inverts this if branch by negating the condition and swapping both cases.
@@ -746,10 +745,6 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="i">The index of the i-th case.</param>
         /// <returns>The resulting jump target.</returns>
-        [SuppressMessage(
-            "Microsoft.Usage",
-            "CA2233: OperationsShouldNotOverflow",
-            Justification = "Exception checks avoided for performance reasons")]
         public BasicBlock GetCaseTarget(int i)
         {
             Location.Assert(i < Targets.Length - 1);
@@ -808,7 +803,7 @@ namespace ILGPU.IR.Values
         {
             var result = new StringBuilder();
             result.Append(Condition.ToString());
-            result.Append(" ");
+            result.Append(' ');
             for (int i = 1, e = Targets.Length; i < e; ++i)
             {
                 result.Append(Targets[i].ToReferenceString());

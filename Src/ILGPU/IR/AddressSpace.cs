@@ -46,10 +46,6 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents the base interface for all address spaces.
     /// </summary>
-    [SuppressMessage(
-        "Microsoft.Design",
-        "CA1040:AvoidEmptyInterfaces",
-        Justification = "It is used as a type constraint")]
     public interface IAddressSpace { }
 
     /// <summary>

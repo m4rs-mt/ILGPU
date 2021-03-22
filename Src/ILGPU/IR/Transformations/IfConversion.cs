@@ -1463,8 +1463,7 @@ namespace ILGPU.IR.Transformations
                 // branch targets
                 var trueCondition = terminator.Condition;
                 var falseCondition = trueCondition;
-                var (trueTarget, falseTarget) =
-                    terminator.GetNotInvertedBranchTargets();
+                var (trueTarget, falseTarget) = terminator.NotInvertedBranchTargets;
 
                 // Simple optimization to avoid the generation on unnecessary operations
                 bool emitFalseTarget = terminator.FalseTarget != CaseBlocks.FalseBlock;

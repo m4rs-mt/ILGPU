@@ -71,7 +71,7 @@ namespace ILGPU.IR.Construction
                         ArithmeticFlags.Unsigned);
                 }
                 // Move constants to the left
-                else if (falseValue is PrimitiveValue falsePrimitive)
+                else if (falseValue is PrimitiveValue)
                 {
                     return CreatePredicate(
                         location,

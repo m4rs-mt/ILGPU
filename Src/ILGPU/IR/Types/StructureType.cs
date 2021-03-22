@@ -688,7 +688,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Caches the internal hash code of all child nodes.
         /// </summary>
-        private readonly int hashCode = 0;
+        private readonly int hashCode;
 
         /// <summary>
         /// All underlying byte offsets.

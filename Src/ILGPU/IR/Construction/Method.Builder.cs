@@ -149,8 +149,8 @@ namespace ILGPU.IR
             private readonly ImmutableArray<Parameter>.Builder parameters;
 
             private int blockCounter;
-            private bool updateControlFlow = false;
-            private bool acceptControlFlowUpdates = false;
+            private bool updateControlFlow;
+            private bool acceptControlFlowUpdates;
 
             /// <summary>
             /// All created basic block builders.

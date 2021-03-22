@@ -87,7 +87,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the associated basic value type.
         /// </summary>
-        public new BasicValueType BasicValueType { get; }
+        public override BasicValueType BasicValueType { get; }
 
         /// <summary>
         /// Returns true if this type represents a bool type.

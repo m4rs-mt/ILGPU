@@ -413,7 +413,7 @@ namespace ILGPU.IR.Rewriting
         /// <summary>
         /// Constructs a new rewriter instance.
         /// </summary>
-        public Rewriter()
+        protected Rewriter()
         {
             predicates = new Func<T, Value, bool>[ValueKinds.NumValueKinds];
             converters = new Converter[ValueKinds.NumValueKinds];

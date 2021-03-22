@@ -792,7 +792,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// An empty result.
         /// </summary>
-        public static readonly GlobalAnalysisResult<T, TMethodData> Empty = default;
+        public static readonly GlobalAnalysisResult<T, TMethodData> Empty;
 
         #endregion
 
