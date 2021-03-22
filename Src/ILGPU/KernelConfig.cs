@@ -353,7 +353,7 @@ namespace ILGPU
         /// <remarks>
         /// This configuration does not use dynamic shared memory.
         /// </remarks>
-        public static readonly SharedMemoryConfig Empty = default;
+        public static readonly SharedMemoryConfig Empty;
 
         /// <summary>
         /// Requests a <see cref="SharedMemoryConfig"/>

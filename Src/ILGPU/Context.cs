@@ -203,7 +203,7 @@ namespace ILGPU
         /// <summary>
         /// The global counter for all method handles.
         /// </summary>
-        private long methodHandleCounter = 0;
+        private long methodHandleCounter;
 
         /// <summary>
         /// The synchronization semaphore for frontend workers.

@@ -316,9 +316,6 @@ namespace ILGPU
         /// <param name="x">The x index.</param>
         /// <param name="y">The y index.</param>
         /// <returns>The element at the given index.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1023:IndexersShouldNotBeMultidimensional")]
         public readonly ref T this[int x, int y] =>
             ref this[new Index2(x, y)];
 
@@ -328,9 +325,6 @@ namespace ILGPU
         /// <param name="x">The x index.</param>
         /// <param name="y">The y index.</param>
         /// <returns>The element at the given index.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1023:IndexersShouldNotBeMultidimensional")]
         public readonly ref T this[long x, long y] =>
             ref this[new LongIndex2(x, y)];
 
@@ -446,9 +440,6 @@ namespace ILGPU
         /// <param name="y">The y index.</param>
         /// <param name="z">The z index.</param>
         /// <returns>The element at the given index.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1023:IndexersShouldNotBeMultidimensional")]
         public readonly ref T this[int x, int y, int z] =>
             ref this[new Index3(x, y, z)];
 
@@ -458,9 +449,6 @@ namespace ILGPU
         /// <param name="xy">The x and y indices.</param>
         /// <param name="z">The z index.</param>
         /// <returns>The element at the given index.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1023:IndexersShouldNotBeMultidimensional")]
         public readonly ref T this[Index2 xy, int z] =>
             ref this[xy.X, xy.Y, z];
 
@@ -470,9 +458,6 @@ namespace ILGPU
         /// <param name="x">The x index.</param>
         /// <param name="yz">The z and y indices.</param>
         /// <returns>The element at the given index.</returns>
-        [SuppressMessage(
-            "Microsoft.Design",
-            "CA1023:IndexersShouldNotBeMultidimensional")]
         public readonly ref T this[int x, Index2 yz] =>
             ref this[x, yz.X, yz.Y];
 
