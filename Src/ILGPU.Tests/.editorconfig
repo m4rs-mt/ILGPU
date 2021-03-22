@@ -1,4 +1,4 @@
-[*.cs]
+﻿[*.cs]
 
 # CA1062: Validate arguments of public methods
 dotnet_diagnostic.CA1062.severity = none
@@ -14,3 +14,18 @@ dotnet_diagnostic.CA1801.severity = none
 
 # IDE0060: Remove unused parameter
 dotnet_code_quality_unused_parameters = all:silent
+
+# CA1014: Mark assemblies with CLSCompliant
+dotnet_diagnostic.CA1014.severity = none
+
+# CA5394: Do not use insecure randomness
+dotnet_diagnostic.CA5394.severity = none
+
+# CA1034: Nested types should not be visible
+dotnet_diagnostic.CA1034.severity = none
+
+# CA1051: Do not declare visible instance fields
+dotnet_diagnostic.CA1051.severity = none
+
+# CA1815: Override equals and operator equals on value types
+dotnet_diagnostic.CA1815.severity = none
