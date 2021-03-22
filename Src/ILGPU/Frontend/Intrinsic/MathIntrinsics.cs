@@ -22,16 +22,16 @@ namespace ILGPU.Frontend.Intrinsic
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     sealed class MathIntrinsicAttribute : IntrinsicAttribute
     {
-        public MathIntrinsicAttribute(MathIntrinsicKind kind)
-            : this(kind, ArithmeticFlags.None)
+        public MathIntrinsicAttribute(MathIntrinsicKind intrinsicKind)
+            : this(intrinsicKind, ArithmeticFlags.None)
         { }
 
         public MathIntrinsicAttribute(
-            MathIntrinsicKind kind,
-            ArithmeticFlags flags)
+            MathIntrinsicKind intrinsicKind,
+            ArithmeticFlags intrinsicFlags)
         {
-            IntrinsicKind = kind;
-            IntrinsicFlags = flags;
+            IntrinsicKind = intrinsicKind;
+            IntrinsicFlags = intrinsicFlags;
         }
 
         public override IntrinsicType Type => IntrinsicType.Math;

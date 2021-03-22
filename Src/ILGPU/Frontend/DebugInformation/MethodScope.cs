@@ -26,7 +26,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// <summary>
         /// Represents an invalid method scope.
         /// </summary>
-        public static readonly MethodScope Invalid = default;
+        public static readonly MethodScope Invalid;
 
         #endregion
 

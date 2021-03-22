@@ -13,6 +13,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -86,7 +87,19 @@ namespace ILGPU.Frontend.DebugInformation
             /// </summary>
             public string PDBFileName { get; }
 
+
             /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
+            [SuppressMessage(
+                "Reliability",
+                "CA2000:Dispose objects before losing scope",
+                Justification = "The PDB FileStream instance ownership will be " +
+                "transfered to the AssemblyDebugInformation")]
+            [SuppressMessage(
+                "Design",
+                "CA1031:Do not catch general exception types",
+                Justification = "This method catches all exceptions and redirects them " +
+                "to the debug out stream since this method can easily fail in the case " +
+                "of an invalid/incompatible/broken PDB file.")]
             public bool Load(
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)
@@ -187,6 +200,12 @@ namespace ILGPU.Frontend.DebugInformation
             public Stream PDBStream { get; }
 
             /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
+            [SuppressMessage(
+                "Design",
+                "CA1031:Do not catch general exception types",
+                Justification = "This method catches all exceptions and redirects them " +
+                "to the debug out stream since this method can easily fail in the case " +
+                "of an invalid/incompatible/broken PDB file.")]
             public bool Load(
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)

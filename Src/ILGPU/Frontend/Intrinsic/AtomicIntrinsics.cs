@@ -34,11 +34,11 @@ namespace ILGPU.Frontend.Intrinsic
     sealed class AtomicIntrinsicAttribute : IntrinsicAttribute
     {
         public AtomicIntrinsicAttribute(
-            AtomicIntrinsicKind kind,
-            AtomicFlags flags)
+            AtomicIntrinsicKind intrinsicKind,
+            AtomicFlags intrinsicFlags)
         {
-            IntrinsicKind = kind;
-            IntrinsicFlags = flags;
+            IntrinsicKind = intrinsicKind;
+            IntrinsicFlags = intrinsicFlags;
         }
 
         public override IntrinsicType Type => IntrinsicType.Atomic;

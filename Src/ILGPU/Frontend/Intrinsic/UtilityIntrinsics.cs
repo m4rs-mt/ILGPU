@@ -25,9 +25,9 @@ namespace ILGPU.Frontend.Intrinsic
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     sealed class UtilityIntrinsicAttribute : IntrinsicAttribute
     {
-        public UtilityIntrinsicAttribute(UtilityIntrinsicKind kind)
+        public UtilityIntrinsicAttribute(UtilityIntrinsicKind intrinsicKind)
         {
-            IntrinsicKind = kind;
+            IntrinsicKind = intrinsicKind;
         }
 
         public override IntrinsicType Type => IntrinsicType.Utility;

@@ -47,12 +47,12 @@ namespace ILGPU.Frontend
         /// <summary>
         /// The current offset within the byte code.
         /// </summary>
-        private int ilOffset = 0;
+        private int ilOffset;
 
         /// <summary>
         /// The current instruction type.
         /// </summary>
-        private int instructionOffset = 0;
+        private int instructionOffset;
 
         /// <summary>
         /// The current flags that are applied to the next instruction.

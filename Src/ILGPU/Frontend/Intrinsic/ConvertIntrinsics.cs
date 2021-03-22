@@ -25,9 +25,9 @@ namespace ILGPU.Frontend.Intrinsic
             : this(ConvertFlags.None)
         { }
 
-        public ConvertIntriniscAttribute(ConvertFlags flags)
+        public ConvertIntriniscAttribute(ConvertFlags intrinsicFlags)
         {
-            IntrinsicFlags = flags;
+            IntrinsicFlags = intrinsicFlags;
         }
 
         public override IntrinsicType Type => IntrinsicType.Convert;
