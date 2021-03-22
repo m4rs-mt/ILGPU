@@ -83,7 +83,7 @@ namespace ILGPU.Frontend
         private volatile bool running = true;
         private readonly Thread[] threads;
         private readonly ManualResetEventSlim driverNotifier;
-        private volatile int activeThreads = 0;
+        private volatile int activeThreads;
         private readonly object processingSyncObject = new object();
         private readonly Stack<ProcessingEntry> processing =
             new Stack<ProcessingEntry>(1 << 6);
@@ -374,9 +374,9 @@ namespace ILGPU.Frontend
     {
         #region Instance
 
-        private volatile bool isFinished = false;
-        private volatile bool hadWorkToDo = false;
-        private volatile Exception firstException = null;
+        private volatile bool isFinished;
+        private volatile bool hadWorkToDo;
+        private volatile Exception firstException;
 
         /// <summary>
         /// Constructs a new generation phase.

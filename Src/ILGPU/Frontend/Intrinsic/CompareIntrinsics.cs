@@ -20,14 +20,16 @@ namespace ILGPU.Frontend.Intrinsic
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     sealed class CompareIntriniscAttribute : IntrinsicAttribute
     {
-        public CompareIntriniscAttribute(CompareKind kind)
-            : this(kind, CompareFlags.None)
+        public CompareIntriniscAttribute(CompareKind intrinsicKind)
+            : this(intrinsicKind, CompareFlags.None)
         { }
 
-        public CompareIntriniscAttribute(CompareKind kind, CompareFlags flags)
+        public CompareIntriniscAttribute(
+            CompareKind intrinsicKind,
+            CompareFlags intrinsicFlags)
         {
-            IntrinsicKind = kind;
-            IntrinsicFlags = flags;
+            IntrinsicKind = intrinsicKind;
+            IntrinsicFlags = intrinsicFlags;
         }
 
         public override IntrinsicType Type => IntrinsicType.Compare;
