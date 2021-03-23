@@ -164,8 +164,6 @@ namespace ILGPU.Frontend
                     successors = new List<Block>();
                     successorMapping.Add(current, successors);
                 }
-                current.BasicBlock.Assert(
-                    !successors.Contains(successor));
                 successors.Add(successor);
             }
 
