@@ -666,7 +666,7 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.CopySignF)]
         public static double CopySign(double x, double y) =>
 #if !NETFRAMEWORK && !NETSTANDARD
-            Math.CopySign(x, y)
+            Math.CopySign(x, y);
 #else
             // NB: net47 and netstandard2.1 do not support Math.CopySign.
             Interop.IntAsFloat(
@@ -683,7 +683,7 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.CopySignF)]
         public static float CopySign(float x, float y) =>
 #if !NETFRAMEWORK && !NETSTANDARD
-            Math.CopySign(x, y)
+            MathF.CopySign(x, y);
 #else
             // NB: net47 and netstandard2.1 do not support Math.CopySign.
             Interop.IntAsFloat(
