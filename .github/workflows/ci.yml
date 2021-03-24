@@ -83,6 +83,12 @@ jobs:
           dotnet-version: 3.1.407
       - name: Pin .NET Core SDK
         run: dotnet new globaljson --sdk-version 3.1.407
+        # WORKAROUND: Reset NuGet sources to default to avoid restore issues
+        # on Windows runners where the Visual Studio offline source seems to
+        # cause random issues.
+      - name: Reset NuGet sources
+        if: runner.os == 'Windows'
+        run: dotnet new nugetconfig
       - name: Release Build
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
       - name: CPU Tests
