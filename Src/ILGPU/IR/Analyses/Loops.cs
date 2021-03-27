@@ -18,7 +18,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 //
@@ -92,21 +91,47 @@ namespace ILGPU.IR.Analyses
                 BasicBlock basicBlock)
             {
                 var successors = basicBlock.CurrentSuccessors;
+
+                // Check for an entry block
+                if (Node.Entries.Contains(basicBlock))
+                    return AdjustEntrySuccessors(successors);
+
+                // Check for exit blocks
                 foreach (var exit in Node.Exits)
                 {
                     if (successors.Contains(exit, new BasicBlock.Comparer()))
-                        return AdjustSuccessors(successors);
+                        return AdjustExitSuccessors(successors);
+                }
+
+                // Use the original successors
+                return successors;
+            }
+
+            /// <summary>
+            /// Helper function to adjust the header span of the current successors.
+            /// </summary>
+            /// <param name="currentSuccessors">The current successors.</param>
+            /// <returns>The adjusted span that contains header blocks only.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private readonly ReadOnlySpan<BasicBlock> AdjustEntrySuccessors(
+                ReadOnlySpan<BasicBlock> currentSuccessors)
+            {
+                var successors = InlineList<BasicBlock>.Create(currentSuccessors.Length);
+                foreach (var successor in currentSuccessors)
+                {
+                    if (Node.Headers.Contains(successor, new BasicBlock.Comparer()))
+                        successors.Add(successor);
                 }
                 return successors;
             }
 
             /// <summary>
-            /// Helper function to adjust the span of the current successors.
+            /// Helper function to adjust the exit span of the current successors.
             /// </summary>
             /// <param name="currentSuccessors">The current successors.</param>
             /// <returns>The adjusted span without any exit block.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private readonly ReadOnlySpan<BasicBlock> AdjustSuccessors(
+            private readonly ReadOnlySpan<BasicBlock> AdjustExitSuccessors(
                 ReadOnlySpan<BasicBlock> currentSuccessors)
             {
                 var successors = currentSuccessors.ToInlineList();
