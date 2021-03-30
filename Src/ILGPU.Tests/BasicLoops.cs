@@ -488,6 +488,60 @@ namespace ILGPU.Tests
             var expected = Enumerable.Repeat(0, Length).ToArray();
             Verify(buffer, expected);
         }
+
+        internal static void LoopUnrolling_LICM_Kernel(
+            Index1 index,
+            ArrayView<int> source,
+            ArrayView<int> target)
+        {
+            int result = LoopUnrolling_LICM_Kernel_1(source);
+            result += LoopUnrolling_LICM_Kernel_2(source);
+            target[index] = result;
+        }
+
+        private static int LoopUnrolling_LICM_Kernel_1(ArrayView<int> a)
+        {
+            var b = a[0];
+            if (b == -1)
+                return -1;
+
+            while (true)
+            {
+                if (b == 13)
+                    break;
+            }
+            return b;
+        }
+
+        private static int LoopUnrolling_LICM_Kernel_2(ArrayView<int> a)
+        {
+            int b = 0;
+            for (var i = 0; i < a.Length; i++)
+                b = a[i];
+
+            while (true)
+            {
+                if (b >= 13)
+                    break;
+            }
+            return b;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_LICM_Kernel))]
+        public void LoopUnrolling_LICM()
+        {
+            using var source = Accelerator.Allocate<int>(Length);
+            using var target = Accelerator.Allocate<int>(Length);
+            Initialize(source, 13);
+            target.MemSetToZero();
+            Accelerator.Synchronize();
+
+            Execute(source.Length, source.View, target.View);
+
+            var expected = Enumerable.Repeat(13, Length).ToArray();
+            Verify(source, expected);
+        }
     }
 }
 
