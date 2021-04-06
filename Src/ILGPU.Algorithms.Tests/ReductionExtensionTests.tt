@@ -25,7 +25,6 @@ namespace ILGPU.Algorithms.Tests
 
 <#
         var types = AtomicNumericTypes;
-        var signedTypes = AtomicSignedIntTypes.Concat(AtomicFloatTypes).ToArray();
 #>
         #region MemberData
 
@@ -55,7 +54,7 @@ namespace ILGPU.Algorithms.Tests
             new TheoryData<object, object, object, object, object, object>
         {
 <#
-        foreach (var type in signedTypes) {
+        foreach (var type in types) {
             foreach (var srOp in ScanReduceOperations) {
                 foreach (var size in ArraySizes) {
                     if (type.Type == "float" && size > 1000) { continue; }
@@ -74,7 +73,7 @@ namespace ILGPU.Algorithms.Tests
             new TheoryData<object, object, object, object, object, object>
         {
 <#
-        foreach (var type in signedTypes) {
+        foreach (var type in types) {
             foreach (var srOp in ScanReduceOperations) {
                 foreach (var size in ArraySizes) {
                     if (type.Type == "float" && size > 1000) { continue; }

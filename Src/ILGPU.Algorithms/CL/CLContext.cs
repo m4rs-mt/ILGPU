@@ -15,6 +15,7 @@ using ILGPU.Backends.OpenCL;
 using ILGPU.IR;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -188,6 +189,7 @@ namespace ILGPU.Algorithms.CL
             using var statement = codeGenerator.BeginStatement(target);
             statement.AppendCommand(scanReduceOperation + clCommand);
             statement.BeginArguments();
+            statement.AppendCast(typeof(T).GetArithmeticBasicValueType());
             statement.Append(sourceValue);
             statement.EndArguments();
         }
