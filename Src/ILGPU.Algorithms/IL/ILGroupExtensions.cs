@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.ScanReduceOperations;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -84,7 +85,7 @@ namespace ILGPU.Algorithms.IL
             var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(value);
             boundaries = new ScanBoundaries<T>(
                 sharedMemory[0],
-                sharedMemory[Group.DimX - 1]);
+                sharedMemory[Math.Max(0, Group.DimX - 2)]);
             return Group.IsFirstThread
                 ? default(TScanOperation).Identity
                 : sharedMemory[Group.IdxX - 1];
