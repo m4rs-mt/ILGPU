@@ -710,8 +710,6 @@ namespace ILGPU.Algorithms
                     input,
                     tempView,
                     numIterationsPerGroup);
-
-                initializer(stream, tempView, scanOperation.Identity);
                 pass2Kernel(
                     stream,
                     (gridDim, groupDim),
