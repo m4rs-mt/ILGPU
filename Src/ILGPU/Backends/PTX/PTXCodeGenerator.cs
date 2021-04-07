@@ -36,8 +36,8 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The supported PTX instruction sets (in descending order).
         /// </summary>
-        public static readonly IEnumerable<CudaInstructionSet> SupportedInstructionSets =
-            ImmutableSortedSet.Create(
+        public static readonly IImmutableSet<CudaInstructionSet>
+            SupportedInstructionSets = ImmutableSortedSet.Create(
                 Comparer<CudaInstructionSet>.Create((first, second) =>
                     second.CompareTo(first)),
                 CudaInstructionSet.ISA_72,

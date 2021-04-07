@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Backends.PTX;
 using System;
 
 namespace ILGPU.Runtime.Cuda
@@ -28,7 +29,9 @@ namespace ILGPU.Runtime.Cuda
         public static Context.Builder Cuda(this Context.Builder builder) =>
             builder.Cuda(desc =>
                 desc.Architecture.HasValue &&
-                desc.InstructionSet.HasValue);
+                desc.InstructionSet.HasValue &&
+                PTXCodeGenerator.SupportedInstructionSets.Contains(
+                    desc.InstructionSet.Value));
 
         /// <summary>
         /// Enables all Cuda devices.
