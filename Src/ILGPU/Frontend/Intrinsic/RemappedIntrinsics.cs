@@ -74,6 +74,7 @@ namespace ILGPU.Frontend.Intrinsic
             RegisterMathRemappings();
             RegisterBitConverterRemappings();
             RegisterCopySignRemappings();
+            RegisterInterlockedRemappings();
         }
 
         #endregion
@@ -81,36 +82,72 @@ namespace ILGPU.Frontend.Intrinsic
         #region Methods
 
         /// <summary>
-        /// Registers a math mapping for a function from a source type to a target type.
+        /// Registers a mapping for a function from a source type to a target type.
         /// </summary>
-        /// <param name="sourceType">The source math type.</param>
-        /// <param name="targetType">The target math type.</param>
+        /// <param name="sourceType">The source type.</param>
+        /// <param name="targetType">The target type.</param>
         /// <param name="functionName">
-        /// The name of the function in the scope of mathType.
+        /// The name of the function in the scope of sourceType.
         /// </param>
         /// <param name="paramTypes">The parameter types of both functions.</param>
         public static void AddRemapping(
             Type sourceType,
             Type targetType,
             string functionName,
+            params Type[] paramTypes) =>
+            AddRemapping(
+                sourceType,
+                targetType,
+                functionName,
+                required: true,
+                paramTypes);
+
+        /// <summary>
+        /// Registers a mapping for a function from a source type to a target type.
+        /// </summary>
+        /// <param name="sourceType">The source type.</param>
+        /// <param name="targetType">The target type.</param>
+        /// <param name="functionName">
+        /// The name of the function in the scope of sourceType.
+        /// </param>
+        /// <param name="required">Indicates if the mapping is optional.</param>
+        /// <param name="paramTypes">The parameter types of both functions.</param>
+        private static void AddRemapping(
+            Type sourceType,
+            Type targetType,
+            string functionName,
+            bool required,
             params Type[] paramTypes)
         {
-            var mathFunc = sourceType.GetMethod(
+            var srcFunc = sourceType.GetMethod(
                 functionName,
                 BindingFlags.Public | BindingFlags.Static,
                 null,
                 paramTypes,
                 null);
-            var gpuMathFunc = targetType.GetMethod(
-                functionName,
-                BindingFlags.Public | BindingFlags.Static,
-                null,
-                paramTypes,
-                null);
-
-            AddRemapping(
-                mathFunc,
-                (ref InvocationContext context) => context.Method = gpuMathFunc);
+            if (srcFunc != null)
+            {
+                var dstFunc = targetType.GetMethod(
+                    functionName,
+                    BindingFlags.Public | BindingFlags.Static,
+                    null,
+                    paramTypes,
+                    null);
+                if (dstFunc != null)
+                {
+                    AddRemapping(
+                        srcFunc,
+                        (ref InvocationContext context) => context.Method = dstFunc);
+                }
+                else if (required)
+                {
+                    throw new MissingMethodException(targetType.FullName, functionName);
+                }
+            }
+            else if (required)
+            {
+                throw new MissingMethodException(sourceType.FullName, functionName);
+            }
         }
 
         /// <summary>
@@ -221,6 +258,31 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(float),
                 typeof(float));
 #endif
+        }
+
+        #endregion
+
+        #region Interlocked remappings
+
+        /// <summary>
+        /// Internal class to handle the differences between functions of
+        /// <see cref="System.Threading.Interlocked"/> and <see cref="Atomic"/>.
+        /// </summary>
+        static class Interlocked
+        {
+            public static int Increment(ref int value) => Atomic.Add(ref value, 1);
+            public static long Increment(ref long value) => Atomic.Add(ref value, 1L);
+            public static uint Increment(ref uint value) => Atomic.Add(ref value, 1U);
+            public static ulong Increment(ref ulong value) => Atomic.Add(ref value, 1UL);
+
+            public static int Decrement(ref int value) => Atomic.Add(ref value, -1);
+            public static long Decrement(ref long value) => Atomic.Add(ref value, -1L);
+
+            public static uint Decrement(ref uint value) =>
+                (uint)Atomic.Add(ref Unsafe.As<uint, int>(ref value), -1);
+
+            public static ulong Decrement(ref ulong value) =>
+                (ulong)Atomic.Add(ref Unsafe.As<ulong, long>(ref value), -1L);
         }
 
         #endregion
