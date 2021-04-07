@@ -287,6 +287,7 @@ namespace ILGPU.Runtime.Cuda
 
             { CudaInstructionSet.ISA_70, CudaDriverVersion.FromMajorMinor(11, 0) },
             { CudaInstructionSet.ISA_71, CudaDriverVersion.FromMajorMinor(11, 1) },
+            { CudaInstructionSet.ISA_72, CudaDriverVersion.FromMajorMinor(11, 2) },
         };
 
         /// <summary>

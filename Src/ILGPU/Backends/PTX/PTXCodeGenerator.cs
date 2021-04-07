@@ -40,6 +40,7 @@ namespace ILGPU.Backends.PTX
             ImmutableSortedSet.Create(
                 Comparer<CudaInstructionSet>.Create((first, second) =>
                     second.CompareTo(first)),
+                CudaInstructionSet.ISA_72,
                 CudaInstructionSet.ISA_71,
                 CudaInstructionSet.ISA_70,
                 CudaInstructionSet.ISA_65,
