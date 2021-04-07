@@ -68,6 +68,46 @@ var binaryMathFunctions = new (string, TypeInformation, TypeInformation, string)
         ("Pow",   FloatTypes[1], FloatTypes[2],       "CPUMathType"),
         ("Log",   FloatTypes[1], FloatTypes[2],       "CPUMathType")
     };
+
+
+var interlockedFunctions = new (string, bool, bool, int, Type)[]
+    {
+        // netstandard2.1
+        ( "Add",             false, true,  2, typeof(int) ),
+        ( "Add",             false, true,  2, typeof(long) ),
+        ( "CompareExchange", false, true,  3, typeof(int) ),
+        ( "CompareExchange", false, true,  3, typeof(long) ),
+        ( "CompareExchange", false, true,  3, typeof(float) ),
+        ( "CompareExchange", false, true,  3, typeof(double) ),
+        ( "Decrement",       true,  true,  1, typeof(int) ),
+        ( "Decrement",       true,  true,  1, typeof(long) ),
+        ( "Exchange",        false, true,  2, typeof(int) ),
+        ( "Exchange",        false, true,  2, typeof(long) ),
+        ( "Exchange",        false, true,  2, typeof(float) ),
+        ( "Exchange",        false, true,  2, typeof(double) ),
+        ( "Increment",       true,  true,  1, typeof(int) ),
+        ( "Increment",       true,  true,  1, typeof(long) ),
+
+        // net5.0
+        ( "Add",             false, false, 2, typeof(uint) ),
+        ( "Add",             false, false, 2, typeof(ulong) ),
+        ( "And",             false, false, 2, typeof(int) ),
+        ( "And",             false, false, 2, typeof(long) ),
+        ( "And",             false, false, 2, typeof(uint) ),
+        ( "And",             false, false, 2, typeof(ulong) ),
+        ( "CompareExchange", false, false, 3, typeof(uint) ),
+        ( "CompareExchange", false, false, 3, typeof(ulong) ),
+        ( "Decrement",       true,  false, 1, typeof(uint) ),
+        ( "Decrement",       true,  false, 1, typeof(ulong) ),
+        ( "Exchange",        false, false, 2, typeof(uint) ),
+        ( "Exchange",        false, false, 2, typeof(ulong) ),
+        ( "Increment",       true,  false, 1, typeof(uint) ),
+        ( "Increment",       true,  false, 1, typeof(ulong) ),
+        ( "Or",              false, false, 2, typeof(int) ),
+        ( "Or",              false, false, 2, typeof(long) ),
+        ( "Or",              false, false, 2, typeof(uint) ),
+        ( "Or",              false, false, 2, typeof(ulong) ),
+    };
 #>
 using System;
 
@@ -115,6 +155,35 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(<#= type.Type #>));
 <# } #>
 #endif
+        }
+
+        private static void RegisterInterlockedRemappings()
+        {
+            var sourceType = typeof(System.Threading.Interlocked);
+            var targetType = typeof(Atomic);
+            var customTargetType = typeof(Interlocked);
+
+<# foreach (var (method, custom, required, numParams, type) in interlockedFunctions) { #>
+            AddRemapping(
+                sourceType,
+<#      if (custom) { #>
+                customTargetType,
+<#      } else { #>
+                targetType,
+<#      } #>
+                "<#= method #>",
+                required: <#= required ? "true" : "false" #>,
+                <#=
+                    // First parameter of Interlocked functions uses 'ref' modifier.
+                    string.Join(
+                        ", ",
+                        new[] { $"typeof({type}).MakeByRefType()" }
+                        .Concat(
+                            Enumerable.Repeat(type, numParams - 1)
+                            .Select(x => $"typeof({x})")
+                        ))
+                #>);
+<# } #>
         }
     }
 }
