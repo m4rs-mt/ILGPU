@@ -110,13 +110,15 @@ namespace ILGPU.Tests
             data[idx] = idx;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
         [KernelMethod(nameof(GroupBarrierKernel))]
         public void GroupBarrier(int length)
         {
+            Skip.If(length > Accelerator.MaxNumThreadsPerGroup);
+
             for (int i = 1; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
@@ -138,13 +140,15 @@ namespace ILGPU.Tests
             data[idx] = Group.BarrierAnd(Group.IdxX < bound) ? 1 : 0;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
         [KernelMethod(nameof(GroupBarrierAndKernel))]
         public void GroupBarrierAnd(int length)
         {
+            Skip.If(length > Accelerator.MaxNumThreadsPerGroup);
+
             for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
@@ -169,13 +173,15 @@ namespace ILGPU.Tests
             data[idx] = Group.BarrierOr(Group.IdxX < bound) ? 1 : 0;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
         [KernelMethod(nameof(GroupBarrierOrKernel))]
         public void GroupBarrierOr(int length)
         {
+            Skip.If(length > Accelerator.MaxNumThreadsPerGroup);
+
             for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
@@ -202,13 +208,15 @@ namespace ILGPU.Tests
             data2[idx] = Group.BarrierPopCount(Group.IdxX >= bound);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
         [KernelMethod(nameof(GroupBarrierPopCountKernel))]
         public void GroupBarrierPopCount(int length)
         {
+            Skip.If(length > Accelerator.MaxNumThreadsPerGroup);
+
             for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
@@ -250,13 +258,15 @@ namespace ILGPU.Tests
             data[idx] = Group.Broadcast(Group.IdxX, Group.DimX - 1);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
         [KernelMethod(nameof(GroupBroadcastKernel))]
         public void GroupBroadcast(int length)
         {
+            Skip.If(length > Accelerator.MaxNumThreadsPerGroup);
+
             for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
@@ -280,13 +290,15 @@ namespace ILGPU.Tests
             }
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
         [KernelMethod(nameof(GroupDivergentControlFlowKernel))]
         public void GroupDivergentControlFlow(int length)
         {
+            Skip.If(length > Accelerator.MaxNumThreadsPerGroup);
+
             // IMPORTANT: Iteration range has been limited to the warp size of the
             // accelerator.
             //
