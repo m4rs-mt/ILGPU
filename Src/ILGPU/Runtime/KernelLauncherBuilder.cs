@@ -16,6 +16,7 @@ using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
 {
@@ -108,6 +109,8 @@ namespace ILGPU.Runtime
         /// <param name="dimensionIdx">
         /// The argument index of the provided launch-dimension index.
         /// </param>
+        /// <param name="maxGridSize">The max grid dimensions.</param>
+        /// <param name="maxGroupSize">The max group dimensions.</param>
         /// <param name="customGroupSize">
         /// The custom group size used for automatic blocking.
         /// </param>
@@ -115,6 +118,8 @@ namespace ILGPU.Runtime
             EntryPoint entryPoint,
             TEmitter emitter,
             int dimensionIdx,
+            Index3 maxGridSize,
+            Index3 maxGroupSize,
             int customGroupSize = 0)
             where TEmitter : IILEmitter
         {
@@ -146,6 +151,23 @@ namespace ILGPU.Runtime
                 emitter.Emit(OpCodes.Ldc_I4_1);
                 emitter.Emit(OpCodes.Ldc_I4_1);
 
+                // The IL stack contains 6 ints to be used as parameters to the
+                // KernelConfig constructor. Convert these into Index3 instances.
+                var groupDimLocal = emitter.DeclareLocal(typeof(Index3));
+                var gridDimLocal = emitter.DeclareLocal(typeof(Index3));
+                emitter.EmitNewObject(Index3.MainConstructor);
+                emitter.Emit(LocalOperation.Store, groupDimLocal);
+                emitter.EmitNewObject(Index3.MainConstructor);
+                emitter.Emit(LocalOperation.Store, gridDimLocal);
+
+                // Verify the grid and group dimensions.
+                emitter.Emit(LocalOperation.Load, gridDimLocal);
+                emitter.Emit(LocalOperation.Load, groupDimLocal);
+                EmitVerifyKernelLaunchBounds(emitter, maxGridSize, maxGroupSize);
+
+                // Create the KernelConfig.
+                emitter.Emit(LocalOperation.Load, gridDimLocal);
+                emitter.Emit(LocalOperation.Load, groupDimLocal);
                 emitter.EmitNewObject(KernelConfig.ImplicitlyGroupedKernelConstructor);
             }
             else
@@ -153,6 +175,90 @@ namespace ILGPU.Runtime
                 Debug.Assert(customGroupSize == 0, "Invalid custom group size");
 
                 emitter.Emit(ArgumentOperation.Load, dimensionIdx);
+
+                // The KernelConfig has already been created by the caller, so verify the
+                // grid and group dimensions using the values from the KernelConfig.
+                var kernelCfgLocal = emitter.DeclareLocal(typeof(KernelConfig));
+                emitter.Emit(OpCodes.Dup);
+                emitter.Emit(LocalOperation.Store, kernelCfgLocal);
+                emitter.Emit(LocalOperation.LoadAddress, kernelCfgLocal);
+                emitter.EmitCall(
+                    typeof(KernelConfig)
+                    .GetProperty(
+                        nameof(KernelConfig.GridDim),
+                        BindingFlags.Public | BindingFlags.Instance)
+                    .GetGetMethod());
+                emitter.Emit(LocalOperation.LoadAddress, kernelCfgLocal);
+                emitter.EmitCall(
+                    typeof(KernelConfig)
+                    .GetProperty(
+                        nameof(KernelConfig.GroupDim),
+                        BindingFlags.Public | BindingFlags.Instance)
+                    .GetGetMethod());
+                EmitVerifyKernelLaunchBounds(emitter, maxGridSize, maxGroupSize);
+            }
+        }
+
+        /// <summary>
+        /// Emits IL instructions to verify the kernel launch bounds.
+        /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
+        /// <param name="emitter">The target IL emitter.</param>
+        /// <param name="maxGridSize">The max grid dimensions.</param>
+        /// <param name="maxGroupSize">The max group dimensions.</param>
+        private static void EmitVerifyKernelLaunchBounds<TEmitter>(
+            TEmitter emitter,
+            Index3 maxGridSize,
+            Index3 maxGroupSize)
+            where TEmitter : IILEmitter
+        {
+            // NOTE: Requires that the top two elements of the IL stack contain the
+            // grid and group dimensions (as Index3) to be tested.
+            emitter.EmitConstant(maxGridSize.X);
+            emitter.EmitConstant(maxGridSize.Y);
+            emitter.EmitConstant(maxGridSize.Z);
+            emitter.EmitNewObject(Index3.MainConstructor);
+            emitter.EmitConstant(maxGroupSize.X);
+            emitter.EmitConstant(maxGroupSize.Y);
+            emitter.EmitConstant(maxGroupSize.Z);
+            emitter.EmitNewObject(Index3.MainConstructor);
+            emitter.EmitCall(
+                typeof(KernelLauncherBuilder).GetMethod(
+                    nameof(VerifyKernelLaunchBounds),
+                    BindingFlags.NonPublic | BindingFlags.Static));
+        }
+
+        /// <summary>
+        /// Helper function used to verify the kernel launch dimensions.
+        /// </summary>
+        /// <param name="gridDim">Kernel launch grid dimensions.</param>
+        /// <param name="groupDim">Kernel launch group dimensions.</param>
+        /// <param name="maxGridSize">Accelerator max grid dimensions.</param>
+        /// <param name="maxGroupSize">Accelerator max group dimensions.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void VerifyKernelLaunchBounds(
+            Index3 gridDim,
+            Index3 groupDim,
+            Index3 maxGridSize,
+            Index3 maxGroupSize)
+        {
+            if (!gridDim.InBoundsInclusive(maxGridSize))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(gridDim),
+                    string.Format(
+                        RuntimeErrorMessages.InvalidKernelLaunchGridDimension,
+                        gridDim,
+                        maxGridSize));
+            }
+            if (!groupDim.InBoundsInclusive(maxGroupSize))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(groupDim),
+                    string.Format(
+                        RuntimeErrorMessages.InvalidKernelLaunchGroupDimension,
+                        groupDim,
+                        maxGroupSize));
             }
         }
 
@@ -165,6 +271,8 @@ namespace ILGPU.Runtime
         /// <param name="dimensionIdx">
         /// The argument index of the provided launch-dimension index.
         /// </param>
+        /// <param name="maxGridSize">The max grid dimensions.</param>
+        /// <param name="maxGroupSize">The max group dimensions.</param>
         /// <param name="customGroupSize">
         /// The custom group size used for automatic blocking.
         /// </param>
@@ -172,6 +280,8 @@ namespace ILGPU.Runtime
             EntryPoint entryPoint,
             TEmitter emitter,
             int dimensionIdx,
+            Index3 maxGridSize,
+            Index3 maxGroupSize,
             int customGroupSize = 0)
             where TEmitter : IILEmitter
         {
@@ -179,6 +289,8 @@ namespace ILGPU.Runtime
                 entryPoint,
                 emitter,
                 dimensionIdx,
+                maxGridSize,
+                maxGroupSize,
                 customGroupSize);
             EmitSharedMemorySpeficiation(entryPoint, emitter);
 

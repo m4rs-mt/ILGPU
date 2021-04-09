@@ -1,5 +1,6 @@
 ﻿using ILGPU.Runtime;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Xunit;
 using Xunit.Abstractions;
@@ -75,6 +76,98 @@ namespace ILGPU.Tests
             int expected = 1;
 
             Assert.Equal(expected, data[0]);
+        }
+
+        private static IEnumerable<Index1> GetIndices1D(Accelerator accelerator)
+        {
+            if (accelerator.MaxGridSize.X < int.MaxValue)
+            {
+                var x = accelerator.MaxGridSize.X * accelerator.MaxNumThreadsPerGroup + 1;
+                yield return x;
+            }
+        }
+
+        [Fact]
+        public void GridLaunchDimensionOutOfRange1D()
+        {
+            const int UnusedParam = 0;
+            var maxBounds = new Index1(int.MaxValue);
+            static void AutoGroupedKernel1D(Index1 index, int _) { }
+
+            foreach (var index in GetIndices1D(Accelerator))
+            {
+                if (index.InBoundsInclusive(maxBounds))
+                {
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        Accelerator.LaunchAutoGrouped(
+                            AutoGroupedKernel1D,
+                            index,
+                            UnusedParam));
+                }
+            }
+        }
+
+        private static IEnumerable<Index2> GetIndices2D(Accelerator accelerator)
+        {
+            var x = (accelerator.MaxGridSize.X * accelerator.MaxNumThreadsPerGroup) + 1;
+            var y = accelerator.MaxGridSize.Y + 1;
+            yield return new Index2(x, 1);
+            yield return new Index2(1, y);
+            yield return new Index2(x, y);
+        }
+
+        [Fact]
+        public void GridLaunchDimensionOutOfRange2D()
+        {
+            const int UnusedParam = 0;
+            var maxBounds = new Index2(int.MaxValue, int.MaxValue);
+            static void AutoGroupedKernel2D(Index2 index, int _) { }
+
+            foreach (var index2 in GetIndices2D(Accelerator))
+            {
+                if (index2.InBoundsInclusive(maxBounds))
+                {
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        Accelerator.LaunchAutoGrouped(
+                            AutoGroupedKernel2D,
+                            index2,
+                            UnusedParam));
+                }
+            }
+        }
+
+        private static IEnumerable<Index3> GetIndices3D(Accelerator accelerator)
+        {
+            var x = (accelerator.MaxGridSize.X * accelerator.MaxNumThreadsPerGroup) + 1;
+            var y = accelerator.MaxGridSize.Y + 1;
+            var z = accelerator.MaxGridSize.Z + 1;
+            yield return new Index3(x, 1, 1);
+            yield return new Index3(1, y, 1);
+            yield return new Index3(x, y, 1);
+            yield return new Index3(1, 1, z);
+            yield return new Index3(x, 1, z);
+            yield return new Index3(1, y, z);
+            yield return new Index3(x, y, z);
+        }
+
+        [Fact]
+        public void GridLaunchDimensionOutOfRange3D()
+        {
+            const int UnusedParam = 0;
+            var maxBounds = new Index3(int.MaxValue, int.MaxValue, int.MaxValue);
+            static void AutoGroupedKernel3D(Index3 index, int _) { }
+
+            foreach (var index3 in GetIndices3D(Accelerator))
+            {
+                if (index3.InBoundsInclusive(maxBounds))
+                {
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        Accelerator.LaunchAutoGrouped(
+                            AutoGroupedKernel3D,
+                            index3,
+                            UnusedParam));
+                }
+            }
         }
     }
 }

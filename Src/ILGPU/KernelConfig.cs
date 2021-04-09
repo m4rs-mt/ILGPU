@@ -34,12 +34,8 @@ namespace ILGPU
         internal static readonly ConstructorInfo ImplicitlyGroupedKernelConstructor =
             typeof(KernelConfig).GetConstructor(new Type[]
                 {
-                    typeof(int),
-                    typeof(int),
-                    typeof(int),
-                    typeof(int),
-                    typeof(int),
-                    typeof(int)
+                    typeof(Index3),
+                    typeof(Index3)
                 });
 
         #endregion
@@ -151,9 +147,9 @@ namespace ILGPU
             Index3 groupDim,
             SharedMemoryConfig sharedMemoryConfig)
         {
-            if (gridDim.Size < 0)
+            if (gridDim.LongSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(gridDim));
-            if (groupDim.Size < 0)
+            if (groupDim.LongSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(groupDim));
 
             GridDim = gridDim;

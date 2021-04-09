@@ -153,6 +153,12 @@
   <data name="InvalidGroupDimension" xml:space="preserve">
     <value>Invalid group dimension</value>
   </data>
+  <data name="InvalidKernelLaunchGridDimension" xml:space="preserve">
+    <value>Invalid grid dimensions {0} (exceeds maximum {1})</value>
+  </data>
+  <data name="InvalidKernelLaunchGroupDimension" xml:space="preserve">
+    <value>Invalid group dimensions {0} (exceeds maximum {1})</value>
+  </data>
   <data name="InvalidKernelSpecializationGroupSize" xml:space="preserve">
     <value>The given kernel specialization is not compatible with the defined group size.</value>
   </data>
