@@ -169,6 +169,24 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid grid dimensions {0} (exceeds maximum {1}).
+        /// </summary>
+        internal static string InvalidKernelLaunchGridDimension {
+            get {
+                return ResourceManager.GetString("InvalidKernelLaunchGridDimension", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid group dimensions {0} (exceeds maximum {1}).
+        /// </summary>
+        internal static string InvalidKernelLaunchGroupDimension {
+            get {
+                return ResourceManager.GetString("InvalidKernelLaunchGroupDimension", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The given kernel specialization is not compatible with the defined group size..
         /// </summary>
         internal static string InvalidKernelSpecializationGroupSize {

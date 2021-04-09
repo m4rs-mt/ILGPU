@@ -1,7 +1,6 @@
-﻿using FluentAssertions;
-using ILGPU.Runtime.Cuda;
-using ILGPU.Runtime.OpenCL;
+﻿using ILGPU.Runtime;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -232,26 +231,6 @@ namespace ILGPU.Tests
             }
         }
 
-        static void EmptyKernel(int c)
-        { }
-
-        [Fact]
-        [KernelMethod(nameof(EmptyKernel))]
-        public void ExceedGroupSize()
-        {
-            var groupSize = Accelerator.MaxNumThreadsPerGroup + 1;
-            var extent = new KernelConfig(2, groupSize);
-
-            Action act = () => Execute(extent, 0);
-
-            act.Should().Throw<Exception>()
-                .Which.GetBaseException()
-                .Should().Match(x =>
-                x is CudaException ||
-                x is CLException ||
-                x is NotSupportedException);
-        }
-
         internal static void GroupBroadcastKernel(ArrayView<int> data)
         {
             var idx = Grid.IdxX * Group.DimX + Group.IdxX;
@@ -322,6 +301,94 @@ namespace ILGPU.Tests
                 var expected = Enumerable.Repeat(Enumerable.Range(0, i), length)
                     .SelectMany(x => x).ToArray();
                 Verify(buffer, expected);
+            }
+        }
+
+        private static IEnumerable<Index1> GetIndices1D(Accelerator accelerator)
+        {
+            yield return accelerator.MaxGroupSize.X + 1;
+        }
+
+        [Fact]
+        public void GridLaunchDimensionOutOfRange1D()
+        {
+            const int UnusedParam = 0;
+            var maxBounds = new Index1(int.MaxValue);
+            static void Kernel1D(int _) { }
+
+            foreach (var index in GetIndices1D(Accelerator))
+            {
+                if (index.InBoundsInclusive(maxBounds))
+                {
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        Accelerator.Launch(
+                            Kernel1D,
+                            new KernelConfig(Index1.One, index),
+                            UnusedParam));
+                }
+            }
+        }
+
+        private static IEnumerable<Index2> GetIndices2D(Accelerator accelerator)
+        {
+            var x = accelerator.MaxGroupSize.X + 1;
+            var y = accelerator.MaxGroupSize.Y + 1;
+            yield return new Index2(x, 1);
+            yield return new Index2(1, y);
+            yield return new Index2(x, y);
+        }
+
+        [Fact]
+        public void GridLaunchDimensionOutOfRange2D()
+        {
+            const int UnusedParam = 0;
+            var maxBounds = new Index2(int.MaxValue, int.MaxValue);
+            static void Kernel2D(int _) { }
+
+            foreach (var index2 in GetIndices2D(Accelerator))
+            {
+                if (index2.InBoundsInclusive(maxBounds))
+                {
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        Accelerator.Launch(
+                            Kernel2D,
+                            new KernelConfig(Index2.One, index2),
+                            UnusedParam));
+                }
+            }
+        }
+
+        private static IEnumerable<Index3> GetIndices3D(Accelerator accelerator)
+        {
+            var x = accelerator.MaxGroupSize.X + 1;
+            var y = accelerator.MaxGroupSize.Y + 1;
+            var z = accelerator.MaxGroupSize.Z + 1;
+            yield return new Index3(x, 1, 1);
+            yield return new Index3(1, y, 1);
+            yield return new Index3(x, y, 1);
+            yield return new Index3(1, 1, z);
+            yield return new Index3(x, 1, z);
+            yield return new Index3(1, y, z);
+            yield return new Index3(x, y, z);
+        }
+
+        [Fact]
+        public void GridLaunchDimensionOutOfRange3D()
+        {
+            const int UnusedParam = 0;
+            var maxBounds = new Index3(int.MaxValue, int.MaxValue, int.MaxValue);
+            static void Kernel3D(int _) { }
+
+            foreach (var index3 in GetIndices3D(Accelerator))
+            {
+                if (index3.InBoundsInclusive(maxBounds))
+                {
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        Accelerator.Launch(
+                            Kernel3D,
+                            new KernelConfig(Index3.One, index3),
+                            UnusedParam));
+                }
             }
         }
     }

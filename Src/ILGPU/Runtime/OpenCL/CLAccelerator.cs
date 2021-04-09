@@ -455,6 +455,8 @@ namespace ILGPU.Runtime.OpenCL
                 entryPoint,
                 emitter,
                 Kernel.KernelParamDimensionIdx,
+                MaxGridSize,
+                MaxGroupSize,
                 customGroupSize);
 
             // Dispatch kernel

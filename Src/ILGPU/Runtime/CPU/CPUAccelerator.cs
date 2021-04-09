@@ -269,13 +269,17 @@ namespace ILGPU.Runtime.CPU
                 KernelLauncherBuilder.EmitLoadKernelConfig(
                     entryPoint,
                     emitter,
-                    Kernel.KernelParamDimensionIdx);
+                    Kernel.KernelParamDimensionIdx,
+                    MaxGridSize,
+                    MaxGroupSize);
 
                 // Load dimensions
                 KernelLauncherBuilder.EmitLoadRuntimeKernelConfig(
                     entryPoint,
                     emitter,
                     Kernel.KernelParamDimensionIdx,
+                    MaxGridSize,
+                    MaxGroupSize,
                     customGroupSize);
 
                 // Create new task object

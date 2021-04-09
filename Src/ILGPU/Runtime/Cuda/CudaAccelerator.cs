@@ -527,6 +527,8 @@ namespace ILGPU.Runtime.Cuda
                 entryPoint,
                 emitter,
                 Kernel.KernelParamDimensionIdx,
+                MaxGridSize,
+                MaxGroupSize,
                 customGroupSize);
 
             // Load kernel arguments
