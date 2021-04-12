@@ -39,6 +39,7 @@ namespace ILGPU.Runtime.CPU
         private readonly object taskSynchronizationObject = new object();
         private volatile CPUAcceleratorTask currentTask;
         private Barrier finishedEventPerMultiprocessor;
+        private SemaphoreSlim taskConcurrencyLimit;
 
         /// <summary>
         /// Initializes the internal execution engine.
@@ -48,6 +49,7 @@ namespace ILGPU.Runtime.CPU
         {
             threads = new Thread[NumThreads];
             finishedEventPerMultiprocessor = new Barrier(NumMultiprocessors + 1);
+            taskConcurrencyLimit = new SemaphoreSlim(1);
 
             // Setup all warp and group contexts
             int numWarpsPerMultiprocessor = MaxNumThreadsPerMultiprocessor / WarpSize;
@@ -174,28 +176,36 @@ namespace ILGPU.Runtime.CPU
         {
             Debug.Assert(task != null, "Invalid accelerator task");
 
-            SetupRuntimeClasses(task);
-            StartOrContinueRuntimeThreads(task.GroupDim.Size);
-            Interlocked.MemoryBarrier();
-
-            // Launch all processing threads
-            lock (taskSynchronizationObject)
+            taskConcurrencyLimit.Wait();
+            try
             {
-                Debug.Assert(currentTask == null, "Invalid concurrent modification");
-                currentTask = task;
-                Monitor.PulseAll(taskSynchronizationObject);
+                SetupRuntimeClasses(task);
+                StartOrContinueRuntimeThreads(task.GroupDim.Size);
+                Interlocked.MemoryBarrier();
+
+                // Launch all processing threads
+                lock (taskSynchronizationObject)
+                {
+                    Debug.Assert(currentTask == null, "Invalid concurrent modification");
+                    currentTask = task;
+                    Monitor.PulseAll(taskSynchronizationObject);
+                }
+
+                // Wait for the result
+                finishedEventPerMultiprocessor.SignalAndWait();
+
+                // Reset all groups
+                for (int i = 0, e = NumMultiprocessors; i < e; ++i)
+                    groupContexts[i].TearDown();
+
+                // Reset task
+                lock (taskSynchronizationObject)
+                    currentTask = null;
             }
-
-            // Wait for the result
-            finishedEventPerMultiprocessor.SignalAndWait();
-
-            // Reset all groups
-            for (int i = 0, e = NumMultiprocessors; i < e; ++i)
-                groupContexts[i].TearDown();
-
-            // Reset task
-            lock (taskSynchronizationObject)
-                currentTask = null;
+            finally
+            {
+                taskConcurrencyLimit.Release();
+            }
         }
 
         /// <summary>
@@ -253,49 +263,66 @@ namespace ILGPU.Runtime.CPU
                 Thread.MemoryBarrier();
                 processorBarrier.SignalAndWait();
 
-                // If we are an active group thread
-                int groupSize = task.GroupDim.Size;
-                if (threadIdx < groupSize)
+                try
                 {
-                    var launcher = task.KernelExecutionDelegate;
-
-                    // Split the grid into different chunks that will be processed by the
-                    // available multiprocessors
-                    int linearGridDim = task.GridDim.Size;
-                    int gridChunkSize = IntrinsicMath.DivRoundUp(
-                        linearGridDim,
-                        NumMultiprocessors);
-                    int gridOffset = gridChunkSize * processorIdx;
-                    int linearUserDim = task.TotalUserDim.Size;
-                    for (int i = gridOffset, e = gridOffset + gridChunkSize; i < e; ++i)
+                    // If we are an active group thread
+                    int groupSize = task.GroupDim.Size;
+                    if (threadIdx < groupSize)
                     {
-                        groupContext.BeginThreadProcessing();
+                        try
+                        {
+                            var launcher = task.KernelExecutionDelegate;
 
-                        // Setup the current grid index
-                        threadContext.GridIndex = Index3.ReconstructIndex(
-                            i,
-                            task.GridDim);
+                            // Split the grid into different chunks that will be processed
+                            // by the available multiprocessors
+                            int linearGridDim = task.GridDim.Size;
+                            int gridChunkSize = IntrinsicMath.DivRoundUp(
+                                linearGridDim,
+                                NumMultiprocessors);
+                            int gridOffset = gridChunkSize * processorIdx;
+                            int linearUserDim = task.TotalUserDim.Size;
+                            for (
+                                int i = gridOffset, e = gridOffset + gridChunkSize;
+                                i < e;
+                                ++i)
+                            {
+                                groupContext.BeginThreadProcessing();
+                                try
+                                {
+                                    // Setup the current grid index
+                                    threadContext.GridIndex = Index3.ReconstructIndex(
+                                        i,
+                                        task.GridDim);
 
-                        // Invoke the actual kernel launcher
-                        int globalIndex = i * groupSize + threadIdx;
-                        if (globalIndex < linearUserDim)
-                            launcher(task, globalIndex);
-
-                        groupContext.EndThreadProcessing();
+                                    // Invoke the actual kernel launcher
+                                    int globalIndex = i * groupSize + threadIdx;
+                                    if (globalIndex < linearUserDim)
+                                        launcher(task, globalIndex);
+                                }
+                                finally
+                                {
+                                    groupContext.EndThreadProcessing();
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            // This thread has already finished processing
+                            groupContext.FinishThreadProcessing();
+                            warpContext.FinishThreadProcessing();
+                        }
                     }
-
-                    // This thread has already finished processing
-                    groupContext.FinishThreadProcessing();
-                    warpContext.FinishThreadProcessing();
                 }
+                finally
+                {
+                    // Wait for all threads of all multiprocessors to arrive here
+                    processorBarrier.SignalAndWait();
 
-                // Wait for all threads of all multiprocessors to arrive here
-                processorBarrier.SignalAndWait();
-
-                // If we reach this point and we are the main thread, notify the parent
-                // accelerator instance
-                if (isMainThread)
-                    finishedEventPerMultiprocessor.SignalAndWait();
+                    // If we reach this point and we are the main thread, notify the
+                    // parent accelerator instance
+                    if (isMainThread)
+                        finishedEventPerMultiprocessor.SignalAndWait();
+                }
             }
         }
 
@@ -335,6 +362,7 @@ namespace ILGPU.Runtime.CPU
             foreach (var barrier in processorBarriers)
                 barrier.Dispose();
             finishedEventPerMultiprocessor.Dispose();
+            taskConcurrencyLimit.Dispose();
         }
 
         #endregion
