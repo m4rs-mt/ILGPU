@@ -639,10 +639,32 @@ namespace ILGPU.Backends.EntryPoints
             if (typeMapping.TryGetValue(type, out Type mappedType))
                 return mappedType;
 
-            if (type.IsVoidPtr() || type == typeof(void) || type.IsByRef ||
-                type.IsPointer || type.IsDelegate() || type.IsArray || type.IsClass)
+            if (type.IsByRef)
             {
-                throw new ArgumentOutOfRangeException(nameof(type));
+                throw new NotSupportedException(
+                    ErrorMessages.NotSupportedByRefKernelParameters);
+            }
+            else if (type.IsArray || type.IsClass)
+            {
+                throw new NotSupportedException(string.Format(
+                    ErrorMessages.NotSupportedClassType,
+                    type));
+            }
+            else if (type == typeof(void))
+            {
+                throw new NotSupportedException(ErrorMessages.NotSupportedVoidType);
+            }
+            else if (type.IsPointer || type.IsVoidPtr())
+            {
+                throw new NotSupportedException(string.Format(
+                    ErrorMessages.NotSupportedPointerType,
+                    type));
+            }
+            else if (type.IsDelegate())
+            {
+                throw new NotSupportedException(string.Format(
+                    ErrorMessages.NotSupportedDelegateType,
+                    type));
             }
 
             if (type.IsILGPUPrimitiveType())
@@ -799,17 +821,28 @@ namespace ILGPU.Backends.EntryPoints
             // Map all parameters
             for (int i = 0, e = parameters.Count; i < e; ++i)
             {
-                // Map type and store the mapped instance in a pinned local
-                var mappedType = MapType(parameters.ParameterTypes[i]);
-                var mappingLocal = emitter.DeclarePinnedLocal(mappedType);
-                var localTarget = new LocalTarget(mappingLocal);
+                try
+                {
+                    // Map type and store the mapped instance in a pinned local
+                    var mappedType = MapType(parameters.ParameterTypes[i]);
+                    var mappingLocal = emitter.DeclarePinnedLocal(mappedType);
+                    var localTarget = new LocalTarget(mappingLocal);
 
-                // Perform actual instance mapping on local
-                MapParameter(emitter, parameters, i, localTarget);
+                    // Perform actual instance mapping on local
+                    MapParameter(emitter, parameters, i, localTarget);
 
-                // Map the argument from the pinned local
-                var localSource = new LocalSource(mappingLocal);
-                mappingHandler.MapArgument(emitter, localSource, i);
+                    // Map the argument from the pinned local
+                    var localSource = new LocalSource(mappingLocal);
+                    mappingHandler.MapArgument(emitter, localSource, i);
+                }
+                catch (NotSupportedException nse)
+                {
+                    throw new ArgumentException(
+                        string.Format(
+                            ErrorMessages.NotSupportedKernelParameterType,
+                            parameters.ParameterTypes[i]),
+                        nse);
+                }
             }
         }
 
@@ -901,11 +934,22 @@ namespace ILGPU.Backends.EntryPoints
             // Define all parameter types
             for (int i = 0, e = parameters.Count; i < e; ++i)
             {
-                var mappedType = MapType(parameters.ParameterTypes[i]);
-                typeBuilder.DefineField(
-                    GetFieldName(i),
-                    mappedType,
-                    FieldAttributes.Public);
+                try
+                {
+                    var mappedType = MapType(parameters.ParameterTypes[i]);
+                    typeBuilder.DefineField(
+                        GetFieldName(i),
+                        mappedType,
+                        FieldAttributes.Public);
+                }
+                catch (NotSupportedException nse)
+                {
+                    throw new ArgumentException(
+                        string.Format(
+                            ErrorMessages.NotSupportedKernelParameterType,
+                            parameters.ParameterTypes[i]),
+                        nse);
+                }
             }
 
             return typeBuilder.CreateType();

@@ -96,7 +96,8 @@ namespace ILGPU.Backends.EntryPoints
                 if (type.IsPointer || type.IsPassedViaPtr())
                 {
                     throw new NotSupportedException(string.Format(
-                        ErrorMessages.NotSupportedKernelParameterType, i));
+                        ErrorMessages.NotSupportedKernelParameterType,
+                        type));
                 }
                 parameterTypes.Add(type);
             }

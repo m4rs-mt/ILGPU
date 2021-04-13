@@ -555,5 +555,27 @@ namespace ILGPU.Tests
             var expected = Enumerable.Range(0, Length).ToArray();
             Verify(buffer, expected);
         }
+
+        internal struct UnsupportedKernelParam
+        {
+            public int[] Data;
+        }
+
+        [Fact]
+        public void UnsupportedEntryPointParameter()
+        {
+            Action<Index1, ArrayView<int>, UnsupportedKernelParam> kernel =
+                (index, output, param) =>
+                {
+                    output[index] = param.Data[index];
+                };
+
+            var extent = new Index1(32);
+            var param = new UnsupportedKernelParam() { Data = new int[extent.Size] };
+            using var buffer = Accelerator.Allocate<int>(extent.Size);
+            var e = Assert.Throws<ArgumentException>(() =>
+                Execute(kernel.Method, extent, buffer.View, param));
+            Assert.IsType<NotSupportedException>(e.InnerException);
+        }
     }
 }
