@@ -466,7 +466,10 @@ namespace ILGPU.Frontend
                 SequencePointEnumerator sequencePoints =
                     DebugInformationManager?.LoadSequencePoints(method)
                     ?? SequencePointEnumerator.Empty;
-                var disassembler = new Disassembler(method, sequencePoints);
+                var disassembler = new Disassembler(
+                    method,
+                    sequencePoints,
+                    compilationStackLocation);
                 var disassembledMethod = disassembler.Disassemble();
 
                 using (var builder = generatedMethod.CreateBuilder())
