@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace ILGPU.Runtime.Cuda.API
 {
@@ -25,18 +26,49 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         /// <param name="version">The cuRand version to use.</param>
         /// <returns>The created API wrapper.</returns>
-        public static CuRandAPI Create(CuRandAPIVersion version)
+        public static CuRandAPI Create(CuRandAPIVersion? version)
         {
-            try
+            if (version.HasValue)
             {
-                return CreateInternal(version);
+                return CreateInternal(version.Value);
             }
-            catch (Exception ex) when (
-                ex is DllNotFoundException ||
-                ex is EntryPointNotFoundException)
+            else
             {
-                return null;
+                return CreateLatest();
             }
+        }
+
+        /// <summary>
+        /// Creates a new API wrapper using the latest installed version.
+        /// </summary>
+        /// <returns>The created API wrapper.</returns>
+        private static CuRandAPI CreateLatest()
+        {
+            Exception firstException = null;
+            var versions = Enum.GetValues(typeof(CuRandAPIVersion));
+
+            for (var i = versions.Length - 1; i >= 0; i--)
+            {
+                var version = (CuRandAPIVersion)versions.GetValue(i);
+                var api = CreateInternal(version);
+                if (api != null)
+                {
+                    try
+                    {
+                        var status = api.GetVersion(out _);
+                        if (status == CuRandStatus.CURAND_STATUS_SUCCESS)
+                            return api;
+                    }
+                    catch (Exception ex) when (
+                        ex is DllNotFoundException ||
+                        ex is EntryPointNotFoundException)
+                    {
+                        firstException ??= ex;
+                    }
+                }
+            }
+
+            throw firstException ?? new DllNotFoundException(nameof(CuRandAPI));
         }
 
         /// <summary>

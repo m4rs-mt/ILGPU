@@ -53,7 +53,7 @@ namespace ILGPU.Runtime.Cuda
         public static GPUCuRand CreateGPU(
             CudaAccelerator accelerator,
             CuRandRngType rngType) =>
-            CreateGPU(accelerator, rngType, CuRandAPIVersion.V10);
+            new GPUCuRand(accelerator, rngType);
 
         /// <summary>
         /// Constructs a new cuRand wrapper on the GPU.
@@ -75,7 +75,7 @@ namespace ILGPU.Runtime.Cuda
         public static CPUCuRand CreateCPU(
             Context context,
             CuRandRngType rngType) =>
-            CreateCPU(context, rngType, CuRandAPIVersion.V10);
+            new CPUCuRand(context, rngType);
 
         /// <summary>
         /// Constructs a new cuRand wrapper on the GPU.
@@ -179,11 +179,35 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="accelerator">The associated Cuda accelerator.</param>
         /// <param name="rngType">The cuRand RNG type.</param>
+        public GPUCuRand(
+            CudaAccelerator accelerator,
+            CuRandRngType rngType)
+            : this(accelerator, rngType, new CuRandAPIVersion?())
+        { }
+
+        /// <summary>
+        /// Constructs a new cuRand wrapper.
+        /// </summary>
+        /// <param name="accelerator">The associated Cuda accelerator.</param>
+        /// <param name="rngType">The cuRand RNG type.</param>
         /// <param name="apiVersion">The cuRand API version.</param>
         public GPUCuRand(
             CudaAccelerator accelerator,
             CuRandRngType rngType,
             CuRandAPIVersion apiVersion)
+            : this(accelerator, rngType, new CuRandAPIVersion?(apiVersion))
+        { }
+
+        /// <summary>
+        /// Constructs a new cuRand wrapper.
+        /// </summary>
+        /// <param name="accelerator">The associated Cuda accelerator.</param>
+        /// <param name="rngType">The cuRand RNG type.</param>
+        /// <param name="apiVersion">The cuRand API version.</param>
+        private GPUCuRand(
+            CudaAccelerator accelerator,
+            CuRandRngType rngType,
+            CuRandAPIVersion? apiVersion)
             : base(accelerator)
         {
             API = CuRandAPI.Create(apiVersion);
@@ -421,11 +445,35 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="context">The parent ILGPU context.</param>
         /// <param name="rngType">The cuRand RNG type.</param>
+        public CPUCuRand(
+            Context context,
+            CuRandRngType rngType)
+            : this(context, rngType, new CuRandAPIVersion?())
+        { }
+
+        /// <summary>
+        /// Constructs a new cuRand wrapper.
+        /// </summary>
+        /// <param name="context">The parent ILGPU context.</param>
+        /// <param name="rngType">The cuRand RNG type.</param>
         /// <param name="apiVersion">The cuRand API version.</param>
         public CPUCuRand(
             Context context,
             CuRandRngType rngType,
             CuRandAPIVersion apiVersion)
+            : this(context, rngType, new CuRandAPIVersion?(apiVersion))
+        { }
+
+        /// <summary>
+        /// Constructs a new cuRand wrapper.
+        /// </summary>
+        /// <param name="context">The parent ILGPU context.</param>
+        /// <param name="rngType">The cuRand RNG type.</param>
+        /// <param name="apiVersion">The cuRand API version.</param>
+        private CPUCuRand(
+            Context context,
+            CuRandRngType rngType,
+            CuRandAPIVersion? apiVersion)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
@@ -508,7 +556,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="span">The span to fill.</param>
         public unsafe void FillUniform(Span<int> span)
         {
-            fixed (int *ptr = span)
+            fixed (int* ptr = span)
             {
                 FillUniform(new Span<uint>(ptr, span.Length));
 
@@ -524,7 +572,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="span">The span to fill.</param>
         public unsafe void FillUniform(Span<long> span)
         {
-            fixed (long *ptr = span)
+            fixed (long* ptr = span)
             {
                 FillUniform(new Span<ulong>(ptr, span.Length));
 

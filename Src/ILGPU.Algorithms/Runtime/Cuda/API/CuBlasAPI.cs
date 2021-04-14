@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace ILGPU.Runtime.Cuda.API
 {
@@ -25,20 +26,57 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         /// <param name="version">The cuBlas version to use.</param>
         /// <returns>The created API wrapper.</returns>
-        public static CuBlasAPI Create(CuBlasAPIVersion version)
+        public static CuBlasAPI Create(CuBlasAPIVersion? version)
         {
-            try
+            if (version.HasValue)
             {
-                return CreateInternal(version);
+                return CreateInternal(version.Value);
             }
-            catch (Exception ex) when (
-                ex is DllNotFoundException ||
-                ex is EntryPointNotFoundException)
+            else
             {
-                return null;
+                return CreateLatest();
             }
         }
 
+        /// <summary>
+        /// Creates a new API wrapper using the latest installed version.
+        /// </summary>
+        /// <returns>The created API wrapper.</returns>
+        private static CuBlasAPI CreateLatest()
+        {
+            Exception firstException = null;
+            var versions = Enum.GetValues(typeof(CuBlasAPIVersion));
+
+            for (var i = versions.Length - 1; i >= 0; i--)
+            {
+                var version = (CuBlasAPIVersion)versions.GetValue(i);
+                var api = CreateInternal(version);
+                if (api != null)
+                {
+                    try
+                    {
+                        var status = api.Create(out var handle);
+                        if (status == CuBlasStatus.CUBLAS_STATUS_SUCCESS)
+                        {
+                            api.Free(handle);
+                            return api;
+                        }
+                    }
+                    catch (Exception ex) when (
+                        ex is DllNotFoundException ||
+                        ex is EntryPointNotFoundException)
+                    {
+                        firstException ??= ex;
+                    }
+                }
+            }
+
+            throw firstException ?? new DllNotFoundException(nameof(CuBlasAPI));
+        }
+
+        /// <summary>
+        /// Constructs a new cuRAND API instance.
+        /// </summary>
         protected CuBlasAPI() { }
 
         #endregion
