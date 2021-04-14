@@ -75,15 +75,22 @@ namespace ILGPU.Frontend
         private SequencePointEnumerator debugInformationEnumerator;
 
         /// <summary>
+        /// Returns the source location.
+        /// </summary>
+        private readonly CompilationStackLocation compilationStackLocation;
+
+        /// <summary>
         /// Constructs a new disassembler.
         /// </summary>
         /// <param name="methodBase">The target method.</param>
         /// <param name="sequencePointEnumerator">
         /// The associated sequence-point enumerator.
         /// </param>
+        /// <param name="compilationStackLocation">The source location (optional).</param>
         public Disassembler(
             MethodBase methodBase,
-            SequencePointEnumerator sequencePointEnumerator)
+            SequencePointEnumerator sequencePointEnumerator,
+            CompilationStackLocation compilationStackLocation = null)
         {
             MethodBase = methodBase
                 ?? throw new ArgumentNullException(nameof(methodBase));
@@ -101,6 +108,7 @@ namespace ILGPU.Frontend
             il = MethodBody.GetILAsByteArray();
             instructions = ImmutableArray.CreateBuilder<ILInstruction>(il.Length);
             debugInformationEnumerator = sequencePointEnumerator;
+            this.compilationStackLocation = compilationStackLocation;
             CurrentLocation = new Method.MethodLocation(methodBase);
         }
 
@@ -150,8 +158,13 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Formats an error message to include the current sequence point.
         /// </summary>
-        string ILocation.FormatErrorMessage(string message) =>
-            CurrentLocation.FormatErrorMessage(message);
+        string ILocation.FormatErrorMessage(string message)
+        {
+            var location = compilationStackLocation != null
+                ? compilationStackLocation.Append(CurrentLocation)
+                : CurrentLocation;
+            return location.FormatErrorMessage(message);
+        }
 
         #endregion
 
