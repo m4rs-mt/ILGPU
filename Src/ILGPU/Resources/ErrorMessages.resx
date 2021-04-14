@@ -345,4 +345,13 @@
   <data name="NotSupportedSharedImplicitlyGroupedKernel" xml:space="preserve">
     <value>Shared memory is not supported by implicitly grouped kernels.</value>
   </data>
+  <data name="NotSupportedDelegateType" xml:space="preserve">
+    <value>Delegate type '{0}' is not supported</value>
+  </data>
+  <data name="NotSupportedPointerType" xml:space="preserve">
+    <value>Pointer type '{0}' is not supported</value>
+  </data>
+  <data name="NotSupportedVoidType" xml:space="preserve">
+    <value>Void type is not supported</value>
+  </data>
 </root>

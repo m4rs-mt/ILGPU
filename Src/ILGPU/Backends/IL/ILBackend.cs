@@ -94,6 +94,12 @@ namespace ILGPU.Backends.IL
         /// </summary>
         public int WarpSize { get; }
 
+        /// <summary>
+        /// Returns the associated <see cref="Backend.ArgumentMapper"/>.
+        /// </summary>
+        public new ILArgumentMapper ArgumentMapper =>
+            base.ArgumentMapper as ILArgumentMapper;
+
         #endregion
 
         #region Methods

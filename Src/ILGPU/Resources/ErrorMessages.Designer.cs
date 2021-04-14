@@ -403,6 +403,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Delegate type &apos;{0}&apos; is not supported.
+        /// </summary>
+        internal static string NotSupportedDelegateType {
+            get {
+                return ResourceManager.GetString("NotSupportedDelegateType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The allocation size of type &apos;{0}&apos; must be statically known and not a dynamic value &apos;{1}&apos;.
         /// </summary>
         internal static string NotSupportedDynamicAllocation {
@@ -583,6 +592,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Pointer type &apos;{0}&apos; is not supported.
+        /// </summary>
+        internal static string NotSupportedPointerType {
+            get {
+                return ResourceManager.GetString("NotSupportedPointerType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported recursive program.
         /// </summary>
         internal static string NotSupportedRecursiveProgram {
@@ -687,6 +705,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedVirtualMethodCallToUnconstrainedInstance {
             get {
                 return ResourceManager.GetString("NotSupportedVirtualMethodCallToUnconstrainedInstance", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Void type is not supported.
+        /// </summary>
+        internal static string NotSupportedVoidType {
+            get {
+                return ResourceManager.GetString("NotSupportedVoidType", resourceCulture);
             }
         }
         

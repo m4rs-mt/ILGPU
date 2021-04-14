@@ -111,6 +111,11 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         public int NumThreads { get; }
 
+        /// <summary>
+        /// Returns the IL backend of this accelerator.
+        /// </summary>
+        internal new ILBackend Backend => base.Backend as ILBackend;
+
         #endregion
 
         #region Methods
@@ -249,10 +254,21 @@ namespace ILGPU.Runtime.CPU
             var entryPoint = kernel.EntryPoint;
             AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
 
+            // Add support for by ref parameters
+            if (entryPoint.HasByRefParameters)
+            {
+                throw new NotSupportedException(
+                    ErrorMessages.NotSupportedByRefKernelParameters);
+            }
+
             using var scopedLock = entryPoint.CreateLauncherMethod(
                 Context.RuntimeSystem,
                 out var launcher);
             var emitter = new ILEmitter(launcher.ILGenerator);
+
+            // Pretend to map kernel arguments (like a GPU accelerator would perform).
+            var argumentMapper = Backend.ArgumentMapper;
+            argumentMapper.Map(entryPoint);
 
             var cpuKernel = emitter.DeclareLocal(typeof(CPUKernel));
             KernelLauncherBuilder.EmitLoadKernelArgument<CPUKernel, ILEmitter>(
