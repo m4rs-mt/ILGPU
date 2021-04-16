@@ -13,7 +13,7 @@
             case "Id":
                 if (typeName == "IdResult")
                 {
-#>_builder.Insert(0, "%" + <#= paramName#> + " ");
+#>_builder.Append("%" + <#= paramName#> + " = ");
 <#
                 }
                 else
@@ -23,7 +23,7 @@
                 }
                 break;
             case "Literal":
-                if (typeName == "LiteraString")
+                if (typeName == "LiteralString")
                 {
 #>_builder.Append("\"" + <#= paramName#> + "\" ");
 <#
@@ -71,12 +71,43 @@
 #> {
 <#
         PushIndent(standardIndent);
-#>_builder.Append("%<#= opName#>");
-<#
-        foreach (var (operand, name) in paramInfos)
+        int startingIndex = 0;
+        if (paramInfos.Count > 0 && paramInfos[0].operand.Type == "IdResult")
         {
+            var type = typeInfo[paramInfos[0].operand.Type];
+            CreateAppend(type, paramInfos[0].name);
+            startingIndex = 1;
+        }
+#>_builder.Append("<#= opName#> ");
+<#
+        for (int i = startingIndex; i < paramInfos.Count; i++)
+        {
+            var (operand, name) = paramInfos[i];
             var type = typeInfo[operand.Type];
-            CreateAppend(type, name);
+            if (string.IsNullOrWhiteSpace(operand.Quantifier))
+            {
+                CreateAppend(type, name);
+            }
+            else if (operand.Quantifier == "?")
+            {
+#>if(<#= name#> != null) {
+<#              PushIndent(standardIndent);
+                CreateAppend(type, name);
+                PopIndent();
+#>
+}
+<#
+            }
+            else if (operand.Quantifier == "*")
+            {
+#>for (int i = 0; i < <#= name#>.Length; i++) {
+<#              PushIndent(standardIndent);
+                CreateAppend(type, name + "[i]");
+                PopIndent();
+#>
+}
+<#
+            }
         }
 #>_builder.AppendLine();
 <#
@@ -89,7 +120,6 @@
 #>
 using System;
 using System.Text;
-using System.Collections.Generic;
 
 #nullable enable
 #pragma warning disable 1591
@@ -106,6 +136,16 @@ namespace ILGPU.Backends.SPIRV {
 public class StringSPIRVBuilder : ISPIRVBuilder {
 
     private StringBuilder _builder = new StringBuilder();
+
+    public byte[] ToByteArray() => Encoding.UTF8.GetBytes(_builder.ToString());
+
+    public void AddMetadata(uint magic, uint version, uint genMagic, uint bound, uint schema) {
+        _builder.AppendLine($"; Magic: {magic:X}");
+        _builder.AppendLine($"; Version: {version:X}");
+        _builder.AppendLine($"; Generator Magic: {genMagic:X}");
+        _builder.AppendLine($"; Bound: {bound}");
+        _builder.AppendLine($"; Schema: {schema}");
+    }
 
 <#
     PushIndent(standardIndent);
