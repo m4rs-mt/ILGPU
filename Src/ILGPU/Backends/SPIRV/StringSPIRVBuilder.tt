@@ -1,0 +1,131 @@
+<#@ template hostspecific="true" language="C#" #>
+<#@ output extension=".cs"#>
+<#@ include file="BuilderCommon.ttinclude"
+#><#@ assembly name="System.Xml" #>
+<#@ assembly name="System.Core"#>
+<#
+    var typeInfo = LoadOperandTypeInfoMap();
+
+    void CreateAppendBasic(string category, string typeName, string paramName)
+    {
+        switch (category)
+        {
+            case "Id":
+                if (typeName == "IdResult")
+                {
+#>_builder.Insert(0, "%" + <#= paramName#> + " ");
+<#
+                }
+                else
+                {
+#>_builder.Append("%" + <#= paramName#> + " ");
+<#
+                }
+                break;
+            case "Literal":
+                if (typeName == "LiteraString")
+                {
+#>_builder.Append("\"" + <#= paramName#> + "\" ");
+<#
+                }
+                else
+                {
+#>_builder.Append(<#= paramName#> + " ");
+<#
+                }
+                break;
+            case "BitEnum":
+            case "ValueEnum":
+#>_builder.Append(<#= paramName#> + " ");
+<#
+            break;
+        }
+    }
+
+    void CreateAppend(SPIRVType spirvType, string paramName)
+    {
+        switch (spirvType.Category)
+        {
+            case "Id":
+            case "Literal":
+            case "BitEnum":
+            case "ValueEnum":
+                CreateAppendBasic(spirvType.Category, spirvType.Name, paramName);
+                break;
+            case "Composite":
+                for (int i = 0; i < spirvType.Bases.Bases.Count; i++)
+                {
+                    var type = typeInfo[spirvType.Bases.Bases[i]];
+                    CreateAppendBasic(
+                        type.Category,
+                        type.Name,
+                        $"{paramName}.base{i}"
+                    );
+                }
+                break;
+        }
+    }
+
+    void CreateBody(string opName, List<(SPIRVOperand operand, string name)> paramInfos)
+    {
+#> {
+<#
+        PushIndent(standardIndent);
+#>_builder.Append("%<#= opName#>");
+<#
+        foreach (var (operand, name) in paramInfos)
+        {
+            var type = typeInfo[operand.Type];
+            CreateAppend(type, name);
+        }
+#>_builder.AppendLine();
+<#
+        PopIndent();
+#>
+}
+
+<#
+    }
+#>
+using System;
+using System.Text;
+using System.Collections.Generic;
+
+#nullable enable
+#pragma warning disable 1591
+
+namespace ILGPU.Backends.SPIRV {
+
+<#
+    PushIndent(standardIndent);
+#>
+/// <summary>
+/// Defines utility methods to generate SPIRV operations
+/// </summary>
+[CLSCompliant(false)]
+public class StringSPIRVBuilder : ISPIRVBuilder {
+
+    private StringBuilder _builder = new StringBuilder();
+
+<#
+    PushIndent(standardIndent);
+    foreach (var instruction in grammar.Instructions.Instructions)
+    {
+        if (!IsInstructionCLSCompliant(instruction))
+        {
+#>[CLSCompliant(false)]
+<#
+        }
+
+        var paramInfos = GenerateParamInfos(instruction);
+        CreateHeader(instruction.OpName, paramInfos);
+        CreateBody(instruction.OpName, paramInfos);
+    }
+    PopIndent();
+#>
+}
+<#
+    PopIndent();
+#>
+}
+#pragma warning restore 1591

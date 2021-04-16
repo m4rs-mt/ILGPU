@@ -1,8 +1,7 @@
 <#@ template hostspecific="true" language="C#" #>
-<#@ include file="SPIRVTypeMappings.ttinclude"#>
-<#@ output extension=".cs"#>
+<#@ include file="SPIRVTypeMappings.ttinclude"
+#><#@ output extension=".cs"#>
 <#@ assembly name="System.Xml" #>
-<#@ import namespace="System.Xml.Serialization" #>
 <#const string standardIndent = "    ";#>
 #pragma warning disable 1591
 

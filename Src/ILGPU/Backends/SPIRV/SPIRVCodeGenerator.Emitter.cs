@@ -11,11 +11,11 @@ namespace ILGPU.Backends.SPIRV
         {
             #region Instance
 
-            private readonly StringBuilder stringBuilder;
+            private readonly SPIRVBuilder spirvBuilder;
 
-            public InstructionEmitter(StringBuilder builder)
+            public InstructionEmitter(SPIRVBuilder builder)
             {
-                stringBuilder = builder;
+                spirvBuilder = builder;
             }
 
             #endregion
@@ -23,7 +23,7 @@ namespace ILGPU.Backends.SPIRV
             #region IDisposable
 
             /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose() => stringBuilder.AppendLine();
+            public void Dispose() {}
 
             #endregion
         }

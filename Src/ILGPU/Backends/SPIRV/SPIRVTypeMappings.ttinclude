@@ -1,5 +1,5 @@
-<#@ include file="SPIRVXMLReader.ttinclude"#>
-<#+
+<#@ include file="SPIRVXMLReader.ttinclude"
+#><#+
     Dictionary<string, string> _typeMapCache = null;
 
     Dictionary<string, string> LoadTypeMap()
@@ -19,7 +19,7 @@
                 "Id" => MapIdType(),
                 "Literal" => MapLiteralType(kind.Name),
                 _ => MapComplexType(kind.Name)
-                };
+            };
         }
 
         _typeMapCache = typeMap;
@@ -102,5 +102,36 @@
     {
         var map = LoadCLSComplianceMap();
         return map[type];
+    }
+#>
+<#+
+    Dictionary<string, SPIRVType> _infoMapCache = null;
+
+    Dictionary<string, SPIRVType> LoadOperandTypeInfoMap()
+    {
+        if (_infoMapCache != null)
+        {
+            return _infoMapCache;
+        }
+
+        var grammar = LoadGrammar();
+        var infoMap = new Dictionary<string, SPIRVType>();
+
+        foreach (var instruction in grammar.Instructions.Instructions)
+        {
+            if (instruction.Operands?.Operands == null)
+            {
+                continue;
+            }
+
+            foreach (var operand in instruction.Operands.Operands)
+            {
+                var type = grammar.Types.Types.Find(x => x.Name == operand.Type);
+                infoMap[operand.Type] = type;
+            }
+        }
+
+        _infoMapCache = infoMap;
+        return infoMap;
     }
 #>

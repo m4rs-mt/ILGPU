@@ -1,0 +1,51 @@
+<#@ template hostspecific="true" language="C#" #>
+<#@ output extension=".cs"#>
+<#@ include file="BuilderCommon.ttinclude"
+#><#@ assembly name="System.Xml" #>
+<#@ assembly name="System.Core"#>
+<#@ import namespace="System.Linq"#>
+using System;
+using System.Collections.Generic;
+
+#nullable enable
+#pragma warning disable 1591
+
+namespace ILGPU.Backends.SPIRV {
+
+<#
+    PushIndent(standardIndent);
+#>
+/// <summary>
+/// Defines utility methods to generate SPIRV operations
+/// </summary>
+[CLSCompliant(false)]
+public interface ISPIRVBuilder {
+
+    byte[] ToByteArray();
+
+    void AddMetadata(uint magic, uint version, uint genMagic, uint bound, uint schema);
+
+<#
+    PushIndent(standardIndent);
+    foreach (var instruction in grammar.Instructions.Instructions)
+    {
+        if (!IsInstructionCLSCompliant(instruction))
+        {
+#>[CLSCompliant(false)]
+<#
+        }
+
+        var paramInfos = GenerateParamInfos(instruction);
+        CreateHeader(instruction.OpName, paramInfos);
+#>;
+
+<#
+    }
+    PopIndent();
+#>
+}
+<#
+    PopIndent();
+#>
+}
+#pragma warning restore 1591

@@ -2,7 +2,6 @@
 <#@ import namespace="System.IO"#>
 <#@ assembly name="System.Xml"#>
 <#@ import namespace="System.Xml.Serialization"#>
-<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
 <#+
     SPIRVGrammar _grammarCache = null;
 

@@ -1,5 +1,8 @@
 ﻿using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.OpenCL;
+using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using System.Collections.Generic;
 using System.Text;
 
 namespace ILGPU.Backends.SPIRV
@@ -8,8 +11,8 @@ namespace ILGPU.Backends.SPIRV
     /// A SPIR-V code generator.
     /// </summary>
     public abstract partial class SPIRVCodeGenerator :
-        SPIRVVariableAllocator,
-        IBackendCodeGenerator<StringBuilder>
+        SPIRVIdAllocator,
+        IBackendCodeGenerator<SPIRVBuilder>
     {
         #region Nested Types
 
@@ -62,17 +65,41 @@ namespace ILGPU.Backends.SPIRV
 
         #region Instance
 
-        public StringBuilder Builder { get; }
+        private readonly Dictionary<BasicBlock, uint> blockLookup =
+            new Dictionary<BasicBlock, uint>();
 
         /// <summary>
         /// Constructs a new code generator.
         /// </summary>
         /// <param name="args">The generator arguments.</param>
-        internal SPIRVCodeGenerator(in GeneratorArgs args)
-            : base(args.TypeGenerator)
+        /// <param name="method">The method to generate.</param>
+        /// <param name="allocas">The allocas to generate.</param>
+        internal SPIRVCodeGenerator(in GeneratorArgs args, Method method, Allocas allocas)
+            : base(args.Backend)
         {
-            Builder = new StringBuilder();
+            Builder = new SPIRVBuilder();
+            Method = method;
+            Allocas = allocas;
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the associated SPIR-V Builder
+        /// </summary>
+        public SPIRVBuilder Builder { get; }
+
+        /// <summary>
+        /// Returns the associated method.
+        /// </summary>
+        public Method Method { get; }
+
+        /// <summary>
+        /// Returns all local allocas.
+        /// </summary>
+        public Allocas Allocas { get; }
 
         #endregion
 
@@ -81,7 +108,7 @@ namespace ILGPU.Backends.SPIRV
         /// <summary>
         /// Generates a function declaration in SPIR-V code.
         /// </summary>
-        public abstract void GenerateHeader(StringBuilder builder);
+        public abstract void GenerateHeader(SPIRVBuilder builder);
 
         /// <summary>
         /// Generates SPIR-V code.
@@ -92,14 +119,14 @@ namespace ILGPU.Backends.SPIRV
         /// Generates SPIR-V constant declarations.
         /// </summary>
         /// <param name="builder">The target builder.</param>
-        public void GenerateConstants(StringBuilder builder)
+        public void GenerateConstants(SPIRVBuilder builder)
         {
             // No constants to emit
         }
 
         /// <summary cref="IBackendCodeGenerator{TKernelBuilder}.Merge(TKernelBuilder)"/>
-        public void Merge(StringBuilder builder) =>
-            builder.Append(builder.ToString());
+        public void Merge(SPIRVBuilder builder) =>
+            builder.Instructions.AddRange(Builder.Instructions);
 
         #endregion
     }
