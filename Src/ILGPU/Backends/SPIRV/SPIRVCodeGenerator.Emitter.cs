@@ -11,9 +11,9 @@ namespace ILGPU.Backends.SPIRV
         {
             #region Instance
 
-            private readonly SPIRVBuilder spirvBuilder;
+            private readonly ISPIRVBuilder spirvBuilder;
 
-            public InstructionEmitter(SPIRVBuilder builder)
+            public InstructionEmitter(ISPIRVBuilder builder)
             {
                 spirvBuilder = builder;
             }

@@ -18,15 +18,15 @@ namespace ILGPU.Backends.SPIRV
             : base(args, method, allocas)
         { }
 
-        public override void GenerateHeader(SPIRVBuilder builder)
+        public override void GenerateHeader(ISPIRVBuilder builder)
         {
 
         }
 
         public override void GenerateCode()
         {
-            var function = Allocate()
-            Builder.GenerateOpFunction();
+            //var function = Allocate()
+            //Builder.GenerateOpFunction();
         }
     }
 }

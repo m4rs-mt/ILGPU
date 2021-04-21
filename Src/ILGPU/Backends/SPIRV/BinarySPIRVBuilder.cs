@@ -35,6 +35,21 @@ namespace ILGPU.Backends.SPIRV {
             _instructions.Add(schema);
         }
     
+        public void Merge(ISPIRVBuilder other) {
+            if(other == null) {
+                throw new ArgumentNullException();
+            }
+    
+            var otherBinary = other as BinarySPIRVBuilder;
+            if(otherBinary == null) {
+                throw new InvalidCodeGenerationException(
+                    "Attempted to merge string representation builder with binary builder"
+                );
+            }
+    
+            _instructions.AddRange(otherBinary._instructions);
+        }
+    
         public void GenerateOpNop() {
             ushort opCode = 0;
             ushort wordCount = 1;

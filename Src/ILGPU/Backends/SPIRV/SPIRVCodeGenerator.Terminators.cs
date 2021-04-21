@@ -13,8 +13,9 @@ namespace ILGPU.Backends.SPIRV
             }
             else
             {
+                //TODO: Figure out id counting
                 var variable = Load(returnTerminator.ReturnValue);
-                Builder.GenerateOpReturnValue((uint) variable.Id);
+                Builder.GenerateOpReturnValue(0);
             }
         }
 
@@ -25,7 +26,7 @@ namespace ILGPU.Backends.SPIRV
         public void GenerateCode(IfBranch branch)
         {
             var condition = Load(branch.Condition);
-            Builder.GenerateOpBranchConditional(condition.Id, );
+            //Builder.GenerateOpBranchConditional(condition.Id, );
         }
 
         public void GenerateCode(SwitchBranch branch) =>

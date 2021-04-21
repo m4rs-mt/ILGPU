@@ -1,9 +1,7 @@
 ﻿using ILGPU.Backends.EntryPoints;
-using ILGPU.Backends.OpenCL;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using System.Collections.Generic;
-using System.Text;
 
 namespace ILGPU.Backends.SPIRV
 {
@@ -12,7 +10,7 @@ namespace ILGPU.Backends.SPIRV
     /// </summary>
     public abstract partial class SPIRVCodeGenerator :
         SPIRVIdAllocator,
-        IBackendCodeGenerator<SPIRVBuilder>
+        IBackendCodeGenerator<ISPIRVBuilder>
     {
         #region Nested Types
 
@@ -21,16 +19,19 @@ namespace ILGPU.Backends.SPIRV
         /// </summary>
         public readonly struct GeneratorArgs
         {
+
             internal GeneratorArgs(
                 SPIRVBackend backend,
                 EntryPoint entryPoint,
                 SPRIVTypeGenerator generator,
+                ISPIRVBuilder builder,
                 in AllocaKindInformation sharedAllocations,
                 in AllocaKindInformation dynamicSharedAllocations)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
                 TypeGenerator = generator;
+                Builder = builder;
                 SharedAllocations = sharedAllocations;
                 DynamicSharedAllocations = dynamicSharedAllocations;
             }
@@ -49,6 +50,11 @@ namespace ILGPU.Backends.SPIRV
             /// Returns the current entry point.
             /// </summary>
             public EntryPoint EntryPoint { get; }
+
+            /// <summary>
+            /// Returns the type of SPIRV builder this generator will use.
+            /// </summary>
+            public ISPIRVBuilder Builder { get; }
 
             /// <summary>
             /// Returns all shared allocations.
@@ -77,7 +83,7 @@ namespace ILGPU.Backends.SPIRV
         internal SPIRVCodeGenerator(in GeneratorArgs args, Method method, Allocas allocas)
             : base(args.Backend)
         {
-            Builder = new SPIRVBuilder();
+            Builder = args.Builder;
             Method = method;
             Allocas = allocas;
         }
@@ -89,7 +95,7 @@ namespace ILGPU.Backends.SPIRV
         /// <summary>
         /// Returns the associated SPIR-V Builder
         /// </summary>
-        public SPIRVBuilder Builder { get; }
+        public ISPIRVBuilder Builder { get; }
 
         /// <summary>
         /// Returns the associated method.
@@ -108,7 +114,7 @@ namespace ILGPU.Backends.SPIRV
         /// <summary>
         /// Generates a function declaration in SPIR-V code.
         /// </summary>
-        public abstract void GenerateHeader(SPIRVBuilder builder);
+        public abstract void GenerateHeader(ISPIRVBuilder builder);
 
         /// <summary>
         /// Generates SPIR-V code.
@@ -119,14 +125,14 @@ namespace ILGPU.Backends.SPIRV
         /// Generates SPIR-V constant declarations.
         /// </summary>
         /// <param name="builder">The target builder.</param>
-        public void GenerateConstants(SPIRVBuilder builder)
+        public void GenerateConstants(ISPIRVBuilder builder)
         {
             // No constants to emit
         }
 
         /// <summary cref="IBackendCodeGenerator{TKernelBuilder}.Merge(TKernelBuilder)"/>
-        public void Merge(SPIRVBuilder builder) =>
-            builder.Instructions.AddRange(Builder.Instructions);
+        public void Merge(ISPIRVBuilder builder) =>
+            builder.Merge(Builder);
 
         #endregion
     }

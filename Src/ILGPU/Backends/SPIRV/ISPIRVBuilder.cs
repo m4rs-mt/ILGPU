@@ -10,11 +10,18 @@ namespace ILGPU.Backends.SPIRV {
     /// Defines utility methods to generate SPIRV operations
     /// </summary>
     [CLSCompliant(false)]
-    public interface ISPIRVBuilder {
+    public interface ISPIRVBuilder
+    {
     
         byte[] ToByteArray();
     
         void AddMetadata(uint magic, uint version, uint genMagic, uint bound, uint schema);
+    
+        // This is the best way I could come up with to
+        // handle trying to merge different builders
+        // Implementing classes will kinda just have to
+        // deal with it
+        void Merge(ISPIRVBuilder other);
     
         public void GenerateOpNop();
         

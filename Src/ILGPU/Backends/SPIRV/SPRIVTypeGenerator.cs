@@ -18,7 +18,7 @@ namespace ILGPU.Backends.SPIRV
 
         public uint GetOrGenerateTypeDefinition(
             TypeNode typeNode,
-            SPIRVBuilder builder,
+            ISPIRVBuilder builder,
             uint nextUsableId)
         {
             Debug.Assert(!(typeNode is ViewType), "Invalid view type");
@@ -41,7 +41,7 @@ namespace ILGPU.Backends.SPIRV
 
         private uint GenerateVoidType(
             VoidType typeNode,
-            SPIRVBuilder builder,
+            ISPIRVBuilder builder,
             uint nextUsableId)
         {
             nodeToIdMapping[typeNode] = nextUsableId;
@@ -51,7 +51,7 @@ namespace ILGPU.Backends.SPIRV
 
         private uint GeneratePrimitiveType(
             PrimitiveType typeNode,
-            SPIRVBuilder builder,
+            ISPIRVBuilder builder,
             uint nextUsableId)
         {
             nodeToIdMapping[typeNode] = nextUsableId;

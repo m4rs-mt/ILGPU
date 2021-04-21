@@ -24,6 +24,21 @@ namespace ILGPU.Backends.SPIRV {
             _builder.AppendLine($"; Schema: {schema}");
         }
     
+        public void Merge(ISPIRVBuilder other) {
+            if(other == null) {
+                throw new ArgumentNullException();
+            }
+    
+            var otherString = other as StringSPIRVBuilder;
+            if(otherString == null) {
+                throw new InvalidCodeGenerationException(
+                    "Attempted to merge binary builder with string representation builder"
+                );
+            }
+    
+            _builder.Append(otherString._builder);
+        }
+    
         public void GenerateOpNop() {
             _builder.Append("OpNop ");
             _builder.AppendLine();
