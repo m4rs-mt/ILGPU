@@ -101,6 +101,8 @@ namespace ILGPU.Runtime.OpenCL
             : base(context, description)
         {
             Backends.Backend.EnsureRunningOnNativePlatform();
+            if (!description.Capabilities.GenericAddressSpace)
+                throw CLCapabilityContext.GetNotSupportedGenericAddressSpaceException();
 
             // Create new context
             CLException.ThrowIfFailed(
@@ -112,7 +114,7 @@ namespace ILGPU.Runtime.OpenCL
 
             InitVendorFeatures();
             InitSubGroupSupport(description);
-            Init(new CLBackend(Context, Capabilities, Vendor));
+            Init(new CLBackend(Context, Capabilities, Vendor, CLStdVersion));
         }
 
         /// <summary>
@@ -264,6 +266,11 @@ namespace ILGPU.Runtime.OpenCL
         public CLCVersion CVersion => Device.CVersion;
 
         /// <summary>
+        /// Returns the OpenCL C version passed to -cl-std.
+        /// </summary>
+        public CLCVersion CLStdVersion => Device.CLStdVersion;
+
+        /// <summary>
         /// Returns the OpenCL backend of this accelerator.
         /// </summary>
         public new CLBackend Backend => base.Backend as CLBackend;
@@ -293,7 +300,7 @@ namespace ILGPU.Runtime.OpenCL
         protected override CLKernel CreateKernel(CLCompiledKernel compiledKernel)
         {
             // Verify OpenCL C version
-            if (compiledKernel.CVersion > CVersion)
+            if (compiledKernel.CVersion > CLStdVersion)
             {
                 throw new NotSupportedException(
                     string.Format(

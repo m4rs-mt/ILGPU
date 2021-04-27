@@ -38,6 +38,12 @@
         </OpenCL>
     </Capability>
 
+    <Capability Name="GenericAddressSpace">
+        <Summary>Supports generic address space.</Summary>
+        <FeatureName>GenericAddressSpace feature</FeatureName>
+        <OpenCL manual="true" />
+    </Capability>
+
     <Capability Name="Int64_Atomics">
         <Summary>Supports 64-bit Atomics.</Summary>
         <FeatureName>64-bit atomics extension</FeatureName>

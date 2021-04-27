@@ -41,6 +41,11 @@ namespace ILGPU.Backends.OpenCL
         public static readonly CLCVersion CL20 = new CLCVersion(2, 0);
 
         /// <summary>
+        /// The OpenCL C version 3.0.
+        /// </summary>
+        public static readonly CLCVersion CL30 = new CLCVersion(3, 0);
+
+        /// <summary>
         /// The internal regex that is used to parse OpenCL C versions.
         /// </summary>
         private static readonly Regex VersionRegex =
