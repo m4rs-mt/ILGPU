@@ -121,7 +121,9 @@ namespace ILGPU.Backends.OpenCL
         public string GetBasicValueType(BasicValueType basicValueType) =>
             basicValueType == BasicValueType.Float16 && !Capabilities.Float16
             ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
-            : BasicTypeMapping[(int)basicValueType];
+            : basicValueType == BasicValueType.Float64 && !Capabilities.Float64
+                ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
+                : BasicTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves the given basic-value type to an OpenCL type name.
@@ -131,7 +133,9 @@ namespace ILGPU.Backends.OpenCL
         public string GetBasicValueType(ArithmeticBasicValueType basicValueType) =>
             basicValueType == ArithmeticBasicValueType.Float16 && !Capabilities.Float16
             ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
-            : ArtihmeticTypeMapping[(int)basicValueType];
+            : basicValueType == ArithmeticBasicValueType.Float64 && !Capabilities.Float64
+                ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
+                : ArtihmeticTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves the given basic-value type to an atomic OpenCL type name.
@@ -141,7 +145,9 @@ namespace ILGPU.Backends.OpenCL
         public string GetAtomicType(ArithmeticBasicValueType basicValueType) =>
             basicValueType == ArithmeticBasicValueType.Float16 && !Capabilities.Float16
             ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
-            : AtomicTypeMapping[(int)basicValueType];
+            : basicValueType == ArithmeticBasicValueType.Float64 && !Capabilities.Float64
+                ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
+                : AtomicTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves a unique type name for the given node.
@@ -279,11 +285,17 @@ namespace ILGPU.Backends.OpenCL
             {
                 clName = GetOrCreateType(paddingType.PrimitiveType);
             }
-            else if (typeNode is PrimitiveType primitiveType
-                && primitiveType.BasicValueType == BasicValueType.Float16
+            else if (typeNode is PrimitiveType primitiveType16
+                && primitiveType16.BasicValueType == BasicValueType.Float16
                 && !Capabilities.Float16)
             {
                 throw CLCapabilityContext.GetNotSupportedFloat16Exception();
+            }
+            else if (typeNode is PrimitiveType primitiveType64
+                && primitiveType64.BasicValueType == BasicValueType.Float64
+                && !Capabilities.Float64)
+            {
+                throw CLCapabilityContext.GetNotSupportedFloat64Exception();
             }
             else
             {
