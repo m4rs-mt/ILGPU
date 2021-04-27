@@ -225,6 +225,7 @@ namespace ILGPU.Runtime.OpenCL
 
             // Init capabilities
             Capabilities = new CLCapabilityContext(this);
+            InitGenericAddressSpaceSupport();
         }
 
         /// <summary>
@@ -256,6 +257,13 @@ namespace ILGPU.Runtime.OpenCL
             DeviceType = (CLDeviceType)CurrentAPI.GetDeviceInfo<long>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_TYPE);
+            DeviceVersion = CLDeviceVersion.TryParse(
+                CurrentAPI.GetDeviceInfo(
+                    DeviceId,
+                    CLDeviceInfoType.CL_DEVICE_VERSION),
+                out var deviceVersion)
+                ? deviceVersion
+                : CLDeviceVersion.CL10;
 
             // Resolve clock rate
             ClockRate = CurrentAPI.GetDeviceInfo<int>(
@@ -404,6 +412,33 @@ namespace ILGPU.Runtime.OpenCL
             Extensions = extensionSet.ToImmutableArray();
         }
 
+        private void InitGenericAddressSpaceSupport()
+        {
+            if (DeviceVersion < CLDeviceVersion.CL20)
+            {
+                Capabilities.GenericAddressSpace = false;
+            }
+            else if (DeviceVersion < CLDeviceVersion.CL30)
+            {
+                Capabilities.GenericAddressSpace = true;
+            }
+            else
+            {
+                try
+                {
+                    Capabilities.GenericAddressSpace =
+                        CurrentAPI.GetDeviceInfo<int>(
+                            DeviceId,
+                            CLDeviceInfoType.CL_DEVICE_GENERIC_ADDRESS_SPACE_SUPPORT)
+                        != 0;
+                }
+                catch (CLException)
+                {
+                    Capabilities.GenericAddressSpace = false;
+                }
+            }
+        }
+
         #endregion
 
         #region Properties
@@ -444,6 +479,11 @@ namespace ILGPU.Runtime.OpenCL
         public CLDeviceType DeviceType { get; private set; }
 
         /// <summary>
+        /// Returns the OpenCL device version.
+        /// </summary>
+        public CLDeviceVersion DeviceVersion { get; private set; }
+
+        /// <summary>
         /// Returns the clock rate.
         /// </summary>
         public int ClockRate { get; private set; }
@@ -452,6 +492,16 @@ namespace ILGPU.Runtime.OpenCL
         /// Returns the supported OpenCL C version.
         /// </summary>
         public CLCVersion CVersion { get; private set; }
+
+        /// <summary>
+        /// Returns the OpenCL C version passed to -cl-std.
+        /// </summary>
+        public CLCVersion CLStdVersion =>
+            DeviceVersion >= CLDeviceVersion.CL30
+            ? CLCVersion.CL30
+            : DeviceVersion >= CLDeviceVersion.CL20
+                ? CLCVersion.CL20
+                : CVersion;
 
         /// <summary>
         /// Returns all extensions.
@@ -631,6 +681,9 @@ namespace ILGPU.Runtime.OpenCL
             writer.Write("  Device type:                             ");
             writer.WriteLine(DeviceType.ToString());
 
+            writer.Write("  Device version:                          ");
+            writer.WriteLine(DeviceVersion.ToString());
+
             writer.Write("  Clock rate:                              ");
             writer.Write(ClockRate);
             writer.WriteLine(" MHz");
@@ -642,6 +695,9 @@ namespace ILGPU.Runtime.OpenCL
             writer.Write("  OpenCL C version:                        ");
             writer.WriteLine(CVersion.ToString());
 
+            writer.Write("  OpenCL C -cl-std version:                ");
+            writer.WriteLine(CLStdVersion.ToString());
+
             writer.Write("  Has FP16 support:                        ");
             writer.WriteLine(Capabilities.Float16);
 
@@ -650,6 +706,9 @@ namespace ILGPU.Runtime.OpenCL
 
             writer.Write("  Has sub group support:                   ");
             writer.WriteLine(Capabilities.SubGroups);
+
+            writer.Write("  Has generic address space support:       ");
+            writer.WriteLine(Capabilities.GenericAddressSpace);
         }
 
         #endregion

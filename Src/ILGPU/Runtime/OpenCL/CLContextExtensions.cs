@@ -27,7 +27,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="builder">The builder instance.</param>
         /// <returns>The updated builder instance.</returns>
         public static Context.Builder OpenCL(this Context.Builder builder) =>
-            builder.OpenCL(id => id.CVersion >= CLBackend.MinimumVersion);
+            builder.OpenCL(id => id.CLStdVersion >= CLBackend.MinimumVersion &&
+                id.Capabilities.GenericAddressSpace);
 
         /// <summary>
         /// Enables all OpenCL devices.

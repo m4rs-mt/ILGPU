@@ -35,7 +35,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Represents the minimum OpenCL C version that is required.
         /// </summary>
-        public static readonly CLCVersion MinimumVersion = new CLCVersion(2, 0);
+        public static readonly CLCVersion MinimumVersion = CLCVersion.CL20;
 
         #endregion
 
@@ -52,10 +52,12 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="context">The context to use.</param>
         /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="vendor">The associated major vendor.</param>
+        /// <param name="clStdVersion">The OpenCL C version passed to -cl-std.</param>
         public CLBackend(
             Context context,
             CLCapabilityContext capabilities,
-            CLDeviceVendor vendor)
+            CLDeviceVendor vendor,
+            CLCVersion clStdVersion)
             : base(
                   context,
                   capabilities,
@@ -63,6 +65,7 @@ namespace ILGPU.Backends.OpenCL
                   new CLArgumentMapper(context))
         {
             Vendor = vendor;
+            CLStdVersion = clStdVersion;
 
             InitIntrinsicProvider();
             InitializeKernelTransformers(
@@ -96,6 +99,11 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the associated major device vendor.
         /// </summary>
         public CLDeviceVendor Vendor { get; }
+
+        /// <summary>
+        /// Returns the associated OpenCL C version.
+        /// </summary>
+        public CLCVersion CLStdVersion { get; }
 
         /// <summary>
         /// Returns the associated <see cref="Backend.ArgumentMapper"/>.
@@ -202,7 +210,7 @@ namespace ILGPU.Backends.OpenCL
                 entryPoint as SeparateViewEntryPoint,
                 kernelInfo,
                 clSource,
-                MinimumVersion);
+                CLStdVersion);
         }
 
         #endregion

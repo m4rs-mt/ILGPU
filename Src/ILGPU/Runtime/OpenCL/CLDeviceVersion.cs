@@ -3,7 +3,7 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: CLPlatformVersion.cs
+// File: CLDeviceVersion.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
@@ -14,46 +14,46 @@ using System.Text.RegularExpressions;
 namespace ILGPU.Runtime.OpenCL
 {
     /// <summary>
-    /// Represents an OpenCL platform version.
+    /// Represents an OpenCL device version.
     /// </summary>
-    public readonly struct CLPlatformVersion
+    public readonly struct CLDeviceVersion
     {
         #region Static
 
         /// <summary>
-        /// The OpenCL API version 1.0.
+        /// The OpenCL device version 1.0.
         /// </summary>
-        public static readonly CLPlatformVersion CL10 = new CLPlatformVersion(1, 0);
+        public static readonly CLDeviceVersion CL10 = new CLDeviceVersion(1, 0);
 
         /// <summary>
-        /// The OpenCL API version 1.1.
+        /// The OpenCL device version 1.1.
         /// </summary>
-        public static readonly CLPlatformVersion CL11 = new CLPlatformVersion(1, 1);
+        public static readonly CLDeviceVersion CL11 = new CLDeviceVersion(1, 1);
 
         /// <summary>
-        /// The OpenCL API version 1.2.
+        /// The OpenCL device version 1.2.
         /// </summary>
-        public static readonly CLPlatformVersion CL12 = new CLPlatformVersion(1, 2);
+        public static readonly CLDeviceVersion CL12 = new CLDeviceVersion(1, 2);
 
         /// <summary>
-        /// The OpenCL API version 2.0.
+        /// The OpenCL device version 2.0.
         /// </summary>
-        public static readonly CLPlatformVersion CL20 = new CLPlatformVersion(2, 0);
+        public static readonly CLDeviceVersion CL20 = new CLDeviceVersion(2, 0);
 
         /// <summary>
-        /// The OpenCL API version 2.1.
+        /// The OpenCL device version 2.1.
         /// </summary>
-        public static readonly CLPlatformVersion CL21 = new CLPlatformVersion(2, 1);
+        public static readonly CLDeviceVersion CL21 = new CLDeviceVersion(2, 1);
 
         /// <summary>
-        /// The OpenCL API version 2.2.
+        /// The OpenCL device version 2.2.
         /// </summary>
-        public static readonly CLPlatformVersion CL22 = new CLPlatformVersion(2, 2);
+        public static readonly CLDeviceVersion CL22 = new CLDeviceVersion(2, 2);
 
         /// <summary>
-        /// The OpenCL API version 3.0.
+        /// The OpenCL device version 3.0.
         /// </summary>
-        public static readonly CLPlatformVersion CL30 = new CLPlatformVersion(3, 0);
+        public static readonly CLDeviceVersion CL30 = new CLDeviceVersion(3, 0);
 
         /// <summary>
         /// The internal regex that is used to parse OpenCL versions.
@@ -69,13 +69,13 @@ namespace ILGPU.Runtime.OpenCL
         /// <returns>
         /// True, if the given expression could be parsed into an OpenCL C version.
         /// </returns>
-        public static bool TryParse(string expression, out CLPlatformVersion version)
+        public static bool TryParse(string expression, out CLDeviceVersion version)
         {
             version = default;
             var match = VersionRegex.Match(expression);
             if (!match.Success)
                 return false;
-            version = new CLPlatformVersion(
+            version = new CLDeviceVersion(
                 int.Parse(match.Groups[1].Value),
                 int.Parse(match.Groups[2].Value));
             return true;
@@ -86,11 +86,11 @@ namespace ILGPU.Runtime.OpenCL
         #region Instance
 
         /// <summary>
-        /// Constructs a new OpenCL platform version.
+        /// Constructs a new OpenCL device version.
         /// </summary>
         /// <param name="major">The major version.</param>
         /// <param name="minor">The minor version.</param>
-        public CLPlatformVersion(int major, int minor)
+        public CLDeviceVersion(int major, int minor)
         {
             Major = major;
             Minor = minor;
@@ -101,12 +101,12 @@ namespace ILGPU.Runtime.OpenCL
         #region Properties
 
         /// <summary>
-        /// The major OpenCL platform Version.
+        /// The major OpenCL device Version.
         /// </summary>
         public int Major { get; }
 
         /// <summary>
-        /// The minor OpenCL platform Version.
+        /// The minor OpenCL device Version.
         /// </summary>
         public int Minor { get; }
 
@@ -115,9 +115,9 @@ namespace ILGPU.Runtime.OpenCL
         #region Object
 
         /// <summary>
-        /// Returns the OpenCL platform string representation.
+        /// Returns the OpenCL device string representation.
         /// </summary>
-        /// <returns>The string representation of this OpenCL platform version.</returns>
+        /// <returns>The string representation of this OpenCL device version.</returns>
         public override string ToString() => $"{Major}.{Minor}";
 
         #endregion
@@ -131,8 +131,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="second">The second version.</param>
         /// <returns>True, if the first version is smaller than the second one.</returns>
         public static bool operator <(
-            CLPlatformVersion first,
-            CLPlatformVersion second) =>
+            CLDeviceVersion first,
+            CLDeviceVersion second) =>
             first.Major < second.Major ||
             first.Major == second.Major && first.Minor < second.Minor;
 
@@ -143,8 +143,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="second">The second version.</param>
         /// <returns>True, if the first version is greater than the second one.</returns>
         public static bool operator >(
-            CLPlatformVersion first,
-            CLPlatformVersion second) =>
+            CLDeviceVersion first,
+            CLDeviceVersion second) =>
             first.Major > second.Major ||
             first.Major == second.Major && first.Minor > second.Minor;
 
@@ -155,8 +155,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="second">The second version.</param>
         /// <returns>True, if the first version is smaller than the second one.</returns>
         public static bool operator <=(
-            CLPlatformVersion first,
-            CLPlatformVersion second) =>
+            CLDeviceVersion first,
+            CLDeviceVersion second) =>
             first.Major <= second.Major ||
             first.Major == second.Major && first.Minor <= second.Minor;
 
@@ -167,8 +167,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="second">The second version.</param>
         /// <returns>True, if the first version is greater than the second one.</returns>
         public static bool operator >=(
-            CLPlatformVersion first,
-            CLPlatformVersion second) =>
+            CLDeviceVersion first,
+            CLDeviceVersion second) =>
             first.Major >= second.Major ||
             first.Major == second.Major && first.Minor >= second.Minor;
 
