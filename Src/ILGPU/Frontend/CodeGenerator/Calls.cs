@@ -33,7 +33,7 @@ namespace ILGPU.Frontend
         {
             var intrinsicContext = new InvocationContext(
                 this,
-                Location,
+                CompilationStackLocation.Append(Location),
                 Block,
                 Method,
                 method,

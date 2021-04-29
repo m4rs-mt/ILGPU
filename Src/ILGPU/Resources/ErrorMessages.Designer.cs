@@ -412,7 +412,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The allocation size of type &apos;{0}&apos; must be statically known and not a dynamic value &apos;{1}&apos;.
+        ///   Looks up a localized string similar to The allocation size of type &apos;{0}&apos; must be statically known and not a dynamic value.
         /// </summary>
         internal static string NotSupportedDynamicAllocation {
             get {
