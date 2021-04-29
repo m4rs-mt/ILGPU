@@ -55,8 +55,9 @@ namespace ILGPU.IR.Analyses
             }
             else
             {
-                throw new NotSupportedException(
-                    ErrorMessages.NotSupportedDynamicAllocation);
+                throw alloca.Location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedDynamicAllocation,
+                    alloca.AllocaType);
             }
         }
 
