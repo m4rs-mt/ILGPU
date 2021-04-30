@@ -90,6 +90,17 @@ namespace ILGPU.Util
         /// </param>
         protected virtual void Dispose(bool disposing) { }
 
+        /// <summary>
+        /// Marks the current object as disposed.
+        /// </summary>
+        /// <returns>Return true if the object has not been disposed.</returns>
+        protected bool MarkDisposed_Unsafe()
+        {
+            bool value = isDisposed;
+            isDisposed = true;
+            return !value;
+        }
+
         #endregion
 
         #region IDisposable & Finalizer
