@@ -135,22 +135,22 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Returns the total dimension that was specified by the user.
         /// </summary>
-        public Index3 TotalUserDim { get; }
+        public Index3D TotalUserDim { get; }
 
         /// <summary>
         /// Extracts the upper XY part from the <see cref="TotalUserDim"/>.
         /// </summary>
-        internal Index2 TotalUserDimXY => TotalUserDim.XY;
+        internal Index2D TotalUserDimXY => TotalUserDim.XY;
 
         /// <summary>
         /// Returns the current grid dimension.
         /// </summary>
-        public Index3 GridDim { get; }
+        public Index3D GridDim { get; }
 
         /// <summary>
         /// Returns the current group dimension.
         /// </summary>
-        public Index3 GroupDim { get; }
+        public Index3D GroupDim { get; }
 
         /// <summary>
         /// Returns the shared memory config to use.

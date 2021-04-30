@@ -84,8 +84,7 @@ namespace ILGPU.Runtime.CPU
             public readonly void ApplySyncInMainThread()
             {
                 // Allocate the requested amount of elements
-                long sizeInBytes = Extent * Interop.SizeOf<T>();
-                var allocation = UnmanagedMemoryViewSource.Create(sizeInBytes);
+                var allocation = CPUMemoryBuffer.Create(Extent, Interop.SizeOf<T>());
 
                 // Publish the allocated shared memory source
                 Parent.currentSharedMemorySource = allocation;
@@ -122,13 +121,13 @@ namespace ILGPU.Runtime.CPU
         /// <see cref="SharedMemory.Allocate{T}(int)"/> instructions out of nested loops
         /// to provide the best debugging experience.
         /// </remarks>
-        private InlineList<UnmanagedMemoryViewSource> sharedMemory =
-            InlineList<UnmanagedMemoryViewSource>.Create(16);
+        private InlineList<CPUMemoryBuffer> sharedMemory =
+            InlineList<CPUMemoryBuffer>.Create(16);
 
         /// <summary>
         /// A currently active unmanaged memory source.
         /// </summary>
-        private volatile UnmanagedMemoryViewSource currentSharedMemorySource;
+        private volatile CPUMemoryBuffer currentSharedMemorySource;
 
         /// <summary>
         /// Constructs a new CPU-based runtime context for parallel processing.
@@ -145,12 +144,12 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Returns the group dimension of the scheduled thread grid.
         /// </summary>
-        public Index3 GridDimension { get; private set; }
+        public Index3D GridDimension { get; private set; }
 
         /// <summary>
         /// Returns the group dimension of the scheduled thread grid.
         /// </summary>
-        public Index3 GroupDimension { get; private set; }
+        public Index3D GroupDimension { get; private set; }
 
         /// <summary>
         /// Returns the current total group size in number of threads.
@@ -233,8 +232,8 @@ namespace ILGPU.Runtime.CPU
         /// The current shared memory configuration.
         /// </param>
         public virtual void Initialize(
-            in Index3 gridDimension,
-            in Index3 groupDimension,
+            in Index3D gridDimension,
+            in Index3D groupDimension,
             in SharedMemoryConfig sharedMemoryConfig)
         {
             GridDimension = gridDimension;
@@ -332,8 +331,8 @@ namespace ILGPU.Runtime.CPU
 
         /// <inheritdoc/>
         public override void Initialize(
-            in Index3 gridDimension,
-            in Index3 groupDimension,
+            in Index3D gridDimension,
+            in Index3D groupDimension,
             in SharedMemoryConfig sharedMemoryConfig)
         {
             // Setup the activity set
