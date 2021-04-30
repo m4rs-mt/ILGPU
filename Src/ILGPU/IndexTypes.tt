@@ -634,7 +634,7 @@ namespace ILGPU
             long linearIndex,
             <#= name #> dimension) {
             IndexTypeExtensions.AssertIntIndexRange(linearIndex);
-            return linearIndex;
+            return (<#= name #>)linearIndex;
         }
 <# } #>
 

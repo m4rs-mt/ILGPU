@@ -94,12 +94,12 @@ namespace ILGPU
         private static readonly Type[] ManagedIndexTypes =
         {
             null,
-            typeof(Index1),
-            typeof(Index2),
-            typeof(Index3),
-            typeof(LongIndex1),
-            typeof(LongIndex2),
-            typeof(LongIndex3),
+            typeof(Index1D),
+            typeof(Index2D),
+            typeof(Index3D),
+            typeof(LongIndex1D),
+            typeof(LongIndex2D),
+            typeof(LongIndex3D),
             typeof(KernelConfig)
         };
 

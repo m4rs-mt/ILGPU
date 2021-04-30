@@ -190,13 +190,13 @@ public static readonly IndexDimensionDefinition[] IndexDimensions =
 
 public static readonly IndexTypeDefinition[] IndexDefinitions =
     {
-        new IndexTypeDefinition(1, 3, 1,     "Index1",  "IIntIndex", SignedIntTypes[2]),
-        new IndexTypeDefinition(2, 4, 2,     "Index2",  "IIntIndex", SignedIntTypes[2]),
-        new IndexTypeDefinition(3, 5, 3,     "Index3",  "IIntIndex", SignedIntTypes[2]),
+        new IndexTypeDefinition(1, 3, 1,     "Index1D",  "IIntIndex", SignedIntTypes[2]),
+        new IndexTypeDefinition(2, 4, 2,     "Index2D",  "IIntIndex", SignedIntTypes[2]),
+        new IndexTypeDefinition(3, 5, 3,     "Index3D",  "IIntIndex", SignedIntTypes[2]),
 
-        new IndexTypeDefinition(4, 0, 1, "LongIndex1", "ILongIndex", SignedIntTypes[3]),
-        new IndexTypeDefinition(5, 1, 2, "LongIndex2", "ILongIndex", SignedIntTypes[3]),
-        new IndexTypeDefinition(6, 2, 3, "LongIndex3", "ILongIndex", SignedIntTypes[3]),
+        new IndexTypeDefinition(4, 0, 1, "LongIndex1D", "ILongIndex", SignedIntTypes[3]),
+        new IndexTypeDefinition(5, 1, 2, "LongIndex2D", "ILongIndex", SignedIntTypes[3]),
+        new IndexTypeDefinition(6, 2, 3, "LongIndex3D", "ILongIndex", SignedIntTypes[3]),
     };
 
 public static readonly IndexTypeDefinition[] IndexDefinitions1D =
