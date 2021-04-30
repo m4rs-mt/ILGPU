@@ -1,0 +1,347 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: StrideTypes.tt/StrideTypes.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Static/TypeInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
+namespace ILGPU
+{
+<#  foreach (var def in IndexDimensions) { #>
+<#      var indexName = IndexDefinitions[def.Dimension - 1].Name; #>
+<#      var longIndexName = IndexDefinitions[def.Dimension + 2].Name; #>
+<#      var strideName = $"IStride{def.Dimension}D"; #>
+<#      var className = $"Stride{def.Dimension}D"; #>
+    /// <summary>
+    /// An abstract <#= def.Dimension #>D stride.
+    /// </summary>
+    public interface <#= strideName #> : IStride<<#= indexName #>, <#= longIndexName #>>
+    {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+        /// <summary>
+        /// Returns the <#= IndexDimensions[i] #> dimension of the stride extent.
+        /// </summary>
+        int <#= IndexDimensions[i] #>Stride { get; }
+
+<#      } #>
+
+        /// <summary>
+        /// Returns this stride as general <#= def.Dimension #>D stride.
+        /// </summary>
+        <#= className #>.General AsGeneral();
+    }
+
+    /// <summary>
+    /// Container class for all <#= def.Dimension #>D strides.
+    /// </summary>
+    public static partial class <#= className #>
+    {
+        /// <summary>
+        /// An infinite stride.
+        /// </summary>
+        public readonly struct Infinite : <#= strideName #>
+        {
+            #region Properties
+
+            /// <summary>
+            /// Returns a constant stride of <#= indexName #>.Zero;
+            /// </summary>
+            public readonly <#= indexName #> StrideExtent => <#= indexName #>.Zero;
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+
+            /// <summary>
+            /// Returns the constant 0.
+            /// </summary>
+            public readonly int <#= IndexDimensions[i] #>Stride => 0;
+<#      } #>
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Computes the linear 32-bit element address using the given index.
+            /// </summary>
+            /// <param name="index">The dimension for index computation.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeElementIndex(<#= indexName #> index) => 0;
+
+            /// <summary>
+            /// Computes the linear 64-bit element address using the given index.
+            /// </summary>
+            /// <param name="index">The dimension for index computation.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly long ComputeElementIndex(<#= longIndexName #> index) => 0L;
+
+            /// <summary>
+            /// Computes the 64-bit length of a required allocation.
+            /// </summary>
+            /// <param name="extent">The extent to allocate.</param>
+            /// <returns>The 64-bit length of a required allocation.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly long ComputeBufferLength(<#= longIndexName #> extent) => 1L;
+
+            /// <summary>
+            /// Returns this stride as general <#= def.Dimension #>D stride.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly General AsGeneral() => new General(default);
+
+            #endregion
+
+            #region Object
+
+            /// <summary>
+            /// Returns the string representation of this stride.
+            /// </summary>
+            /// <returns>The string representation of this stride.</returns>
+            [NotInsideKernel]
+            public readonly override string ToString() => "<inf>";
+
+            #endregion
+        }
+
+<#      if  (def.Dimension < 2) { #>
+        /// <summary>
+        /// A dense stride without padding.
+        /// </summary>
+        public readonly struct Dense : <#= strideName #>
+        {
+            #region Properties
+
+            /// <summary>
+            /// Returns a constant stride of <#= indexName #>.One;
+            /// </summary>
+            public readonly <#= indexName #> StrideExtent => <#= indexName #>.One;
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+
+            /// <summary>
+            /// Returns the constant 1.
+            /// </summary>
+            public readonly int <#= IndexDimensions[i] #>Stride => 1;
+<#      } #>
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Computes the linear 32-bit element address using the given index.
+            /// </summary>
+            /// <param name="index">The dimension for index computation.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeElementIndex(<#= indexName #> index) =>
+                index;
+
+            /// <summary>
+            /// Computes the linear 64-bit element address using the given index.
+            /// </summary>
+            /// <param name="index">The dimension for index computation.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly long ComputeElementIndex(<#= longIndexName #> index) =>
+                index;
+
+            /// <summary>
+            /// Computes the 64-bit length of a required allocation.
+            /// </summary>
+            /// <param name="extent">The extent to allocate.</param>
+            /// <returns>The 64-bit length of a required allocation.</returns>
+            public readonly long ComputeBufferLength(<#= longIndexName #> extent) =>
+                extent;
+
+            /// <summary>
+            /// Returns this stride as general <#= def.Dimension #>D stride.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly General AsGeneral() =>
+                new General(
+                    <#= string.Join(", ", Enumerable.Range(0, def.Dimension)
+                        .Select(t => $"{IndexDimensions[t]}Stride"))#>
+                );
+
+            #endregion
+
+            #region Object
+
+            /// <summary>
+            /// Returns the string representation of this stride.
+            /// </summary>
+            /// <returns>The string representation of this stride.</returns>
+            [NotInsideKernel]
+            public readonly override string ToString() => "<dense>";
+
+            #endregion
+        }
+<#      } else { #>
+        /// <summary>
+        /// Returns the size of the leading dimension based on the given extent.
+        /// </summary>
+        public delegate long GetLeadingDimensionSize(<#= longIndexName #> extent);
+
+        /// <summary>
+        /// Builds a stride based on the given extent and the size of the leading
+        /// dimension.
+        /// </summary>
+        public delegate TStride BuildStride<TStride>(
+            <#= longIndexName #> extent,
+            int leadingDimension)
+            where TStride : struct, <#= strideName #>;
+<#      } #>
+
+        /// <summary>
+        /// A general <#= def.Dimension #>D stride.
+        /// </summary>
+        public readonly struct General : <#= strideName #>
+        {
+            #region Instance
+
+            /// <summary>
+            /// Creates a new general <#= def.Dimension #>D stride.
+            /// </summary>
+            /// <param name="stride">The underlying stride information.</param>
+            public General(<#= indexName #> stride)
+            {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+                Trace.Assert(
+                    stride.<#= IndexDimensions[i] #> >= 0,
+                    "stride out of range");
+<#      } #>
+                StrideExtent = stride;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the associated stride extent.
+            /// </summary>
+            public <#= indexName #> StrideExtent { get; }
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+
+            /// <summary>
+            /// Returns the <#= IndexDimensions[i] #>-dimension stride.
+            /// </summary>
+            public readonly int <#= IndexDimensions[i] #>Stride =>
+                StrideExtent.<#= IndexDimensions[i] #>;
+<#      } #>
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Computes the linear 32-bit element address using the given index.
+            /// </summary>
+            /// <param name="index">The dimension for index computation.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeElementIndex(<#= indexName #> index) =>
+                <#= className #>.ComputeElementIndex(this, index);
+
+            /// <summary>
+            /// Computes the linear 64-bit element address using the given index.
+            /// </summary>
+            /// <param name="index">The dimension for index computation.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly long ComputeElementIndex(<#= longIndexName #> index) =>
+                <#= className #>.ComputeElementIndex(this, index);
+
+            /// <summary>
+            /// Computes the 64-bit length of a required allocation.
+            /// </summary>
+            /// <param name="extent">The extent to allocate.</param>
+            /// <returns>The 64-bit length of a required allocation.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly long ComputeBufferLength(<#= longIndexName #> extent)
+<#      if  (def.Dimension == 1) { #>
+                => extent * StrideExtent;
+<#      } else { #>
+            {
+                Trace.Assert(extent.X <= YStride, "X extent out of range");
+<#          if  (def.Dimension == 2) { #>
+                return YStride * extent.Y;
+<#          } else { #>
+                Trace.Assert(extent.X * extent.Y <= ZStride, "Y extent out of range");
+                return ZStride * extent.Z;
+<#          } #>
+            }
+<#      } #>
+
+            /// <summary>
+            /// Returns this stride as general <#= def.Dimension #>D stride.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly General AsGeneral() => this;
+
+            #endregion
+
+            #region Object
+
+            /// <summary>
+            /// Returns the string representation of this stride.
+            /// </summary>
+            /// <returns>The string representation of this stride.</returns>
+            [NotInsideKernel]
+            public readonly override string ToString() => StrideExtent.ToString();
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Computes the linear 32-bit element address using the given index.
+        /// </summary>
+        /// <param name="stride">The stride to use.</param>
+        /// <param name="index">The dimension for index computation.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ComputeElementIndex<TStride>(
+            this TStride stride,
+            <#= indexName #> index)
+            where TStride : <#= strideName #> =>
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+<#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
+            index.<#= iName #> * stride.<#= iName #>Stride<#= separator #>
+<#      } #>
+
+        /// <summary>
+        /// Computes the linear 64-bit element address using the given index.
+        /// </summary>
+        /// <param name="stride">The stride to use.</param>
+        /// <param name="index">The dimension for index computation.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long ComputeElementIndex<TStride>(
+            this TStride stride,
+            <#= longIndexName #> index)
+            where TStride : <#= strideName #> =>
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+<#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
+            index.<#= iName #> * stride.<#= iName #>Stride<#= separator #>
+<#      } #>
+    }
+
+<#  } #>
+}
