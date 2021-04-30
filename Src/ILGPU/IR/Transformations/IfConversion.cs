@@ -1209,7 +1209,7 @@ namespace ILGPU.IR.Transformations
                     }
 
                     // Check whether all sources are linked to our internal blocks
-                    bool isTrueBlock = caseBlocks.IsTrueBlock(phi.BasicBlock); 
+                    bool isTrueBlock = caseBlocks.IsTrueBlock(phi.BasicBlock);
                     for (int i = 0, e = phi.Count; i < e; ++i)
                     {
                         if (!innerBlocksSet.Contains(phi.Sources[i]))

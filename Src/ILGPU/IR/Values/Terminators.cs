@@ -13,7 +13,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using BlockList = ILGPU.Util.InlineList<ILGPU.IR.BasicBlock>;
