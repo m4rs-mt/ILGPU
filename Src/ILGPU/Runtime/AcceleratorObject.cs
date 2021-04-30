@@ -56,7 +56,7 @@ namespace ILGPU.Runtime
         protected AcceleratorObject(Accelerator accelerator)
         {
             Accelerator = accelerator;
-            accelerator.RegisterChildObject(this);
+            accelerator?.RegisterChildObject(this);
         }
 
         #endregion
@@ -105,7 +105,7 @@ namespace ILGPU.Runtime
         /// </remarks>
         internal void DisposeAcceleratorObject_Accelerator(bool disposing)
         {
-            if (IsDisposed)
+            if (!MarkDisposed_Unsafe())
                 return;
             DisposeAcceleratorObject(disposing);
         }
