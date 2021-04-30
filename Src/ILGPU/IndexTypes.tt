@@ -376,21 +376,6 @@ namespace ILGPU
 
         #endregion
 
-        #region IComparable
-
-        /// <summary cref="IComparable{T}.CompareTo(T)"/>
-        public readonly int CompareTo(<#= name #> other)
-        {
-            if (this < other)
-                return -1;
-            else if (this > other)
-                return 1;
-            Debug.Assert(this == other);
-            return 0;
-        }
-
-        #endregion
-
         #region Object
 
         /// <summary>
@@ -545,46 +530,6 @@ namespace ILGPU
         /// <returns>True, if the first and second index are not the same.</returns>
         public static bool operator !=(<#= name #> first, <#= name #> second) =>
             <#= def.Expression(" | ", p => $"first.{p} != second.{p}") #>;
-
-        /// <summary>
-        /// Returns true if the first index is smaller than the second index.
-        /// </summary>
-        /// <param name="first">The first index.</param>
-        /// <param name="second">The second index.</param>
-        /// <returns>True, if the first index is smaller than the second index.</returns>
-        public static bool operator <(<#= name #> first, <#= name #> second) =>
-            <#= def.Expression(" & ", p => $"first.{p} < second.{p}") #>;
-
-        /// <summary>
-        /// Returns true if the first index is smaller than or equal to the second index.
-        /// </summary>
-        /// <param name="first">The first index.</param>
-        /// <param name="second">The second index.</param>
-        /// <returns>
-        /// True, if the first index is smaller than or equal to the second index.
-        /// </returns>
-        public static bool operator <=(<#= name #> first, <#= name #> second) =>
-            <#= def.Expression(" & ", p => $"first.{p} <= second.{p}") #>;
-
-        /// <summary>
-        /// Returns true if the first index is greater than the second index.
-        /// </summary>
-        /// <param name="first">The first index.</param>
-        /// <param name="second">The second index.</param>
-        /// <returns>True, if the first index is greater than the second index.</returns>
-        public static bool operator >(<#= name #> first, <#= name #> second) =>
-            <#= def.Expression(" & ", p => $"first.{p} > second.{p}") #>;
-
-        /// <summary>
-        /// Returns true if the first index is greater than or equal to the second index.
-        /// </summary>
-        /// <param name="first">The first index.</param>
-        /// <param name="second">The second index.</param>
-        /// <returns>
-        /// True, if the first index is greater than or equal to the second index.
-        /// </returns>
-        public static bool operator >=(<#= name #> first, <#= name #> second) =>
-            <#= def.Expression(" & ", p => $"first.{p} >= second.{p}") #>;
 
         #endregion
     }
