@@ -81,7 +81,7 @@ namespace ILGPU.Backends.OpenCL
                 /// <summary>
                 /// Emits a nested source value.
                 /// </summary>
-                public readonly  void EmitLoadSource<TILEmitter>(
+                public readonly void EmitLoadSource<TILEmitter>(
                     in TILEmitter emitter)
                     where TILEmitter : struct, IILEmitter =>
                     Source.EmitLoadSource(emitter);

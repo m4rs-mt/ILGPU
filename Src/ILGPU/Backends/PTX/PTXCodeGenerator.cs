@@ -786,10 +786,10 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             private IOEmitter Emitter { get; }
 
-                /// <summary>
-                /// Emits a new parameter load operation that converts generic address-
-                /// space pointers into a specialized address space.
-                /// </summary>
+            /// <summary>
+            /// Emits a new parameter load operation that converts generic address-
+            /// space pointers into a specialized address space.
+            /// </summary>
             public readonly void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,

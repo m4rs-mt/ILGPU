@@ -65,7 +65,7 @@ namespace ILGPU.Backends.PointerViews
         public ViewImplementation(ArrayView<T> source)
             : this(
                   source.IsValid
-                  ? source.LoadEffectiveAddress()
+                  ? Unsafe.AsPointer(ref source.LoadEffectiveAddress())
                   : null,
                   source.Length)
         { }
@@ -79,7 +79,7 @@ namespace ILGPU.Backends.PointerViews
         /// </summary>
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
-        public ref T this[Index1 index]
+        public ref T this[Index1D index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => ref LoadElementAddress(index);
@@ -90,7 +90,7 @@ namespace ILGPU.Backends.PointerViews
         /// </summary>
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
-        public ref T this[LongIndex1 index]
+        public ref T this[LongIndex1D index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => ref LoadElementAddress(index);
@@ -106,8 +106,8 @@ namespace ILGPU.Backends.PointerViews
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T LoadElementAddress(Index1 index) =>
-            ref LoadElementAddress((LongIndex1)index);
+        public ref T LoadElementAddress(Index1D index) =>
+            ref LoadElementAddress((LongIndex1D)index);
 
         /// <summary>
         /// Access the element at the given index.
@@ -115,7 +115,7 @@ namespace ILGPU.Backends.PointerViews
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T LoadElementAddress(LongIndex1 index) =>
+        public ref T LoadElementAddress(LongIndex1D index) =>
             ref Unsafe.Add(ref Unsafe.AsRef<T>(Ptr), new IntPtr(index));
 
         #endregion

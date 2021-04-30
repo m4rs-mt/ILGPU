@@ -15,8 +15,6 @@ using ILGPU.Backends.PointerViews;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.PTX
 {

@@ -29,7 +29,7 @@ namespace ILGPU.Backends.IL
         #region Static
 
         /// <summary>
-        /// A reference to the static <see cref="Reconstruct2DIndex(Index2, int)"/>
+        /// A reference to the static <see cref="Reconstruct2DIndex(Index2D, int)"/>
         /// method.
         /// </summary>
         private static readonly MethodInfo Reconstruct2DIndexMethod =
@@ -38,7 +38,7 @@ namespace ILGPU.Backends.IL
                 BindingFlags.NonPublic | BindingFlags.Static);
 
         /// <summary>
-        /// A reference to the static <see cref="Reconstruct3DIndex(Index3, int)"/>
+        /// A reference to the static <see cref="Reconstruct3DIndex(Index3D, int)"/>
         /// method.
         /// </summary>
         private static readonly MethodInfo Reconstruct3DIndexMethod =
@@ -50,14 +50,14 @@ namespace ILGPU.Backends.IL
         /// Helper method to reconstruct 2D indices.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Index2 Reconstruct2DIndex(Index2 totalDim, int linearIndex) =>
+        private static Index2D Reconstruct2DIndex(Index2D totalDim, int linearIndex) =>
             totalDim.ReconstructIndex(linearIndex);
 
         /// <summary>
         /// Helper method to reconstruct 3D indices.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Index3 Reconstruct3DIndex(Index3 totalDim, int linearIndex) =>
+        private static Index3D Reconstruct3DIndex(Index3D totalDim, int linearIndex) =>
             totalDim.ReconstructIndex(linearIndex);
 
         #endregion
@@ -345,7 +345,7 @@ namespace ILGPU.Backends.IL
                     // Ignore the task local and construct a new 1D instance
                     emitter.Emit(OpCodes.Pop);
                     emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.LinearIndex);
-                    emitter.EmitNewObject(Index1.MainConstructor);
+                    emitter.EmitNewObject(Index1D.MainConstructor);
                     break;
                 case IndexType.Index2D:
                     // Convert to 2D index
