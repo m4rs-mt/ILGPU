@@ -94,7 +94,7 @@ namespace ILGPU.Runtime.CPU
             /// <summary>
             /// Returns a view to the (potentially) adjusted broadcast cache.
             /// </summary>
-            public readonly ArrayView<T> Result => BroadcastBuffer.Cache.View.Cast<T>();
+            public readonly ArrayView<T> Result => BroadcastBuffer.Cache.Cast<T>();
         }
 
         #endregion

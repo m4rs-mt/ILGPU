@@ -169,7 +169,7 @@ namespace ILGPU.Runtime.CPU
             /// <summary>
             /// Returns a view to the (potentially) adjusted shuffle cache.
             /// </summary>
-            public readonly ArrayView<T> Result => ShuffleBuffer.Cache.View.Cast<T>();
+            public readonly ArrayView<T> Result => ShuffleBuffer.Cache.Cast<T>();
         }
 
         #endregion
