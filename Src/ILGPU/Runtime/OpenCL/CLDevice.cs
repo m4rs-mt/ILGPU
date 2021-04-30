@@ -290,7 +290,7 @@ namespace ILGPU.Runtime.OpenCL
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_SIZES,
                 workItemSizes);
-            MaxGridSize = new Index3(
+            MaxGridSize = new Index3D(
                 workItemSizes[0].ToInt32(),
                 workItemSizes[1].ToInt32(),
                 workItemSizes[2].ToInt32());
@@ -299,7 +299,7 @@ namespace ILGPU.Runtime.OpenCL
             MaxNumThreadsPerGroup = CurrentAPI.GetDeviceInfo<IntPtr>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_WORK_GROUP_SIZE).ToInt32();
-            MaxGroupSize = new Index3(
+            MaxGroupSize = new Index3D(
                 MaxNumThreadsPerGroup,
                 MaxNumThreadsPerGroup,
                 MaxNumThreadsPerGroup);
