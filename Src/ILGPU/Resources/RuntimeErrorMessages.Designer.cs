@@ -214,6 +214,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The accelerator stream is not supported for this operation.
+        /// </summary>
+        internal static string NotSupportedAcceleratorStream {
+            get {
+                return ResourceManager.GetString("NotSupportedAcceleratorStream", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported driver version &apos;{0}&apos; (&gt;= {1} required).
         /// </summary>
         internal static string NotSupportedDriverVersion {
@@ -273,6 +282,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedOpenCLCVersion {
             get {
                 return ResourceManager.GetString("NotSupportedOpenCLCVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported pitched allocation for type &apos;{0}&apos; and byte pitch {1}.
+        /// </summary>
+        internal static string NotSupportedPitchedAllocation {
+            get {
+                return ResourceManager.GetString("NotSupportedPitchedAllocation", resourceCulture);
             }
         }
         

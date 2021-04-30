@@ -168,6 +168,9 @@
   <data name="InvalidSharedMemorySize" xml:space="preserve">
     <value>Shared-memory size cannot be &lt; 0</value>
   </data>
+  <data name="NotSupportedAcceleratorStream" xml:space="preserve">
+    <value>The accelerator stream is not supported for this operation</value>
+  </data>
   <data name="NotSupportedDriverVersion" xml:space="preserve">
     <value>Not supported driver version '{0}' (&gt;= {1} required)</value>
   </data>
@@ -188,6 +191,9 @@
   </data>
   <data name="NotSupportedOpenCLCVersion" xml:space="preserve">
     <value>Not supported OpenCL C version (&gt;= {0} required)</value>
+  </data>
+  <data name="NotSupportedPitchedAllocation" xml:space="preserve">
+    <value>Not supported pitched allocation for type '{0}' and byte pitch {1}</value>
   </data>
   <data name="NotSupportedPTXArchitecture" xml:space="preserve">
     <value>Not supported PTX architecture</value>
