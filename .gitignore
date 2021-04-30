@@ -247,7 +247,6 @@ ModelManifest.xml
 .doxygen
 
 # Ignore specific template outputs
-Src/ILGPU/ArrayViews.cs
 Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
 Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
@@ -259,8 +258,10 @@ Src/ILGPU/IR/Types/ValueTuples.cs
 Src/ILGPU/IndexTypes.cs
 Src/ILGPU/Interop.Generated.cs
 Src/ILGPU/IntrinsicMath.CPUOnly.cs
+Src/ILGPU/Memory.cs
 Src/ILGPU/ReductionOperations.cs
-Src/ILGPU/Runtime/ExchangeBufferExtensions.cs
+Src/ILGPU/Runtime/ArrayViewExtensions.Generated.cs
+Src/ILGPU/Runtime/ArrayViews.cs
 Src/ILGPU/Runtime/KernelLoaders.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs
@@ -268,6 +269,7 @@ Src/ILGPU/ShuffleOperations.cs
 Src/ILGPU/Static/ArithmeticEnums.cs
 Src/ILGPU/Static/CapabilityContext.cs
 Src/ILGPU/Static/DllImports.cs
+Src/ILGPU/StrideTypes.cs
 Src/ILGPU/TypeInformation.cs
 Src/ILGPU/Util/DataBlocks.cs
 Src/ILGPU/Util/PrimitiveDataBlocks.cs
