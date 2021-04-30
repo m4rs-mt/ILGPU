@@ -454,8 +454,8 @@ namespace ILGPU.Runtime.Cuda
         /// Since X is the leading dimension, X must be less or equal to
         /// <see cref="int.MaxValue"/>.
         /// </remarks>
-        public MemoryBuffer<ArrayView2D<T, Stride2D.DenseX>> Allocate2DPitchedX<T>(
-            LongIndex2 extent)
+        public MemoryBuffer2D<T, Stride2D.DenseX> Allocate2DPitchedX<T>(
+            LongIndex2D extent)
             where T : unmanaged =>
             Allocate2DPitchedX<T>(extent, PitchedAllocationAlignmentInBytes);
 
@@ -470,8 +470,8 @@ namespace ILGPU.Runtime.Cuda
         /// Since Y is the leading dimension, Y must be less or equal to
         /// <see cref="int.MaxValue"/>.
         /// </remarks>
-        public MemoryBuffer<ArrayView2D<T, Stride2D.DenseY>> Allocate2DPitchedY<T>(
-            LongIndex2 extent)
+        public MemoryBuffer2D<T, Stride2D.DenseY> Allocate2DPitchedY<T>(
+            LongIndex2D extent)
             where T : unmanaged =>
             Allocate2DPitchedY<T>(extent, PitchedAllocationAlignmentInBytes);
 
