@@ -237,6 +237,73 @@ namespace ILGPU.Tests
         }
 
         /// <summary>
+        /// Verifies the contents of the given 2D arrays.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The source values.</param>
+        /// <param name="expected">The expected values.</param>
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Justification = "Used for testing purposes")]
+        public static void Verify2D<T>(T[,] source, T[,] expected)
+            where T : unmanaged
+        {
+            Assert.Equal(source.Length, expected.Length);
+            for (int i = 0; i < expected.GetLength(0); ++i)
+                for (int j = 0; j < expected.GetLength(1); ++j)
+                    Assert.Equal(expected[i, j], source[i, j]);
+        }
+
+        /// <summary>
+        /// Verifies the contents of the given 3D memory buffer.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The target buffer.</param>
+        /// <param name="expected">The expected values.</param>
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Justification = "Used for testing purposes")]
+        public static void Verify3D<T, TStride>(
+            ArrayView3D<T, TStride> view,
+            T[,,] expected)
+            where T : unmanaged
+            where TStride : struct, IStride3D
+        {
+            var data = view.AsContiguous().GetAsArray();
+            Assert.Equal(data.Length, expected.Length);
+            for (int i = 0; i < expected.GetLength(0); ++i)
+                for (int j = 0; j < expected.GetLength(1); ++j)
+                    for (int k = 0; k < expected.GetLength(2); ++k)
+                    {
+                        Assert.Equal(
+                            expected[i, j, k],
+                            data[view.ComputeLinearIndex((i, j, k))]);
+                    }
+        }
+
+        /// <summary>
+        /// Verifies the contents of the given 3D arrays.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The source values.</param>
+        /// <param name="expected">The expected values.</param>
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Justification = "Used for testing purposes")]
+        public static void Verify3D<T>(T[,,] source, T[,,] expected)
+            where T : unmanaged
+        {
+            Assert.Equal(source.Length, expected.Length);
+            for (int i = 0; i < expected.GetLength(0); ++i)
+                for (int j = 0; j < expected.GetLength(1); ++j)
+                    for (int k = 0; k < expected.GetLength(2); ++k)
+                        Assert.Equal(expected[i, j, k], source[i, j, k]);
+        }
+
+        /// <summary>
         /// Initializes a memory buffer with a constant.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
