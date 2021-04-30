@@ -227,7 +227,7 @@ namespace ILGPU.Runtime.Cuda
         private void InitGridInfo()
         {
             // Resolve max grid size
-            MaxGridSize = new Index3(
+            MaxGridSize = new Index3D(
                 CurrentAPI.GetDeviceAttribute(
                     DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X, DeviceId),
                 CurrentAPI.GetDeviceAttribute(
@@ -236,7 +236,7 @@ namespace ILGPU.Runtime.Cuda
                     DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z, DeviceId));
 
             // Resolve max group size
-            MaxGroupSize = new Index3(
+            MaxGroupSize = new Index3D(
                 CurrentAPI.GetDeviceAttribute(
                     DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X, DeviceId),
                 CurrentAPI.GetDeviceAttribute(
