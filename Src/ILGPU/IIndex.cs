@@ -351,8 +351,7 @@ namespace ILGPU
     /// <typeparam name="TIndex">The type of the generic index.</typeparam>
     public interface IGenericIndex<TIndex> :
         ILinearizableIndex<TIndex>,
-        IEquatable<TIndex>,
-        IComparable<TIndex>
+        IEquatable<TIndex>
         where TIndex : struct, IIndex
     {
         /// <summary>
