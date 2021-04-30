@@ -284,19 +284,18 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Methods
 
-        /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}(
-        /// TExtensionProvider)"/>
+        /// <inheritdoc/>
         public override TExtension CreateExtension<TExtension, TExtensionProvider>(
             TExtensionProvider provider) =>
             provider.CreateOpenCLExtension(this);
 
-        /// <summary cref="Accelerator.AllocateInternal{T, TIndex}(TIndex)"/>
-        protected override MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(
-            TIndex extent) =>
-            new CLMemoryBuffer<T, TIndex>(this, extent);
+        /// <inheritdoc/>
+        protected override MemoryBuffer AllocateRawInternal(
+            long length,
+            int elementSize) =>
+            new CLMemoryBuffer(this, length, elementSize);
 
-        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(
-        /// TCompiledKernel)"/>
+        /// <inheritdoc/>
         protected override CLKernel CreateKernel(CLCompiledKernel compiledKernel)
         {
             // Verify OpenCL C version
@@ -311,14 +310,13 @@ namespace ILGPU.Runtime.OpenCL
             return new CLKernel(this, compiledKernel, null);
         }
 
-        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(
-        /// TCompiledKernel, MethodInfo)"/>
+        /// <inheritdoc/>
         protected override CLKernel CreateKernel(
             CLCompiledKernel compiledKernel,
             MethodInfo launcher) =>
             new CLKernel(this, compiledKernel, launcher);
 
-        /// <summary cref="Accelerator.CreateStream()"/>
+        /// <inheritdoc/>
         protected override AcceleratorStream CreateStreamInternal() =>
             new CLStream(this);
 
