@@ -321,7 +321,7 @@ namespace ILGPU.Tests
             ArrayView1D<int, Stride1D.Dense> length,
             ArrayView1D<int, Stride1D.Dense> source)
         {
-            var subView = source.Cast<byte>();
+            var subView = source.Cast<int, byte>();
             data[index] = subView[0];
             length[index] = subView.IntLength;
         }
@@ -362,7 +362,7 @@ namespace ILGPU.Tests
             ArrayView1D<int, Stride1D.Dense> length,
             ArrayView1D<int, Stride1D.Dense> source)
         {
-            var subView = source.Cast<long>();
+            var subView = source.Cast<int, long>();
             data[index] = subView[0];
             length[index] = subView.IntLength;
         }
@@ -590,10 +590,10 @@ namespace ILGPU.Tests
             // Use compile-time known offsets to test the internal alignment rules
 
             var nonVectorAlignedSource = source.SubView(1, 2);
-            var nonVectorAlignedCastedSource = nonVectorAlignedSource.Cast<T2>();
+            var nonVectorAlignedCastedSource = nonVectorAlignedSource.Cast<T, T2>();
 
             var nonVectorAlignedTarget = target.SubView(1, 2);
-            var nonVectorAlignedTargetCasted = nonVectorAlignedTarget.Cast<T2>();
+            var nonVectorAlignedTargetCasted = nonVectorAlignedTarget.Cast<T, T2>();
 
             // Load from source and write to target
             T2 data = nonVectorAlignedCastedSource[index];
@@ -602,10 +602,10 @@ namespace ILGPU.Tests
             // Perform the same operations with compile-time known offsets
 
             var vectorAlignedSource = source.SubView(2, 2);
-            var vectorAlignedCastedSource = vectorAlignedSource.Cast<T2>();
+            var vectorAlignedCastedSource = vectorAlignedSource.Cast<T, T2>();
 
             var vectorAlignedTarget = target.SubView(2, 2);
-            var vectorAlignedTargetCasted = vectorAlignedTarget.Cast<T2>();
+            var vectorAlignedTargetCasted = vectorAlignedTarget.Cast<T, T2>();
 
             // Load from source and write to target
             T2 data2 = vectorAlignedCastedSource[index];
@@ -658,7 +658,7 @@ namespace ILGPU.Tests
             using var source = Accelerator.Allocate1D<T>(Length);
             using var target = Accelerator.Allocate1D<T2>(Length);
 
-            Execute<Index1D, T, T2>(1, source.View, target.View.Cast<T>());
+            Execute<Index1D, T, T2>(1, source.View, target.View.Cast<T2, T>());
 
             // Note that we don't have to check the result in this case. If the execution
             // succeeds, we already know that the vectorized IO access worked as intended
