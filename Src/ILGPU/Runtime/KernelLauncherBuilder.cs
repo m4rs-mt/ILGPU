@@ -118,8 +118,8 @@ namespace ILGPU.Runtime
             EntryPoint entryPoint,
             TEmitter emitter,
             int dimensionIdx,
-            Index3D maxGridSize,
-            Index3D maxGroupSize,
+            in Index3D maxGridSize,
+            in Index3D maxGroupSize,
             int customGroupSize = 0)
             where TEmitter : IILEmitter
         {
@@ -155,9 +155,9 @@ namespace ILGPU.Runtime
                 // KernelConfig constructor. Convert these into Index3 instances.
                 var groupDimLocal = emitter.DeclareLocal(typeof(Index3D));
                 var gridDimLocal = emitter.DeclareLocal(typeof(Index3D));
-                emitter.EmitNewObject(Index3.MainConstructor);
+                emitter.EmitNewObject(Index3D.MainConstructor);
                 emitter.Emit(LocalOperation.Store, groupDimLocal);
-                emitter.EmitNewObject(Index3.MainConstructor);
+                emitter.EmitNewObject(Index3D.MainConstructor);
                 emitter.Emit(LocalOperation.Store, gridDimLocal);
 
                 // Verify the grid and group dimensions.
@@ -208,8 +208,8 @@ namespace ILGPU.Runtime
         /// <param name="maxGroupSize">The max group dimensions.</param>
         private static void EmitVerifyKernelLaunchBounds<TEmitter>(
             TEmitter emitter,
-            Index3D maxGridSize,
-            Index3D maxGroupSize)
+            in Index3D maxGridSize,
+            in Index3D maxGroupSize)
             where TEmitter : IILEmitter
         {
             // NOTE: Requires that the top two elements of the IL stack contain the
@@ -280,8 +280,8 @@ namespace ILGPU.Runtime
             EntryPoint entryPoint,
             TEmitter emitter,
             int dimensionIdx,
-            Index3 maxGridSize,
-            Index3 maxGroupSize,
+            in Index3D maxGridSize,
+            in Index3D maxGroupSize,
             int customGroupSize = 0)
             where TEmitter : IILEmitter
         {

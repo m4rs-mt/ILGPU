@@ -38,12 +38,12 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the max grid size.
         /// </summary>
-        Index3 MaxGridSize { get; }
+        Index3D MaxGridSize { get; }
 
         /// <summary>
         /// Returns the max group size.
         /// </summary>
-        Index3 MaxGroupSize { get; }
+        Index3D MaxGroupSize { get; }
 
         /// <summary>
         /// Returns the maximum number of threads in a group.
@@ -139,12 +139,12 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the max grid size.
         /// </summary>
-        public Index3 MaxGridSize { get; protected set; }
+        public Index3D MaxGridSize { get; protected set; }
 
         /// <summary>
         /// Returns the max group size.
         /// </summary>
-        public Index3 MaxGroupSize { get; protected set; }
+        public Index3D MaxGroupSize { get; protected set; }
 
         /// <summary>
         /// Returns the maximum number of threads in a group.

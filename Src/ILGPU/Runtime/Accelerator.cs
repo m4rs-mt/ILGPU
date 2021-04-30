@@ -737,12 +737,12 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the max grid size.
         /// </summary>
-        public Index3 MaxGridSize => Device.MaxGridSize;
+        public Index3D MaxGridSize => Device.MaxGridSize;
 
         /// <summary>
         /// Returns the max group size.
         /// </summary>
-        public Index3 MaxGroupSize => Device.MaxGroupSize;
+        public Index3D MaxGroupSize => Device.MaxGroupSize;
 
         /// <summary>
         /// Returns the maximum number of threads in a group.
