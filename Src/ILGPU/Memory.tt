@@ -1,0 +1,84 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: Memory.tt/Memory.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Static/TypeInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+var classes = new (string, string)[]
+{
+    ("LocalMemory", "local"),
+    ("SharedMemory", "shared"),
+};
+#>
+using ILGPU.Runtime;
+using System.Diagnostics;
+
+namespace ILGPU
+{
+<#  foreach (var (className, docuName) in classes) { #>
+    partial class <#= className #>
+    {
+        /// <summary>
+        /// Allocates a 1D chunk of <#= docuName #> memory with the specified number
+        /// of elements.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="extent">The extent of the buffer.</param>
+        /// <returns>An allocated region of <#= docuName #> memory.</returns>
+        public static ArrayView1D<T, Stride1D.Dense> Allocate1D<T>(
+            Index1D extent)
+            where T : unmanaged =>
+            Allocate1D<T, Stride1D.Dense>(extent, default);
+    }
+
+<#      foreach (var indexDefinition in IndexDimensions) { #>
+<#          int dimension = indexDefinition.Dimension; #>
+    partial class <#= className #>
+    {
+        /// <summary>
+        /// Allocates a <#= dimension #>D chunk of <#= docuName #> memory with the
+        /// specified number of elements.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="extent">The extent of the buffer.</param>
+        /// <param name="stride">The buffer stride.</param>
+        /// <returns>An allocated region of <#= docuName #> memory.</returns>
+        public static ArrayView<#= dimension #>D<T, TStride>
+            Allocate<#= dimension #>D<T, TStride>(
+            Index<#= dimension #>D extent,
+            TStride stride)
+            where T : unmanaged
+            where TStride : struct, IStride<#= dimension #>D
+        {
+            Trace.Assert(
+                <#= string.Join(
+                    " & ",
+                    Enumerable.Range(0, dimension).
+                    Select(t => $"extent.{IndexDimensions[t].PropertyName} >= 0")) #>,
+                "Extent out of bounds");
+
+            var baseView = Allocate<T>((int)stride.ComputeBufferLength(extent));
+            return new ArrayView<#= dimension #>D<T, TStride>(
+                baseView,
+                extent,
+                stride);
+        }
+    }
+
+<#      } #>
+<#  } #>
+}
