@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
-using ILGPU.Util;
 using System;
 using System.Reflection;
 
