@@ -23,7 +23,7 @@ var basicFunctions = new string[]
     "ArrayView1D<T, Stride1D.Infinite>",
     "ArrayView1D<T, Stride1D.Dense>",
 };
-// Stride name, Needs transpose from/to .Net array
+// Stride name, Needs transpose from/to .Net arrays
 var twoDStrides = new (string, bool)[]
 {
     ("DenseX", true),
@@ -44,13 +44,54 @@ var generalDimensionStrides =
             (1, "General", true),
             (2, "General", true),
             (3, "General", true) });
+// Cast functionality
+var castFunctions = new (string, string)[]
+{
+    ("ArrayView1D", "Stride1D.Dense"),
+
+    ("ArrayView2D", "Stride2D.DenseX"),
+    ("ArrayView2D", "Stride2D.DenseY"),
+
+    ("ArrayView3D", "Stride3D.DenseXY"),
+    ("ArrayView3D", "Stride3D.DenseZY"),
+};
 #>
 using System;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
 {
     partial class ArrayViewExtensions
     {
+        #region Cast Methods
+
+<# foreach (var (viewName, strideName) in castFunctions) { #>
+        /// <summary>
+        /// Casts the given array view into another array-view type.
+        /// </summary>
+        /// <typeparam name="T">The current element type.</typeparam>
+        /// <typeparam name="TOther">The target element type.</typeparam>
+        /// <returns>The casted array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= viewName #><TOther, <#= strideName #>> Cast<T, TOther>(
+            this <#= viewName #><T, <#= strideName #>> view)
+            where T : unmanaged
+            where TOther : unmanaged
+        {
+            var (extent, stride) = view.Stride.Cast(
+                StrideExtensions.CreateCastContext(
+                    ArrayView<T>.ElementSize,
+                    ArrayView<TOther>.ElementSize),
+                view.Extent);
+            return new <#= viewName #><TOther, <#= strideName #>>(
+                view.BaseView.Cast<TOther>(),
+                extent,
+                stride);
+        }
+
+<# } #>
+        #endregion
+
         #region MemSet
 
 <# // Why are these extension methods and not structure members?

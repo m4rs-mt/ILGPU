@@ -524,11 +524,11 @@ namespace ILGPU
         public readonly ArrayView<TOther> Cast<TOther>()
             where TOther : unmanaged
         {
-            var extent = Extent;
-            long newExtent = extent.ComputedCastedExtent(
-                extent, ElementSize, ArrayView<TOther>.ElementSize);
-            long newIndex = extent.ComputedCastedExtent(
-                Index, ElementSize, ArrayView<TOther>.ElementSize);
+            var castContext = StrideExtensions.CreateCastContext(
+                ElementSize,
+                ArrayView<TOther>.ElementSize);
+            long newExtent = castContext.ComputeNewExtent(Extent);
+            long newIndex = castContext.ComputeNewExtent(Index);
             return new ArrayView<TOther>(Buffer, newIndex, newExtent);
         }
 

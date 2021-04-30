@@ -285,25 +285,6 @@ namespace ILGPU.Runtime
 <#      } #>
 
         /// <summary>
-        /// Casts the current array view into another array-view type.
-        /// </summary>
-        /// <typeparam name="TOther">The target type.</typeparam>
-        /// <returns>The casted array view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly <#= typeName #><TOther, TStride> Cast<TOther>()
-            where TOther : unmanaged
-        {
-            var newExtent = Extent.ComputedCastedExtent(
-                Extent,
-                ElementSize,
-                <#= typeName #><TOther, TStride>.ElementSize);
-            return new <#= typeName #><TOther, TStride>(
-                BaseView.Cast<TOther>(),
-                newExtent,
-                Stride);
-        }
-
-        /// <summary>
         /// Returns a variable view that points to the element at the specified index.
         /// </summary>
         /// <param name="index">The variable index.</param>
