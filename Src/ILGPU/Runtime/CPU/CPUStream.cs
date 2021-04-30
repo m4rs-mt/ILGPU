@@ -16,7 +16,21 @@ namespace ILGPU.Runtime.CPU
     /// </summary>
     sealed class CPUStream : AcceleratorStream
     {
+        #region Static
+
+        /// <summary>
+        /// The default instance.
+        /// </summary>
+        internal static readonly CPUStream Default = new CPUStream();
+
+        #endregion
+
         #region Instance
+
+        /// <summary>
+        /// Constructs a new CPU stream.
+        /// </summary>
+        private CPUStream() : base() { }
 
         /// <summary>
         /// Constructs a new CPU stream.
@@ -30,7 +44,9 @@ namespace ILGPU.Runtime.CPU
 
         #region Methods
 
-        /// <summary cref="AcceleratorStream.Synchronize"/>
+        /// <summary>
+        /// Does not perform any operation.
+        /// </summary>
         public override void Synchronize() { }
 
         #endregion

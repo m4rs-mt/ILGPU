@@ -31,6 +31,14 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Constructs a new accelerator stream.
         /// </summary>
+        protected AcceleratorStream()
+        {
+            synchronizeAction = () => Synchronize();
+        }
+
+        /// <summary>
+        /// Constructs a new accelerator stream.
+        /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         protected AcceleratorStream(Accelerator accelerator)
             : base(accelerator)
@@ -51,8 +59,7 @@ namespace ILGPU.Runtime
         /// Synchronizes all queued operations asynchronously.
         /// </summary>
         /// <returns>A task object to wait for.</returns>
-        public Task SynchronizeAsync() =>
-            Task.Run(synchronizeAction);
+        public Task SynchronizeAsync() => Task.Run(synchronizeAction);
 
         /// <summary>
         /// Makes the associated accelerator the current one for this thread and
@@ -60,8 +67,7 @@ namespace ILGPU.Runtime
         /// to easily recover the old binding.
         /// </summary>
         /// <returns>A scoped binding object.</returns>
-        public ScopedAcceleratorBinding BindScoped() =>
-            Accelerator.BindScoped();
+        public ScopedAcceleratorBinding BindScoped() => Accelerator.BindScoped();
 
         #endregion
     }
