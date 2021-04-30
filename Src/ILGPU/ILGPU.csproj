@@ -45,11 +45,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="ArrayViews.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>ArrayViews.tt</DependentUpon>
-        </None>
         <None Include="AtomicFunctions.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
@@ -143,10 +138,20 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Update="ArrayViews.cs">
+        <Compile Update="Memory.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>Memory.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Runtime\ArrayViews.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
             <DependentUpon>ArrayViews.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Runtime\ArrayViewExtensions.Generated.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>ArrayViewExtensions.Generated.tt</DependentUpon>
         </Compile>
         <Compile Update="AtomicFunctions.cs">
             <DesignTime>True</DesignTime>
@@ -193,10 +198,10 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>ValueTuples.tt</DependentUpon>
         </Compile>
-        <Compile Update="Runtime\ExchangeBufferExtensions.cs">
+        <Compile Update="Runtime\MemoryBuffers.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
-          <DependentUpon>ExchangeBufferExtensions.tt</DependentUpon>
+          <DependentUpon>MemoryBuffers.tt</DependentUpon>
         </Compile>
         <Compile Update="Static\ArithmeticEnums.cs">
           <DesignTime>True</DesignTime>
@@ -207,11 +212,6 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>KernelLoaders.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\MemoryBuffers.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>MemoryBuffers.tt</DependentUpon>
         </Compile>
         <Compile Update="IR\Construction\CompareOperations.cs">
             <DesignTime>True</DesignTime>
@@ -243,6 +243,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>DllImports.tt</DependentUpon>
         </Compile>
+        <Compile Update="StrideTypes.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>StrideTypes.tt</DependentUpon>
+        </Compile>
         <Compile Update="Util\DataBlocks.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -255,9 +260,13 @@
         </Compile>
     </ItemGroup>
     <ItemGroup>
-        <None Update="ArrayViews.tt">
+        <None Update="Runtime\ArrayViews.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>ArrayViews.cs</LastGenOutput>
+        </None>
+        <None Update="Runtime\ArrayViewExtensions.Generated.tt">
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>ArrayViewExtensions.Generated.cs</LastGenOutput>
         </None>
         <None Update="AtomicFunctions.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
@@ -319,6 +328,10 @@
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
         </None>
+        <None Update="Memory.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>Memory.cs</LastGenOutput>
+        </None>
         <None Update="Static\CapabilitiesImporter.ttinclude">
           <Generator></Generator>
         </None>
@@ -329,6 +342,10 @@
         <None Update="Static\CapabilityContext.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>CapabilityContext.cs</LastGenOutput>
+        </None>
+        <None Update="StrideTypes.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>StrideTypes.cs</LastGenOutput>
         </None>
         <None Update="Util\PrimitiveDataBlocks.tt">
           <LastGenOutput>PrimitiveDataBlocks.cs</LastGenOutput>
