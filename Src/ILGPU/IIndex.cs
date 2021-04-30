@@ -383,21 +383,6 @@ namespace ILGPU
         /// <param name="rhs">The right-hand side of the subtraction.</param>
         /// <returns>The subtracted index.</returns>
         TIndex Subtract(TIndex rhs);
-
-        /// <summary>
-        /// The given <paramref name="extent"/> describes a chunk of contiguous memory
-        /// of elements with size <paramref name="elementSize"/>. The parameter
-        /// <paramref name="newElementSize"/> describes the requested new element size.
-        /// The result of this function is a new extent dimension that represents the
-        /// given extent in the context of the new element size.
-        /// </summary>
-        /// <param name="extent">The current extent.</param>
-        /// <param name="elementSize">
-        /// The current element size in the scope of the current extent.
-        /// </param>
-        /// <param name="newElementSize">The new element size.</param>
-        /// <returns>The adjusted extent to match the new element size.</returns>
-        TIndex ComputedCastedExtent(TIndex extent, int elementSize, int newElementSize);
     }
 
     /// <summary>
