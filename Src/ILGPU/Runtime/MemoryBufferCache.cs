@@ -9,10 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
+using ILGPU.Runtime.CPU;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
 {
@@ -31,7 +29,7 @@ namespace ILGPU.Runtime
         /// This represents the actual memory cache.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MemoryBuffer<byte, Index1> cache;
+        private MemoryBuffer<ArrayView1D<byte, Stride1D.Dense>> cache;
 
         /// <summary>
         /// Constructs a new memory-buffer cache.
@@ -50,11 +48,11 @@ namespace ILGPU.Runtime
         /// The associated accelerator to allocate memory on.
         /// </param>
         /// <param name="initialLength">The initial length of the buffer.</param>
-        public MemoryBufferCache(Accelerator accelerator, Index1 initialLength)
+        public MemoryBufferCache(Accelerator accelerator, long initialLength)
             : base(accelerator)
         {
             if (initialLength > 0)
-                cache = accelerator.Allocate<byte, Index1>(initialLength);
+                cache = accelerator.Allocate1D<byte>(initialLength);
         }
 
         #endregion
@@ -67,9 +65,9 @@ namespace ILGPU.Runtime
         public long CacheSizeInBytes => cache?.LengthInBytes ?? 0;
 
         /// <summary>
-        /// Returns the underlying memory buffer.
+        /// Returns the underlying memory buffer view.
         /// </summary>
-        public MemoryBuffer<byte, Index1> Cache => cache;
+        public ArrayView<byte> Cache => cache.View;
 
         #endregion
 
@@ -93,20 +91,18 @@ namespace ILGPU.Runtime
         /// <returns>
         /// An array view that can access the requested number of elements.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> Allocate<T>(Index1 numElements)
+        public ArrayView<T> Allocate<T>(long numElements)
             where T : unmanaged
         {
-            if (numElements < Index1.One)
+            if (numElements < Index1D.One)
                 return default;
             if (numElements > GetCacheSize<T>())
             {
                 cache?.Dispose();
-                cache = Accelerator.Allocate<byte, Index1>(
-                    numElements * Interop.SizeOf<T>());
+                cache = Accelerator.Allocate1D<byte>(numElements * Interop.SizeOf<T>());
             }
             Debug.Assert(numElements <= GetCacheSize<T>());
-            return cache.View.Cast<T>().GetSubView(0, numElements).AsLinearView();
+            return Cache.Cast<T>().SubView(0, numElements);
         }
 
         /// <summary>
@@ -115,18 +111,19 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="target">The target location.</param>
-        /// <param name="targetIndex">The target index.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="sourceIndex">
+        /// The source index from which to copy to the output.
+        /// </param>
         public unsafe void CopyTo<T>(
             AcceleratorStream stream,
             out T target,
-            LongIndex1 targetIndex)
+            long sourceIndex)
             where T : unmanaged
         {
             target = default;
-            using var wrapper = ViewPointerWrapper.Create(ref target);
-            var view = new ArrayView<T>(wrapper, 0, 1);
-            cache.CopyToView(stream, view.Cast<byte>(), targetIndex);
+
+            using var wrapper = CPUMemoryBuffer.Create(ref target, 1);
+            cache.CopyTo(stream, sourceIndex, wrapper.AsRawArrayView());
         }
 
         /// <summary>
@@ -134,17 +131,17 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="source">The source value.</param>
-        /// <param name="sourceIndex">The target index.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="targetIndex">
+        /// The target index to which to copy the input.
+        /// </param>
         public unsafe void CopyFrom<T>(
             AcceleratorStream stream,
             T source,
-            LongIndex1 sourceIndex)
+            long targetIndex)
             where T : unmanaged
         {
-            using var wrapper = ViewPointerWrapper.Create(ref source);
-            var view = new ArrayView<T>(wrapper, 0, 1);
-            cache.CopyFromView(stream, view.Cast<byte>(), sourceIndex);
+            using var wrapper = CPUMemoryBuffer.Create(ref source, 1);
+            cache.CopyFrom(stream, wrapper.AsRawArrayView(), targetIndex);
         }
 
         /// <summary>
