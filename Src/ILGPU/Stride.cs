@@ -64,6 +64,62 @@ namespace ILGPU
     }
 
     /// <summary>
+    /// A stride that can be cast using a <see cref="IStrideCastContext"/>.
+    /// </summary>
+    /// <typeparam name="TIndex">The actual 32-bit stride index.</typeparam>
+    /// <typeparam name="TLongIndex">The 64-bit stride index.</typeparam>
+    /// <typeparam name="TStride">
+    /// The stride type implementing this interface.
+    /// </typeparam>
+    public interface ICastableStride<TIndex, TLongIndex, TStride>
+        where TIndex : struct, IIntIndex<TIndex, TLongIndex>
+        where TLongIndex : struct, ILongIndex<TLongIndex, TIndex>
+        where TStride :
+            struct,
+            IStride<TIndex, TLongIndex>,
+            ICastableStride<TIndex, TLongIndex, TStride>
+    {
+        /// <summary>
+        /// Computes a new extent and stride based on the given cast context. The context
+        /// thereby adjusts extent information which can in turn be based on the element
+        /// size of the source view and the element size of the target element type.
+        /// </summary>
+        /// <typeparam name="TContext">The cast context type.</typeparam>
+        /// <param name="context">
+        /// The cast context to adjust element information.
+        /// </param>
+        /// <param name="extent">The source extent.</param>
+        /// <returns>The adjusted extent and stride information.</returns>
+        (TLongIndex Extent, TStride Stride) Cast<TContext>(
+            in TContext context,
+            in TLongIndex extent)
+            where TContext : struct, IStrideCastContext;
+    }
+
+    /// <summary>
+    /// A generic cast context for <see cref="ICastableStride{TIndex, TLongIndex,
+    /// TStride}.Cast{TContext}(in TContext, in TLongIndex)"/> operations.
+    /// </summary>
+    public interface IStrideCastContext
+    {
+        /// <summary>
+        /// Computes an adjusted extent taking source and target element size information
+        /// into account (based on 32bit).
+        /// </summary>
+        /// <param name="sourceExtent">The source extent.</param>
+        /// <returns>The adjusted extent.</returns>
+        int ComputeNewExtent(int sourceExtent);
+
+        /// <summary>
+        /// Computes an adjusted extent taking source and target element size information
+        /// into account (based on 64bit).
+        /// </summary>
+        /// <param name="sourceExtent">The source extent.</param>
+        /// <returns>The adjusted extent.</returns>
+        long ComputeNewExtent(long sourceExtent);
+    }
+
+    /// <summary>
     /// Contains helper functions for generic <see cref="IStride{TIndex}"/> types.
     /// </summary>
     public static class StrideExtensions
@@ -105,6 +161,79 @@ namespace ILGPU
             // Return the pitched dimension
             return pitchedBytes / elementSize;
         }
+
+        /// <summary>
+        /// An element-size based cast context.
+        /// </summary>
+        public readonly struct ElementSizeCastContext : IStrideCastContext
+        {
+            /// <summary>
+            /// Initializes a new element-size context.
+            /// </summary>
+            /// <param name="elementSize">The source element size.</param>
+            /// <param name="newElementSize">The target element size.</param>
+            public ElementSizeCastContext(int elementSize, int newElementSize)
+            {
+                ElementSize = elementSize;
+                NewElementSize = newElementSize;
+            }
+
+            /// <summary>
+            /// Returns the source element size.
+            /// </summary>
+            public int ElementSize { get; }
+
+            /// <summary>
+            /// Returns the target element size.
+            /// </summary>
+            public int NewElementSize { get; }
+
+            /// <inheritdoc/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeNewExtent(int sourceExtent) =>
+                sourceExtent * ElementSize / NewElementSize;
+
+            /// <inheritdoc/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly long ComputeNewExtent(long sourceExtent) =>
+                sourceExtent * ElementSize / NewElementSize;
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="ElementSizeCastContext"/>.
+        /// </summary>
+        /// <param name="elementSize">The source element size.</param>
+        /// <param name="newElementSize">The target element size.</param>
+        /// <returns>The created cast context.</returns>
+        public static ElementSizeCastContext CreateCastContext(
+            int elementSize,
+            int newElementSize) =>
+            new ElementSizeCastContext(elementSize, newElementSize);
+    }
+
+    partial class Stride1D
+    {
+        partial struct Dense : ICastableStride<Index1D, LongIndex1D, Dense>
+        {
+            /// <summary>
+            /// Computes a new extent and stride based on the given cast context.
+            /// </summary>
+            /// <typeparam name="TContext">The cast context type.</typeparam>
+            /// <param name="context">
+            /// The cast context to adjust element information.
+            /// </param>
+            /// <param name="extent">The source extent.</param>
+            /// <returns>The adjusted extent and stride information.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public (LongIndex1D Extent, Dense Stride) Cast<TContext>(
+                in TContext context,
+                in LongIndex1D extent)
+                where TContext : struct, IStrideCastContext =>
+                (
+                    new LongIndex1D(context.ComputeNewExtent(extent)),
+                    new Dense()
+                );
+        }
     }
 
     partial class Stride2D
@@ -112,7 +241,9 @@ namespace ILGPU
         /// <summary>
         /// A 2D dense X stride.
         /// </summary>
-        public readonly struct DenseX : IStride2D
+        public readonly struct DenseX :
+            IStride2D,
+            ICastableStride<Index2D, LongIndex2D, DenseX>
         {
             #region Instance
 
@@ -181,6 +312,27 @@ namespace ILGPU
             }
 
             /// <summary>
+            /// Computes a new extent and stride based on the given cast context.
+            /// </summary>
+            /// <typeparam name="TContext">The cast context type.</typeparam>
+            /// <param name="context">
+            /// The cast context to adjust element information.
+            /// </param>
+            /// <param name="extent">The source extent.</param>
+            /// <returns>The adjusted extent and stride information.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public (LongIndex2D Extent, DenseX Stride) Cast<TContext>(
+                in TContext context,
+                in LongIndex2D extent)
+                where TContext : struct, IStrideCastContext =>
+                (
+                    new LongIndex2D(
+                        context.ComputeNewExtent(extent.X),
+                        extent.Y),
+                    new DenseX(context.ComputeNewExtent(YStride))
+                );
+
+            /// <summary>
             /// Returns this stride as general 2D stride.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -203,7 +355,9 @@ namespace ILGPU
         /// <summary>
         /// A 2D dense Y stride.
         /// </summary>
-        public readonly struct DenseY : IStride2D
+        public readonly struct DenseY :
+            IStride2D,
+            ICastableStride<Index2D, LongIndex2D, DenseY>
         {
             #region Instance
 
@@ -273,6 +427,27 @@ namespace ILGPU
             }
 
             /// <summary>
+            /// Computes a new extent and stride based on the given cast context.
+            /// </summary>
+            /// <typeparam name="TContext">The cast context type.</typeparam>
+            /// <param name="context">
+            /// The cast context to adjust element information.
+            /// </param>
+            /// <param name="extent">The source extent.</param>
+            /// <returns>The adjusted extent and stride information.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public (LongIndex2D Extent, DenseY Stride) Cast<TContext>(
+                in TContext context,
+                in LongIndex2D extent)
+                where TContext : struct, IStrideCastContext =>
+                (
+                    new LongIndex2D(
+                        extent.X,
+                        context.ComputeNewExtent(extent.Y)),
+                    new DenseY(context.ComputeNewExtent(XStride))
+                );
+
+            /// <summary>
             /// Returns this stride as general 2D stride.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -298,7 +473,9 @@ namespace ILGPU
         /// <summary>
         /// A 3D dense XY stride.
         /// </summary>
-        public readonly struct DenseXY : IStride3D
+        public readonly struct DenseXY :
+            IStride3D,
+            ICastableStride<Index3D, LongIndex3D, DenseXY>
         {
             #region Instance
 
@@ -379,6 +556,28 @@ namespace ILGPU
             }
 
             /// <summary>
+            /// Computes a new extent and stride based on the given cast context.
+            /// </summary>
+            /// <typeparam name="TContext">The cast context type.</typeparam>
+            /// <param name="context">
+            /// The cast context to adjust element information.
+            /// </param>
+            /// <param name="extent">The source extent.</param>
+            /// <returns>The adjusted extent and stride information.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public (LongIndex3D Extent, DenseXY Stride) Cast<TContext>(
+                in TContext context,
+                in LongIndex3D extent)
+                where TContext : struct, IStrideCastContext =>
+                (
+                    new LongIndex3D(
+                        context.ComputeNewExtent(extent.X),
+                        extent.Y,
+                        extent.Z),
+                    new DenseXY(context.ComputeNewExtent(YStride), ZStride)
+                );
+
+            /// <summary>
             /// Returns this stride as general 3D stride.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -401,7 +600,9 @@ namespace ILGPU
         /// <summary>
         /// A 3D dense ZY stride.
         /// </summary>
-        public readonly struct DenseZY : IStride3D
+        public readonly struct DenseZY :
+            IStride3D,
+            ICastableStride<Index3D, LongIndex3D, DenseZY>
         {
             #region Instance
 
@@ -480,6 +681,28 @@ namespace ILGPU
                 Trace.Assert(extent.Z * extent.Y <= XStride, "Z extent out of range");
                 return XStride * extent.X;
             }
+
+            /// <summary>
+            /// Computes a new extent and stride based on the given cast context.
+            /// </summary>
+            /// <typeparam name="TContext">The cast context type.</typeparam>
+            /// <param name="context">
+            /// The cast context to adjust element information.
+            /// </param>
+            /// <param name="extent">The source extent.</param>
+            /// <returns>The adjusted extent and stride information.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public (LongIndex3D Extent, DenseZY Stride) Cast<TContext>(
+                in TContext context,
+                in LongIndex3D extent)
+                where TContext : struct, IStrideCastContext =>
+                (
+                    new LongIndex3D(
+                        extent.X,
+                        extent.Y,
+                        context.ComputeNewExtent(extent.Z)),
+                    new DenseZY(XStride, context.ComputeNewExtent(YStride))
+                );
 
             /// <summary>
             /// Returns this stride as general 3D stride.
