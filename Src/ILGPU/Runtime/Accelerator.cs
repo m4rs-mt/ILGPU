@@ -14,7 +14,6 @@ using ILGPU.Frontend.Intrinsic;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -183,7 +182,7 @@ namespace ILGPU.Runtime
         /// using the maximum number of threads per group to launch common grid-stride
         /// loop kernels.
         /// </summary>
-        public (Index1, Index1) MaxNumGroupsExtent =>
+        public (Index1D, Index1D) MaxNumGroupsExtent =>
             (NumMultiprocessors *
                 (MaxNumThreadsPerMultiprocessor / MaxNumThreadsPerGroup),
             MaxNumThreadsPerGroup);
@@ -234,102 +233,6 @@ namespace ILGPU.Runtime
             where TExtensionProvider : IAcceleratorExtensionProvider<TExtension>;
 
         /// <summary>
-        /// Allocates a buffer with the specified number of elements on this accelerator.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TIndex">The index type.</typeparam>
-        /// <param name="extent">The extent (number of elements to allocate).</param>
-        /// <returns>An allocated buffer on the this accelerator.</returns>
-        public MemoryBuffer<T, TIndex> Allocate<T, TIndex>(TIndex extent)
-            where T : unmanaged
-            where TIndex : unmanaged, IGenericIndex<TIndex>
-        {
-            // Check for blittable types
-            var typeContext = Context.TypeContext;
-            var elementType = typeof(T);
-            var typeInfo = typeContext.GetTypeInfo(elementType);
-            if (!typeInfo.IsBlittable)
-            {
-                throw new NotSupportedException(
-                    string.Format(
-                        RuntimeErrorMessages.NotSupportedNonBlittableType,
-                        elementType.GetStringRepresentation()));
-            }
-
-            Bind(); return AllocateInternal<T, TIndex>(extent);
-        }
-
-        /// <summary>
-        /// Allocates a buffer with the specified number of elements on this accelerator.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TIndex">The index type.</typeparam>
-        /// <param name="extent">The extent (number of elements to allocate).</param>
-        /// <returns>An allocated buffer on the this accelerator.</returns>
-        protected abstract MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(
-            TIndex extent)
-            where T : unmanaged
-            where TIndex : unmanaged, IGenericIndex<TIndex>;
-
-        /// <summary>
-        /// Allocates a 1D buffer with the specified number of elements on this
-        /// accelerator.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="extent">The extent (number of elements to allocate).</param>
-        /// <returns>An allocated 1D buffer on the this accelerator.</returns>
-        public MemoryBuffer<T> Allocate<T>(long extent)
-            where T : unmanaged =>
-            new MemoryBuffer<T>(Allocate<T, LongIndex1>(extent));
-
-        /// <summary>
-        /// Allocates a 2D buffer with the specified number of elements on this
-        /// accelerator.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="extent">The extent (number of elements to allocate).</param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
-        public MemoryBuffer2D<T> Allocate<T>(LongIndex2 extent)
-            where T : unmanaged =>
-            new MemoryBuffer2D<T>(Allocate<T, LongIndex2>(extent));
-
-        /// <summary>
-        /// Allocates a 2D buffer with the specified number of elements on this
-        /// accelerator.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="width">The width of the 2D buffer.</param>
-        /// <param name="height">The height of the 2D buffer.</param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
-        public MemoryBuffer2D<T> Allocate<T>(long width, long height)
-            where T : unmanaged =>
-            Allocate<T>(new LongIndex2(width, height));
-
-        /// <summary>
-        /// Allocates a 3D buffer with the specified number of elements on this
-        /// accelerator.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="extent">The extent (number of elements to allocate).</param>
-        /// <returns>An allocated 3D buffer on the this accelerator.</returns>
-        public MemoryBuffer3D<T> Allocate<T>(LongIndex3 extent)
-            where T : unmanaged =>
-            new MemoryBuffer3D<T>(Allocate<T, LongIndex3>(extent));
-
-        /// <summary>
-        /// Allocates a 2D buffer with the specified number of elements on this
-        /// accelerator.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="width">The width of the 3D buffer.</param>
-        /// <param name="height">The height of the 3D buffer.</param>
-        /// <param name="depth">The depth of the 3D buffer.</param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
-        public MemoryBuffer3D<T> Allocate<T>(long width, long height, long depth)
-            where T : unmanaged =>
-            Allocate<T>(new LongIndex3(width, height, depth));
-
-        /// <summary>
         /// Creates a new accelerator stream.
         /// </summary>
         /// <returns>The created accelerator stream.</returns>
@@ -370,6 +273,87 @@ namespace ILGPU.Runtime
                 ClearLaunchCache_SyncRoot();
                 base.ClearCache(mode);
             }
+        }
+
+        #endregion
+
+        #region Allocation
+
+        /// <summary>
+        /// Allocates a buffer with the specified size in bytes on this accelerator.
+        /// </summary>
+        /// <param name="length">The number of elements to allocate.</param>
+        /// <param name="elementSize">The size of a single element in bytes.</param>
+        /// <returns>An allocated buffer on the this accelerator.</returns>
+        public MemoryBuffer AllocateRaw(long length, int elementSize)
+        {
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length));
+            if (elementSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(elementSize));
+
+            Bind();
+            return AllocateRawInternal(length, elementSize);
+        }
+
+        /// <summary>
+        /// Allocates a buffer with the specified number of elements on this accelerator.
+        /// </summary>
+        /// <param name="length">The number of elements to allocate.</param>
+        /// <param name="elementSize">The size of a single element in bytes.</param>
+        /// <returns>An allocated buffer on the this accelerator.</returns>
+        protected abstract MemoryBuffer AllocateRawInternal(
+            long length,
+            int elementSize);
+
+        /// <summary>
+        /// Allocates an n-D buffer with the specified number of elements on this
+        /// accelerator times the total stride length.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TExtent">The extent type of the buffer.</typeparam>
+        /// <typeparam name="TStrideIndex">The buffer stride index type.</typeparam>
+        /// <typeparam name="TStride">The buffer stride type.</typeparam>
+        /// <param name="extent">The extent of the buffer.</param>
+        /// <param name="stride">The buffer stride to use.</param>
+        /// <returns>An allocated n-D buffer on the this accelerator.</returns>
+        public ArrayView<T> AllocateRaw<T, TExtent, TStrideIndex, TStride>(
+            TExtent extent,
+            TStride stride)
+            where T : unmanaged
+            where TExtent : struct, ILongIndex<TExtent, TStrideIndex>
+            where TStrideIndex : struct, IIntIndex<TStrideIndex, TExtent>
+            where TStride : struct, IStride<TStrideIndex, TExtent>
+        {
+            EnsureBlittable<T>();
+
+            // Determine the appropriate length to allocate
+            int elementSize = ArrayView<T>.ElementSize;
+            long length = stride.ComputeBufferLength(extent);
+
+            // Allocate an unsafe buffer
+            var buffer = AllocateRaw(length, elementSize);
+            return new ArrayView<T>(buffer, 0L, length);
+        }
+
+        /// <summary>
+        /// Ensures that the specified type <typeparamref name="T"/> is blittable.
+        /// </summary>
+        /// <typeparam name="T">The type to test.</typeparam>
+        private void EnsureBlittable<T>()
+            where T : unmanaged
+        {
+            // Check for blittable types
+            var typeContext = Context.TypeContext;
+            var elementType = typeof(T);
+            var typeInfo = typeContext.GetTypeInfo(elementType);
+            if (typeInfo.IsBlittable)
+                return;
+
+            throw new NotSupportedException(
+                string.Format(
+                    RuntimeErrorMessages.NotSupportedNonBlittableType,
+                    elementType.GetStringRepresentation()));
         }
 
         #endregion
