@@ -1,6 +1,7 @@
 ﻿// Enforce DEBUG mode in all cases to preserve Debug calls
 #define DEBUG
 
+using ILGPU.Runtime;
 using System.Diagnostics;
 using System.Linq;
 using Xunit;
@@ -15,8 +16,8 @@ namespace ILGPU.Tests
         { }
 
         internal static void DebugAssertKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             Debug.Assert(data[index] >= 0);
             Trace.Assert(data[index] >= 0);
@@ -30,15 +31,15 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(DebugAssertKernel))]
         public void DebugAssert(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var expected = Enumerable.Repeat(2, length).ToArray();
-            buffer.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, expected.Length);
+            buffer.CopyFromCPU(Accelerator.DefaultStream, expected);
             Execute(length, buffer.View);
         }
 
         internal static void DebugAssertMessageKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             Debug.Assert(data[index] >= 0, "Invalid kernel argument");
             Trace.Assert(data[index] >= 0, "Invalid kernel argument");
@@ -52,15 +53,15 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(DebugAssertMessageKernel))]
         public void DebugAssertMessage(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var expected = Enumerable.Repeat(2, length).ToArray();
-            buffer.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, expected.Length);
+            buffer.CopyFromCPU(Accelerator.DefaultStream, expected);
             Execute(length, buffer.View);
         }
 
         internal static void DebugFailedKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             if (data[index] < 0)
             {
@@ -77,9 +78,9 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(DebugFailedKernel))]
         public void DebugFailed(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var expected = Enumerable.Repeat(2, length).ToArray();
-            buffer.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, expected.Length);
+            buffer.CopyFromCPU(Accelerator.DefaultStream, expected);
             Execute(length, buffer.View);
         }
     }

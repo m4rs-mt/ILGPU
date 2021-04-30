@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using ILGPU.Runtime;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace ILGPU.Tests
@@ -12,8 +13,8 @@ namespace ILGPU.Tests
         { }
 
         internal static void PrintFKernel(
-            Index1 index,
-            ArrayView<int> data,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
             byte b,
             short s,
             int i,
@@ -41,7 +42,7 @@ namespace ILGPU.Tests
         public void PrintF()
         {
             const int Length = 4;
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
 
             Execute(
                 Length,

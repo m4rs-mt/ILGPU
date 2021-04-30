@@ -14,7 +14,8 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        internal static void GridDimensionKernel(ArrayView<int> data)
+        internal static void GridDimensionKernel(
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[0] = Grid.DimX;
             data[1] = Grid.DimY;
@@ -34,13 +35,13 @@ namespace ILGPU.Tests
         {
             for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
-                using var buffer = Accelerator.Allocate<int>(3);
+                using var buffer = Accelerator.Allocate1D<int>(3);
                 var extent = new KernelConfig(
-                    new Index3(
+                    new Index3D(
                         Math.Max(i * xMask, 1),
                         Math.Max(i * yMask, 1),
                         Math.Max(i * zMask, 1)),
-                    Index3.One);
+                    Index3D.One);
 
                 Execute(extent, buffer.View);
 
@@ -50,11 +51,12 @@ namespace ILGPU.Tests
                     extent.GridDim.Y,
                     extent.GridDim.Z,
                 };
-                Verify(buffer, expected);
+                Verify(buffer.View, expected);
             }
         }
 
-        internal static void GridLaunchDimensionKernel(ArrayView<int> data)
+        internal static void GridLaunchDimensionKernel(
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[0] = Grid.DimX;
         }
@@ -65,20 +67,20 @@ namespace ILGPU.Tests
         [Fact]
         public void GridLaunchDimension()
         {
-            using var buffer = Accelerator.Allocate<int>(1);
-            var kernel = Accelerator.LoadStreamKernel<ArrayView<int>>
+            using var buffer = Accelerator.Allocate1D<int>(1);
+            var kernel = Accelerator.LoadStreamKernel<ArrayView1D<int, Stride1D.Dense>>
                 (GridLaunchDimensionKernel);
 
             kernel((1, 2), buffer.View);
             Accelerator.Synchronize();
 
-            var data = buffer.GetAsArray();
+            var data = buffer.GetAs1DArray();
             int expected = 1;
 
             Assert.Equal(expected, data[0]);
         }
 
-        private static IEnumerable<Index1> GetIndices1D(Accelerator accelerator)
+        private static IEnumerable<Index1D> GetIndices1D(Accelerator accelerator)
         {
             if (accelerator.MaxGridSize.X < int.MaxValue)
             {
@@ -91,8 +93,8 @@ namespace ILGPU.Tests
         public void GridLaunchDimensionOutOfRange1D()
         {
             const int UnusedParam = 0;
-            var maxBounds = new Index1(int.MaxValue);
-            static void AutoGroupedKernel1D(Index1 index, int _) { }
+            var maxBounds = new Index1D(int.MaxValue);
+            static void AutoGroupedKernel1D(Index1D index, int _) { }
 
             foreach (var index in GetIndices1D(Accelerator))
             {
@@ -107,21 +109,21 @@ namespace ILGPU.Tests
             }
         }
 
-        private static IEnumerable<Index2> GetIndices2D(Accelerator accelerator)
+        private static IEnumerable<Index2D> GetIndices2D(Accelerator accelerator)
         {
             var x = (accelerator.MaxGridSize.X * accelerator.MaxNumThreadsPerGroup) + 1;
             var y = accelerator.MaxGridSize.Y + 1;
-            yield return new Index2(x, 1);
-            yield return new Index2(1, y);
-            yield return new Index2(x, y);
+            yield return new Index2D(x, 1);
+            yield return new Index2D(1, y);
+            yield return new Index2D(x, y);
         }
 
         [Fact]
         public void GridLaunchDimensionOutOfRange2D()
         {
             const int UnusedParam = 0;
-            var maxBounds = new Index2(int.MaxValue, int.MaxValue);
-            static void AutoGroupedKernel2D(Index2 index, int _) { }
+            var maxBounds = new Index2D(int.MaxValue, int.MaxValue);
+            static void AutoGroupedKernel2D(Index2D index, int _) { }
 
             foreach (var index2 in GetIndices2D(Accelerator))
             {
@@ -136,26 +138,26 @@ namespace ILGPU.Tests
             }
         }
 
-        private static IEnumerable<Index3> GetIndices3D(Accelerator accelerator)
+        private static IEnumerable<Index3D> GetIndices3D(Accelerator accelerator)
         {
             var x = (accelerator.MaxGridSize.X * accelerator.MaxNumThreadsPerGroup) + 1;
             var y = accelerator.MaxGridSize.Y + 1;
             var z = accelerator.MaxGridSize.Z + 1;
-            yield return new Index3(x, 1, 1);
-            yield return new Index3(1, y, 1);
-            yield return new Index3(x, y, 1);
-            yield return new Index3(1, 1, z);
-            yield return new Index3(x, 1, z);
-            yield return new Index3(1, y, z);
-            yield return new Index3(x, y, z);
+            yield return new Index3D(x, 1, 1);
+            yield return new Index3D(1, y, 1);
+            yield return new Index3D(x, y, 1);
+            yield return new Index3D(1, 1, z);
+            yield return new Index3D(x, 1, z);
+            yield return new Index3D(1, y, z);
+            yield return new Index3D(x, y, z);
         }
 
         [Fact]
         public void GridLaunchDimensionOutOfRange3D()
         {
             const int UnusedParam = 0;
-            var maxBounds = new Index3(int.MaxValue, int.MaxValue, int.MaxValue);
-            static void AutoGroupedKernel3D(Index3 index, int _) { }
+            var maxBounds = new Index3D(int.MaxValue, int.MaxValue, int.MaxValue);
+            static void AutoGroupedKernel3D(Index3D index, int _) { }
 
             foreach (var index3 in GetIndices3D(Accelerator))
             {

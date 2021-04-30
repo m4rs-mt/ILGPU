@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using ILGPU.Runtime;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace ILGPU.Tests
@@ -10,9 +11,9 @@ namespace ILGPU.Tests
         { }
 
         internal static void BasicSwitchKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
             var value = source[index] switch
             {
@@ -31,14 +32,14 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(BasicSwitchKernel))]
         public void BasicSwitch(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(length);
             var sourceData = new int[length];
             for (int i = 0; i < length; ++i)
             {
                 sourceData[i] = i % (length / 2);
             }
-            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, length);
+            source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
 
             Execute(length, buffer.View, source.View);
 
@@ -55,14 +56,14 @@ namespace ILGPU.Tests
                 expected[i] = value;
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void BasicSwitchStoreKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> data2,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> data2,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
             var value = source[index];
 
@@ -83,15 +84,15 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(BasicSwitchStoreKernel))]
         public void BasicSwitchStore(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
-            using var buffer2 = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            using var buffer2 = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(length);
             var sourceData = new int[length];
             for (int i = 0; i < length; ++i)
             {
                 sourceData[i] = i % (length / 2);
             }
-            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, length);
+            source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
 
             Execute(length, buffer.View, buffer2.View, source.View);
 
@@ -110,8 +111,8 @@ namespace ILGPU.Tests
                 expected2[i] = sourceData[i] + 1;
             }
 
-            Verify(buffer, expected);
-            Verify(buffer2, expected2);
+            Verify(buffer.View, expected);
+            Verify(buffer2.View, expected2);
         }
     }
 }

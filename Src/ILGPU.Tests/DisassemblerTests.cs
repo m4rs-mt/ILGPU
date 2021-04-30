@@ -1,5 +1,6 @@
 ﻿using ILGPU.Frontend;
 using ILGPU.Frontend.DebugInformation;
+using ILGPU.Runtime;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -37,8 +38,8 @@ namespace ILGPU.Tests
         };
 
         internal static void InstructionPrefixOffsetsKernel<TFunc>(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
             where TFunc : struct, IPrefixOffsetFunc
         {
             TFunc func = default;
@@ -55,17 +56,17 @@ namespace ILGPU.Tests
         public void InstructionPrefixOffsets<T>(T _)
             where T : unmanaged
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
-            Execute<Index1, T>(buffer.Length, buffer.View);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute<Index1D, T>(buffer.IntExtent, buffer.View);
 
             var expected = Enumerable.Repeat(0, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void StelemLdtokenKernel<T>(
-            Index1 index,
-            ArrayView<T> input,
-            ArrayView<T> output)
+            Index1D index,
+            ArrayView1D<T, Stride1D.Dense> input,
+            ArrayView1D<T, Stride1D.Dense> output)
             where T : unmanaged
         {
             output[index] = (dynamic)input[index] * input[index];

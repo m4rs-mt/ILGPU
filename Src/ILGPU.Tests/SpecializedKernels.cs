@@ -34,8 +34,8 @@ namespace ILGPU.Tests
         };
 
         internal static void SpecializedImplicitValueKernel<T>(
-            Index1 _,
-            ArrayView<T> data,
+            Index1D _,
+            ArrayView1D<T, Stride1D.Dense> data,
             SpecializedValue<T> value)
             where T : unmanaged, IEquatable<T>
         {
@@ -51,9 +51,9 @@ namespace ILGPU.Tests
             var method = KernelMethodAttribute.GetKernelMethod(
                 new Type[] { typeof(T) });
             var kernel = Accelerator.LoadAutoGroupedKernel(
-                new Action<Index1, ArrayView<T>, SpecializedValue<T>>(
+                new Action<Index1D, ArrayView1D<T, Stride1D.Dense>, SpecializedValue<T>>(
                     SpecializedImplicitValueKernel));
-            using var buffer = Accelerator.Allocate<T>(1);
+            using var buffer = Accelerator.Allocate1D<T>(1);
             kernel(
                 Accelerator.DefaultStream,
                 1,
@@ -62,11 +62,11 @@ namespace ILGPU.Tests
             Accelerator.Synchronize();
 
             var expected = new T[] { value };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void SpecializedExplicitValueKernel<T>(
-            ArrayView<T> data,
+            ArrayView1D<T, Stride1D.Dense> data,
             SpecializedValue<T> value)
             where T : unmanaged, IEquatable<T>
         {
@@ -82,9 +82,9 @@ namespace ILGPU.Tests
             var method = KernelMethodAttribute.GetKernelMethod(
                 new Type[] { typeof(T) });
             var kernel = Accelerator.LoadKernel(
-                new Action<ArrayView<T>, SpecializedValue<T>>(
+                new Action<ArrayView1D<T, Stride1D.Dense>, SpecializedValue<T>>(
                     SpecializedExplicitValueKernel));
-            using var buffer = Accelerator.Allocate<T>(1);
+            using var buffer = Accelerator.Allocate1D<T>(1);
             kernel(
                 Accelerator.DefaultStream,
                 (1, 1),
@@ -93,7 +93,7 @@ namespace ILGPU.Tests
             Accelerator.Synchronize();
 
             var expected = new T[] { value };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
     }
 }

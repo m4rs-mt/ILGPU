@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using ILGPU.Runtime;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -14,7 +15,8 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        internal static void MemoryFenceGroupLevelKernel(ArrayView<int> data)
+        internal static void MemoryFenceGroupLevelKernel(
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             var idx = Grid.GlobalIndex.X;
             data[idx] = idx;
@@ -29,17 +31,17 @@ namespace ILGPU.Tests
             for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 var extent = new KernelConfig(Length, i);
-                using var buffer = Accelerator.Allocate<int>(extent.Size);
+                using var buffer = Accelerator.Allocate1D<int>(extent.Size);
                 Execute(extent, buffer.View);
 
                 var expected = Enumerable.Range(0, (int)extent.Size).ToArray();
-                Verify(buffer, expected);
+                Verify(buffer.View, expected);
             }
         }
 
         internal static void MemoryFenceDeviceLevelKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = index;
 
@@ -50,16 +52,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(MemoryFenceDeviceLevelKernel))]
         public void MemoryFenceDeviceLevel()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(Length, buffer.View);
 
             var expected = Enumerable.Range(0, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void MemoryFenceSystemLevelKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = index;
 
@@ -70,11 +72,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(MemoryFenceSystemLevelKernel))]
         public void MemoryFenceSystemLevel()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(Length, buffer.View);
 
             var expected = Enumerable.Range(0, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
     }
 }

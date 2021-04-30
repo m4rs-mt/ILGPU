@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ILGPU.Runtime;
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -12,9 +13,9 @@ namespace ILGPU.Tests
         { }
 
         internal static void WarpDimensionKernel(
-            Index1 index,
-            ArrayView<int> length,
-            ArrayView<int> idx)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> length,
+            ArrayView1D<int, Stride1D.Dense> idx)
         {
             length[index] = Warp.WarpSize;
             idx[index] = Warp.LaneIdx;
@@ -28,21 +29,21 @@ namespace ILGPU.Tests
         public void WarpDimension(int warpMultiplier)
         {
             var length = Accelerator.WarpSize * warpMultiplier;
-            using var lengthBuffer = Accelerator.Allocate<int>(length);
-            using var idxBuffer = Accelerator.Allocate<int>(length);
+            using var lengthBuffer = Accelerator.Allocate1D<int>(length);
+            using var idxBuffer = Accelerator.Allocate1D<int>(length);
             Execute(length, lengthBuffer.View, idxBuffer.View);
 
             var expectedLength = Enumerable.Repeat(
                 Accelerator.WarpSize, length).ToArray();
-            Verify(lengthBuffer, expectedLength);
+            Verify(lengthBuffer.View, expectedLength);
 
             var expectedIndices = new int[length];
             for (int i = 0; i < length; ++i)
                 expectedIndices[i] = i % Accelerator.WarpSize;
-            Verify(idxBuffer, expectedIndices);
+            Verify(idxBuffer.View, expectedIndices);
         }
 
-        internal static void WarpBarrierKernel(ArrayView<int> data)
+        internal static void WarpBarrierKernel(ArrayView1D<int, Stride1D.Dense> data)
         {
             var idx = Grid.GlobalIndex.X;
             Warp.Barrier();
@@ -57,17 +58,17 @@ namespace ILGPU.Tests
         public void WarpBarrier(int length)
         {
             var warpSize = Accelerator.WarpSize;
-            using var buffer = Accelerator.Allocate<int>(length * warpSize);
+            using var buffer = Accelerator.Allocate1D<int>(length * warpSize);
             var extent = new KernelConfig(
                 length,
                 warpSize);
             Execute(extent, buffer.View);
 
             var expected = Enumerable.Range(0, length * warpSize).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
-        internal static void WarpBroadcastKernel(ArrayView<int> data)
+        internal static void WarpBroadcastKernel(ArrayView1D<int, Stride1D.Dense> data)
         {
             var idx = Grid.GlobalIndex.X;
             data[idx] = Warp.Broadcast(Group.IdxX, Warp.WarpSize - 1);
@@ -81,19 +82,19 @@ namespace ILGPU.Tests
         public void WarpBroadcast(int length)
         {
             var warpSize = Accelerator.WarpSize;
-            using var buffer = Accelerator.Allocate<int>(length * warpSize);
+            using var buffer = Accelerator.Allocate1D<int>(length * warpSize);
             var extent = new KernelConfig(
                 length,
                 warpSize);
             Execute(extent, buffer.View);
 
             var expected = Enumerable.Repeat(warpSize - 1, length * warpSize).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void WarpShuffleKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             var targetIdx = Warp.WarpSize - 1;
             data[index] = Warp.Shuffle(Warp.LaneIdx, targetIdx);
@@ -107,17 +108,17 @@ namespace ILGPU.Tests
         public void WarpShuffle(int warpMultiplier)
         {
             var length = Accelerator.WarpSize * warpMultiplier;
-            using var dataBuffer = Accelerator.Allocate<int>(length);
+            using var dataBuffer = Accelerator.Allocate1D<int>(length);
             Execute(length, dataBuffer.View);
 
             var expected = Enumerable.Repeat(
                 Accelerator.WarpSize - 1, length).ToArray();
-            Verify(dataBuffer, expected);
+            Verify(dataBuffer.View, expected);
         }
 
         internal static void WarpShuffleDownKernel(
-            Index1 index,
-            ArrayView<int> data,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
             int shiftAmount)
         {
             data[index] = Warp.ShuffleDown(Warp.LaneIdx, shiftAmount);
@@ -134,7 +135,7 @@ namespace ILGPU.Tests
                 ++shiftAmount)
             {
                 var length = Accelerator.WarpSize * warpMultiplier;
-                using var dataBuffer = Accelerator.Allocate<int>(length);
+                using var dataBuffer = Accelerator.Allocate1D<int>(length);
                 Execute(length, dataBuffer.View, shiftAmount);
 
                 var expected = new int[Accelerator.WarpSize - shiftAmount];
@@ -152,13 +153,13 @@ namespace ILGPU.Tests
                     //     expected[baseIdx + j] = j;
                 }
 
-                Verify(dataBuffer, expected, 0, Accelerator.WarpSize - shiftAmount);
+                Verify(dataBuffer.View, expected, 0, Accelerator.WarpSize - shiftAmount);
             }
         }
 
         internal static void WarpShuffleUpKernel(
-            Index1 index,
-            ArrayView<int> data,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
             int shiftAmount)
         {
             data[index] = Warp.ShuffleUp(Warp.LaneIdx, shiftAmount);
@@ -175,7 +176,7 @@ namespace ILGPU.Tests
                 ++shiftAmount)
             {
                 var length = Accelerator.WarpSize * warpMultiplier;
-                using var dataBuffer = Accelerator.Allocate<int>(length);
+                using var dataBuffer = Accelerator.Allocate1D<int>(length);
                 Execute(length, dataBuffer.View, shiftAmount);
 
                 var expected = new int[length];
@@ -190,13 +191,13 @@ namespace ILGPU.Tests
                     //     expected[baseIdx + j] = j;
                 }
 
-                Verify(dataBuffer, expected, shiftAmount);
+                Verify(dataBuffer.View, expected, shiftAmount);
             }
         }
 
         internal static void WarpShuffleXorKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             var value = Warp.LaneIdx;
             for (int laneMask = Warp.WarpSize / 2; laneMask > 0; laneMask >>= 1)
@@ -215,14 +216,14 @@ namespace ILGPU.Tests
         public void WarpShuffleXor(int warpMultiplier)
         {
             var length = Accelerator.WarpSize * warpMultiplier;
-            using var dataBuffer = Accelerator.Allocate<int>(length);
+            using var dataBuffer = Accelerator.Allocate1D<int>(length);
             Execute(length, dataBuffer.View);
 
             var expected = Enumerable.Repeat(
                 (Accelerator.WarpSize * (Accelerator.WarpSize - 1)) / 2,
                 length).ToArray();
 
-            Verify(dataBuffer, expected);
+            Verify(dataBuffer.View, expected);
         }
     }
 }

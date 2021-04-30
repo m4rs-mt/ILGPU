@@ -2,6 +2,7 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
+using ILGPU.Runtime;
 using System;
 using System.Linq;
 using Xunit;
@@ -27,9 +28,9 @@ namespace ILGPU.Tests
 <#         var testName = "ConvertOperation" + baseName; #>
 <#         var kernelName = "ConvertOperationKernel" + baseName; #>
         internal static void <#= kernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView<<#= targetType.Type #>> b)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView1D<<#= targetType.Type #>, Stride1D.Dense> b)
         {
             b[index] = (<#= targetType.Type #>)a[index];
         }
@@ -46,14 +47,14 @@ namespace ILGPU.Tests
         {
             var convertedValue = (<#= type.Type #>)value;
             const int length = 32;
-            using var a = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var b = Accelerator.Allocate<<#= targetType.Type #>>(length);
-            Initialize(a, convertedValue);
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(length);
+            using var b = Accelerator.Allocate1D<<#= targetType.Type #>>(length);
+            Initialize(a.View, convertedValue);
             Execute(length, a.View, b.View);
 
             var result = (<#= targetType.Type #>)convertedValue;
             var reference = Enumerable.Repeat(result, length).ToArray();
-            Verify(b, reference);
+            Verify(b.View, reference);
         }
 
 <#      } #>

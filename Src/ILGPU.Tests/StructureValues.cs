@@ -1,4 +1,5 @@
-﻿using ILGPU.Util;
+﻿using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -87,8 +88,8 @@ namespace ILGPU.Tests
         };
 
         internal static void StructureInteropKernel<T>(
-            Index1 index,
-            ArrayView<T> data,
+            Index1D index,
+            ArrayView1D<T, Stride1D.Dense> data,
             T value)
             where T : unmanaged
         {
@@ -101,11 +102,11 @@ namespace ILGPU.Tests
         public void StructureInterop<T>(T value)
             where T : unmanaged
         {
-            using var buffer = Accelerator.Allocate<T>(1);
-            Execute<Index1, T>(buffer.Length, buffer.View, value);
+            using var buffer = Accelerator.Allocate1D<T>(1);
+            Execute<Index1D, T>(buffer.IntExtent, buffer.View, value);
 
             var expected = new T[] { value };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         public static TheoryData<object> StructureViewInteropData =>
@@ -138,8 +139,8 @@ namespace ILGPU.Tests
         };
 
         internal static void StructureViewInteropKernel<T>(
-            Index1 index,
-            DeepStructure<ArrayView<T>> value,
+            Index1D index,
+            DeepStructure<ArrayView1D<T, Stride1D.Dense>> value,
             T val0,
             T val1,
             T val2)
@@ -156,20 +157,20 @@ namespace ILGPU.Tests
         public void StructureViewInterop<T>(T value)
             where T : unmanaged
         {
-            using var nestedBuffer = Accelerator.Allocate<T>(1);
-            using var nestedBuffer2 = Accelerator.Allocate<T>(1);
-            using var nestedBuffer3 = Accelerator.Allocate<T>(1);
+            using var nestedBuffer = Accelerator.Allocate1D<T>(1);
+            using var nestedBuffer2 = Accelerator.Allocate1D<T>(1);
+            using var nestedBuffer3 = Accelerator.Allocate1D<T>(1);
 
-            var nestedStructure = new DeepStructure<ArrayView<T>>(
-                nestedBuffer,
-                nestedBuffer2,
-                nestedBuffer3);
-            Execute<Index1, T>(1, nestedStructure, value, value, value);
+            var nestedStructure = new DeepStructure<ArrayView1D<T, Stride1D.Dense>>(
+                nestedBuffer.View,
+                nestedBuffer2.View,
+                nestedBuffer3.View);
+            Execute<Index1D, T>(1, nestedStructure, value, value, value);
 
             var expected = new T[] { value };
-            Verify(nestedBuffer, expected);
-            Verify(nestedBuffer2, expected);
-            Verify(nestedBuffer3, expected);
+            Verify(nestedBuffer.View, expected);
+            Verify(nestedBuffer2.View, expected);
+            Verify(nestedBuffer3.View, expected);
         }
 
         [SuppressMessage(
@@ -201,8 +202,8 @@ namespace ILGPU.Tests
         }
 
         internal static void StructureGetNestedKernel(
-            Index1 index,
-            ArrayView<Nested> data,
+            Index1D index,
+            ArrayView1D<Nested, Stride1D.Dense> data,
             Parent value)
         {
             data[index] = value.Second;
@@ -223,14 +224,14 @@ namespace ILGPU.Tests
                 Second = nested,
             };
 
-            using var buffer = Accelerator.Allocate<Nested>(1);
-            Execute(buffer.Length, buffer.View, value);
-            Verify(buffer, new Nested[] { nested });
+            using var buffer = Accelerator.Allocate1D<Nested>(1);
+            Execute(buffer.IntExtent, buffer.View, value);
+            Verify(buffer.View, new Nested[] { nested });
         }
 
         internal static void StructureSetNestedKernel(
-            Index1 index,
-            ArrayView<Parent> data,
+            Index1D index,
+            ArrayView1D<Parent, Stride1D.Dense> data,
             Nested value)
         {
             var dataValue = new Parent
@@ -256,9 +257,9 @@ namespace ILGPU.Tests
                 Second = nested,
             };
 
-            using var buffer = Accelerator.Allocate<Parent>(1);
+            using var buffer = Accelerator.Allocate1D<Parent>(1);
             Execute(buffer.Length, buffer.View, nested);
-            Verify(buffer, new Parent[] { value });
+            Verify(buffer.View, new Parent[] { value });
         }
 
         public static TheoryData<object> StructureEmptyTypeData => new TheoryData<object>
@@ -276,8 +277,8 @@ namespace ILGPU.Tests
         };
 
         internal static void StructureEmptyKernel<T1, T2>(
-            Index1 index,
-            ArrayView<TestStruct<T1, T2>> output,
+            Index1D index,
+            ArrayView1D<TestStruct<T1, T2>, Stride1D.Dense> output,
             TestStruct<T1, T2> input)
             where T1 : unmanaged
             where T2 : unmanaged
@@ -300,9 +301,9 @@ namespace ILGPU.Tests
                 Val2 = default,
             };
 
-            using var buffer = Accelerator.Allocate<TestStruct<EmptyStruct, T>>(1);
-            Execute<Index1, EmptyStruct, T>(buffer.Length, buffer.View, expected);
-            Verify(buffer, new[] { expected });
+            using var buffer = Accelerator.Allocate1D<TestStruct<EmptyStruct, T>>(1);
+            Execute<Index1D, EmptyStruct, T>(buffer.IntExtent, buffer.View, expected);
+            Verify(buffer.View, new[] { expected });
         }
 
         [Theory]
@@ -318,12 +319,12 @@ namespace ILGPU.Tests
                 Val2 = default,
             };
 
-            using var buffer = Accelerator.Allocate<TestStruct<T, EmptyStruct>>(1);
-            Execute<Index1, T, EmptyStruct>(
-                buffer.Length,
+            using var buffer = Accelerator.Allocate1D<TestStruct<T, EmptyStruct>>(1);
+            Execute<Index1D, T, EmptyStruct>(
+                buffer.IntExtent,
                 buffer.View,
                 expected);
-            Verify(buffer, new[] { expected });
+            Verify(buffer.View, new[] { expected });
         }
 
         internal struct UnsignedFieldStruct
@@ -334,8 +335,8 @@ namespace ILGPU.Tests
         }
 
         internal static void StructureUnsignedFieldKernel(
-            Index1 index,
-            ArrayView<long> output,
+            Index1D index,
+            ArrayView1D<long, Stride1D.Dense> output,
             UnsignedFieldStruct input)
         {
             output[index] = input.x;
@@ -359,14 +360,14 @@ namespace ILGPU.Tests
                 z = maxUInt32
             };
 
-            using var output = Accelerator.Allocate<long>(3);
+            using var output = Accelerator.Allocate1D<long>(3);
             Execute(1, output.View, input);
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
 
         internal static void StructureLoweringKernel<T>(
-            Index1 index,
-            ArrayView<T> output,
+            Index1D index,
+            ArrayView1D<T, Stride1D.Dense> output,
             T value0,
             T value1,
             int c)
@@ -381,11 +382,11 @@ namespace ILGPU.Tests
         public void StructureLowering<T>(T value)
             where T : unmanaged
         {
-            using var output = Accelerator.Allocate<T>(1);
-            Execute<Index1, T>(1, output.View, value, value, 42);
+            using var output = Accelerator.Allocate1D<T>(1);
+            Execute<Index1D, T>(1, output.View, value, value, 42);
 
             var expected = new T[] { value };
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
 
         internal struct Vector2
@@ -410,7 +411,7 @@ namespace ILGPU.Tests
         }
 
         internal static void StructureAggressiveInliningKernel(
-            Index1 index, ArrayView<int> output)
+            Index1D index, ArrayView1D<int, Stride1D.Dense> output)
         {
             StructureAggressiveInliningFunc(out var v);
             output[index] = v.X;
@@ -420,11 +421,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(StructureAggressiveInliningKernel))]
         public void StructureAggressiveInlining()
         {
-            using var output = Accelerator.Allocate<int>(1);
+            using var output = Accelerator.Allocate1D<int>(1);
             Execute(1, output.View);
 
             var expected = new int[] { 42 };
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
 
         public unsafe struct FieldStruct
@@ -434,7 +435,8 @@ namespace ILGPU.Tests
         }
 
         internal static void StructureFixedBufferGetFieldKernel(
-            Index1 index, ArrayView<int> output)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> output)
         {
             var a = new FieldStruct();
             if (a.Cursor > 0)
@@ -447,16 +449,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(StructureFixedBufferGetFieldKernel))]
         public void StructureFixedBufferGetField()
         {
-            using var output = Accelerator.Allocate<int>(1);
+            using var output = Accelerator.Allocate1D<int>(1);
             output.MemSetToZero();
             Execute(1, output.View);
 
             var expected = new int[] { 0 };
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
 
         internal static void StructureFixedBufferSetFieldKernel(
-            Index1 index, ArrayView<int> output)
+            Index1D index, ArrayView1D<int, Stride1D.Dense> output)
         {
             var a = new FieldStruct { Cursor = 42 };
             output[index] = a.Cursor;
@@ -466,11 +468,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(StructureFixedBufferSetFieldKernel))]
         public void StructureFixedBufferSetField()
         {
-            using var output = Accelerator.Allocate<int>(1);
+            using var output = Accelerator.Allocate1D<int>(1);
             Execute(1, output.View);
 
             var expected = new int[] { 42 };
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
     }
 }

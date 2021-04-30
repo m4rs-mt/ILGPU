@@ -95,9 +95,9 @@ namespace ILGPU.Tests
         var tupleType = $"ValueTuple<{permutationTypeNames}>";
 #>
         internal static void <#= kernelName #>(
-            Index1 index,
-            ArrayView<<#= tupleType #>> input,
-            ArrayView<<#= tupleType #>> output)
+            Index1D index,
+            ArrayView1D<<#= tupleType #>, Stride1D.Dense> input,
+            ArrayView1D<<#= tupleType #>, Stride1D.Dense> output)
         {
 <#      for (var i = 1; i <= permutationTypes.Length; i++) { #>
             output[index].Item<#= i #> = input[index].Item<#= i #>;
@@ -116,10 +116,11 @@ namespace ILGPU.Tests
                 Enumerable.Range(1, Length)
                 .Select(n => new <#= tupleType #>(<#= rndParams #>))
                 .ToArray();
-            using var input = Accelerator.Allocate(expected);
-            using var output = Accelerator.AllocateZero<<#= tupleType #>>(Length);
+            using var input = Accelerator.Allocate1D(expected);
+            using var output = Accelerator.Allocate1D<<#= tupleType #>>(Length);
+            output.MemSetToZero();
             Execute(Length, input.View, output.View);
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
 
 <#

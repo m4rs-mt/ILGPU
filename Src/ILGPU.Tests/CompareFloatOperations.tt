@@ -2,6 +2,7 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
+using ILGPU.Runtime;
 using System;
 using System.Linq;
 using Xunit;
@@ -52,10 +53,10 @@ namespace ILGPU.Tests
 <#         var testName = "CompareOperation" + baseName; #>
 <#         var kernelName = "CompareOperationKernel" + testName; #>
         internal static void <#= kernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView<<#= type.Type #>> b,
-            ArrayView<int> c)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> b,
+            ArrayView1D<int, Stride1D.Dense> c)
         {
             var result = a[index] <#= infix #> b[index];
             c[index] = result ? 1 : 0;
@@ -79,16 +80,16 @@ namespace ILGPU.Tests
             <#= type.Type #> right)
         {
             const int length = 32;
-            using var a = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var c = Accelerator.Allocate<int>(length);
-            Initialize(a, left);
-            Initialize(b, right);
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(length);
+            using var b = Accelerator.Allocate1D<<#= type.Type #>>(length);
+            using var c = Accelerator.Allocate1D<int>(length);
+            Initialize(a.View, left);
+            Initialize(b.View, right);
             Execute(length, a.View, b.View, c.View);
 
             var result = left <#= infix #> right ? 1 : 0;
             var reference = Enumerable.Repeat(result, length).ToArray();
-            Verify(c, reference);
+            Verify(c.View, reference);
         }
 
 <#      } #>
@@ -105,9 +106,9 @@ namespace ILGPU.Tests
                 type.Suffix,
                 type.Prefix); #>
         internal static void <#= kernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> input,
-            ArrayView<int> output)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> input,
+            ArrayView1D<int, Stride1D.Dense> output)
         {
             output[index] = input[index] == <#= testValue #> ? 1 : 0;
         }
@@ -120,12 +121,12 @@ namespace ILGPU.Tests
             var expected = inputArray.Select(
                 x => x == <#= testValue #> ? 1 : 0).ToArray();
 
-            using var input = Accelerator.Allocate<<#= type.Type #>>(inputArray.Length);
-            using var output = Accelerator.Allocate<int>(inputArray.Length);
-            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            using var input = Accelerator.Allocate1D<<#= type.Type #>>(inputArray.Length);
+            using var output = Accelerator.Allocate1D<int>(inputArray.Length);
+            input.CopyFromCPU(inputArray);
 
-            Execute(input.Length, input.View, output.View);
-            Verify(output, expected);
+            Execute(input.IntExtent, input.View, output.View);
+            Verify(output.View, expected);
         }
 
 <#      } #>

@@ -2,6 +2,7 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
+using ILGPU.Runtime;
 using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Xunit.Abstractions;
@@ -38,10 +39,10 @@ namespace ILGPU.Tests
 <#         var redTestName = "AtomicOperationRed" + baseName; #>
 <#         var redKernelName = "AtomicOperationKernelRed" + testName; #>
         internal static void <#= kernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView<<#= type.Type #>> b,
-            ArrayView<<#= type.Type #>> c)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> b,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> c)
         {
             c[index] = Atomic.<#= operationName #>(ref a[0], b[index]);
         }
@@ -60,11 +61,11 @@ namespace ILGPU.Tests
             <#= type.Type #> second)
         {
             const int length = 1024;
-            using var a = Accelerator.Allocate<<#= type.Type #>>(1);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var c = Accelerator.Allocate<<#= type.Type #>>(length);
-            Initialize(a, first);
-            Initialize(b, second);
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(1);
+            using var b = Accelerator.Allocate1D<<#= type.Type #>>(length);
+            using var c = Accelerator.Allocate1D<<#= type.Type #>>(length);
+            Initialize(a.View, first);
+            Initialize(b.View, second);
             Execute(length, a.View, b.View, c.View);
 
             <#= type.Type #> result = first;
@@ -72,13 +73,13 @@ namespace ILGPU.Tests
                 Atomic.<#= operationName #>(ref result, second);
 
             var reference = new <#= type.Type #>[] { result };
-            Verify(a, reference);
+            Verify(a.View, reference);
         }
 
         internal static void <#= redKernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView<<#= type.Type #>> b)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> b)
         {
             Atomic.<#= operationName #>(ref a[0], b[index]);
         }
@@ -97,10 +98,10 @@ namespace ILGPU.Tests
             <#= type.Type #> second)
         {
             const int length = 1024;
-            using var a = Accelerator.Allocate<<#= type.Type #>>(1);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(length);
-            Initialize(a, first);
-            Initialize(b, second);
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(1);
+            using var b = Accelerator.Allocate1D<<#= type.Type #>>(length);
+            Initialize(a.View, first);
+            Initialize(b.View, second);
             Execute(length, a.View, b.View);
 
             <#= type.Type #> result = first;
@@ -108,7 +109,7 @@ namespace ILGPU.Tests
                 Atomic.<#= operationName #>(ref result, second);
 
             var reference = new <#= type.Type #>[] { result };
-            Verify(a, reference);
+            Verify(a.View, reference);
         }
 
 <#      } #>

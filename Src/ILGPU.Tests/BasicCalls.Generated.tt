@@ -23,10 +23,10 @@ namespace ILGPU.Tests
 <# foreach (var type in smallIntTypes) { #>
 <#      var structName = $"TestStruct<{type.Type}>"; #>
         internal static void CallReturn<#= type.Name #>Kernel(
-            Index1 index,
-            ArrayView<<#= structName #>> source,
-            ArrayView<<#= type.Type #>> target1,
-            ArrayView<<#= type.Type #>> target2)
+            Index1D index,
+            ArrayView1D<<#= structName #>, Stride1D.Dense> source,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> target1,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> target2)
         {
             float val1 = source[index].Val1;
             target1[index] = (<#= type.Type #>)val1;
@@ -53,16 +53,16 @@ namespace ILGPU.Tests
                 Val2 = short.MaxValue,
             };
 
-            using var source = Accelerator.Allocate<<#= structName #>>(
+            using var source = Accelerator.Allocate1D<<#= structName #>>(
                 Enumerable.Repeat(dataStruct, Length).ToArray());
-            using var target1 = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var target2 = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var target1 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var target2 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
 
             Execute(source.Length, source.View, target1.View, target2.View);
 
             var expected = Enumerable.Repeat(dataStruct.Val1, Length).ToArray();
-            Verify(target1, expected);
-            Verify(target2, expected);
+            Verify(target1.View, expected);
+            Verify(target2.View, expected);
         }
 
 <# } #>
