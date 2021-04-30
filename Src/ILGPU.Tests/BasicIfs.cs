@@ -16,8 +16,8 @@ namespace ILGPU.Tests
         { }
 
         internal static void IfTrueKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             int value;
             if (true)
@@ -31,16 +31,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(IfTrueKernel))]
         public void IfTrue()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(42, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void IfFalseKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             int value;
             if (false)
@@ -54,17 +54,17 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(IfFalseKernel))]
         public void IfFalse()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(23, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void IfTrueSideEffectsKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> data2)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> data2)
         {
             if (true)
             {
@@ -82,21 +82,21 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(IfTrueSideEffectsKernel))]
         public void IfTrueSideEffects()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
-            using var buffer2 = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            using var buffer2 = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, buffer2.View);
 
             var expected = Enumerable.Repeat(42, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
 
             var expected2 = Enumerable.Repeat(1, Length).ToArray();
-            Verify(buffer2, expected2);
+            Verify(buffer2.View, expected2);
         }
 
         internal static void IfFalseSideEffectsKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> data2)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> data2)
         {
             if (false)
             {
@@ -114,21 +114,21 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(IfFalseSideEffectsKernel))]
         public void IfFalseSideEffects()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
-            using var buffer2 = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            using var buffer2 = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, buffer2.View);
 
             var expected = Enumerable.Repeat(23, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
 
             var expected2 = Enumerable.Repeat(0, Length).ToArray();
-            Verify(buffer2, expected2);
+            Verify(buffer2.View, expected2);
         }
 
         internal static void IfSideEffectsKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> data2,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> data2,
             int c)
         {
             if (c != 0)
@@ -151,21 +151,21 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(IfSideEffectsKernel))]
         public void IfSideEffects(int c, int res1, int res2)
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
-            using var buffer2 = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            using var buffer2 = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, buffer2.View, c);
 
             var expected = Enumerable.Repeat(res1, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
 
             var expected2 = Enumerable.Repeat(res2, Length).ToArray();
-            Verify(buffer2, expected2);
+            Verify(buffer2.View, expected2);
         }
 
         internal static void IfNestedSideEffectsKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> data2,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> data2,
             int c,
             int d)
         {
@@ -211,20 +211,20 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(IfNestedSideEffectsKernel))]
         public void IfNestedSideEffects(int c, int d, int res1, int res2)
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
-            using var buffer2 = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            using var buffer2 = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, buffer2.View, c, d);
 
             var expected = Enumerable.Repeat(res1, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
 
             var expected2 = Enumerable.Repeat(res2, Length).ToArray();
-            Verify(buffer2, expected2);
+            Verify(buffer2.View, expected2);
         }
 
         internal static void IfAndOrKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             int value;
 
@@ -240,17 +240,17 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(IfAndOrKernel))]
         public void IfAndOr()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(42, 2).Concat
                 (Enumerable.Repeat(0, Length - 2)).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void NestedIfAndOrKernel(
-            Index1 index,
-            ArrayView<int> data,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
             int c,
             int d)
         {
@@ -278,17 +278,17 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(NestedIfAndOrKernel))]
         public void NestedIfAndOr(int c, int d, int res1, int res2)
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, c, d);
 
             var expected = Enumerable.Repeat(res1, 6).Concat(
                 Enumerable.Repeat(res2, Length - 6)).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void NestedIfAndOrKernelSideEffects(
-            Index1 index,
-            ArrayView<int> data,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
             int c,
             int d)
         {
@@ -318,18 +318,18 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(NestedIfAndOrKernelSideEffects))]
         public void NestedIfAndOrSideEffects(int c, int d, int res1, int res2)
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, c, d);
 
             var expected = Enumerable.Repeat(res1, 6).Concat(
                 Enumerable.Repeat(res2, Length - 6)).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void IfWithoutBlocksKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> data2,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> data2,
             int a,
             int b,
             int c)
@@ -342,17 +342,17 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(IfWithoutBlocksKernel))]
         public void IfWithoutBlocks()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
-            using var buffer2 = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            using var buffer2 = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, buffer2.View, 23, 42, 23);
 
-            Verify(buffer, Enumerable.Repeat(42, Length).ToArray());
-            Verify(buffer2, Enumerable.Repeat(23, Length).ToArray());
+            Verify(buffer.View, Enumerable.Repeat(42, Length).ToArray());
+            Verify(buffer2.View, Enumerable.Repeat(23, Length).ToArray());
         }
 
         internal static void SwitchWithConstantConditionKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             var mode = 2;
             data[index] = mode switch
@@ -368,15 +368,15 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(SwitchWithConstantConditionKernel))]
         public void SwitchWithConstantCondition()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
-            Verify(buffer, Enumerable.Repeat(33, Length).ToArray());
+            Verify(buffer.View, Enumerable.Repeat(33, Length).ToArray());
         }
 
         internal static void SwitchWithVariableConditionKernel(
-            Index1 index,
-            ArrayView<int> input,
-            ArrayView<int> output)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> input,
+            ArrayView1D<int, Stride1D.Dense> output)
         {
             output[index] = input[index] switch
             {
@@ -394,10 +394,10 @@ namespace ILGPU.Tests
             var inputArray = new[] { 0, 1, 2, 3, 4, 3, 2, 1, 0 };
             var expected = new[] { 11, 22, 33, 44, 44, 44, 33, 22, 11 };
 
-            using var input = Accelerator.Allocate(inputArray);
-            using var output = Accelerator.Allocate<int>(inputArray.Length);
+            using var input = Accelerator.Allocate1D(inputArray);
+            using var output = Accelerator.Allocate1D<int>(inputArray.Length);
             Execute(input.Length, input.View, output.View);
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
     }
 }

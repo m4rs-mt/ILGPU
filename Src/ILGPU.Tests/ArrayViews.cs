@@ -1,4 +1,4 @@
-﻿using ILGPU.Util;
+﻿using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -14,7 +14,9 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        internal static void ArrayViewValidKernel(Index1 index, ArrayView<int> data)
+        internal static void ArrayViewValidKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             ArrayView<int> invalid = default;
             data[index] = (data.IsValid ? 1 : 0) + (!invalid.IsValid ? 1 : 0);
@@ -28,17 +30,17 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewValidKernel))]
         public void ArrayViewValid(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             Execute(length, buffer.View);
 
             var expected = Enumerable.Repeat(2, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewLeaKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
             data[index] = source[(int)index];
         }
@@ -51,21 +53,21 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewLeaKernel))]
         public void ArrayViewLea(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var expected = Enumerable.Range(0, length).ToArray();
-            using (var source = Accelerator.Allocate<int>(length))
+            using (var source = Accelerator.Allocate1D<int>(length))
             {
-                source.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, length);
+                source.CopyFromCPU(Accelerator.DefaultStream, expected);
                 Execute(length, buffer.View, source.View);
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewLeaIndexKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
             data[index] = source[index];
         }
@@ -78,23 +80,23 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewLeaIndexKernel))]
         public void ArrayViewLeaIndex(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var expected = Enumerable.Range(0, length).ToArray();
-            using (var source = Accelerator.Allocate<int>(length))
+            using (var source = Accelerator.Allocate1D<int>(length))
             {
-                source.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, length);
+                source.CopyFromCPU(Accelerator.DefaultStream, expected);
                 Execute(length, buffer.View, source.View);
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewLongLeaIndexKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
-            LongIndex1 longIndex = index;
+            LongIndex1D longIndex = index;
             data[longIndex] = source[longIndex];
         }
 
@@ -106,20 +108,20 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewLongLeaIndexKernel))]
         public void ArrayViewLongLeaIndex(long length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var expected = Enumerable.Range(0, (int)length).ToArray();
-            using (var source = Accelerator.Allocate<int>(length))
+            using (var source = Accelerator.Allocate1D<int>(length))
             {
-                source.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, length);
+                source.CopyFromCPU(Accelerator.DefaultStream, expected);
                 Execute((int)length, buffer.View, source.View);
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewLengthKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = data.IntLength;
         }
@@ -132,16 +134,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewLengthKernel))]
         public void ArrayViewLength(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             Execute(length, buffer.View);
 
             var expected = Enumerable.Repeat(length, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewLongLengthKernel(
-            Index1 index,
-            ArrayView<long> data)
+            Index1D index,
+            ArrayView1D<long, Stride1D.Dense> data)
         {
             data[index] = data.Length;
         }
@@ -154,16 +156,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewLongLengthKernel))]
         public void ArrayViewLongLength(int length)
         {
-            using var buffer = Accelerator.Allocate<long>(length);
+            using var buffer = Accelerator.Allocate1D<long>(length);
             Execute(length, buffer.View);
 
             var expected = Enumerable.Repeat((long)length, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewExtentKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = data.IntExtent.X;
         }
@@ -176,16 +178,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewExtentKernel))]
         public void ArrayViewExtent(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             Execute(length, buffer.View);
 
             var expected = Enumerable.Repeat(length, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewLongExtentKernel(
-            Index1 index,
-            ArrayView<long> data)
+            Index1D index,
+            ArrayView1D<long, Stride1D.Dense> data)
         {
             data[index] = data.Extent.X;
         }
@@ -198,16 +200,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewLongExtentKernel))]
         public void ArrayViewLongExtent(int length)
         {
-            using var buffer = Accelerator.Allocate<long>(length);
+            using var buffer = Accelerator.Allocate1D<long>(length);
             Execute(length, buffer.View);
 
             var expected = Enumerable.Repeat((long)length, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewLengthInBytesKernel(
-            Index1 index,
-            ArrayView<long> data)
+            Index1D index,
+            ArrayView1D<long, Stride1D.Dense> data)
         {
             data[index] = data.LengthInBytes;
         }
@@ -220,23 +222,23 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewLengthInBytesKernel))]
         public void ArrayViewLengthInBytes(int length)
         {
-            using var buffer = Accelerator.Allocate<long>(length);
+            using var buffer = Accelerator.Allocate1D<long>(length);
             Execute(length, buffer.View);
 
             var expected = Enumerable.Repeat((long)length * sizeof(long), length).
                 ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewGetSubViewKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> length,
-            ArrayView<int> source,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> length,
+            ArrayView1D<int, Stride1D.Dense> source,
             int subViewOffset,
             int subViewLength)
         {
-            var subView = source.GetSubView(subViewOffset, subViewLength);
+            var subView = source.SubView(subViewOffset, subViewLength);
             data[index] = subView[0];
             length[index] = subView.IntLength;
         }
@@ -256,11 +258,11 @@ namespace ILGPU.Tests
             int subViewOffset,
             int subViewLength)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
-            using var viewLength = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            using var viewLength = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(length);
             var data = Enumerable.Range(0, length).ToArray();
-            source.CopyFrom(Accelerator.DefaultStream, data, 0, 0, length);
+            source.CopyFromCPU(Accelerator.DefaultStream, data);
 
             Execute(
                 length,
@@ -271,19 +273,20 @@ namespace ILGPU.Tests
                 subViewLength);
 
             var expected = Enumerable.Repeat(subViewOffset, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
 
             var expectedLength = Enumerable.Repeat(subViewLength, length).ToArray();
-            Verify(viewLength, expectedLength);
+            Verify(viewLength.View, expectedLength);
         }
 
         internal static void ArrayViewGetSubViewImplicitLengthKernel(
-            Index1 index,
-            ArrayView<int> length,
-            ArrayView<int> source,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> length,
+            ArrayView1D<int, Stride1D.Dense> source,
             int subViewOffset)
         {
-            var subView = source.GetSubView(subViewOffset);
+            ArrayView<int> rawView = source;
+            var subView = rawView.SubView(subViewOffset);
             length[index] = subView.IntLength;
         }
 
@@ -299,8 +302,8 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewGetSubViewImplicitLengthKernel))]
         public void ArrayViewGetSubViewImplicitLength(int length, int subViewOffset)
         {
-            using var viewLength = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(length);
+            using var viewLength = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(length);
             Execute(
                 length,
                 viewLength.View,
@@ -309,14 +312,14 @@ namespace ILGPU.Tests
 
             var expectedLength = Enumerable.Repeat(
                 length - subViewOffset, length).ToArray();
-            Verify(viewLength, expectedLength);
+            Verify(viewLength.View, expectedLength);
         }
 
         internal static void ArrayViewCastSmallerKernel(
-            Index1 index,
-            ArrayView<byte> data,
-            ArrayView<int> length,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<byte, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> length,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
             var subView = source.Cast<byte>();
             data[index] = subView[0];
@@ -333,11 +336,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewCastSmallerKernel))]
         public void ArrayViewCastSmaller(int length)
         {
-            using var buffer = Accelerator.Allocate<byte>(length);
-            using var viewLength = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(length);
-            var data = new int[] { -1 };
-            source.CopyFrom(Accelerator.DefaultStream, data, 0, 0, data.Length);
+            using var buffer = Accelerator.Allocate1D<byte>(length);
+            using var viewLength = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(length);
+            var data = Enumerable.Repeat(-1, length).ToArray();
+            source.CopyFromCPU(Accelerator.DefaultStream, data);
 
             Execute(
                 length,
@@ -346,18 +349,18 @@ namespace ILGPU.Tests
                 source.View);
 
             var expected = Enumerable.Repeat(byte.MaxValue, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
 
             var expectedLength = Enumerable.Repeat(
                 sizeof(int) / sizeof(byte) * length, length).ToArray();
-            Verify(viewLength, expectedLength);
+            Verify(viewLength.View, expectedLength);
         }
 
         internal static void ArrayViewCastLargerKernel(
-            Index1 index,
-            ArrayView<long> data,
-            ArrayView<int> length,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<long, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> length,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
             var subView = source.Cast<long>();
             data[index] = subView[0];
@@ -373,11 +376,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewCastLargerKernel))]
         public void ArrayViewCastLarger(int length)
         {
-            using var buffer = Accelerator.Allocate<long>(length);
-            using var viewLength = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(2);
+            using var buffer = Accelerator.Allocate1D<long>(length);
+            using var viewLength = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(2);
             var data = new int[] { -1, -1 };
-            source.CopyFrom(Accelerator.DefaultStream, data, 0, 0, data.Length);
+            source.CopyFromCPU(Accelerator.DefaultStream, data);
 
             Execute(
                 length,
@@ -388,19 +391,19 @@ namespace ILGPU.Tests
             var expected = new long[length];
             for (int i = 0; i < length; ++i)
                 expected[i] = -1L;
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
 
             var expectedLength = Enumerable.Repeat(
                 length / 2, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewLinearViewKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
-            data[index] = source.AsLinearView()[index];
+            data[index] = source.AsContiguous()[index];
         }
 
         [Theory]
@@ -411,23 +414,23 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewLinearViewKernel))]
         public void ArrayViewLinearView(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var expected = Enumerable.Range(0, length).ToArray();
-            using (var source = Accelerator.Allocate<int>(length))
+            using (var source = Accelerator.Allocate1D<int>(length))
             {
-                source.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, length);
+                source.CopyFromCPU(Accelerator.DefaultStream, expected);
                 Execute(length, buffer.View, source.View);
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewGetVariableViewKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
-            data[index] = source.GetVariableView(index).Value;
+            data[index] = source.VariableView(index).Value;
         }
 
         [Theory]
@@ -438,26 +441,26 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewGetVariableViewKernel))]
         public void ArrayViewGetVariableView(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var expected = Enumerable.Range(0, length).ToArray();
-            using (var source = Accelerator.Allocate<int>(length))
+            using (var source = Accelerator.Allocate1D<int>(length))
             {
-                source.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, length);
+                source.CopyFromCPU(Accelerator.DefaultStream, expected);
                 Execute(length, buffer.View, source.View);
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void VariableSubViewKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> data2,
-            ArrayView<long> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> data2,
+            ArrayView1D<long, Stride1D.Dense> source)
         {
-            var view = source.GetVariableView(index);
-            data[index] = view.GetSubView<int>(0).Value;
-            data2[index] = view.GetSubView<int>(sizeof(int)).Value;
+            var view = source.VariableView(index);
+            data[index] = view.SubView<int>(0).Value;
+            data2[index] = view.SubView<int>(sizeof(int)).Value;
         }
 
         [Theory]
@@ -466,27 +469,29 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(VariableSubViewKernel))]
         public void VariableSubView(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
-            using var buffer2 = Accelerator.Allocate<int>(length);
-            using (var source = Accelerator.Allocate<long>(length))
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            using var buffer2 = Accelerator.Allocate1D<int>(length);
+            using (var source = Accelerator.Allocate1D<long>(length))
             {
                 var expected = Enumerable.Repeat(
                     (long)int.MaxValue << 32 | ushort.MaxValue, length).ToArray();
-                source.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, length);
+                source.CopyFromCPU(Accelerator.DefaultStream, expected);
                 Execute(length, buffer.View, buffer2.View, source.View);
             }
 
-            Verify(buffer, Enumerable.Repeat((int)ushort.MaxValue, length).ToArray());
-            Verify(buffer2, Enumerable.Repeat(int.MaxValue, length).ToArray());
+            Verify(
+                buffer.View,
+                Enumerable.Repeat((int)ushort.MaxValue, length).ToArray());
+            Verify(buffer2.View, Enumerable.Repeat(int.MaxValue, length).ToArray());
         }
 
         internal static void ArrayViewCastToGenericViewKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
-            ArrayView<int, Index1> otherKernel = source;
-            data[index] = otherKernel[index];
+            ArrayView<int> otherSource = source;
+            data[index] = otherSource[index];
         }
 
         [Theory]
@@ -497,15 +502,15 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewCastToGenericViewKernel))]
         public void ArrayViewCastToGenericView(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var expected = Enumerable.Range(0, length).ToArray();
-            using (var source = Accelerator.Allocate<int>(length))
+            using (var source = Accelerator.Allocate1D<int>(length))
             {
-                source.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, length);
+                source.CopyFromCPU(Accelerator.DefaultStream, expected);
                 Execute(length, buffer.View, source.View);
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal struct Pair<T>
@@ -516,12 +521,12 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewGetSubVariableViewKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<Pair<int>> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<Pair<int>, Stride1D.Dense> source)
         {
-            var variableView = source.GetVariableView(index);
-            var actualView = variableView.GetSubView<int>(sizeof(int));
+            var variableView = source.VariableView(index);
+            var actualView = variableView.SubView<int>(sizeof(int));
             data[index] = actualView.Value;
         }
 
@@ -533,23 +538,23 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewGetSubVariableViewKernel))]
         public void ArrayViewGetSubVariableView(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
             var sourceData = Enumerable.Range(0, length).Select(t =>
                 new Pair<int>() { First = t, Second = t + 1 }).ToArray();
             var expected = Enumerable.Range(1, length).ToArray();
-            using (var source = Accelerator.Allocate<Pair<int>>(length))
+            using (var source = Accelerator.Allocate1D<Pair<int>>(length))
             {
-                source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, length);
+                source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
                 Execute(length, buffer.View, source.View);
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayViewMultidimensionalAccessKernel(
-            Index1 index,
-            ArrayView<int, LongIndex3> data,
-            ArrayView<int, LongIndex3> source)
+            Index1D index,
+            ArrayView3D<int, Stride3D.DenseXY> data,
+            ArrayView3D<int, Stride3D.DenseXY> source)
         {
             var reconstructedIndex = data.Extent.ReconstructIndex(index);
             data[reconstructedIndex] = source[reconstructedIndex];
@@ -562,35 +567,32 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewMultidimensionalAccessKernel))]
         public void ArrayViewMultidimensionalAccess(long length)
         {
-            var extent = new LongIndex3(length);
-            using var buffer = Accelerator.Allocate<int, LongIndex3>(extent);
+            var extent = new LongIndex3D(length);
+            using var buffer = Accelerator.Allocate3DDenseXY<int>(extent);
             var expectedData = Enumerable.Range(0, (int)extent.Size).ToArray();
-            using (var source = Accelerator.Allocate<int, LongIndex3>(extent))
+            using (var source = Accelerator.Allocate3DDenseXY<int>(extent))
             {
-                source.CopyFrom(
+                source.AsContiguous().CopyFromCPU(
                     Accelerator.DefaultStream,
-                    expectedData,
-                    0,
-                    LongIndex3.Zero,
-                    buffer.Length);
+                    new ReadOnlySpan<int>(expectedData));
                 Execute((int)extent.Size, buffer.View, source.View);
             }
-            Verify(buffer, expectedData);
+            Verify(buffer.AsContiguous(), expectedData);
         }
 
         internal static void ArrayViewVectorizedIOKernel<T, T2>(
-            Index1 index,
-            ArrayView<T> source,
-            ArrayView<T> target)
+            Index1D index,
+            ArrayView1D<T, Stride1D.Dense> source,
+            ArrayView1D<T, Stride1D.Dense> target)
             where T : unmanaged
             where T2 : unmanaged
         {
             // Use compile-time known offsets to test the internal alignment rules
 
-            var nonVectorAlignedSource = source.GetSubView(1, 2);
+            var nonVectorAlignedSource = source.SubView(1, 2);
             var nonVectorAlignedCastedSource = nonVectorAlignedSource.Cast<T2>();
 
-            var nonVectorAlignedTarget = target.GetSubView(1, 2);
+            var nonVectorAlignedTarget = target.SubView(1, 2);
             var nonVectorAlignedTargetCasted = nonVectorAlignedTarget.Cast<T2>();
 
             // Load from source and write to target
@@ -599,10 +601,10 @@ namespace ILGPU.Tests
 
             // Perform the same operations with compile-time known offsets
 
-            var vectorAlignedSource = source.GetSubView(2, 2);
+            var vectorAlignedSource = source.SubView(2, 2);
             var vectorAlignedCastedSource = vectorAlignedSource.Cast<T2>();
 
-            var vectorAlignedTarget = target.GetSubView(2, 2);
+            var vectorAlignedTarget = target.SubView(2, 2);
             var vectorAlignedTargetCasted = vectorAlignedTarget.Cast<T2>();
 
             // Load from source and write to target
@@ -653,20 +655,20 @@ namespace ILGPU.Tests
             where T2 : unmanaged
         {
             const int Length = 4;
-            using var source = Accelerator.Allocate<T>(Length);
-            using var target = Accelerator.Allocate<T2>(Length);
+            using var source = Accelerator.Allocate1D<T>(Length);
+            using var target = Accelerator.Allocate1D<T2>(Length);
 
-            Execute<Index1, T, T2>(1, source.View, target.View.Cast<T>());
+            Execute<Index1D, T, T2>(1, source.View, target.View.Cast<T>());
 
             // Note that we don't have to check the result in this case. If the execution
             // succeeds, we already know that the vectorized IO access worked as intended
         }
 
         internal static void ArrayViewAlignmentKernel<T>(
-            Index1 index,
-            ArrayView<T> data,
-            ArrayView<long> prefixLength,
-            ArrayView<long> mainLength,
+            Index1D index,
+            ArrayView1D<T, Stride1D.Dense> data,
+            ArrayView1D<long, Stride1D.Dense> prefixLength,
+            ArrayView1D<long, Stride1D.Dense> mainLength,
             int alignmentInBytes,
             T element)
             where T : unmanaged
@@ -724,17 +726,17 @@ namespace ILGPU.Tests
             const int Length = 8192;
             const int NumThreads = 1024;
 
-            using var data = Accelerator.Allocate<T>(Length);
+            using var data = Accelerator.Allocate1D<T>(Length);
 
-            using var prefixLengthData = Accelerator.Allocate<long>(NumThreads);
-            using var mainLengthData = Accelerator.Allocate<long>(NumThreads);
+            using var prefixLengthData = Accelerator.Allocate1D<long>(NumThreads);
+            using var mainLengthData = Accelerator.Allocate1D<long>(NumThreads);
 
             data.MemSetToZero();
             prefixLengthData.MemSetToZero();
             mainLengthData.MemSetToZero();
             Accelerator.Synchronize();
 
-            Execute<Index1, T>(
+            Execute<Index1D, T>(
                 NumThreads,
                 data.View,
                 prefixLengthData.View,
@@ -742,17 +744,17 @@ namespace ILGPU.Tests
                 alignmentInBytes,
                 value);
 
-            var prefixLengths = prefixLengthData.GetAsArray();
-            var mainLengths = mainLengthData.GetAsArray();
+            var prefixLengths = prefixLengthData.GetAs1DArray();
+            var mainLengths = mainLengthData.GetAs1DArray();
 
             // Check whether the prefix and main lengths are the same for all threads
             long prefixLength = prefixLengths[0];
             Verify(
-                prefixLengthData,
+                prefixLengthData.View,
                 Enumerable.Repeat(prefixLength, NumThreads).ToArray());
             long mainLength = mainLengths[0];
             Verify(
-                mainLengthData,
+                mainLengthData.View,
                 Enumerable.Repeat(mainLength, NumThreads).ToArray());
 
             // Verify the alignment information on CPU and Cuda platforms
@@ -763,11 +765,11 @@ namespace ILGPU.Tests
 
                 // The prefix view address should be the same (CPU-code test)
                 Assert.Equal(
-                    new IntPtr(prefixView.LoadEffectiveAddress()),
+                    prefixView.LoadEffectiveAddressAsPtr(),
                     data.NativePtr);
 
                 // Determine the main view length using the raw pointers
-                var mainViewPtr = mainView.LoadEffectiveAddress();
+                var mainViewPtr = mainView.LoadEffectiveAddressAsPtr();
                 long prefixViewLength = ((long)mainViewPtr - data.NativePtr.ToInt64()) /
                     Interop.SizeOf<T>();
                 Assert.Equal(prefixLength, prefixViewLength);
@@ -787,7 +789,7 @@ namespace ILGPU.Tests
                 expected[prefixLength + i] = value;
             }
 
-            Verify(data, expected);
+            Verify(data.View, expected);
         }
     }
 }

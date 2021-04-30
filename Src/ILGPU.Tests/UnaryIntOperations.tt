@@ -43,9 +43,9 @@ namespace ILGPU.Tests
 <#         var testName = "UnaryOperation" + baseName; #>
 <#         var kernelName = "UnaryOperationKernel" + baseName; #>
         internal static void <#= kernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView<<#= type.Type #>> b)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> b)
         {
             var result = <#= prefix #>a[index]<#= postfix #>;
             b[index] = (<#= type.Type #>)result;
@@ -58,14 +58,14 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>( <#= type.Type #> value)
         {
-            using var a = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(Length);
-            Initialize(a, value);
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var b = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            Initialize(a.View, value);
             Execute(Length, a.View, b.View);
 
             var result = <#= prefix #>value<#= postfix #>;
             var reference = Enumerable.Repeat((<#= type.Type #>)result, Length).ToArray();
-            Verify(b, reference);
+            Verify(b.View, reference);
         }
 
 <#      } #>
@@ -80,9 +80,9 @@ namespace ILGPU.Tests
 <#         bool is64Bit = type == SignedIntTypes.Last() ||
                 type == UnsignedIntTypes.Last(); #>
         internal static void <#= kernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> input,
-            ArrayView<int> output)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> input,
+            ArrayView1D<int, Stride1D.Dense> output)
         {
             output[index] = IntrinsicMath.<#= opName #>(input[index] << index);
         }
@@ -111,12 +111,12 @@ namespace ILGPU.Tests
                 Enumerable.Range(0, Length)
                 .Select(x => IntrinsicMath.BitOperations.<#= opName #>(value << x))
                 .ToArray();
-            using var input = Accelerator.Allocate(
+            using var input = Accelerator.Allocate1D(
                 Enumerable.Repeat(value, Length).ToArray());
-            using var output = Accelerator.Allocate<int>(Length);
+            using var output = Accelerator.Allocate1D<int>(Length);
 
-            Execute(input.Length, input.View, output.View);
-            Verify(output, expected);
+            Execute(input.IntExtent, input.View, output.View);
+            Verify(output.View, expected);
         }
 
 <#      } #>

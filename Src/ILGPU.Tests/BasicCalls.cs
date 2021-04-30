@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using ILGPU.Runtime;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
@@ -17,8 +18,8 @@ namespace ILGPU.Tests
         internal static int GetValue() => 42;
 
         internal static void NestedCallKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = GetValue();
         }
@@ -27,11 +28,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(NestedCallKernel))]
         public void NestedCall()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(42, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -45,8 +46,8 @@ namespace ILGPU.Tests
             };
 
         internal static void NestedStructureCallKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = GetStructureValue().Second.Value;
         }
@@ -55,11 +56,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(NestedStructureCallKernel))]
         public void NestedStructureCall()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(23, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -67,8 +68,8 @@ namespace ILGPU.Tests
             value = 42;
 
         internal static void NestedCallOutKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             GetValue(out int value);
             data[index] = value;
@@ -78,11 +79,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(NestedCallOutKernel))]
         public void NestedCallOut()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(42, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -96,8 +97,8 @@ namespace ILGPU.Tests
             };
 
         internal static void NestedStructureCallOutKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             GetStructureValue(out Parent value);
             data[index] = value.Second.Value;
@@ -107,11 +108,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(NestedStructureCallOutKernel))]
         public void NestedStructureCallOut()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(23, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal struct Parent
@@ -132,8 +133,8 @@ namespace ILGPU.Tests
         }
 
         internal static void TestNestedCallInstanceKernel(
-            Index1 index,
-            ArrayView<int> data,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
             Parent value)
         {
             data[index] = value.Second.Count;
@@ -143,7 +144,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(TestNestedCallInstanceKernel))]
         public void NestedCallInstance()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, new Parent()
             {
                 Second = new Nested()
@@ -153,7 +154,7 @@ namespace ILGPU.Tests
             });
 
             var expected = Enumerable.Repeat(42, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -181,8 +182,8 @@ namespace ILGPU.Tests
         }
 
         internal static void NestedCallChainKernel(
-            Index1 index,
-            ArrayView<int> data)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             Parent temp = default;
             int value = ComputeNested(ref temp);
@@ -193,15 +194,17 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(NestedCallChainKernel))]
         public void NestedCallChain()
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(2706, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InternalReturn(Index1 index, ArrayView<int> data)
+        private static void InternalReturn(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             if (0.0.Equals(index))
                 return;
@@ -209,8 +212,8 @@ namespace ILGPU.Tests
         }
 
         internal static void MultiReturnKernel(
-            Index1 index,
-            ArrayView<int> data,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
             int c,
             int d)
         {
@@ -240,11 +243,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(MultiReturnKernel))]
         public void MultiReturn(int c, int d, int res)
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, c, d);
 
             var expected = Enumerable.Repeat(res, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
     }
 }

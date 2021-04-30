@@ -2,6 +2,7 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
+using ILGPU.Runtime;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -48,10 +49,10 @@ namespace ILGPU.Tests
 <#         var testName = "CompareOperation" + baseName; #>
 <#         var kernelName = "CompareOperationKernel" + testName; #>
         internal static void <#= kernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView<<#= type.Type #>> b,
-            ArrayView<int> c)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> b,
+            ArrayView1D<int, Stride1D.Dense> c)
         {
             var result = a[index] <#= infix #> b[index];
             c[index] = result ? 1 : 0;
@@ -68,23 +69,23 @@ namespace ILGPU.Tests
             <#= type.Type #> left,
             <#= type.Type #> right)
         {
-            using var a = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var c = Accelerator.Allocate<int>(Length);
-            Initialize(a, left);
-            Initialize(b, right);
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var b = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var c = Accelerator.Allocate1D<int>(Length);
+            Initialize(a.View, left);
+            Initialize(b.View, right);
             Execute(Length, a.View, b.View, c.View);
 
             var result = left <#= infix #> right ? 1 : 0;
             var reference = Enumerable.Repeat(result, Length).ToArray();
-            Verify(c, reference);
+            Verify(c.View, reference);
         }
 
         internal static void <#= kernelName #>_Const(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView2D<int> b,
-            ArrayView2D<int> c)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView2D<int, Stride2D.DenseX> b,
+            ArrayView2D<int, Stride2D.DenseX> c)
         {
 <#          foreach (var (index, lhs, rhs) in testValueFormats) { #>
             b[index, <#= index #>] = (<#= string.Format(lhs, type.Type) #> <#= infix #>
@@ -102,14 +103,14 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(<#= kernelName #>_Const))]
         public void <#= testName #>_Const(<#= type.Type #> value)
         {
-            using var a = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var b = Accelerator.Allocate<int>(
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var b = Accelerator.Allocate2DDenseX<int>((
                 Length,
-                <#= testValueFormats.Length #>);
-            using var c = Accelerator.Allocate<int>(
+                <#= testValueFormats.Length #>));
+            using var c = Accelerator.Allocate2DDenseX<int>((
                 Length,
-                <#= testValueFormats.Length #>);
-            Initialize(a, value);
+                <#= testValueFormats.Length #>));
+            Initialize(a.View, value);
             Execute(Length, a.View, b.View, c.View);
 
             // Generate reference data
@@ -125,8 +126,8 @@ namespace ILGPU.Tests
 <#          } #>
             }
 
-            Verify2D(b, expectedB);
-            Verify2D(c, expectedC);
+            Verify2D(b.View, expectedB);
+            Verify2D(c.View, expectedC);
         }
 
 <#      } #>

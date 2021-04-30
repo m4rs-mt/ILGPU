@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using ILGPU.Runtime;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -18,9 +19,9 @@ namespace ILGPU.Tests
             "IDE0059:Unnecessary assignment of a value",
             Justification = "Testing unconditional jump")]
         internal static void BasicJumpKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
             var value = source[index];
             goto exit;
@@ -38,21 +39,21 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(BasicJumpKernel))]
         public void BasicJump(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(length);
             var sourceData = Enumerable.Repeat(42, (int)buffer.Length).ToArray();
-            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, buffer.Length);
+            source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
 
             Execute(buffer.Length, buffer.View, source.View);
 
             var expected = Enumerable.Repeat(23, (int)buffer.Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void BasicIfJumpKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
             var value = source[index];
             if (value < 23)
@@ -71,24 +72,24 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(BasicIfJumpKernel))]
         public void BasicIfJump(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(length);
             var partLength = (int)source.Length / 3;
             var sourceData = Enumerable.Repeat(13, partLength).Concat(
                 Enumerable.Repeat(42, (int)source.Length - partLength)).ToArray();
-            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
+            source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
 
             Execute(buffer.Length, buffer.View, source.View);
 
             var expected = Enumerable.Repeat(23, partLength).Concat(
                 Enumerable.Repeat(42, length - partLength)).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void BasicLoopJumpKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source)
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source)
         {
             for (int i = 0; i < source.Length; ++i)
             {
@@ -109,22 +110,22 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(BasicLoopJumpKernel))]
         public void BasicLoopJump(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(64);
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(64);
             var sourceData = Enumerable.Range(0, (int)source.Length).ToArray();
             sourceData[57] = 23;
-            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
+            source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
 
             Execute(buffer.Length, buffer.View, source.View);
 
             var expected = Enumerable.Repeat(23, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void BasicNestedLoopJumpKernel(
-            Index1 index,
-            ArrayView<int> data,
-            ArrayView<int> source,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> source,
             int c)
         {
             int k = 0;
@@ -159,16 +160,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(BasicNestedLoopJumpKernel))]
         public void BasicNestedLoopJump(int length, int c, int res)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
-            using var source = Accelerator.Allocate<int>(64);
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(64);
             var sourceData = Enumerable.Range(0, (int)source.Length).ToArray();
             sourceData[57] = 23;
-            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
+            source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
 
             Execute(buffer.Length, buffer.View, source.View, c);
 
             var expected = Enumerable.Repeat(res, length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
     }
 }

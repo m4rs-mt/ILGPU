@@ -41,7 +41,9 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        internal static void NestedBinaryKernel(Index1 index, ArrayView<int> data)
+        internal static void NestedBinaryKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
            data[index] = (index / 32) - 1;
         }
@@ -51,11 +53,11 @@ namespace ILGPU.Tests
         public void NestedBinary()
         {
             var inputArray = new[] { 1, 2, 3, 4, 5 };
-            using var buffer = Accelerator.Allocate(inputArray);
+            using var buffer = Accelerator.Allocate1D(inputArray);
             var expected = inputArray.Select(x => (x / 32) - 1).ToArray();
 
-            Execute(buffer.Length, buffer.View);
-            Verify(buffer, expected);
+            Execute(buffer.IntExtent, buffer.View);
+            Verify(buffer.View, expected);
         }
 
 <# foreach (var (operationName, prefix, infix, postfix) in operationConfigurations) { #>
@@ -81,10 +83,10 @@ namespace ILGPU.Tests
                ($"({type.Type})64", $"({type.Type})2"),
            }; #>
         internal static void <#= kernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView<<#= type.Type #>> b,
-            ArrayView<<#= type.Type #>> c)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> b,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> c)
         {
             var result = <#= prefix #>a[index] <#= infix #> b[index]<#= postfix #>;
             c[index] = (<#= type.Type #>)result;
@@ -99,16 +101,16 @@ namespace ILGPU.Tests
             <#= type.Type #> first,
             <#= type.Type #> second)
         {
-            using var a = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var c = Accelerator.Allocate<<#= type.Type #>>(Length);
-            Initialize(a, first);
-            Initialize(b, second);
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var b = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var c = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            Initialize(a.View, first);
+            Initialize(b.View, second);
             Execute(Length, a.View, b.View, c.View);
 
             var result = <#= prefix #>first <#= infix #> second<#= postfix #>;
             var reference = Enumerable.Repeat((<#= type.Type #>)result, Length).ToArray();
-            Verify(c, reference);
+            Verify(c.View, reference);
         }
 
 <#          // Skip all Rem tests for now; not required (see BinaryMathOperations.tt) #>
@@ -134,10 +136,10 @@ namespace ILGPU.Tests
         }
 
         internal static void <#= kernelName #>_Chained<#= kernelIndex #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView<<#= type.Type #>> b,
-            ArrayView<<#= type.Type #>> c)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> b,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> c)
         {
             var first = <#= firstGetter #>();
             var second = <#= secondGetter #>();
@@ -157,10 +159,10 @@ namespace ILGPU.Tests
         public void <#= testName #>_Chained<#= kernelIndex #>()
         {
             <#= type.Type #> value = 1;
-            using var a = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var c = Accelerator.Allocate<<#= type.Type #>>(Length);
-            Initialize(a, value);
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var b = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var c = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            Initialize(a.View, value);
             Execute(Length, a.View, b.View, c.View);
 
             var rhs = <#= prefix #>
@@ -169,7 +171,7 @@ namespace ILGPU.Tests
                 <#= postfix #>)<#= infix #>
                 <#= secondGetter #>()<#= postfix #>;
             var referenceB = Enumerable.Repeat((<#= type.Type #>)rhs, Length).ToArray();
-            Verify(b, referenceB);
+            Verify(b.View, referenceB);
 
             var lhs = <#= prefix #>
                 <#= firstGetter #>()<#= infix #>
@@ -177,7 +179,7 @@ namespace ILGPU.Tests
                 <#= infix #>value
                 <#= postfix #>)<#= postfix #>;
             var referenceC = Enumerable.Repeat((<#= type.Type #>)lhs, Length).ToArray();
-            Verify(c, referenceC);
+            Verify(c.View, referenceC);
         }
 
 <#          ++kernelIndex; #>

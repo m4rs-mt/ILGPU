@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using ILGPU.Runtime;
+using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Xunit.Abstractions;
 using static ILGPU.Tests.EnumValues;
@@ -51,8 +52,8 @@ namespace ILGPU.Tests
         };
 
         internal static void SizeOfKernel<T>(
-            Index1 _,
-            ArrayView<int> data)
+            Index1D _,
+            ArrayView1D<int, Stride1D.Dense> data)
             where T : unmanaged
         {
             data[0] = Interop.SizeOf<T>();
@@ -64,12 +65,12 @@ namespace ILGPU.Tests
         public void SizeOf<T>(T value)
             where T : unmanaged
         {
-            using var buffer = Accelerator.Allocate<int>(1);
-            Execute<Index1, T>(buffer.Length, buffer.View);
+            using var buffer = Accelerator.Allocate1D<int>(1);
+            Execute<Index1D, T>(buffer.IntExtent, buffer.View);
 
             var size = Interop.SizeOf(value);
             var expected = new int[] { size };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         public static TheoryData<object> OffsetOfData => new TheoryData<object>
@@ -89,8 +90,8 @@ namespace ILGPU.Tests
         };
 
         internal static void OffsetOfKernel<T>(
-            Index1 _,
-            ArrayView<int> data)
+            Index1D _,
+            ArrayView1D<int, Stride1D.Dense> data)
             where T : unmanaged
         {
             data[0] = Interop.OffsetOf<T>("Val2");
@@ -106,12 +107,12 @@ namespace ILGPU.Tests
         public void OffsetOf<T>(T value)
             where T : unmanaged
         {
-            using var buffer = Accelerator.Allocate<int>(1);
-            Execute<Index1, T>(buffer.Length, buffer.View);
+            using var buffer = Accelerator.Allocate1D<int>(1);
+            Execute<Index1D, T>(buffer.IntExtent, buffer.View);
 
             var size = Interop.OffsetOf<T>("Val2");
             var expected = new int[] { size };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
     }
 }

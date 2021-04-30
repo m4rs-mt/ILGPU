@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using ILGPU.Runtime;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
@@ -43,14 +44,16 @@ namespace ILGPU.Tests
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void WriteZero(Index1 index, ArrayView<int> data)
+        internal static void WriteZero(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = index;
         }
 
         internal static void PhiInliningKernel(
-            Index1 index,
-            ArrayView<int> data,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
             int c)
         {
             WriteZero(index, data);
@@ -64,16 +67,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(PhiInliningKernel))]
         public void PhiInlining(int c, int res)
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, c);
 
             var expected = Enumerable.Repeat(res, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void PhiInliningDeepKernel(
-            Index1 index,
-            ArrayView<int> data,
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
             int c)
         {
             WriteZero(index, data);
@@ -87,11 +90,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(PhiInliningDeepKernel))]
         public void PhiInliningDeep(int c, int res)
         {
-            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View, c);
 
             var expected = Enumerable.Repeat(res, Length).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
     }
 }

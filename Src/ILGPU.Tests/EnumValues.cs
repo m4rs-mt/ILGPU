@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using ILGPU.Runtime;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace ILGPU.Tests
@@ -63,8 +64,8 @@ namespace ILGPU.Tests
         };
 
         internal static void EnumInteropKernel<T>(
-            Index1 index,
-            ArrayView<T> data,
+            Index1D index,
+            ArrayView1D<T, Stride1D.Dense> data,
             T value)
             where T : unmanaged
         {
@@ -77,11 +78,11 @@ namespace ILGPU.Tests
         public void EnumInterop<T>(T value)
             where T : unmanaged
         {
-            using var buffer = Accelerator.Allocate<T>(1);
-            Execute<Index1, T>(buffer.Length, buffer.View, value);
+            using var buffer = Accelerator.Allocate1D<T>(1);
+            Execute<Index1D, T>(buffer.IntExtent, buffer.View, value);
 
             var expected = new T[] { value };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
     }
 }

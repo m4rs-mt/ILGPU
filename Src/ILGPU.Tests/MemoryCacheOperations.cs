@@ -22,7 +22,7 @@ namespace ILGPU.Tests
             "Usage",
             "xUnit1026:Theory methods should use all of their parameters",
             Justification = "Required for generic argument")]
-        public void Allocate<T>(T _)
+        public void Allocate1D<T>(T _)
             where T : unmanaged
         {
             using var buffer = new MemoryBufferCache(Accelerator);

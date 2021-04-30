@@ -136,10 +136,10 @@ namespace ILGPU.Tests
         }
 
         internal static void FixedBuffer<#= type.Name #>Kernel(
-            Index1 index,
-            ArrayView<<#= type.Type #>> data,
-            ArrayView<<#= type.Type #>> data2,
-            ArrayView<<#= type.Type #>> data3,
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data2,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data3,
             FixedBufferStruct<#= type.Name #> value,
             <#= type.Type #> scalarValue)
         {
@@ -166,9 +166,9 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(FixedBuffer<#= type.Name #>Kernel))]
         public void FixedBuffer<#= type.Name #>()
         {
-            using var buffer1 = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var buffer2 = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var buffer3 = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var buffer1 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var buffer2 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var buffer3 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
 
             <#= type.Type #> scalarValue = <#= type.Type #>.MaxValue;
             var fixedBufferData1 = new FixedBufferStruct<#= type.Name #>(scalarValue);
@@ -184,16 +184,16 @@ namespace ILGPU.Tests
             var expected2 = Enumerable.Repeat(
                 (<#= type.Type #>)(scalarValue + scalarValue),
                 Length).ToArray();
-            Verify(buffer1, expected1);
-            Verify(buffer2, expected2);
-            Verify(buffer3, expected1);
+            Verify(buffer1.View, expected1);
+            Verify(buffer2.View, expected2);
+            Verify(buffer3.View, expected1);
         }
 
         internal static void GetMultiFixedBuffer<#= type.Name #>Kernel(
-            Index1 index,
-            ArrayView<<#= type.Type #>> data,
-            ArrayView<<#= type.Type #>> data2,
-            ArrayView<<#= type.Type #>> data3,
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data2,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data3,
             MultiFixedBufferStruct<#= type.Name #> value,
             <#= type.Type #> scalarValue)
         {
@@ -206,9 +206,9 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(GetMultiFixedBuffer<#= type.Name #>Kernel))]
         public void GetMultiFixedBuffer<#= type.Name #>()
         {
-            using var buffer1 = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var buffer2 = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var buffer3 = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var buffer1 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var buffer2 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var buffer3 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
 
             <#= type.Type #> scalarValue = 2;
             var fixedBufferData = new MultiFixedBufferStruct<#= type.Name #>(scalarValue);
@@ -223,17 +223,17 @@ namespace ILGPU.Tests
             var expected1 = new <#= type.Type #>[] { 2, 5, 8, 11, 14, 17, 20, 23, 26 };
             var expected2 = new <#= type.Type #>[] { 3, 6, 9, 12, 15, 18, 21, 24, 27 };
             var expected3 = new <#= type.Type #>[] { 4, 7, 10, 13, 16, 19, 22, 25, 28 };
-            Verify(buffer1, expected1);
-            Verify(buffer2, expected2);
-            Verify(buffer3, expected3);
+            Verify(buffer1.View, expected1);
+            Verify(buffer2.View, expected2);
+            Verify(buffer3.View, expected3);
         }
 
         internal static void SetMultiFixedBuffer<#= type.Name #>Kernel(
-            Index1 index,
-            ArrayView<<#= type.Type #>> data,
-            ArrayView<<#= type.Type #>> data2,
-            ArrayView<<#= type.Type #>> data3,
-            ArrayView<MultiFixedBufferStruct<#= type.Name #>> values)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data2,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data3,
+            ArrayView1D<MultiFixedBufferStruct<#= type.Name #>, Stride1D.Dense> values)
         {
             values[0].A[index] = data[index];
             values[0].B[index] = data2[index];
@@ -247,11 +247,11 @@ namespace ILGPU.Tests
             var expected1 = new <#= type.Type #>[] { 2, 5, 8, 11, 14, 17, 20, 23, 26 };
             var expected2 = new <#= type.Type #>[] { 3, 6, 9, 12, 15, 18, 21, 24, 27 };
             var expected3 = new <#= type.Type #>[] { 4, 7, 10, 13, 16, 19, 22, 25, 28 };
-            using var buffer1 = Accelerator.Allocate(expected1);
-            using var buffer2 = Accelerator.Allocate(expected2);
-            using var buffer3 = Accelerator.Allocate(expected3);
+            using var buffer1 = Accelerator.Allocate1D(expected1);
+            using var buffer2 = Accelerator.Allocate1D(expected2);
+            using var buffer3 = Accelerator.Allocate1D(expected3);
             using var fixedBuffers =
-                Accelerator.Allocate<MultiFixedBufferStruct<#= type.Name #>>(1);
+                Accelerator.Allocate1D<MultiFixedBufferStruct<#= type.Name #>>(1);
 
             Execute(Length, buffer1.View, buffer2.View, buffer3.View, fixedBuffers.View);
                 
@@ -261,7 +261,7 @@ namespace ILGPU.Tests
                 {
                     new MultiFixedBufferStruct<#= type.Name #>(scalarValue)
                 };
-            Verify(fixedBuffers, expected);
+            Verify(fixedBuffers.View, expected);
         }
         
         internal static readonly MultiFixedBufferStruct<#= type.Name #>
@@ -269,10 +269,10 @@ namespace ILGPU.Tests
             new MultiFixedBufferStruct<#= type.Name #>((<#= type.Type #>)2);
 
         internal static void GetStaticMultiFixedBuffer<#= type.Name #>Kernel(
-            Index1 index,
-            ArrayView<<#= type.Type #>> data,
-            ArrayView<<#= type.Type #>> data2,
-            ArrayView<<#= type.Type #>> data3)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data2,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> data3)
          {
             data[index] = Local<#= type.Name #>Struct.A[index];
             data2[index] = Local<#= type.Name #>Struct.B[index];
@@ -283,9 +283,9 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(GetStaticMultiFixedBuffer<#= type.Name #>Kernel))]
         public void GetStaticMultiFixedBuffer<#= type.Name #>()
         {
-            using var buffer1 = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var buffer2 = Accelerator.Allocate<<#= type.Type #>>(Length);
-            using var buffer3 = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var buffer1 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var buffer2 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var buffer3 = Accelerator.Allocate1D<<#= type.Type #>>(Length);
             Execute(
                 Length,
                 buffer1.View,
@@ -295,9 +295,9 @@ namespace ILGPU.Tests
             var expected1 = new <#= type.Type #>[] { 2, 5, 8, 11, 14, 17, 20, 23, 26 };
             var expected2 = new <#= type.Type #>[] { 3, 6, 9, 12, 15, 18, 21, 24, 27 };
             var expected3 = new <#= type.Type #>[] { 4, 7, 10, 13, 16, 19, 22, 25, 28 };
-            Verify(buffer1, expected1);
-            Verify(buffer2, expected2);
-            Verify(buffer3, expected3);
+            Verify(buffer1.View, expected1);
+            Verify(buffer2.View, expected2);
+            Verify(buffer3.View, expected3);
         }
 <# } #>
     }

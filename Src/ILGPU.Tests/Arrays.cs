@@ -82,7 +82,7 @@ namespace ILGPU.Tests
         };
 
         internal static void ArraySimpleKernel<T, TArraySize>(
-            Index1 index,
+            Index1D index,
             ArrayView<T> data,
             T c,
             int localIndex)
@@ -103,19 +103,19 @@ namespace ILGPU.Tests
             where T : unmanaged
             where TArraySize : unmanaged, ILength
         {
-            using var buffer = Accelerator.Allocate<T>(1);
-            Execute<Index1, T, TArraySize>(
-                buffer.Length,
-                buffer.View,
+            using var buffer = Accelerator.Allocate1D<T>(1);
+            Execute<Index1D, T, TArraySize>(
+                buffer.IntExtent,
+                buffer.AsContiguous(),
                 value,
                 0);
 
             var expected = new T[] { value };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArraySimpleDivergentKernel<T, TArraySize>(
-            Index1 index,
+            Index1D index,
             ArrayView<T> data,
             T c,
             int localIndex)
@@ -143,19 +143,19 @@ namespace ILGPU.Tests
             where T : unmanaged
             where TArraySize : unmanaged, ILength
         {
-            using var buffer = Accelerator.Allocate<T>(1);
-            Execute<Index1, T, TArraySize>(
-                buffer.Length,
-                buffer.View,
+            using var buffer = Accelerator.Allocate1D<T>(1);
+            Execute<Index1D, T, TArraySize>(
+                buffer.IntExtent,
+                buffer.AsContiguous(),
                 value,
                 0);
 
             var expected = new T[] { value };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayCallKernel<T, TArraySize>(
-            Index1 index,
+            Index1D index,
             ArrayView<T> data,
             T c,
             int localIndex)
@@ -189,19 +189,19 @@ namespace ILGPU.Tests
             where T : unmanaged
             where TArraySize : unmanaged, ILength
         {
-            using var buffer = Accelerator.Allocate<T>(1);
-            Execute<Index1, T, TArraySize>(
-                buffer.Length,
-                buffer.View,
+            using var buffer = Accelerator.Allocate1D<T>(1);
+            Execute<Index1D, T, TArraySize>(
+                buffer.IntExtent,
+                buffer.AsContiguous(),
                 value,
                 (int)buffer.Length / 2);
 
             var expected = new T[] { value };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayLengthKernel<T, TArraySize>(
-            Index1 index,
+            Index1D index,
             ArrayView<int> data)
             where T : unmanaged
             where TArraySize : unmanaged, ILength
@@ -219,15 +219,15 @@ namespace ILGPU.Tests
             where T : unmanaged
             where TArraySize : unmanaged, ILength
         {
-            using var buffer = Accelerator.Allocate<int>(2);
-            Execute<Index1, T, TArraySize>(1, buffer.View);
+            using var buffer = Accelerator.Allocate1D<int>(2);
+            Execute<Index1D, T, TArraySize>(1, buffer.AsContiguous());
 
             var expected = new int[] { size.Length, size.Length };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayLongLengthKernel<T, TArraySize>(
-            Index1 index,
+            Index1D index,
             ArrayView<long> data)
             where T : unmanaged
             where TArraySize : unmanaged, ILength
@@ -245,15 +245,15 @@ namespace ILGPU.Tests
             where T : unmanaged
             where TArraySize : unmanaged, ILength
         {
-            using var buffer = Accelerator.Allocate<long>(2);
-            Execute<Index1, T, TArraySize>(1, buffer.View);
+            using var buffer = Accelerator.Allocate1D<long>(2);
+            Execute<Index1D, T, TArraySize>(1, buffer.AsContiguous());
 
             var expected = new long[] { size.Length, size.Length };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayBoundsKernel<T, TArraySize>(
-            Index1 index,
+            Index1D index,
             ArrayView<int> data)
             where T : unmanaged
             where TArraySize : unmanaged, ILength
@@ -271,11 +271,11 @@ namespace ILGPU.Tests
             where T : unmanaged
             where TArraySize : unmanaged, ILength
         {
-            using var buffer = Accelerator.Allocate<int>(2);
-            Execute<Index1, T, TArraySize>(1, buffer.View);
+            using var buffer = Accelerator.Allocate1D<int>(2);
+            Execute<Index1D, T, TArraySize>(1, buffer.AsContiguous());
 
             var expected = new int[] { 0, size.Length - 1 };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         public static TheoryData<object> ArrayEmptyTestData => new TheoryData<object>
@@ -304,7 +304,7 @@ namespace ILGPU.Tests
             "CA1825:Avoid zero-length array allocations.",
             Justification = "Required for test cases")]
         internal static void ArrayEmptyKernel<T>(
-            Index1 index,
+            Index1D index,
             ArrayView<int> data)
             where T : unmanaged
         {
@@ -319,15 +319,15 @@ namespace ILGPU.Tests
         public void ArrayEmpty<T>(T value)
             where T : unmanaged
         {
-            using var buffer = Accelerator.Allocate<int>(1);
-            Execute<Index1, T>(buffer.Length, buffer.View);
+            using var buffer = Accelerator.Allocate1D<int>(1);
+            Execute<Index1D, T>(buffer.IntExtent, buffer.AsContiguous());
 
             var expected = new int[] { 0 };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         internal static void ArrayRefKernel<T, TArraySize>(
-            Index1 index,
+            Index1D index,
             ArrayView<T> data,
             T c,
             int localIndex)
@@ -354,15 +354,15 @@ namespace ILGPU.Tests
             where T : unmanaged
             where TArraySize : unmanaged, ILength
         {
-            using var buffer = Accelerator.Allocate<T>(1);
-            Execute<Index1, T, TArraySize>(
-                buffer.Length,
-                buffer.View,
+            using var buffer = Accelerator.Allocate1D<T>(1);
+            Execute<Index1D, T, TArraySize>(
+                buffer.IntExtent,
+                buffer.AsContiguous(),
                 value,
                 (int)buffer.Length / 2);
 
             var expected = new T[] { value };
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
     }
 }

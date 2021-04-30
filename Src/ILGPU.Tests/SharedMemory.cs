@@ -1,5 +1,4 @@
 ﻿using ILGPU.Runtime;
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -14,7 +13,8 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        internal static void SharedMemoryVariableKernel(ArrayView<int> data)
+        internal static void SharedMemoryVariableKernel(
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             ref var sharedMemory = ref ILGPU.SharedMemory.Allocate<int>();
             if (Group.IsFirstThread)
@@ -37,18 +37,19 @@ namespace ILGPU.Tests
         {
             for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
-                using var buffer = Accelerator.Allocate<int>(i * groupMultiplier);
+                using var buffer = Accelerator.Allocate1D<int>(i * groupMultiplier);
                 var index = new KernelConfig(groupMultiplier, i);
                 Execute(index, buffer.View);
 
                 var expected = Enumerable.Repeat(i, (int)buffer.Length).ToArray();
-                Verify(buffer, expected);
+                Verify(buffer.View, expected);
             }
         }
 
-        internal static void SharedMemoryArrayKernel(ArrayView<int> data)
+        internal static void SharedMemoryArrayKernel(
+            ArrayView1D<int, Stride1D.Dense> data)
         {
-            var sharedMemory = ILGPU.SharedMemory.Allocate<int>(2);
+            var sharedMemory = ILGPU.SharedMemory.Allocate1D<int>(2);
             sharedMemory[Group.IdxX] = Group.IdxX;
             Group.Barrier();
 
@@ -63,7 +64,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(SharedMemoryArrayKernel))]
         public void SharedMemoryArray(int groupMultiplier)
         {
-            using var buffer = Accelerator.Allocate<int>(2 * groupMultiplier);
+            using var buffer = Accelerator.Allocate1D<int>(2 * groupMultiplier);
             var index = new KernelConfig(groupMultiplier, 2);
             Execute(index, buffer.View);
 
@@ -74,20 +75,21 @@ namespace ILGPU.Tests
                 expected[i + 1] = 0;
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static int AllocateSharedMemoryNested()
         {
-            var sharedMemory = ILGPU.SharedMemory.Allocate<int>(1024);
+            var sharedMemory = ILGPU.SharedMemory.Allocate1D<int>(1024);
             sharedMemory[Group.IdxX] = Group.IdxX;
             Group.Barrier();
 
             return sharedMemory[(Group.IdxX + 1) % Group.DimX];
         }
 
-        internal static void SharedMemoryNestedKernel(ArrayView<int> data)
+        internal static void SharedMemoryNestedKernel(
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             var idx = Grid.GlobalIndex.X;
             data[idx] = AllocateSharedMemoryNested();
@@ -100,7 +102,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(SharedMemoryNestedKernel))]
         public void SharedMemoryNested(int groupMultiplier)
         {
-            using var buffer = Accelerator.Allocate<int>(2 * groupMultiplier);
+            using var buffer = Accelerator.Allocate1D<int>(2 * groupMultiplier);
             var index = new KernelConfig(groupMultiplier, 2);
             Execute(index, buffer.View);
 
@@ -111,7 +113,7 @@ namespace ILGPU.Tests
                 expected[i + 1] = 0;
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -124,7 +126,8 @@ namespace ILGPU.Tests
             return dynamicMemory[(Group.IdxX + 1) % Group.DimX];
         }
 
-        internal static void DynamicSharedMemoryKernel(ArrayView<int> data)
+        internal static void DynamicSharedMemoryKernel(
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             var dynamicMemory = ILGPU.SharedMemory.GetDynamic<int>();
             dynamicMemory[Group.IdxX] = Group.IdxX;
@@ -142,7 +145,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(DynamicSharedMemoryKernel))]
         public void DynamicSharedMemory(int groupMultiplier)
         {
-            using var buffer = Accelerator.Allocate<int>(2 * groupMultiplier);
+            using var buffer = Accelerator.Allocate1D<int>(2 * groupMultiplier);
             var config = SharedMemoryConfig.RequestDynamic<int>(1024);
             var index = new KernelConfig(groupMultiplier, 2, config);
             Execute(index, buffer.View);
@@ -154,10 +157,11 @@ namespace ILGPU.Tests
                 expected[i + 1] = 0;
             }
 
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
-        private static void DynamicSharedMemoryLengthKernel<T>(ArrayView<long> output)
+        private static void DynamicSharedMemoryLengthKernel<T>(
+            ArrayView1D<long, Stride1D.Dense> output)
             where T : unmanaged
         {
             var dynamicMemory = ILGPU.SharedMemory.GetDynamic<T>();
@@ -183,14 +187,17 @@ namespace ILGPU.Tests
             var expectedSizeInBytes = length * Interop.SizeOf<T>();
             var expected = new long[] { length, length, expectedSizeInBytes };
 
-            using var output = Accelerator.AllocateZero<long>(expected.Length);
+            using var output = Accelerator.Allocate1D<long>(expected.Length);
+            output.MemSetToZero();
             var config = SharedMemoryConfig.RequestDynamic<T>(length);
             var index = new KernelConfig(1, 2, config);
             Execute<KernelConfig, T>(index, output.View);
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
 
-        internal static void ImplicitSharedMemoryKernel(Index1 index, ArrayView<int> data)
+        internal static void ImplicitSharedMemoryKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = AllocateSharedMemoryNested();
         }
@@ -199,7 +206,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ImplicitSharedMemoryKernel))]
         public void ImplicitlyGroupedSharedMemory()
         {
-            using var buffer = Accelerator.Allocate<int>(10);
+            using var buffer = Accelerator.Allocate1D<int>(10);
             Assert.Throws<InternalCompilerException>(() =>
                 Execute(buffer.Length, buffer.View));
         }

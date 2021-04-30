@@ -2,6 +2,7 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
+using ILGPU.Runtime;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -18,11 +19,11 @@ namespace ILGPU.Tests
 <#      var casTestName = "AtomicOperationCAS" + baseName; #>
 <#      var casKernelName = "AtomicOperationKernelCAS" + baseName; #>
         internal static void <#= casKernelName #>(
-            Index1 index,
-            ArrayView<<#= type.Type #>> a,
-            ArrayView<<#= type.Type #>> b,
-            ArrayView<<#= type.Type #>> c,
-            ArrayView<<#= type.Type #>> d)
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> a,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> b,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> c,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> d)
         {
             d[index] = Atomic.CompareExchange(
                 ref a[0],
@@ -41,19 +42,19 @@ namespace ILGPU.Tests
             <#= type.Type #> second)
         {
             const int length = 1024;
-            using var a = Accelerator.Allocate<<#= type.Type #>>(1);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var c = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var d = Accelerator.Allocate<<#= type.Type #>>(length);
-            Initialize(a, first);
-            Initialize(b, first);
-            Initialize(c, second);
+            using var a = Accelerator.Allocate1D<<#= type.Type #>>(1);
+            using var b = Accelerator.Allocate1D<<#= type.Type #>>(length);
+            using var c = Accelerator.Allocate1D<<#= type.Type #>>(length);
+            using var d = Accelerator.Allocate1D<<#= type.Type #>>(length);
+            Initialize(a.View, first);
+            Initialize(b.View, first);
+            Initialize(c.View, second);
             Execute(length, a.View, b.View, c.View, d.View);
 
             var reference = new <#= type.Type #>[] { second };
-            Verify(a, reference);
+            Verify(a.View, reference);
 
-            var data = d.GetAsArray(Accelerator.DefaultStream);
+            var data = d.GetAs1DArray(Accelerator.DefaultStream);
             bool found = false;
             for (int i = 0, e = data.Length; i < e; ++i)
             {

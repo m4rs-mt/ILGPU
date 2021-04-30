@@ -106,6 +106,7 @@ namespace ILGPU.Tests
             params object[] arguments)
             where TIndex : struct, IIndex
         {
+            Accelerator.Synchronize();
             using var stream = Accelerator.CreateStream();
 
             // Compile kernel manually and load the compiled kernel into the accelerator
@@ -133,7 +134,7 @@ namespace ILGPU.Tests
         /// <param name="dimension">The dimension.</param>
         /// <param name="arguments">The arguments.</param>
         public void Execute(int dimension, params object[] arguments) =>
-            Execute(new Index1(dimension), arguments);
+            Execute(new Index1D(dimension), arguments);
 
         /// <summary>
         /// Executes an implicitly linked kernel with the given arguments.
@@ -141,7 +142,7 @@ namespace ILGPU.Tests
         /// <param name="dimension">The dimension.</param>
         /// <param name="arguments">The arguments.</param>
         public void Execute(long dimension, params object[] arguments) =>
-            Execute(new LongIndex1(dimension).ToIntIndex(), arguments);
+            Execute(new LongIndex1D(dimension).ToIntIndex(), arguments);
 
         /// <summary>
         /// Executes an implicitly linked kernel with the given arguments.
@@ -196,19 +197,18 @@ namespace ILGPU.Tests
         /// Verifies the contents of the given memory buffer.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="buffer">The target buffer.</param>
+        /// <param name="view">The target buffer.</param>
         /// <param name="expected">The expected values.</param>
         /// <param name="offset">The custom data offset to use (if any).</param>
         /// <param name="length">The custom data length to use (if any).</param>
-        public void Verify<T, TIndex>(
-            MemoryBuffer<T, TIndex> buffer,
+        public void Verify<T>(
+            ArrayView<T> view,
             T[] expected,
             int? offset = null,
             int? length = null)
             where T : unmanaged
-            where TIndex : unmanaged, IGenericIndex<TIndex>
         {
-            var data = buffer.GetAsArray(Accelerator.DefaultStream);
+            var data = view.GetAsArray(Accelerator.DefaultStream);
             var dataLength = length ?? data.Length;
             Assert.True(dataLength <= data.Length);
             Assert.Equal(dataLength, expected.Length);
@@ -220,20 +220,23 @@ namespace ILGPU.Tests
         /// Verifies the contents of the given 2D memory buffer.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="buffer">The target buffer.</param>
+        /// <param name="view">The target buffer.</param>
         /// <param name="expected">The expected values.</param>
         [SuppressMessage(
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional",
             Justification = "Used for testing purposes")]
-        public void Verify2D<T>(MemoryBuffer2D<T> buffer, T[,] expected)
+        public static void Verify2D<T, TStride>(
+            ArrayView2D<T, TStride> view,
+            T[,] expected)
             where T : unmanaged
+            where TStride : struct, IStride2D
         {
-            var data = buffer.GetAs2DArray(Accelerator.DefaultStream);
+            var data = view.AsContiguous().GetAsArray();
             Assert.Equal(data.Length, expected.Length);
-            for (int i = 0; i < data.GetLength(0); ++i)
-                for (int j = 0; j < data.GetLength(1); ++j)
-                Assert.Equal(expected[i, j], data[i, j]);
+            for (int i = 0; i < expected.GetLength(0); ++i)
+                for (int j = 0; j < expected.GetLength(1); ++j)
+                    Assert.Equal(expected[i, j], data[view.ComputeLinearIndex((i, j))]);
         }
 
         /// <summary>
@@ -307,15 +310,15 @@ namespace ILGPU.Tests
         /// Initializes a memory buffer with a constant.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="buffer">The target buffer.</param>
+        /// <param name="view">The target buffer.</param>
         /// <param name="value">The value.</param>
-        public void Initialize<T>(MemoryBuffer<T> buffer, T value)
+        public void Initialize<T>(ArrayView<T> view, T value)
             where T : unmanaged
         {
-            var data = new T[buffer.Length];
+            var data = new T[view.Length];
             for (int i = 0, e = data.Length; i < e; ++i)
                 data[i] = value;
-            buffer.CopyFrom(Accelerator.DefaultStream, data, 0, 0, data.Length);
+            view.CopyFromCPU(Accelerator.DefaultStream, data);
         }
 
         /// <summary>
@@ -324,13 +327,13 @@ namespace ILGPU.Tests
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="buffer">The target buffer.</param>
         /// <param name="sequencer">The sequencer function.</param>
-        public void Sequence<T>(MemoryBuffer<T> buffer, Func<int, T> sequencer)
+        public void Sequence<T>(ArrayView<T> view, Func<int, T> sequencer)
             where T : unmanaged
         {
-            var data = new T[buffer.Length];
+            var data = new T[view.Length];
             for (int i = 0, e = data.Length; i < e; ++i)
                 data[i] = sequencer(i);
-            buffer.CopyFrom(Accelerator.DefaultStream, data, 0, 0, data.Length);
+            view.CopyFromCPU(Accelerator.DefaultStream, data);
         }
 
         #endregion

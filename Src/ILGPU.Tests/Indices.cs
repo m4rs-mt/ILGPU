@@ -15,7 +15,7 @@ namespace ILGPU.Tests
         [InlineData(1025)]
         public void ReconstructIndex1(long linearIndex)
         {
-            var index = Index1.ReconstructIndex(linearIndex, int.MaxValue);
+            var index = Index1D.ReconstructIndex(linearIndex, int.MaxValue);
             Assert.Equal(linearIndex, index.Size);
         }
 
@@ -28,7 +28,7 @@ namespace ILGPU.Tests
             long linearIndex, int dimX, int dimY,
             int expectedX, int expectedY)
         {
-            var index = Index2.ReconstructIndex(linearIndex, new Index2(dimX, dimY));
+            var index = Index2D.ReconstructIndex(linearIndex, new Index2D(dimX, dimY));
             Assert.Equal(expectedX, index.X);
             Assert.Equal(expectedY, index.Y);
         }
@@ -46,9 +46,9 @@ namespace ILGPU.Tests
             long linearIndex, int dimX, int dimY, int dimZ,
             int expectedX, int expectedY, int expectedZ)
         {
-            var index = Index3.ReconstructIndex(
+            var index = Index3D.ReconstructIndex(
                 linearIndex,
-                new Index3(dimX, dimY, dimZ));
+                new Index3D(dimX, dimY, dimZ));
             Assert.Equal(expectedX, index.X);
             Assert.Equal(expectedY, index.Y);
             Assert.Equal(expectedZ, index.Z);
