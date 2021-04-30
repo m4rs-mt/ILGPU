@@ -46,28 +46,37 @@ namespace ILGPU
 <#  } #>
     }
 
-<#  foreach (var dim in IndexDimensions.Skip(1)) { #>
+<#  foreach (var dim in IndexDimensions) { #>
 <#      var dimension = dim.Dimension; #>
 <#      var typeName = $"ArrayView{dimension}D"; #>
 <#      var intIndexType = $"Index{dimension}"; #>
 <#      var indexType = "Long" + intIndexType; #>
+<#      var strideName = $"Stride{dimension}D"; #>
+<#      var iStrideName = $"I{strideName}"; #>
+<#      var indexTypes = new []
+        {
+            (intIndexType, "int", "32"),
+            (indexType, "long", "64")
+        }; #>
     /// <summary>
     /// Represents a general view to an array on an accelerator.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
+    /// <typeparam name="TStride">The <#= dimension #>D stride type.</typeparam>
     [DebuggerTypeProxy(typeof(DebugArrayView<>))]
-    [DebuggerDisplay("Extent = {Extent}, Length = {Length}")]
+    [DebuggerDisplay("Extent = {Extent}, Stride = {Stride}, Length = {Length}")]
     [StructLayout(LayoutKind.Sequential)]
-    public readonly partial struct <#= typeName #><T> :
-        IArrayView<T, <#= intIndexType #>, <#= indexType #>>
+    public readonly partial struct <#= typeName #><T, TStride> :
+        IArrayView<T, <#= intIndexType #>, <#= indexType #>, TStride>
         where T : unmanaged
+        where TStride : struct, <#= iStrideName #>
     {
         #region Constants
 
         /// <summary>
         /// Represents the native size of a single element.
         /// </summary>
-        public static int ElementSize => ArrayView<T, <#= indexType #>>.ElementSize;
+        public static int ElementSize => ArrayView<T>.ElementSize;
 
         #endregion
 
@@ -77,9 +86,22 @@ namespace ILGPU
         /// Constructs a new <#= dimension #>D array view.
         /// </summary>
         /// <param name="baseView">The source view.</param>
-        public <#= typeName #>(ArrayView<T, <#= indexType #>> baseView)
+        /// <param name="extent">The extent (number of elements).</param>
+        /// <param name="stride">The stride to use.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public <#= typeName #>(
+            ArrayView<T> baseView,
+            <#= indexType #> extent,
+            TStride stride)
         {
+            int strideSize = stride.StrideExtent.Size;
+            Trace.Assert(
+                strideSize < 1 |
+                extent.Size * strideSize <= baseView.Length, "Extent out of range");
+
             BaseView = baseView;
+            Extent = extent;
+            Stride = stride;
         }
 
         #endregion
@@ -89,7 +111,38 @@ namespace ILGPU
         /// <summary>
         /// Returns the associated buffer.
         /// </summary>
-        public ArrayView<T, <#= indexType #>> BaseView { get; }
+        public ArrayView<T> BaseView { get; }
+
+        /// <summary>
+        /// Returns the underlying memory buffer.
+        /// </summary>
+        /// <remarks>This property is not supported on accelerators.</remarks>
+        readonly MemoryBuffer IArrayView.Buffer => BaseView.Buffer;
+
+        /// <summary>
+        /// Returns the underlying element size.
+        /// </summary>
+        readonly int IArrayView.ElementSize => ElementSize;
+
+        /// <summary>
+        /// Returns the relative index of the underlying array view.
+        /// </summary>
+        readonly long IArrayView.Index => BaseView.Index;
+
+        /// <summary>
+        /// Returns the extent of this view.
+        /// </summary>
+        public <#= indexType #> Extent { get; }
+
+        /// <summary>
+        /// Returns the 32-bit extent of this view.
+        /// </summary>
+        public readonly <#= intIndexType #> IntExtent => Extent.ToIntIndex();
+
+        /// <summary>
+        /// Returns the associated stride.
+        /// </summary>
+        public TStride Stride { get; }
 
         /// <summary>
         /// Returns true if this view points to a valid location.
@@ -99,64 +152,93 @@ namespace ILGPU
         /// <summary>
         /// Returns the length of this array view.
         /// </summary>
-        public readonly long Length => BaseView.Length;
+        public readonly long Length
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Stride.ComputeBufferLength(Extent);
+        }
 
         /// <summary>
         /// Returns the 32-bit length of this array view.
         /// </summary>
-        public readonly int IntLength => BaseView.IntLength;
-
-        /// <summary>
-        /// Returns the extent of this view.
-        /// </summary>
-        public readonly <#= indexType #> Extent => BaseView.Extent;
-
-        /// <summary>
-        /// Returns the 32-bit extent of this view.
-        /// </summary>
-        public readonly <#= intIndexType #> IntExtent => BaseView.Extent.ToIntIndex();
+        public readonly int IntLength
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                long result = Length;
+                IndexTypeExtensions.AssertIntIndexRange(result);
+                return (int)result;
+            }
+        }
 
         /// <summary>
         /// Returns the length of this array view in bytes.
         /// </summary>
-        public readonly long LengthInBytes => BaseView.LengthInBytes;
+        public readonly long LengthInBytes => Length * ElementSize;
 
+<#      foreach (var (index, _, size) in indexTypes) { #>
         /// <summary>
-        /// Access the element at the given index.
+        /// Access the element at the given <#= size #>-bit index.
         /// </summary>
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
-        public readonly ref T this[<#= intIndexType #> index] => ref ToIntView()[index];
+        public readonly ref T this[<#= index #> index]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => ref BaseView[ComputeLinearIndex(index)];
+        }
 
-        /// <summary>
-        /// Access the element at the given index.
-        /// </summary>
-        /// <param name="index">The element index.</param>
-        /// <returns>The element at the given index.</returns>
-        public readonly ref T this[<#= indexType #> index] => ref BaseView[index];
-
+<#      } #>
         #endregion
 
         #region Methods
 
+<#      foreach (var (index, baseType, size) in indexTypes) { #>
         /// <summary>
-        /// Returns a sub view of the current view starting at the given offset.
+        /// Computes the linear <#= size #>-bit element address using the given index.
+        /// </summary>
+        /// <param name="index">The element index.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly <#= baseType #> ComputeLinearIndex(<#= index #> index)
+        {
+<#      for (int i = 0; i < dim.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+            Trace.Assert(
+                index.<#= iName #> >= 0 & index.<#= iName #> < Extent.<#= iName #>,
+                "Index out of bounds");
+<#      } #>
+            return Stride.ComputeElementIndex(index);
+        }
+
+        /// <summary>
+        /// Returns a sub view of the current view starting at the given
+        /// <#= size #>-bit offset.
         /// </summary>
         /// <param name="index">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new sub view.</param>
-        /// <returns>The new raw sub view.</returns>
-        /// <remarks>
-        /// Note that this function interprets the memory view as a linear contiguous
-        /// chunk of memory that does not pay attention to the actual
-        /// <see cref="Extent"/>. Instead, it converts the (potentially multidimensional)
-        /// indices to linear indices and returns a raw view that spans a contiguous
-        /// region of memory.
-        /// </remarks>
+        /// <param name="extent">The extent of the new sub view.</param>
+        /// <returns>The raw sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly ArrayView<T> GetSubView(
-            <#= indexType #> index,
-            long subViewExtent) =>
-            BaseView.GetSubView(index, subViewExtent);
+        public readonly <#= typeName #><T, TStride> SubView(
+            <#= index #> index,
+            <#= index #> extent)
+        {
+<#      for (int i = 0; i < dim.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+            Trace.Assert(
+                index.<#= iName #> >= 0 &
+                index.<#= iName #> + extent.<#= iName #> < Extent.<#= iName #>,
+                "Index/Extent out of bounds");
+<#      } #>
+            <#= baseType #> offset = ComputeLinearIndex(index);
+            var view = BaseView.SubView(offset, extent.Size);
+            return new <#= typeName #><T, TStride>(
+                view,
+                extent,
+                Stride);
+        }
+
+<#      } #>
 
         /// <summary>
         /// Casts the current array view into another array-view type.
@@ -164,24 +246,18 @@ namespace ILGPU
         /// <typeparam name="TOther">The target type.</typeparam>
         /// <returns>The casted array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly <#= typeName #><TOther> Cast<TOther>()
-            where TOther : unmanaged =>
-            new <#= typeName #><TOther>(BaseView.Cast<TOther>());
-
-        /// <summary>
-        /// Converts the current view into a linear view.
-        /// </summary>
-        /// <returns>The converted linear view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly ArrayView<T> AsLinearView() =>
-            BaseView.AsLinearView();
-
-        /// <summary>
-        /// Returns the associated 32-buffer view.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T, <#= intIndexType #>> ToIntView() =>
-            new ArrayView<T, <#= intIndexType #>>(AsLinearView(), IntExtent);
+        public readonly <#= typeName #><TOther, TStride> Cast<TOther>()
+            where TOther : unmanaged
+        {
+            var newExtent = Extent.ComputedCastedExtent(
+                Extent,
+                ElementSize,
+                <#= typeName #><TOther, TStride>.ElementSize);
+            return new <#= typeName #><TOther, TStride>(
+                BaseView.Cast<TOther>(),
+                newExtent,
+                Stride);
+        }
 
         /// <summary>
         /// Returns a variable view that points to the element at the specified index.
@@ -189,8 +265,46 @@ namespace ILGPU
         /// <param name="index">The variable index.</param>
         /// <returns>The resolved variable view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly VariableView<T> GetVariableView(<#= indexType #> index) =>
-            BaseView.GetVariableView(index);
+        public readonly VariableView<T> VariableView(<#= intIndexType #> index) =>
+            BaseView.VariableView(ComputeLinearIndex(index));
+
+        /// <summary>
+        /// Returns a variable view that points to the element at the specified index.
+        /// </summary>
+        /// <param name="index">The variable index.</param>
+        /// <returns>The resolved variable view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly VariableView<T> VariableView(<#= indexType #> index) =>
+            BaseView.VariableView((LongIndex1)ComputeLinearIndex(index));
+
+        /// <summary>
+        /// Converts this array view into a dense version.
+        /// </summary>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly <#= typeName #><T, <#= strideName #>.Dense> AsDense()
+        {
+            Trace.Assert(
+                Stride.StrideExtent == <#= intIndexType #>.One,
+                "Incompatible dense stride");
+            return new <#= typeName #><T, <#= strideName #>.Dense>(
+                BaseView,
+                Extent,
+                default);
+        }
+
+        /// <summary>
+        /// Converts this array view into a general version.
+        /// </summary>
+        /// <param name="stride">The generic stride information to use.</param>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly <#= typeName #><T, <#= strideName #>.General> AsGeneral(
+            <#= strideName #>.General stride) =>
+            new <#= typeName #><T, <#= strideName #>.General>(
+                BaseView,
+                Extent,
+                stride);
 
         #endregion
 
@@ -201,42 +315,6 @@ namespace ILGPU
         /// </summary>
         /// <returns>The string representation of this view.</returns>
         public readonly override string ToString() => BaseView.ToString();
-
-        #endregion
-
-        #region Operators
-
-        /// <summary>
-        /// Converts the given specialized array view into a corresponding generic view.
-        /// </summary>
-        /// <returns>The corresponding generic view.</returns>
-        public static implicit operator ArrayView<T, <#= indexType #>>(
-            <#= typeName #><T> view) =>
-            view.BaseView;
-
-        /// <summary>
-        /// Converts the given specialized array view into a corresponding generic view.
-        /// </summary>
-        /// <returns>The corresponding generic view.</returns>
-        public static explicit operator ArrayView<T, <#= intIndexType #>>(
-            <#= typeName #><T> view) =>
-            view.ToIntView();
-
-        /// <summary>
-        /// Converts the given generic array view into a corresponding specialized view.
-        /// </summary>
-        /// <returns>The corresponding specialized view.</returns>
-        public static implicit operator <#= typeName #><T>(
-            ArrayView<T, <#= indexType #>> baseView) =>
-            new <#= typeName #><T>(baseView);
-
-        /// <summary>
-        /// Converts the given specialized array view into a corresponding generic view.
-        /// </summary>
-        /// <returns>The corresponding generic view.</returns>
-        public static implicit operator <#= typeName #><T>(
-            ArrayView<T, <#= intIndexType #>> view) =>
-            new <#= typeName #><T>(view.AsLinearView(), view.Extent);
 
         #endregion
     }
