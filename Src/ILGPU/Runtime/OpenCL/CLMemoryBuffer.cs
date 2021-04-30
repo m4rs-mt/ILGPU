@@ -18,27 +18,138 @@ namespace ILGPU.Runtime.OpenCL
     /// <summary>
     /// Represents an unmanaged OpenCL buffer.
     /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TIndex">The index type.</typeparam>
-    public sealed class CLMemoryBuffer<T, TIndex> : MemoryBuffer<T, TIndex>
-        where T : unmanaged
-        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
+    public sealed class CLMemoryBuffer : MemoryBuffer
     {
+        #region Static
+
+        /// <summary>
+        /// Performs an OpenCL memset operation.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="stream">The CL stream to use (must not be null)</param>
+        /// <param name="value">The value to write into the buffer.</param>
+        /// <param name="targetView">The target view to write to.</param>
+        public static void CLMemSet<T>(
+            CLStream stream,
+            byte value,
+            in ArrayView<T> targetView)
+            where T : unmanaged
+        {
+            if (stream is null)
+                throw new ArgumentNullException(nameof(stream));
+
+            if (targetView.GetAcceleratorType() != AcceleratorType.OpenCL)
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedTargetAccelerator);
+            }
+
+            var binding = stream.Accelerator.BindScoped();
+
+            var target = targetView.Buffer;
+            CLException.ThrowIfFailed(
+                CurrentAPI.FillBuffer(
+                    stream,
+                    target.NativePtr,
+                    value,
+                    new IntPtr(targetView.Index * target.ElementSize),
+                    new IntPtr(targetView.LengthInBytes)));
+
+            binding.Recover();
+        }
+
+        /// <summary>
+        /// Performs an OpenCL copy operation.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="stream">The CL stream to use (must not be null)</param>
+        /// <param name="sourceView">The source view to copy from.</param>
+        /// <param name="targetView">The target view to copy to.</param>
+        public static void CLCopy<T>(
+            CLStream stream,
+            in ArrayView<T> sourceView,
+            in ArrayView<T> targetView)
+            where T : unmanaged
+        {
+            if (stream is null)
+                throw new ArgumentNullException(nameof(stream));
+
+            using var binding = stream.Accelerator.BindScoped();
+
+            var sourceType = sourceView.GetAcceleratorType();
+            var targetType = targetView.GetAcceleratorType();
+
+            var source = sourceView.Buffer;
+            var target = targetView.Buffer;
+            var length = new IntPtr(targetView.LengthInBytes);
+
+            if (sourceType == AcceleratorType.CPU &&
+                targetType == AcceleratorType.OpenCL)
+            {
+                // Copy from CPU to GPU
+                CLException.ThrowIfFailed(
+                    CurrentAPI.WriteBuffer(
+                        stream,
+                        target.NativePtr,
+                        false,
+                        new IntPtr(targetView.Index * target.ElementSize),
+                        new IntPtr(target.LengthInBytes),
+                        sourceView.LoadEffectiveAddressAsPtr()));
+                return;
+            }
+            else if (sourceType == AcceleratorType.OpenCL)
+            {
+                switch (targetType)
+                {
+                    case AcceleratorType.CPU:
+                        // Copy from GPU to CPU
+                        CLException.ThrowIfFailed(
+                            CurrentAPI.ReadBuffer(
+                                stream,
+                                source.NativePtr,
+                                false,
+                                new IntPtr(sourceView.Index * source.ElementSize),
+                                new IntPtr(target.LengthInBytes),
+                                targetView.LoadEffectiveAddressAsPtr()));
+                        return;
+                    case AcceleratorType.OpenCL:
+                        // Copy from GPU to GPU
+                        CLException.ThrowIfFailed(
+                            CurrentAPI.CopyBuffer(
+                                stream,
+                                source.NativePtr,
+                                target.NativePtr,
+                                new IntPtr(sourceView.Index * source.ElementSize),
+                                new IntPtr(targetView.Index * target.ElementSize),
+                                new IntPtr(targetView.LengthInBytes)));
+                        return;
+                }
+            }
+            throw new NotSupportedException(
+                RuntimeErrorMessages.NotSupportedTargetAccelerator);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
-        /// Constructs a new OpenCL buffer.
+        /// Constructs a new CL buffer.
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
-        /// <param name="extent">The extent.</param>
-        internal CLMemoryBuffer(CLAccelerator accelerator, TIndex extent)
-            : base(accelerator, extent)
+        /// <param name="length">The length of this buffer.</param>
+        /// <param name="elementSize">The element size.</param>
+        public CLMemoryBuffer(
+            CLAccelerator accelerator,
+            long length,
+            int elementSize)
+            : base(accelerator, length, elementSize)
         {
             CLException.ThrowIfFailed(
                 CurrentAPI.CreateBuffer(
                     accelerator.NativePtr,
                     CLBufferFlags.CL_MEM_READ_WRITE,
-                    new IntPtr(extent.Size * ElementSize),
+                    new IntPtr(LengthInBytes),
                     IntPtr.Zero,
                     out IntPtr resultPtr));
             NativePtr = resultPtr;
@@ -48,102 +159,35 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Methods
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(
-        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
-        protected internal unsafe override void CopyToView(
+        /// <inheritdoc/>
+        public override unsafe void MemSet(
             AcceleratorStream stream,
-            ArrayView<T> target,
-            LongIndex1 sourceOffset)
+            byte value,
+            long targetOffsetInBytes,
+            long length)
         {
-            var binding = Accelerator.BindScoped();
-
-            switch (target.AcceleratorType)
-            {
-                case AcceleratorType.CPU:
-                    CLException.ThrowIfFailed(
-                        CurrentAPI.ReadBuffer(
-                            stream,
-                            NativePtr,
-                            false,
-                            new IntPtr(sourceOffset * ElementSize),
-                            new IntPtr(target.LengthInBytes),
-                            new IntPtr(target.LoadEffectiveAddress())));
-                    break;
-                case AcceleratorType.OpenCL:
-                    CLException.ThrowIfFailed(
-                        CurrentAPI.CopyBuffer(
-                            stream,
-                            NativePtr,
-                            target.Source.NativePtr,
-                            new IntPtr(sourceOffset * ElementSize),
-                            new IntPtr(target.Index * ElementSize),
-                            new IntPtr(target.LengthInBytes)));
-                    break;
-                default:
-                    throw new NotSupportedException(
-                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
-            }
-
-            binding.Recover();
-        }
-
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(
-        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
-        protected internal unsafe override void CopyFromView(
-            AcceleratorStream stream,
-            ArrayView<T> source,
-            LongIndex1 targetOffset)
-        {
-            var binding = Accelerator.BindScoped();
-
-            switch (source.AcceleratorType)
-            {
-                case AcceleratorType.CPU:
-                    CLException.ThrowIfFailed(
-                        CurrentAPI.WriteBuffer(
-                            stream,
-                            NativePtr,
-                            false,
-                            new IntPtr(targetOffset * ElementSize),
-                            new IntPtr(source.LengthInBytes),
-                            new IntPtr(source.LoadEffectiveAddress())));
-                    break;
-                case AcceleratorType.OpenCL:
-                    CLException.ThrowIfFailed(
-                        CurrentAPI.CopyBuffer(
-                            stream,
-                            source.Source.NativePtr,
-                            NativePtr,
-                            new IntPtr(source.Index * ElementSize),
-                            new IntPtr(targetOffset * ElementSize),
-                            new IntPtr(source.LengthInBytes)));
-                    break;
-                default:
-                    throw new NotSupportedException(
-                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
-            }
-
-            binding.Recover();
+            var targetView = AsRawArrayView(targetOffsetInBytes, length);
+            CLMemSet(stream as CLStream, value, targetView);
         }
 
         /// <inheritdoc/>
-        protected internal override unsafe void MemSetInternal(
+        public override void CopyFrom(
             AcceleratorStream stream,
-            byte value,
-            long offsetInBytes,
-            long lengthInBytes)
+            in ArrayView<byte> sourceView,
+            long targetOffsetInBytes)
         {
-            var binding = Accelerator.BindScoped();
+            var targetView = AsRawArrayView(targetOffsetInBytes);
+            CLCopy(stream as CLStream, sourceView, targetView);
+        }
 
-            CLException.ThrowIfFailed(
-                CurrentAPI.FillBuffer(
-                    stream,
-                    NativePtr,
-                    value,
-                    new IntPtr(offsetInBytes),
-                    new IntPtr(lengthInBytes)));
-
-            binding.Recover();
+        /// <inheritdoc/>
+        public override unsafe void CopyTo(
+            AcceleratorStream stream,
+            long sourceOffsetInBytes,
+            in ArrayView<byte> targetView)
+        {
+            var sourceView = AsRawArrayView(sourceOffsetInBytes);
+            CLCopy(stream as CLStream, sourceView, targetView);
         }
 
         #endregion
