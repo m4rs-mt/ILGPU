@@ -227,13 +227,13 @@ namespace ILGPU.Runtime.CPU
             MaxNumThreadsPerGroup = numThreadsPerWarp * numWarpsPerMultiprocessor;
             MaxNumThreadsPerMultiprocessor = MaxNumThreadsPerGroup;
             NumMultiprocessors = numMultiprocessors;
-            MaxGroupSize = new Index3(
+            MaxGroupSize = new Index3D(
                 MaxNumThreadsPerGroup,
                 MaxNumThreadsPerGroup,
                 MaxNumThreadsPerGroup);
 
             MemorySize = long.MaxValue;
-            MaxGridSize = new Index3(int.MaxValue, ushort.MaxValue, ushort.MaxValue);
+            MaxGridSize = new Index3D(int.MaxValue, ushort.MaxValue, ushort.MaxValue);
             MaxSharedMemoryPerGroup = int.MaxValue;
             MaxConstantMemory = int.MaxValue;
             NumThreads = MaxNumThreads * numMultiprocessors;

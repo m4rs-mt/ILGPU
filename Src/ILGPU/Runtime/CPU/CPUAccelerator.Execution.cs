@@ -255,7 +255,7 @@ namespace ILGPU.Runtime.CPU
                 Debug.Assert(task != null, "Invalid task");
 
                 // Setup the current group index
-                threadContext.GroupIndex = Index3.ReconstructIndex(
+                threadContext.GroupIndex = Index3D.ReconstructIndex(
                     threadIdx,
                     task.GroupDim);
 
@@ -290,7 +290,7 @@ namespace ILGPU.Runtime.CPU
                                 try
                                 {
                                     // Setup the current grid index
-                                    threadContext.GridIndex = Index3.ReconstructIndex(
+                                    threadContext.GridIndex = Index3D.ReconstructIndex(
                                         i,
                                         task.GridDim);
 

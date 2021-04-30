@@ -71,12 +71,12 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Returns the grid index within the scheduled thread grid.
         /// </summary>
-        public Index3 GridIndex { get; internal set; }
+        public Index3D GridIndex { get; internal set; }
 
         /// <summary>
         /// Returns the group index within the scheduled thread grid.
         /// </summary>
-        public Index3 GroupIndex { get; internal set; }
+        public Index3D GroupIndex { get; internal set; }
 
         /// <summary>
         /// Returns the linear thread index within this thread group.
