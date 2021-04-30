@@ -109,7 +109,7 @@ namespace ILGPU
             /// <summary>
             /// Constructs a new device collection.
             /// </summary>
-                /// <param name="deviceList">The list of all devices.</param>
+            /// <param name="deviceList">The list of all devices.</param>
             internal DeviceCollection(List<Device> deviceList)
             {
                 devices = deviceList;

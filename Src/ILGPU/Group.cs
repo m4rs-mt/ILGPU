@@ -79,7 +79,7 @@ namespace ILGPU
         /// Returns the group index within the scheduled thread group.
         /// </summary>
         /// <returns>The grid index.</returns>
-        public static Index3 Index => new Index3(IdxX, IdxY, IdxZ);
+        public static Index3D Index => new Index3D(IdxX, IdxY, IdxZ);
 
         /// <summary>
         /// Returns X the dimension of the number of threads per group per grid element
@@ -149,7 +149,7 @@ namespace ILGPU
         /// in the scheduled thread grid.
         /// </summary>
         /// <returns>The thread dimension for a single group.</returns>
-        public static Index3 Dimension => new Index3(DimX, DimY, DimZ);
+        public static Index3D Dimension => new Index3D(DimX, DimY, DimZ);
 
         /// <summary>
         /// Returns the linear thread index of the current thread within the current

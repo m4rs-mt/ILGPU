@@ -69,8 +69,8 @@ namespace ILGPU
         /// <param name="value">The value to add.</param>
         /// <returns>The old value that was stored at the target location.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Index1 Add(ref Index1 target, Index1 value) =>
-            Add(ref Unsafe.As<Index1, int>(ref target), value);
+        public static Index1D Add(ref Index1D target, Index1D value) =>
+            Add(ref Unsafe.As<Index1D, int>(ref target), value);
 
         #endregion
 
@@ -137,8 +137,8 @@ namespace ILGPU
         /// <param name="value">The value to add.</param>
         /// <returns>The old value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Index1 Exchange(ref Index1 target, Index1 value) =>
-            Exchange(ref Unsafe.As<Index1, int>(ref target), value);
+        public static Index1D Exchange(ref Index1D target, Index1D value) =>
+            Exchange(ref Unsafe.As<Index1D, int>(ref target), value);
 
         #endregion
 
@@ -230,12 +230,12 @@ namespace ILGPU
         /// <param name="value">The value to add.</param>
         /// <returns>The old value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Index1 CompareExchange(
-            ref Index1 target,
-            Index1 compare,
-            Index1 value) =>
+        public static Index1D CompareExchange(
+            ref Index1D target,
+            Index1D compare,
+            Index1D value) =>
             CompareExchange(
-                ref Unsafe.As<Index1, int>(ref target),
+                ref Unsafe.As<Index1D, int>(ref target),
                 compare,
                 value);
 

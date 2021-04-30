@@ -34,8 +34,8 @@ namespace ILGPU
         internal static readonly ConstructorInfo ImplicitlyGroupedKernelConstructor =
             typeof(KernelConfig).GetConstructor(new Type[]
                 {
-                    typeof(Index3),
-                    typeof(Index3)
+                    typeof(Index3D),
+                    typeof(Index3D)
                 });
 
         #endregion
@@ -49,7 +49,7 @@ namespace ILGPU
         /// <param name="gridDim">The grid dimension to use.</param>
         /// <param name="groupDim">The group dimension to use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public KernelConfig(Index1 gridDim, Index1 groupDim)
+        public KernelConfig(Index1D gridDim, Index1D groupDim)
             : this(gridDim, groupDim, default)
         { }
 
@@ -63,12 +63,12 @@ namespace ILGPU
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public KernelConfig(
-            Index1 gridDim,
-            Index1 groupDim,
+            Index1D gridDim,
+            Index1D groupDim,
             SharedMemoryConfig sharedMemoryConfig)
             : this(
-                  new Index3(gridDim.X, 1, 1),
-                  new Index3(groupDim.X, 1, 1),
+                  new Index3D(gridDim.X, 1, 1),
+                  new Index3D(groupDim.X, 1, 1),
                   sharedMemoryConfig)
         { }
 
@@ -79,7 +79,7 @@ namespace ILGPU
         /// <param name="gridDim">The grid dimension to use.</param>
         /// <param name="groupDim">The group dimension to use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public KernelConfig(Index2 gridDim, Index2 groupDim)
+        public KernelConfig(Index2D gridDim, Index2D groupDim)
             : this(gridDim, groupDim, default)
         { }
 
@@ -93,12 +93,12 @@ namespace ILGPU
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public KernelConfig(
-            Index2 gridDim,
-            Index2 groupDim,
+            Index2D gridDim,
+            Index2D groupDim,
             SharedMemoryConfig sharedMemoryConfig)
             : this(
-                  new Index3(gridDim.X, gridDim.Y, 1),
-                  new Index3(groupDim.X, groupDim.Y, 1),
+                  new Index3D(gridDim.X, gridDim.Y, 1),
+                  new Index3D(groupDim.X, groupDim.Y, 1),
                   sharedMemoryConfig)
         { }
 
@@ -109,7 +109,7 @@ namespace ILGPU
         /// <param name="gridDim">The grid dimension to use.</param>
         /// <param name="groupDim">The group dimension to use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public KernelConfig(Index3 gridDim, Index3 groupDim)
+        public KernelConfig(Index3D gridDim, Index3D groupDim)
             : this(gridDim, groupDim, default)
         { }
 
@@ -128,8 +128,8 @@ namespace ILGPU
             int gridDimX, int gridDimY, int gridDimZ,
             int groupDimX, int groupDimY, int groupDimZ)
             : this(
-                  new Index3(gridDimX, gridDimY, gridDimZ),
-                  new Index3(groupDimX, groupDimY, groupDimZ),
+                  new Index3D(gridDimX, gridDimY, gridDimZ),
+                  new Index3D(groupDimX, groupDimY, groupDimZ),
                   default)
         { }
 
@@ -143,8 +143,8 @@ namespace ILGPU
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public KernelConfig(
-            Index3 gridDim,
-            Index3 groupDim,
+            Index3D gridDim,
+            Index3D groupDim,
             SharedMemoryConfig sharedMemoryConfig)
         {
             if (gridDim.LongSize < 0)
@@ -169,12 +169,12 @@ namespace ILGPU
         /// <summary>
         /// Returns the global grid dimension.
         /// </summary>
-        public Index3 GridDim { get; }
+        public Index3D GridDim { get; }
 
         /// <summary>
         /// Returns the global group dimension of each group.
         /// </summary>
-        public Index3 GroupDim { get; }
+        public Index3D GroupDim { get; }
 
         /// <summary>
         /// Returns the associated dynamic memory configuration.
@@ -211,13 +211,13 @@ namespace ILGPU
         /// Converts the current instance into a dimension tuple.
         /// </summary>
         /// <returns>A dimension tuple representing this kernel configuration.</returns>
-        public readonly (Index3, Index3) ToDimensions() => (GridDim, GroupDim);
+        public readonly (Index3D, Index3D) ToDimensions() => (GridDim, GroupDim);
 
         /// <summary>
         /// Converts the current instance into a value tuple.
         /// </summary>
         /// <returns>A value tuple representing this kernel configuration.</returns>
-        public readonly (Index3, Index3, SharedMemoryConfig) ToValueTuple() =>
+        public readonly (Index3D, Index3D, SharedMemoryConfig) ToValueTuple() =>
             (GridDim, GroupDim, SharedMemoryConfig);
 
         /// <summary>
@@ -226,7 +226,7 @@ namespace ILGPU
         /// <param name="gridDim">The grid dimension.</param>
         /// <param name="groupDim">The group dimension.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly void Deconstruct(out Index3 gridDim, out Index3 groupDim)
+        public readonly void Deconstruct(out Index3D gridDim, out Index3D groupDim)
         {
             gridDim = GridDim;
             groupDim = GroupDim;
@@ -240,8 +240,8 @@ namespace ILGPU
         /// <param name="sharedMemoryConfig">The shared memory configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Deconstruct(
-            out Index3 gridDim,
-            out Index3 groupDim,
+            out Index3D gridDim,
+            out Index3D groupDim,
             out SharedMemoryConfig sharedMemoryConfig)
         {
             gridDim = GridDim;
@@ -258,33 +258,33 @@ namespace ILGPU
         /// </summary>
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator KernelConfig((Index1, Index1) dimensions) =>
+        public static implicit operator KernelConfig((Index1D, Index1D) dimensions) =>
             new KernelConfig(
-                new Index3(dimensions.Item1, 1, 1),
-                new Index3(dimensions.Item2, 1, 1));
+                new Index3D(dimensions.Item1, 1, 1),
+                new Index3D(dimensions.Item2, 1, 1));
 
         /// <summary>
         /// Converts the given dimension tuple into an equivalent kernel configuration.
         /// </summary>
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator KernelConfig((Index3, Index1) dimensions) =>
-            new KernelConfig(dimensions.Item1, new Index3(dimensions.Item2, 1, 1));
+        public static implicit operator KernelConfig((Index3D, Index1D) dimensions) =>
+            new KernelConfig(dimensions.Item1, new Index3D(dimensions.Item2, 1, 1));
 
         /// <summary>
         /// Converts the given dimension tuple into an equivalent kernel configuration.
         /// </summary>
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator KernelConfig((Index3, Index2) dimensions) =>
-            new KernelConfig(dimensions.Item1, new Index3(dimensions.Item2, 1));
+        public static implicit operator KernelConfig((Index3D, Index2D) dimensions) =>
+            new KernelConfig(dimensions.Item1, new Index3D(dimensions.Item2, 1));
 
         /// <summary>
         /// Converts the given dimension tuple into an equivalent kernel configuration.
         /// </summary>
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator KernelConfig((Index2, Index2) dimensions) =>
+        public static implicit operator KernelConfig((Index2D, Index2D) dimensions) =>
             new KernelConfig(dimensions.Item1, dimensions.Item2);
 
         /// <summary>
@@ -292,7 +292,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator KernelConfig((Index3, Index3) dimensions) =>
+        public static implicit operator KernelConfig((Index3D, Index3D) dimensions) =>
             new KernelConfig(dimensions.Item1, dimensions.Item2);
 
         /// <summary>
@@ -301,10 +301,10 @@ namespace ILGPU
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator KernelConfig(
-            (Index1, Index1, SharedMemoryConfig) dimensions) =>
+            (Index1D, Index1D, SharedMemoryConfig) dimensions) =>
             new KernelConfig(
-                new Index3(dimensions.Item1, 1, 1),
-                new Index3(dimensions.Item2, 1, 1),
+                new Index3D(dimensions.Item1, 1, 1),
+                new Index3D(dimensions.Item2, 1, 1),
                 dimensions.Item3);
 
         /// <summary>
@@ -313,14 +313,14 @@ namespace ILGPU
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator KernelConfig(
-            (Index3, Index3, SharedMemoryConfig) dimensions) =>
+            (Index3D, Index3D, SharedMemoryConfig) dimensions) =>
             new KernelConfig(dimensions.Item1, dimensions.Item2, dimensions.Item3);
 
         /// <summary>
         /// Converts the given kernel configuration into an equivalent dimension tuple.
         /// </summary>
         /// <param name="config">The kernel configuration to convert.</param>
-        public static implicit operator (Index3, Index3)(KernelConfig config) =>
+        public static implicit operator (Index3D, Index3D)(KernelConfig config) =>
             config.ToDimensions();
 
         /// <summary>
@@ -328,7 +328,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="config">The kernel configuration to convert.</param>
         public static implicit operator
-            (Index3, Index3, SharedMemoryConfig)(KernelConfig config) =>
+            (Index3D, Index3D, SharedMemoryConfig)(KernelConfig config) =>
             config.ToValueTuple();
 
         #endregion
@@ -529,12 +529,12 @@ namespace ILGPU
         /// <summary>
         /// Returns the global grid dimension.
         /// </summary>
-        public Index3 GridDim { get; }
+        public Index3D GridDim { get; }
 
         /// <summary>
         /// Returns the global group dimension of each group.
         /// </summary>
-        public Index3 GroupDim { get; }
+        public Index3D GroupDim { get; }
 
         /// <summary>
         /// Returns the current shared memory configuration.
