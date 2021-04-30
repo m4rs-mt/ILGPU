@@ -9,13 +9,77 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Types;
+using ILGPU.Runtime;
+using ILGPU.Runtime.CPU;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU
 {
+    partial struct ArrayView2D<T, TStride>
+    {
+        /// <summary>
+        /// Converts this array view into a dense version with leading dimension X.
+        /// </summary>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ArrayView2D<T, Stride2D.DenseX> AsDenseX()
+        {
+            Trace.Assert(Stride.XStride == 1, "Incompatible dense stride");
+            return new ArrayView2D<T, Stride2D.DenseX>(
+                BaseView,
+                Extent,
+                new Stride2D.DenseX(Stride.YStride));
+        }
+
+        /// <summary>
+        /// Converts this array view into a dense version with leading dimension Y.
+        /// </summary>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ArrayView2D<T, Stride2D.DenseY> AsDenseY()
+        {
+            Trace.Assert(Stride.YStride == 1, "Incompatible dense stride");
+            return new ArrayView2D<T, Stride2D.DenseY>(
+                BaseView,
+                Extent,
+                new Stride2D.DenseY(Stride.XStride));
+        }
+    }
+
+    partial struct ArrayView3D<T, TStride>
+    {
+        /// <summary>
+        /// Converts this array view into a dense version with leading dimensions XY.
+        /// </summary>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ArrayView3D<T, Stride3D.DenseXY> AsDenseXY()
+        {
+            Trace.Assert(Stride.XStride == 1, "Incompatible dense stride");
+            return new ArrayView3D<T, Stride3D.DenseXY>(
+                BaseView,
+                Extent,
+                new Stride3D.DenseXY(Stride.YStride, Stride.YStride * Stride.ZStride));
+        }
+
+        /// <summary>
+        /// Converts this array view into a dense version with leading dimensions YZ.
+        /// </summary>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ArrayView3D<T, Stride3D.DenseYZ> AsDenseYZ()
+        {
+            Trace.Assert(Stride.ZStride == 1, "Incompatible dense stride");
+            return new ArrayView3D<T, Stride3D.DenseYZ>(
+                BaseView,
+                Extent,
+                new Stride3D.DenseYZ(Stride.XStride, Stride.XStride * Stride.YStride));
+        }
+    }
+
     /// <summary>
     /// Array view extension methods
     /// </summary>
@@ -32,11 +96,10 @@ namespace ILGPU
         /// target platforms.
         /// </remarks>
         /// <returns>The effective address.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void* LoadEffectiveAddress<T>(this ArrayView<T> view)
+        public static ref byte LoadEffectiveAddress<T>(this ArrayView<T> view)
             where T : unmanaged =>
-            view.LoadEffectiveAddress();
+            ref view.LoadEffectiveAddress();
 
         /// <summary>
         /// Aligns the given array view to the specified alignment in bytes and returns a
@@ -64,161 +127,6 @@ namespace ILGPU
         }
 
         /// <summary>
-        /// Converts this view into a new 2D view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="view">The view.</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        /// <returns>The converted 2D view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView2D<T> As2DView<T>(this ArrayView<T> view, long height)
-            where T : unmanaged =>
-            new ArrayView2D<T>(view, height);
-
-        /// <summary>
-        /// Converts this view into a new 2D view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="view">The view.</param>
-        /// <param name="width">The width (number of elements in x direction).</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        /// <returns>The converted 2D view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView2D<T> As2DView<T>(
-            this ArrayView<T> view,
-            long width,
-            long height)
-            where T : unmanaged =>
-            new ArrayView2D<T>(view, width, height);
-
-        /// <summary>
-        /// Converts this view into a new 2D view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="view">The view.</param>
-        /// <param name="extent">The extent.</param>
-        /// <returns>The converted 2D view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView2D<T> As2DView<T>(
-            this ArrayView<T> view,
-            LongIndex2 extent)
-            where T : unmanaged =>
-            new ArrayView2D<T>(view, extent);
-
-        /// <summary>
-        /// Converts this view into a new 3D view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="view">The view.</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        /// <param name="depth">The depth (number of elements in z direction).</param>
-        /// <returns>The converted 3D view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView3D<T> As3DView<T>(
-            this ArrayView<T> view,
-            long height,
-            long depth)
-            where T : unmanaged =>
-            new ArrayView3D<T>(view, height, depth);
-
-        /// <summary>
-        /// Converts this view into a new 3D view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="view">The view.</param>
-        /// <param name="extent">
-        /// The height (number of elements in y direction) and depth (number of elements
-        /// in z direction).
-        /// </param>
-        /// <returns>The converted 3D view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView3D<T> As3DView<T>(
-            this ArrayView<T> view,
-            LongIndex2 extent)
-            where T : unmanaged =>
-            new ArrayView3D<T>(view, extent.X, extent.Y);
-
-        /// <summary>
-        /// Converts this view into a new 3D view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="view">The view.</param>
-        /// <param name="width">The width (number of elements in x direction).</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        /// <param name="depth">The depth (number of elements in z direction).</param>
-        /// <returns>The converted 3D view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView3D<T> As3DView<T>(
-            this ArrayView<T> view,
-            long width,
-            long height,
-            long depth)
-            where T : unmanaged =>
-            new ArrayView3D<T>(view, width, height, depth);
-
-        /// <summary>
-        /// Converts this view into a new 3D view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="view">The view.</param>
-        /// <param name="extent">
-        /// The width (number of elements in x direction) and height (number of elements
-        /// in y direction).
-        /// </param>
-        /// <param name="depth">The depth (number of elements in z direction).</param>
-        /// <returns>The converted 3D view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView3D<T> As3DView<T>(
-            this ArrayView<T> view,
-            LongIndex2 extent,
-            long depth)
-            where T : unmanaged =>
-            new ArrayView3D<T>(view, extent, depth);
-
-        /// <summary>
-        /// Converts this view into a new 3D view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="view">The view.</param>
-        /// <param name="width">The width (number of elements in x direction).</param>
-        /// <param name="extent">
-        /// The height (number of elements in y direction) and depth (number of elements
-        /// in z direction).
-        /// </param>
-        /// <returns>The converted 3D view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView3D<T> As3DView<T>(
-            this ArrayView<T> view,
-            long width,
-            LongIndex2 extent)
-            where T : unmanaged =>
-            new ArrayView3D<T>(view, width, extent);
-
-        /// <summary>
-        /// Converts this view into a new 3D view.
-        /// </summary>
-        /// <param name="view">The view.</param>
-        /// <param name="extent">The extent.</param>
-        /// <returns>The converted 3D view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView3D<T> As3DView<T>(
-            this ArrayView<T> view,
-            LongIndex3 extent)
-            where T : unmanaged =>
-            new ArrayView3D<T>(view, extent);
-
-        /// <summary>
-        /// Returns a variable view to the first element.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="view">The view.</param>
-        /// <returns>The resolved variable view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static VariableView<T> GetVariableView<T>(this ArrayView<T> view)
-            where T : unmanaged =>
-            view.GetVariableView(Index1.Zero);
-
-        /// <summary>
         /// Returns a variable view to the given element.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
@@ -226,11 +134,11 @@ namespace ILGPU
         /// <param name="element">The element index.</param>
         /// <returns>The resolved variable view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static VariableView<T> GetVariableView<T>(
+        public static VariableView<T> VariableView<T>(
             this ArrayView<T> view,
             Index1 element)
             where T : unmanaged =>
-            new VariableView<T>(view.GetSubView(element, 1));
+            new VariableView<T>(view.SubView(element, 1));
 
         /// <summary>
         /// Returns a variable view to the given element.
@@ -240,264 +148,1021 @@ namespace ILGPU
         /// <param name="element">The element index.</param>
         /// <returns>The resolved variable view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static VariableView<T> GetVariableView<T>(
+        public static VariableView<T> VariableView<T>(
             this ArrayView<T> view,
             LongIndex1 element)
             where T : unmanaged =>
-            new VariableView<T>(view.GetSubView(element, 1L));
-
-        #endregion
-    }
-
-    partial struct ArrayView2D<T>
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new 2D array view.
-        /// </summary>
-        /// <param name="view">The linear view to the data.</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView2D(ArrayView<T> view, long height)
-            : this(view, new LongIndex2(view.Length / height, height))
-        { }
-
-        /// <summary>
-        /// Constructs a new 2D array view.
-        /// </summary>
-        /// <param name="view">The linear view to the data.</param>
-        /// <param name="width">The width (number of elements in x direction).</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView2D(ArrayView<T> view, long width, long height)
-            : this(view, new LongIndex2(width, height))
-        { }
-
-        /// <summary>
-        /// Constructs a new 2D array view.
-        /// </summary>
-        /// <param name="view">The linear view to the data.</param>
-        /// <param name="extent">The extent (width, height) (number of elements).</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView2D(ArrayView<T> view, LongIndex2 extent)
-            : this(new ArrayView<T, LongIndex2>(view, extent))
-        { }
+            new VariableView<T>(view.SubView(element, 1L));
 
         #endregion
 
-        #region Properties
+        #region ArrayView1D
 
         /// <summary>
-        /// Returns the Width of this view.
+        /// Converts the given view into a 2D view.
         /// </summary>
-        public readonly long Width => Extent.X;
-
-        /// <summary>
-        /// Returns the height of this view.
-        /// </summary>
-        public readonly long Height => Extent.Y;
-
-        /// <summary>
-        /// Returns the rows of this view that represents
-        /// an implicitly transposed matrix.
-        /// </summary>
-        public readonly long Rows => Extent.X;
-
-        /// <summary>
-        /// Returns the columns of this view that represents
-        /// an implicitly transposed matrix.
-        /// </summary>
-        public readonly long Columns => Extent.Y;
-
-        /// <summary>
-        /// Accesses the element at the given index.
-        /// </summary>
-        /// <param name="x">The x index.</param>
-        /// <param name="y">The y index.</param>
-        /// <returns>The element at the given index.</returns>
-        public readonly ref T this[int x, int y] =>
-            ref this[new Index2(x, y)];
-
-        /// <summary>
-        /// Accesses the element at the given index.
-        /// </summary>
-        /// <param name="x">The x index.</param>
-        /// <param name="y">The y index.</param>
-        /// <returns>The element at the given index.</returns>
-        public readonly ref T this[long x, long y] =>
-            ref this[new LongIndex2(x, y)];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns a linear view to a single row.
-        /// </summary>
-        /// <param name="y">The y index of the row.</param>
-        /// <returns>A linear view to a single row.</returns>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The view to convert.</param>
+        /// <param name="extent">The target extent to use.</param>
+        /// <param name="stride">The target stride to use.</param>
+        /// <returns>The converted 2D view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> GetRowView(long y)
+        public static ArrayView2D<T, TStride> As2DView<T, TStride>(
+            this ArrayView1D<T, Stride1D.Dense> view,
+            LongIndex2 extent,
+            TStride stride)
+            where T : unmanaged
+            where TStride : struct, IStride2D
         {
-            Trace.Assert(y >= 0 && y < Height, "y out of bounds");
-            return AsLinearView().GetSubView(y * Width, Width);
+            Trace.Assert(extent.Size <= view.Length, "Extent out of range");
+            var baseView = view.BaseView.SubView(0, extent.Size);
+            return new ArrayView2D<T, TStride>(
+                baseView,
+                extent,
+                stride);
+        }
+
+        /// <summary>
+        /// Converts the given view into a 3D view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The view to convert.</param>
+        /// <param name="extent">The target extent to use.</param>
+        /// <param name="stride">The target stride to use.</param>
+        /// <returns>The converted 3D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView3D<T, TStride> As3DView<T, TStride>(
+            this ArrayView1D<T, Stride1D.Dense> view,
+            LongIndex3 extent,
+            TStride stride)
+            where T : unmanaged
+            where TStride : struct, IStride3D
+        {
+            Trace.Assert(extent.Size <= view.Length, "Extent out of range");
+            var baseView = view.BaseView.SubView(0, extent.Size);
+            return new ArrayView3D<T, TStride>(
+                baseView,
+                extent,
+                stride);
+        }
+
+        #endregion
+
+        #region ArrayView2D
+
+        /// <summary>
+        /// Converts the given view into a 1D view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The view to convert.</param>
+        /// <param name="stride">The target stride to use.</param>
+        /// <returns>The converted 1D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, TStride> As1DView<T, TStride>(
+            this ArrayView2D<T, Stride2D.DenseX> view,
+            TStride stride)
+            where T : unmanaged
+            where TStride : struct, IStride1D =>
+            new ArrayView1D<T, TStride>(
+                view.BaseView,
+                view.Extent.Size,
+                stride);
+
+        /// <summary>
+        /// Converts the given view into a 1D view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The view to convert.</param>
+        /// <param name="stride">The target stride to use.</param>
+        /// <returns>The converted 1D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, TStride> As1DView<T, TStride>(
+            this ArrayView2D<T, Stride2D.DenseY> view,
+            TStride stride)
+            where T : unmanaged
+            where TStride : struct, IStride1D =>
+            new ArrayView1D<T, TStride>(
+                view.BaseView,
+                view.Extent.Size,
+                stride);
+
+        /// <summary>
+        /// Converts the given view into a 3D view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The view to convert.</param>
+        /// <param name="extent">The target extent to use.</param>
+        /// <param name="stride">The target stride to use.</param>
+        /// <returns>The converted 3D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView3D<T, TStride> As3DView<T, TStride>(
+            this ArrayView2D<T, Stride2D.Dense> view,
+            LongIndex3 extent,
+            TStride stride)
+            where T : unmanaged
+            where TStride : struct, IStride3D
+        {
+            Trace.Assert(extent.Size <= view.Length, "Extent out of range");
+            var baseView = view.BaseView.SubView(0, extent.Size);
+            return new ArrayView3D<T, TStride>(
+                baseView,
+                extent,
+                stride);
+        }
+
+        /// <summary>
+        /// Internal helper function to perform a slice on the X dimension.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The current view instance to slice.</param>
+        /// <param name="y">The y index.</param>
+        /// <returns>The slices sub view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ArrayView<T> SliceXInternal<T, TStride>(
+            ArrayView2D<T, TStride> view,
+            long y)
+            where T : unmanaged
+            where TStride : struct, IStride2D
+        {
+            Trace.Assert(y >= 0 & y < view.Extent.Y, "y out of range");
+            long offset = y * view.Stride.YStride;
+            return view.BaseView.SubView(offset, view.Extent.X * view.Stride.XStride);
+        }
+
+        /// <summary>
+        /// Slices a 1D chunk out of a 2D view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The view to slice.</param>
+        /// <param name="y">The y index.</param>
+        /// <returns>The sliced 1D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.General> SliceX<T, TStride>(
+            this ArrayView2D<T, TStride> view,
+            long y)
+            where T : unmanaged
+            where TStride : struct, IStride2D
+        {
+            var baseView = SliceXInternal(view, y);
+            return new ArrayView1D<T, Stride1D.General>(
+                baseView,
+                view.Extent.X,
+                new Stride1D.General(view.Stride.XStride));
+        }
+
+        /// <summary>
+        /// Slices a 1D chunk out of a 2D dense view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view to slice.</param>
+        /// <param name="y">The y index.</param>
+        /// <returns>The sliced 1D view.</returns>
+        public static ArrayView1D<T, Stride1D.Dense> SliceX<T>(
+            this ArrayView2D<T, Stride2D.DenseX> view,
+            long y)
+            where T : unmanaged
+        {
+            var baseView = SliceXInternal(view, y);
+            return new ArrayView1D<T, Stride1D.Dense>(
+                baseView,
+                view.Extent.X,
+                default);
+        }
+
+        /// <summary>
+        /// Internal helper function to perform a slice on the Y dimension.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The current view instance to slice.</param>
+        /// <param name="x">The x index.</param>
+        /// <returns>The slices sub view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ArrayView<T> SliceYInternal<T, TStride>(
+            ArrayView2D<T, TStride> view,
+            long x)
+            where T : unmanaged
+            where TStride : struct, IStride2D
+        {
+            Trace.Assert(x >= 0 & x < view.Extent.X, "x out of range");
+            long offset = x * view.Stride.XStride;
+            return view.BaseView.SubView(offset, view.Extent.Y);
+        }
+
+        /// <summary>
+        /// Slices a 1D chunk out of a 2D view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The view to slice.</param>
+        /// <param name="x">The x index.</param>
+        /// <returns>The sliced 1D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.General> SliceY<T, TStride>(
+            this ArrayView2D<T, TStride> view,
+            long x)
+            where T : unmanaged
+            where TStride : struct, IStride2D
+        {
+            var baseView = SliceYInternal(view, x);
+            return new ArrayView1D<T, Stride1D.General>(
+                baseView,
+                new Stride1D.General(view.Stride.YStride));
+        }
+
+        /// <summary>
+        /// Slices a 1D chunk out of a 2D dense view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view to slice.</param>
+        /// <param name="x">The x index.</param>
+        /// <returns>The sliced 1D view.</returns>
+        public static ArrayView1D<T, Stride1D.Dense> SliceY<T>(
+            this ArrayView2D<T, Stride2D.Dense> view,
+            long x)
+            where T : unmanaged
+        {
+            var baseView = SliceYInternal(view, x);
+            return new ArrayView1D<T, Stride1D.Dense>(baseView, default);
+        }
+
+        #endregion
+
+        #region ArrayView3D
+
+        /// <summary>
+        /// Converts the given view into a 1D view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The view to convert.</param>
+        /// <param name="stride">The target stride to use.</param>
+        /// <returns>The converted 1D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, TStride> As1DView<T, TStride>(
+            this ArrayView3D<T, Stride3D.Dense> view,
+            TStride stride)
+            where T : unmanaged
+            where TStride : struct, IStride1D =>
+            new ArrayView1D<T, TStride>(view.BaseView, stride);
+
+        /// <summary>
+        /// Converts the given view into a 2D view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride type.</typeparam>
+        /// <param name="view">The view to convert.</param>
+        /// <param name="extent">The target extent to use.</param>
+        /// <param name="stride">The target stride to use.</param>
+        /// <returns>The converted 2D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView2D<T, TStride> As2DView<T, TStride>(
+            this ArrayView3D<T, Stride3D.Dense> view,
+            LongIndex2 extent,
+            TStride stride)
+            where T : unmanaged
+            where TStride : struct, IStride2D
+        {
+            Trace.Assert(extent.Size <= view.Length, "Extent out of range");
+            return new ArrayView2D<T, TStride>(
+                view.BaseView,
+                extent,
+                stride);
         }
 
         #endregion
     }
 
-    partial struct ArrayView3D<T>
+    public static class ArrayViewExtensions
     {
-        #region Instance
+        #region Base Methods
 
         /// <summary>
-        /// Constructs a new 3D array view.
+        /// 
         /// </summary>
-        /// <param name="view">The linear view to the data.</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        /// <param name="depth">The depth (number of elements in z direction).</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, long height, long depth)
-            : this(view, new LongIndex3(view.Length / (height * depth), height, depth))
-        { }
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns></returns>
+        public static bool HasNoData<TView>(this TView view)
+            where TView : IArrayView =>
+            !view.IsValid || view.Length < 1;
+
+        public static bool HasNonZeroLength<TView>(this TView view)
+            where TView : IArrayView =>
+            view.IsValid & view.Length > 0;
 
         /// <summary>
-        /// Constructs a new 3D array view.
+        /// Returns the associated accelerator of the current view.
         /// </summary>
-        /// <param name="view">The linear view to the data.</param>
-        /// <param name="width">The width (number of elements in x direction).</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        /// <param name="depth">The depth (number of elements in z direction).</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, long width, long height, long depth)
-            : this(view, new LongIndex3(width, height, depth))
-        { }
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The associated parent accelerator.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        public static Accelerator GetAccelerator<TView>(this TView view)
+            where TView : IArrayView =>
+            view.Buffer.Accelerator;
 
         /// <summary>
-        /// Constructs a new 3D array view.
+        /// Returns the associated accelerator type of the current view.
         /// </summary>
-        /// <param name="view">The linear view to the data.</param>
-        /// <param name="extent">
-        /// The width (number of elements in x direction) and height (number of elements
-        /// in y direction).
-        /// </param>
-        /// <param name="depth">The depth (number of elements in z direction).</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, LongIndex2 extent, long depth)
-            : this(view, new LongIndex3(extent, depth))
-        { }
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The associated parent accelerator type.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        public static AcceleratorType GetAcceleratorType<TView>(this TView view)
+            where TView : IArrayView =>
+            view.Buffer.AcceleratorType;
 
         /// <summary>
-        /// Constructs a new 3D array view.
+        /// Returns the associated default stream of the parent accelerator.
         /// </summary>
-        /// <param name="view">The linear view to the data.</param>
-        /// <param name="width">The width (number of elements in x direction).</param>
-        /// <param name="extent">
-        /// The height (number of elements in y direction) and depth (number of elements
-        /// in z direction).
-        /// </param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, long width, LongIndex2 extent)
-            : this(view, new LongIndex3(width, extent))
-        { }
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The default stream of the parent accelerator.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        internal static AcceleratorStream GetDefaultStream<TView>(this TView view)
+            where TView : IArrayView =>
+            view.GetAccelerator().DefaultStream;
 
         /// <summary>
-        /// Constructs a new 3D array view.
+        /// Returns the index in bytes of the given view.
         /// </summary>
-        /// <param name="view">The linear view to the data.</param>
-        /// <param name="extent">
-        /// The extent (width, height, depth) (number of elements).
-        /// </param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, LongIndex3 extent)
-            : this(new ArrayView<T, LongIndex3>(view, extent))
-        { }
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The index in bytes of the given view.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        internal static long GetIndexInBytes<TView>(this TView view)
+            where TView : IArrayView =>
+            view.Index * view.ElementSize;
+
+        /// <summary>
+        /// Converts the given generic array view into a raw view of bytes.
+        /// </summary>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The raw array view.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        internal static ArrayView<byte> AsRawArrayView<TView>(this TView view)
+            where TView : IArrayView =>
+            new ArrayView<byte>(
+                view.Buffer,
+                view.GetIndexInBytes(),
+                view.LengthInBytes);
 
         #endregion
 
-        #region Properties
+        #region View Methods
 
         /// <summary>
-        /// Returns the Width of this view.
+        /// Copies elements from the current buffer to the target view using
+        /// the default accelerator stream.
         /// </summary>
-        public readonly long Width => Extent.X;
-
-        /// <summary>
-        /// Returns the height of this view.
-        /// </summary>
-        public readonly long Height => Extent.Y;
-
-        /// <summary>
-        /// Returns the depth of this view.
-        /// </summary>
-        public readonly long Depth => Extent.Z;
-
-        /// <summary>
-        /// Accesses the element at the given index.
-        /// </summary>
-        /// <param name="x">The x index.</param>
-        /// <param name="y">The y index.</param>
-        /// <param name="z">The z index.</param>
-        /// <returns>The element at the given index.</returns>
-        public readonly ref T this[int x, int y, int z] =>
-            ref this[new Index3(x, y, z)];
-
-        /// <summary>
-        /// Accesses the element at the given index.
-        /// </summary>
-        /// <param name="xy">The x and y indices.</param>
-        /// <param name="z">The z index.</param>
-        /// <returns>The element at the given index.</returns>
-        public readonly ref T this[Index2 xy, int z] =>
-            ref this[xy.X, xy.Y, z];
-
-        /// <summary>
-        /// Accesses the element at the given index.
-        /// </summary>
-        /// <param name="x">The x index.</param>
-        /// <param name="yz">The z and y indices.</param>
-        /// <returns>The element at the given index.</returns>
-        public readonly ref T this[int x, Index2 yz] =>
-            ref this[x, yz.X, yz.Y];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns a linear view to a single row.
-        /// </summary>
-        /// <param name="index">
-        /// The y index of the row and the z index of the slice.
-        /// </param>
-        /// <returns>A linear view to a single row.</returns>
+        /// <param name="target">The target view.</param>
+        /// <param name="sourceOffset">The source offset.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> GetRowView(LongIndex2 index) =>
-            GetRowView(index.X, index.Y);
+        public void CopyTo(TView target, TIndex sourceOffset) =>
+            CopyTo(
+                Accelerator.DefaultStream,
+                target,
+                sourceOffset);
 
         /// <summary>
-        /// Returns a linear view to a single row.
+        /// Copies elements from the current buffer to the target buffer.
         /// </summary>
-        /// <param name="y">The y index of the row.</param>
-        /// <param name="z">The z index of the slice.</param>
-        /// <returns>A linear view to a single row.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> GetRowView(long y, long z) =>
-            GetSliceView(z).GetRowView(y);
-
-        /// <summary>
-        /// Returns a 2D view to a single slice.
-        /// </summary>
-        /// <param name="z">The z index of the slice.</param>
-        /// <returns>A 2D view to a single slice.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView2D<T> GetSliceView(long z)
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target view.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        public void CopyTo(
+            AcceleratorStream stream,
+            TView target,
+            TIndex sourceOffset)
         {
-            Trace.Assert(z >= 0 && z < Depth, "z out of bounds");
-            return new ArrayView2D<T>(
-                BaseView.AsLinearView().GetSubView(z * Width * Height, Width * Height),
-                Height);
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (!target.IsValid)
+                throw new ArgumentNullException(nameof(target));
+            if (!sourceOffset.InBounds(Extent))
+                throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            if (!sourceOffset.Add(target.Extent).InBoundsInclusive(Extent))
+                throw new ArgumentOutOfRangeException(nameof(target));
+
+            CopyToView(
+                stream,
+                target.AsLinearView(),
+                sourceOffset.ComputeLongLinearIndex(Extent));
+        }
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source view.
+        /// </summary>
+        /// <param name="source">The source view.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(TView source, TIndex targetOffset) =>
+            CopyFrom(
+                Accelerator.DefaultStream,
+                source,
+                targetOffset);
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source view.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="source">The source view.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        public void CopyFrom(
+            AcceleratorStream stream,
+            TView source,
+            TIndex targetOffset)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (!source.IsValid)
+                throw new ArgumentNullException(nameof(source));
+            if (!targetOffset.InBounds(Extent))
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            if (!targetOffset.Add(source.Extent).InBoundsInclusive(Extent))
+                throw new ArgumentOutOfRangeException(nameof(source));
+
+            CopyFromView(
+                stream,
+                source.AsLinearView(),
+                targetOffset.ComputeLongLinearIndex(Extent));
+        }
+
+        #endregion
+
+        #region Copy Methods
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(TView target, TIndex sourceOffset) =>
+            CopyTo(
+                Accelerator.DefaultStream,
+                target,
+                sourceOffset);
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(
+            AcceleratorStream stream,
+            TView target,
+            TIndex sourceOffset) =>
+            CopyTo(
+                stream,
+                target,
+                sourceOffset,
+                default,
+                Length);
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use CopyTo(MemoryBuffer<T, TIndex>, TIndex, TIndex, Index1) instead")]
+        public void CopyTo(
+            TView target,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            TIndex extent) =>
+            CopyTo(
+                Accelerator.DefaultStream,
+                target,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [Obsolete("Use CopyTo(AcceleratorStream, MemoryBuffer<T, TIndex>, TIndex, " +
+            "TIndex, Index1) instead")]
+        public void CopyTo(
+            AcceleratorStream stream,
+            MemoryBuffer23<T, TIndex> target,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            TIndex extent) =>
+            CopyTo(
+                stream,
+                target,
+                sourceOffset,
+                targetOffset,
+                extent.Size);
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(
+            MemoryBuffer23<T, TIndex> target,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            LongIndex1 extent) =>
+            CopyTo(
+                Accelerator.DefaultStream,
+                target,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyTo(
+            AcceleratorStream stream,
+            MemoryBuffer23<T, TIndex> target,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            LongIndex1 extent)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
+            if (!sourceOffset.InBounds(Extent))
+                throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            if (!targetOffset.InBounds(target.Extent))
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            var linearSourceIndex = sourceOffset.ComputeLongLinearIndex(Extent);
+            var linearTargetIndex = targetOffset.ComputeLongLinearIndex(target.Extent);
+            if (linearSourceIndex + extent > Length ||
+                linearTargetIndex + extent > target.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
+            }
+
+            CopyToView(
+                stream,
+                target.View.GetSubView(targetOffset, extent),
+                linearSourceIndex);
+        }
+
+        /// <summary>
+        /// Copies a single element of this buffer to the given target variable
+        /// in CPU memory using the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="targetIndex">The target index.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(out T target, TIndex targetIndex) =>
+            CopyTo(Accelerator.DefaultStream, out target, targetIndex);
+
+        /// <summary>
+        /// Copies a single element of this buffer to the given target variable
+        /// in CPU memory.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target location.</param>
+        /// <param name="targetIndex">The target index.</param>
+        public void CopyTo(
+            AcceleratorStream stream,
+            out T target,
+            TIndex targetIndex)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
+            target = default;
+            using (var wrapper = ViewPointerWrapper.Create(ref target))
+            {
+                CopyToView(
+                    stream,
+                    new ArrayView<T>(wrapper, 0, 1),
+                    targetIndex.ComputeLongLinearIndex(Extent));
+            }
+            stream.Synchronize();
+        }
+
+        /// <summary>
+        /// Copies the contents of this buffer into the given array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(
+            Span<T> target,
+            TIndex sourceOffset,
+            long targetOffset,
+            TIndex extent) =>
+            CopyTo(
+                Accelerator.DefaultStream,
+                target,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
+        /// Copies the contents of this buffer into the given array.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public unsafe void CopyTo(
+            AcceleratorStream stream,
+            Span<T> target,
+            TIndex sourceOffset,
+            long targetOffset,
+            TIndex extent)
+        {
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (!sourceOffset.InBounds(Extent))
+                throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            var length = target.Length;
+            if (targetOffset < 0 || targetOffset >= length)
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            if (extent.Size < 1 ||
+                targetOffset + extent.Size > length ||
+                !sourceOffset.Add(extent).InBoundsInclusive(Extent))
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
+            }
+
+            fixed (T* ptr = &target[0])
+            {
+                using (var wrapper = ViewPointerWrapper.Create(ptr))
+                {
+                    CopyToView(
+                        stream,
+                        new ArrayView<T>(wrapper, 0, length).GetSubView(
+                            targetOffset, extent.Size),
+                        sourceOffset.ComputeLongLinearIndex(Extent));
+                }
+                stream.Synchronize();
+            }
+        }
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        public void CopyFrom(MemoryBuffer23<T, TIndex> source, TIndex targetOffset) =>
+            CopyFrom(Accelerator.DefaultStream, source, targetOffset);
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use CopyFrom(MemoryBuffer<T, TIndex>, TIndex, TIndex, Index) " +
+            "instead")]
+        public void CopyFrom(
+            MemoryBuffer23<T, TIndex> source,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            TIndex extent) =>
+            CopyFrom(
+                Accelerator.DefaultStream,
+                source,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use CopyFrom(AcceleratorStream, MemoryBuffer<T, TIndex>, TIndex, " +
+            "TIndex, Index) instead")]
+        public void CopyFrom(
+            AcceleratorStream stream,
+            MemoryBuffer23<T, TIndex> source,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            TIndex extent) =>
+            CopyFrom(
+                stream,
+                source,
+                sourceOffset,
+                targetOffset,
+                extent.Size);
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
+            MemoryBuffer23<T, TIndex> source,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            LongIndex1 extent) =>
+            CopyFrom(
+                Accelerator.DefaultStream,
+                source,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
+            AcceleratorStream stream,
+            MemoryBuffer23<T, TIndex> source,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            LongIndex1 extent)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            source.CopyTo(
+                stream,
+                this,
+                targetOffset,
+                sourceOffset,
+                extent);
+        }
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
+            AcceleratorStream stream,
+            MemoryBuffer23<T, TIndex> source,
+            TIndex targetOffset) =>
+            CopyFrom(
+                stream,
+                source,
+                default,
+                targetOffset,
+                source.Length);
+
+        /// <summary>
+        /// Copies a single element from CPU memory to this buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source value.</param>
+        /// <param name="sourceIndex">The source index.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(T source, TIndex sourceIndex) =>
+            CopyFrom(Accelerator.DefaultStream, source, sourceIndex);
+
+        /// <summary>
+        /// Copies a single element from CPU memory to this buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="source">The source value.</param>
+        /// <param name="sourceIndex">The source index.</param>
+        public void CopyFrom(
+            AcceleratorStream stream,
+            T source,
+            TIndex sourceIndex)
+        {
+            using var wrapper = ViewPointerWrapper.Create(ref source);
+            CopyFromView(
+                stream,
+                new ArrayView<T>(wrapper, 0, 1),
+                sourceIndex.ComputeLongLinearIndex(Extent));
+            stream.Synchronize();
+        }
+
+        /// <summary>
+        /// Copies the contents to this buffer from the given array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
+            ReadOnlySpan<T> source,
+            long sourceOffset,
+            TIndex targetOffset,
+            long extent) =>
+            CopyFrom(
+                Accelerator.DefaultStream,
+                source,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
+        /// Copies the contents to this buffer from the given array.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="source">The source array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public unsafe void CopyFrom(
+            AcceleratorStream stream,
+            ReadOnlySpan<T> source,
+            long sourceOffset,
+            TIndex targetOffset,
+            long extent)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            var length = source.Length;
+            if (sourceOffset < 0 || sourceOffset >= length)
+                throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            var linearIndex = targetOffset.ComputeLongLinearIndex(Extent);
+            if (!targetOffset.InBounds(Extent) || linearIndex >= Length)
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            if (extent < 1 || extent > source.Length ||
+                extent + sourceOffset > source.Length ||
+                linearIndex + extent > Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
+            }
+
+            fixed (T* ptr = &source[0])
+            {
+                using var wrapper = ViewPointerWrapper.Create(ptr);
+                CopyFromView(
+                    stream,
+                    new ArrayView<T>(wrapper, 0, source.Length).GetSubView(
+                        sourceOffset,
+                        extent),
+                    linearIndex);
+                stream.Synchronize();
+            }
+        }
+
+        #endregion
+
+        #region Array Methods
+
+        /// <summary>
+        /// Copies the current contents into a new array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <returns>A new array holding the requested contents.</returns>
+        public static T[] GetAsArray<T>(this ArrayView<T> view)
+            where T : unmanaged =>
+            view.GetAsArray(view.GetDefaultStream());
+
+        /// <summary>
+        /// Copies the current contents into a new array.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        public static T[] GetAsArray<T>(this ArrayView<T> view, AcceleratorStream stream)
+            where T : unmanaged =>
+            GetAsArray(stream, default, Extent);
+
+        /// <summary>
+        /// Copies the current contents into a new array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="offset">The offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        public T[] GetAsArray(long offset, long extent) =>
+            GetAsArray(Accelerator.DefaultStream, offset, extent);
+
+        /// <summary>
+        /// Copies the current contents into a new array.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        public T[] GetAsArray(
+            AcceleratorStream stream,
+            long offset,
+            long extent)
+        {
+            var length = extent.Size;
+            if (length < 1)
+                throw new ArgumentOutOfRangeException(nameof(extent));
+
+            var result = new T[length];
+            CopyTo(stream, result, offset, 0, extent);
+            return result;
+        }
+
+        #endregion
+
+        #region Raw Array Methods
+
+        /// <summary>
+        /// Copies the current contents into a new byte array.
+        /// </summary>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        public static ArraySegment<byte> GetRawData<TView>(this TView view)
+            where TView : IArrayView =>
+            view.GetRawData(view.GetDefaultStream());
+
+        /// <summary>
+        /// Copies the current contents into a new byte array.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        public static ArraySegment<byte> GetRawData<TView>(
+            this TView view,
+            AcceleratorStream stream)
+            where TView : IArrayView =>
+            view.GetRawData(0, view.LengthInBytes, stream);
+
+        public static ArraySegment<byte> GetRawData<TView>(
+            this TView view,
+            long byteOffset,
+            long byteExtent)
+            where TView : IArrayView =>
+            view.GetRawData(byteOffset, byteExtent, view.GetDefaultStream());
+
+        public static unsafe ArraySegment<byte> GetRawData<TView>(
+            this TView view,
+            long byteOffset,
+            long byteExtent,
+            AcceleratorStream stream)
+            where TView : IArrayView
+        {
+            var rawOffset = TypeNode.Align(byteOffset, view.ElementSize);
+            var rawExtent = TypeNode.Align(byteExtent, view.ElementSize);
+
+            var result = new byte[rawExtent];
+            fixed (byte* ptr = &result[0])
+            {
+                using var wrapper = CPUMemoryBuffer.Create(ptr, 1);
+                CopyToView(
+                    stream,
+                    new ArrayView<T>(wrapper, 0, rawExtent / ElementSize),
+                    rawOffset / ElementSize);
+            }
+
+            IndexTypeExtensions.AssertIntIndexRange(rawOffset);
+            IndexTypeExtensions.AssertIntIndexRange(rawExtent);
+            return new ArraySegment<byte>(
+                result,
+                0,
+                (int)(byteExtent + (rawExtent - byteExtent)));
         }
 
         #endregion
