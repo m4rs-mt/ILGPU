@@ -307,34 +307,6 @@ namespace ILGPU
         /// <returns>The subtracted index.</returns>
         public readonly <#= name #> Subtract(<#= name #> rhs) => this - rhs;
 
-        /// <summary>
-        /// The given <paramref name="extent"/> describes a chunk of contiguous memory
-        /// of elements with size <paramref name="elementSize"/>. The parameter
-        /// <paramref name="newElementSize"/> describes the requested new element size.
-        /// The result of this function is a new extent dimension that represents the
-        /// given extent in the context of the new element size.
-        /// </summary>
-        /// <param name="extent">The current extent.</param>
-        /// <param name="elementSize">
-        /// The current element size in the scope of the current extent.
-        /// </param>
-        /// <param name="newElementSize">The new element size.</param>
-        /// <returns>The adjusted extent to match the new element size.</returns>
-        public readonly <#= name #> ComputedCastedExtent(
-            <#= name #> extent,
-            int elementSize,
-            int newElementSize)
-        {
-            <#= baseType #> xExtent =
-                (<#= baseType #>)(extent.X * elementSize / newElementSize);
-            return new <#= name #>(
-                xExtent
-<# for (int j = 1; j < dimension; ++j) { #>
-                , extent.<#= IndexDimensions[j] #>
-<# } #>
-            );
-        }
-
         #endregion
 <# if (dimension > 1) { #>
 
