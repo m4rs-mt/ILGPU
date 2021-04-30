@@ -28,6 +28,15 @@ namespace ILGPU.Runtime.Cuda
     public sealed class CudaAccelerator :
         KernelAccelerator<PTXCompiledKernel, CudaKernel>
     {
+        #region Constants
+
+        /// <summary>
+        /// The default pitched allocation alignment in bytes (128) for all Cuda devices.
+        /// </summary>
+        public static readonly int PitchedAllocationAlignmentInBytes = 128;
+
+        #endregion
+
         #region Static
 
         /// <summary>
@@ -356,30 +365,25 @@ namespace ILGPU.Runtime.Cuda
 
         #region Methods
 
-        /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}(
-        /// TExtensionProvider)"/>
+        /// <inheritdoc/>
         public override TExtension CreateExtension<TExtension, TExtensionProvider>(
             TExtensionProvider provider) =>
             provider.CreateCudaExtension(this);
 
-        /// <summary cref="Accelerator.Allocate{T, TIndex}(TIndex)"/>
-        protected override MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(
-            TIndex extent) =>
-            new CudaMemoryBuffer<T, TIndex>(this, extent);
-
-        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(
-        /// TCompiledKernel)"/>
+        /// <inheritdoc/>
         protected override CudaKernel CreateKernel(PTXCompiledKernel compiledKernel) =>
             new CudaKernel(this, compiledKernel, null);
 
-        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(
-        /// TCompiledKernel, MethodInfo)"/>
+        /// <inheritdoc/>
         protected override CudaKernel CreateKernel(
             PTXCompiledKernel compiledKernel,
             MethodInfo launcher) =>
             new CudaKernel(this, compiledKernel, launcher);
 
-        /// <summary cref="Accelerator.CreateStream()"/>
+        /// <summary>
+        /// Create a Cuda stream with the flag
+        /// <see cref="StreamFlags.CU_STREAM_NON_BLOCKING"/>.
+        /// </summary>
         protected override AcceleratorStream CreateStreamInternal() =>
             new CudaStream(this, StreamFlags.CU_STREAM_NON_BLOCKING);
 
@@ -428,6 +432,48 @@ namespace ILGPU.Runtime.Cuda
                 CurrentAPI.GetMemoryInfo(out long free, out long _));
             return free;
         }
+
+        #endregion
+
+        #region Allocation
+
+        /// <inheritdoc/>
+        protected override MemoryBuffer AllocateRawInternal(
+            long length,
+            int elementSize) =>
+            new CudaMemoryBuffer(this, length, elementSize);
+
+        /// <summary>
+        /// Allocates a pitched 2D buffer with X being the leading dimension using an
+        /// alignment of <see cref="PitchedAllocationAlignmentInBytes"/>.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="extent">The number of elements to allocate.</param>
+        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <remarks>
+        /// Since X is the leading dimension, X must be less or equal to
+        /// <see cref="int.MaxValue"/>.
+        /// </remarks>
+        public MemoryBuffer<ArrayView2D<T, Stride2D.DenseX>> Allocate2DPitchedX<T>(
+            LongIndex2 extent)
+            where T : unmanaged =>
+            Allocate2DPitchedX<T>(extent, PitchedAllocationAlignmentInBytes);
+
+        /// <summary>
+        /// Allocates a pitched 2D buffer with Y being the leading dimension using an
+        /// alignment of <see cref="PitchedAllocationAlignmentInBytes"/>.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="extent">The number of elements to allocate.</param>
+        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <remarks>
+        /// Since Y is the leading dimension, Y must be less or equal to
+        /// <see cref="int.MaxValue"/>.
+        /// </remarks>
+        public MemoryBuffer<ArrayView2D<T, Stride2D.DenseY>> Allocate2DPitchedY<T>(
+            LongIndex2 extent)
+            where T : unmanaged =>
+            Allocate2DPitchedY<T>(extent, PitchedAllocationAlignmentInBytes);
 
         #endregion
 
