@@ -92,7 +92,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="offsetInBytes"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VariableView<TOther> GetSubView<TOther>(int offsetInBytes)
+        public VariableView<TOther> SubView<TOther>(int offsetInBytes)
             where TOther : unmanaged
         {
             Trace.Assert(offsetInBytes >= 0, "Offset out of range");
@@ -101,8 +101,8 @@ namespace ILGPU
                 "OutOfBounds sub view");
 
             var rawView = BaseView.Cast<byte>();
-            var subView = rawView.GetSubView(offsetInBytes);
-            var finalView = subView.Cast<TOther>().GetSubView(0, 1);
+            var subView = rawView.SubView(offsetInBytes);
+            var finalView = subView.Cast<TOther>().SubView(0, 1);
             return new VariableView<TOther>(finalView);
         }
 

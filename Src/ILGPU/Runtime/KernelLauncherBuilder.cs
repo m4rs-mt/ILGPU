@@ -32,7 +32,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="indexType">
-        /// The index type (can be Index, Index2 or Index3).
+        /// The index type (can be Index1D, Index2D or Index3D).
         /// </param>
         /// <param name="emitter">The target IL emitter.</param>
         /// <param name="loadIdx">
@@ -51,13 +51,13 @@ namespace ILGPU.Runtime
             var indexFieldGetter = new MethodInfo[]
             {
                 indexType.GetProperty(
-                    nameof(Index3.X),
+                    nameof(Index3D.X),
                     BindingFlags.Public | BindingFlags.Instance)?.GetGetMethod(false),
                 indexType.GetProperty(
-                    nameof(Index3.Y),
+                    nameof(Index3D.Y),
                     BindingFlags.Public | BindingFlags.Instance)?.GetGetMethod(false),
                 indexType.GetProperty(
-                    nameof(Index3.Z),
+                    nameof(Index3D.Z),
                     BindingFlags.Public | BindingFlags.Instance)?.GetGetMethod(false),
             };
 
@@ -118,8 +118,8 @@ namespace ILGPU.Runtime
             EntryPoint entryPoint,
             TEmitter emitter,
             int dimensionIdx,
-            Index3 maxGridSize,
-            Index3 maxGroupSize,
+            Index3D maxGridSize,
+            Index3D maxGroupSize,
             int customGroupSize = 0)
             where TEmitter : IILEmitter
         {
@@ -153,8 +153,8 @@ namespace ILGPU.Runtime
 
                 // The IL stack contains 6 ints to be used as parameters to the
                 // KernelConfig constructor. Convert these into Index3 instances.
-                var groupDimLocal = emitter.DeclareLocal(typeof(Index3));
-                var gridDimLocal = emitter.DeclareLocal(typeof(Index3));
+                var groupDimLocal = emitter.DeclareLocal(typeof(Index3D));
+                var gridDimLocal = emitter.DeclareLocal(typeof(Index3D));
                 emitter.EmitNewObject(Index3.MainConstructor);
                 emitter.Emit(LocalOperation.Store, groupDimLocal);
                 emitter.EmitNewObject(Index3.MainConstructor);
@@ -208,8 +208,8 @@ namespace ILGPU.Runtime
         /// <param name="maxGroupSize">The max group dimensions.</param>
         private static void EmitVerifyKernelLaunchBounds<TEmitter>(
             TEmitter emitter,
-            Index3 maxGridSize,
-            Index3 maxGroupSize)
+            Index3D maxGridSize,
+            Index3D maxGroupSize)
             where TEmitter : IILEmitter
         {
             // NOTE: Requires that the top two elements of the IL stack contain the
@@ -217,11 +217,11 @@ namespace ILGPU.Runtime
             emitter.EmitConstant(maxGridSize.X);
             emitter.EmitConstant(maxGridSize.Y);
             emitter.EmitConstant(maxGridSize.Z);
-            emitter.EmitNewObject(Index3.MainConstructor);
+            emitter.EmitNewObject(Index3D.MainConstructor);
             emitter.EmitConstant(maxGroupSize.X);
             emitter.EmitConstant(maxGroupSize.Y);
             emitter.EmitConstant(maxGroupSize.Z);
-            emitter.EmitNewObject(Index3.MainConstructor);
+            emitter.EmitNewObject(Index3D.MainConstructor);
             emitter.EmitCall(
                 typeof(KernelLauncherBuilder).GetMethod(
                     nameof(VerifyKernelLaunchBounds),
@@ -237,10 +237,10 @@ namespace ILGPU.Runtime
         /// <param name="maxGroupSize">Accelerator max group dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void VerifyKernelLaunchBounds(
-            Index3 gridDim,
-            Index3 groupDim,
-            Index3 maxGridSize,
-            Index3 maxGroupSize)
+            Index3D gridDim,
+            Index3D groupDim,
+            Index3D maxGridSize,
+            Index3D maxGroupSize)
         {
             if (!gridDim.InBoundsInclusive(maxGridSize))
             {

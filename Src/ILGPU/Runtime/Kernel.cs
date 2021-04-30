@@ -388,7 +388,7 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             int dimension,
             params object[] args) =>
-            InvokeLauncher(new Index1(dimension), stream, args);
+            InvokeLauncher(new Index1D(dimension), stream, args);
 
         #endregion
     }

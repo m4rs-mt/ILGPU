@@ -78,7 +78,7 @@ namespace ILGPU
         /// Returns the index within the scheduled thread grid.
         /// </summary>
         /// <returns>The grid index.</returns>
-        public static Index3 Index => new Index3(IdxX, IdxY, IdxZ);
+        public static Index3D Index => new Index3D(IdxX, IdxY, IdxZ);
 
         /// <summary>
         /// Returns the X dimension of the scheduled thread grid.
@@ -141,19 +141,19 @@ namespace ILGPU
         /// Returns the dimension of the scheduled thread grid.
         /// </summary>
         /// <returns>The grid dimension.</returns>
-        public static Index3 Dimension => new Index3(DimX, DimY, DimZ);
+        public static Index3D Dimension => new Index3D(DimX, DimY, DimZ);
 
         /// <summary>
         /// Returns the global index.
         /// </summary>
-        public static Index3 GlobalIndex => ComputeGlobalIndex(
+        public static Index3D GlobalIndex => ComputeGlobalIndex(
             Index,
             Group.Index);
 
         /// <summary>
         /// Returns the global index using 64-bit integers.
         /// </summary>
-        public static LongIndex3 LongGlobalIndex => GlobalIndex;
+        public static LongIndex3D LongGlobalIndex => GlobalIndex;
 
         #endregion
 
@@ -165,7 +165,7 @@ namespace ILGPU
         /// <param name="gridIdx">The grid index.</param>
         /// <param name="groupIdx">The group index.</param>
         /// <returns>The computes global index.</returns>
-        public static Index1 ComputeGlobalIndex(Index1 gridIdx, Index1 groupIdx) =>
+        public static Index1D ComputeGlobalIndex(Index1D gridIdx, Index1D groupIdx) =>
             groupIdx + gridIdx * Group.Dimension.X;
 
         /// <summary>
@@ -174,10 +174,10 @@ namespace ILGPU
         /// <param name="gridIdx">The grid index.</param>
         /// <param name="groupIdx">The group index.</param>
         /// <returns>The computes global index.</returns>
-        public static Index2 ComputeGlobalIndex(Index2 gridIdx, Index2 groupIdx)
+        public static Index2D ComputeGlobalIndex(Index2D gridIdx, Index2D groupIdx)
         {
             var groupDim = Group.Dimension;
-            return new Index2(
+            return new Index2D(
                 groupIdx.X + gridIdx.X * groupDim.X,
                 groupIdx.Y + gridIdx.Y * groupDim.Y);
         }
@@ -188,10 +188,10 @@ namespace ILGPU
         /// <param name="gridIdx">The grid index.</param>
         /// <param name="groupIdx">The group index.</param>
         /// <returns>The computes global index.</returns>
-        public static Index3 ComputeGlobalIndex(Index3 gridIdx, Index3 groupIdx)
+        public static Index3D ComputeGlobalIndex(Index3D gridIdx, Index3D groupIdx)
         {
             var groupDim = Group.Dimension;
-            return new Index3(
+            return new Index3D(
                 groupIdx.X + gridIdx.X * groupDim.X,
                 groupIdx.Y + gridIdx.Y * groupDim.Y,
                 groupIdx.Z + gridIdx.Z * groupDim.Z);
