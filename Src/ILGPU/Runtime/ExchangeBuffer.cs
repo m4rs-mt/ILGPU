@@ -9,11 +9,10 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
 using System;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime
 {
@@ -34,95 +33,38 @@ namespace ILGPU.Runtime
     }
 
     /// <summary>
-    /// The base class for all exchange buffers.
-    /// Contains methods and types that are shared by all implementations.
+    /// Represents an opaque memory buffer that contains a GPU and a CPU back buffer.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TIndex">The index type.</typeparam>
-    public abstract unsafe class ExchangeBufferBase<T, TIndex> :
-        MemoryBuffer<T, TIndex>,
-        IMemoryBuffer<T>
+    /// <remarks>Members of this class are not thread safe.</remarks>
+    public class ExchangeBuffer<T> : AcceleratorObject
         where T : unmanaged
-        where TIndex : unmanaged, IGenericIndex<TIndex>
     {
-        #region Nested Types
-
-        /// <summary>
-        /// Represents a view source that allocates native memory in page-locked CPU.
-        /// memory.
-        /// </summary>
-        protected class CudaViewSource : ViewPointerWrapper
-        {
-            /// <summary>
-            /// Creates a new Cuda view source.
-            /// </summary>
-            /// <param name="sizeInBytes">The size in bytes to allocate.</param>
-            /// <returns>An unsafe array view source.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static CudaViewSource Create(long sizeInBytes)
-            {
-                CudaException.ThrowIfFailed(
-                    CurrentAPI.AllocateHostMemory(
-                        out IntPtr hostPtr,
-                        new IntPtr(sizeInBytes)));
-                return new CudaViewSource(hostPtr);
-            }
-
-            /// <summary>
-            /// Creates a new unmanaged memory view source.
-            /// </summary>
-            /// <param name="nativePtr">The native host pointer.</param>
-            private CudaViewSource(IntPtr nativePtr)
-                : base(nativePtr)
-            { }
-
-            /// <summary cref="ArrayViewSource.GetAsRawArray(
-            /// AcceleratorStream, long, long)"/>
-            protected internal override ArraySegment<byte> GetAsRawArray(
-                AcceleratorStream stream,
-                long byteOffset,
-                long byteExtent) => throw new InvalidOperationException();
-
-            #region IDisposable
-
-            /// <summary>
-            /// Frees the Cuda host memory.
-            /// </summary>
-            protected override void DisposeAcceleratorObject(bool disposing)
-            {
-                if (NativePtr == IntPtr.Zero)
-                    return;
-
-                CurrentAPI.FreeHostMemory(NativePtr);
-                NativePtr = IntPtr.Zero;
-            }
-
-            #endregion
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
-        /// Constructs the base class for all exchange buffer implementations.
+        /// Initializes a new basic exchange buffer.
         /// </summary>
-        /// <param name="accelerator">The associated accelerator.</param>
-        /// <param name="extent">The extent (number of elements).</param>
+        /// <param name="gpuBuffer">The parent GPU buffer to use.</param>
         /// <param name="mode">The exchange buffer mode to use.</param>
-        protected ExchangeBufferBase(
-            Accelerator accelerator,
-            TIndex extent,
+        /// <remarks>
+        /// CAUTION: The ownership of the <paramref name="gpuBuffer"/> is transferred to
+        /// this instance.
+        /// </remarks>
+        protected internal ExchangeBuffer(
+            MemoryBuffer<ArrayView1D<T, Stride1D.Dense>> gpuBuffer,
             ExchangeBufferMode mode)
-            : base(accelerator, extent)
+            : base(gpuBuffer.Accelerator)
         {
-            CPUMemory = Accelerator is CudaAccelerator &&
+            GPUBuffer = gpuBuffer;
+            CPUBuffer = Accelerator is CudaAccelerator &&
                 mode == ExchangeBufferMode.PreferPageLockedMemory
-                ? CudaViewSource.Create(LengthInBytes)
-                : (ViewPointerWrapper)UnmanagedMemoryViewSource.Create(LengthInBytes);
-
-            var baseView = new ArrayView<T>(CPUMemory, 0, Length);
-            CPUView = new ArrayView<T, TIndex>(baseView, extent);
+                ? CPUMemoryBuffer.CreatePinned(
+                    Accelerator,
+                    gpuBuffer.LengthInBytes,
+                    gpuBuffer.ElementSize)
+                : CPUMemoryBuffer.Create(gpuBuffer.LengthInBytes, gpuBuffer.ElementSize);
+            CPUView = new ArrayView<T>(CPUBuffer, 0, gpuBuffer.Length);
         }
 
         #endregion
@@ -130,327 +72,183 @@ namespace ILGPU.Runtime
         #region Properties
 
         /// <summary>
+        /// Returns the owned and underlying CPU buffer.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        protected CPUMemoryBuffer CPUBuffer { get; }
+
+        /// <summary>
+        /// Returns the owned and underlying GPU buffer.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        protected MemoryBuffer<ArrayView1D<T, Stride1D.Dense>> GPUBuffer { get; }
+
+        /// <summary>
         /// The CPU view representing the allocated chunk of memory.
         /// </summary>
-        public ArrayView<T, TIndex> CPUView { get; }
+        public ArrayView1D<T, Stride1D.Dense> CPUView { get; }
 
         /// <summary>
-        /// Returns a span to the part of this buffer in CPU memory.
+        /// The GPU view representing the allocated chunk of memory.
         /// </summary>
-        public Span<T> Span => new Span<T>(CPUMemoryPointer, (int)Length);
+        public ArrayView1D<T, Stride1D.Dense> GPUView => GPUBuffer.View;
 
         /// <summary>
-        /// Returns a reference to the i-th element in CPU memory.
+        /// Returns the length of this array view.
         /// </summary>
-        /// <param name="index">The element index to access.</param>
-        /// <returns>A reference to the i-th element in CPU memory.</returns>
-        public ref T this[TIndex index] => ref CPUView[index];
+        public long Length => GPUBuffer.Length;
 
         /// <summary>
-        /// Property for accessing cpuMemory.
+        /// Returns the element size.
         /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        protected ViewPointerWrapper CPUMemory { get; }
+        public int ElementSize => GPUBuffer.ElementSize;
 
         /// <summary>
-        /// Property for accessing cpuMemoryPointer.
+        /// Returns the length of this buffer in bytes.
         /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        [CLSCompliant(false)]
-        protected void* CPUMemoryPointer => CPUMemory.NativePtr.ToPointer();
+        public long LengthInBytes => GPUBuffer.LengthInBytes;
+
+        /// <summary>
+        /// Returns the extent of this view.
+        /// </summary>
+        public LongIndex1D Extent => GPUView.Extent;
+
+        /// <summary>
+        /// Returns the 32-bit extent of this view.
+        /// </summary>
+        public Index1D IntExtent => GPUView.IntExtent;
+
+        /// <summary>
+        /// Returns a reference to the i-th element on the CPU.
+        /// </summary>
+        /// <param name="index">The element index.</param>
+        /// <returns>A reference to the i-th element on the CPU.</returns>
+        public ref T this[Index1D index] => ref CPUView[index];
+
+        /// <summary>
+        /// Returns a reference to the i-th element on the CPU.
+        /// </summary>
+        /// <param name="index">The element index.</param>
+        /// <returns>A reference to the i-th element on the CPU.</returns>
+        public ref T this[LongIndex1D index] => ref CPUView[index];
 
         #endregion
 
         #region Methods
 
         /// <summary>
+        /// Sets the contents of both buffers to zero using the default accelerator
+        /// stream.
+        /// </summary>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        public void MemSetToZero() => MemSetToZero(GPUView.GetDefaultStream());
+
+        /// <summary>
+        /// Sets the contents of both buffer to zero.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        public void MemSetToZero(AcceleratorStream stream) => MemSet(stream, 0);
+
+        /// <summary>
+        /// Sets the contents of both buffer to the given byte value using the default
+        /// accelerator stream.
+        /// </summary>
+        /// <param name="value">The value to write into the memory buffer.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        public void MemSet(byte value) => MemSet(GPUView.GetDefaultStream(), value);
+
+        /// <summary>
+        /// Sets the contents of both buffers to the given byte value.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="value">The value to write into the memory buffer.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        public void MemSet(AcceleratorStream stream, byte value)
+        {
+            GPUView.MemSet(stream, value);
+            CPUView.MemSet(stream, value);
+        }
+
+        /// <summary>
         /// Copes data from CPU memory to the associated accelerator.
         /// </summary>
-        public void CopyToAccelerator() => CopyToAccelerator(Accelerator.DefaultStream);
+        public void CopyToAcceleratorAsync() =>
+            CopyToAcceleratorAsync(Accelerator.DefaultStream);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
         /// </summary>
         /// <param name="stream">The stream to use.</param>
-        public void CopyToAccelerator(AcceleratorStream stream)
+        public void CopyToAcceleratorAsync(AcceleratorStream stream) =>
+            CopyToAcceleratorAsync(stream, 0L, Length);
+
+        /// <summary>
+        /// Copies data from CPU memory to the associated accelerator.
+        /// </summary>
+        /// <param name="offset">The target memory offset.</param>
+        /// <param name="length">The length (number of elements).</param>
+        public void CopyToAcceleratorAsync(long offset, long length) =>
+            CopyToAcceleratorAsync(Accelerator.DefaultStream, offset, length);
+
+        /// <summary>
+        /// Copies data from CPU memory to the associated accelerator.
+        /// </summary>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="offset">The element offset.</param>
+        /// <param name="length">The length (number of elements).</param>
+        public void CopyToAcceleratorAsync(
+            AcceleratorStream stream,
+            long offset,
+            long length)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            CopyFromView(stream, CPUView.AsLinearView(), 0);
-        }
 
-        /// <summary>
-        /// Copies data from CPU memory to the associated accelerator.
-        /// </summary>
-        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
-        public void CopyToAccelerator(TIndex acceleratorMemoryOffset) =>
-            CopyToAccelerator(
-                Accelerator.DefaultStream,
-                default,
-                acceleratorMemoryOffset,
-                CPUView.Length);
+            var sourceView = CPUView.SubView(offset, length);
+            var targetView = GPUView.SubView(offset, length);
 
-        /// <summary>
-        /// Copies data from CPU memory to the associated accelerator.
-        /// </summary>
-        /// <param name="stream">The stream to use.</param>
-        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
-        public void CopyToAccelerator(
-            AcceleratorStream stream,
-            TIndex acceleratorMemoryOffset) =>
-            CopyToAccelerator(
-                stream,
-                default,
-                acceleratorMemoryOffset,
-                CPUView.Length);
-
-        /// <summary>
-        /// Copies data from CPU memory to the associated accelerator.
-        /// </summary>
-        /// <param name="cpuMemoryOffset">the source memory offset.</param>
-        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
-        public void CopyToAccelerator(
-            TIndex cpuMemoryOffset,
-            TIndex acceleratorMemoryOffset) =>
-            CopyToAccelerator(
-                Accelerator.DefaultStream,
-                cpuMemoryOffset,
-                acceleratorMemoryOffset,
-                CPUView.Length);
-
-        /// <summary>
-        /// Copies data from CPU memory to the associated accelerator.
-        /// </summary>
-        /// <param name="stream">The stream to use.</param>
-        /// <param name="cpuMemoryOffset">the source memory offset.</param>
-        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
-        public void CopyToAccelerator(
-            AcceleratorStream stream,
-            TIndex cpuMemoryOffset,
-            TIndex acceleratorMemoryOffset) =>
-            CopyToAccelerator(
-                stream,
-                cpuMemoryOffset,
-                acceleratorMemoryOffset,
-                CPUView.Length);
-
-        /// <summary>
-        /// Copies data from CPU memory to the associated accelerator.
-        /// </summary>
-        /// <param name="cpuMemoryOffset">the source memory offset.</param>
-        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
-        /// <param name="extent">The extent (number of elements).</param>
-        public void CopyToAccelerator(
-            TIndex cpuMemoryOffset,
-            TIndex acceleratorMemoryOffset,
-            LongIndex1 extent) =>
-            CopyToAccelerator(
-                Accelerator.DefaultStream,
-                cpuMemoryOffset,
-                acceleratorMemoryOffset,
-                extent);
-
-        /// <summary>
-        /// Copies data from CPU memory to the associated accelerator.
-        /// </summary>
-        /// <param name="stream">The stream to use.</param>
-        /// <param name="cpuMemoryOffset">the source memory offset.</param>
-        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
-        /// <param name="extent">The extent (number of elements).</param>
-        public void CopyToAccelerator(
-            AcceleratorStream stream,
-            TIndex cpuMemoryOffset,
-            TIndex acceleratorMemoryOffset,
-            LongIndex1 extent)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (!cpuMemoryOffset.InBounds(CPUView.Extent))
-                throw new ArgumentOutOfRangeException(nameof(cpuMemoryOffset));
-            if (!acceleratorMemoryOffset.InBounds(Extent))
-                throw new ArgumentOutOfRangeException(nameof(acceleratorMemoryOffset));
-            if (extent < 1 || extent > CPUView.Length)
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            var linearSourceIndex =
-                    cpuMemoryOffset.ComputeLinearIndex(CPUView.Extent);
-            var linearTargetIndex =
-                    acceleratorMemoryOffset.ComputeLinearIndex(Extent);
-            if (linearSourceIndex + extent > CPUView.Length ||
-                linearTargetIndex + extent > Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            }
-
-            CopyFromView(
-                stream,
-                CPUView.GetSubView(cpuMemoryOffset, extent),
-                linearTargetIndex);
+            sourceView.CopyTo(stream, targetView);
         }
 
         /// <summary>
         /// Copies data from the associated accelerator into CPU memory.
         /// </summary>
-        public void CopyFromAccelerator() =>
-            CopyFromAccelerator(Accelerator.DefaultStream);
+        public void CopyFromAcceleratorAsync() =>
+            CopyFromAcceleratorAsync(Accelerator.DefaultStream);
 
         /// <summary>
         /// Copies data from the associated accelerator into CPU memory.
         /// </summary>
         /// <param name="stream">The stream to use.</param>
-        public void CopyFromAccelerator(AcceleratorStream stream)
+        public void CopyFromAcceleratorAsync(AcceleratorStream stream) =>
+            CopyFromAcceleratorAsync(stream, 0L, Length);
+
+        /// <summary>
+        /// Copies data from the associated accelerator into CPU memory.
+        /// </summary>
+        /// <param name="offset">The element offset.</param>
+        /// <param name="length">The length (number of elements).</param>
+        public void CopyFromAcceleratorAsync(long offset, long length) =>
+            CopyFromAcceleratorAsync(Accelerator.DefaultStream, offset, length);
+
+        /// <summary>
+        /// Copies data from the associated accelerator into CPU memory.
+        /// </summary>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="offset">The element offset.</param>
+        /// <param name="length">The length (number of elements).</param>
+        public void CopyFromAcceleratorAsync(
+            AcceleratorStream stream,
+            long offset,
+            long length)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            CopyToView(stream, CPUView.BaseView, 0);
-        }
 
-        /// <summary>
-        /// Copies data from the associated accelerator into CPU memory.
-        /// </summary>
-        /// <param name="cpuMemoryOffset">The target memory offset.</param>
-        public void CopyFromAccelerator(TIndex cpuMemoryOffset) =>
-            CopyFromAccelerator(
-                Accelerator.DefaultStream,
-                default,
-                cpuMemoryOffset,
-                CPUView.Length);
-
-        /// <summary>
-        /// Copies data from the associated accelerator into CPU memory.
-        /// </summary>
-        /// <param name="stream">The stream to use.</param>
-        /// <param name="cpuMemoryOffset">the target memory offset.</param>
-        public void CopyFromAccelerator(
-            AcceleratorStream stream,
-            TIndex cpuMemoryOffset) =>
-            CopyFromAccelerator(
-                stream,
-                default,
-                cpuMemoryOffset,
-                Length);
-
-        /// <summary>
-        /// Copies data from the associated accelerator into CPU memory.
-        /// </summary>
-        /// <param name="acceleratorMemoryOffset">The source memory offset.</param>
-        /// <param name="cpuMemoryOffset">the target memory offset.</param>
-        public void CopyFromAccelerator(
-            TIndex cpuMemoryOffset,
-            TIndex acceleratorMemoryOffset) =>
-            CopyFromAccelerator(
-                Accelerator.DefaultStream,
-                acceleratorMemoryOffset,
-                cpuMemoryOffset,
-                Length);
-
-        /// <summary>
-        /// Copies data from the associated accelerator into CPU memory.
-        /// </summary>
-        /// <param name="stream">The stream to use.</param>
-        /// <param name="acceleratorMemoryOffset">The source memory offset.</param>
-        /// <param name="cpuMemoryOffset">the target memory offset.</param>
-        public void CopyFromAccelerator(
-            AcceleratorStream stream,
-            TIndex cpuMemoryOffset,
-            TIndex acceleratorMemoryOffset) =>
-            CopyFromAccelerator(
-                stream,
-                acceleratorMemoryOffset,
-                cpuMemoryOffset,
-                Length);
-
-        /// <summary>
-        /// Copies data from the associated accelerator into CPU memory.
-        /// </summary>
-        /// <param name="acceleratorMemoryOffset">The source memory offset.</param>
-        /// <param name="cpuMemoryOffset">the target memory offset.</param>
-        /// <param name="extent">The extent (number of elements).</param>
-        public void CopyFromAccelerator(
-            TIndex acceleratorMemoryOffset,
-            TIndex cpuMemoryOffset,
-            LongIndex1 extent) =>
-            CopyFromAccelerator(
-                Accelerator.DefaultStream,
-                acceleratorMemoryOffset,
-                cpuMemoryOffset,
-                extent);
-
-        /// <summary>
-        /// Copies data from the associated accelerator into CPU memory.
-        /// </summary>
-        /// <param name="stream">The stream to use.</param>
-        /// <param name="acceleratorMemoryOffset">The source memory offset.</param>
-        /// <param name="cpuMemoryOffset">the target memory offset.</param>
-        /// <param name="extent">The extent (number of elements).</param>
-        public void CopyFromAccelerator(
-            AcceleratorStream stream,
-            TIndex acceleratorMemoryOffset,
-            TIndex cpuMemoryOffset,
-            LongIndex1 extent)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (!cpuMemoryOffset.InBounds(CPUView.Extent))
-                throw new ArgumentOutOfRangeException(nameof(cpuMemoryOffset));
-            if (!acceleratorMemoryOffset.InBounds(Extent))
-                throw new ArgumentOutOfRangeException(nameof(acceleratorMemoryOffset));
-            if (extent < 1 || extent > Length)
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            var linearSourceIndex =
-                    acceleratorMemoryOffset.ComputeLinearIndex(Extent);
-            var linearTargetIndex =
-                    cpuMemoryOffset.ComputeLinearIndex(CPUView.Extent);
-            if (linearSourceIndex + extent > Length ||
-                linearTargetIndex + extent > CPUView.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            }
-
-            CopyToView(
-                stream,
-                CPUView.GetSubView(cpuMemoryOffset, extent),
-                linearSourceIndex);
-        }
-
-        /// <summary>
-        /// Gets the part of this buffer on CPU memory as a 2D View.
-        /// </summary>
-        /// <param name="extent">The view extent.</param>
-        /// <returns>The view.</returns>
-        public ArrayView2D<T> As2DView(LongIndex2 extent) =>
-            CPUView.BaseView.As2DView(extent);
-
-        /// <summary>
-        /// Gets the part of this buffer on CPU memory as a 3D View.
-        /// </summary>
-        /// <param name="extent">The view extent.</param>
-        /// <returns>The view.</returns>
-        public ArrayView3D<T> As3DView(LongIndex3 extent) =>
-            CPUView.BaseView.As3DView(extent);
-
-        /// <summary>
-        /// Gets this exchange buffer as a <see cref="Span{T}"/>, copying from the
-        /// accelerator in the process
-        /// </summary>
-        /// <returns>
-        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
-        /// Uses the default accelerator stream.
-        /// </returns>
-        public Span<T> GetAsSpan() => GetAsSpan(Accelerator.DefaultStream);
-
-        /// <summary>
-        /// Gets this exchange buffer as a <see cref="Span{T}"/>, copying from the
-        /// accelerator in the process.
-        /// </summary>
-        /// <param name="stream">The stream to use</param>
-        /// <returns>
-        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
-        /// </returns>
-        public Span<T> GetAsSpan(AcceleratorStream stream)
-        {
-            CopyFromAccelerator(stream);
-            stream.Synchronize();
-            return Span;
+            var sourceView = GPUView.SubView(offset, length);
+            var targetView = CPUView.SubView(offset, length);
+            sourceView.CopyTo(stream, targetView);
         }
 
         #endregion
@@ -458,14 +256,54 @@ namespace ILGPU.Runtime
         #region IDisposable
 
         /// <summary>
-        /// Frees the underlying CPU memory handles.
+        /// Frees the underlying CPU and GPU memory handles.
         /// </summary>
         protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (disposing)
-                CPUMemory.Dispose();
+            if (!disposing)
+                return;
+
+            CPUBuffer.Dispose();
+            GPUBuffer.Dispose();
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// Exchange buffer utility and extension methods.
+    /// </summary>
+    public static class ExchangeBufferExtensions
+    {
+        /// <summary>
+        /// Allocates an exchange buffer using the mode
+        /// <see cref="ExchangeBufferMode.PreferPageLockedMemory"/>
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="accelerator">The accelerator instance.</param>
+        /// <param name="length">The number of elements to allocate.</param>
+        /// <returns>The allocated exchange mode.</returns>
+        public static ExchangeBuffer<T> AllocateExchangeBuffer<T>(
+            this Accelerator accelerator,
+            long length)
+            where T : unmanaged =>
+            accelerator.AllocateExchangeBuffer<T>(
+                length,
+                ExchangeBufferMode.PreferPageLockedMemory);
+
+        /// <summary>
+        /// Allocates an exchange buffer using the given mode.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="accelerator">The accelerator instance.</param>
+        /// <param name="length">The number of elements to allocate.</param>
+        /// <param name="mode">The buffer mode to use.</param>
+        /// <returns>The allocated exchange mode.</returns>
+        public static ExchangeBuffer<T> AllocateExchangeBuffer<T>(
+            this Accelerator accelerator,
+            long length,
+            ExchangeBufferMode mode)
+            where T : unmanaged =>
+            new ExchangeBuffer<T>(accelerator.Allocate1D<T>(length), mode);
     }
 }
