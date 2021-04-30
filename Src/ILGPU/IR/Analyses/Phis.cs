@@ -14,7 +14,6 @@ using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using PhiValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.PhiValue>;
 

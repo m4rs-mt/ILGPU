@@ -11,7 +11,6 @@
 
 using ILGPU.Backends.PointerViews;
 using System;
-using static ILGPU.Context;
 
 namespace ILGPU.IR.Transformations
 {

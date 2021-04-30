@@ -1330,7 +1330,7 @@ namespace ILGPU.IR.Analyses
 
         #endregion
 
-         #region Methods
+        #region Methods
 
         /// <summary>
         /// Creates an initial data value for the given method.
