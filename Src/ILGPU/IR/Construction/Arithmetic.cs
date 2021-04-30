@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
-using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 

@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR.Construction
 {

@@ -81,6 +81,17 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
+        /// Creates a node that gets the stride of an intrinsic array view.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <returns>The created node.</returns>
+        internal ValueReference CreateGetViewStride(Location location)
+        {
+            var denseType = CreateType(typeof(Stride1D.Dense));
+            return CreateNull(location, denseType);
+        }
+
+        /// <summary>
         /// Creates a node that aligns the given view to a given number of bytes.
         /// </summary>
         /// <param name="location">The current location.</param>
