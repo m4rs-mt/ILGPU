@@ -277,7 +277,7 @@
     <value>Not supported by-ref kernel parameters</value>
   </data>
   <data name="NotSupportedDynamicAllocation" xml:space="preserve">
-    <value>The allocation size of type '{0}' must be statically known and not a dynamic value '{1}'</value>
+    <value>The allocation size of type '{0}' must be statically known and not a dynamic value</value>
   </data>
   <data name="NotSupportedIntrinsicImplementation0" xml:space="preserve">
     <value>A function does not have an intrinsic implementation for this backend. 'EnableAlgorithms' from the Algorithms library not invoked?</value>
