@@ -90,7 +90,7 @@ jobs:
         if: runner.os == 'Windows'
         run: dotnet new nugetconfig
       - name: Release Build
-        run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
+        run: dotnet build --configuration=Release Src
       - name: CPU Tests
         if: matrix.os != 'cuda'
         run: dotnet test --logger GitHubActions --configuration=Release ./Src/ILGPU.Tests.CPU
