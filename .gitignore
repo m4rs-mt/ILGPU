@@ -283,7 +283,7 @@ Src/ILGPU.Tests/BinaryIntOperations.cs
 Src/ILGPU.Tests/CompareFloatOperations.cs
 Src/ILGPU.Tests/CompareIntOperations.cs
 Src/ILGPU.Tests/ConvertFloatOperations.cs
-Src/ILGPU.Tests/ConvertIntOperations.cs
+Src/ILGPU.Tests/ConvertIntOperations.Generated.cs
 Src/ILGPU.Tests/FixedBuffers.cs
 Src/ILGPU.Tests/MemoryBufferOperations.cs
 Src/ILGPU.Tests/ReinterpretCasts.cs

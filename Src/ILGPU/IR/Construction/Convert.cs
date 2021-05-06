@@ -118,17 +118,41 @@ namespace ILGPU.IR.Construction
             // Match nested conversions
             if (node is ConvertValue convert)
             {
+                var canSimplify = false;
+                var sourceBasicType = convert.BasicValueType;
                 var targetBasicType = targetPrimitiveType.BasicValueType;
-                if (targetBasicType.IsInt() &&
-                    convert.SourceType == targetBasicType.GetArithmeticBasicValueType(
-                        isTargetUnsigned))
+
+                if (sourceBasicType == targetBasicType)
                 {
-                    return convert.Value;
+                    // The target conversion is the same basic type as the existing
+                    // conversion. This indicates a sign change, because we have
+                    // already handled identity conversions.
+                    location.Assert(convert.TargetType !=
+                        targetBasicType.GetArithmeticBasicValueType(isTargetUnsigned));
+                    canSimplify = true;
+                }
+                else if (targetBasicType.IsInt() && sourceBasicType.IsInt())
+                {
+                    // The target conversion and existing conversion are integer types,
+                    // but different sizes, attempt to consolidate them.
+                    //
+                    // If the existing conversion converts the inner type into a
+                    // larger type, we can simplify this into a single conversion
+                    // - it does not matter if the target conversion makes it larger,
+                    // smaller or the same integer size.
+                    //
+                    // Otherwise, if the existing conversion converts the inner type
+                    // into a smaller (and truncated) type, normally, we could not
+                    // simplify this. However, if the target conversion is making the
+                    // inner type even smaller, this can be simplified because we
+                    // are truncating in one hit.
+                    var innerBasicType = convert.Value.BasicValueType;
+                    canSimplify = innerBasicType < sourceBasicType ||
+                        innerBasicType > sourceBasicType &&
+                        targetBasicType < sourceBasicType;
                 }
 
-                var sourceBasicType = convert.BasicValueType;
-                if (sourceBasicType.IsInt() &&
-                    convert.Value.BasicValueType < sourceBasicType)
+                if (canSimplify)
                 {
                     ConvertFlags newFlags =
                         (convert.Flags & ~ConvertFlags.TargetUnsigned) |
