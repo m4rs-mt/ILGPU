@@ -86,10 +86,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ConvertFloatOperations.tt</DependentUpon>
     </None>
-    <None Include="ConvertIntOperations.cs">
+    <None Include="ConvertIntOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>ConvertIntOperations.tt</DependentUpon>
+      <DependentUpon>ConvertIntOperations.Generated.tt</DependentUpon>
     </None>
     <None Include="FixedBuffers.cs">
       <DesignTime>True</DesignTime>
@@ -225,9 +225,9 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConvertFloatOperations.cs</LastGenOutput>
     </None>
-    <None Update="ConvertIntOperations.tt">
+    <None Update="ConvertIntOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>ConvertIntOperations.cs</LastGenOutput>
+      <LastGenOutput>ConvertIntOperations.Generated.cs</LastGenOutput>
     </None>
     <None Update="FixedBuffers.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

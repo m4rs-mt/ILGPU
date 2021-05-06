@@ -15,12 +15,8 @@ var types = IntTypes.Concat(FloatTypes);
 #>
 namespace ILGPU.Tests
 {
-    public abstract class ConvertIntOperations : TestBase
+    partial class ConvertIntOperations
     {
-        protected ConvertIntOperations(ITestOutputHelper output, TestContext testContext)
-            : base(output, testContext)
-        { }
-
 <# foreach (var type in IntTypes) { #>
 <#      foreach (var targetType in types) { #>
 <#         var baseName = "_" + type.Name + "_" + targetType.Name; #>
