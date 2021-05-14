@@ -71,9 +71,6 @@ namespace ILGPU.Backends.SPIRV
 
         #region Instance
 
-        private readonly Dictionary<BasicBlock, uint> blockLookup =
-            new Dictionary<BasicBlock, uint>();
-
         /// <summary>
         /// Constructs a new code generator.
         /// </summary>
@@ -81,7 +78,6 @@ namespace ILGPU.Backends.SPIRV
         /// <param name="method">The method to generate.</param>
         /// <param name="allocas">The allocas to generate.</param>
         internal SPIRVCodeGenerator(in GeneratorArgs args, Method method, Allocas allocas)
-            : base(args.Backend)
         {
             Builder = args.Builder;
             Method = method;
@@ -120,6 +116,32 @@ namespace ILGPU.Backends.SPIRV
         /// Generates SPIR-V code.
         /// </summary>
         public abstract void GenerateCode();
+
+        /// <summary>
+        /// Generates code for generic blocks
+        /// </summary>
+        /// <remarks>This is for use by classes like the SPIRVFunctionGenerator</remarks>
+        protected void GenerateGeneralCode()
+        {
+            // "Allocate" (store in allocator) all the blocks
+            var blocks = Method.Blocks;
+            foreach (var block in blocks)
+                DeclareBlock(block);
+
+            // Generate code
+            foreach (var block in blocks)
+            {
+                Builder.GenerateOpLabel(Load(block));
+
+                foreach (var value in block)
+                {
+                    this.GenerateCodeFor(value);
+                }
+
+                // Build terminator
+                this.GenerateCodeFor(block.Terminator);
+            }
+        }
 
         /// <summary>
         /// Generates SPIR-V constant declarations.

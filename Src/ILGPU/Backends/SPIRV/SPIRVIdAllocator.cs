@@ -1,81 +1,52 @@
-﻿using ILGPU.IR.Types;
-using System;
+﻿using ILGPU.IR;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
 namespace ILGPU.Backends.SPIRV
 {
     /// <summary>
-    /// Represents the type of an id.
+    /// Represents the type of a SPIR-V id.
     /// </summary>
     /// <remarks>
-    /// See https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#_types
-    /// for documentation
+    /// This is based on ILGPU's needs only and will not
+    /// necessarily line up with the official SPIR-V type specification.
     /// </remarks>
     public enum SPIRVIdKind
     {
-        BoolType,
-        IntType,
-        FloatType,
-        NumericalType,
-        Scalar,
-        Vector,
-        Matrix,
-        Array,
-        Structure,
-        Aggregate,
-        Composite,
-        Image,
-        Sampler,
-        SampledImage,
-        PhysicalPointerType,
-        LogicalPointerType,
-        ConcreteType,
-        AbstractType,
-        OpaqueType,
-        VariablePointer
+        Bool,
+        Int,
+        Float,
+        Label
     }
 
-    public class SPIRVIdAllocator : RegisterAllocator<SPIRVIdKind>
+    public class SPIRVIdAllocator : IdAllocator<SPIRVIdKind>
     {
         #region Instance
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="backend"></param>
-        public SPIRVIdAllocator(Backend backend) : base(backend)
-        {
-            Backend = backend;
-        }
 
         // I'm leaving this as a dictionary because I feel it's more readable but
         // if there are performance concerns it can be switched out for an ImmutableArray
         // like the PTX allocator.
-        private Dictionary<BasicValueType, SPIRVIdKind> BasicValueTypeToIdKindMapping =
-            new Dictionary<BasicValueType, SPIRVIdKind> { };
+        private static Dictionary<BasicValueType, SPIRVIdKind> basicValueTypeToIdKindMapping =
+            new Dictionary<BasicValueType, SPIRVIdKind>
+            {
+                [BasicValueType.Int1] = SPIRVIdKind.Int,
+                [BasicValueType.Int8] = SPIRVIdKind.Int,
+                [BasicValueType.Int16] = SPIRVIdKind.Int,
+                [BasicValueType.Int32] = SPIRVIdKind.Int,
+                [BasicValueType.Int64] = SPIRVIdKind.Int,
+                [BasicValueType.Float16] = SPIRVIdKind.Float,
+                [BasicValueType.Float32] = SPIRVIdKind.Float,
+                [BasicValueType.Float64] = SPIRVIdKind.Float,
+            };
 
         #endregion
 
-        #region Properties
+        /// <summary>
+        /// Creates a new SPIRVIdAllocator.
+        /// </summary>
+        public SPIRVIdAllocator()
+            : base(new TypeContext(basicValueTypeToIdKindMapping, SPIRVIdKind.Label))
+        {
 
-        public Backend Backend { get; }
-
-        #endregion
-
-        #region Methods
-
-
-
-        protected override RegisterDescription ResolveRegisterDescription(TypeNode type)
-            => throw new NotImplementedException();
-
-        public override HardwareRegister AllocateRegister(RegisterDescription description)
-            => throw new NotImplementedException();
-
-        public override void FreeRegister(HardwareRegister hardwareRegister) =>
-            throw new NotImplementedException();
-
-        #endregion
+        }
     }
 }

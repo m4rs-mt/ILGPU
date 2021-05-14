@@ -6,8 +6,6 @@ namespace ILGPU.Backends.SPIRV
 {
     partial class SPIRVCodeGenerator
     {
-        private int lastId = 1;
-
         public void GenerateCode(MethodCall methodCall) =>
             throw new NotImplementedException();
 
