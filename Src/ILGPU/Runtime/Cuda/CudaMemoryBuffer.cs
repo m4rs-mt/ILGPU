@@ -144,7 +144,9 @@ namespace ILGPU.Runtime.Cuda
             in ArrayView<byte> sourceView,
             long targetOffsetInBytes)
         {
-            var targetView = AsRawArrayView(targetOffsetInBytes);
+            var targetView = AsRawArrayView(
+                targetOffsetInBytes,
+                sourceView.LengthInBytes);
             CudaCopy(stream as CudaStream, sourceView, targetView);
         }
 
@@ -154,7 +156,9 @@ namespace ILGPU.Runtime.Cuda
             long sourceOffsetInBytes,
             in ArrayView<byte> targetView)
         {
-            var sourceView = AsRawArrayView(sourceOffsetInBytes);
+            var sourceView = AsRawArrayView(
+                sourceOffsetInBytes,
+                targetView.LengthInBytes);
             CudaCopy(stream as CudaStream, sourceView, targetView);
         }
 

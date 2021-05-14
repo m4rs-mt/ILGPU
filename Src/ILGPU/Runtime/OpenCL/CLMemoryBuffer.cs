@@ -176,7 +176,9 @@ namespace ILGPU.Runtime.OpenCL
             in ArrayView<byte> sourceView,
             long targetOffsetInBytes)
         {
-            var targetView = AsRawArrayView(targetOffsetInBytes);
+            var targetView = AsRawArrayView(
+                targetOffsetInBytes,
+                sourceView.LengthInBytes);
             CLCopy(stream as CLStream, sourceView, targetView);
         }
 
@@ -186,7 +188,9 @@ namespace ILGPU.Runtime.OpenCL
             long sourceOffsetInBytes,
             in ArrayView<byte> targetView)
         {
-            var sourceView = AsRawArrayView(sourceOffsetInBytes);
+            var sourceView = AsRawArrayView(
+                sourceOffsetInBytes,
+                targetView.LengthInBytes);
             CLCopy(stream as CLStream, sourceView, targetView);
         }
 
