@@ -119,7 +119,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         /// <param name="stride">The stride to use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal <#= typeName #>(
+        public <#= typeName #>(
             ArrayView<T> baseView,
             <#= indexType #> extent,
             TStride stride)

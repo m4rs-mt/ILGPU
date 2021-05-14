@@ -849,6 +849,17 @@ namespace ILGPU.Runtime
     partial struct ArrayView1D<T, TStride>
     {
         /// <summary>
+        /// Converts this array view into a general 1D view.
+        /// </summary>
+        /// <returns>The converted general 1D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView1D<T, Stride1D.General> To1DView() =>
+            new ArrayView1D<T, Stride1D.General>(
+                BaseView,
+                Extent,
+                Stride.To1DStride());
+
+        /// <summary>
         /// Converts this array view into a 2D view.
         /// </summary>
         /// <typeparam name="TOtherStride">The stride type.</typeparam>
@@ -896,6 +907,17 @@ namespace ILGPU.Runtime
     partial struct ArrayView2D<T, TStride>
     {
         #region Casts
+
+        /// <summary>
+        /// Converts this array view into a general 1D view.
+        /// </summary>
+        /// <returns>The converted general 1D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView1D<T, Stride1D.General> To1DView() =>
+            new ArrayView1D<T, Stride1D.General>(
+                BaseView,
+                Extent.Size,
+                Stride.To1DStride());
 
         /// <summary>
         /// Converts this array view into a dense version with leading dimension X.
@@ -971,6 +993,17 @@ namespace ILGPU.Runtime
     partial struct ArrayView3D<T, TStride>
     {
         #region Casts
+
+        /// <summary>
+        /// Converts this array view into a general 1D view.
+        /// </summary>
+        /// <returns>The converted general 1D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView1D<T, Stride1D.General> To1DView() =>
+            new ArrayView1D<T, Stride1D.General>(
+                BaseView,
+                Extent.Size,
+                Stride.To1DStride());
 
         /// <summary>
         /// Converts this array view into a dense version with leading dimensions XY.

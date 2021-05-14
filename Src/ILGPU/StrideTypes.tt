@@ -104,6 +104,12 @@ namespace ILGPU
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly General AsGeneral() => new General(default);
 
+            /// <summary>
+            /// Converts this stride instance into a general 1D stride.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly Stride1D.General To1DStride() => default;
+
             #endregion
 
             #region Object
@@ -177,6 +183,12 @@ namespace ILGPU
                     <#= string.Join(", ", Enumerable.Range(0, def.Dimension)
                         .Select(t => $"{IndexDimensions[t]}Stride"))#>
                 );
+
+            /// <summary>
+            /// Converts this stride instance into a general 1D stride.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly General To1DStride() => AsGeneral();
 
             #endregion
 
@@ -293,6 +305,13 @@ namespace ILGPU
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly General AsGeneral() => this;
+
+            /// <summary>
+            /// Converts this stride instance into a general 1D stride.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly Stride1D.General To1DStride() =>
+                new Stride1D.General(XStride);
 
             #endregion
 
