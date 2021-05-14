@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.Resources;
+using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -30,6 +31,12 @@ namespace ILGPU
         /// Returns the associated stride extent.
         /// </summary>
         TIndex StrideExtent { get; }
+
+        /// <summary>
+        /// Converts this stride instance into a general 1D stride.
+        /// </summary>
+        /// <returns>The general 1D stride.</returns>
+        Stride1D.General To1DStride();
     }
 
     /// <summary>
@@ -338,6 +345,12 @@ namespace ILGPU
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly General AsGeneral() => new General(StrideExtent);
 
+            /// <summary>
+            /// Converts this stride instance into a general 1D stride.
+            /// </summary>
+            public readonly Stride1D.General To1DStride() =>
+                new Stride1D.General(XStride);
+
             #endregion
 
             #region Object
@@ -452,6 +465,12 @@ namespace ILGPU
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly General AsGeneral() => new General(StrideExtent);
+
+            /// <summary>
+            /// Converts this stride instance into a general 1D stride.
+            /// </summary>
+            public readonly Stride1D.General To1DStride() =>
+                new Stride1D.General(YStride);
 
             #endregion
 
@@ -583,6 +602,12 @@ namespace ILGPU
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly General AsGeneral() => new General(StrideExtent);
 
+            /// <summary>
+            /// Converts this stride instance into a general 1D stride.
+            /// </summary>
+            public readonly Stride1D.General To1DStride() =>
+                new Stride1D.General(XStride);
+
             #endregion
 
             #region Object
@@ -709,6 +734,12 @@ namespace ILGPU
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly General AsGeneral() => new General(StrideExtent);
+
+            /// <summary>
+            /// Converts this stride instance into a general 1D stride.
+            /// </summary>
+            public readonly Stride1D.General To1DStride() =>
+                new Stride1D.General(ZStride);
 
             #endregion
 
