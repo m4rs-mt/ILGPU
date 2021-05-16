@@ -20,7 +20,7 @@ namespace ILGPU.Algorithms.Tests.Cuda
         public CudaTestContext<#= optLevel #>()
             : base(
                 OptimizationLevel.<#= optLevel #>,
-                context => context.EnableAlgorithms())
+                builder => builder.EnableAlgorithms())
         { }
     }
 
