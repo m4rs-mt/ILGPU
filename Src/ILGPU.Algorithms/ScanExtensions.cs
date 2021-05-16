@@ -175,9 +175,9 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="dataLength">The number of data elements to scan.</param>
         /// <returns>The required number of temp-storage elements in 32 bit ints.</returns>
-        public static LongIndex1 ComputeScanTempStorageSize<T>(
+        public static LongIndex1D ComputeScanTempStorageSize<T>(
             this Accelerator accelerator,
-            LongIndex1 dataLength)
+            LongIndex1D dataLength)
             where T : unmanaged
         {
             return accelerator.AcceleratorType switch
@@ -374,17 +374,27 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The scan operation.</typeparam>
-        /// <typeparam name="TGroupScanImplementation">The actual group-scan implementation that provides the required group-level functionality.</typeparam>
+        /// <typeparam name="TGroupScanImplementation">
+        /// The actual group-scan implementation that provides the required group-level
+        /// functionality.
+        /// </typeparam>
         /// <param name="input">The input elements to scan.</param>
         /// <param name="output">The output view to store the scanned values.</param>
-        internal static void SingleGroupScanKernel<T, TScanOperation, TGroupScanImplementation>(
+        internal static void SingleGroupScanKernel<
+            T,
+            TScanOperation,
+            TGroupScanImplementation>(
             ArrayView<T> input,
             ArrayView<T> output)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation :
+                struct,
+                IScanImplementation<T, TScanOperation>
         {
-            var tileInfo = new TileInfo<T>(input, XMath.DivRoundUp(input.Length, Group.DimX));
+            var tileInfo = new TileInfo<T>(
+                input,
+                XMath.DivRoundUp(input.IntLength, Group.DimX));
 
             TScanOperation scanOperation = default;
 
@@ -411,11 +421,21 @@ namespace ILGPU.Algorithms
         {
             Action<AcceleratorStream, KernelConfig, ArrayView<T>, ArrayView<T>> kernel;
             if (kind == ScanKind.Inclusive)
+            {
                 kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>>(
-                    SingleGroupScanKernel<T, TScanOperation, InclusiveScanImplementation<T, TScanOperation>>);
+                    SingleGroupScanKernel<
+                        T,
+                        TScanOperation,
+                        InclusiveScanImplementation<T, TScanOperation>>);
+            }
             else
+            {
                 kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>>(
-                    SingleGroupScanKernel<T, TScanOperation, ExclusiveScanImplementation<T, TScanOperation>>);
+                    SingleGroupScanKernel<
+                        T,
+                        TScanOperation,
+                        ExclusiveScanImplementation<T, TScanOperation>>);
+            }
             return (stream, input, output, temp) =>
             {
                 if (!input.IsValid)
@@ -442,21 +462,31 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The scan operation.</typeparam>
-        /// <typeparam name="TGroupScanImplementation">The actual group-scan implementation that provides the required group-level functionality.</typeparam>
+        /// <typeparam name="TGroupScanImplementation">
+        /// The actual group-scan implementation that provides the required group-level
+        /// functionality.
+        /// </typeparam>
         /// <param name="input">The input elements to scan.</param>
         /// <param name="output">The output view to store the scanned values.</param>
         /// <param name="sequentialGroupExecutor">The sequential group executor to use.</param>
-        /// <param name="boundaryValue">The boundary value target in global memory to share intermediate results.</param>
+        /// <param name="boundaryValue">
+        /// The boundary value target in global memory to share intermediate results.
+        /// </param>
         /// <param name="numIterationsPerGroup">The number of iterations per group.</param>
-        internal static void SinglePassScanKernel<T, TScanOperation, TGroupScanImplementation>(
+        internal static void SinglePassScanKernel<
+            T,
+            TScanOperation,
+            TGroupScanImplementation>(
             ArrayView<T> input,
             ArrayView<T> output,
             SequentialGroupExecutor sequentialGroupExecutor,
             VariableView<T> boundaryValue,
-            Index1 numIterationsPerGroup)
+            Index1D numIterationsPerGroup)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation :
+                struct,
+                IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
@@ -465,7 +495,10 @@ namespace ILGPU.Algorithms
             T leftBoundary = scanOperation.Identity;
 
             // Determine our right boundary and resolve our left boundary
-            T rightBoundary = ComputeTileRightBoundary<T, TScanOperation, TGroupScanImplementation>(
+            T rightBoundary = ComputeTileRightBoundary<
+                T,
+                TScanOperation,
+                TGroupScanImplementation>(
                 tileInfo,
                 input);
 
@@ -521,7 +554,7 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
-            var initializer = accelerator.CreateInitializer<int>();
+            var initializer = accelerator.CreateInitializer<int, Stride1D.Dense>();
 
             Action<
                 AcceleratorStream,
@@ -530,14 +563,14 @@ namespace ILGPU.Algorithms
                 ArrayView<T>,
                 SequentialGroupExecutor,
                 VariableView<T>,
-                Index1> kernel;
+                Index1D> kernel;
             if (kind == ScanKind.Inclusive)
                 kernel = accelerator.LoadKernel<
                     ArrayView<T>,
                     ArrayView<T>,
                     SequentialGroupExecutor,
                     VariableView<T>,
-                    Index1>(
+                    Index1D>(
                     SinglePassScanKernel<
                         T,
                         TScanOperation,
@@ -549,7 +582,7 @@ namespace ILGPU.Algorithms
                     ArrayView<T>,
                     SequentialGroupExecutor,
                     VariableView<T>,
-                    Index1>(
+                    Index1D>(
                     SinglePassScanKernel<
                         T,
                         TScanOperation,
@@ -578,10 +611,10 @@ namespace ILGPU.Algorithms
                 var tempView = viewManager.Allocate<T>();
                 var executorView = viewManager.Allocate<int>();
 
-                initializer(stream, temp.GetSubView(0, viewManager.NumInts), default);
+                initializer(stream, temp.SubView(0, viewManager.NumInts), default);
 
                 var extent = accelerator.ComputeGridStrideLoopExtent(
-                    input.Length,
+                    input.IntLength,
                     out int numIterationsPerGroup);
 
                 kernel(
@@ -604,21 +637,34 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The scan operation.</typeparam>
-        /// <typeparam name="TGroupScanImplementation">The actual group-scan implementation that provides the required group-level functionality.</typeparam>
+        /// <typeparam name="TGroupScanImplementation">
+        /// The actual group-scan implementation that provides the required group-level
+        /// functionality.
+        /// </typeparam>
         /// <param name="input">The input elements to scan.</param>
         /// <param name="rightBoundaries">The right boundaries to store.</param>
-        /// <param name="numIterationsPerGroup">The number of iterations per group.</param>
-        internal static void MultiPassScanKernel1<T, TScanOperation, TGroupScanImplementation>(
+        /// <param name="numIterationsPerGroup">
+        /// The number of iterations per group.
+        /// </param>
+        internal static void MultiPassScanKernel1<
+            T,
+            TScanOperation,
+            TGroupScanImplementation>(
             ArrayView<T> input,
             ArrayView<T> rightBoundaries,
-            Index1 numIterationsPerGroup)
+            Index1D numIterationsPerGroup)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation :
+                struct,
+                IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
-            T rightBoundary = ComputeTileRightBoundary<T, TScanOperation, TGroupScanImplementation>(
+            T rightBoundary = ComputeTileRightBoundary<
+                T,
+                TScanOperation,
+                TGroupScanImplementation>(
                 tileInfo,
                 input);
 
@@ -631,19 +677,27 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The scan operation.</typeparam>
-        /// <typeparam name="TGroupScanImplementation">The actual group-scan implementation that provides the required group-level functionality.</typeparam>
+        /// <typeparam name="TGroupScanImplementation">
+        /// The actual group-scan implementation that provides the required group-level
+        /// functionality.
+        /// </typeparam>
         /// <param name="input">The input elements to scan.</param>
         /// <param name="rightBoundaries">The right boundaries to use.</param>
         /// <param name="output">The scanned values.</param>
         /// <param name="numIterationsPerGroup">The number of iterations per group.</param>
-        internal static void MultiPassScanKernel2<T, TScanOperation, TGroupScanImplementation>(
+        internal static void MultiPassScanKernel2<
+            T,
+            TScanOperation,
+            TGroupScanImplementation>(
             ArrayView<T> input,
             ArrayView<T> rightBoundaries,
             ArrayView<T> output,
-            Index1 numIterationsPerGroup)
+            Index1D numIterationsPerGroup)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation :
+                struct,
+                IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
@@ -677,23 +731,31 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
-            var initializer = accelerator.CreateInitializer<T>();
+            var initializer = accelerator.CreateInitializer<T, Stride1D.Dense>();
 
-            Action<AcceleratorStream, KernelConfig, ArrayView<T>, ArrayView<T>, Index1> pass1Kernel;
-            Action<AcceleratorStream, KernelConfig, ArrayView<T>, ArrayView<T>, ArrayView<T>, Index1> pass2Kernel;
+            Action<AcceleratorStream, KernelConfig, ArrayView<T>,
+                ArrayView<T>, Index1D> pass1Kernel;
+            Action<AcceleratorStream, KernelConfig, ArrayView<T>,
+                ArrayView<T>, ArrayView<T>, Index1D> pass2Kernel;
             if (kind == ScanKind.Inclusive)
             {
-                pass1Kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>, Index1>(
-                    MultiPassScanKernel1<T, TScanOperation, InclusiveScanImplementation<T, TScanOperation>>);
-                pass2Kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>, ArrayView<T>, Index1>(
-                    MultiPassScanKernel2<T, TScanOperation, InclusiveScanImplementation<T, TScanOperation>>);
+                pass1Kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>, Index1D>(
+                    MultiPassScanKernel1<T, TScanOperation,
+                        InclusiveScanImplementation<T, TScanOperation>>);
+                pass2Kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>,
+                    ArrayView<T>, Index1D>(
+                    MultiPassScanKernel2<T, TScanOperation,
+                        InclusiveScanImplementation<T, TScanOperation>>);
             }
             else
             {
-                pass1Kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>, Index1>(
-                    MultiPassScanKernel1<T, TScanOperation, ExclusiveScanImplementation<T, TScanOperation>>);
-                pass2Kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>, ArrayView<T>, Index1>(
-                    MultiPassScanKernel2<T, TScanOperation, ExclusiveScanImplementation<T, TScanOperation>>);
+                pass1Kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>, Index1D>(
+                    MultiPassScanKernel1<T, TScanOperation,
+                        ExclusiveScanImplementation<T, TScanOperation>>);
+                pass2Kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>,
+                    ArrayView<T>, Index1D>(
+                    MultiPassScanKernel2<T, TScanOperation,
+                        ExclusiveScanImplementation<T, TScanOperation>>);
             }
 
             return (stream, input, output, temp) =>
@@ -711,7 +773,7 @@ namespace ILGPU.Algorithms
                 }
 
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
-                    input.Length,
+                    input.IntLength,
                     out int numIterationsPerGroup);
 
                 var viewManager = new TempViewManager(temp, nameof(temp));
@@ -722,7 +784,7 @@ namespace ILGPU.Algorithms
                 if (tempView.Length > 1)
                 {
                     var offsetView =
-                        tempView.GetSubView(
+                        tempView.SubView(
                             kind == ScanKind.Inclusive ? 1 : 0,
                             tempView.Length - 1);
                     pass1Kernel(
@@ -732,10 +794,10 @@ namespace ILGPU.Algorithms
                         offsetView,
                         numIterationsPerGroup);
 
-                    using var resultBuffer = accelerator.Allocate<T>(tempView.Length);
-                    resultBuffer.CopyFrom(stream, tempView, 0);
+                    using var resultBuffer = accelerator.Allocate1D<T>(tempView.Length);
+                    resultBuffer.View.CopyFrom(stream, tempView);
                     stream.Synchronize();
-                    var result = resultBuffer.GetAsArray();
+                    var result = resultBuffer.View.GetAs1DArray();
                 }
 
                 pass2Kernel(
