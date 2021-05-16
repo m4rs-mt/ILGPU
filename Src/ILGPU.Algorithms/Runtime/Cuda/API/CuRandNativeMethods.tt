@@ -70,59 +70,71 @@ namespace ILGPU.Runtime.Cuda.API
 
         #region Imports
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandCreateGenerator(
             out IntPtr generator,
             CuRandRngType rngType);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandCreateGeneratorHost(
             out IntPtr generator,
             CuRandRngType rngType);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandDestroyGenerator(IntPtr generator);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandGetVersion(out int version);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandSetStream(
             IntPtr generator,
             IntPtr stream);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandSetPseudoRandomGeneratorSeed(
             IntPtr generator,
             long seed);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandGenerateSeeds(IntPtr generator);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandGenerate(
             IntPtr generator,
             IntPtr outputPtr,
             IntPtr length);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandGenerateLongLong(
             IntPtr generator,
             IntPtr outputPtr,
             IntPtr length);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandGenerateUniform(
             IntPtr generator,
             IntPtr outputPtr,
             IntPtr length);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandGenerateUniformDouble(
             IntPtr generator,
             IntPtr outputPtr,
             IntPtr length);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandGenerateNormal(
             IntPtr generator,
@@ -131,6 +143,7 @@ namespace ILGPU.Runtime.Cuda.API
             float mean,
             float stddev);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport(LibName)]
         internal static extern CuRandStatus curandGenerateNormalDouble(
             IntPtr generator,

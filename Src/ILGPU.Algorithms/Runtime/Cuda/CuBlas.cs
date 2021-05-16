@@ -89,6 +89,21 @@ namespace ILGPU.Runtime.Cuda
 
         #endregion
 
+        #region Static
+
+        /// <summary>
+        /// Loads a native address.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The array view.</param>
+        /// <returns>The native unsafe address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe static void* LoadCuBlasAddress<T>(ArrayView<T> view)
+            where T : unmanaged =>
+            view.LoadEffectiveAddressAsPtr().ToPointer();
+
+        #endregion
+
         #region Instance
 
         /// <summary>
