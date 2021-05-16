@@ -2,6 +2,7 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
 <#@ include file="../../ILGPU.Algorithms/TypeInformation.ttinclude" #>
 <#+
 public enum SequenceSortingKind

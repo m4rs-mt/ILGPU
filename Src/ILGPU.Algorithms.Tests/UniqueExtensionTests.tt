@@ -59,12 +59,12 @@ namespace ILGPU.Algorithms.Tests
                 .ToArray();
             var expected = RemoveConsecutiveDuplicates(inputArray);
 
-            using var input = Accelerator.Allocate(inputArray);
+            using var input = Accelerator.Allocate1D(inputArray);
             var result = Accelerator.Unique(Accelerator.DefaultStream, input.View);
             Assert.True(result < int.MaxValue);
             var resultLength = (int)result;
 
-            Verify(input, expected, length: resultLength);
+            Verify(input.View, expected, length: resultLength);
         }
 
 <# } #>

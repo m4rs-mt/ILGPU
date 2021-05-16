@@ -2,7 +2,6 @@
 <#@ include file="../../ILGPU/Src/ILGPU.Tests/Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 using ILGPU.IR.Transformations;
 using ILGPU.Tests.CPU;
 using Xunit;

@@ -14,7 +14,6 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Globalization" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 using ILGPU.Runtime;
 using ILGPU.Tests;
 using System;
@@ -51,9 +50,9 @@ namespace ILGPU.Algorithms.Tests
     {
 <# foreach (var function in powFunctions) { #>
         internal static void <#= function.KernelName #>(
-            Index1 index,
-            ArrayView<XMathTuple<<#= function.DataType #>>> input,
-            ArrayView<<#= function.DataType #>> output)
+            Index1D index,
+            ArrayView1D<XMathTuple<<#= function.DataType #>>, Stride1D.Dense> input,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index].X, input[index].Y);
         }
@@ -109,12 +108,12 @@ namespace ILGPU.Algorithms.Tests
             }
 
             var inputArray = inputValues.ToArray();
-            using var input = Accelerator.Allocate<XMathTuple<<#= function.DataType #>>>(
+            using var input = Accelerator.Allocate1D<XMathTuple<<#= function.DataType #>>>(
                 inputArray.Length);
-            using var output = Accelerator.Allocate<<#= function.DataType #>>(
+            using var output = Accelerator.Allocate1D<<#= function.DataType #>>(
                 inputArray.Length);
 
-            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            input.CopyFromCPU(inputArray);
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
@@ -126,17 +125,17 @@ namespace ILGPU.Algorithms.Tests
                 .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.OpenCL #>);
             else
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.CPU #>);
         }
@@ -144,9 +143,9 @@ namespace ILGPU.Algorithms.Tests
 <# } #>
 <# foreach (var function in exp2Functions) { #>
         internal static void <#= function.KernelName #>(
-            Index1 index,
-            ArrayView<<#= function.DataType #>> input,
-            ArrayView<<#= function.DataType #>> output)
+            Index1D index,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> input,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index]);
         }
@@ -178,12 +177,12 @@ namespace ILGPU.Algorithms.Tests
                 inputValues.Add(edgeCases[x]);
 
             var inputArray = inputValues.ToArray();
-            using var input = Accelerator.Allocate<<#= function.DataType #>>(
+            using var input = Accelerator.Allocate1D<<#= function.DataType #>>(
                 inputArray.Length);
-            using var output = Accelerator.Allocate<<#= function.DataType #>>(
+            using var output = Accelerator.Allocate1D<<#= function.DataType #>>(
                 inputArray.Length);
 
-            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            input.CopyFromCPU(inputArray);
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
@@ -195,17 +194,17 @@ namespace ILGPU.Algorithms.Tests
                     2.0<#= function.ValueSuffix #>, x)).ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.OpenCL #>);
             else
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.CPU #>);
         }
@@ -213,9 +212,9 @@ namespace ILGPU.Algorithms.Tests
 <# } #>
 <# foreach (var function in expFunctions) { #>
         internal static void <#= function.KernelName #>(
-            Index1 index,
-            ArrayView<<#= function.DataType #>> input,
-            ArrayView<<#= function.DataType #>> output)
+            Index1D index,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> input,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index]);
         }
@@ -247,12 +246,12 @@ namespace ILGPU.Algorithms.Tests
                 inputValues.Add(edgeCases[x]);
 
             var inputArray = inputValues.ToArray();
-            using var input = Accelerator.Allocate<<#= function.DataType #>>(
+            using var input = Accelerator.Allocate1D<<#= function.DataType #>>(
                 inputArray.Length);
-            using var output = Accelerator.Allocate<<#= function.DataType #>>(
+            using var output = Accelerator.Allocate1D<<#= function.DataType #>>(
                 inputArray.Length);
 
-            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            input.CopyFromCPU(inputArray);
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
@@ -264,17 +263,17 @@ namespace ILGPU.Algorithms.Tests
                 .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.OpenCL #>);
             else
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.CPU #>);
         }

@@ -13,7 +13,6 @@
 <#@ include file="XMathTests.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 using ILGPU.Runtime;
 using ILGPU.Tests;
 using System.Numerics;
@@ -44,9 +43,9 @@ namespace ILGPU.Algorithms.Tests
 
 <# foreach (var function in bitFunctions) { #>
         internal static void <#= function.KernelName #>(
-            Index1 index,
-            ArrayView<<#= function.DataType #>> input,
-            ArrayView<int> output)
+            Index1D index,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> input,
+            ArrayView1D<int, Stride1D.Dense> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index] << index);
         }
@@ -64,12 +63,12 @@ namespace ILGPU.Algorithms.Tests
                 Enumerable.Range(0, Length)
                 .Select(x => BitOperations.<#= function.Name #>(value << x))
                 .ToArray();
-            using var input = Accelerator.Allocate(
+            using var input = Accelerator.Allocate1D(
                 Enumerable.Repeat(value, Length).ToArray());
-            using var output = Accelerator.Allocate<int>(Length);
+            using var output = Accelerator.Allocate1D<int>(Length);
 
             Execute(input.Length, input.View, output.View);
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
 
 <# } #>

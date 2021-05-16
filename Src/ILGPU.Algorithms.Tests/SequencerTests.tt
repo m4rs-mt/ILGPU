@@ -2,7 +2,6 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 
 using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
@@ -46,16 +45,19 @@ namespace ILGPU.Algorithms.Tests
         [MemberData(nameof(TestDataLength))]
         public void SequencerIndex1(int bufferLength)
         {
-            using var buffer = Accelerator.Allocate<Index1>(bufferLength);
+            using var buffer = Accelerator.Allocate1D<Index1D>(bufferLength);
             using var stream = Accelerator.CreateStream();
-            Accelerator.Sequence(stream, buffer.View, new IndexSequencer());
+            Accelerator.Sequence(
+                stream,
+                buffer.View.AsContiguous(),
+                new IndexSequencer());
 
-            Index1[] expected = new Index1[bufferLength];
+            Index1D[] expected = new Index1D[bufferLength];
             for (int i = 0, e = bufferLength; i < e; ++i)
                 expected[i] = i;
 
             stream.Synchronize();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
 <#
@@ -65,9 +67,12 @@ namespace ILGPU.Algorithms.Tests
         [MemberData(nameof(TestDataLength))]
         public void Sequencer<#= type.Name #>(int bufferLength)
         {
-            using var buffer = Accelerator.Allocate<<#= type.Type #>>(bufferLength);
+            using var buffer = Accelerator.Allocate1D<<#= type.Type #>>(bufferLength);
             using var stream = Accelerator.CreateStream();
-            Accelerator.Sequence(stream, buffer.View, new <#= type.Name #>Sequencer());
+            Accelerator.Sequence(
+                stream,
+                buffer.View.AsContiguous(),
+                new <#= type.Name #>Sequencer());
 
             <#= type.Type #>[] expected = new <#= type.Type #>[bufferLength];
             for (int i = 0, e = bufferLength; i < e; ++i)
@@ -77,21 +82,21 @@ namespace ILGPU.Algorithms.Tests
 <# if (verifyWithinRelativeErrorMap.TryGetValue(type.Name, out var relativeError)) { #>
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinRelativeError(
-                    buffer,
+                    buffer.View,
                     expected,
                     <#= relativeError.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
                 VerifyWithinRelativeError(
-                    buffer,
+                    buffer.View,
                     expected,
                     <#= relativeError.OpenCL #>);
             else
                 VerifyWithinRelativeError(
-                    buffer,
+                    buffer.View,
                     expected,
                     <#= relativeError.CPU #>);
 <# } else { #>
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
 <# } #>
         }
 
@@ -106,11 +111,11 @@ namespace ILGPU.Algorithms.Tests
         [MemberData(nameof(TestDataLength))]
         public void RepeatedSequencer<#= type.Name #>(int bufferLength)
         {
-            using var buffer = Accelerator.Allocate<<#= type.Type #>>(bufferLength);
+            using var buffer = Accelerator.Allocate1D<<#= type.Type #>>(bufferLength);
             using var stream = Accelerator.CreateStream();
             Accelerator.RepeatedSequence(
                 stream,
-                buffer.View,
+                buffer.View.AsContiguous(),
                 2,
                 new <#= type.Name #>Sequencer());
 
@@ -120,7 +125,7 @@ namespace ILGPU.Algorithms.Tests
                 expected[i + j] = (<#= type.Type #>)j;
 
             stream.Synchronize();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
 <#
@@ -134,11 +139,11 @@ namespace ILGPU.Algorithms.Tests
         [MemberData(nameof(TestDataLength))]
         public void BatchedSequencer<#= type.Name #>(int bufferLength)
         {
-            using var buffer = Accelerator.Allocate<<#= type.Type #>>(bufferLength);
+            using var buffer = Accelerator.Allocate1D<<#= type.Type #>>(bufferLength);
             using var stream = Accelerator.CreateStream();
             Accelerator.BatchedSequence(
                 stream,
-                buffer.View,
+                buffer.View.AsContiguous(),
                 2,
                 new <#= type.Name #>Sequencer());
 
@@ -151,21 +156,21 @@ namespace ILGPU.Algorithms.Tests
 <# if (verifyWithinRelativeErrorMap.TryGetValue(type.Name, out var relativeError)) { #>
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinRelativeError(
-                    buffer,
+                    buffer.View,
                     expected,
                     <#= relativeError.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
                 VerifyWithinRelativeError(
-                    buffer,
+                    buffer.View,
                     expected,
                     <#= relativeError.OpenCL #>);
             else
                 VerifyWithinRelativeError(
-                    buffer,
+                    buffer.View,
                     expected,
                     <#= relativeError.CPU #>);
 <# } else { #>
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
 <# } #>
         }
 
@@ -181,11 +186,11 @@ namespace ILGPU.Algorithms.Tests
         [MemberData(nameof(TestDataLength))]
         public void RepeatedBatchedSequencer<#= type.Name #>(int bufferLength)
         {
-            using var buffer = Accelerator.Allocate<<#= type.Type #>>(bufferLength);
+            using var buffer = Accelerator.Allocate1D<<#= type.Type #>>(bufferLength);
             using var stream = Accelerator.CreateStream();
             Accelerator.RepeatedBatchedSequence(
                 stream,
-                buffer.View,
+                buffer.View.AsContiguous(),
                 2,
                 4,
                 new <#= type.Name #>Sequencer());
@@ -197,7 +202,7 @@ namespace ILGPU.Algorithms.Tests
                         expected[i + j * 4 + k] = (<#= type.Type #>)(j);
 
             stream.Synchronize();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
 
 <#

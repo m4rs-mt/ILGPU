@@ -2,7 +2,6 @@
 <#@ include file="ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 
 using ILGPU.Algorithms.RadixSortOperations;
 using ILGPU.Algorithms.ScanReduceOperations;
@@ -89,23 +88,23 @@ namespace ILGPU.Algorithms.Tests
 <#
     }
 #>
-    internal readonly struct Index1TestSequencer : ITestSequencer<Index1>
+    internal readonly struct Index1TestSequencer : ITestSequencer<Index1D>
     {
-        public Index1[] ComputeSequence(Index1 start, Index1 stepSize, int length)
+        public Index1D[] ComputeSequence(Index1D start, Index1D stepSize, int length)
         {
-            Index1[] sequence = new Index1[length];
+            Index1D[] sequence = new Index1D[length];
             sequence[0] = start;
             for (int i = 1; i < length; ++i)
                 sequence[i] = sequence[i-1] + stepSize;
             return sequence;
         }
 
-        public Index1[] ComputeInvertedSequence(
-            Index1 start,
-            Index1 stepSize,
+        public Index1D[] ComputeInvertedSequence(
+            Index1D start,
+            Index1D stepSize,
             int length)
         {
-            Index1[] sequence = new Index1[length];
+            Index1D[] sequence = new Index1D[length];
             sequence[length-1] = start;
             for (int i = length-2; i >= 0; --i)
                 sequence[i] = sequence[i+1] + stepSize;
@@ -255,16 +254,16 @@ namespace ILGPU.Algorithms.Tests
     foreach (var type in types) {
 #>
     internal readonly struct Index1To<#= type.Name #>Transformer 
-        : ITransformer<Index1, <#= type.Type #>>, IXunitSerializable
+        : ITransformer<Index1D, <#= type.Type #>>, IXunitSerializable
     {
 <#
         if(type.IsUnsignedInt) {
 #>
-        public <#= type.Type #> Transform(Index1 value) => (<#= type.Type #>)value;
+        public <#= type.Type #> Transform(Index1D value) => (<#= type.Type #>)value;
 <#
         }else{
 #>
-        public <#= type.Type #> Transform(Index1 value) => value;
+        public <#= type.Type #> Transform(Index1D value) => value;
 <#
         }
 #>

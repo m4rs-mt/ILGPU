@@ -59,7 +59,8 @@ namespace ILGPU.Algorithms.Tests
             int size)
             where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
         {
-            using var buffer = Accelerator.AllocateZero<<#= randomType #>>(size);
+            using var buffer = Accelerator.Allocate1D<<#= randomType #>>(size);
+            buffer.MemSetToZero();
             Accelerator.Synchronize();
 
             var random = new System.Random(42);
@@ -72,7 +73,7 @@ namespace ILGPU.Algorithms.Tests
             // The current RNG implementation does not yield zeros when using the
             // initial RNG seed 42. Moreover, it should yield more than length / 2
             // number of different values
-            var data = buffer.GetAsArray();
+            var data = buffer.GetAs1DArray();
             var dataSet = new HashSet<<#= randomType #>>(data);
             Assert.True(dataSet.Count > data.Length / 2);
         }

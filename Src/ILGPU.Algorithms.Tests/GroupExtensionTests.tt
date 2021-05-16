@@ -2,7 +2,6 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
@@ -32,8 +31,8 @@ namespace ILGPU.Algorithms.Tests
         foreach (var func in WarpFunctions) {
 #>
         internal static void <#= func #>Kernel<T, TFunction>(
-            ArrayView<T> input,
-            ArrayView<T> output)
+            ArrayView1D<T, Stride1D.Dense> input,
+            ArrayView1D<T, Stride1D.Dense> output)
             where T : unmanaged
             where TFunction : struct, IScanReduceOperation<T>
         {
@@ -103,22 +102,18 @@ namespace ILGPU.Algorithms.Tests
             where TSequencer : struct, ITestSequencer<T>
         {
             var size = Math.Max(Accelerator.MaxNumThreadsPerGroup / fraction, 1);
-            using var input = Accelerator.Allocate<T>(size);
-            using var output = Accelerator.Allocate<T>(size);
+            using var input = Accelerator.Allocate1D<T>(size);
+            using var output = Accelerator.Allocate1D<T>(size);
             using var stream = Accelerator.CreateStream();
 
-            input.CopyFrom(
+            input.CopyFromCPU(
                 stream,
-                sequencer.ComputeSequence(start, stepSize, size),
-                0,
-                0,
-                size);
-            stream.Synchronize();
+                sequencer.ComputeSequence(start, stepSize, size));
             
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
 
-            T expected = CalcValue(input, func);
-            T actual = output.GetAsArray()[0];
+            T expected = CalcValue<T, TFunction>(input.View, func);
+            T actual = output.View.GetAs1DArray()[0];
             Assert.Equal(expected, actual);
         }
 
@@ -139,22 +134,20 @@ namespace ILGPU.Algorithms.Tests
             where TSequencer : struct, ITestSequencer<T>
         {
             var size = Math.Max(Accelerator.MaxNumThreadsPerGroup / fraction, 1);
-            using var input = Accelerator.Allocate<T>(size);
-            using var output = Accelerator.Allocate<T>(size);
+            using var input = Accelerator.Allocate1D<T>(size);
+            using var output = Accelerator.Allocate1D<T>(size);
             using var stream = Accelerator.CreateStream();
 
-            input.CopyFrom(
+            input.CopyFromCPU(
                 stream,
-                sequencer.ComputeSequence(start, stepSize, size),
-                0,
-                0,
-                size);
-            stream.Synchronize();
+                sequencer.ComputeSequence(start, stepSize, size));
             
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
             
-            var expected = Enumerable.Repeat(CalcValue(input, func), size).ToArray();
-            Verify(output, expected);
+            var expected = Enumerable.Repeat(
+                CalcValue<T, TFunction>(input.View, func),
+                size).ToArray();
+            Verify(output.View, expected);
         }
 
         [Theory]
@@ -172,22 +165,21 @@ namespace ILGPU.Algorithms.Tests
             where TSequencer : struct, ITestSequencer<T>
         {
             var size = Math.Max(Accelerator.MaxNumThreadsPerGroup / fraction, 1);
-            using var input = Accelerator.Allocate<T>(size);
-            using var output = Accelerator.Allocate<T>(size);
+            using var input = Accelerator.Allocate1D<T>(size);
+            using var output = Accelerator.Allocate1D<T>(size);
             using var stream = Accelerator.CreateStream();
 
-            input.CopyFrom(
+            input.CopyFromCPU(
                 stream,
-                sequencer.ComputeSequence(start, stepSize, size),
-                0,
-                0,
-                size);
-            stream.Synchronize();
+                sequencer.ComputeSequence(start, stepSize, size));
             
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
 
-            T[] expected = CalcValues(input, func, ScanKind.Exclusive);
-            Verify(output, expected);
+            T[] expected = CalcValues<T, TFunction>(
+                input.View,
+                func,
+                ScanKind.Exclusive);
+            Verify(output.View, expected);
         }
 
         [Theory]
@@ -206,22 +198,21 @@ namespace ILGPU.Algorithms.Tests
             where TSequencer : struct, ITestSequencer<T>
         {
             var size = Math.Max(Accelerator.MaxNumThreadsPerGroup / fraction, 1);
-            using var input = Accelerator.Allocate<T>(size);
-            using var output = Accelerator.Allocate<T>(size);
+            using var input = Accelerator.Allocate1D<T>(size);
+            using var output = Accelerator.Allocate1D<T>(size);
             using var stream = Accelerator.CreateStream();
 
-            input.CopyFrom(
+            input.CopyFromCPU(
                 stream,
-                sequencer.ComputeSequence(start, stepSize, size),
-                0,
-                0,
-                size);
-            stream.Synchronize();
+                sequencer.ComputeSequence(start, stepSize, size));
             
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
 
-            T[] expected = CalcValues(input, func, ScanKind.Exclusive);
-            Verify(output, expected, 1);
+            T[] expected = CalcValues<T, TFunction>(
+                input.View,
+                func,
+                ScanKind.Exclusive);
+            Verify(output.View, expected, 1);
         }
 
         [Theory]
@@ -241,33 +232,30 @@ namespace ILGPU.Algorithms.Tests
             where TSequencer : struct, ITestSequencer<T>
         {
             var size = Math.Max(Accelerator.MaxNumThreadsPerGroup / fraction, 1);
-            using var input = Accelerator.Allocate<T>(size);
-            using var output = Accelerator.Allocate<T>(size);
+            using var input = Accelerator.Allocate1D<T>(size);
+            using var output = Accelerator.Allocate1D<T>(size);
             using var stream = Accelerator.CreateStream();
 
-            input.CopyFrom(
+            input.CopyFromCPU(
                 stream,
-                sequencer.ComputeSequence(start, stepSize, size),
-                0,
-                0,
-                size);
-            stream.Synchronize();
+                sequencer.ComputeSequence(start, stepSize, size));
             
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
             
-            T[] expected = CalcValues(input, func, ScanKind.Inclusive);
-            Verify(output, expected);
+            T[] expected = CalcValues<T, TFunction>(
+                input.View,
+                func,
+                ScanKind.Inclusive);
+            Verify(output.View, expected);
         }
         
         #region Helper Methods
 
-        private T CalcValue<T, TFunction>(MemoryBuffer<T> buffer, TFunction func)
+        private static T CalcValue<T, TFunction>(ArrayView<T> buffer, TFunction func)
             where T : unmanaged
             where TFunction : struct, IScanReduceOperation<T>
         {
-            using var stream = Accelerator.CreateStream();
-            var values = buffer.GetAsArray(stream);
-            stream.Synchronize();
+            var values = buffer.GetAsArray();
             
             T result = values[0];
             for (int i = 1, e = values.Length; i < e; ++i)
@@ -275,16 +263,14 @@ namespace ILGPU.Algorithms.Tests
             return result;
         }
 
-        private T[] CalcValues<T, TFunction>(
-            MemoryBuffer<T> buffer,
+        private static T[] CalcValues<T, TFunction>(
+            ArrayView<T> buffer,
             TFunction func,
             ScanKind kind)
             where T : unmanaged
             where TFunction : struct, IScanReduceOperation<T>
         {
-            using var stream = Accelerator.CreateStream();
-            var values = buffer.GetAsArray(stream);
-            stream.Synchronize();
+            var values = buffer.GetAsArray();
 
             T[] result = new T[values.Length];
             result[0] = values[0];
