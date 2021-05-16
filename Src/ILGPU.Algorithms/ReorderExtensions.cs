@@ -44,7 +44,7 @@ namespace ILGPU.Algorithms
         AcceleratorStream stream,
         ArrayView<TSource> source,
         ArrayView<TTarget> target,
-        ArrayView<Index1> reorderView,
+        ArrayView<Index1D> reorderView,
         TTransformer transformer)
         where TSource : unmanaged
         where TTarget : unmanaged
@@ -74,7 +74,7 @@ namespace ILGPU.Algorithms
         /// </typeparam>
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         internal readonly struct ReorderTransformWrapper<TSource, TTarget, TTransformer> :
-            ITransformer<Index1, TTarget>
+            ITransformer<Index1D, TTarget>
             where TSource : unmanaged
             where TTarget : unmanaged
             where TTransformer : struct, ITransformer<TSource, TTarget>
@@ -113,7 +113,7 @@ namespace ILGPU.Algorithms
             #region ITransformer
 
             /// <summary cref="ITransformer{TSource, TTarget}.Transform(TSource)"/>
-            public readonly TTarget Transform(Index1 value)
+            public readonly TTarget Transform(Index1D value)
             {
                 var sourceValue = SourceView[value];
                 return Transformer.Transform(sourceValue);
@@ -152,7 +152,7 @@ namespace ILGPU.Algorithms
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
             var baseTransformer = accelerator.CreateTransformer<
-                Index1,
+                Index1D,
                 TTarget,
                 ReorderTransformWrapper<TSource, TTarget, TTransformer>>();
             return (stream, source, target, reorderView, transformer) =>
@@ -197,7 +197,7 @@ namespace ILGPU.Algorithms
             AcceleratorStream stream,
             ArrayView<T> source,
             ArrayView<T> target,
-            ArrayView<Index1> reorderView)
+            ArrayView<Index1D> reorderView)
             where T : unmanaged
         {
             accelerator.ReorderTransform<T, IdentityTransformer<T>>(
@@ -235,7 +235,7 @@ namespace ILGPU.Algorithms
             AcceleratorStream stream,
             ArrayView<T> source,
             ArrayView<T> target,
-            ArrayView<Index1> reorderView,
+            ArrayView<Index1D> reorderView,
             TTransformer transformer)
             where T : unmanaged
             where TTransformer : struct, ITransformer<T, T>
@@ -278,7 +278,7 @@ namespace ILGPU.Algorithms
             AcceleratorStream stream,
             ArrayView<TSource> source,
             ArrayView<TTarget> target,
-            ArrayView<Index1> reorderView,
+            ArrayView<Index1D> reorderView,
             TTransformer transformer)
             where TSource : unmanaged
             where TTarget : unmanaged
