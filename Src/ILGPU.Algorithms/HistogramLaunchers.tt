@@ -34,12 +34,11 @@ namespace ILGPU.Algorithms
 <# foreach (var type in incrementTypes) { #>
         #region Histogram <#= type.Name #> Launchers
 
-<# for (int i = 1; i <= 3; ++i) { #>
-<#      var dimension = i > 1 ? $"{i}D" : ""; #>
         /// <summary>
-        /// Calculates the histogram (<#= type.Type #>) on the given <#= i #>D view.
+        /// Calculates the histogram (<#= type.Type #>) on the given 1D view.
         /// </summary>
         /// <typeparam name="T">The input view element type.</typeparam>
+        /// <typeparam name="TStride">The input view element type.</typeparam>
         /// <typeparam name="TLocator">
         /// The operation to compute the bin location.
         /// </typeparam>
@@ -53,25 +52,25 @@ namespace ILGPU.Algorithms
 <# if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
 <# } #>
-        public static void Histogram<#= dimension #><T, TLocator>(
+        public static void Histogram<T, TStride, TLocator>(
             this Accelerator accelerator,
             AcceleratorStream stream,
-            ArrayView<#= dimension #><T> view,
+            ArrayView1D<T, TStride> view,
             ArrayView<<#= type.Type #>> histogram,
             ArrayView<int> histogramOverflow)
             where T : unmanaged
-            where TLocator : struct, IComputeSingleBinOperation<T, Index1>
+            where TStride : unmanaged, IStride1D
+            where TLocator : struct, IComputeSingleBinOperation<T, Index1D>
         {
             var kernel = accelerator.CreateHistogram<
                 T,
-                Index<#= i #>,
+                TStride,
                 <#= type.Type #>,
                 HistogramIncrement<#= type.Name #>,
                 ComputeSingleBinAdapter<#= type.Name #><T, TLocator>>();
-            kernel(stream, view.ToIntView(), histogram, histogramOverflow);
+            kernel(stream, view, histogram, histogramOverflow);
         }
 
-<# } #>
         /// <summary>
         /// Adapter to convert single-bin operation into a multi-bin operation for
         /// histograms of type <#= type.Type #>.
@@ -88,7 +87,7 @@ namespace ILGPU.Algorithms
                 <#= type.Type #>,
                 HistogramIncrement<#= type.Name #>>
             where T : unmanaged
-            where TLocator : struct, IComputeSingleBinOperation<T, Index1>
+            where TLocator : struct, IComputeSingleBinOperation<T, Index1D>
         {
             public void ComputeHistogramBins(
                 T value,

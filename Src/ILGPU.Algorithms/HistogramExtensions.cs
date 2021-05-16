@@ -23,7 +23,7 @@ namespace ILGPU.Algorithms
     /// Represents a histogram operation on the given view.
     /// </summary>
     /// <typeparam name="T">The input view element type.</typeparam>
-    /// <typeparam name="TIndex">The input view index type.</typeparam>
+    /// <typeparam name="TStride">The input view stride.</typeparam>
     /// <typeparam name="TBinType">The histogram bin type.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="view">The input view.</param>
@@ -31,31 +31,31 @@ namespace ILGPU.Algorithms
     /// <param name="histogramOverflow">
     /// Single-element view that indicates whether the histogram has overflowed.
     /// </param>
-    public delegate void Histogram<T, TIndex, TBinType>(
+    public delegate void Histogram<T, TStride, TBinType>(
         AcceleratorStream stream,
-        ArrayView<T, TIndex> view,
+        ArrayView1D<T, TStride> view,
         ArrayView<TBinType> histogram,
         ArrayView<int> histogramOverflow)
         where T : unmanaged
         where TBinType : unmanaged
-        where TIndex : struct, IGenericIndex<TIndex>;
+        where TStride : unmanaged, IStride1D;
 
     /// <summary>
     /// Represents a histogram operation on the given view.
     /// </summary>
     /// <typeparam name="T">The input view element type.</typeparam>
-    /// <typeparam name="TIndex">The input view index type.</typeparam>
+    /// <typeparam name="TStride">The input view stride.</typeparam>
     /// <typeparam name="TBinType">The histogram bin type.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="view">The input view.</param>
     /// <param name="histogram">The histogram view to update.</param>
-    public delegate void HistogramUnchecked<T, TIndex, TBinType>(
+    public delegate void HistogramUnchecked<T, TStride, TBinType>(
         AcceleratorStream stream,
-        ArrayView<T, TIndex> view,
+        ArrayView1D<T, TStride> view,
         ArrayView<TBinType> histogram)
         where T : unmanaged
-        where TBinType : unmanaged
-        where TIndex : struct, IGenericIndex<TIndex>;
+        where TStride : unmanaged, IStride1D
+        where TBinType : unmanaged;
 
     #endregion
 
@@ -70,6 +70,7 @@ namespace ILGPU.Algorithms
         /// The delegate for the computing the histogram.
         /// </summary>
         /// <typeparam name="T">The input view element type.</typeparam>
+        /// <typeparam name="TStride">The input view stride.</typeparam>
         /// <typeparam name="TBinType">The histogram bin type.</typeparam>
         /// <typeparam name="TIncrementor">
         /// The operation to increment the value of the bin.
@@ -87,16 +88,18 @@ namespace ILGPU.Algorithms
         /// <param name="paddedLength">The padded length of the input view.</param>
         private delegate void HistogramDelegate<
             T,
+            TStride,
             TBinType,
             TIncrementor,
             TLocator>(
             AcceleratorStream stream,
             KernelConfig config,
-            ArrayView<T> view,
+            ArrayView1D<T, TStride> view,
             ArrayView<TBinType> histogram,
             ArrayView<int> histogramOverflow,
             int paddedLength)
             where T : unmanaged
+            where TStride : unmanaged, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>;
@@ -105,6 +108,7 @@ namespace ILGPU.Algorithms
         /// The delegate for the computing the histogram.
         /// </summary>
         /// <typeparam name="T">The input view element type.</typeparam>
+        /// <typeparam name="TStride">The input view stride.</typeparam>
         /// <typeparam name="TBinType">The histogram bin type.</typeparam>
         /// <typeparam name="TIncrementor">
         /// The operation to increment the value of the bin.
@@ -119,15 +123,17 @@ namespace ILGPU.Algorithms
         /// <param name="paddedLength">The padded length of the input view.</param>
         private delegate void HistogramUncheckedDelegate<
             T,
+            TStride,
             TBinType,
             TIncrementor,
             TLocator>(
             AcceleratorStream stream,
             KernelConfig config,
-            ArrayView<T> view,
+            ArrayView1D<T, TStride> view,
             ArrayView<TBinType> histogram,
             int paddedLength)
             where T : unmanaged
+            where TStride : unmanaged, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>;
@@ -150,6 +156,7 @@ namespace ILGPU.Algorithms
         /// The actual histogram kernel implementation.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The input view stride.</typeparam>
         /// <typeparam name="TBinType">The histogram bin type.</typeparam>
         /// <typeparam name="TIncrementor">
         /// The operation to increment the value of the bin.
@@ -165,19 +172,21 @@ namespace ILGPU.Algorithms
         /// <param name="paddedLength">The padded length of the input view.</param>
         internal static void HistogramKernel<
             T,
+            TStride,
             TBinType,
             TIncrementor,
             TLocator>(
-            ArrayView<T> view,
+            ArrayView1D<T, TStride> view,
             ArrayView<TBinType> histogram,
             ArrayView<int> histogramOverflow,
             int paddedLength)
             where T : unmanaged
+            where TStride : unmanaged, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
         {
-            HistogramWorkKernel<T, TBinType, TIncrementor, TLocator>(
+            HistogramWorkKernel<T, TStride, TBinType, TIncrementor, TLocator>(
                 view,
                 histogram,
                 out var histogramDidOverflow,
@@ -189,6 +198,7 @@ namespace ILGPU.Algorithms
         /// The actual histogram kernel implementation (without overflow checking).
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The input view stride.</typeparam>
         /// <typeparam name="TBinType">The histogram bin type.</typeparam>
         /// <typeparam name="TIncrementor">
         /// The operation to increment the value of the bin.
@@ -201,30 +211,38 @@ namespace ILGPU.Algorithms
         /// <param name="paddedLength">The padded length of the input view.</param>
         internal static void HistogramUncheckedKernel<
             T,
+            TStride,
             TBinType,
             TIncrementor,
             TLocator>(
-            ArrayView<T> view,
+            ArrayView1D<T, TStride> view,
             ArrayView<TBinType> histogram,
             int paddedLength)
             where T : unmanaged
+            where TStride : unmanaged, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
         {
-            HistogramWorkKernel<T, TBinType, TIncrementor, TLocator>(
+            HistogramWorkKernel<T, TStride, TBinType, TIncrementor, TLocator>(
                 view,
                 histogram,
                 out _,
                 paddedLength);
         }
 
-        internal static void HistogramWorkKernel<T, TBinType, TIncrementor, TLocator>(
-            ArrayView<T> view,
+        internal static void HistogramWorkKernel<
+            T,
+            TStride,
+            TBinType,
+            TIncrementor,
+            TLocator>(
+            ArrayView1D<T, TStride> view,
             ArrayView<TBinType> histogram,
             out bool histogramOverflow,
             int paddedLength)
             where T : unmanaged
+            where TStride : unmanaged, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
@@ -239,7 +257,7 @@ namespace ILGPU.Algorithms
                 i < paddedLength;
                 i += GridExtensions.GridStrideLoopStride)
             {
-                if (i < view.Length)
+                if (i < view.IntExtent)
                 {
                     operation.ComputeHistogramBins(
                         view[i],
@@ -259,7 +277,7 @@ namespace ILGPU.Algorithms
         /// Creates a kernel to calculate the histogram on a supplied view.
         /// </summary>
         /// <typeparam name="T">The input view element type.</typeparam>
-        /// <typeparam name="TIndex">The input view index type.</typeparam>
+        /// <typeparam name="TStride">The input view stride.</typeparam>
         /// <typeparam name="TBinType">The histogram bin type.</typeparam>
         /// <typeparam name="TIncrementor">
         /// The operation to increment the value of the bin.
@@ -269,15 +287,15 @@ namespace ILGPU.Algorithms
         /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created histogram handler.</returns>
-        public static Histogram<T, TIndex, TBinType> CreateHistogram<
+        public static Histogram<T, TStride, TBinType> CreateHistogram<
             T,
-            TIndex,
+            TStride,
             TBinType,
             TIncrementor,
             TLocator>(
             this Accelerator accelerator)
             where T : unmanaged
-            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
+            where TStride : unmanaged, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
@@ -285,11 +303,13 @@ namespace ILGPU.Algorithms
             var kernel = accelerator.LoadKernel<
                 HistogramDelegate<
                     T,
+                    TStride,
                     TBinType,
                     TIncrementor,
                     TLocator>>(
                     HistogramKernelMethod.MakeGenericMethod(
                         typeof(T),
+                        typeof(TStride),
                         typeof(TBinType),
                         typeof(TIncrementor),
                         typeof(TLocator)));
@@ -313,18 +333,18 @@ namespace ILGPU.Algorithms
                     throw new NotSupportedException(
                         ErrorMessages.NotSupportedArrayView64);
                 }
-                var input = view.AsLinearView();
+                int numElements = view.IntExtent;
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
-                       input.Length,
+                       numElements,
                        out int numIterationsPerGroup);
                 int numVirtualGroups = gridDim * numIterationsPerGroup;
                 int lengthInformation =
-                    XMath.DivRoundUp(input.Length, groupDim) * groupDim;
+                    XMath.DivRoundUp(numElements, groupDim) * groupDim;
 
                 kernel(
                     stream,
                     (gridDim, groupDim),
-                    input,
+                    view,
                     histogram,
                     histogramOverflow,
                     lengthInformation);
@@ -336,7 +356,7 @@ namespace ILGPU.Algorithms
         /// (without overflow checking).
         /// </summary>
         /// <typeparam name="T">The input view element type.</typeparam>
-        /// <typeparam name="TIndex">The input view index type.</typeparam>
+        /// <typeparam name="TStride">The input view stride.</typeparam>
         /// <typeparam name="TBinType">The histogram bin type.</typeparam>
         /// <typeparam name="TIncrementor">
         /// The operation to increment the value of the bin.
@@ -346,15 +366,15 @@ namespace ILGPU.Algorithms
         /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created histogram handler.</returns>
-        public static HistogramUnchecked<T, TIndex, TBinType> CreateHistogramUnchecked<
+        public static HistogramUnchecked<T, TStride, TBinType> CreateHistogramUnchecked<
             T,
-            TIndex,
+            TStride,
             TBinType,
             TIncrementor,
             TLocator>(
             this Accelerator accelerator)
             where T : unmanaged
-            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
+            where TStride : unmanaged, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
@@ -362,11 +382,13 @@ namespace ILGPU.Algorithms
             var kernel = accelerator.LoadKernel<
                 HistogramUncheckedDelegate<
                     T,
+                    TStride,
                     TBinType,
                     TIncrementor,
                     TLocator>>(
                     HistogramUncheckedKernelMethod.MakeGenericMethod(
                         typeof(T),
+                        typeof(TStride),
                         typeof(TBinType),
                         typeof(TIncrementor),
                         typeof(TLocator)));
@@ -386,18 +408,18 @@ namespace ILGPU.Algorithms
                     throw new NotSupportedException(
                         ErrorMessages.NotSupportedArrayView64);
                 }
-                var input = view.AsLinearView();
+                int numElements = view.IntExtent;
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
-                       input.Length,
+                       numElements,
                        out int numIterationsPerGroup);
                 int numVirtualGroups = gridDim * numIterationsPerGroup;
                 int lengthInformation =
-                    XMath.DivRoundUp(input.Length, groupDim) * groupDim;
+                    XMath.DivRoundUp(numElements, groupDim) * groupDim;
 
                 kernel(
                     stream,
                     (gridDim, groupDim),
-                    input,
+                    view,
                     histogram,
                     lengthInformation);
             };
@@ -407,7 +429,7 @@ namespace ILGPU.Algorithms
         /// Calculates the histogram on the given view.
         /// </summary>
         /// <typeparam name="T">The input view element type.</typeparam>
-        /// <typeparam name="TIndex">The input view index type.</typeparam>
+        /// <typeparam name="TStride">The input view stride.</typeparam>
         /// <typeparam name="TBinType">The histogram bin type.</typeparam>
         /// <typeparam name="TIncrementor">
         /// The operation to increment the value of the bin.
@@ -422,19 +444,19 @@ namespace ILGPU.Algorithms
         /// <param name="histogramOverflow">
         /// Single-element view that indicates whether the histogram has overflowed.
         /// </param>
-        public static void Histogram<T, TIndex, TBinType, TIncrementor, TLocator>(
+        public static void Histogram<T, TStride, TBinType, TIncrementor, TLocator>(
             this Accelerator accelerator,
             AcceleratorStream stream,
-            ArrayView<T, TIndex> view,
+            ArrayView1D<T, TStride> view,
             ArrayView<TBinType> histogram,
             ArrayView<int> histogramOverflow)
             where T : unmanaged
-            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
+            where TStride : unmanaged, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
         {
-            accelerator.CreateHistogram<T, TIndex, TBinType, TIncrementor, TLocator>()(
+            accelerator.CreateHistogram<T, TStride, TBinType, TIncrementor, TLocator>()(
                 stream,
                 view,
                 histogram,
@@ -445,7 +467,7 @@ namespace ILGPU.Algorithms
         /// Calculates the histogram on the given view (without overflow checking).
         /// </summary>
         /// <typeparam name="T">The input view element type.</typeparam>
-        /// <typeparam name="TIndex">The input view index type.</typeparam>
+        /// <typeparam name="TStride">The input view stride.</typeparam>
         /// <typeparam name="TBinType">The histogram bin type.</typeparam>
         /// <typeparam name="TIncrementor">
         /// The operation to increment the value of the bin.
@@ -459,23 +481,23 @@ namespace ILGPU.Algorithms
         /// <param name="histogram">The histogram view to update.</param>
         public static void HistogramUnchecked<
             T,
-            TIndex,
+            TStride,
             TBinType,
             TIncrementor,
             TLocator>(
             this Accelerator accelerator,
             AcceleratorStream stream,
-            ArrayView<T, TIndex> view,
+            ArrayView1D<T, TStride> view,
             ArrayView<TBinType> histogram)
             where T : unmanaged
-            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
+            where TStride : unmanaged, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
         {
             accelerator.CreateHistogramUnchecked<
                 T,
-                TIndex,
+                TStride,
                 TBinType,
                 TIncrementor,
                 TLocator>()(
