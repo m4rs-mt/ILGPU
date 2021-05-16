@@ -59,9 +59,9 @@ var xmathBinaryRedirects = new[]
         "IEEERemainder",
     };
 #>
-using ILGPU.Backends;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
+using ILGPU.Runtime.Cuda;
 
 namespace ILGPU.Algorithms.PTX
 {
@@ -108,7 +108,7 @@ namespace ILGPU.Algorithms.PTX
             manager.RegisterUnaryArithmetic(
                 UnaryArithmeticKind.<#= kind #>,
                 BasicValueType.<#= basicType #>,
-                GetMathCodeGeneratorIntrinsic(PTXArchitecture.<#= sm #>));
+                GetMathCodeGeneratorIntrinsic(CudaArchitecture.<#= sm #>));
 <#      } #>
 <# } #>
 
