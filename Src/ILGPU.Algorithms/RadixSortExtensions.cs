@@ -166,7 +166,7 @@ namespace ILGPU.Algorithms
             var tempSize = Accelerator.ComputeRadixSortTempStorageSize<
                 T,
                 TRadixSortOperation>(
-                input.Length);
+                input.IntLength);
             return bufferCache.Allocate<int>(tempSize);
         }
 
@@ -214,7 +214,7 @@ namespace ILGPU.Algorithms
                 TKey,
                 TValue,
                 TRadixSortOperation>(
-                keys.Length);
+                keys.IntLength);
             return bufferCache.Allocate<int>(tempSize);
         }
 
@@ -379,12 +379,12 @@ namespace ILGPU.Algorithms
         /// <returns>
         /// The required number of temp-storage elements in 32 bit ints.
         /// </returns>
-        public static Index1 ComputeRadixSortPairsTempStorageSize<
+        public static Index1D ComputeRadixSortPairsTempStorageSize<
             TKey,
             TValue,
             TRadixSortOperation>(
             this Accelerator accelerator,
-            Index1 dataLength)
+            Index1D dataLength)
             where TKey : unmanaged
             where TValue : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<TKey>
@@ -414,16 +414,16 @@ namespace ILGPU.Algorithms
         /// <returns>
         /// The required number of temp-storage elements in 32 bit ints.
         /// </returns>
-        public static Index1 ComputeRadixSortTempStorageSize<T, TRadixSortOperation>(
+        public static Index1D ComputeRadixSortTempStorageSize<T, TRadixSortOperation>(
             this Accelerator accelerator,
-            Index1 dataLength)
+            Index1D dataLength)
             where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
-            LongIndex1 tempScanMemoryLong =
+            LongIndex1D tempScanMemoryLong =
                 accelerator.ComputeScanTempStorageSize<T>(dataLength);
             IndexTypeExtensions.AssertIntIndexRange(tempScanMemoryLong);
-            Index1 tempScanMemory = tempScanMemoryLong.ToIntIndex();
+            Index1D tempScanMemory = tempScanMemoryLong.ToIntIndex();
 
             int numGroups;
             if (accelerator.AcceleratorType == AcceleratorType.CPU)
@@ -578,7 +578,7 @@ namespace ILGPU.Algorithms
         /// buffer consisting of <see cref="RadixSortPair{TKey, TValue}"/> instances.
         /// </summary>
         internal static void GatherRadixSortPairsKernel<TKey, TValue, TSequencer>(
-            Index1 index,
+            Index1D index,
             ArrayView<TKey> keys,
             TSequencer sequencer,
             ArrayView<RadixSortPair<TKey, TValue>> target)
@@ -596,7 +596,7 @@ namespace ILGPU.Algorithms
         /// distinct key and value views.
         /// </summary>
         internal static void ScatterRadixSortPairsKernel<TKey, TValue>(
-            Index1 index,
+            Index1D index,
             ArrayView<RadixSortPair<TKey, TValue>> source,
             ArrayView<TKey> keys,
             ArrayView<TValue> values)
@@ -680,7 +680,7 @@ namespace ILGPU.Algorithms
                 Group.Barrier();
 
                 var gridSize = gridIdx * Group.DimX;
-                Index1 pos = gridSize + scanMemory[Group.IdxX + groupSize * bits] -
+                Index1D pos = gridSize + scanMemory[Group.IdxX + groupSize * bits] -
                     Utilities.Select(inRange & Group.IdxX == Group.DimX - 1, 1, 0);
                 for (int j = 1; j <= bits; ++j)
                 {
@@ -735,7 +735,7 @@ namespace ILGPU.Algorithms
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
             // Compute local segment information
-            for (Index1 i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
+            for (Index1D i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
             {
                 // Read value from global memory
                 TOperation operation = default;
@@ -762,7 +762,7 @@ namespace ILGPU.Algorithms
             scanMemory[0] = 0;
 
             // Pre-sort the current value into the corresponding segment
-            for (Index1 i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
+            for (Index1D i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
             {
                 // Read value from global memory
                 TOperation operation = default;
@@ -772,7 +772,7 @@ namespace ILGPU.Algorithms
                     shift,
                     specialization.UnrollFactor - 1);
 
-                Index1 pos = tileInfo.StartIndex;
+                Index1D pos = tileInfo.StartIndex;
                 pos += addMemory[bits]++;
                 pos += scanMemory[bits];
                 output[pos] = value;
@@ -786,8 +786,8 @@ namespace ILGPU.Algorithms
         /// <param name="counter">The counter view.</param>
         /// <returns>The exclusive sum.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetExclusiveCount(Index1 index, ArrayView<int> counter) =>
-            index < Index1.One ? 0 : counter[index - Index1.One];
+        private static int GetExclusiveCount(Index1D index, ArrayView<int> counter) =>
+            index < Index1D.One ? 0 : counter[index - Index1D.One];
 
         /// <summary>
         /// Performs the second radix-sort pass.
@@ -884,7 +884,7 @@ namespace ILGPU.Algorithms
             TSpecialization specialization = default;
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
-            for (Index1 i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
+            for (Index1D i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
             {
                 // Read value from global memory
                 TOperation operation = default;
@@ -963,12 +963,12 @@ namespace ILGPU.Algorithms
             where TRadixSortOperation : struct, IRadixSortOperation<TKey>
         {
             var gatherKernel = accelerator.LoadAutoGroupedKernel<
-                Index1,
+                Index1D,
                 ArrayView<TKey>,
                 TSequencer,
                 ArrayView<RadixSortPair<TKey, TValue>>>(GatherRadixSortPairsKernel);
             var scatterKernel = accelerator.LoadAutoGroupedKernel<
-                Index1,
+                Index1D,
                 ArrayView<RadixSortPair<TKey, TValue>>,
                 ArrayView<TKey>,
                 ArrayView<TValue>>(ScatterRadixSortPairsKernel);
@@ -991,16 +991,16 @@ namespace ILGPU.Algorithms
                     keys.Length);
 
                 // keys, values => (key, value)s
-                gatherKernel(stream, elements.Length, keys, sequencer, elements);
+                gatherKernel(stream, elements.IntLength, keys, sequencer, elements);
 
                 // sort elements
                 radixSort(
                     stream,
                     elements,
-                    viewManager.TempView.GetSubView(viewManager.NumInts));
+                    viewManager.TempView.SubView(viewManager.NumInts));
 
                 // (key, value)s => keys, values
-                scatterKernel(stream, elements.Length, elements, keys, values);
+                scatterKernel(stream, elements.IntLength, elements, keys, values);
             };
         }
 
@@ -1053,7 +1053,7 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
-            var initializer = accelerator.CreateInitializer<int>();
+            var initializer = accelerator.CreateInitializer<int, Stride1D.Dense>();
             var inclusiveScan = accelerator.CreateInclusiveScan<int, AddInt32>();
 
             var specializationType = typeof(Specialization4);
@@ -1146,10 +1146,10 @@ namespace ILGPU.Algorithms
                 return (stream, input, tempView) =>
                 {
                     var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
-                        input.Length,
+                        input.IntLength,
                         out int numIterationsPerGroup);
                     int numVirtualGroups = gridDim * numIterationsPerGroup;
-                    int lengthInformation = XMath.DivRoundUp(input.Length, groupDim) *
+                    int lengthInformation = XMath.DivRoundUp(input.IntLength, groupDim) *
                         groupDim;
 
                     VerifyArguments<T, TRadixSortOperation>(
