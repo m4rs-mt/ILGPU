@@ -9,9 +9,9 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Backends;
 using ILGPU.Backends.PTX;
 using ILGPU.IR.Intrinsics;
+using ILGPU.Runtime.Cuda;
 using System;
 using System.Reflection;
 
@@ -62,7 +62,7 @@ namespace ILGPU.Algorithms.PTX
         /// <param name="minArchitecture">The target/minimum architecture.</param>
         /// <returns>The resolved intrinsic representation.</returns>
         private static PTXIntrinsic GetMathCodeGeneratorIntrinsic(
-            PTXArchitecture minArchitecture) =>
+            CudaArchitecture minArchitecture) =>
             new PTXIntrinsic(
                 PTXMathType,
                 nameof(PTXMath.GenerateMathIntrinsic),
