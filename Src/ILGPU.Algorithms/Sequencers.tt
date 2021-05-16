@@ -17,7 +17,6 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
-#pragma warning disable IDE0001 // Simplify Names
 #pragma warning disable IDE0004 // Cast is redundant
 
 using System;
@@ -35,13 +34,12 @@ namespace ILGPU.Algorithms.Sequencers
 <#      } #>
     public readonly struct <#= type.Name #>Sequencer : ISequencer<<#= type.Type #>>
     {
-        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
-        public <#= type.Type #> ComputeSequenceElement(Index1 sequenceIndex) =>
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public <#= type.Type #> ComputeSequenceElement(LongIndex1D sequenceIndex) =>
             (<#= type.Type #>)sequenceIndex.X;
     }
 
 <# } #>
 }
 
-#pragma warning restore IDE0001
 #pragma warning restore IDE0004
