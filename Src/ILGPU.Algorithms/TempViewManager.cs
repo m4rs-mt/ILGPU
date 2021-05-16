@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.Resources;
+using ILGPU.Runtime;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -71,7 +72,7 @@ namespace ILGPU.Algorithms
         /// <returns>The allocated variable view.</returns>
         public VariableView<T> Allocate<T>()
             where T : unmanaged =>
-            Allocate<T>(1).GetVariableView(0);
+            Allocate<T>(1).VariableView(0);
 
         /// <summary>
         /// Allocates several elements of type <typeparamref name="T"/>.
@@ -105,9 +106,9 @@ namespace ILGPU.Algorithms
                 }
             }
 
-            var tempView = TempView.GetSubView(NumInts, viewLength);
+            var tempView = TempView.SubView(NumInts, viewLength);
             NumInts += viewLength;
-            return tempView.Cast<T>().GetSubView(0, length);
+            return tempView.Cast<T>().SubView(0, length);
         }
 
         #endregion

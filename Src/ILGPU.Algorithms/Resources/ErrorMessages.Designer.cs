@@ -86,5 +86,14 @@ namespace ILGPU.Algorithms.Resources {
                 return ResourceManager.GetString("TempViewManagerUnalignedAllocation", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The {0} view is larger than the {1} view..
+        /// </summary>
+        internal static string ViewOutOfRange {
+            get {
+                return ResourceManager.GetString("ViewOutOfRange", resourceCulture);
+            }
+        }
     }
 }

@@ -65,6 +65,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="T4.Build" Version="0.2.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\ILGPU\Src\ILGPU\ILGPU.csproj" />
   </ItemGroup>
 
@@ -283,5 +287,4 @@
   </ItemGroup>
 
   <Import Project="Properties\ILGPU.Algorithms.nuspec.targets" />
-  <Import Project="..\..\ILGPU\Src\TextTransform.targets" />
 </Project>

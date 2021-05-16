@@ -61,7 +61,7 @@ namespace ILGPU.Algorithms
             ArrayView<long> output,
             SequentialGroupExecutor sequentialGroupExecutor,
             SpecializedValue<int> tileSize,
-            Index1 numIterationsPerGroup)
+            Index1D numIterationsPerGroup)
             where T : unmanaged
             where TComparisonOperation : struct, IComparisonOperation<T>
         {
@@ -125,9 +125,9 @@ namespace ILGPU.Algorithms
         /// <returns>
         /// The required number of temp-storage elements in 32 bit ints.
         /// </returns>
-        public static LongIndex1 ComputeUniqueTempStorageSize<T>(
+        public static LongIndex1D ComputeUniqueTempStorageSize<T>(
             this Accelerator accelerator,
-            LongIndex1 dataLength)
+            LongIndex1D dataLength)
             where T : unmanaged
         {
             // 1 int for SequentialGroupExecutor.
@@ -146,13 +146,13 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TComparisonOperation : struct, IComparisonOperation<T>
         {
-            var initializer = accelerator.CreateInitializer<int>();
+            var initializer = accelerator.CreateInitializer<int, Stride1D.Dense>();
             var kernel = accelerator.LoadKernel<
                 ArrayView<T>,
                 ArrayView<long>,
                 SequentialGroupExecutor,
                 SpecializedValue<int>,
-                Index1>(
+                Index1D>(
                 UniqueKernel<T, TComparisonOperation>);
 
             return (stream, input, output, temp) =>
@@ -178,10 +178,10 @@ namespace ILGPU.Algorithms
 
                 var viewManager = new TempViewManager(temp, nameof(temp));
                 var executorView = viewManager.Allocate<int>();
-                initializer(stream, temp.GetSubView(0, viewManager.NumInts), default);
+                initializer(stream, temp.SubView(0, viewManager.NumInts), default);
 
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
-                       input.Length,
+                       input.IntLength,
                        out int numIterationsPerGroup);
                 kernel(
                     stream,
@@ -210,16 +210,15 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TComparisonOperation : struct, IComparisonOperation<T>
         {
-            using var output = accelerator.Allocate<long>(1);
-            using var temp = accelerator.Allocate<int>(
+            using var output = accelerator.Allocate1D<long>(1);
+            using var temp = accelerator.Allocate1D<int>(
                 accelerator.ComputeUniqueTempStorageSize<T>(input.Length));
             accelerator.CreateUnique<T, TComparisonOperation>()(
                 stream,
                 input,
-                output,
-                temp);
-            stream.Synchronize();
-            output.CopyTo(stream, out long result, 0);
+                output.View,
+                temp.View);
+            output.View.CopyToCPU(stream, out long result, 1);
             return result;
         }
 

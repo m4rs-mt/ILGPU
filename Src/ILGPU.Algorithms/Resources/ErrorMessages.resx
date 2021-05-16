@@ -126,4 +126,7 @@
   <data name="TempViewManagerUnalignedAllocation" xml:space="preserve">
     <value>The allocation of type '{0}' is not correctly aligned. Requires '{1}' byte alignment but was allocated at byte offset '{2}'.</value>
   </data>
+  <data name="ViewOutOfRange" xml:space="preserve">
+    <value>The {0} view is larger than the {1} view.</value>
+  </data>
 </root>
