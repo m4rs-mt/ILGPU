@@ -88,8 +88,8 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AtomicAdd(this VariableView<Vector2> target, Vector2 operand)
         {
-            Atomic.Add(ref target.GetSubView<float>(Vector2XOffset).Value, operand.X);
-            Atomic.Add(ref target.GetSubView<float>(Vector2YOffset).Value, operand.Y);
+            Atomic.Add(ref target.SubView<float>(Vector2XOffset).Value, operand.X);
+            Atomic.Add(ref target.SubView<float>(Vector2YOffset).Value, operand.Y);
         }
 
         /// <summary>
@@ -100,9 +100,9 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AtomicAdd(this VariableView<Vector3> target, Vector3 operand)
         {
-            Atomic.Add(ref target.GetSubView<float>(Vector3XOffset).Value, operand.X);
-            Atomic.Add(ref target.GetSubView<float>(Vector3YOffset).Value, operand.Y);
-            Atomic.Add(ref target.GetSubView<float>(Vector3ZOffset).Value, operand.Z);
+            Atomic.Add(ref target.SubView<float>(Vector3XOffset).Value, operand.X);
+            Atomic.Add(ref target.SubView<float>(Vector3YOffset).Value, operand.Y);
+            Atomic.Add(ref target.SubView<float>(Vector3ZOffset).Value, operand.Z);
         }
 
         /// <summary>
@@ -113,10 +113,10 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AtomicAdd(this VariableView<Vector4> target, Vector4 operand)
         {
-            Atomic.Add(ref target.GetSubView<float>(Vector4XOffset).Value, operand.X);
-            Atomic.Add(ref target.GetSubView<float>(Vector4YOffset).Value, operand.Y);
-            Atomic.Add(ref target.GetSubView<float>(Vector4ZOffset).Value, operand.Z);
-            Atomic.Add(ref target.GetSubView<float>(Vector4WOffset).Value, operand.W);
+            Atomic.Add(ref target.SubView<float>(Vector4XOffset).Value, operand.X);
+            Atomic.Add(ref target.SubView<float>(Vector4YOffset).Value, operand.Y);
+            Atomic.Add(ref target.SubView<float>(Vector4ZOffset).Value, operand.Z);
+            Atomic.Add(ref target.SubView<float>(Vector4WOffset).Value, operand.W);
         }
 
         #endregion
@@ -128,7 +128,7 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="index">The source index.</param>
         /// <returns>The converted <see cref="Vector2"/>.</returns>
-        public static Vector2 ToVector(this Index2 index)
+        public static Vector2 ToVector(this Index2D index)
         {
             return new Vector2(index.X, index.Y);
         }
@@ -138,29 +138,29 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="index">The source index.</param>
         /// <returns>The converted <see cref="Vector3"/>.</returns>
-        public static Vector3 ToVector(this Index3 index)
+        public static Vector3 ToVector(this Index3D index)
         {
             return new Vector3(index.X, index.Y, index.Z);
         }
 
         /// <summary>
-        /// Converts the vector to a corresponding <see cref="Index2"/>.
+        /// Converts the vector to a corresponding <see cref="Index2D"/>.
         /// </summary>
         /// <param name="vector">The source vector.</param>
-        /// <returns>The converted <see cref="Index2"/>.</returns>
-        public static Index2 ToIndex(this Vector2 vector)
+        /// <returns>The converted <see cref="Index2D"/>.</returns>
+        public static Index2D ToIndex(this Vector2 vector)
         {
-            return new Index2((int)vector.X, (int)vector.Y);
+            return new Index2D((int)vector.X, (int)vector.Y);
         }
 
         /// <summary>
-        /// Converts the vector to a corresponding <see cref="Index3"/>.
+        /// Converts the vector to a corresponding <see cref="Index3D"/>.
         /// </summary>
         /// <param name="vector">The source vector.</param>
-        /// <returns>The converted <see cref="Index3"/>.</returns>
-        public static Index3 ToIndex(this Vector3 vector)
+        /// <returns>The converted <see cref="Index3D"/>.</returns>
+        public static Index3D ToIndex(this Vector3 vector)
         {
-            return new Index3((int)vector.X, (int)vector.Y, (int)vector.Z);
+            return new Index3D((int)vector.X, (int)vector.Y, (int)vector.Z);
         }
 
         #endregion

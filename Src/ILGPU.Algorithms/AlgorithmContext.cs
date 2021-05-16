@@ -14,6 +14,7 @@ using ILGPU.Algorithms;
 using ILGPU.Algorithms.CL;
 using ILGPU.Algorithms.IL;
 using ILGPU.Algorithms.PTX;
+using ILGPU.IR;
 using System;
 using System.Reflection;
 
@@ -64,15 +65,15 @@ namespace ILGPU
         #region Methods
 
         /// <summary>
-        /// Enables algorithm extensions in the scope of the given context.
+        /// Enables algorithm extensions in the scope of the given context builder.
         /// </summary>
-        /// <param name="context">The context to enable algorithms for.</param>
-        public static void EnableAlgorithms(this Context context)
+        /// <param name="builder">The builder to enable algorithms for.</param>
+        public static void EnableAlgorithms(this Context.Builder builder)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
+            if (builder == null)
+                throw new ArgumentNullException(nameof(builder));
 
-            var intrinsicManager = context.IntrinsicManager;
+            var intrinsicManager = builder.GetIntrinsicManager();
             CLContext.EnableCLAlgorithms(intrinsicManager);
             ILContext.EnableILAlgorithms(intrinsicManager);
             PTXContext.EnablePTXAlgorithms(intrinsicManager);

@@ -298,12 +298,18 @@ namespace ILGPU.Algorithms.Random
             /// Executes the intended RNG using the <see cref="RNGView"/>.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Execute(LongIndex1 linearIndex)
+            public void Execute(LongIndex1D linearIndex)
             {
                 var nextValue = RNGView.Next<T, TOperation>();
                 if (linearIndex < Target.Length)
                     Target[linearIndex] = nextValue;
             }
+
+            /// <summary>
+            /// Performs no operation.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly void Finish() { }
         }
 
         #endregion
@@ -313,7 +319,9 @@ namespace ILGPU.Algorithms.Random
         /// <summary>
         /// Stores a single RNG instance per warp.
         /// </summary>
-        private readonly MemoryBuffer<TRandomProvider> randomProvidersPerWarp;
+        private readonly MemoryBuffer1D<
+            TRandomProvider,
+            Stride1D.Dense> randomProvidersPerWarp;
 
         /// <summary>
         /// Constructs an RNG using the given provider instance.
@@ -349,7 +357,7 @@ namespace ILGPU.Algorithms.Random
                 providers[i] = provider.CreateProvider(random);
 
             // Initialize all random providers
-            randomProvidersPerWarp = accelerator.Allocate(providers);
+            randomProvidersPerWarp = accelerator.Allocate1D(providers);
         }
 
         #endregion
@@ -390,7 +398,7 @@ namespace ILGPU.Algorithms.Random
             Trace.Assert(
                 numWarps > 0 && numWarps <= randomProvidersPerWarp.Length,
                 "Invalid number of warps");
-            var subView = randomProvidersPerWarp.View.GetSubView(0, numWarps);
+            var subView = randomProvidersPerWarp.View.SubView(0, numWarps);
             return new RNGView<TRandomProvider>(subView);
         }
 

@@ -20,3 +20,9 @@ dotnet_code_quality_unused_parameters = all:silent
 
 # CA1060: Move pinvokes to native methods class
 dotnet_diagnostic.CA1060.severity = none
+
+# Default severity for analyzer diagnostics with category 'Security'
+dotnet_analyzer_diagnostic.category-Security.severity = none
+
+# CA5393: Do not use unsafe DllImportSearchPath value
+dotnet_diagnostic.CA5393.severity = none

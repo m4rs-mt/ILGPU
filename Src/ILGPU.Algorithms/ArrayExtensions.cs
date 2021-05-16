@@ -26,7 +26,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="array">The source array.</param>
         /// <returns>The extent of an one-dimensional array.</returns>
-        public static Index1 GetExtent<T>(this T[] array)
+        public static Index1D GetExtent<T>(this T[] array)
         {
             Debug.Assert(array != null, "Invalid array");
             return array.Length;
@@ -42,10 +42,10 @@ namespace ILGPU.Algorithms
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional",
             Target = "array")]
-        public static Index2 GetExtent<T>(this T[,] array)
+        public static Index2D GetExtent<T>(this T[,] array)
         {
             Debug.Assert(array != null, "Invalid array");
-            return new Index2(
+            return new Index2D(
                 array.GetLength(0),
                 array.GetLength(1));
         }
@@ -60,10 +60,10 @@ namespace ILGPU.Algorithms
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional",
             Target = "array")]
-        public static Index3 GetExtent<T>(this T[,,] array)
+        public static Index3D GetExtent<T>(this T[,,] array)
         {
             Debug.Assert(array != null, "Invalid array");
-            return new Index3(
+            return new Index3D(
                 array.GetLength(0),
                 array.GetLength(1),
                 array.GetLength(2));
@@ -76,7 +76,7 @@ namespace ILGPU.Algorithms
         /// <param name="array">The source array.</param>
         /// <param name="index">The element index.</param>
         /// <returns>The value at the given index.</returns>
-        public static T GetValue<T>(this T[] array, Index1 index) =>
+        public static T GetValue<T>(this T[] array, Index1D index) =>
             array[index];
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace ILGPU.Algorithms
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional",
             Target = "array")]
-        public static T GetValue<T>(this T[,] array, Index2 index) =>
+        public static T GetValue<T>(this T[,] array, Index2D index) =>
             array[index.X, index.Y];
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace ILGPU.Algorithms
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional",
             Target = "array")]
-        public static T GetValue<T>(this T[,,] array, Index3 index) =>
+        public static T GetValue<T>(this T[,,] array, Index3D index) =>
             array[index.X, index.Y, index.Z];
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace ILGPU.Algorithms
         /// <param name="array">The target array.</param>
         /// <param name="value">The value to set.</param>
         /// <param name="index">The element index.</param>
-        public static void SetValue<T>(this T[] array, T value, Index1 index) =>
+        public static void SetValue<T>(this T[] array, T value, Index1D index) =>
             array[index] = value;
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace ILGPU.Algorithms
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional",
             Target = "array")]
-        public static void SetValue<T>(this T[,] array, T value, Index2 index) =>
+        public static void SetValue<T>(this T[,] array, T value, Index2D index) =>
             array[index.X, index.Y] = value;
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace ILGPU.Algorithms
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional",
             Target = "array")]
-        public static void SetValue<T>(this T[,,] array, T value, Index3 index) =>
+        public static void SetValue<T>(this T[,,] array, T value, Index3D index) =>
             array[index.X, index.Y, index.Z] = value;
     }
 }
