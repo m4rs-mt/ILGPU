@@ -20,7 +20,7 @@ namespace ILGPU.Algorithms.Tests.OpenCL
         public CLTestContext<#= optLevel #>()
             : base(
                 OptimizationLevel.<#= optLevel #>,
-                context => context.EnableAlgorithms())
+                builder => builder.EnableAlgorithms())
         { }
     }
 

@@ -20,7 +20,7 @@ namespace ILGPU.Algorithms.Tests.CPU
         public CPUTestContext<#= optLevel #>()
             : base(
                 OptimizationLevel.<#= optLevel #>,
-                context => context.EnableAlgorithms())
+                builder => builder.EnableAlgorithms())
         { }
     }
 
