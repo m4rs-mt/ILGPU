@@ -13,13 +13,14 @@
 <#@ include file="XMathTests.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 using ILGPU.Runtime;
 using ILGPU.Tests;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+
+// disable: max_line_length
 
 <#
     var rcpFunctions = new []
@@ -36,9 +37,9 @@ namespace ILGPU.Algorithms.Tests
     {
 <# foreach (var function in rcpFunctions) { #>
         internal static void <#= function.KernelName #>(
-            Index1 index,
-            ArrayView<<#= function.DataType #>> input,
-            ArrayView<<#= function.DataType #>> output)
+            Index1D index,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> input,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index]);
         }
@@ -71,21 +72,21 @@ namespace ILGPU.Algorithms.Tests
                 inputValues.Add(edgeCases[x]);
 
             var inputArray = inputValues.ToArray();
-            using var input = Accelerator.Allocate<<#= function.DataType #>>(
+            using var input = Accelerator.Allocate1D<<#= function.DataType #>>(
                 inputArray.Length);
-            using var output = Accelerator.Allocate<<#= function.DataType #>>(
+            using var output = Accelerator.Allocate1D<<#= function.DataType #>>(
                 inputArray.Length);
 
-            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            input.CopyFromCPU(inputArray);
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(x => 1 / x).ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
-                VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
+                VerifyWithinPrecision(output.View, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
-                VerifyWithinPrecision(output, expected, <#= function.Precision.OpenCL #>);
+                VerifyWithinPrecision(output.View, expected, <#= function.Precision.OpenCL #>);
             else
-                VerifyWithinPrecision(output, expected, <#= function.Precision.CPU #>);
+                VerifyWithinPrecision(output.View, expected, <#= function.Precision.CPU #>);
         }
 
 <# } #>

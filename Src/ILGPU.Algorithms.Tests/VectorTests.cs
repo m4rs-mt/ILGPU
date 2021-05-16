@@ -49,29 +49,29 @@ namespace ILGPU.Algorithms.Tests
         #region Kernels
 
         internal static void Vector2dAddKernel(
-            Index1 index,
-            ArrayView<Vector2> input,
+            Index1D index,
+            ArrayView1D<Vector2, Stride1D.Dense> input,
             Vector2 operand)
         {
-            var target = input.GetVariableView(index);
+            var target = input.VariableView(index);
             target.AtomicAdd(operand);
         }
 
         internal static void Vector3dAddKernel(
-            Index1 index,
-            ArrayView<Vector3> input,
+            Index1D index,
+            ArrayView1D<Vector3, Stride1D.Dense> input,
             Vector3 operand)
         {
-            var target = input.GetVariableView(index);
+            var target = input.VariableView(index);
             target.AtomicAdd(operand);
         }
 
         internal static void Vector4dAddKernel(
-            Index1 index,
-            ArrayView<Vector4> input,
+            Index1D index,
+            ArrayView1D<Vector4, Stride1D.Dense> input,
             Vector4 operand)
         {
-            var target = input.GetVariableView(index);
+            var target = input.VariableView(index);
             target.AtomicAdd(operand);
         }
 
@@ -84,15 +84,14 @@ namespace ILGPU.Algorithms.Tests
             where TVector : struct, IVector<Vector2>
         {
             using var stream = Accelerator.CreateStream();
-            using var targetBuffer = Accelerator.Allocate<Vector2>(size);
+            using var targetBuffer = Accelerator.Allocate1D<Vector2>(size);
 
             var sequencer = new Vector2DSequencer();
             var sequence = sequencer.ComputeSequence(
                 new Vector2(0, size - 1),
                 new Vector2(1, -1),
                 size);
-            targetBuffer.CopyFrom(stream, sequence, 0, 0, size);
-            stream.Synchronize();
+            targetBuffer.CopyFromCPU(stream, sequence);
             
             Execute(targetBuffer.Length, targetBuffer.View, vector.GetVector());
 
@@ -100,7 +99,7 @@ namespace ILGPU.Algorithms.Tests
             for (int i = 0; i < size; ++i)
                 expected[i] = new Vector2(i, size - 1 - i) + vector.GetVector();
 
-            Verify(targetBuffer, expected);
+            Verify(targetBuffer.View, expected);
         }
 
         [Theory]
@@ -109,7 +108,7 @@ namespace ILGPU.Algorithms.Tests
         public void Vector3dAdd<TVector>(int size, TVector vector)
             where TVector : struct, IVector<Vector3>
         {
-            using var targetBuffer = Accelerator.Allocate<Vector3>(size);
+            using var targetBuffer = Accelerator.Allocate1D<Vector3>(size);
             using var stream = Accelerator.CreateStream();
 
             var sequencer = new Vector3DSequencer();
@@ -117,8 +116,7 @@ namespace ILGPU.Algorithms.Tests
                 new Vector3(0, size - 1, 0),
                 new Vector3(1, -1, 1),
                 size);
-            targetBuffer.CopyFrom(stream, sequence, 0, 0, size);
-            stream.Synchronize();
+            targetBuffer.CopyFromCPU(stream, sequence);
 
             Execute(targetBuffer.Length, targetBuffer.View, vector.GetVector());
 
@@ -126,7 +124,7 @@ namespace ILGPU.Algorithms.Tests
             for (int i = 0; i < size; ++i)
                 expected[i] = new Vector3(i, size - 1 - i, i) + vector.GetVector();
 
-            Verify(targetBuffer, expected);
+            Verify(targetBuffer.View, expected);
         }
 
         [Theory]
@@ -135,7 +133,7 @@ namespace ILGPU.Algorithms.Tests
         public void Vector4dAdd<TVector>(int size, TVector vector)
             where TVector : struct, IVector<Vector4>
         {
-            using var targetBuffer = Accelerator.Allocate<Vector4>(size);
+            using var targetBuffer = Accelerator.Allocate1D<Vector4>(size);
             using var stream = Accelerator.CreateStream();
 
             var sequencer = new Vector4DSequencer();
@@ -143,8 +141,7 @@ namespace ILGPU.Algorithms.Tests
                 new Vector4(0, size - 1, 0, 0),
                 new Vector4(1, -1, 1, 0),
                 size);
-            targetBuffer.CopyFrom(stream, sequence, 0, 0, size);
-            stream.Synchronize();
+            targetBuffer.CopyFromCPU(stream, sequence);
 
             Execute(targetBuffer.Length, targetBuffer.View, vector.GetVector());
 
@@ -152,7 +149,7 @@ namespace ILGPU.Algorithms.Tests
             for (int i = 0; i < size; ++i)
                 expected[i] = new Vector4(i, size - 1 - i, i, 0) + vector.GetVector();
 
-            Verify(targetBuffer, expected);
+            Verify(targetBuffer.View, expected);
         }
 
         [Theory]
@@ -162,9 +159,9 @@ namespace ILGPU.Algorithms.Tests
         public void Index2Vector2Conv(float x, float y)
         {
             Vector2 initVector = new Vector2(x, y);
-            Index2 initIndex = new Index2((int)x, (int)y);
+            Index2D initIndex = new Index2D((int)x, (int)y);
 
-            Index2 index = initVector.ToIndex();
+            Index2D index = initVector.ToIndex();
             Vector2 vector = index.ToVector();
 
             Assert.Equal(initVector, vector);
@@ -178,9 +175,9 @@ namespace ILGPU.Algorithms.Tests
         public void Index3Vector3Conv(float x, float y, float z)
         {
             Vector3 initVector = new Vector3(x, y, z);
-            Index3 initIndex = new Index3((int)x, (int)y, (int)z);
+            Index3D initIndex = new Index3D((int)x, (int)y, (int)z);
 
-            Index3 index = initVector.ToIndex();
+            Index3D index = initVector.ToIndex();
             Vector3 vector = index.ToVector();
 
             Assert.Equal(initVector, vector);

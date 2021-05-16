@@ -255,7 +255,7 @@ namespace ILGPU.Algorithms.Tests
         /// <param name="expected">The expected values.</param>
         /// <param name="decimalPlaces">The acceptable error margin.</param>
         public void VerifyWithinPrecision(
-            MemoryBuffer<Half> buffer,
+            ArrayView<Half> buffer,
             Half[] expected,
             uint decimalPlaces)
         {
@@ -274,7 +274,7 @@ namespace ILGPU.Algorithms.Tests
         /// <param name="expected">The expected values.</param>
         /// <param name="decimalPlaces">The acceptable error margin.</param>
         public void VerifyWithinPrecision(
-            MemoryBuffer<float> buffer,
+            ArrayView<float> buffer,
             float[] expected,
             uint decimalPlaces)
         {
@@ -293,7 +293,7 @@ namespace ILGPU.Algorithms.Tests
         /// <param name="expected">The expected values.</param>
         /// <param name="decimalPlaces">The acceptable error margin.</param>
         public void VerifyWithinPrecision(
-            MemoryBuffer<double> buffer,
+            ArrayView<double> buffer,
             double[] expected,
             uint decimalPlaces)
         {
@@ -312,7 +312,7 @@ namespace ILGPU.Algorithms.Tests
         /// <param name="expected">The expected values.</param>
         /// <param name="relativeError">The acceptable error margin.</param>
         public void VerifyWithinRelativeError(
-            MemoryBuffer<Half> buffer,
+            ArrayView<Half> buffer,
             Half[] expected,
             double relativeError)
         {
@@ -331,7 +331,7 @@ namespace ILGPU.Algorithms.Tests
         /// <param name="expected">The expected values.</param>
         /// <param name="relativeError">The acceptable error margin.</param>
         public void VerifyWithinRelativeError(
-            MemoryBuffer<float> buffer,
+            ArrayView<float> buffer,
             float[] expected,
             double relativeError)
         {
@@ -350,7 +350,7 @@ namespace ILGPU.Algorithms.Tests
         /// <param name="expected">The expected values.</param>
         /// <param name="relativeError">The acceptable error margin.</param>
         public void VerifyWithinRelativeError(
-            MemoryBuffer<double> buffer,
+            ArrayView<double> buffer,
             double[] expected,
             double relativeError)
         {

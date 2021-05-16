@@ -2,7 +2,6 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 
 using ILGPU.Runtime;
 using ILGPU.Tests;
@@ -120,22 +119,22 @@ namespace ILGPU.Algorithms.Tests
             where TTransform : struct, ITransformer<T, T>
         {
             using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate<T>(length);
-            using var reorder = Accelerator.Allocate<Index1>(length);
-            using var output = Accelerator.Allocate<T>(length);
+            using var input = Accelerator.Allocate1D<T>(length);
+            using var reorder = Accelerator.Allocate1D<Index1D>(length);
+            using var output = Accelerator.Allocate1D<T>(length);
 
             var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
             var indexSequencer = new Index1TestSequencer();
             var reorderSeq = indexSequencer.ComputeSequence(length - 1, -1, length);
 
-            input.CopyFrom(stream, inputSeq, 0, 0, length);
-            reorder.CopyFrom(stream, reorderSeq, 0, 0, length);
+            input.CopyFromCPU(stream, inputSeq);
+            reorder.CopyFromCPU(stream, reorderSeq);
 
-            Accelerator.Reorder(stream, input.View, output.View, reorder.View);
+            Accelerator.Reorder<T>(stream, input.View, output.View, reorder.View);
             stream.Synchronize();
 
             Verify(
-                output,
+                output.View,
                 CalcValues<T, T, IdentityTransformer<T>>(
                     inputSeq,
                     reorderSeq,
@@ -156,16 +155,16 @@ namespace ILGPU.Algorithms.Tests
             where TTransform : struct, ITransformer<T, T>
         {
             using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate<T>(length);
-            using var reorder = Accelerator.Allocate<Index1>(length);
-            using var output = Accelerator.Allocate<T>(length);
+            using var input = Accelerator.Allocate1D<T>(length);
+            using var reorder = Accelerator.Allocate1D<Index1D>(length);
+            using var output = Accelerator.Allocate1D<T>(length);
 
             var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
             var indexSequencer = new Index1TestSequencer();
             var reorderSeq = indexSequencer.ComputeSequence(length - 1, -1, length);
 
-            input.CopyFrom(stream, inputSeq, 0, 0, length);
-            reorder.CopyFrom(stream, reorderSeq, 0, 0, length);
+            input.CopyFromCPU(stream, inputSeq);
+            reorder.CopyFromCPU(stream, reorderSeq);
 
             var reTrans = Accelerator.CreateReorderTransformer<T, T, TTransform>();
             reTrans(
@@ -177,7 +176,7 @@ namespace ILGPU.Algorithms.Tests
             stream.Synchronize();
 
             Verify(
-                output,
+                output.View,
                 CalcValues<T, T, TTransform>( inputSeq, reorderSeq, transformer));
         }
 
@@ -195,16 +194,16 @@ namespace ILGPU.Algorithms.Tests
             where TTransform : struct, ITransformer<T, T>
         {
             using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate<T>(length);
-            using var reorder = Accelerator.Allocate<Index1>(length);
-            using var output = Accelerator.Allocate<T>(length);
+            using var input = Accelerator.Allocate1D<T>(length);
+            using var reorder = Accelerator.Allocate1D<Index1D>(length);
+            using var output = Accelerator.Allocate1D<T>(length);
 
             var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
             var indexSequencer = new Index1TestSequencer();
             var reorderSeq = indexSequencer.ComputeSequence(length - 1, -1, length);
 
-            input.CopyFrom(stream, inputSeq, 0, 0, length);
-            reorder.CopyFrom(stream, reorderSeq, 0, 0, length);
+            input.CopyFromCPU(stream, inputSeq);
+            reorder.CopyFromCPU(stream, reorderSeq);
 
             Accelerator.ReorderTransform<T, TTransform>(
                 stream,
@@ -215,7 +214,7 @@ namespace ILGPU.Algorithms.Tests
             stream.Synchronize();
 
             Verify(
-                output,
+                output.View,
                 CalcValues<T, T, TTransform>(inputSeq, reorderSeq, transformer));
         }
 
@@ -239,18 +238,18 @@ namespace ILGPU.Algorithms.Tests
             where TTransform : struct, ITransformer<TSource, TTarget>
         {
             using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate<TSource>(length);
-            using var reorder = Accelerator.Allocate<Index1>(length);
-            using var output = Accelerator.Allocate<TTarget>(length);
+            using var input = Accelerator.Allocate1D<TSource>(length);
+            using var reorder = Accelerator.Allocate1D<Index1D>(length);
+            using var output = Accelerator.Allocate1D<TTarget>(length);
 
             var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
             var indexSequencer = new Index1TestSequencer();
             var reorderSeq = indexSequencer.ComputeSequence(length - 1, -1, length);
 
-            input.CopyFrom(stream, inputSeq, 0, 0, length);
-            reorder.CopyFrom(stream, reorderSeq, 0, 0, length);
+            input.CopyFromCPU(stream, inputSeq);
+            reorder.CopyFromCPU(stream, reorderSeq);
 
-            Accelerator.ReorderTransform(
+            Accelerator.ReorderTransform<TSource, TTarget, TTransform>(
                 stream,
                 input.View,
                 output.View,
@@ -259,7 +258,7 @@ namespace ILGPU.Algorithms.Tests
             stream.Synchronize();
 
             Verify(
-                output,
+                output.View,
                 CalcValues<TSource, TTarget, TTransform>(
                     inputSeq,
                     reorderSeq,
@@ -270,7 +269,7 @@ namespace ILGPU.Algorithms.Tests
 
         private static TTarget[] CalcValues<TSource, TTarget, TTransform>(
             TSource[] input,
-            Index1[] order,
+            Index1D[] order,
             TTransform transform)
             where TSource : unmanaged
             where TTarget : unmanaged

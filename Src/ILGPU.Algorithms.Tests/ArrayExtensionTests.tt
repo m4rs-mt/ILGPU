@@ -2,7 +2,6 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 
 using ILGPU.Tests;
 using Xunit;
@@ -76,7 +75,7 @@ namespace ILGPU.Algorithms.Tests
             where T : unmanaged
         {
             T[] dummy = new T[lenX];
-            Index1 actual = ArrayExtensions.GetExtent(dummy);
+            Index1D actual = ArrayExtensions.GetExtent(dummy);
             Assert.Equal(lenX, actual.X);
         }
 
@@ -86,7 +85,7 @@ namespace ILGPU.Algorithms.Tests
             where T : unmanaged
         {
             T[,] dummy = new T[lenX, lenY];
-            Index2 actual = ArrayExtensions.GetExtent(dummy);
+            Index2D actual = ArrayExtensions.GetExtent(dummy);
             Assert.Equal(lenX, actual.X);
             Assert.Equal(lenY, actual.Y);
         }
@@ -97,7 +96,7 @@ namespace ILGPU.Algorithms.Tests
             where T : unmanaged
         {
             T[,,] dummy = new T[lenX, lenY, lenZ];
-            Index3 actual = ArrayExtensions.GetExtent(dummy);
+            Index3D actual = ArrayExtensions.GetExtent(dummy);
             Assert.Equal(lenX, actual.X);
             Assert.Equal(lenY, actual.Y);
             Assert.Equal(lenZ, actual.Z);
@@ -109,7 +108,7 @@ namespace ILGPU.Algorithms.Tests
             where T : unmanaged
         {
             T[] dummy = new T[lenX];
-            Index1 index = lenX/2;
+            Index1D index = lenX/2;
             ArrayExtensions.SetValue(dummy, value, index);
             var actual = ArrayExtensions.GetValue(dummy, index);
             Assert.Equal(value, actual);
@@ -121,7 +120,7 @@ namespace ILGPU.Algorithms.Tests
             where T : unmanaged
         {
             T[,] dummy = new T[lenX, lenY];
-            Index2 index = new Index2(lenX/2, lenY/3);
+            Index2D index = new Index2D(lenX/2, lenY/3);
             ArrayExtensions.SetValue(dummy, value, index);
             var actual = ArrayExtensions.GetValue(dummy, index);
             Assert.Equal(value, actual);
@@ -133,7 +132,7 @@ namespace ILGPU.Algorithms.Tests
             where T : unmanaged
         {
             T[,,] dummy = new T[lenX, lenY, lenZ];
-            Index3 index = new Index3(lenX/2, lenY/3, lenZ/4);
+            Index3D index = new Index3D(lenX/2, lenY/3, lenZ/4);
             ArrayExtensions.SetValue(dummy, value, index);
             var actual = ArrayExtensions.GetValue(dummy, index);
             Assert.Equal(value, actual);

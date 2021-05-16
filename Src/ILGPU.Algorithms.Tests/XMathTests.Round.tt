@@ -13,11 +13,12 @@
 <#@ include file="XMathTests.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 using ILGPU.Runtime;
 using ILGPU.Tests;
 using System;
 using Xunit;
+
+// disable: max_line_length
 
 <#
     var roundFunctions = new []
@@ -164,9 +165,9 @@ namespace ILGPU.Algorithms.Tests
 #if !NETFRAMEWORK // If MidpointRounding mode not supported
 <#      } #>
         internal static void <#= function.KernelName #>(
-            Index1 index,
-            ArrayView<<#= function.DataType #>> input,
-            ArrayView<<#= function.DataType #>> output)
+            Index1D index,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> input,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> output)
         {
             output[index] = XMath.<#= function.MethodName #>(input[index]
 <#      if (function.Digits.HasValue) { #>
@@ -203,12 +204,12 @@ namespace ILGPU.Algorithms.Tests
                 #>
 #endif
             };
-            using var input = Accelerator.Allocate<<#= function.DataType #>>(1);
-            using var output = Accelerator.Allocate<<#= function.DataType #>>(1);
+            using var input = Accelerator.Allocate1D<<#= function.DataType #>>(1);
+            using var output = Accelerator.Allocate1D<<#= function.DataType #>>(1);
 
-            input.CopyFrom(new[] { value }, 0, 0, 1);
+            input.View.CopyFromCPU(ref value, 1L);
             Execute(input.Length, input.View, output.View);
-            Verify(output, expected);
+            Verify(output.View, expected);
         }
 
 <# if (restrictedRoundingMode) { #>

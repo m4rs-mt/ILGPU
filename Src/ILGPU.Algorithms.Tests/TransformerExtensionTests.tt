@@ -2,7 +2,6 @@
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 
 using ILGPU.Runtime;
 using ILGPU.Tests;
@@ -58,12 +57,12 @@ namespace ILGPU.Algorithms.Tests
         public void TransformToNegativeTest(int length)
         {
             using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate<int>(length);
-            using var output = Accelerator.Allocate<int>(length);
+            using var input = Accelerator.Allocate1D<int>(length);
+            using var output = Accelerator.Allocate1D<int>(length);
             
             var sequencer = new Int32TestSequencer();
             var sequence = sequencer.ComputeSequence(42, 0, length);
-            input.CopyFrom(stream, sequence, 0, 0, length);
+            input.CopyFromCPU(stream, sequence);
 
             Accelerator.Transform<int, IntToNegIntTransformer>(
                 stream, 
@@ -72,7 +71,7 @@ namespace ILGPU.Algorithms.Tests
                 new IntToNegIntTransformer());
 
             stream.Synchronize();
-            Verify(output, sequence.Select(x => -x).ToArray());
+            Verify(output.View, sequence.Select(x => -x).ToArray());
         }
 
         [Theory]
@@ -80,22 +79,23 @@ namespace ILGPU.Algorithms.Tests
         public void TransformIntToLongTest(int length)
         {
             using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate<int>(length);
-            using var output = Accelerator.Allocate<long>(length);
+            using var input = Accelerator.Allocate1D<int>(length);
+            using var output = Accelerator.Allocate1D<long>(length);
 
             var sequencer = new Int32TestSequencer();
             var sequence = sequencer.ComputeSequence(42, 0, length);
-            input.CopyFrom(stream, sequence, 0, 0, length);
+            input.CopyFromCPU(stream, sequence);
 
             var transformer =
                 Accelerator.CreateTransformer<int, long, IntToLongTransformer>();
-            transformer(stream,
+            transformer(
+                stream,
                 input.View,
                 output.View,
                 new IntToLongTransformer());
 
             stream.Synchronize();
-            Verify(output, sequence.Select(x => (long)x).ToArray());
+            Verify(output.View, sequence.Select(x => (long)x).ToArray());
         }
 
         [Theory]
@@ -103,12 +103,12 @@ namespace ILGPU.Algorithms.Tests
         public void TransformUInt32ToBitCompIntTest(int length)
         {
             using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate<uint>(length);
-            using var output = Accelerator.Allocate<int>(length);
+            using var input = Accelerator.Allocate1D<uint>(length);
+            using var output = Accelerator.Allocate1D<int>(length);
 
             var sequencer = new UInt32TestSequencer();
             var sequence = sequencer.ComputeSequence(0, 1, length);
-            input.CopyFrom(stream, sequence, 0, 0, length);
+            input.CopyFromCPU(stream, sequence);
 
             Accelerator.Transform(
                 stream,
@@ -117,7 +117,7 @@ namespace ILGPU.Algorithms.Tests
                 new UInt32ToBitCompInt32Transformer());
 
             stream.Synchronize();
-            Verify(output, sequence.Select(x => (int)~x).ToArray());
+            Verify(output.View, sequence.Select(x => (int)~x).ToArray());
         }
 
         [Theory]
@@ -127,20 +127,24 @@ namespace ILGPU.Algorithms.Tests
             TTransformer transformer,
             int length)
             where T : unmanaged
-            where TTransformer : struct, ITransformer<Index1, T>
+            where TTransformer : struct, ITransformer<Index1D, T>
         {
             using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate<Index1>(length);
-            using var output = Accelerator.Allocate<T>(length);
+            using var input = Accelerator.Allocate1D<Index1D>(length);
+            using var output = Accelerator.Allocate1D<T>(length);
 
             var sequencer = new Index1TestSequencer();
             var sequence = sequencer.ComputeSequence(0, 1, length);
-            input.CopyFrom(stream, sequence, 0, 0, length);
+            input.CopyFromCPU(stream, sequence);
 
-            Accelerator.Transform(stream, input.View, output.View, transformer);
+            Accelerator.Transform<Index1D, T, TTransformer>(
+                stream,
+                input.View,
+                output.View,
+                transformer);
 
             stream.Synchronize();
-            Verify(output, sequence.Select(x => transformer.Transform(x)).ToArray());
+            Verify(output.View, sequence.Select(x => transformer.Transform(x)).ToArray());
         }
     }
 }

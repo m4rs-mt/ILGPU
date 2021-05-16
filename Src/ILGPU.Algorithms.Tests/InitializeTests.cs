@@ -102,13 +102,13 @@ namespace ILGPU.Algorithms.Tests
         public void InitializeSimple<T, TArraySize>(T value, int size)
             where T : unmanaged
         {
-            using var buffer = Accelerator.Allocate<T>(size);
+            using var buffer = Accelerator.Allocate1D<T>(size);
             using var stream = Accelerator.CreateStream();
             Accelerator.Initialize(stream, buffer.View, value);
 
             stream.Synchronize();
             var expected = Enumerable.Repeat(value, size).ToArray();
-            Verify(buffer, expected);
+            Verify(buffer.View, expected);
         }
     }
 }

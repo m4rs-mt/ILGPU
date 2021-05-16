@@ -13,7 +13,6 @@
 <#@ include file="XMathTests.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-<#@ output extension=".cs" #>
 using ILGPU.Runtime;
 using ILGPU.Tests;
 using System;
@@ -78,10 +77,10 @@ namespace ILGPU.Algorithms.Tests
             };
 
         internal static void <#= function.KernelName #>(
-            Index1 index,
+            Index1D index,
             <#= function.DataType #> divisor,
-            ArrayView<<#= function.DataType #>> input,
-            ArrayView<<#= function.DataType #>> output)
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> input,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index], divisor);
         }
@@ -113,25 +112,25 @@ namespace ILGPU.Algorithms.Tests
 #endif
                 .ToArray();
             using var input =
-                Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+                Accelerator.Allocate1D<<#= function.DataType #>>(inputArray.Length);
             using var output =
-                Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+                Accelerator.Allocate1D<<#= function.DataType #>>(inputArray.Length);
 
-            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            input.CopyFromCPU(inputArray);
             Execute(input.Length, divisor, input.View, output.View);
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.OpenCL #>);
             else
                 VerifyWithinRelativeError(
-                    output,
+                    output.View,
                     expected,
                     <#= function.RelativeError.CPU #>);
         }

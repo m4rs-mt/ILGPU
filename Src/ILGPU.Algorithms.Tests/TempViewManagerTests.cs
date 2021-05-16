@@ -1,7 +1,6 @@
 ﻿using ILGPU.Tests;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -42,8 +41,8 @@ namespace ILGPU.Algorithms.Tests
             where T : unmanaged
         {
             var length = Interop.ComputeRelativeSizeOf<int, T>(1) * 2;
-            using var buffer = Accelerator.Allocate<int>(length);
-            var viewManager = new TempViewManager(buffer, nameof(buffer));
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            var viewManager = new TempViewManager(buffer.View, nameof(buffer));
 
             viewManager.Allocate<T>(1);
             viewManager.Allocate<T>(1);
@@ -65,8 +64,8 @@ namespace ILGPU.Algorithms.Tests
                 return;
 
             var length = Interop.ComputeRelativeSizeOf<int, T>(1) + 1;
-            using var buffer = Accelerator.Allocate<int>(length);
-            var viewManager = new TempViewManager(buffer, nameof(buffer));
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            var viewManager = new TempViewManager(buffer.View, nameof(buffer));
 
             viewManager.Allocate<byte>(1);
             Assert.Throws<InvalidOperationException>(() =>
