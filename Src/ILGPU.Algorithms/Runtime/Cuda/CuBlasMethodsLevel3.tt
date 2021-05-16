@@ -57,12 +57,12 @@ namespace ILGPU.Runtime.Cuda
                     n,
                     k,
                     <#= paramGetter("alpha") #>,
-                    a.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(a),
                     lda,
-                    b.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(b),
                     ldb,
                     <#= paramGetter("beta") #>,
-                    c.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(c),
                     ldc));
         }
 
@@ -97,12 +97,12 @@ namespace ILGPU.Runtime.Cuda
                     m,
                     n,
                     <#= paramGetter("alpha") #>,
-                    a.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(a),
                     lda,
-                    b.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(b),
                     ldb,
                     <#= paramGetter("beta") #>,
-                    c.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(c),
                     ldc));
         }
 
@@ -135,10 +135,10 @@ namespace ILGPU.Runtime.Cuda
                     m,
                     n,
                     <#= paramGetter("alpha") #>,
-                    a.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(a),
                     lda,
                     <#= paramGetter("beta") #>,
-                    c.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(c),
                     ldc));
         }
 
@@ -174,12 +174,12 @@ namespace ILGPU.Runtime.Cuda
                     n,
                     k,
                     <#= paramGetter("alpha") #>,
-                    a.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(a),
                     lda,
-                    b.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(b),
                     ldb,
                     <#= paramGetter("beta") #>,
-                    c.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(c),
                     ldc));
         }
 
@@ -217,11 +217,11 @@ namespace ILGPU.Runtime.Cuda
                     m,
                     n,
                     <#= paramGetter("alpha") #>,
-                    a.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(a),
                     lda,
-                    b.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(b),
                     ldb,
-                    c.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(c),
                     ldc));
         }
 
@@ -257,9 +257,9 @@ namespace ILGPU.Runtime.Cuda
                     m,
                     n,
                     <#= paramGetter("alpha") #>,
-                    a.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(a),
                     lda,
-                    b.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(b),
                     ldb));
         }
 
@@ -294,12 +294,12 @@ namespace ILGPU.Runtime.Cuda
                     m,
                     n,
                     <#= paramGetter("alpha") #>,
-                    a.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(a),
                     lda,
                     <#= paramGetter("beta") #>,
-                    b.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(b),
                     ldb,
-                    c.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(c),
                     ldc));
         }
 
@@ -327,11 +327,11 @@ namespace ILGPU.Runtime.Cuda
                     mode,
                     m,
                     n,
-                    a.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(a),
                     lda,
-                    x.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(x),
                     incx,
-                    c.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(c),
                     ldc));
         }
 

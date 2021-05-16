@@ -361,7 +361,7 @@ public static IEnumerable<(string, T, string, string, string, Func<string, strin
 
         // Emit the view operand type
         yield return (entry, func, type, elemType,
-            $"ArrayView<{type}>", name => name + ".LoadEffectiveAddress()",
+            $"ArrayView<{type}>", name => $"LoadCuBlasAddress({name})",
             "EnsurePointerMode(CuBlasPointerMode.Device)");
     }
 }

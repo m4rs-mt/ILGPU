@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+#pragma warning disable CA1707 // Identifiers should not contain underscores
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 using System;
@@ -70,4 +71,5 @@ namespace ILGPU.Runtime.Cuda
     }
 }
 
+#pragma warning restore CA1707 // Identifiers should not contain underscores
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

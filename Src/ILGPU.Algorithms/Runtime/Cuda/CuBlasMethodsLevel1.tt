@@ -44,7 +44,7 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     input.IntLength,
-                    input.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(input),
                     1,
                     &result));
             return result;
@@ -63,9 +63,9 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     input.IntLength,
-                    input.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(input),
                     1,
-                    output.LoadEffectiveAddress()));
+                    LoadCuBlasAddress(output)));
         }
 
 <# } #>
@@ -87,7 +87,7 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     input.IntLength,
-                    input.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(input),
                     1,
                     Unsafe.AsPointer(ref result)));
             return result;
@@ -106,9 +106,9 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     input.IntLength,
-                    input.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(input),
                     1,
-                    output.LoadEffectiveAddress()));
+                    LoadCuBlasAddress(output)));
         }
 
 <# } #>
@@ -134,9 +134,9 @@ namespace ILGPU.Runtime.Cuda
                     Handle,
                     x.IntLength,
                     <#= paramGetter("alpha") #>,
-                    x.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(x),
                     1,
-                    y.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(y),
                     1));
         }
 
@@ -162,9 +162,9 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    x.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(x),
                     1,
-                    y.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(y),
                     1,
                     Unsafe.AsPointer(ref result)));
             return result;
@@ -188,11 +188,11 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    x.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(x),
                     1,
-                    y.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(y),
                     1,
-                    output.LoadEffectiveAddress()));
+                    LoadCuBlasAddress(output)));
         }
 
 <# } #>
@@ -218,9 +218,9 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    x.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(x),
                     1,
-                    y.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(y),
                     1,
                     <#= paramGetter("c") #>,
                     <#= paramGetter("s") #>));
@@ -268,10 +268,10 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    a.LoadEffectiveAddress(),
-                    b.LoadEffectiveAddress(),
-                    c.LoadEffectiveAddress(),
-                    s.LoadEffectiveAddress()));
+                    LoadCuBlasAddress(a),
+                    LoadCuBlasAddress(b),
+                    LoadCuBlasAddress(c),
+                    LoadCuBlasAddress(s)));
         }
 
 <# } #>
@@ -296,9 +296,9 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    x.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(x),
                     1,
-                    y.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(y),
                     1,
                     <#= paramGetter("param") #>));
         }
@@ -323,7 +323,7 @@ namespace ILGPU.Runtime.Cuda
                     Handle,
                     x.IntLength,
                     <#= paramGetter("alpha") #>,
-                    x.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(x),
                     1));
         }
 
@@ -346,9 +346,9 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    x.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(x),
                     1,
-                    y.LoadEffectiveAddress(),
+                    LoadCuBlasAddress(y),
                     1));
         }
 

@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Runtime.InteropServices;
 
 namespace ILGPU.Runtime.Cuda.API
 {
@@ -51,23 +50,23 @@ namespace ILGPU.Runtime.Cuda.API
             {
                 var version = (CuBlasAPIVersion)versions.GetValue(i);
                 var api = CreateInternal(version);
-                if (api != null)
+                if (api is null)
+                    continue;
+
+                try
                 {
-                    try
+                    var status = api.Create(out var handle);
+                    if (status == CuBlasStatus.CUBLAS_STATUS_SUCCESS)
                     {
-                        var status = api.Create(out var handle);
-                        if (status == CuBlasStatus.CUBLAS_STATUS_SUCCESS)
-                        {
-                            api.Free(handle);
-                            return api;
-                        }
+                        api.Free(handle);
+                        return api;
                     }
-                    catch (Exception ex) when (
-                        ex is DllNotFoundException ||
-                        ex is EntryPointNotFoundException)
-                    {
-                        firstException ??= ex;
-                    }
+                }
+                catch (Exception ex) when (
+                    ex is DllNotFoundException ||
+                    ex is EntryPointNotFoundException)
+                {
+                    firstException ??= ex;
                 }
             }
 

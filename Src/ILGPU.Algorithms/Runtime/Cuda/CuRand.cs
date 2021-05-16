@@ -128,15 +128,21 @@ namespace ILGPU.Runtime.Cuda
             /// </summary>
             public ArrayView<int> Data { get; }
 
-            /// <inheritdoc cref="IGridStrideKernelBody.Execute(LongIndex1)"/>
+            /// <inheritdoc cref="IGridStrideKernelBody.Execute(LongIndex1D)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly void Execute(LongIndex1 linearIndex)
+            public readonly void Execute(LongIndex1D linearIndex)
             {
                 if (linearIndex >= Data.Length)
                     return;
 
                 Data[linearIndex] = ToInt((uint)Data[linearIndex]);
             }
+
+            /// <summary>
+            /// Performs no operation.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly void Finish() { }
         }
 
         /// <summary>
@@ -154,15 +160,21 @@ namespace ILGPU.Runtime.Cuda
             /// </summary>
             public ArrayView<long> Data { get; }
 
-            /// <inheritdoc cref="IGridStrideKernelBody.Execute(LongIndex1)"/>
+            /// <inheritdoc cref="IGridStrideKernelBody.Execute(LongIndex1D)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly void Execute(LongIndex1 linearIndex)
+            public readonly void Execute(LongIndex1D linearIndex)
             {
                 if (linearIndex >= Data.Length)
                     return;
 
                 Data[linearIndex] = ToLong((ulong)Data[linearIndex]);
             }
+
+            /// <summary>
+            /// Performs no operation.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly void Finish() { }
         }
 
         #endregion
@@ -291,7 +303,7 @@ namespace ILGPU.Runtime.Cuda
             CuRandException.ThrowIfFailed(
                 API.GenerateUInt(
                     GeneratorPtr,
-                    new IntPtr(view.LoadEffectiveAddress()),
+                    view.LoadEffectiveAddressAsPtr(),
                     new IntPtr(view.Length)));
         }
 
@@ -309,7 +321,7 @@ namespace ILGPU.Runtime.Cuda
             CuRandException.ThrowIfFailed(
                 API.GenerateULong(
                     GeneratorPtr,
-                    new IntPtr(view.LoadEffectiveAddress()),
+                    view.LoadEffectiveAddressAsPtr(),
                     new IntPtr(view.Length)));
         }
 
@@ -352,7 +364,7 @@ namespace ILGPU.Runtime.Cuda
             CuRandException.ThrowIfFailed(
                 API.GenerateUniformFloat(
                     GeneratorPtr,
-                    new IntPtr(view.LoadEffectiveAddress()),
+                    view.LoadEffectiveAddressAsPtr(),
                     new IntPtr(view.Length)));
         }
 
@@ -365,7 +377,7 @@ namespace ILGPU.Runtime.Cuda
             CuRandException.ThrowIfFailed(
                 API.GenerateUniformDouble(
                     GeneratorPtr,
-                    new IntPtr(view.LoadEffectiveAddress()),
+                    view.LoadEffectiveAddressAsPtr(),
                     new IntPtr(view.Length)));
         }
 
@@ -386,7 +398,7 @@ namespace ILGPU.Runtime.Cuda
             CuRandException.ThrowIfFailed(
                 API.GenerateNormalFloat(
                     GeneratorPtr,
-                    new IntPtr(view.LoadEffectiveAddress()),
+                    view.LoadEffectiveAddressAsPtr(),
                     new IntPtr(view.Length),
                     mean,
                     stddev));
@@ -409,7 +421,7 @@ namespace ILGPU.Runtime.Cuda
             CuRandException.ThrowIfFailed(
                 API.GenerateNormalDouble(
                     GeneratorPtr,
-                    new IntPtr(view.LoadEffectiveAddress()),
+                    view.LoadEffectiveAddressAsPtr(),
                     new IntPtr(view.Length),
                     mean,
                     stddev));
@@ -664,6 +676,8 @@ namespace ILGPU.Runtime.Cuda
             if (disposing)
                 CuRandException.ThrowIfFailed(statusCode);
             GeneratorPtr = IntPtr.Zero;
+
+            base.Dispose(disposing);
         }
 
         #endregion

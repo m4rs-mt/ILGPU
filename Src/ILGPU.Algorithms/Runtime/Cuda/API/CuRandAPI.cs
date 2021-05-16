@@ -26,17 +26,10 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         /// <param name="version">The cuRand version to use.</param>
         /// <returns>The created API wrapper.</returns>
-        public static CuRandAPI Create(CuRandAPIVersion? version)
-        {
-            if (version.HasValue)
-            {
-                return CreateInternal(version.Value);
-            }
-            else
-            {
-                return CreateLatest();
-            }
-        }
+        public static CuRandAPI Create(CuRandAPIVersion? version) =>
+            version.HasValue
+            ? CreateInternal(version.Value)
+            : CreateLatest();
 
         /// <summary>
         /// Creates a new API wrapper using the latest installed version.
