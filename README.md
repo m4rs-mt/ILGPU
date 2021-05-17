@@ -11,10 +11,6 @@ ILGPU.Algorithms requires Visual Studio 2019 or higher.
 
 Make sure to init/update the ILGPU git submodule using `git submodule update --init` before building the algorithms library.
 
-Note: T4 (*.tt) text templates must be converted manually depending on the Visual Studio version.
-To transform them, right-click a text template and select Run Custom Tool. Alternatively, you can open and save any text template in Visual Studio or choose
-"Build->Transform all T4 Templates".
-
 # License information
 
 ILGPU.Algorithms is licensed under the University of Illinois/NCSA Open Source License.
