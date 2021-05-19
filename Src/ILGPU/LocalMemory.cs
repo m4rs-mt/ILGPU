@@ -24,36 +24,34 @@ namespace ILGPU
     public static partial class LocalMemory
     {
         /// <summary>
-        /// A readonly reference to the <see cref="AllocateZero{T}(int)"/> method.
+        /// A readonly reference to the <see cref="Clear{T}(ArrayView{T})"/> method.
         /// </summary>
-        private static readonly MethodInfo AllocateZeroMethod =
+        private static readonly MethodInfo ClearMethod =
             typeof(LocalMemory).GetMethod(
-                nameof(AllocateZero),
+                nameof(Clear),
                 BindingFlags.NonPublic | BindingFlags.Static);
 
         /// <summary>
-        /// Creates a typed <see cref="AllocateZero{T}(int)"/> method instance to invoke.
+        /// Creates a typed <see cref="Clear{T}(ArrayView{T})"/> method instance to
+        /// invoke.
         /// </summary>
         /// <param name="elementType">The array element type.</param>
         /// <returns>The typed method instance.</returns>
-        internal static MethodInfo GetAllocateZeroMethod(Type elementType) =>
-            AllocateZeroMethod.MakeGenericMethod(elementType);
+        internal static MethodInfo GetClearMethod(Type elementType) =>
+            ClearMethod.MakeGenericMethod(elementType);
 
         /// <summary>
-        /// Allocates a chunk of local memory with the specified number of elements.
+        /// Clears a chunk of local memory with the specified number of elements.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="extent">The extent (number of elements to allocate).</param>
+        /// <param name="view">The extent (number of elements to allocate).</param>
         /// <returns>An allocated region of local memory.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ArrayView<T> AllocateZero<T>(int extent)
+        private static void Clear<T>(ArrayView<T> view)
             where T : unmanaged
         {
-            Trace.Assert(extent >= 0, "Invalid extent");
-            var view = Allocate<T>(extent);
-            for (long i = 0; i < extent; ++i)
+            for (int i = 0, e = view.IntLength; i < e; ++i)
                 view[i] = default;
-            return view;
         }
 
         /// <summary>
