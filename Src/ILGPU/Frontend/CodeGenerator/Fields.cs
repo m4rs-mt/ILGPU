@@ -37,7 +37,12 @@ namespace ILGPU.Frontend
                 fieldIndex = structureType.RemapFieldIndex(fieldIndex);
             }
 
-            return new FieldSpan(fieldIndex, typeInfo.NumFlattendedFields);
+            // Compute the actual span based on the intrinsic mapping of .Net arrays
+            // to ILGPU structure values
+            int span = typeInfo.NumFlattendedFields;
+            if (typeInfo.ManagedType.IsArray)
+                span += typeInfo.ManagedType.GetArrayRank();
+            return new FieldSpan(fieldIndex, span);
         }
 
         /// <summary>
