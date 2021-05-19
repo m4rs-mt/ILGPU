@@ -349,7 +349,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The array dimension &apos;{0}&apos; is multidimensional. Currently only liner arrays are supported.
+        ///   Looks up a localized string similar to The array dimension &apos;{0}&apos; is out of the supported array dimensions..
         /// </summary>
         internal static string NotSupportedArrayDimension {
             get {
