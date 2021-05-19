@@ -279,8 +279,8 @@ namespace ILGPU.IR.Types
         /// <returns>The created array type.</returns>
         public TypeNode CreateArrayType(TypeNode elementType, int dimensions)
         {
-            // Check for not supported array dimensions
-            if (dimensions != 1)
+            // Map arbitrary array dimensions
+            if (dimensions < 1)
             {
                 throw new NotSupportedException(
                     string.Format(
@@ -288,8 +288,15 @@ namespace ILGPU.IR.Types
                         dimensions.ToString()));
             }
 
-            // Create a 1D view type for now
-            return CreateViewType(elementType, MemoryAddressSpace.Generic);
+            // We need one element to store the base view type and an extent in each
+            // dimension
+            var builder = CreateStructureType(1 + dimensions);
+            // Attach the data view
+            builder.Add(CreateViewType(elementType, MemoryAddressSpace.Generic));
+            // Add each dimension
+            for (int i = 0; i < dimensions; ++i)
+                builder.Add(GetPrimitiveType(BasicValueType.Int32));
+            return builder.Seal();
         }
 
         /// <summary>
