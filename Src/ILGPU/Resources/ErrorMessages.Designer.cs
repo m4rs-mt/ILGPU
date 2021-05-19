@@ -466,6 +466,42 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Not supported inline PTX format &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedInlinePTXFormat {
+            get {
+                return ResourceManager.GetString("NotSupportedInlinePTXFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported inline PTX format argument reference &apos;{1}&apos; in &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedInlinePTXFormatArgumentRef {
+            get {
+                return ResourceManager.GetString("NotSupportedInlinePTXFormatArgumentRef", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported inline PTX format argument type &apos;{1} in &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedInlinePTXFormatArgumentType {
+            get {
+                return ResourceManager.GetString("NotSupportedInlinePTXFormatArgumentType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported inline PTX format &apos;{0}; must be a constant string reference.
+        /// </summary>
+        internal static string NotSupportedInlinePTXFormatConstant {
+            get {
+                return ResourceManager.GetString("NotSupportedInlinePTXFormatConstant", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported instruction &apos;{0}&apos; in method &apos;{1}&apos;..
         /// </summary>
         internal static string NotSupportedInstruction {
@@ -543,6 +579,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedKernelParameterType {
             get {
                 return ResourceManager.GetString("NotSupportedKernelParameterType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The language intrinsic &apos;{0}&apos; is not supported.
+        /// </summary>
+        internal static string NotSupportedLanguageIntrinsic {
+            get {
+                return ResourceManager.GetString("NotSupportedLanguageIntrinsic", resourceCulture);
             }
         }
         

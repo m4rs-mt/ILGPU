@@ -326,6 +326,13 @@ namespace ILGPU.IR
         /// A <see cref="Values.HandleValue"/> managed handle value.
         /// </summary>
         Handle,
+
+        // Language
+
+        /// <summary>
+        /// A <see cref="Values.LanguageEmitValue"/> value.
+        /// </summary>
+        LanguageEmit,
     }
 
     /// <summary>
@@ -357,7 +364,7 @@ namespace ILGPU.IR
         /// <summary>
         /// The number of different value kinds.
         /// </summary>
-        public const int NumValueKinds = (int)ValueKind.Handle + 1;
+        public const int NumValueKinds = (int)ValueKind.LanguageEmit + 1;
 
         /// <summary>
         /// Gets the value kind of the value type specified.

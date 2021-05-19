@@ -12,8 +12,10 @@
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.PTX
@@ -1075,5 +1077,68 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugAssertOperation)"/>
         public void GenerateCode(DebugAssertOperation debug) =>
             Debug.Assert(false, "Invalid debug node -> should have been removed");
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(LanguageEmitValue)"/>
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "string.Replace(string, string, StringComparison) not " +
+            "available in net47")]
+        public void GenerateCode(LanguageEmitValue emit)
+        {
+            // Ignore non-PTX instructions.
+            if (emit.LanguageKind != LanguageKind.PTX)
+                return;
+
+            // Load argument registers.
+            // If there is an output, allocate a new register to store the value.
+            var registers = InlineList<PrimitiveRegister>.Create(emit.Nodes.Length);
+
+            for (var argumentIdx = 0; argumentIdx < emit.Count; argumentIdx++)
+            {
+                var argument = emit.Nodes[argumentIdx];
+                registers.Add(
+                    argumentIdx == 0 && emit.HasOutput
+                    ? AllocateRegister(ResolveRegisterDescription(
+                        (argument.Type as PointerType).ElementType))
+                    : LoadPrimitive(argument));
+            }
+
+            // Emit the PTX assembly string
+            Builder.Append('\t');
+
+            using (var emitter = new CommandEmitter(Builder, string.Empty, string.Empty))
+            {
+                foreach (var expression in emit.Expressions)
+                {
+                    if (expression.HasArgument)
+                    {
+                        emitter.AppendArgument(registers[expression.Argument]);
+                    }
+                    else
+                    {
+                        emitter.AppendRawString(expression.String);
+                    }
+                }
+            }
+
+            // If there is an output register, write the value to the address.
+            // NB: Assumes that the output argument must be at index 0.
+            if (emit.HasOutput)
+            {
+                const int outputArgumentIdx = 0;
+                var outputArgument = emit.Nodes[outputArgumentIdx];
+                var address = LoadHardware(outputArgument);
+                var targetType = outputArgument.Type as PointerType;
+                var newValue = registers[outputArgumentIdx];
+
+                EmitVectorizedCommand(
+                    outputArgument,
+                    targetType.ElementType.Alignment,
+                    PTXInstructions.StoreOperation,
+                    new StoreEmitter(targetType, address),
+                    newValue);
+            }
+        }
     }
 }

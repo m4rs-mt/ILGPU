@@ -32,16 +32,33 @@ namespace ILGPU.Backends.PTX
             private readonly StringBuilder stringBuilder;
             private bool argMode;
             private int argumentCount;
+            private readonly string argumentSeparator;
+            private readonly string commandTerminator;
 
             /// <summary>
             /// Constructs a new command emitter using the given target.
             /// </summary>
             /// <param name="target">The target builder.</param>
             public CommandEmitter(StringBuilder target)
+                : this(target, argSeparator: ", ", terminator: ";")
+            { }
+
+            /// <summary>
+            /// Constructs a new command emitter using the given target.
+            /// </summary>
+            /// <param name="target">The target builder.</param>
+            /// <param name="argSeparator">The string used to separate arguments.</param>
+            /// <param name="terminator">The string used to end the command.</param>
+            public CommandEmitter(
+                StringBuilder target,
+                string argSeparator,
+                string terminator)
             {
                 stringBuilder = target;
                 argumentCount = 0;
                 argMode = false;
+                argumentSeparator = argSeparator;
+                commandTerminator = terminator;
             }
 
             #endregion
@@ -123,7 +140,7 @@ namespace ILGPU.Backends.PTX
                     argMode = true;
                 }
                 if (argumentCount > 0)
-                    stringBuilder.Append(", ");
+                    stringBuilder.Append(argumentSeparator);
                 ++argumentCount;
             }
 
@@ -379,6 +396,13 @@ namespace ILGPU.Backends.PTX
                 stringBuilder.Append(valueReference);
             }
 
+            /// <summary>
+            /// Appends the given string without modification.
+            /// </summary>
+            /// <param name="value">The string value.</param>
+            public void AppendRawString(string value) =>
+                stringBuilder.Append(value);
+
             #endregion
 
             #region IDisposable
@@ -386,7 +410,7 @@ namespace ILGPU.Backends.PTX
             /// <summary cref="IDisposable.Dispose"/>
             public void Dispose()
             {
-                stringBuilder.Append(';');
+                stringBuilder.Append(commandTerminator);
                 stringBuilder.AppendLine();
             }
 

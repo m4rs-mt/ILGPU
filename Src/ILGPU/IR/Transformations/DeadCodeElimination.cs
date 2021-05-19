@@ -56,6 +56,9 @@ namespace ILGPU.IR.Transformations
             // Mark all calls as non dead
             blocks.ForEachValue<MethodCall>(call => toProcess.Push(call));
 
+            // Mark all inline language statements as non dead
+            blocks.ForEachValue<LanguageEmitValue>(emit => toProcess.Push(emit));
+
             // Mark all nodes as live
             var liveValues = new HashSet<Value>();
             while (toProcess.Count > 0)

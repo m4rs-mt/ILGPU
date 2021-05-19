@@ -41,6 +41,7 @@ namespace ILGPU.Frontend.Intrinsic
         View,
         Warp,
         Utility,
+        Language,
     }
 
     /// <summary>
@@ -132,6 +133,9 @@ namespace ILGPU.Frontend.Intrinsic
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleUtilityOperation(
                     ref context, attribute as UtilityIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleLanguageOperation(
+                    ref context, attribute as LanguageIntrinsicAttribute),
         };
 
         #endregion

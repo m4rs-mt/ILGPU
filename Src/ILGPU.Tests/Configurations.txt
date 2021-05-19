@@ -42,3 +42,4 @@ BasicSwitches: Debug, Release, O2
 BasicPhis: Debug, Release, O2
 
 FormatStringTests: Debug, Release, O2
+LanguageTests: Debug, Release, O2

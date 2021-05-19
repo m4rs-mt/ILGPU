@@ -262,6 +262,7 @@ Src/ILGPU/Memory.cs
 Src/ILGPU/ReductionOperations.cs
 Src/ILGPU/Runtime/ArrayViewExtensions.Generated.cs
 Src/ILGPU/Runtime/ArrayViews.cs
+Src/ILGPU/Runtime/Cuda/CudaAsm.Generated.cs
 Src/ILGPU/Runtime/KernelLoaders.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs

@@ -85,6 +85,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
         </None>
+        <None Include="Runtime\Cuda\CudaAsm.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
+        </None>
         <None Include="Static\ArithmeticEnums.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -197,6 +202,11 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>ValueTuples.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Runtime\Cuda\CudaAsm.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
         </Compile>
         <Compile Update="Runtime\MemoryBuffers.cs">
           <DesignTime>True</DesignTime>
@@ -311,6 +321,10 @@
         <None Update="IR\Types\ValueTuples.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>ValueTuples.cs</LastGenOutput>
+        </None>
+        <None Update="Runtime\Cuda\CudaAsm.Generated.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>CudaAsm.Generated.cs</LastGenOutput>
         </None>
         <None Update="Runtime\ExchangeBufferExtensions.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
