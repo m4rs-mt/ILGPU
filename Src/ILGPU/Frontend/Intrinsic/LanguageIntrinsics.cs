@@ -15,6 +15,7 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
+using System.Text.RegularExpressions;
 using static ILGPU.Util.FormatString;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
     ILGPU.Util.FormatString.FormatExpression>;
@@ -47,6 +48,13 @@ namespace ILGPU.Frontend.Intrinsic
 
     partial class Intrinsics
     {
+        /// <summary>
+        /// Regex for parsing PTX assembly instructions.
+        /// </summary>
+        private static readonly Regex PTXExpressionRegex =
+            // Escape sequence, %n arguments, singular % detection.
+            new Regex("(%%|%\\d+|%)");
+
         /// <summary>
         /// Handles language operations.
         /// </summary>
@@ -165,59 +173,33 @@ namespace ILGPU.Frontend.Intrinsic
             string ptxExpression,
             out FormatArray expressions)
         {
-            expressions = FormatArray.Empty;
-
             // Search for '%n' format arguments
-            var result = ImmutableArray.CreateBuilder<FormatExpression>(10);
-            var expression = ptxExpression.AsSpan();
+            var parts = PTXExpressionRegex.Split(ptxExpression);
+            var result = ImmutableArray.CreateBuilder<FormatExpression>(parts.Length);
 
-            while (expression.Length > 0)
+            foreach (var part in parts)
             {
-                // Search for next %
-                int foundIndex = expression.IndexOf('%');
-                if (foundIndex < 0)
+                if (part == "%%")
                 {
-                    result.Add(new FormatExpression(expression));
-                    break;
+                    result.Add(new FormatExpression("%"));
                 }
-
-                var escaped =
-                    foundIndex + 1 < expression.Length &&
-                    expression[foundIndex] == expression[foundIndex + 1];
-                if (escaped)
+                else if (part.StartsWith("%"))
                 {
-                    result.Add(new FormatExpression(expression.Slice(0, foundIndex + 1)));
-                    expression = expression.Slice(foundIndex + 2);
+                    // Check whether the argument can be resolved to an integer.
+                    if (int.TryParse(part.Substring(1), out int argument))
+                    {
+                        result.Add(new FormatExpression(argument));
+                    }
+                    else
+                    {
+                        // Singular % or remaining text was not a number.
+                        expressions = FormatArray.Empty;
+                        return false;
+                    }
                 }
-                else
+                else if (part.Length > 0)
                 {
-                    // Append text before new argument
-                    if (foundIndex > 0)
-                    {
-                        result.Add(new FormatExpression(
-                            expression.Slice(0, foundIndex)));
-                    }
-                    expression = expression.Slice(foundIndex + 1);
-
-                    // Retrieve all the numeric text
-                    if (expression.Length == 0)
-                        return false;
-
-                    int endIndex = 0;
-                    while (endIndex < expression.Length &&
-                        char.IsDigit(expression[endIndex]))
-                    {
-                        endIndex++;
-                    }
-
-                    // Check whether the argument can be resolved to an integer
-                    var numericExpr = expression.Slice(0, endIndex);
-                    if (!int.TryParse(numericExpr.ToString(), out int argument))
-                        return false;
-
-                    // Append current argument
-                    result.Add(new FormatExpression(argument));
-                    expression = expression.Slice(endIndex);
+                    result.Add(new FormatExpression(part));
                 }
             }
 
