@@ -43,13 +43,34 @@ namespace ILGPU.IR.Construction
                 return CreatePrimitiveValue(location, instance);
             if (managedType.IsEnum)
                 return CreateEnumValue(location, instance);
-            if (managedType.IsClass || managedType.IsArray)
+            // Arrays requires a specific treatment
+            if (managedType.IsArray)
+            {
+                return CreateArrayValue(
+                    location,
+                    instance as Array,
+                    managedType.GetElementType(),
+                    force: false);
+            }
+            // Check whether this type is an immutable array which might require special
+            if (managedType.IsImmutableArray(out var arrayElementType))
+            {
+                return CreateImmutableArrayValue(
+                    location,
+                    instance,
+                    managedType,
+                    arrayElementType);
+            }
+
+            // Reject class types for now
+            if (managedType.IsClass)
             {
                 throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedClassType,
                     managedType);
             }
 
+            // Get type information from the parent type context
             var typeInfo = TypeContext.GetTypeInfo(managedType);
             var type = CreateType(managedType);
             if (!(type is StructureType structureType))
@@ -104,6 +125,109 @@ namespace ILGPU.IR.Construction
                 }
             }
             return instanceBuilder.Seal();
+        }
+
+        /// <summary>
+        /// Create an intrinsic .Net array from a managed array instance.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="array">The managed array instance.</param>
+        /// <param name="managedElementType">
+        /// The managed element type of the array.
+        /// </param>
+        /// <param name="force">
+        /// True, if you want to ignore safety checks for (potentially) modifiable array
+        /// values.
+        /// </param>
+        /// <returns>The created array value.</returns>
+        private unsafe ValueReference CreateArrayValue(
+            Location location,
+            Array array,
+            Type managedElementType,
+            bool force)
+        {
+            // Validate support for arrays
+            location.AssertNotNull(array);
+            if (!force &&
+                BaseContext.Properties.ArrayMode != ArrayMode.InlineMutableStaticArrays)
+            {
+                throw location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedLoadFromStaticArray,
+                    array.ToString());
+            }
+
+            // Prepare element type and check of empty arrays
+            var elementType = CreateType(managedElementType);
+            if (array.Length < 1)
+                return CreateEmptyArray(location, elementType, array.Rank);
+
+            // Convert array dimensions
+            var arrayLengths = ValueList.Create(array.Rank);
+            for (int i = 0, e = array.Rank; i < e; ++i)
+                arrayLengths.Add(CreatePrimitiveValue(location, array.GetLength(i)));
+
+            // Create a new array value
+            var arrayInstance = CreateNewArray(location, elementType, ref arrayLengths);
+            var view = CreateGetViewFromArray(location, arrayInstance);
+
+            // Convert and store each array element
+            var gcHandle  = GCHandle.Alloc(array, GCHandleType.Pinned);
+            try
+            {
+                int elementSize = Interop.SizeOf(managedElementType);
+                byte* baseAddr = (byte*)gcHandle.AddrOfPinnedObject().ToPointer();
+                for (int i = 0; i < array.Length; ++i)
+                {
+                    // Get element from managed array
+                    var source = baseAddr + elementSize * i;
+                    var instance = Marshal.PtrToStructure(
+                        new IntPtr(source),
+                        managedElementType);
+                    var irValue = CreateValue(location, instance, managedElementType);
+
+                    // Store element
+                    CreateStore(
+                        location,
+                        CreateLoadElementAddress(
+                            location,
+                            view,
+                            CreatePrimitiveValue(location, i)),
+                        irValue);
+                }
+            }
+            finally
+            {
+                gcHandle.Free();
+            }
+
+            return arrayInstance;
+        }
+
+        /// <summary>
+        /// Creates an instance of a managed <see cref="ImmutableArray{T}"/> value.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="instance">The instance value.</param>
+        /// <param name="managedType">The managed instance type.</param>
+        /// <param name="managedElementType">
+        /// The managed element type of the array.
+        /// </param>
+        /// <returns>The created value array.</returns>
+        private ValueReference CreateImmutableArrayValue(
+            Location location,
+            object instance,
+            Type managedType,
+            Type managedElementType)
+        {
+            // Get the managed type information and extract the array instance
+            var typeInfo = TypeContext.GetTypeInfo(managedType);
+            var arrayInstance = typeInfo.Fields[0].GetValue(instance);
+
+            return CreateArrayValue(
+                location,
+                arrayInstance as Array,
+                managedElementType,
+                force: true);
         }
 
         /// <summary>
