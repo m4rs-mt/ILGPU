@@ -229,6 +229,7 @@ namespace ILGPU.IR.Transformations
                     // We are not allowed to remove field or array stores to tuples
                     // with different field types
                     return false;
+                case NewView _:
                 case SubViewValue _:
                 case PointerCast _:
                 case LoadElementAddress _:
