@@ -25,15 +25,27 @@ namespace ILGPU.Frontend
         /// <param name="elementType">The element type.</param>
         private void MakeNewArray(Type elementType)
         {
-            // Redirect call to the LocalMemory class to allocate an intialized array
-            var allocateZeroMethod = LocalMemory.GetAllocateZeroMethod(elementType);
-
             // Setup length argument
             var arguments = InlineList<ValueReference>.Create(
-                Builder.CreateConvertToInt64(
+                Builder.CreateConvertToInt32(
                     Location,
                     Block.PopInt(Location, ConvertFlags.None)));
-            CreateCall(allocateZeroMethod, ref arguments);
+            var array = Builder.CreateNewArray(
+                Location,
+                Builder.CreateType(elementType, MemoryAddressSpace.Generic),
+                ref arguments);
+
+            // Clear array data
+            var callArguments = InlineList<ValueReference>.Create(
+                Builder.CreateGetViewFromArray(
+                    Location,
+                    array));
+            CreateCall(
+                LocalMemory.GetClearMethod(elementType),
+                ref callArguments);
+
+            // Push array instance
+            Block.Push(array);
         }
 
         /// <summary>
@@ -45,14 +57,16 @@ namespace ILGPU.Frontend
         private Value CreateLoadArrayElementAddress(Type elementType, out TypeNode type)
         {
             var index = Block.PopInt(Location, ConvertFlags.None);
-            var arrayView = Block.Pop();
+            var array = Block.Pop();
 
             type = Builder.CreateType(elementType);
-            var castedView = Builder.CreateViewCast(Location, arrayView, type);
-            return Builder.CreateLoadElementAddress(
+
+            var indices = InlineList<ValueReference>.Create(index);
+            var address = Builder.CreateGetArrayElementAddress(
                 Location,
-                castedView,
-                index);
+                array,
+                ref indices);
+            return address;
         }
 
         /// <summary>
@@ -94,10 +108,10 @@ namespace ILGPU.Frontend
         /// </summary>
         private void MakeLoadArrayLength()
         {
-            var view = Block.Pop();
-            var length = Builder.CreateGetViewLength(
+            var array = Block.Pop();
+            var length = Builder.CreateGetArrayLength(
                 Location,
-                view);
+                array);
             Block.Push(length);
         }
     }
