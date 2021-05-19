@@ -12,6 +12,7 @@
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
@@ -88,6 +89,25 @@ namespace ILGPU.Util
             }
             var args = type.GetGenericArguments();
             nestedType = args[0];
+            return true;
+        }
+
+        /// <summary>
+        /// Checks whether the given type is an immutable array.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <param name="elementType">The element type (if any).</param>
+        /// <returns>True, if the given type is an immutable array.</returns>
+        public static bool IsImmutableArray(this Type type, out Type elementType)
+        {
+            elementType = null;
+            if (!type.IsGenericType ||
+                type.GetGenericTypeDefinition() != typeof(ImmutableArray<>))
+            {
+                return false;
+            }
+
+            elementType = type.GetGenericArguments()[0];
             return true;
         }
 
