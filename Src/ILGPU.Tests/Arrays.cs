@@ -1,10 +1,14 @@
-﻿using System;
+﻿using ILGPU.Runtime;
+using System;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
 using static ILGPU.Tests.EnumValues;
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 #pragma warning disable xUnit1026 // Theory methods should use all of their parameters
 
 namespace ILGPU.Tests
@@ -364,7 +368,302 @@ namespace ILGPU.Tests
             var expected = new T[] { value };
             Verify(buffer.View, expected);
         }
+
+        /// <summary>
+        /// Test structure for the <see cref="ArrayInStructure{T, TArraySize}
+        /// (T, TArraySize)"/> test.
+        /// </summary>
+        struct ArrayInStruct<T>
+            where T : unmanaged
+        {
+            public ArrayInStruct(T[] data)
+            {
+                Data = data;
+            }
+
+            public T[] Data { get; }
+
+            public readonly ref T this[int index] => ref Data[index];
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static T GetValue<T>(ArrayInStruct<T> data, int index)
+            where T : unmanaged =>
+            data[index];
+
+        internal static void ArrayInStructureKernel<T, TArraySize>(
+            Index1D index,
+            ArrayView<T> data,
+            T c,
+            int localIndex)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            TArraySize arraySize = default;
+            var array = new T[arraySize.Length];
+            var nestedStruct = new ArrayInStruct<T>(array);
+            for (int i = 0; i < arraySize.Length; ++i)
+                nestedStruct[i] = c;
+            data[index] = GetValue(nestedStruct, localIndex);
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySimpleTestData))]
+        [KernelMethod(nameof(ArrayInStructureKernel))]
+        public void ArrayInStructure<T, TArraySize>(T value, TArraySize _)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            using var buffer = Accelerator.Allocate1D<T>(1);
+            Execute<Index1D, T, TArraySize>(
+                buffer.IntExtent,
+                buffer.AsContiguous(),
+                value,
+                0);
+
+            var expected = new T[] { value };
+            Verify(buffer.View, expected);
+        }
+
+        // -----------------------------------------------------------------------
+        // MultiDim Arrays
+        // -----------------------------------------------------------------------
+
+        public static TheoryData<object, object> MultiDimArraySimpleTestData =>
+            new TheoryData<object, object>
+        {
+            { sbyte.MinValue, default(Length1) },
+            { byte.MaxValue, default(Length1) },
+            { short.MinValue, default(Length1) },
+            { ushort.MaxValue, default(Length1) },
+            { int.MinValue, default(Length1) },
+            { uint.MaxValue, default(Length1) },
+            { long.MinValue, default(Length1) },
+            { ulong.MaxValue, default(Length1) },
+            { float.Epsilon, default(Length1) },
+            { double.Epsilon, default(Length1) },
+            { default(BasicEnum1), default(Length1) },
+            { default(EmptyStruct), default(Length1) },
+            { default(TestStruct), default(Length1) },
+            { default(TestStruct<TestStruct<byte>>), default(Length1) },
+            { default(
+                TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>),
+              default(Length1) },
+
+            { byte.MaxValue, default(Length2) },
+            { short.MinValue, default(Length2) },
+            { int.MinValue, default(Length2) },
+            { long.MinValue, default(Length2) },
+            { default(BasicEnum1), default(Length2) },
+            { default(EmptyStruct), default(Length2) },
+            { default(TestStruct), default(Length2) },
+            { default(TestStruct<TestStruct<byte>>), default(Length2) },
+        };
+
+        internal static void MultiDimArraySimpleKernel<T, TArraySize>(
+            Index1D index,
+            ArrayView<T> dataX,
+            ArrayView<T> dataY,
+            ArrayView<T> dataZ,
+            ArrayView<T> dataW,
+            T c,
+            int localIndex)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            TArraySize arraySize = default;
+            var array = new T[
+                arraySize.Length,
+                arraySize.Length,
+                arraySize.Length,
+                arraySize.Length];
+            for (int i = 0; i < array.GetLength(2); ++i)
+                array[i, i, i, i] = c;
+
+            dataX[index] = array[0, 0, 0, localIndex];
+            dataY[index] = array[0, 0, localIndex, 0];
+            dataZ[index] = array[0, localIndex, 0, 0];
+            dataW[index] = array[localIndex, 0, 0, 0];
+        }
+
+        [Theory]
+        [MemberData(nameof(MultiDimArraySimpleTestData))]
+        [KernelMethod(nameof(MultiDimArraySimpleKernel))]
+        public void MultiDimArraySimple<T, TArraySize>(T value, TArraySize arraySize)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            using var buffer1 = Accelerator.Allocate1D<T>(1);
+            using var buffer2 = Accelerator.Allocate1D<T>(1);
+            using var buffer3 = Accelerator.Allocate1D<T>(1);
+            using var buffer4 = Accelerator.Allocate1D<T>(1);
+
+            for (int i = 0; i < arraySize.Length; ++i)
+            {
+                Execute<Index1D, T, TArraySize>(
+                    buffer1.IntExtent,
+                    buffer1.AsContiguous(),
+                    buffer2.AsContiguous(),
+                    buffer3.AsContiguous(),
+                    buffer4.AsContiguous(),
+                    value,
+                    0);
+
+                var expected = new T[] { value };
+                Verify(buffer1.View, expected);
+                Verify(buffer2.View, expected);
+                Verify(buffer3.View, expected);
+                Verify(buffer4.View, expected);
+            }
+        }
+
+        internal static void MultiDimArrayLengthKernel<T, TArraySize>(
+            Index1D index,
+            ArrayView<int> data,
+            ArrayView<long> longData)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            TArraySize arraySize = default;
+            var array = new T[
+                arraySize.Length,
+                arraySize.Length,
+                arraySize.Length,
+                arraySize.Length];
+
+            data[index] = array.Length;
+            data[index + 1] = array.GetLength(3);
+
+            longData[index] = array.LongLength;
+            longData[index + 1] = array.GetLongLength(3);
+        }
+
+        [Theory]
+        [MemberData(nameof(MultiDimArraySimpleTestData))]
+        [KernelMethod(nameof(MultiDimArrayLengthKernel))]
+        public void MultiDimArrayLength<T, TArraySize>(T _, TArraySize size)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            using var buffer = Accelerator.Allocate1D<int>(2);
+            using var buffer2 = Accelerator.Allocate1D<long>(2);
+            Execute<Index1D, T, TArraySize>(
+                1,
+                buffer.AsContiguous(),
+                buffer2.AsContiguous());
+
+            var expected = new int[]
+            {
+                size.Length * size.Length * size.Length * size.Length,
+                size.Length
+            };
+            Verify(buffer.View, expected);
+            Verify(buffer2.View, expected.Select(t => (long)t).ToArray());
+        }
+
+        internal static void MultiDimArrayBoundsKernel<T, TArraySize>(
+            Index1D index,
+            ArrayView<int> data)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            TArraySize arraySize = default;
+            var array = new T[
+                arraySize.Length,
+                arraySize.Length,
+                arraySize.Length,
+                arraySize.Length];
+            data[index] = array.GetLowerBound(3);
+            data[index + 1] = array.GetUpperBound(3);
+        }
+
+        [Theory]
+        [MemberData(nameof(MultiDimArraySimpleTestData))]
+        [KernelMethod(nameof(ArrayBoundsKernel))]
+        public void MultiDimArrayBounds<T, TArraySize>(T _, TArraySize size)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            using var buffer = Accelerator.Allocate1D<int>(2);
+            Execute<Index1D, T, TArraySize>(1, buffer.AsContiguous());
+
+            var expected = new int[] { 0, size.Length - 1 };
+            Verify(buffer.View, expected);
+        }
+
+        // -----------------------------------------------------------------------
+        // Array constants
+        // -----------------------------------------------------------------------
+
+        private static readonly int[,,,] StaticData = new int[,,,]
+        {
+            { { { 0, 1, 2, 3 } } },
+            { { { 3, 4, 5, 6 } } },
+            { { { 7, 8, 9, 10 } } },
+        };
+
+        private static readonly ImmutableArray<int> StaticImmutableData =
+            ImmutableArray.Create(
+                1, 2, 3, 4);
+
+        internal static void MultiDimStaticArrayKernel(
+            Index1D index,
+            ArrayView<int> data)
+        {
+            data[index] = StaticData[0, 0, 0, index + 3];
+            data[index + 1] = StaticData[1, 0, 0, index + 3];
+            data[index + 2] = StaticData[2, 0, 0, index + 3];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(MultiDimStaticArrayKernel))]
+        public void MultiDimStaticArray()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(3);
+            Execute(1, buffer.AsContiguous());
+
+            var expected = new int[] { 3, 6, 10 };
+            Verify(buffer.View, expected);
+        }
+
+        internal static void StaticImmutableArrayKernel(
+            Index1D index,
+            ArrayView<int> data)
+        {
+            data[index] = StaticImmutableData[index + 3];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StaticImmutableArrayKernel))]
+        public void StaticImmutableArray()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(1);
+            Execute(1, buffer.AsContiguous());
+
+            var expected = new int[] { 4 };
+            Verify(buffer.View, expected);
+        }
+
+        internal static void StaticInlineArrayKernel(
+            Index1D index,
+            ArrayView<int> data)
+        {
+            var staticInlineArray = new int[] { 1, 2, 3, 4 };
+            data[index] = staticInlineArray[index + 3];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StaticInlineArrayKernel))]
+        public void StaticInlineArray()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(1);
+            Execute(1, buffer.AsContiguous());
+
+            var expected = new int[] { 4 };
+            Verify(buffer.View, expected);
+        }
     }
 }
 
+#pragma warning restore CA1814 // Prefer jagged arrays over multidimensional
 #pragma warning restore xUnit1026 // Theory methods should use all of their parameters
