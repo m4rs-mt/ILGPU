@@ -24,7 +24,12 @@ namespace ILGPU.Tests
             Func<Context, Accelerator> createAccelerator)
         {
             Context = Context.Create(builder =>
-                prepareContext(builder.Assertions().Verify().Optimize(level)));
+                prepareContext(
+                    builder
+                    .Assertions()
+                    .Arrays(ArrayMode.InlineMutableStaticArrays)
+                    .Verify()
+                    .Optimize(level)));
             Accelerator = createAccelerator(Context);
         }
 
