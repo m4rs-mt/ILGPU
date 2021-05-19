@@ -109,15 +109,8 @@ namespace ILGPU.Frontend.Intrinsic
             // Valid all argument types
             foreach (var arg in arguments)
             {
-                if (arg.BasicValueType == BasicValueType.Int16 ||
-                    arg.BasicValueType == BasicValueType.Int32 ||
-                    arg.BasicValueType == BasicValueType.Int64 ||
-                    arg.BasicValueType == BasicValueType.Float16 ||
-                    arg.BasicValueType == BasicValueType.Float32 ||
-                    arg.BasicValueType == BasicValueType.Float64)
-                {
+                if (arg.BasicValueType != BasicValueType.None)
                     continue;
-                }
                 throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedInlinePTXFormatArgumentType,
                     ptxExpression,
