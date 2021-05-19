@@ -221,6 +221,7 @@ namespace ILGPU.IR.Values
             VoidType voidType)
             : base(initializer, voidType)
         {
+#if DEBUG
             foreach (var argument in arguments)
                 this.Assert(argument.BasicValueType != BasicValueType.None);
             foreach (var expression in expressions)
@@ -229,6 +230,7 @@ namespace ILGPU.IR.Values
                     !expression.HasArgument ||
                     expression.Argument >= 0 && expression.Argument < arguments.Count);
             }
+#endif
 
             Expressions = expressions;
             Seal(ref arguments);
@@ -317,7 +319,7 @@ namespace ILGPU.IR.Values
 
         #endregion
 
-        #region Methods
+        #region Object
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "write";

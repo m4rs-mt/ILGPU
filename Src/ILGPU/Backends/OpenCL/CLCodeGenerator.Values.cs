@@ -706,5 +706,10 @@ namespace ILGPU.Backends.OpenCL
         public void GenerateCode(DebugAssertOperation debug) =>
             // Invalid debug node -> should have been removed
             debug.Assert(false);
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(LanguageEmitValue)"/>
+        public void GenerateCode(LanguageEmitValue value) =>
+            // Ignore PTX instructions.
+            value.Assert(value.LanguageKind == LanguageKind.PTX);
     }
 }

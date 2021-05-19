@@ -353,5 +353,13 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="branch">The node.</param>
         void Visit(SwitchBranch branch);
+
+        // Language operations
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
+        void Visit(LanguageEmitValue value);
     }
 }

@@ -354,4 +354,19 @@
   <data name="NotSupportedVoidType" xml:space="preserve">
     <value>Void type is not supported</value>
   </data>
+  <data name="NotSupportedLanguageIntrinsic" xml:space="preserve">
+    <value>The language intrinsic '{0}' is not supported</value>
+  </data>
+  <data name="NotSupportedInlinePTXFormat" xml:space="preserve">
+    <value>Not supported inline PTX format '{0}'</value>
+  </data>
+  <data name="NotSupportedInlinePTXFormatArgumentRef" xml:space="preserve">
+    <value>Not supported inline PTX format argument reference '{1}' in '{0}'</value>
+  </data>
+  <data name="NotSupportedInlinePTXFormatArgumentType" xml:space="preserve">
+    <value>Not supported inline PTX format argument type '{1} in '{0}'</value>
+  </data>
+  <data name="NotSupportedInlinePTXFormatConstant" xml:space="preserve">
+    <value>Not supported inline PTX format '{0}; must be a constant string reference</value>
+  </data>
 </root>

@@ -330,6 +330,12 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="branch">The node.</param>
         void GenerateCode(SwitchBranch branch);
+
+        /// <summary>
+        /// Generates code for the given value.
+        /// </summary>
+        /// <param name="emit">The node.</param>
+        void GenerateCode(LanguageEmitValue emit);
     }
 
     /// <summary>
@@ -573,6 +579,10 @@ namespace ILGPU.Backends
             /// <summary cref="IValueVisitor.Visit(SwitchBranch)"/>
             public void Visit(SwitchBranch branch) =>
                 CodeGenerator.GenerateCode(branch);
+
+            /// <summary cref="IValueVisitor.Visit(LanguageEmitValue)"/>
+            public void Visit(LanguageEmitValue value) =>
+                CodeGenerator.GenerateCode(value);
         }
 
         /// <summary>
