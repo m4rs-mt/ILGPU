@@ -161,5 +161,105 @@ namespace ILGPU.Tests
             Execute(Length, buffer.View);
             Verify(buffer.View, expected);
         }
+
+        internal static void PredicateEmitKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> buffer)
+        {
+            if (CudaAsm.IsSupported)
+            {
+                var isEven = index.X % 2 == 0;
+                CudaAsm.Emit(
+                    "{\n\t" +
+                    "   @%1 mov.u32 %0, %%laneid;\n\t" +
+                    "   @!%1 mov.u32 %0, 42;\n\t" +
+                    "}",
+                    out int lane,
+                    isEven);
+                buffer[index] = lane;
+            }
+            else
+            {
+                buffer[index] = index;
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(PredicateEmitKernel))]
+        public void PredicateEmit()
+        {
+            const int Length = 64;
+            var expected = Enumerable.Range(0, Length)
+                .Select(x =>
+                {
+                    if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                    {
+                        if (x % 2 == 0)
+                        {
+                            return x % Accelerator.WarpSize;
+                        }
+                        else
+                        {
+                            return 42;
+                        }
+                    }
+                    else
+                    {
+                        return x;
+                    }
+                })
+                .ToArray();
+
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(Length, buffer.View);
+            Verify(buffer.View, expected);
+        }
+
+        internal static void Int8EmitKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> buffer)
+        {
+            if (CudaAsm.IsSupported)
+            {
+                sbyte truncated = (sbyte)index.X;
+                CudaAsm.Emit(
+                    "{\n\t" +
+                    "   .reg .b32 t1;\n\t" +
+                    "   cvt.s32.s8 t1, %1;\n\t" +
+                    "   add.s32 %0, t1, 1;\n\t" +
+                    "}",
+                    out int result,
+                    truncated);
+                buffer[index] = result;
+            }
+            else
+            {
+                buffer[index] = index;
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(Int8EmitKernel))]
+        public void Int8Emit()
+        {
+            const int Length = 512;
+            var expected = Enumerable.Range(0, Length)
+                .Select(x =>
+                {
+                    if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                    {
+                        return 1 + (sbyte)x;
+                    }
+                    else
+                    {
+                        return x;
+                    }
+                })
+                .ToArray();
+
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(Length, buffer.View);
+            Verify(buffer.View, expected);
+        }
     }
 }
