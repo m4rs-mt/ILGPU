@@ -13,7 +13,6 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
-using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -165,6 +164,8 @@ namespace ILGPU.Frontend.Intrinsic
             if (IsIntrinsicArrayType(method.DeclaringType))
             {
                 result = HandleArrays(ref context);
+                // All array operations will be handled by the ILGPU intrinsic handlers
+                return true;
             }
             else if (FunctionHandlers.TryGetValue(
                 method.DeclaringType,
@@ -175,14 +176,6 @@ namespace ILGPU.Frontend.Intrinsic
 
             return result.IsValid;
         }
-
-        /// <summary>
-        /// Determines whether the given type is an intrinsic array type.
-        /// </summary>
-        /// <param name="type">The type to test.</param>
-        /// <returns>True, if the given type is an intrinsic array type.</returns>
-        internal static bool IsIntrinsicArrayType(Type type) =>
-            type == typeof(Array) || type.IsArray;
 
         #endregion
 
@@ -266,6 +259,9 @@ namespace ILGPU.Frontend.Intrinsic
         /// <param name="context">The current invocation context.</param>
         private static unsafe void InitializeArray(ref InvocationContext context)
         {
+            var builder = context.Builder;
+            var location = context.Location;
+
             // Resolve the array data
             var handle = context[1].ResolveAs<HandleValue>();
             var value = handle.GetHandle<FieldInfo>().GetValue(null);
@@ -277,24 +273,19 @@ namespace ILGPU.Frontend.Intrinsic
 
             // Convert unsafe data into target chunks and emit
             // appropriate store instructions
-            Value target = context[0];
-            var arrayType = target.Type as ViewType;
+            Value target = builder.CreateGetViewFromArray(location, context[0]);
+            var arrayType = target.Type.As<ViewType>(location);
             var elementType = arrayType.ElementType.LoadManagedType();
 
             // Convert values to IR values
-            var builder = context.Builder;
-            var location = context.Location;
-            int elementSize = Marshal.SizeOf(Activator.CreateInstance(elementType));
+            int elementSize = Interop.SizeOf(elementType);
             for (int i = 0, e = valueSize / elementSize; i < e; ++i)
             {
                 byte* address = data + elementSize * i;
                 var instance = Marshal.PtrToStructure(new IntPtr(address), elementType);
 
                 // Convert element to IR value
-                var irValue = builder.CreateValue(
-                    location,
-                    instance,
-                    elementType);
+                var irValue = builder.CreateValue(location, instance, elementType);
                 var targetIndex = builder.CreatePrimitiveValue(location, i);
 
                 // Store element
@@ -306,180 +297,6 @@ namespace ILGPU.Frontend.Intrinsic
                         targetIndex),
                     irValue);
             }
-        }
-
-        /// <summary>
-        /// Represents a reference to the <see cref="VerifyLinearArray(int)"/> method.
-        /// </summary>
-        private static readonly MethodInfo VerifyLinearArrayMethod =
-            typeof(Intrinsics).GetMethod(
-                nameof(VerifyLinearArray),
-                BindingFlags.Static | BindingFlags.NonPublic);
-
-        /// <summary>
-        /// Verifies the given array dimension to be linear (1D).
-        /// </summary>
-        /// <param name="dimension">The array dimension.</param>
-        private static void VerifyLinearArray(int dimension) =>
-            Trace.Assert(dimension < 1, "Invalid array dimension");
-
-        /// <summary>
-        /// Handles array operations.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value HandleArrays(ref InvocationContext context)
-        {
-            var builder = context.Builder;
-            var location = context.Location;
-            return context.Method.Name switch
-            {
-                "Get" => CreateGetArrayElement(ref context),
-                "Set" => CreateSetArrayElement(ref context),
-                "get_Length" => builder.CreateGetViewLength(
-                    location,
-                    context[0]),
-                "get_LongLength" => builder.CreateGetViewLongLength(
-                    location,
-                    context[0]),
-                nameof(Array.GetLowerBound) => CreateGetArrayLowerBound(ref context),
-                nameof(Array.GetUpperBound) => CreateGetArrayUpperBound(ref context),
-                nameof(Array.GetLength) => CreateGetArrayLength(ref context),
-                nameof(Array.GetLongLength) => CreateGetArrayLongLength(ref context),
-                nameof(Array.Empty) => CreateEmptyArray(ref context),
-                _ => throw location.GetNotSupportedException(
-                    ErrorMessages.NotSupportedIntrinsic,
-                    context.Method.Name),
-            };
-        }
-
-        /// <summary>
-        /// Creates a new array instance.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value CreateEmptyArray(ref InvocationContext context)
-        {
-            var location = context.Location;
-            var builder = context.Builder;
-
-            var elementType = builder.CreateType(context.GetMethodGenericArguments()[0]);
-            return builder.CreateNewView(
-                location,
-                builder.CreateNull(
-                    location,
-                    builder.CreatePointerType(elementType, MemoryAddressSpace.Local)),
-                builder.CreatePrimitiveValue(location, 0));
-        }
-
-        /// <summary>
-        /// Gets an array element.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value CreateGetArrayElement(ref InvocationContext context)
-        {
-            var location = context.Location;
-            var builder = context.Builder;
-
-            return builder.CreateLoad(
-                location,
-                builder.CreateLoadElementAddress(
-                    location,
-                    context[0],
-                    context[1]));
-        }
-
-        /// <summary>
-        /// Sets an array element.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value CreateSetArrayElement(ref InvocationContext context)
-        {
-            var location = context.Location;
-            var builder = context.Builder;
-
-            return builder.CreateStore(
-                location,
-                builder.CreateLoadElementAddress(
-                    location,
-                    context[0],
-                    context[1]),
-                context[2]);
-        }
-
-        /// <summary>
-        /// Creates a assertion that verifies the array dimension.
-        /// </summary>
-        private static void CreateLinearArrayAssertion(
-            ref InvocationContext context,
-            int index)
-        {
-            // Skip all further code generation passes
-            if (!context.Properties.EnableAssertions)
-                return;
-
-            // Declare and call the verification method
-            var verifyMethod = context.DeclareMethod(VerifyLinearArrayMethod);
-            var verifyArguments = InlineList<ValueReference>.Create(context[index]);
-            context.Builder.CreateCall(
-                context.Location,
-                verifyMethod,
-                ref verifyArguments);
-        }
-
-        /// <summary>
-        /// Gets an array lower bound.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value CreateGetArrayLowerBound(ref InvocationContext context)
-        {
-            CreateLinearArrayAssertion(ref context, /* index = */ 1);
-            return context.Builder.CreatePrimitiveValue(
-                context.Location,
-                0);
-        }
-
-        /// <summary>
-        /// Gets an array upper bound.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value CreateGetArrayUpperBound(ref InvocationContext context) =>
-            context.Builder.CreateArithmetic(
-                context.Location,
-                CreateGetArrayLength(ref context),
-                context.Builder.CreatePrimitiveValue(
-                    context.Location,
-                    1),
-                BinaryArithmeticKind.Sub);
-
-        /// <summary>
-        /// Gets an array length.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value CreateGetArrayLength(ref InvocationContext context)
-        {
-            CreateLinearArrayAssertion(ref context, /* index = */ 1);
-            return context.Builder.CreateGetViewLength(
-                context.Location,
-                context[0]);
-        }
-
-        /// <summary>
-        /// Gets an array long length.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value CreateGetArrayLongLength(ref InvocationContext context)
-        {
-            CreateLinearArrayAssertion(ref context, /* index = */ 1);
-            return context.Builder.CreateGetViewLongLength(
-                context.Location,
-                context[0]);
         }
 
         #endregion
