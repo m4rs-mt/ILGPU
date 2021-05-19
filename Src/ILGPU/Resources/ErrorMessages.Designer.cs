@@ -592,6 +592,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cannot load from the static array &apos;{0} since it is mutable..
+        /// </summary>
+        internal static string NotSupportedLoadFromStaticArray {
+            get {
+                return ResourceManager.GetString("NotSupportedLoadFromStaticArray", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot load from the static field &apos;{0}&apos; since it is not read only.
         /// </summary>
         internal static string NotSupportedLoadOfStaticField {
@@ -804,6 +813,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedWriteFormatConstant {
             get {
                 return ResourceManager.GetString("NotSupportedWriteFormatConstant", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The array dimension &apos;{0}&apos; must be a compile-time constant and within the range of the array..
+        /// </summary>
+        internal static string NotSupportNonConstArrayDimension {
+            get {
+                return ResourceManager.GetString("NotSupportNonConstArrayDimension", resourceCulture);
             }
         }
         

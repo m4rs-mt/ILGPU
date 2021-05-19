@@ -369,4 +369,10 @@
   <data name="NotSupportedInlinePTXFormatConstant" xml:space="preserve">
     <value>Not supported inline PTX format '{0}; must be a constant string reference</value>
   </data>
+  <data name="NotSupportedLoadFromStaticArray" xml:space="preserve">
+    <value>Cannot load from the static array '{0} since it is mutable.</value>
+  </data>
+  <data name="NotSupportNonConstArrayDimension" xml:space="preserve">
+    <value>The array dimension '{0}' must be a compile-time constant and within the range of the array.</value>
+  </data>
 </root>
