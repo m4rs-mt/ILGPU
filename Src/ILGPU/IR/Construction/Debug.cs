@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR.Construction
 {
@@ -22,13 +23,28 @@ namespace ILGPU.IR.Construction
         /// <param name="condition">The debug assert condition.</param>
         /// <param name="message">The assertion message.</param>
         /// <returns>A node that represents the debug assertion.</returns>
+        [SuppressMessage(
+            "Maintainability",
+            "CA1508:Avoid dead conditional code",
+            Justification = "Check is required")]
         public ValueReference CreateDebugAssert(
             Location location,
             Value condition,
-            Value message) =>
-            Append(new DebugAssertOperation(
+            Value message)
+        {
+            location.Assert(message is StringValue);
+
+            // Try to simplify debug assertions
+            if (condition is PrimitiveValue primitiveValue &&
+                primitiveValue.RawValue != 0L)
+            {
+                return CreateUndefined();
+            }
+
+            return Append(new DebugAssertOperation(
                 GetInitializer(location),
                 condition,
                 message));
+        }
     }
 }
