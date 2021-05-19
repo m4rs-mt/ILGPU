@@ -166,6 +166,17 @@ namespace ILGPU
             }
 
             /// <summary>
+            /// Specifies how to deal with arrays.
+            /// </summary>
+            /// <param name="arrayMode">The array mode to use.</param>
+            /// <returns>The current builder instance.</returns>
+            public Builder Arrays(ArrayMode arrayMode)
+            {
+                ArrayMode = arrayMode;
+                return this;
+            }
+
+            /// <summary>
             /// Specifies the caching mode for the context instance.
             /// </summary>
             /// <param name="cachingMode">The caching mode to use.</param>

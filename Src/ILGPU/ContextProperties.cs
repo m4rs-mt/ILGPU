@@ -172,6 +172,25 @@ namespace ILGPU
     }
 
     /// <summary>
+    /// Internal flags to specify the behavior in the presence of static arrays. Note
+    /// that static array fields are also affected by the <see cref="StaticFieldMode"/>
+    /// settings.
+    /// </summary>
+    public enum ArrayMode
+    {
+        /// <summary>
+        /// Loads from static array values are rejected by default.
+        /// </summary>
+        Default,
+
+        /// <summary>
+        /// Loads from static arrays are supported and realized by inlining static
+        /// array values.
+        /// </summary>
+        InlineMutableStaticArrays,
+    }
+
+    /// <summary>
     /// Internal flags to specify the caching behavior.
     /// </summary>
     public enum CachingMode
@@ -303,6 +322,13 @@ namespace ILGPU
             StaticFieldMode.Default;
 
         /// <summary>
+        /// Defines how to deal with arrays.
+        /// </summary>
+        /// <remarks><see cref="ArrayMode.Default"/> by default.</remarks>
+        public ArrayMode ArrayMode { get; protected set; } =
+            ArrayMode.Default;
+
+        /// <summary>
         /// Defines which functions/kernels/modules should be cached.
         /// </summary>
         /// <remarks><see cref="CachingMode.Default"/> by default.</remarks>
@@ -359,6 +385,7 @@ namespace ILGPU
                 InliningMode = InliningMode,
                 MathMode = MathMode,
                 StaticFieldMode = StaticFieldMode,
+                ArrayMode = ArrayMode,
                 CachingMode = CachingMode,
             };
 
