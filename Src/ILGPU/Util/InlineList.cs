@@ -387,8 +387,9 @@ namespace ILGPU.Util
             int count,
             ref InlineList<T> list)
         {
-            list.Reserve(Count + count);
+            list.Reserve(Math.Max(list.Capacity, count));
             Array.Copy(items, startIndex, list.items, 0, count);
+            list.Count = Math.Max(list.Count, count);
         }
 
         /// <summary>
