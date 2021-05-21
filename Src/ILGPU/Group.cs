@@ -160,12 +160,16 @@ namespace ILGPU
         /// <summary>
         /// Returns true if the current thread is the first in the group.
         /// </summary>
-        public static bool IsFirstThread => IdxX == 0;
+        public static bool IsFirstThread =>
+            IdxX == 0 & IdxY == 0 & IdxZ == 0;
 
         /// <summary>
         /// Returns true if the current thread is the last in the group.
         /// </summary>
-        public static bool IsLastThread => IdxX == DimX - 1;
+        public static bool IsLastThread =>
+           (IdxX == DimX - 1) &
+           (IdxY == DimY - 1) &
+           (IdxZ == DimZ - 1);
 
         #endregion
 
