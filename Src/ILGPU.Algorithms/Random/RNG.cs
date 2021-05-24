@@ -188,7 +188,6 @@ namespace ILGPU.Algorithms.Random
             return ref randomProviders[warpIdx];
         }
 
-
         /// <summary>
         /// Generates a random value using the operation provided.
         /// </summary>
@@ -203,6 +202,7 @@ namespace ILGPU.Algorithms.Random
             // Load provider from memory
             ref var providerRef = ref GetRandomProvider();
             var provider = providerRef;
+            Warp.Barrier();
 
             // Shift the local period
             provider.ShiftPeriod(Warp.LaneIdx);
@@ -214,6 +214,7 @@ namespace ILGPU.Algorithms.Random
             // Store the updated provider in the first warp
             if (Warp.IsFirstLane)
                 providerRef = provider;
+            Warp.Barrier();
 
             return result;
         }
