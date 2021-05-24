@@ -225,5 +225,58 @@ namespace ILGPU.Tests
 
             Verify(dataBuffer.View, expected);
         }
+
+        internal static void DivergentWarpBarrierKernel(
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            // Divergent warp execution involving barriers
+            var sharedMemory = ILGPU.SharedMemory.Allocate<int>(4);
+            switch (Warp.WarpIdx)
+            {
+                case 0:
+                    sharedMemory[0] = 0;
+                    Warp.Barrier();
+                    break;
+                case 1:
+                    sharedMemory[1] = 1;
+                    Warp.Barrier();
+                    break;
+                case 2:
+                    sharedMemory[2] = 2;
+                    Warp.Barrier();
+                    break;
+                case 3:
+                    sharedMemory[3] = 3;
+                    Warp.Barrier();
+                    break;
+            }
+
+            // Warp wide barrier
+            int value = Warp.LaneIdx;
+            Warp.Barrier();
+
+            // Read shared memory
+            int index = Grid.GlobalIndex.X;
+            data[index] = sharedMemory[Warp.WarpIdx] * Warp.WarpSize + value;
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [KernelMethod(nameof(DivergentWarpBarrierKernel))]
+        public void DivergentWarpBarrier(int warpMultiplier)
+        {
+            int warpSize = Accelerator.WarpSize;
+            var length = warpSize * warpMultiplier;
+            Skip.If(length > Accelerator.MaxNumThreadsPerGroup);
+
+            using var dataBuffer = Accelerator.Allocate1D<int>(length);
+            Execute(new KernelConfig(1, length), dataBuffer.View);
+
+            var expected = Enumerable.Range(0, length).ToArray();
+            Verify(dataBuffer.View, expected);
+        }
     }
 }
