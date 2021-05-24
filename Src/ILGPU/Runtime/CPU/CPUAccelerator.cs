@@ -59,6 +59,19 @@ namespace ILGPU.Runtime.CPU
     {
         #region Instance
 
+        // General execution management
+
+        private readonly CPUMultiprocessor[] multiprocessors;
+        private volatile bool running = true;
+
+        // Task execution
+
+        private readonly object taskSynchronizationObject = new object();
+        private volatile CPUAcceleratorTask currentTask;
+
+        private readonly Barrier finishedEventPerMultiprocessor;
+        private readonly SemaphoreSlim taskConcurrencyLimit = new SemaphoreSlim(1);
+
         /// <summary>
         /// Constructs a new CPU runtime.
         /// </summary>
@@ -81,12 +94,21 @@ namespace ILGPU.Runtime.CPU
 
             NumThreads = description.NumThreads;
             Mode = mode;
+            ThreadPriority = threadPriority;
             UsesSequentialExecution =
                 Mode == CPUAcceleratorMode.Sequential ||
                 Mode == CPUAcceleratorMode.Auto && Debugger.IsAttached;
+            finishedEventPerMultiprocessor = new Barrier(NumMultiprocessors + 1);
+            multiprocessors = new CPUMultiprocessor[NumMultiprocessors];
+            for (int i = 0, e = NumMultiprocessors; i < e; ++i)
+            {
+                multiprocessors[i] = CPUMultiprocessor.Create(
+                    this,
+                    i,
+                    UsesSequentialExecution);
+            }
 
             Bind();
-            InitExecutionEngine(threadPriority);
             Init(context.DefautltILBackend);
         }
 
@@ -98,6 +120,11 @@ namespace ILGPU.Runtime.CPU
         /// Returns the current mode.
         /// </summary>
         public CPUAcceleratorMode Mode { get; }
+
+        /// <summary>
+        /// Returns the current thread priority.
+        /// </summary>
+        public ThreadPriority ThreadPriority { get; }
 
         /// <summary>
         /// Returns true if the current accelerator uses a simulated sequential execution
@@ -335,6 +362,66 @@ namespace ILGPU.Runtime.CPU
 
         #endregion
 
+        #region Execution Methods
+
+        internal bool WaitForTask(ref CPUAcceleratorTask task)
+        {
+            // Get a new task to execute
+            lock (taskSynchronizationObject)
+            {
+                while ((currentTask == null | currentTask == task) & running)
+                    Monitor.Wait(taskSynchronizationObject);
+                task = currentTask;
+                return running;
+            }
+        }
+
+        internal void FinishTaskProcessing() =>
+            // Wait for the result
+            finishedEventPerMultiprocessor.SignalAndWait();
+
+        /// <summary>
+        /// Launches the given accelerator task on this accelerator.
+        /// </summary>
+        /// <param name="task">The task to launch.</param>
+        internal void Launch(CPUAcceleratorTask task)
+        {
+            Debug.Assert(task != null, "Invalid accelerator task");
+
+            taskConcurrencyLimit.Wait();
+            try
+            {
+                foreach (var multiprocessor in multiprocessors)
+                    multiprocessor.InitLaunch(task);
+                Interlocked.MemoryBarrier();
+
+                // Launch all processing threads
+                lock (taskSynchronizationObject)
+                {
+                    Debug.Assert(currentTask == null, "Invalid concurrent modification");
+                    currentTask = task;
+                    Monitor.PulseAll(taskSynchronizationObject);
+                }
+
+                // Wait for the result
+                FinishTaskProcessing();
+
+                // Reset all groups
+                foreach (var multiprocessor in multiprocessors)
+                    multiprocessor.FinishLaunch();
+
+                // Reset task
+                lock (taskSynchronizationObject)
+                    currentTask = null;
+            }
+            finally
+            {
+                taskConcurrencyLimit.Release();
+            }
+        }
+
+        #endregion
+
         #region Occupancy
 
         /// <summary cref="Accelerator.EstimateMaxActiveGroupsPerMultiprocessor(
@@ -386,8 +473,27 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Dispose all managed resources allocated by this CPU accelerator instance.
         /// </summary>
-        protected override void DisposeAccelerator_SyncRoot(bool disposing) =>
-            DisposeExecutionEngine(disposing);
+        protected override void DisposeAccelerator_SyncRoot(bool disposing)
+        {
+            if (!disposing)
+                return;
+
+            // Dispose task engine
+            lock (taskSynchronizationObject)
+            {
+                running = false;
+                currentTask = null;
+                Monitor.PulseAll(taskSynchronizationObject);
+            }
+
+            // Dispose all multiprocessors
+            foreach (var multiprocessor in multiprocessors)
+                multiprocessor.Dispose();
+
+            // Dispose barriers
+            finishedEventPerMultiprocessor.Dispose();
+            taskConcurrencyLimit.Dispose();
+        }
 
         #endregion
     }
