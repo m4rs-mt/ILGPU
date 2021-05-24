@@ -19,7 +19,7 @@ namespace ILGPU.Runtime.CPU
     /// <summary>
     /// Represents a runtime context for a single warp.
     /// </summary>
-    sealed class CPURuntimeWarpContext : CPURuntimeContext
+    sealed class CPURuntimeWarpContext : CPURuntimeContext, CPURuntimeContext.IParent
     {
         #region Thread Static
 
@@ -184,14 +184,16 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Constructs a new CPU-based runtime context for parallel processing.
         /// </summary>
-        /// <param name="accelerator">The target CPU accelerator.</param>
+        /// <param name="multiprocessor">The target CPU multiprocessor.</param>
         /// <param name="numThreadsPerWarp">The number of threads per warp.</param>
-        public CPURuntimeWarpContext(CPUAccelerator accelerator, int numThreadsPerWarp)
-            : base(accelerator)
+        public CPURuntimeWarpContext(
+            CPUMultiprocessor multiprocessor,
+            int numThreadsPerWarp)
+            : base(multiprocessor)
         {
             WarpSize = numThreadsPerWarp;
 
-            shuffleBuffer = new MemoryBufferCache(accelerator);
+            shuffleBuffer = new MemoryBufferCache(Multiprocessor.Accelerator);
             shuffleBuffer.Allocate<int>(2 * sizeof(int) * numThreadsPerWarp);
         }
 
@@ -200,9 +202,14 @@ namespace ILGPU.Runtime.CPU
         #region Properties
 
         /// <summary>
-        /// Returns the number of threads per warp.
+        /// Returns the number of threads per warp (statically known).
         /// </summary>
         public int WarpSize { get; }
+
+        /// <summary>
+        /// Returns the number of threads per warp in the current runtime context.
+        /// </summary>
+        public int CurrentWarpSize { get; private set; }
 
         #endregion
 
@@ -211,7 +218,8 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Executes a thread barrier.
         /// </summary>
-        public override void Barrier() => WaitForAllThreads();
+        /// <returns>The number of participating threads.</returns>
+        public int Barrier() => Multiprocessor.WarpBarrier();
 
         /// <summary>
         /// Performs a shuffle operation.
@@ -222,6 +230,7 @@ namespace ILGPU.Runtime.CPU
         /// <returns>
         /// The value of the variable in the scope of the desired lane.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Shuffle<T>(T variable, in ShuffleConfig config)
             where T : unmanaged
         {
@@ -229,8 +238,10 @@ namespace ILGPU.Runtime.CPU
 
             // Allocate a compatible view
             var view = PerformLocked<
+                CPURuntimeWarpContext,
                 GetShuffleMemory<T>,
                 ArrayView<T>>(
+                this,
                 new GetShuffleMemory<T>(shuffleBuffer, WarpSize));
 
             // Fill the shared view with data of each lane
@@ -247,17 +258,29 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary>
-        /// Initializes this context.
+        /// Executes a broadcast operation.
         /// </summary>
-        /// <param name="numLanes">The number of active lanes.</param>
-        internal new void Initialize(int numLanes) => base.Initialize(numLanes);
+        /// <typeparam name="T">The element type to broadcast.</typeparam>
+        /// <param name="value">The desired group index.</param>
+        /// <param name="laneIndex">The source thread index within the warp.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T Broadcast<T>(T value, int laneIndex)
+            where T : unmanaged =>
+            Broadcast(
+                this,
+                value,
+                CPURuntimeThreadContext.Current.LaneIndex,
+                laneIndex);
 
         /// <summary>
-        /// Called when a CPU kernel has finished, reducing the number of participants in
-        /// future calls to Barrier-related methods.
+        /// Initializes this context.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void FinishThreadProcessing() => RemoveBarrierParticipant();
+        /// <param name="currentWarpSize">The current warp size.</param>
+        public void Initialize(int currentWarpSize)
+        {
+            CurrentWarpSize = currentWarpSize;
+            Initialize();
+        }
 
         /// <summary>
         /// Makes the current context the active one for this thread.
