@@ -478,7 +478,7 @@ namespace ILGPU.Runtime
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
-            source.CopyToCPU(stream, out cpuData, length);
+            source.CopyToCPUUnsafeAsync(stream, out cpuData, length);
             stream.Synchronize();
         }
 
