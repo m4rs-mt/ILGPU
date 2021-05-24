@@ -217,7 +217,21 @@ namespace ILGPU.Tests
         }
 
         /// <summary>
-        /// Verifies the contents of the given 2D memory buffer.
+        /// Verifies the contents of the given 1D arrays.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The source array.</param>
+        /// <param name="expected">The expected values.</param>
+        public static void Verify1D<T>(T[] source, T[] expected)
+            where T : unmanaged
+        {
+            Assert.Equal(source.Length, expected.Length);
+            for (int i = 0; i < expected.Length; ++i)
+                    Assert.Equal(expected[i], source[i]);
+        }
+
+        /// <summary>
+        /// Verifies the contents of the given 2D view.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="view">The target buffer.</param>
@@ -259,7 +273,7 @@ namespace ILGPU.Tests
         }
 
         /// <summary>
-        /// Verifies the contents of the given 3D memory buffer.
+        /// Verifies the contents of the given 3D view.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="view">The target buffer.</param>

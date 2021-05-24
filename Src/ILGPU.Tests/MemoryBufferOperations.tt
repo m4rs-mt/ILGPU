@@ -5,6 +5,7 @@
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -140,6 +141,65 @@ namespace ILGPU.Tests
             Verify(sourceBuffer.View, expected);
             Verify(denseBuffer.View, expected);
             Verify(stridedBuffer.View.AsContiguous(), stridedExpected);
+        }
+
+        [Theory]
+<#      foreach (var length in lengths) { #>
+        [InlineData(<#= length #>)]
+<#      } #>
+        public unsafe void CopyFromToCPU_<#= type.Name #>(int length)
+        {
+            Func<int, <#= type.Type #>> converter = c => (<#= type.Type #>)(c + 1);
+            var expected = InitializeArray1D(length, 1, converter);
+            var temp = new <#= type.Type #>[length];
+            using var buffer = Accelerator.Allocate1D(expected);
+            var view = buffer.View;
+
+            // Copy to CPU
+            view.CopyToCPU(temp);
+            Verify1D(temp, expected);
+
+            // Copy each element to CPU
+            for (int i = 0; i < length; ++i)
+            {
+                view.SubView(i, 1).CopyToCPU(out <#= type.Type #> element, 1);
+                Assert.Equal(element, expected[i]);
+            }
+
+            // Copy unsafe to CPU
+            Array.Clear(temp, 0, length);
+            fixed (<#= type.Type #>* ptr = temp)
+            {
+                view.AsContiguous().CopyToCPUUnsafeAsync(
+                    out Unsafe.AsRef<<#= type.Type #>>(ptr),
+                    length);
+                Accelerator.Synchronize();
+                Verify1D(temp, expected);
+            }
+
+            // Copy from CPU
+            view.MemSetToZero();
+            view.CopyFromCPU(expected);
+            Verify(view, expected);
+
+            // Copy each element from CPU
+            view.MemSetToZero();
+            for (int i = 0; i < length; ++i)
+            {
+                var value = expected[i];
+                view.SubView(i, 1).CopyFromCPU(ref value, 1);
+            }
+            Verify(view, expected);
+
+            // Copy unsafe from CPU
+            fixed (<#= type.Type #>* ptr = temp)
+            {
+                view.AsContiguous().CopyFromCPUUnsafeAsync(
+                    ref Unsafe.AsRef<<#= type.Type #>>(ptr),
+                    length);
+                Accelerator.Synchronize();
+                Verify(view, expected);
+            }
         }
 
 <#  } #>
