@@ -32,7 +32,7 @@ namespace ILGPU.Algorithms
         /// <returns>The first lane (lane id = 0) will return reduced result.</returns>
         [IntrinsicImplementation]
         public static T Reduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T> =>
             ILWarpExtensions.Reduce<T, TReduction>(value);
 
@@ -45,7 +45,7 @@ namespace ILGPU.Algorithms
         /// <returns>All lanes will return the reduced result.</returns>
         [IntrinsicImplementation]
         public static T AllReduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T> =>
             ILWarpExtensions.AllReduce<T, TReduction>(value);
 
@@ -62,7 +62,7 @@ namespace ILGPU.Algorithms
         /// <returns>The resulting value for the current lane.</returns>
         [IntrinsicImplementation]
         public static T ExclusiveScan<T, TScan>(T value)
-            where T : struct
+            where T : unmanaged
             where TScan : struct, IScanReduceOperation<T> =>
             ILWarpExtensions.ExclusiveScan<T, TScan>(value);
 
@@ -75,7 +75,7 @@ namespace ILGPU.Algorithms
         /// <returns>The resulting value for the current lane.</returns>
         [IntrinsicImplementation]
         public static T InclusiveScan<T, TScan>(T value)
-            where T : struct
+            where T : unmanaged
             where TScan : struct, IScanReduceOperation<T> =>
             ILWarpExtensions.InclusiveScan<T, TScan>(value);
 
