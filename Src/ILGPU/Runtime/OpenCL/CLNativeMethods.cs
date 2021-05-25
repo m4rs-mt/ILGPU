@@ -297,6 +297,62 @@ namespace ILGPU.Runtime.OpenCL
         CL_PROGRAM_BINARY_TYPE = 0x1184,
         CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE = 0x1185
     }
+
+    public enum CLCommandQueueInfo : int
+    {
+        CL_QUEUE_CONTEXT = 0x1090,
+        CL_QUEUE_DEVICE = 0x1091,
+        CL_QUEUE_REFERENCE_COUNT = 0x1092,
+        CL_QUEUE_PROPERTIES = 0x1093,
+
+        // OpenCL >= 2.0
+        CL_QUEUE_SIZE = 0x1094,
+
+        // OpenCL >= 2.1
+        CL_QUEUE_DEVICE_DEFAULT = 0x1095,
+
+        // OpenCL >= 3.0
+        CL_QUEUE_PROPERTIES_ARRAY = 0x1098,
+    }
+
+    [Flags]
+    public enum CLCommandQueueProperties : int
+    {
+        CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE = 1 << 0,
+        CL_QUEUE_PROFILING_ENABLE = 1 << 1,
+
+        // OpenCL >= 2.0
+        CL_QUEUE_ON_DEVICE = 1 << 2,
+        CL_QUEUE_ON_DEVICE_DEFAULT = 1 << 3,
+    }
+
+    public enum CLEventInfo : int
+    {
+        CL_EVENT_COMMAND_QUEUE = 0x11D0,
+        CL_EVENT_COMMAND_TYPE = 0x11D1,
+        CL_EVENT_REFERENCE_COUNT = 0x11D2,
+        CL_EVENT_COMMAND_EXECUTION_STATUS = 0x11D3,
+        CL_EVENT_CONTEXT = 0x11D4,
+    }
+
+    public enum CLCommandExecutionStatus : int
+    {
+        CL_COMPLETE = 0x0,
+        CL_RUNNING = 0x1,
+        CL_SUBMITTED = 0x2,
+        CL_QUEUED = 0x3,
+    }
+
+    public enum CLProfilingInfo : int
+    {
+        CL_PROFILING_COMMAND_QUEUED = 0x1280,
+        CL_PROFILING_COMMAND_SUBMIT = 0x1281,
+        CL_PROFILING_COMMAND_START = 0x1282,
+        CL_PROFILING_COMMAND_END = 0x1283,
+
+        // OpenCL >= 2.0
+        CL_PROFILING_COMMAND_COMPLETE = 0x1284,
+    }
 }
 
 #pragma warning restore CA1069 // Enums values should not be duplicated

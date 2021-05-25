@@ -335,6 +335,12 @@ namespace ILGPU
         public CachingMode CachingMode { get; protected set; } =
             CachingMode.Default;
 
+        /// <summary>
+        /// Returns true if profiling is enabled on all streams.
+        /// </summary>
+        /// <remarks>Disabled by default.</remarks>
+        public bool EnableProfiling { get; protected set; }
+
         #endregion
 
         #region Methods
@@ -387,6 +393,7 @@ namespace ILGPU
                 StaticFieldMode = StaticFieldMode,
                 ArrayMode = ArrayMode,
                 CachingMode = CachingMode,
+                EnableProfiling = EnableProfiling,
             };
 
         #endregion

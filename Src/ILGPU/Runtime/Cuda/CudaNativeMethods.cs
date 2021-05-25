@@ -248,6 +248,30 @@ namespace ILGPU.Runtime.Cuda
         CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED = 3
     }
 
+    [Flags]
+    public enum CudaEventFlags
+    {
+        /// <summary>
+        /// Default event creation flag.
+        /// </summary>
+        CU_EVENT_DEFAULT = 0,
+
+        /// <summary>
+        /// The created event should use blocking synchronization.
+        /// </summary>
+        CU_EVENT_BLOCKING_SYNC = 1,
+
+        /// <summary>
+        /// The created event does not need to record timing data.
+        /// </summary>
+        CU_EVENT_DISABLE_TIMING = 2,
+
+        /// <summary>
+        /// The created event may be used as an interprocess event.
+        /// </summary>
+        CU_EVENT_INTERPROCESS = 4,
+    }
+
     #endregion
 }
 

@@ -49,6 +49,10 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         public override void Synchronize() { }
 
+        /// <inheritdoc/>
+        protected unsafe override ProfilingMarker AddProfilingMarkerInternal() =>
+            new CPUProfilingMarker();
+
         #endregion
 
         #region IDisposable

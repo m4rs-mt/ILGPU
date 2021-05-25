@@ -392,25 +392,39 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="platformVersion">The current platform version.</param>
         /// <param name="device">The associated device.</param>
         /// <param name="context">The parent context.</param>
+        /// <param name="commandQueueProperties">The command queue properties.</param>
         /// <param name="queue">The created queue.</param>
         /// <returns>The error code.</returns>
         public CLError CreateCommandQueue(
             CLPlatformVersion platformVersion,
             IntPtr device,
             IntPtr context,
+            CLCommandQueueProperties commandQueueProperties,
             out IntPtr queue)
         {
-            queue = platformVersion < CLPlatformVersion.CL20
-                ? clCreateCommandQueue(
+            CLError errorStatus;
+            if (platformVersion < CLPlatformVersion.CL20)
+            {
+                queue = clCreateCommandQueue(
                     context,
                     device,
-                    IntPtr.Zero,
-                    out var errorStatus)
-                : clCreateCommandQueueWithProperties(
-                    context,
-                    device,
-                    IntPtr.Zero,
+                    commandQueueProperties,
                     out errorStatus);
+            }
+            else
+            {
+                var properties = stackalloc IntPtr[]
+                {
+                    (IntPtr)CLCommandQueueInfo.CL_QUEUE_PROPERTIES,
+                    (IntPtr)commandQueueProperties,
+                    IntPtr.Zero
+                };
+                queue = clCreateCommandQueueWithProperties(
+                    context,
+                    device,
+                    new IntPtr(properties),
+                    out errorStatus);
+            }
             return errorStatus;
         }
 
@@ -1140,6 +1154,55 @@ namespace ILGPU.Runtime.OpenCL
                         resultEvent);
                 return errorStatus;
             }
+        }
+
+        /// <summary>
+        /// Returns profiling information for the command associated with event,
+        /// if profiling is enabled.
+        /// </summary>
+        /// <param name="event">The event object.</param>
+        /// <param name="param_name">The information to query.</param>
+        /// <param name="param_value_size">The size in bytes of parameter value.</param>
+        /// <param name="param_value">
+        /// Pointer to memory where the result being queried is returned.
+        /// </param>
+        /// <returns>The error code.</returns>
+        internal CLError GetEventInfo(
+            IntPtr @event,
+            CLEventInfo param_name,
+            IntPtr param_value_size,
+            void* param_value) =>
+            clGetEventInfo(
+                @event,
+                param_name,
+                param_value_size,
+                param_value,
+                IntPtr.Zero);
+
+        #endregion
+
+        #region Profiling
+
+        /// <summary>
+        /// Returns profiling information for the command associated with event,
+        /// if profiling is enabled.
+        /// </summary>
+        /// <param name="event">The event object.</param>
+        /// <param name="profilingInfo">The profiling command to query.</param>
+        /// <param name="nanoseconds">The time counter in nanoseconds.</param>
+        /// <returns>The error code.</returns>
+        internal CLError GetEventProfilingInfo(
+            IntPtr @event,
+            CLProfilingInfo profilingInfo,
+            out ulong nanoseconds)
+        {
+            nanoseconds = default;
+            return clGetEventProfilingInfo(
+                @event,
+                profilingInfo,
+                new IntPtr(Interop.SizeOf<ulong>()),
+                Unsafe.AsPointer(ref nanoseconds),
+                IntPtr.Zero);
         }
 
         #endregion

@@ -29,7 +29,8 @@ namespace ILGPU.Tests
                     .Assertions()
                     .Arrays(ArrayMode.InlineMutableStaticArrays)
                     .Verify()
-                    .Optimize(level)));
+                    .Optimize(level)
+                    .Profiling()));
             Accelerator = createAccelerator(Context);
         }
 

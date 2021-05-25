@@ -165,6 +165,9 @@
   <data name="InvalidNumberOfUniformArgs" xml:space="preserve">
     <value>The number of provided arguments does not match the required length</value>
   </data>
+  <data name="InvalidProfilingMarker" xml:space="preserve">
+    <value>Profiling marker '{0}' is not compatible with '{1}'</value>
+  </data>
   <data name="InvalidSharedMemorySize" xml:space="preserve">
     <value>Shared-memory size cannot be &lt; 0</value>
   </data>
@@ -194,6 +197,9 @@
   </data>
   <data name="NotSupportedPitchedAllocation" xml:space="preserve">
     <value>Not supported pitched allocation for type '{0}' and byte pitch {1}</value>
+  </data>
+  <data name="NotSupportedProfilingMarker" xml:space="preserve">
+    <value>Cannot add profiling marker. Ensure that profiling is enabled from the ContextBuilder.</value>
   </data>
   <data name="NotSupportedPTXArchitecture" xml:space="preserve">
     <value>Not supported PTX architecture</value>
