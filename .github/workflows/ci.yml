@@ -118,7 +118,7 @@ jobs:
             $tag = "${{ github.ref }}".SubString(11)
             $version = (Select-Xml -path Src/ILGPU/ILGPU.csproj -XPath "/Project/PropertyGroup/VersionPrefix/text()").node.Value
             if (-not ($tag -eq $version)) {
-              echo "There is a mismatch between the project version ($version) and the tag ($tag)"
+              echo "::error ::There is a mismatch between the project version ($version) and the tag ($tag)"
               exit 1
             }
           } else {
