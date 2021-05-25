@@ -229,6 +229,16 @@ namespace ILGPU
             }
 
             /// <summary>
+            /// Turns on profiling of all streams.
+            /// </summary>
+            /// <returns>The current builder instance.</returns>
+            public Builder Profiling()
+            {
+                EnableProfiling = true;
+                return this;
+            }
+
+            /// <summary>
             /// Converts this builder instance into a context instance.
             /// </summary>
             /// <returns>The created context instance.</returns>
