@@ -796,5 +796,61 @@ namespace ILGPU.Runtime.Cuda
                 blockSizeLimit);
 
         #endregion
+
+        #region Event Methods
+
+        /// <summary>
+        /// Creates a new accelerator event.
+        /// </summary>
+        /// <param name="event">The created event.</param>
+        /// <param name="flags">The event creation flags.</param>
+        /// <returns>The error status.</returns>
+        public CudaError CreateEvent(out IntPtr @event, CudaEventFlags flags) =>
+            cuEventCreate(out @event, flags);
+
+        /// <summary>
+        /// Destroys the given event.
+        /// </summary>
+        /// <param name="event">The accelerator event.</param>
+        /// <returns>The error status.</returns>
+        public CudaError DestroyEvent(IntPtr @event) =>
+            cuEventDestroy(@event);
+
+        /// <summary>
+        /// Queries the status of the given event.
+        /// </summary>
+        /// <param name="event">The accelerator event.</param>
+        /// <returns>The error status.</returns>
+        public CudaError QueryEvent(IntPtr @event) =>
+            cuEventQuery(@event);
+
+        /// <summary>
+        /// Computes the elapsed time between two events.
+        /// </summary>
+        /// <param name="milliseconds">The elapsed time in milliseconds.</param>
+        /// <param name="start">The starting event.</param>
+        /// <param name="end">The ending event.</param>
+        /// <returns>The error status.</returns>
+        public CudaError ElapsedTime(out float milliseconds, IntPtr start, IntPtr end) =>
+            cuEventElapsedTime(out milliseconds, start, end);
+
+        /// <summary>
+        /// Records an event on a stream.
+        /// </summary>
+        /// <param name="event">The event.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        /// <returns>The error status.</returns>
+        public CudaError RecordEvent(IntPtr @event, IntPtr stream) =>
+            cuEventRecord(@event, stream);
+
+        /// <summary>
+        /// Synchronizes the current event.
+        /// </summary>
+        /// <param name="event">The event.</param>
+        /// <returns>The error status.</returns>
+        public CudaError SynchronizeEvent(IntPtr @event) =>
+            cuEventSynchronize(@event);
+
+        #endregion
     }
 }

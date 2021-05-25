@@ -28,7 +28,10 @@ namespace ILGPU.Runtime.OpenCL
         private IntPtr queuePtr;
         private readonly bool responsibleForHandle;
 
-        internal CLStream(Accelerator accelerator, IntPtr ptr, bool responsible)
+        internal CLStream(
+            Accelerator accelerator,
+            IntPtr ptr,
+            bool responsible)
             : base(accelerator)
         {
             queuePtr = ptr;
@@ -38,11 +41,16 @@ namespace ILGPU.Runtime.OpenCL
         internal CLStream(CLAccelerator accelerator)
             : base(accelerator)
         {
+            CLCommandQueueProperties properties =
+                Accelerator.Context.Properties.EnableProfiling
+                ? CLCommandQueueProperties.CL_QUEUE_PROFILING_ENABLE
+                : default;
             CLException.ThrowIfFailed(
                 CurrentAPI.CreateCommandQueue(
                     accelerator.PlatformVersion,
                     accelerator.DeviceId,
                     accelerator.NativePtr,
+                    properties,
                     out queuePtr));
             responsibleForHandle = true;
         }
@@ -64,6 +72,24 @@ namespace ILGPU.Runtime.OpenCL
         public override void Synchronize() =>
             CLException.ThrowIfFailed(
                 CurrentAPI.FinishCommandQueue(queuePtr));
+
+        /// <inheritdoc/>
+        protected unsafe override ProfilingMarker AddProfilingMarkerInternal()
+        {
+            IntPtr* profilingEvent = stackalloc IntPtr[1];
+            CLException.ThrowIfFailed(
+                CurrentAPI.EnqueueBarrierWithWaitList(
+                    queuePtr,
+                    Array.Empty<IntPtr>(),
+                    profilingEvent));
+
+            // WORKAROUND: The OpenCL event needs to be awaited now, otherwise
+            // it does not contain the correct timing - it appears to have the timing
+            // of whenever it gets awaited.
+            var marker = new CLProfilingMarker(*profilingEvent);
+            marker.Synchronize();
+            return marker;
+        }
 
         #endregion
 

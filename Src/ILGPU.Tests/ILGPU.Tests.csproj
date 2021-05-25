@@ -159,6 +159,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ConvertIntOperations.tt</DependentUpon>
     </Compile>
+    <Compile Update="ConvertIntOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConvertIntOperations.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="FixedBuffers.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

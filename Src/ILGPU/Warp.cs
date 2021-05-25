@@ -57,7 +57,7 @@ namespace ILGPU
         /// Returns the current warp index in the range [0, NumUsedWarps - 1].
         /// </summary>
         /// <returns>The current warp index in the range [0, NumUsedWarps - 1].</returns>
-        public static int WarpIdx => ComputeWarpIdx(Group.IdxX);
+        public static int WarpIdx => ComputeWarpIdx(Group.LinearIndex);
 
         /// <summary>
         /// Computes the current warp index in the range [0, NumUsedWarps - 1].

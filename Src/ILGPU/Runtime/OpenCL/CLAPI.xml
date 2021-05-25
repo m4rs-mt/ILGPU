@@ -65,7 +65,7 @@
             ReturnType="IntPtr">
         <Parameter Name="context" Type="IntPtr" />
         <Parameter Name="device" Type="IntPtr" />
-        <Parameter Name="properties" Type="IntPtr" />
+        <Parameter Name="properties" Type="CLCommandQueueProperties" />
         <Parameter Name="errorCode" Type="CLError" Flags="Out" />
     </Import>
     <Import Name="clCreateCommandQueueWithProperties"
@@ -223,6 +223,13 @@
         <Parameter Name="numEvents" Type="int" />
         <Parameter Name="events" Type="IntPtr*" />
     </Import>
+    <Import Name="clGetEventInfo">
+        <Parameter Name="@event" Type="IntPtr" />
+        <Parameter Name="param_name" Type="CLEventInfo" />
+        <Parameter Name="param_value_size" Type="IntPtr" />
+        <Parameter Name="param_value" Type="void*" DllFlags="Out" />
+        <Parameter Name="param_value_size_ret" Type="IntPtr" DllFlags="Out" />
+    </Import>
 
     <!-- Markers -->
     <Import Name="clEnqueueBarrierWithWaitList">
@@ -230,5 +237,14 @@
         <Parameter Name="numEvents" Type="int" />
         <Parameter Name="events" Type="IntPtr*" />
         <Parameter Name="resultEvent" Type="IntPtr*" DllFlags="InOut" />
+    </Import>
+
+    <!-- Profiling -->
+    <Import Name="clGetEventProfilingInfo">
+        <Parameter Name="@event" Type="IntPtr" />
+        <Parameter Name="param_name" Type="CLProfilingInfo" />
+        <Parameter Name="param_value_size" Type="IntPtr" />
+        <Parameter Name="param_value" Type="void*" DllFlags="Out" />
+        <Parameter Name="param_value_size_ret" Type="IntPtr" DllFlags="Out" />
     </Import>
 </Imports>

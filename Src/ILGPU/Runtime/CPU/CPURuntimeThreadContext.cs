@@ -52,11 +52,15 @@ namespace ILGPU.Runtime.CPU
         /// Creates a new runtime thread context.
         /// </summary>
         /// <param name="laneIdx">The current lane index.</param>
-        public CPURuntimeThreadContext(int laneIdx)
+        /// <param name="warpIndex">The current warp index.</param>
+        public CPURuntimeThreadContext(int laneIdx, int warpIndex)
         {
             if (laneIdx < 0)
                 throw new ArgumentOutOfRangeException(nameof(laneIdx));
+            if (warpIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(warpIndex));
             LaneIndex = laneIdx;
+            WarpIndex = warpIndex;
         }
 
         #endregion
@@ -67,6 +71,11 @@ namespace ILGPU.Runtime.CPU
         /// The current lane index within the CPU accelerator.
         /// </summary>
         public int LaneIndex { get; private set; }
+
+        /// <summary>
+        /// Returns the current warp index within the CPU accelerator.
+        /// </summary>
+        public int WarpIndex { get; private set; }
 
         /// <summary>
         /// Returns the grid index within the scheduled thread grid.

@@ -188,4 +188,26 @@
         <Parameter Name="dynamicSMemSize" Type="IntPtr" />
         <Parameter Name="blockSizeLimit" Type="int" />
     </Import>
+    <Import Name="cuEventCreate">
+        <Parameter Name="@event" Type="IntPtr" Flags="Out" />
+        <Parameter Name="flags" Type="CudaEventFlags" />
+    </Import>
+    <Import Name="cuEventDestroy">
+        <Parameter Name="@event" Type="IntPtr" />
+    </Import>
+    <Import Name="cuEventQuery">
+        <Parameter Name="@event" Type="IntPtr" />
+    </Import>
+    <Import Name="cuEventElapsedTime">
+        <Parameter Name="milliseconds" Type="float" Flags="Out" />
+        <Parameter Name="start" Type="IntPtr" />
+        <Parameter Name="end" Type="IntPtr" />
+    </Import>
+    <Import Name="cuEventRecord">
+        <Parameter Name="@event" Type="IntPtr" />
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="cuEventSynchronize">
+        <Parameter Name="@event" Type="IntPtr" />
+    </Import>
 </Imports>
