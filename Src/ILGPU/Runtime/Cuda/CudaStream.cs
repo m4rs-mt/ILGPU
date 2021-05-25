@@ -84,6 +84,16 @@ namespace ILGPU.Runtime.Cuda
             binding.Recover();
         }
 
+        /// <inheritdoc/>
+        protected override ProfilingMarker AddProfilingMarkerInternal()
+        {
+            var profilingMarker = new CudaProfilingMarker();
+
+            CudaException.ThrowIfFailed(
+                CurrentAPI.RecordEvent(profilingMarker.EventPtr, StreamPtr));
+            return profilingMarker;
+        }
+
         #endregion
 
         #region IDisposable

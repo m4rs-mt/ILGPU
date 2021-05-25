@@ -9,6 +9,7 @@ Indices: Debug, Release, O2
 KernelEntryPoints: Debug, Release, O2
 MemoryBufferOperations : Debug, Release, O2
 MemoryCacheOperations : Debug, Release, O2
+ProfilingMarkers: Debug, Release, O2
 SharedMemory: Debug, Release, O2
 SizeOfValues: Debug, Release, O2
 SpecializedKernels: Debug, Release, O2

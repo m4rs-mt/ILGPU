@@ -205,6 +205,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Profiling marker &apos;{0}&apos; is not compatible with &apos;{1}&apos;.
+        /// </summary>
+        internal static string InvalidProfilingMarker {
+            get {
+                return ResourceManager.GetString("InvalidProfilingMarker", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Shared-memory size cannot be &lt; 0.
         /// </summary>
         internal static string InvalidSharedMemorySize {
@@ -291,6 +300,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedPitchedAllocation {
             get {
                 return ResourceManager.GetString("NotSupportedPitchedAllocation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot add profiling marker. Ensure that profiling is enabled from the ContextBuilder..
+        /// </summary>
+        internal static string NotSupportedProfilingMarker {
+            get {
+                return ResourceManager.GetString("NotSupportedProfilingMarker", resourceCulture);
             }
         }
         

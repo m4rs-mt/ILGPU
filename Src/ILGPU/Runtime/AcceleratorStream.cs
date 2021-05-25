@@ -9,8 +9,10 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace ILGPU.Runtime
@@ -68,6 +70,23 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <returns>A scoped binding object.</returns>
         public ScopedAcceleratorBinding BindScoped() => Accelerator.BindScoped();
+
+        /// <summary>
+        /// Adds a profiling marker into the stream.
+        /// </summary>
+        /// <returns>The profiling marker.</returns>
+        public ProfilingMarker AddProfilingMarker() =>
+            Accelerator.Context.Properties.EnableProfiling
+            ? AddProfilingMarkerInternal()
+            : throw new NotSupportedException(
+                RuntimeErrorMessages.NotSupportedProfilingMarker);
+
+        /// <summary>
+        /// Adds a profiling marker into the stream.
+        /// </summary>
+        /// <returns>The profiling marker.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected abstract ProfilingMarker AddProfilingMarkerInternal();
 
         #endregion
     }
