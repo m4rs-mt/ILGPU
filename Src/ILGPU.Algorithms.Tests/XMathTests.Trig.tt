@@ -12,6 +12,7 @@
 <#@ template debug="false" hostspecific="true" language="C#" #>
 <#@ include file="XMathTests.ttinclude"#>
 <#@ assembly name="System.Core" #>
+<#@ import namespace="System.Globalization" #>
 <#@ import namespace="System.IO" #>
 <#@ output extension=".cs" #>
 using ILGPU.Runtime;
@@ -139,12 +140,12 @@ namespace ILGPU.Algorithms.Tests
             // [<#= start #>, <#= end #>]
             var inputValues = new List<XMathTuple<<#= function.DataType #>>>();
             for (
-                var x = <#= start.ToString("F1") #><#= function.ValueSuffix #>;
+                var x = <#= start.ToString("F1", CultureInfo.InvariantCulture) #><#= function.ValueSuffix #>;
                 x <= <#= end #><#= function.ValueSuffix #>;
                 x += <#= step #><#= function.ValueSuffix #>)
             {
                 for (
-                    var y = <#= start.ToString("F1") #><#= function.ValueSuffix #>;
+                    var y = <#= start.ToString("F1", CultureInfo.InvariantCulture) #><#= function.ValueSuffix #>;
                     y <= <#= end #><#= function.ValueSuffix #>;
                     y += <#= step #><#= function.ValueSuffix #>)
                 {
