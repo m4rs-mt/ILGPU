@@ -381,8 +381,7 @@ namespace ILGPU
             var type = DeviceTypeAttribute.GetAcceleratorType(typeof(TDevice));
             return deviceMapping.TryGetValue(type, out var devices)
                 ? new DeviceCollection<TDevice>(devices)
-                : throw new NotSupportedException(
-                    RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                : new DeviceCollection<TDevice>(new List<Device>());
         }
 
         /// <summary>
