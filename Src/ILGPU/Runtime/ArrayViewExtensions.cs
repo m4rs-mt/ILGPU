@@ -483,7 +483,7 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Copies from the CPU source address into the given target view without
+        /// Copies from the CPU source address into the given target view while
         /// synchronizing the current accelerator stream.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
@@ -505,7 +505,7 @@ namespace ILGPU.Runtime
                 length);
 
         /// <summary>
-        /// Copies from the CPU source address into the given target view without
+        /// Copies from the CPU source address into the given target view while
         /// synchronizing the current accelerator stream.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
@@ -565,7 +565,7 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Copies from the CPU source span into the given target view without
+        /// Copies from the CPU source span into the given target view while
         /// synchronizing the current accelerator stream.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
@@ -799,7 +799,7 @@ namespace ILGPU.Runtime
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="accelerator">The parent accelerator.</param>
         /// <param name="data">The source CPU data.</param>
-        /// <returns>An allocated buffer on the this accelerator.</returns>
+        /// <returns>An allocated buffer on this accelerator.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
         public static MemoryBuffer1D<T, Stride1D.Dense> Allocate1D<T>(
@@ -815,7 +815,7 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">The parent accelerator.</param>
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="data">The source CPU data.</param>
-        /// <returns>An allocated buffer on the this accelerator.</returns>
+        /// <returns>An allocated buffer on this accelerator.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
         public static unsafe MemoryBuffer1D<T, Stride1D.Dense> Allocate1D<T>(
