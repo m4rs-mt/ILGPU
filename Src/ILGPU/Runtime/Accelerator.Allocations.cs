@@ -18,11 +18,12 @@ namespace ILGPU.Runtime
         #region Allocations
 
         /// <summary>
-        /// Allocates a buffer with the specified size in bytes on this accelerator.
+        /// Allocates a 1D buffer with the specified number of elements on this
+        /// accelerator.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="length">The size in bytes to allocate.</param>
-        /// <returns>An allocated buffer on the this accelerator.</returns>
+        /// <param name="length">The number of elements to allocate.</param>
+        /// <returns>An allocated buffer on this accelerator.</returns>
         public MemoryBuffer1D<T, Stride1D.Dense> Allocate1D<T>(long length)
             where T : unmanaged =>
             Allocate1D<T, Stride1D.Dense>(length, default);
@@ -35,7 +36,7 @@ namespace ILGPU.Runtime
         /// <typeparam name="TStride">The buffer stride type.</typeparam>
         /// <param name="length">The number of elements to allocate.</param>
         /// <param name="stride">The buffer stride to use.</param>
-        /// <returns>An allocated 1D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 1D buffer on this accelerator.</returns>
         public MemoryBuffer1D<T, TStride> Allocate1D<T, TStride>(
             long length,
             TStride stride)
@@ -101,7 +102,7 @@ namespace ILGPU.Runtime
         /// Determines the size of the leading dimension.
         /// </param>
         /// <param name="buildStride">Builds a new stride.</param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 2D buffer on this accelerator.</returns>
         /// <remarks>
         /// The leading dimension must be less or equal to <see cref="int.MaxValue"/>.
         /// </remarks>
@@ -135,7 +136,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The number of elements to allocate.</param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 2D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since X is the leading dimension, X must be less or equal to
         /// <see cref="int.MaxValue"/>.
@@ -153,7 +154,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The number of elements to allocate.</param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 2D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since Y is the leading dimension, Y must be less or equal to
         /// <see cref="int.MaxValue"/>.
@@ -179,7 +180,7 @@ namespace ILGPU.Runtime
         /// <param name="alignmentInBytes">
         /// The alignment in bytes of the leading dimension.
         /// </param>
-        /// <returns>An allocated pitched 2D buffer on the this accelerator.</returns>
+        /// <returns>An allocated pitched 2D buffer on this accelerator.</returns>
         private MemoryBuffer2D<T, TStride> Allocate2DPitched<T, TStride>(
             in LongIndex2D extent,
             Stride2D.GetLeadingDimensionSize getLeadingDimensionSize,
@@ -211,7 +212,7 @@ namespace ILGPU.Runtime
         /// <param name="xAlignmentInBytes">
         /// The alignment in bytes of the leading dimension.
         /// </param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 2D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since X is the leading dimension, X must be less or equal to
         /// <see cref="int.MaxValue"/>.
@@ -234,7 +235,7 @@ namespace ILGPU.Runtime
         /// <param name="yAlignmentInBytes">
         /// The alignment in bytes of the leading dimension.
         /// </param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 2D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since Y is the leading dimension, Y must be less or equal to
         /// <see cref="int.MaxValue"/>.
@@ -296,7 +297,7 @@ namespace ILGPU.Runtime
         /// Determines the size of the leading dimension.
         /// </param>
         /// <param name="buildStride">Builds a new stride.</param>
-        /// <returns>An allocated 3D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 3D buffer on this accelerator.</returns>
         /// <remarks>
         /// The leading dimension must be less or equal to <see cref="int.MaxValue"/>.
         /// </remarks>
@@ -330,7 +331,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The number of elements to allocate.</param>
-        /// <returns>An allocated 3D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 3D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since XY are the leading dimension, X * Y must be less or equal to
         /// <see cref="int.MaxValue"/>.
@@ -352,7 +353,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The number of elements to allocate.</param>
-        /// <returns>An allocated 3D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 3D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since YZ are the leading dimension, Y * Z must be less or equal to
         /// <see cref="int.MaxValue"/>.
@@ -382,7 +383,7 @@ namespace ILGPU.Runtime
         /// <param name="alignmentInBytes">
         /// The alignment in bytes of the leading dimension.
         /// </param>
-        /// <returns>An allocated pitched 3D buffer on the this accelerator.</returns>
+        /// <returns>An allocated pitched 3D buffer on this accelerator.</returns>
         private MemoryBuffer3D<T, TStride> Allocate3DPitched<T, TStride>(
             LongIndex3D extent,
             Stride3D.GetLeadingDimensionSize getLeadingDimensionSize,
@@ -414,7 +415,7 @@ namespace ILGPU.Runtime
         /// <param name="xyAlignmentInBytes">
         /// The alignment in bytes of the leading dimension.
         /// </param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 2D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since XY are the leading dimensions, X * Y must be less or equal to
         /// <see cref="int.MaxValue"/>.
@@ -441,7 +442,7 @@ namespace ILGPU.Runtime
         /// <param name="yzAlignmentInBytes">
         /// The alignment in bytes of the leading dimension.
         /// </param>
-        /// <returns>An allocated 3D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 3D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since YZ are the leading dimensions, Y * Z must be less or equal to
         /// <see cref="int.MaxValue"/>.

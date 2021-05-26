@@ -284,7 +284,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="length">The number of elements to allocate.</param>
         /// <param name="elementSize">The size of a single element in bytes.</param>
-        /// <returns>An allocated buffer on the this accelerator.</returns>
+        /// <returns>An allocated buffer on this accelerator.</returns>
         public MemoryBuffer AllocateRaw(long length, int elementSize)
         {
             if (length < 0)
@@ -301,7 +301,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="length">The number of elements to allocate.</param>
         /// <param name="elementSize">The size of a single element in bytes.</param>
-        /// <returns>An allocated buffer on the this accelerator.</returns>
+        /// <returns>An allocated buffer on this accelerator.</returns>
         protected abstract MemoryBuffer AllocateRawInternal(
             long length,
             int elementSize);
@@ -316,7 +316,7 @@ namespace ILGPU.Runtime
         /// <typeparam name="TStride">The buffer stride type.</typeparam>
         /// <param name="extent">The extent of the buffer.</param>
         /// <param name="stride">The buffer stride to use.</param>
-        /// <returns>An allocated n-D buffer on the this accelerator.</returns>
+        /// <returns>An allocated n-D buffer on this accelerator.</returns>
         public ArrayView<T> AllocateRaw<T, TExtent, TStrideIndex, TStride>(
             TExtent extent,
             TStride stride)
