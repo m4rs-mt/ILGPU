@@ -449,7 +449,7 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The number of elements to allocate.</param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 2D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since X is the leading dimension, X must be less or equal to
         /// <see cref="int.MaxValue"/>.
@@ -465,7 +465,7 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The number of elements to allocate.</param>
-        /// <returns>An allocated 2D buffer on the this accelerator.</returns>
+        /// <returns>An allocated 2D buffer on this accelerator.</returns>
         /// <remarks>
         /// Since Y is the leading dimension, Y must be less or equal to
         /// <see cref="int.MaxValue"/>.
