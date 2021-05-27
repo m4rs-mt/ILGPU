@@ -26,6 +26,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -382,6 +383,77 @@ namespace ILGPU
             return deviceMapping.TryGetValue(type, out var devices)
                 ? new DeviceCollection<TDevice>(devices)
                 : new DeviceCollection<TDevice>(new List<Device>());
+        }
+
+        /// <summary>
+        /// Attempts to return the most optimal single device.
+        /// </summary>
+        /// <param name="PreferCPU">Always returns CPU device 0.</param>
+        /// <returns>Selected device.</returns>
+        public Device GetBestDevice(bool PreferCPU = false)
+        {
+            if(PreferCPU)
+            {
+                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
+                    ? devices.First()
+                    : throw new NotSupportedException(
+                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+            }
+
+            var sorted = Devices.Sort((d1, d2) => d1.MemorySize.CompareTo(d2.MemorySize))
+                .Where(d => d.AcceleratorType != AcceleratorType.CPU);
+
+            if(sorted.Count() < 0)
+            {
+                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
+                    ? devices.First()
+                    : throw new NotSupportedException(
+                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+            }
+            else
+            {
+                return sorted.First();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to return the most optimal set of devices.
+        /// </summary>
+        /// <param name="PreferCPU">Always returns first CPU device.</param>
+        /// <param name="MatchingDevicesOnly">Only returns matching devices.</param>
+        /// <returns>Selected devices.</returns>
+        public IEnumerable<Device> GetBestDevices(bool PreferCPU = false, bool MatchingDevicesOnly = false)
+        {
+            if (PreferCPU)
+            {
+                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
+                    ? devices
+                    : throw new NotSupportedException(
+                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+            }
+
+            var sorted = Devices.Sort((d1, d2) => d1.MemorySize.CompareTo(d2.MemorySize))
+                                .Where(d => d.AcceleratorType != AcceleratorType.CPU);
+
+            if (sorted.Count() < 0)
+            {
+                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
+                    ? devices
+                    : throw new NotSupportedException(
+                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+            }
+            else
+            {
+                if(MatchingDevicesOnly)
+                {
+                    return sorted.Where(
+                        d => d.AcceleratorType == sorted.First().AcceleratorType);
+                }
+                else
+                {
+                    return sorted;
+                }
+            }
         }
 
         /// <summary>
