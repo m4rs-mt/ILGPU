@@ -388,43 +388,31 @@ namespace ILGPU
         /// <summary>
         /// Attempts to return the most optimal single device.
         /// </summary>
-        /// <param name="PreferCPU">Always returns CPU device 0.</param>
+        /// <param name="preferCPU">Always returns CPU device 0.</param>
         /// <returns>Selected device.</returns>
-        public Device GetBestDevice(bool PreferCPU = false)
+        public Device GetPreferredDevice(bool preferCPU)
         {
-            if(PreferCPU)
+            if (preferCPU)
             {
-                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
-                    ? devices.First()
-                    : throw new NotSupportedException(
-                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                return GetDevice<CPUDevice>(0);
             }
 
-            var sorted = Devices.Sort((d1, d2) => d1.MemorySize.CompareTo(d2.MemorySize))
+            var sorted = Devices
+                .OrderByDescending(d => d.MemorySize)
                 .Where(d => d.AcceleratorType != AcceleratorType.CPU);
 
-            if(sorted.Count() < 0)
-            {
-                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
-                    ? devices.First()
-                    : throw new NotSupportedException(
-                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
-            }
-            else
-            {
-                return sorted.First();
-            }
+            return sorted.FirstOrDefault() ?? GetDevice<CPUDevice>(0);
         }
 
         /// <summary>
         /// Attempts to return the most optimal set of devices.
         /// </summary>
-        /// <param name="PreferCPU">Always returns first CPU device.</param>
-        /// <param name="MatchingDevicesOnly">Only returns matching devices.</param>
+        /// <param name="preferCPU">Always returns first CPU device.</param>
+        /// <param name="matchingDevicesOnly">Only returns matching devices.</param>
         /// <returns>Selected devices.</returns>
-        public IEnumerable<Device> GetBestDevices(bool PreferCPU = false, bool MatchingDevicesOnly = false)
+        public IEnumerable<Device> GetPreferredDevices(bool preferCPU, bool matchingDevicesOnly)
         {
-            if (PreferCPU)
+            if (preferCPU)
             {
                 return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
                     ? devices
@@ -432,27 +420,32 @@ namespace ILGPU
                             RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
 
-            var sorted = Devices.Sort((d1, d2) => d1.MemorySize.CompareTo(d2.MemorySize))
-                                .Where(d => d.AcceleratorType != AcceleratorType.CPU);
+            var sorted = Devices
+                .OrderByDescending(d => d.MemorySize)
+                .Where(d => d.AcceleratorType != AcceleratorType.CPU);
 
-            if (sorted.Count() < 0)
+            if (sorted.Any())
             {
-                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
-                    ? devices
-                    : throw new NotSupportedException(
-                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
-            }
-            else
-            {
-                if(MatchingDevicesOnly)
+                if (matchingDevicesOnly)
                 {
+                    Device toMatch = sorted.First();
+
                     return sorted.Where(
-                        d => d.AcceleratorType == sorted.First().AcceleratorType);
+                        d =>
+                        d.AcceleratorType == toMatch.AcceleratorType &&
+                        d.MemorySize == toMatch.MemorySize);
                 }
                 else
                 {
                     return sorted;
                 }
+            }
+            else
+            {
+                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
+                    ? devices
+                    : throw new NotSupportedException(
+                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
         }
 
