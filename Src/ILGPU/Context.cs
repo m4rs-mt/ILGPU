@@ -390,19 +390,8 @@ namespace ILGPU
         /// </summary>
         /// <param name="preferCPU">Always returns CPU device 0.</param>
         /// <returns>Selected device.</returns>
-        public Device GetPreferredDevice(bool preferCPU)
-        {
-            if (preferCPU)
-            {
-                return GetDevice<CPUDevice>(0);
-            }
-
-            var sorted = Devices
-                .OrderByDescending(d => d.MemorySize)
-                .Where(d => d.AcceleratorType != AcceleratorType.CPU);
-
-            return sorted.FirstOrDefault() ?? GetDevice<CPUDevice>(0);
-        }
+        public Device GetPreferredDevice(bool preferCPU) =>
+            GetPreferredDevices(preferCPU, matchingDevicesOnly: false).First();
 
         /// <summary>
         /// Attempts to return the most optimal set of devices.
