@@ -414,21 +414,6 @@ namespace ILGPU
                 .OrderByDescending(d => d.MemorySize)
                 .Where(d => d.AcceleratorType != AcceleratorType.CPU);
 
-            //var firstItem = sorted.First();
-            //if (firstItem != null)
-            //{
-            //    if (matchingDevicesOnly)
-            //    {
-            //        return sorted.Where(
-            //            d =>
-            //            d.AcceleratorType == firstItem.AcceleratorType &&
-            //            d.MemorySize == firstItem.MemorySize);
-            //    }
-            //    else
-            //    {
-            //        return sorted;
-            //    }
-            //}
             if (sorted.Any())
             {
                 if (matchingDevicesOnly)
