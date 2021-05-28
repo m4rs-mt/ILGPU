@@ -399,7 +399,8 @@ namespace ILGPU
         /// <param name="preferCPU">Always returns first CPU device.</param>
         /// <param name="matchingDevicesOnly">Only returns matching devices.</param>
         /// <returns>Selected devices.</returns>
-        public IEnumerable<Device> GetPreferredDevices(bool preferCPU, bool matchingDevicesOnly)
+        public IEnumerable<Device> GetPreferredDevices(
+            bool preferCPU, bool matchingDevicesOnly)
         {
             if (preferCPU)
             {
@@ -413,12 +414,26 @@ namespace ILGPU
                 .OrderByDescending(d => d.MemorySize)
                 .Where(d => d.AcceleratorType != AcceleratorType.CPU);
 
+            //var firstItem = sorted.First();
+            //if (firstItem != null)
+            //{
+            //    if (matchingDevicesOnly)
+            //    {
+            //        return sorted.Where(
+            //            d =>
+            //            d.AcceleratorType == firstItem.AcceleratorType &&
+            //            d.MemorySize == firstItem.MemorySize);
+            //    }
+            //    else
+            //    {
+            //        return sorted;
+            //    }
+            //}
             if (sorted.Any())
             {
                 if (matchingDevicesOnly)
                 {
                     Device toMatch = sorted.First();
-
                     return sorted.Where(
                         d =>
                         d.AcceleratorType == toMatch.AcceleratorType &&
