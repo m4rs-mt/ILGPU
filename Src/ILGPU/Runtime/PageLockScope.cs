@@ -42,4 +42,37 @@ namespace ILGPU.Runtime
         /// </summary>
         public long LengthInBytes => Length * Interop.SizeOf<T>();
     }
+
+    /// <summary>
+    /// A null/no-op page lock scope.
+    /// </summary>
+    internal sealed class NullPageLockScope<T> : PageLockScope<T>
+        where T : unmanaged
+    {
+        /// <summary>
+        /// Constructs a page lock scope for the accelerator.
+        /// </summary>
+        /// <param name="accelerator">The associated accelerator.</param>
+        /// <param name="hostPtr">The host buffer pointer to page lock.</param>
+        /// <param name="numElements">The number of elements in the buffer.</param>
+        public NullPageLockScope(
+            Accelerator accelerator,
+            IntPtr hostPtr,
+            long numElements)
+            : base(accelerator)
+        {
+            AddrOfLockedObject = hostPtr;
+            Length = numElements;
+        }
+
+        /// <inheritdoc/>
+        public override IntPtr AddrOfLockedObject { get; }
+
+        /// <inheritdoc/>
+        public override long Length { get; }
+
+        /// <inheritdoc/>
+        protected override void DisposeAcceleratorObject(bool disposing)
+        { }
+    }
 }
