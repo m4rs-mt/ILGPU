@@ -34,33 +34,52 @@ namespace ILGPU.Runtime
             long numElements)
             : base(accelerator)
         {
-            var flags = MemHostRegisterFlags.CU_MEMHOSTREGISTER_PORTABLE;
             if (!accelerator.Device.SupportsMappingHostMemory)
             {
                 throw new NotSupportedException(
                     RuntimeErrorMessages.NotSupportedPageLock);
             }
-
-            AddrOfLockedObject = hostPtr;
+            HostPtr = hostPtr;
             Length = numElements;
 
+            var flags = MemHostRegisterFlags.CU_MEMHOSTREGISTER_PORTABLE;
+            if (!accelerator.Device.SupportsUsingHostPointerForRegisteredMemory)
+                flags |= MemHostRegisterFlags.CU_MEMHOSTREGISTER_DEVICEMAP;
             CudaException.ThrowIfFailed(
                 CurrentAPI.MemHostRegister(
                     hostPtr,
                     new IntPtr(LengthInBytes),
                     flags));
+            if (accelerator.Device.SupportsUsingHostPointerForRegisteredMemory)
+            {
+                AddrOfLockedObject = hostPtr;
+            }
+            else
+            {
+                CudaException.ThrowIfFailed(
+                    CurrentAPI.MemHostGetDevicePointer(
+                        out IntPtr devicePtr,
+                        hostPtr,
+                        0));
+                AddrOfLockedObject = devicePtr;
+            }
         }
 
         /// <inheritdoc/>
         protected override void DisposeAcceleratorObject(bool disposing) =>
             CudaException.VerifyDisposed(
                 disposing,
-                CurrentAPI.MemHostUnregister(AddrOfLockedObject));
+                CurrentAPI.MemHostUnregister(HostPtr));
 
         /// <inheritdoc/>
         public override IntPtr AddrOfLockedObject { get; }
 
         /// <inheritdoc/>
         public override long Length { get; }
+
+        /// <summary>
+        /// The host pointer used for registration.
+        /// </summary>
+        private IntPtr HostPtr { get; }
     }
 }
