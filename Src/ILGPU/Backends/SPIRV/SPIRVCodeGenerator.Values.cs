@@ -1,5 +1,4 @@
-﻿using ILGPU.IR.Types;
-using ILGPU.IR.Values;
+﻿using ILGPU.IR.Values;
 using System;
 
 namespace ILGPU.Backends.SPIRV
@@ -8,7 +7,6 @@ namespace ILGPU.Backends.SPIRV
     {
         public void GenerateCode(MethodCall methodCall) =>
             throw new NotImplementedException();
-
         public void GenerateCode(PhiValue phiValue) =>
             throw new NotImplementedException();
 

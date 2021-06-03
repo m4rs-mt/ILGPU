@@ -1,4 +1,6 @@
 using ILGPU.IR;
+using ILGPU.IR.Types;
+using System;
 using System.Collections.Generic;
 
 namespace ILGPU.Backends
@@ -10,7 +12,7 @@ namespace ILGPU.Backends
     /// <typeparam name="TKind">
     /// An enum describing the kinds (or different types) of ids.
     /// </typeparam>
-    public abstract class IdAllocator<TKind> where TKind: struct
+    public abstract class IdAllocator<TKind> where TKind : struct
     {
         #region Nested Types
 
@@ -55,16 +57,21 @@ namespace ILGPU.Backends
             /// <param name="mapping">
             /// The mapping from <see cref="BasicValueType"/> to <see cref="TKind"/>
             /// </param>
-            /// <param name="labelType">The type used for labels</param>
-            public TypeContext(Dictionary<BasicValueType, TKind> mapping, TKind labelType)
+            /// <param name="labelKind">The type used for labels</param>
+            public TypeContext(Dictionary<BasicValueType, TKind> mapping,
+                TKind labelKind,
+                TKind typeKind)
             {
                 BasicValueTypeMapping = mapping;
-                LabelType = labelType;
+                LabelKind = labelKind;
+                TypeKind = typeKind;
             }
 
             public Dictionary<BasicValueType, TKind> BasicValueTypeMapping { get; }
 
-            public TKind LabelType { get; }
+            public TKind LabelKind { get; }
+
+            public TKind TypeKind { get; }
         }
 
         #endregion
@@ -102,16 +109,16 @@ namespace ILGPU.Backends
         /// <summary>
         /// Allocates a new variable with the specified kind.
         /// </summary>
-        /// <param name="value">The value to allocate.</param>
+        /// <param name="node">The value to allocate.</param>
         /// <param name="kind">The kind this variable should be.</param>
         /// <returns>The allocated variable.</returns>
-        public IdVariable Allocate(Value value, TKind kind)
+        public IdVariable Allocate(Node node, TKind kind)
         {
-            if (lookup.TryGetValue(value.Id, out IdVariable variable))
+            if (lookup.TryGetValue(node.Id, out IdVariable variable))
                 return variable;
             variable = new IdVariable(idCounter, kind);
             idCounter++;
-            lookup.Add(value.Id, variable);
+            lookup.Add(node.Id, variable);
             return variable;
         }
 
@@ -120,31 +127,34 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="block">The block to declare (add a label to) </param>
         /// <returns>The label variable.</returns>
-        public IdVariable DeclareBlock(BasicBlock block)
-        {
-            if (lookup.TryGetValue(block.Id, out IdVariable variable))
-                return variable;
-            variable = new IdVariable(idCounter, typeContext.LabelType);
-            idCounter++;
-            lookup.Add(block.Id, variable);
-            return variable;
-        }
+        public IdVariable Allocate(BasicBlock block) =>
+            Allocate(block, typeContext.LabelKind);
 
         /// <summary>
-        /// Loads the given value.
+        /// "Allocates" a type (stores the id for it)
         /// </summary>
-        /// <param name="value">The value to load.</param>
+        /// <param name="type">The type to "allocate"</param>
+        /// <returns>The id variable referring to they type</returns>
+        public IdVariable Allocate(TypeNode type) => Allocate(type, typeContext.TypeKind);
+
+        /// <summary>
+        /// Loads the given node.
+        /// </summary>
+        /// <param name="node">The node to load.</param>
         /// <returns>The loaded variable.</returns>
-        public IdVariable Load(Value value) =>
-            lookup[value.Id];
+        public IdVariable Load(Node node) =>
+            lookup[node.Id];
 
         /// <summary>
-        /// Loads the label for the given block.
+        /// Tries to load the given node.
         /// </summary>
-        /// <param name="block">The block to load.</param>
-        /// <returns>The loaded label variable.</returns>
-        public IdVariable Load(BasicBlock block) =>
-            lookup[block.Id];
+        /// <param name="node">The node to load.</param>
+        /// <param name="variable">The loaded variable (if successful).</param>
+        /// <returns>
+        /// A bool, stating whether the variable was loaded successfully.
+        /// </returns>
+        public bool TryLoad(Node node, out IdVariable variable) =>
+            lookup.TryGetValue(node.Id, out variable);
 
         #endregion
     }

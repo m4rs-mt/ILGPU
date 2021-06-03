@@ -12,10 +12,11 @@ namespace ILGPU.Backends.SPIRV
     /// </remarks>
     public enum SPIRVIdKind
     {
-        Bool,
         Int,
         Float,
-        Label
+        Label,
+        Void,
+        Type
     }
 
     public class SPIRVIdAllocator : IdAllocator<SPIRVIdKind>
@@ -36,6 +37,7 @@ namespace ILGPU.Backends.SPIRV
                 [BasicValueType.Float16] = SPIRVIdKind.Float,
                 [BasicValueType.Float32] = SPIRVIdKind.Float,
                 [BasicValueType.Float64] = SPIRVIdKind.Float,
+                [BasicValueType.None] = SPIRVIdKind.Void
             };
 
         #endregion
@@ -44,7 +46,11 @@ namespace ILGPU.Backends.SPIRV
         /// Creates a new SPIRVIdAllocator.
         /// </summary>
         public SPIRVIdAllocator()
-            : base(new TypeContext(basicValueTypeToIdKindMapping, SPIRVIdKind.Label))
+            : base(
+                new TypeContext(mapping: basicValueTypeToIdKindMapping,
+                labelKind: SPIRVIdKind.Label,
+                typeKind: SPIRVIdKind.Type)
+            )
         {
 
         }

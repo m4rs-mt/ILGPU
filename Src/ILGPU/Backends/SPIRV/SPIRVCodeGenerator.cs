@@ -23,14 +23,12 @@ namespace ILGPU.Backends.SPIRV
             internal GeneratorArgs(
                 SPIRVBackend backend,
                 EntryPoint entryPoint,
-                SPRIVTypeGenerator generator,
                 ISPIRVBuilder builder,
                 in AllocaKindInformation sharedAllocations,
                 in AllocaKindInformation dynamicSharedAllocations)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
-                TypeGenerator = generator;
                 Builder = builder;
                 SharedAllocations = sharedAllocations;
                 DynamicSharedAllocations = dynamicSharedAllocations;
@@ -40,11 +38,6 @@ namespace ILGPU.Backends.SPIRV
             /// Returns the underlying backend.
             /// </summary>
             public SPIRVBackend Backend { get; }
-
-            /// <summary>
-            /// Returns the type generator
-            /// </summary>
-            public SPRIVTypeGenerator TypeGenerator { get; }
 
             /// <summary>
             /// Returns the current entry point.
@@ -80,6 +73,7 @@ namespace ILGPU.Backends.SPIRV
         internal SPIRVCodeGenerator(in GeneratorArgs args, Method method, Allocas allocas)
         {
             Builder = args.Builder;
+            TypeGenerator = new SPIRVTypeGenerator(this, Builder);
             Method = method;
             Allocas = allocas;
         }
@@ -89,9 +83,14 @@ namespace ILGPU.Backends.SPIRV
         #region Properties
 
         /// <summary>
-        /// Returns the associated SPIR-V Builder
+        /// Returns the associated SPIR-V Builder.
         /// </summary>
         public ISPIRVBuilder Builder { get; }
+
+        /// <summary>
+        /// Returns the associated type generator.
+        /// </summary>
+        public SPIRVTypeGenerator TypeGenerator { get; }
 
         /// <summary>
         /// Returns the associated method.
@@ -126,7 +125,7 @@ namespace ILGPU.Backends.SPIRV
             // "Allocate" (store in allocator) all the blocks
             var blocks = Method.Blocks;
             foreach (var block in blocks)
-                DeclareBlock(block);
+                Allocate(block);
 
             // Generate code
             foreach (var block in blocks)
