@@ -848,7 +848,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="event">The accelerator event.</param>
         /// <returns>The error status.</returns>
         public CudaError DestroyEvent(IntPtr @event) =>
-            cuEventDestroy(@event);
+            cuEventDestroy_v2(@event);
 
         /// <summary>
         /// Queries the status of the given event.
