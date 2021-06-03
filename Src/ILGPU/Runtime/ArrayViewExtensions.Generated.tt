@@ -715,6 +715,76 @@ namespace ILGPU.Runtime
 
         #endregion
 
+        #region Copy to/from Page Locked
+
+<# foreach (var viewName in basicFunctions) { #>
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="pageLockScope">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static void CopyToPageLockedAsync<T>(
+            this <#= viewName #> source,
+            PageLockScope<T> pageLockScope)
+            where T : unmanaged =>
+            source.BaseView.CopyToPageLockedAsync(pageLockScope);
+
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockScope">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static void CopyToPageLockedAsync<T>(
+            this <#= viewName #> source,
+            AcceleratorStream stream,
+            PageLockScope<T> pageLockScope)
+            where T : unmanaged =>
+            source.BaseView.CopyToPageLockedAsync(stream, pageLockScope);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="pageLockScope">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static void CopyFromPageLockedAsync<T>(
+            this <#= viewName #> target,
+            PageLockScope<T> pageLockScope)
+            where T : unmanaged =>
+            target.BaseView.CopyFromPageLockedAsync(pageLockScope);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockScope">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static void CopyFromPageLockedAsync<T>(
+            this <#= viewName #> target,
+            AcceleratorStream stream,
+            PageLockScope<T> pageLockScope)
+            where T : unmanaged =>
+            target.BaseView.CopyFromPageLockedAsync(stream, pageLockScope);
+
+<# } #>
+        #endregion
+
         #region GetAsArray
 
 <# foreach (var (dimension, strideName, needsTranspose) in generalDimensionStrides) { #>
