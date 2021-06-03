@@ -778,6 +778,65 @@ namespace ILGPU.Runtime
 
         #endregion
 
+        #region Page Lock Scope
+
+        /// <summary>
+        /// Creates a page lock on the already pinned array.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="pinned">The already pinned array.</param>
+        /// <param name="numElements">The number of elements in the array.</param>
+        /// <returns>A page lock scope.</returns>
+        /// <remarks>
+        /// The array must already be pinned, otherwise the behaviour is undefined.
+        /// </remarks>
+        public unsafe PageLockScope<T> CreatePageLockFromPinned<T>(
+            IntPtr pinned,
+            long numElements)
+            where T : unmanaged
+        {
+            EnsureBlittable<T>();
+            return CreatePageLockFromPinnedInternal<T>(pinned, numElements);
+        }
+
+        /// <summary>
+        /// Creates a page lock on the already pinned array.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="pinned">The already pinned array.</param>
+        /// <returns>A page lock scope.</returns>
+        /// <remarks>
+        /// The array must already be pinned, otherwise the behaviour is undefined.
+        /// </remarks>
+        public unsafe PageLockScope<T> CreatePageLockFromPinned<T>(T[] pinned)
+            where T : unmanaged
+        {
+            // The array is already pinned - "fixing" it to obtain the memory address.
+            fixed (T* ptr = pinned)
+            {
+                return CreatePageLockFromPinned<T>(
+                    new IntPtr(ptr),
+                    pinned.Length);
+            }
+        }
+
+        /// <summary>
+        /// Creates a page lock on the already pinned array.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="pinned">The already pinned array.</param>
+        /// <param name="numElements">The number of elements in the array.</param>
+        /// <returns>A page lock scope.</returns>
+        /// <remarks>
+        /// The array must already be pinned, otherwise the behaviour is undefined.
+        /// </remarks>
+        protected abstract PageLockScope<T> CreatePageLockFromPinnedInternal<T>(
+            IntPtr pinned,
+            long numElements)
+            where T : unmanaged;
+
+        #endregion
+
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>

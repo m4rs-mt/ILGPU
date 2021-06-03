@@ -468,6 +468,16 @@ namespace ILGPU.Runtime.CPU
 
         #endregion
 
+        #region Page Lock Scope
+
+        /// <inheritdoc/>
+        protected unsafe override PageLockScope<T> CreatePageLockFromPinnedInternal<T>(
+            IntPtr pinned,
+            long numElements) =>
+            throw new NotSupportedException(RuntimeErrorMessages.NotSupportedPageLock);
+
+        #endregion
+
         #region IDisposable
 
         /// <summary>
