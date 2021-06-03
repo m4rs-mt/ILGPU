@@ -703,6 +703,8 @@ namespace ILGPU.Runtime
                 stream,
                 source.IndexInBytes,
                 buffer.AsRawArrayView());
+            if (pageLockScope is NullPageLockScope<T>)
+                stream.Synchronize();
         }
 
         /// <summary>
@@ -736,6 +738,8 @@ namespace ILGPU.Runtime
                 stream,
                 buffer.AsRawArrayView(),
                 target.IndexInBytes);
+            if (pageLockScope is NullPageLockScope<T>)
+                stream.Synchronize();
         }
 
         /// <summary>
