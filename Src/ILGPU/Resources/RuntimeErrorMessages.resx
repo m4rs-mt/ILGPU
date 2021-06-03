@@ -195,6 +195,9 @@
   <data name="NotSupportedOpenCLCVersion" xml:space="preserve">
     <value>Not supported OpenCL C version (&gt;= {0} required)</value>
   </data>
+  <data name="NotSupportedPageLock" xml:space="preserve">
+    <value>Creating a page lock is not supported on the current accelerator.</value>
+  </data>
   <data name="NotSupportedPitchedAllocation" xml:space="preserve">
     <value>Not supported pitched allocation for type '{0}' and byte pitch {1}</value>
   </data>
