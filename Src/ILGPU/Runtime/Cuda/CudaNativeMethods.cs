@@ -272,6 +272,33 @@ namespace ILGPU.Runtime.Cuda
         CU_EVENT_INTERPROCESS = 4,
     }
 
+    /// <summary>
+    /// Represents flags used to register host memory with the CUDA.
+    /// </summary>
+    [Flags]
+    public enum MemHostRegisterFlags
+    {
+        /// <summary>
+        /// Host memory is portable between CUDA contexts.
+        /// </summary>
+        CU_MEMHOSTREGISTER_PORTABLE = 1,
+
+        /// <summary>
+        /// Host memory is mapped into CUDA address space.
+        /// </summary>
+        CU_MEMHOSTREGISTER_DEVICEMAP = 2,
+
+        /// <summary>
+        /// Memory pointer is treated as pointing to some memory-mapped I/O space.
+        /// </summary>
+        CU_MEMHOSTREGISTER_IOMEMORY = 4,
+
+        /// <summary>
+        /// Memory pointer is treated as pointing to memory that is considered read-only.
+        /// </summary>
+        CU_MEMHOSTREGISTER_READ_ONLY = 8,
+    }
+
     #endregion
 }
 

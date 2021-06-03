@@ -113,6 +113,19 @@
         <Parameter Name="length" Type="IntPtr" />
         <Parameter Name="stream" Type="IntPtr" />
     </Import>
+    <Import Name="cuMemHostRegister_v2">
+        <Parameter Name="hostPtr" Type="IntPtr" />
+        <Parameter Name="bytesize" Type="IntPtr" />
+        <Parameter Name="flags" Type="MemHostRegisterFlags" />
+    </Import>
+    <Import Name="cuMemHostUnregister">
+        <Parameter Name="hostPtr" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemHostGetDevicePointer_v2">
+        <Parameter Name="devicePtr" Type="IntPtr" Flags="Out"/>
+        <Parameter Name="hostPtr" Type="IntPtr" />
+        <Parameter Name="flags" Type="int" />
+    </Import>
     <Import Name="cuStreamCreate">
         <Parameter Name="stream" Type="IntPtr" Flags="Out" />
         <Parameter Name="flags" Type="StreamFlags" />
