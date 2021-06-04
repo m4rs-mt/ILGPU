@@ -14,6 +14,7 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Globalization" #>
 <#@ output extension=".cs" #>
 
 // disable: max_line_length
@@ -90,7 +91,7 @@ namespace ILGPU.Algorithms
             /// Corrects the inaccuracies gained by rotating through the <#= operation.Iterations #> iterations.
             /// NB: We are using a pre-defined number of iterations, so the scaling can be a constant value.
             /// </summary>
-            private const <#= operation.DataType #> Gain<#= operation.XMathSuffix #> = <#= kvalues[operation.Iterations - 1].ToString(operation.Format) #><#= operation.ValueSuffix #>;
+            private const <#= operation.DataType #> Gain<#= operation.XMathSuffix #> = <#= kvalues[operation.Iterations - 1].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>;
 
 <# } #>
 <#  foreach (var operation in operations) { #>
@@ -230,7 +231,7 @@ namespace ILGPU.Algorithms
                 var powerOfTwo = 1.0<#= operation.ValueSuffix #>;
 
 <# for (var i = 0; i < operation.Iterations; i++) { #>
-                NextRotateIteration(<#= angles[i].ToString(operation.Format) #><#= operation.ValueSuffix #>, ref currCos, ref currSin, ref currRadians, ref powerOfTwo);
+                NextRotateIteration(<#= angles[i].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>, ref currCos, ref currSin, ref currRadians, ref powerOfTwo);
 <# } #>
 
                 cos = currCos;
@@ -280,7 +281,7 @@ namespace ILGPU.Algorithms
                 var powerOfTwo = 1.0<#= operation.ValueSuffix #>;
 
 <# for (var i = 0; i < operation.Iterations; i++) { #>
-                NextVectorIteration(<#= angles[i].ToString(operation.Format) #><#= operation.ValueSuffix #>, ref currCos, ref currSin, ref currRadians, ref powerOfTwo);
+                NextVectorIteration(<#= angles[i].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>, ref currCos, ref currSin, ref currRadians, ref powerOfTwo);
 <# } #>
 
                 return currRadians;
@@ -334,7 +335,7 @@ namespace ILGPU.Algorithms
                 var powerOfTwo = 0.5<#= operation.ValueSuffix #>;
 
 <# for (var i = 0; i < operation.Iterations; i++) { #>
-                NextRotateHyperbolicIteration(<#= hyperbolicAngles[i].ToString(operation.Format) #><#= operation.ValueSuffix #>, ref currCosh, ref currSinh, ref currRadians, ref powerOfTwo, <#= hyperbolicNumMultiplications[i] #>);
+                NextRotateHyperbolicIteration(<#= hyperbolicAngles[i].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>, ref currCosh, ref currSinh, ref currRadians, ref powerOfTwo, <#= hyperbolicNumMultiplications[i] #>);
 <# } #>
 
                 cosh = currCosh;
@@ -390,7 +391,7 @@ namespace ILGPU.Algorithms
                 var powerOfTwo = 0.5<#= operation.ValueSuffix #>;
 
 <# for (var i = 0; i < operation.Iterations; i++) { #>
-                NextVectorHyperbolicIteration(<#= hyperbolicAngles[i].ToString(operation.Format) #><#= operation.ValueSuffix #>, ref currCosh, ref currSinh, ref currRadians, ref powerOfTwo, <#= hyperbolicNumMultiplications[i] #>);
+                NextVectorHyperbolicIteration(<#= hyperbolicAngles[i].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>, ref currCosh, ref currSinh, ref currRadians, ref powerOfTwo, <#= hyperbolicNumMultiplications[i] #>);
 <# } #>
 
                 return currRadians;
