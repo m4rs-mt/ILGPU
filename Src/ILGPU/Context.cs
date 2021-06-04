@@ -400,7 +400,8 @@ namespace ILGPU
         /// <param name="matchingDevicesOnly">Only returns matching devices.</param>
         /// <returns>Selected devices.</returns>
         public IEnumerable<Device> GetPreferredDevices(
-            bool preferCPU, bool matchingDevicesOnly)
+            bool preferCPU, 
+            bool matchingDevicesOnly)
         {
             if (preferCPU)
             {
