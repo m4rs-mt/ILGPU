@@ -670,6 +670,120 @@ namespace ILGPU.Runtime
 
         #endregion
 
+        #region Copy to/from Page Lock async
+
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockScope">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static void CopyToPageLockedAsync<T, TView>(
+            this TView source,
+            AcceleratorStream stream,
+            PageLockScope<T> pageLockScope)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged
+        {
+            if (pageLockScope == null)
+                throw new ArgumentNullException(nameof(pageLockScope));
+            if (pageLockScope.LengthInBytes < 1)
+                return;
+
+            using var buffer = CPUMemoryBuffer.Create(
+                pageLockScope.AddrOfLockedObject,
+                pageLockScope.LengthInBytes,
+                Interop.SizeOf<byte>());
+            source.Buffer.CopyTo(
+                stream,
+                source.IndexInBytes,
+                buffer.AsRawArrayView());
+            if (pageLockScope is NullPageLockScope<T>)
+                stream.Synchronize();
+        }
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockScope">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static void CopyFromPageLockedAsync<T, TView>(
+            this TView target,
+            AcceleratorStream stream,
+            PageLockScope<T> pageLockScope)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged
+        {
+            if (pageLockScope == null)
+                throw new ArgumentNullException(nameof(pageLockScope));
+            if (pageLockScope.LengthInBytes < 1)
+                return;
+
+            using var buffer = CPUMemoryBuffer.Create(
+                pageLockScope.AddrOfLockedObject,
+                pageLockScope.LengthInBytes,
+                Interop.SizeOf<byte>());
+            target.Buffer.CopyFrom(
+                stream,
+                buffer.AsRawArrayView(),
+                target.IndexInBytes);
+            if (pageLockScope is NullPageLockScope<T>)
+                stream.Synchronize();
+        }
+
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="pageLockScope">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static void CopyToPageLockedAsync<T, TView>(
+            this TView source,
+            PageLockScope<T> pageLockScope)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            CopyToPageLockedAsync<T, TView>(
+                source,
+                source.GetDefaultStream(),
+                pageLockScope);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="pageLockScope">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static void CopyFromPageLockedAsync<T, TView>(
+            this TView target,
+            PageLockScope<T> pageLockScope)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            CopyFromPageLockedAsync<T, TView>(
+                target,
+                target.GetDefaultStream(),
+                pageLockScope);
+
+        #endregion
+
         #region Array Methods
 
         /// <summary>

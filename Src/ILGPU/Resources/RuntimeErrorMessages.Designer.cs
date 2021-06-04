@@ -295,6 +295,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Creating a page lock is not supported on the current accelerator..
+        /// </summary>
+        internal static string NotSupportedPageLock {
+            get {
+                return ResourceManager.GetString("NotSupportedPageLock", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported pitched allocation for type &apos;{0}&apos; and byte pitch {1}.
         /// </summary>
         internal static string NotSupportedPitchedAllocation {

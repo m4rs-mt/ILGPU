@@ -666,6 +666,18 @@ namespace ILGPU.Runtime.Cuda
 
         #endregion
 
+        #region Page Lock Scope
+
+        /// <inheritdoc/>
+        protected unsafe override PageLockScope<T> CreatePageLockFromPinnedInternal<T>(
+            IntPtr pinned,
+            long numElements) =>
+            Device.SupportsMappingHostMemory
+            ? new CudaPageLockScope<T>(this, pinned, numElements)
+            : (PageLockScope<T>)new NullPageLockScope<T>(this, pinned, numElements);
+
+        #endregion
+
         #region IDisposable
 
         /// <summary>

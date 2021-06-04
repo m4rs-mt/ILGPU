@@ -324,6 +324,15 @@ namespace ILGPU.Runtime.Cuda
             SupportsComputePreemption = CurrentAPI.GetDeviceAttribute(
                 DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_COMPUTE_PREEMPTION_SUPPORTED,
                 DeviceId) != 0;
+
+            // Resolve whether this device supports using host memory
+            SupportsMappingHostMemory = CurrentAPI.GetDeviceAttribute(
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_CAN_MAP_HOST_MEMORY,
+                DeviceId) != 0;
+            SupportsUsingHostPointerForRegisteredMemory = CurrentAPI.GetDeviceAttribute(
+                DeviceAttributeKind.
+                    CU_DEVICE_ATTRIBUTE_CAN_USE_HOST_POINTER_FOR_REGISTERED_MEM,
+                DeviceId) != 0;
         }
 
         /// <summary>
@@ -427,9 +436,20 @@ namespace ILGPU.Runtime.Cuda
         public bool SupportsManagedMemory { get; private set; }
 
         /// <summary>
-        /// Returns true if this device support compute preemption.
+        /// Returns true if this device supports compute preemption.
         /// </summary>
         public bool SupportsComputePreemption { get; private set; }
+
+        /// <summary>
+        /// Returns true if this device supports mapping host memory.
+        /// </summary>
+        public bool SupportsMappingHostMemory { get; private set; }
+
+        /// <summary>
+        /// Returns true if this device supports using the host pointer for registered
+        /// memory.
+        /// </summary>
+        public bool SupportsUsingHostPointerForRegisteredMemory { get; private set; }
 
         /// <summary>
         /// Returns the current device driver mode.

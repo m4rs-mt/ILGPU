@@ -15,6 +15,7 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using static ILGPU.Runtime.OpenCL.CLAPI;
@@ -537,6 +538,19 @@ namespace ILGPU.Runtime.OpenCL
             minGridSize = IntrinsicMath.DivRoundUp(MaxNumThreads, workGroupSize);
 
             return workGroupSize;
+        }
+
+        #endregion
+
+        #region Page Lock Scope
+
+        /// <inheritdoc/>
+        protected unsafe override PageLockScope<T> CreatePageLockFromPinnedInternal<T>(
+            IntPtr pinned,
+            long numElements)
+        {
+            Trace.WriteLine(RuntimeErrorMessages.NotSupportedPageLock);
+            return new NullPageLockScope<T>(this, pinned, numElements);
         }
 
         #endregion

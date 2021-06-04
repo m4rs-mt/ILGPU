@@ -449,6 +449,40 @@ namespace ILGPU.Runtime.Cuda
                 attribute,
                 devicePtr);
 
+        /// <summary>
+        /// Registers an existing host memory range for use by CUDA.
+        /// </summary>
+        /// <param name="hostPtr">The host pointer.</param>
+        /// <param name="bytesize ">The size of the buffer, in bytes.</param>
+        /// <param name="flags">The flags to use.</param>
+        /// <returns>The error status.</returns>
+        public CudaError MemHostRegister(
+            IntPtr hostPtr,
+            IntPtr bytesize,
+            MemHostRegisterFlags flags) =>
+            cuMemHostRegister_v2(hostPtr, bytesize, flags);
+
+        /// <summary>
+        /// Unregisters a memory range that was registered with cuMemHostRegister.
+        /// </summary>
+        /// <param name="hostPtr">The host pointer.</param>
+        /// <returns>The error status.</returns>
+        public CudaError MemHostUnregister(IntPtr hostPtr) =>
+            cuMemHostUnregister(hostPtr);
+
+        /// <summary>
+        /// Unregisters a memory range that was registered with cuMemHostRegister.
+        /// </summary>
+        /// <param name="devicePtr">The size of the buffer, in bytes.</param>
+        /// <param name="hostPtr">The host pointer.</param>
+        /// <param name="flags">The flags to use.</param>
+        /// <returns>The error status.</returns>
+        public CudaError MemHostGetDevicePointer(
+            out IntPtr devicePtr,
+            IntPtr hostPtr,
+            int flags) =>
+            cuMemHostGetDevicePointer_v2(out devicePtr, hostPtr, flags);
+
         #endregion
 
         #region Stream Methods
@@ -814,7 +848,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="event">The accelerator event.</param>
         /// <returns>The error status.</returns>
         public CudaError DestroyEvent(IntPtr @event) =>
-            cuEventDestroy(@event);
+            cuEventDestroy_v2(@event);
 
         /// <summary>
         /// Queries the status of the given event.

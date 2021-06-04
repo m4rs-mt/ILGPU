@@ -227,7 +227,7 @@ namespace ILGPU.Tests
         {
             Assert.Equal(source.Length, expected.Length);
             for (int i = 0; i < expected.Length; ++i)
-                    Assert.Equal(expected[i], source[i]);
+                Assert.Equal(expected[i], source[i]);
         }
 
         /// <summary>
