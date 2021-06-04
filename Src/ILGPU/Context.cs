@@ -26,6 +26,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -382,6 +383,60 @@ namespace ILGPU
             return deviceMapping.TryGetValue(type, out var devices)
                 ? new DeviceCollection<TDevice>(devices)
                 : new DeviceCollection<TDevice>(new List<Device>());
+        }
+
+        /// <summary>
+        /// Attempts to return the most optimal single device.
+        /// </summary>
+        /// <param name="preferCPU">Always returns CPU device 0.</param>
+        /// <returns>Selected device.</returns>
+        public Device GetPreferredDevice(bool preferCPU) =>
+            GetPreferredDevices(preferCPU, matchingDevicesOnly: false).First();
+
+        /// <summary>
+        /// Attempts to return the most optimal set of devices.
+        /// </summary>
+        /// <param name="preferCPU">Always returns first CPU device.</param>
+        /// <param name="matchingDevicesOnly">Only returns matching devices.</param>
+        /// <returns>Selected devices.</returns>
+        public IEnumerable<Device> GetPreferredDevices(
+            bool preferCPU, 
+            bool matchingDevicesOnly)
+        {
+            if (preferCPU)
+            {
+                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
+                    ? devices
+                    : throw new NotSupportedException(
+                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+            }
+
+            var sorted = Devices
+                .OrderByDescending(d => d.MemorySize)
+                .Where(d => d.AcceleratorType != AcceleratorType.CPU);
+
+            if (sorted.Any())
+            {
+                if (matchingDevicesOnly)
+                {
+                    Device toMatch = sorted.First();
+                    return sorted.Where(
+                        d =>
+                        d.AcceleratorType == toMatch.AcceleratorType &&
+                        d.MemorySize == toMatch.MemorySize);
+                }
+                else
+                {
+                    return sorted;
+                }
+            }
+            else
+            {
+                return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
+                    ? devices
+                    : throw new NotSupportedException(
+                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+            }
         }
 
         /// <summary>
