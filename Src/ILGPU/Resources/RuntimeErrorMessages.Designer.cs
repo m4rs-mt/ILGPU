@@ -356,5 +356,23 @@ namespace ILGPU.Resources {
                 return ResourceManager.GetString("NotSupportedTotalGroupSize", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Creating an uninitialized array is not supported on the current platform..
+        /// </summary>
+        internal static string NotSupportedUninitalizedArrayInitialization {
+            get {
+                return ResourceManager.GetString("NotSupportedUninitalizedArrayInitialization", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unknown parent accelerator.
+        /// </summary>
+        internal static string UnknownParentAccelerator {
+            get {
+                return ResourceManager.GetString("UnknownParentAccelerator", resourceCulture);
+            }
+        }
     }
 }
