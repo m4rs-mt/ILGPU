@@ -422,7 +422,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
-        public static void CopyToCPUUnsafeAsync<T, TView>(
+        public static unsafe void CopyToCPUUnsafeAsync<T, TView>(
             this TView source,
             AcceleratorStream stream,
             ref T cpuData,
@@ -435,11 +435,26 @@ namespace ILGPU.Runtime
             if (length < 1)
                 return;
 
-            using var buffer = CPUMemoryBuffer.Create(ref cpuData, length);
-            source.Buffer.CopyTo(
-                stream,
-                source.IndexInBytes,
-                buffer.AsRawArrayView());
+            // Check for an aggressive page-locking mode.
+            if (source.GetPageLockingMode() == PageLockingMode.Aggressive)
+            {
+                var accelerator = source.GetAccelerator();
+                using var pageLockScope = accelerator.CreatePageLockFromPinned<T>(
+                    new IntPtr(Unsafe.AsPointer(ref cpuData)),
+                    length);
+                source.CopyToPageLockedAsync(stream, pageLockScope);
+            }
+            else
+            {
+                using var buffer = CPUMemoryBuffer.Create(
+                    source.GetAccelerator(),
+                    ref cpuData,
+                    length);
+                source.Buffer.CopyTo(
+                    stream,
+                    source.IndexInBytes,
+                    buffer.AsRawArrayView());
+            }
         }
 
         /// <summary>
@@ -477,7 +492,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
-        public static void CopyFromCPUUnsafeAsync<T, TView>(
+        public static unsafe void CopyFromCPUUnsafeAsync<T, TView>(
             this TView target,
             AcceleratorStream stream,
             ref T cpuData,
@@ -490,11 +505,26 @@ namespace ILGPU.Runtime
             if (length < 1)
                 return;
 
-            using var buffer = CPUMemoryBuffer.Create(ref cpuData, length);
-            target.Buffer.CopyFrom(
-                stream,
-                buffer.AsRawArrayView(),
-                target.IndexInBytes);
+            // Check for an aggressive page-locking mode.
+            if (target.GetPageLockingMode() == PageLockingMode.Aggressive)
+            {
+                var accelerator = target.GetAccelerator();
+                using var pageLockScope = accelerator.CreatePageLockFromPinned<T>(
+                    new IntPtr(Unsafe.AsPointer(ref cpuData)),
+                    length);
+                target.CopyFromPageLockedAsync(pageLockScope);
+            }
+            else
+            {
+                using var buffer = CPUMemoryBuffer.Create(
+                    target.GetAccelerator(),
+                    ref cpuData,
+                    length);
+                target.Buffer.CopyFrom(
+                    stream,
+                    buffer.AsRawArrayView(),
+                    target.IndexInBytes);
+            }
         }
 
         #endregion
