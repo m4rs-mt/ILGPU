@@ -216,4 +216,10 @@
   <data name="NotSupportedTotalGroupSize" xml:space="preserve">
     <value>Not supported total group size. The total group size must be &lt;= the number of available threads ({0})</value>
   </data>
+  <data name="NotSupportedUninitalizedArrayInitialization" xml:space="preserve">
+    <value>Creating an uninitialized array is not supported on the current platform.</value>
+  </data>
+  <data name="UnknownParentAccelerator" xml:space="preserve">
+    <value>Unknown parent accelerator</value>
+  </data>
 </root>
