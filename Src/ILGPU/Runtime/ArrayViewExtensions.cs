@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
+using ILGPU.Resources;
 using ILGPU.Runtime.CPU;
 using System;
 using System.Diagnostics;
@@ -151,9 +152,42 @@ namespace ILGPU.Runtime
         /// <returns>The associated parent accelerator.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Accelerator GetAccelerator<TView>(this TView view)
+            where TView : IArrayView
+        {
+            var parentBuffer = view.Buffer;
+            return parentBuffer is null
+                ? throw new InvalidOperationException(
+                    RuntimeErrorMessages.UnknownParentAccelerator)
+                : parentBuffer.Accelerator;
+        }
+
+        /// <summary>
+        /// Returns the associated parent context of the current view.
+        /// </summary>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The associated parent context.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Context GetContext<TView>(this TView view)
             where TView : IArrayView =>
-            view.Buffer.Accelerator;
+            view.GetAccelerator().Context;
+
+        /// <summary>
+        /// Returns the associated accelerator of the current view.
+        /// </summary>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The associated parent accelerator.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ContextProperties GetContextProperties<TView>(this TView view)
+            where TView : IArrayView =>
+            view.GetContext().Properties;
 
         /// <summary>
         /// Returns the associated accelerator type of the current view.
@@ -163,6 +197,7 @@ namespace ILGPU.Runtime
         /// <returns>The associated parent accelerator type.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static AcceleratorType GetAcceleratorType<TView>(this TView view)
             where TView : IArrayView =>
             view.Buffer.AcceleratorType;
@@ -175,9 +210,10 @@ namespace ILGPU.Runtime
         /// <returns>The default stream of the parent accelerator.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static AcceleratorStream GetDefaultStream<TView>(this TView view)
             where TView : IArrayView =>
-            view.GetAccelerator()?.DefaultStream ?? CPUStream.Default;
+            view.GetAccelerator().DefaultStream;
 
         #endregion
 
