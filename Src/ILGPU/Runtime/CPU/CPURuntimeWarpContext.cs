@@ -139,7 +139,7 @@ namespace ILGPU.Runtime.CPU
             /// <summary>
             /// Constructs a new allocation operation.
             /// </summary>
-            public GetShuffleMemory(MemoryBufferCache shuffleBuffer, int warpSize)
+            public GetShuffleMemory(CPUMemoryBufferCache shuffleBuffer, int warpSize)
             {
                 ShuffleBuffer = shuffleBuffer;
                 WarpSize = warpSize;
@@ -148,7 +148,7 @@ namespace ILGPU.Runtime.CPU
             /// <summary>
             /// Returns the parent context.
             /// </summary>
-            public MemoryBufferCache ShuffleBuffer { get; }
+            public CPUMemoryBufferCache ShuffleBuffer { get; }
 
             /// <summary>
             /// Returns the warp size.
@@ -179,7 +179,7 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// A temporary location for shuffle values.
         /// </summary>
-        private readonly MemoryBufferCache shuffleBuffer;
+        private readonly CPUMemoryBufferCache shuffleBuffer;
 
         /// <summary>
         /// Constructs a new CPU-based runtime context for parallel processing.
@@ -193,7 +193,7 @@ namespace ILGPU.Runtime.CPU
         {
             WarpSize = numThreadsPerWarp;
 
-            shuffleBuffer = new MemoryBufferCache(Multiprocessor.Accelerator);
+            shuffleBuffer = new CPUMemoryBufferCache(Multiprocessor.Accelerator);
             shuffleBuffer.Allocate<int>(2 * sizeof(int) * numThreadsPerWarp);
         }
 

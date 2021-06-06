@@ -80,7 +80,10 @@ namespace ILGPU.Runtime.CPU
             public readonly void ApplySyncInMainThread()
             {
                 // Allocate the requested amount of elements
-                var allocation = CPUMemoryBuffer.Create(Extent, Interop.SizeOf<T>());
+                var allocation = CPUMemoryBuffer.Create(
+                    Parent.Multiprocessor.Accelerator,
+                    Extent,
+                    Interop.SizeOf<T>());
 
                 // Publish the allocated shared memory source
                 Parent.currentSharedMemorySource = allocation;
@@ -162,6 +165,21 @@ namespace ILGPU.Runtime.CPU
         /// <returns>The number of participating threads.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int Barrier() => Multiprocessor.GroupBarrier();
+
+        /// <summary>
+        /// Performs a local-memory allocation.
+        /// </summary>
+        /// <returns>The resolved local-memory array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView<T> AllocateLocalMemory<T>(int extent)
+            where T : unmanaged
+        {
+            var buffer = CPUMemoryBuffer.Create(
+                Multiprocessor.Accelerator,
+                extent,
+                Interop.SizeOf<T>());
+            return new ArrayView<T>(buffer, 0, extent);
+        }
 
         /// <summary>
         /// Performs a dynamic shared-memory allocation.
