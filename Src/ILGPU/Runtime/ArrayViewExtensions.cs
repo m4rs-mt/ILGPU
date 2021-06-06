@@ -215,6 +215,31 @@ namespace ILGPU.Runtime
             where TView : IArrayView =>
             view.GetAccelerator().DefaultStream;
 
+        /// <summary>
+        /// Returns the current page locking mode.
+        /// </summary>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The current page locking mode.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static PageLockingMode GetPageLockingMode<TView>(this TView view)
+            where TView : IArrayView =>
+            view.GetContextProperties().PageLockingMode;
+
+        /// <summary>
+        /// Returns true if the view is attached to a context using
+        /// <see cref="PageLockingMode.Auto"/>.
+        /// </summary>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>True, if the parent context uses automatic page locking.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool UsesAutoPageLocking<TView>(this TView view)
+            where TView : IArrayView =>
+            view.GetPageLockingMode() >= PageLockingMode.Auto;
+
         #endregion
 
         #region MemSet
