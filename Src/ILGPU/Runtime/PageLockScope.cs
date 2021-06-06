@@ -23,19 +23,22 @@ namespace ILGPU.Runtime
         /// Constructs a page lock scope for the accelerator.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
-        protected PageLockScope(Accelerator accelerator)
+        /// <param name="numElements">The number of elements.</param>
+        protected PageLockScope(Accelerator accelerator, long numElements)
             : base(accelerator)
-        { }
+        {
+            Length = numElements;
+        }
 
         /// <summary>
         /// Returns the address of page locked object.
         /// </summary>
-        public abstract IntPtr AddrOfLockedObject { get; }
+        public IntPtr AddrOfLockedObject { get; protected set; }
 
         /// <summary>
         /// Returns the number of elements.
         /// </summary>
-        public abstract long Length { get; }
+        public long Length { get; }
 
         /// <summary>
         /// Returns the length of the page locked memory in bytes.
@@ -59,20 +62,12 @@ namespace ILGPU.Runtime
             Accelerator accelerator,
             IntPtr hostPtr,
             long numElements)
-            : base(accelerator)
+            : base(accelerator, numElements)
         {
             AddrOfLockedObject = hostPtr;
-            Length = numElements;
         }
 
         /// <inheritdoc/>
-        public override IntPtr AddrOfLockedObject { get; }
-
-        /// <inheritdoc/>
-        public override long Length { get; }
-
-        /// <inheritdoc/>
-        protected override void DisposeAcceleratorObject(bool disposing)
-        { }
+        protected override void DisposeAcceleratorObject(bool disposing) { }
     }
 }

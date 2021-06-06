@@ -776,6 +776,9 @@ namespace ILGPU.Runtime
             long numElements)
             where T : unmanaged
         {
+            if (numElements < 0L)
+                throw new ArgumentOutOfRangeException(nameof(numElements));
+
             EnsureBlittable<T>();
             return CreatePageLockFromPinnedInternal<T>(pinned, numElements);
         }
@@ -792,6 +795,9 @@ namespace ILGPU.Runtime
         public unsafe PageLockScope<T> CreatePageLockFromPinned<T>(T[] pinned)
             where T : unmanaged
         {
+            if (pinned is null)
+                throw new ArgumentNullException(nameof(pinned));
+
             // The array is already pinned - "fixing" it to obtain the memory address.
             fixed (T* ptr = pinned)
             {
