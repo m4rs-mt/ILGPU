@@ -874,15 +874,96 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T, TView>(
             this TView target,
             PageLockScope<T> pageLockScope)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
-            CopyFromPageLockedAsync<T, TView>(
+            CopyFromPageLockedAsync(
                 target,
                 target.GetDefaultStream(),
                 pageLockScope);
+
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToPageLockedAsync<T, TView>(
+            this TView source,
+            AcceleratorStream stream,
+            PageLockedArray<T> pageLockedArray)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            source.CopyToPageLockedAsync(
+                stream,
+                pageLockedArray.Scope);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyFromPageLockedAsync<T, TView>(
+            this TView target,
+            AcceleratorStream stream,
+            PageLockedArray<T> pageLockedArray)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            target.CopyFromPageLockedAsync(
+                stream,
+                pageLockedArray.Scope);
+
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToPageLockedAsync<T, TView>(
+            this TView source,
+            PageLockedArray<T> pageLockedArray)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            source.CopyToPageLockedAsync(pageLockedArray.Scope);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyFromPageLockedAsync<T, TView>(
+            this TView target,
+            PageLockedArray<T> pageLockedArray)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            target.CopyFromPageLockedAsync(pageLockedArray.Scope);
 
         #endregion
 
@@ -917,8 +998,57 @@ namespace ILGPU.Runtime
             if (view.HasNoData())
                 return Array.Empty<T>();
 
+            if (view.UsesAutoPageLocking())
+            {
+                // Extract the managed .Net array from the locked array, as this instance
+                // will not be disposed by the using statement.
+                using var lockedArray = view.GetAsPageLockedArray(stream);
+                return lockedArray.GetArray();
+            }
+
             var result = new T[view.Length];
             view.CopyToCPU(stream, new Span<T>(result, 0, result.Length));
+            return result;
+        }
+
+        /// <summary>
+        /// Copies the current contents into a new array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="view">The source view instance.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PageLockedArray1D<T> GetAsPageLockedArray<T>(this ArrayView<T> view)
+            where T : unmanaged =>
+            view.GetAsPageLockedArray(view.GetDefaultStream());
+
+        /// <summary>
+        /// Copies the current contents into a new array.
+        /// </summary>
+        /// <param name="view">The source view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static PageLockedArray1D<T> GetAsPageLockedArray<T>(
+            this ArrayView<T> view,
+            AcceleratorStream stream)
+            where T : unmanaged
+        {
+            if (view.HasNoData())
+                return PageLockedArray1D<T>.Empty;
+            var accelerator = view.GetAccelerator();
+#if NET5_0
+            var result = accelerator.AllocatePageLockedArray1D<T>(
+                view.Length,
+                uninitialized: true);
+#else
+            var result = accelerator.AllocatePageLockedArray1D<T>(view.Length);
+#endif
+            view.CopyToPageLockedAsync(stream, result);
+            stream.Synchronize();
             return result;
         }
 

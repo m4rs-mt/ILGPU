@@ -801,6 +801,157 @@ namespace ILGPU.Runtime
 <# } #>
         #endregion
 
+        #region Copy to/from Page Locked Array
+
+<# foreach (var (dimension, strideName, needsTranspose) in generalDimensionStrides) { #>
+<#      if (needsTranspose) continue; #>
+<#      var typeName = $"ArrayView{dimension}D"; #>
+<#      var strideTypeName = $"Stride{dimension}D"; #>
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToPageLockedAsync<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> source,
+            PageLockedArray<#= dimension #>D<T> pageLockedArray)
+            where T : unmanaged =>
+            source.CopyToPageLockedAsync(source.GetDefaultStream(), pageLockedArray);
+
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToPageLockedAsync<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> source,
+            AcceleratorStream stream,
+            PageLockedArray<#= dimension #>D<T> pageLockedArray)
+            where T : unmanaged =>
+            source.BaseView.CopyToPageLockedAsync(stream, pageLockedArray);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyFromPageLockedAsync<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> target,
+            PageLockedArray<#= dimension #>D<T> pageLockedArray)
+            where T : unmanaged =>
+            target.CopyFromPageLockedAsync(target.GetDefaultStream(), pageLockedArray);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        /// <remarks>
+<#      if (needsTranspose) { #>
+        /// CAUTION: this method transposes the data on the CPU.
+<#      } #>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyFromPageLockedAsync<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> target,
+            AcceleratorStream stream,
+            PageLockedArray<#= dimension #>D<T> pageLockedArray)
+            where T : unmanaged =>
+            target.BaseView.CopyFromPageLockedAsync(stream, pageLockedArray);
+
+<# } #>
+        #endregion
+
+        #region GetAsPageLockedArray
+
+<# foreach (var (dimension, strideName, needsTranspose) in generalDimensionStrides) { #>
+<#      if (needsTranspose) continue; #>
+<#      var typeName = $"ArrayView{dimension}D"; #>
+<#      var strideTypeName = $"Stride{dimension}D"; #>
+        /// <summary>
+        /// Copies the contents of the <#= dimension #>D view into a new
+        /// page locked <#= dimension #>D array.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PageLockedArray<#= dimension #>D<T>
+            GetAsPageLockedArray<#= dimension #>D<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view)
+            where T : unmanaged =>
+            view.GetAsPageLockedArray<#= dimension #>D(view.GetDefaultStream());
+
+        /// <summary>
+        /// Copies the contents of the <#= dimension #>D view into a new
+        /// page locked <#= dimension #>D array.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        public static PageLockedArray<#= dimension #>D<T>
+            GetAsPageLockedArray<#= dimension #>D<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view,
+            AcceleratorStream stream)
+            where T : unmanaged
+        {
+            if (view.HasNoData())
+                return PageLockedArray<#= dimension #>D<T>.Empty;
+
+            // Allocate the return array
+            var result = view
+                .GetAccelerator()
+                .AllocatePageLockedArray<#= dimension #>D<T>(view.Extent);
+
+            // Copy the data
+            view.CopyToPageLockedAsync(stream, result);
+            stream.Synchronize();
+
+            return result;
+        }
+
+<# } #>
+
+        #endregion
+
         #region GetAsArray
 
 <# foreach (var (dimension, strideName, needsTranspose) in generalDimensionStrides) { #>
