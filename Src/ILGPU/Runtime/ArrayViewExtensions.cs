@@ -296,6 +296,7 @@ namespace ILGPU.Runtime
         /// <param name="target">The target view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyTo<TView>(
             this TView source,
             in TView target)
@@ -311,6 +312,7 @@ namespace ILGPU.Runtime
         /// <param name="target">The target view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyTo<TView>(
             this TView source,
             AcceleratorStream stream,
@@ -329,6 +331,7 @@ namespace ILGPU.Runtime
         /// <param name="target">The target view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFrom<TView>(
             this TView target,
             in TView source)
@@ -344,6 +347,7 @@ namespace ILGPU.Runtime
         /// <param name="source">The source view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFrom<TView>(
             this TView target,
             AcceleratorStream stream,
@@ -369,15 +373,16 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPUUnsafeAsync<T, TView>(
             this TView source,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
             source.CopyToCPUUnsafeAsync(
                 source.GetDefaultStream(),
-                out cpuData,
+                ref cpuData,
                 length);
 
         /// <summary>
@@ -395,15 +400,13 @@ namespace ILGPU.Runtime
         public static void CopyToCPUUnsafeAsync<T, TView>(
             this TView source,
             AcceleratorStream stream,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
-
-            cpuData = default;
             if (length < 1)
                 return;
 
@@ -425,6 +428,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPUUnsafeAsync<T, TView>(
             this TView target,
             ref T cpuData,
@@ -483,15 +487,16 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T, TView>(
             this TView source,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
             source.CopyToCPU(
                 source.GetDefaultStream(),
-                out cpuData,
+                ref cpuData,
                 length);
 
         /// <summary>
@@ -506,15 +511,17 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T, TView>(
             this TView source,
             AcceleratorStream stream,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
-            source.CopyToCPUUnsafeAsync(stream, out cpuData, length);
+            // Copy async into memory
+            source.CopyToCPUUnsafeAsync(stream, ref cpuData, length);
             stream.Synchronize();
         }
 
@@ -529,6 +536,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T, TView>(
             this TView target,
             ref T cpuData,
@@ -552,6 +560,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T, TView>(
             this TView target,
             AcceleratorStream stream,
@@ -560,6 +569,7 @@ namespace ILGPU.Runtime
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
+            // Copy async into memory
             target.CopyFromCPUUnsafeAsync(stream, ref cpuData, length);
             stream.Synchronize();
         }
@@ -591,11 +601,10 @@ namespace ILGPU.Runtime
 
             fixed (T* ptr = span)
             {
-                using var buffer = CPUMemoryBuffer.Create(ptr, span.Length);
-                source.Buffer.CopyTo(
+                source.CopyToCPUUnsafeAsync(
                     stream,
-                    source.IndexInBytes,
-                    buffer.AsRawArrayView());
+                    ref Unsafe.AsRef<T>(ptr),
+                    span.Length);
                 stream.Synchronize();
             }
         }
@@ -623,11 +632,10 @@ namespace ILGPU.Runtime
 
             fixed (T* ptr = span)
             {
-                using var buffer = CPUMemoryBuffer.Create(ptr, span.Length);
-                target.Buffer.CopyFrom(
+                target.CopyFromCPUUnsafeAsync(
                     stream,
-                    buffer.AsRawArrayView(),
-                    target.IndexInBytes);
+                    ref Unsafe.AsRef<T>(ptr),
+                    span.Length);
                 stream.Synchronize();
             }
         }
@@ -663,7 +671,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
-        public static unsafe void CopyToCPU<T>(
+        public static void CopyToCPU<T>(
             this ArrayView<T> view,
             AcceleratorStream stream,
             T[] data)
@@ -790,12 +798,13 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T, TView>(
             this TView source,
             PageLockScope<T> pageLockScope)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
-            CopyToPageLockedAsync<T, TView>(
+            CopyToPageLockedAsync(
                 source,
                 source.GetDefaultStream(),
                 pageLockScope);
@@ -832,6 +841,7 @@ namespace ILGPU.Runtime
         /// <returns>A new array holding the requested contents.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T[] GetAsArray<T>(this ArrayView<T> view)
             where T : unmanaged =>
             view.GetAsArray(view.GetDefaultStream());
@@ -970,7 +980,7 @@ namespace ILGPU.Runtime
         /// <returns>An allocated buffer on this accelerator.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
-        public static unsafe MemoryBuffer1D<T, Stride1D.Dense> Allocate1D<T>(
+        public static MemoryBuffer1D<T, Stride1D.Dense> Allocate1D<T>(
             this Accelerator accelerator,
             AcceleratorStream stream,
             T[] data)
