@@ -65,11 +65,7 @@ namespace ILGPU
             where T : unmanaged
         {
             Trace.Assert(extent >= 0, "Invalid extent");
-            int elementSize = Interop.SizeOf<T>();
-            return new ArrayView<T>(
-                CPUMemoryBuffer.Create(extent * elementSize, elementSize),
-                0,
-                extent);
+            return CPURuntimeGroupContext.Current.AllocateLocalMemory<T>(extent);
         }
     }
 }
