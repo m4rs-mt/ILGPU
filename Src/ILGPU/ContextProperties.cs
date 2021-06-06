@@ -232,6 +232,33 @@ namespace ILGPU
     }
 
     /// <summary>
+    /// Internal flags to specificy the behavior of automatic page locking.
+    /// </summary>
+    public enum PageLockingMode
+    {
+        /// <summary>
+        /// All automatic page-locking allocations are disabled.
+        /// </summary>
+        /// <remarks>
+        /// This is the default setting.
+        /// </remarks>
+        Default,
+
+        /// <summary>
+        /// All implicit memory allocations are automatically page locked by default
+        /// during transfer operations. Note that externally allocated buffers need to
+        /// be page-locked explicitly by the user.
+        /// </summary>
+        Auto,
+
+        /// <summary>
+        /// All memory buffers are page-locked automatically during transfer operations.
+        /// This also affects buffers allocated by the user.
+        /// </summary>
+        Aggressive,
+    }
+
+    /// <summary>
     /// Defines global context specific properties.
     /// </summary>
     public class ContextProperties
@@ -336,6 +363,13 @@ namespace ILGPU
             CachingMode.Default;
 
         /// <summary>
+        /// Defines which buffers should be automatically page locked by default.
+        /// </summary>
+        /// <remarks><see cref="PageLockingMode.Default"/> by default.</remarks>
+        public PageLockingMode PageLockingMode { get; protected set; } =
+            PageLockingMode.Default;
+
+        /// <summary>
         /// Returns true if profiling is enabled on all streams.
         /// </summary>
         /// <remarks>Disabled by default.</remarks>
@@ -393,6 +427,7 @@ namespace ILGPU
                 StaticFieldMode = StaticFieldMode,
                 ArrayMode = ArrayMode,
                 CachingMode = CachingMode,
+                PageLockingMode = PageLockingMode,
                 EnableProfiling = EnableProfiling,
             };
 

@@ -229,6 +229,17 @@ namespace ILGPU
             }
 
             /// <summary>
+            /// Specifies the page locking mode.
+            /// </summary>
+            /// <param name="mode">The locking mode to use.</param>
+            /// <returns>The current builder instance.</returns>
+            public Builder PageLocking(PageLockingMode mode)
+            {
+                PageLockingMode = mode;
+                return this;
+            }
+
+            /// <summary>
             /// Turns on profiling of all streams.
             /// </summary>
             /// <returns>The current builder instance.</returns>
