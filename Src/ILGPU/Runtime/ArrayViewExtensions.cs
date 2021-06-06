@@ -165,7 +165,7 @@ namespace ILGPU.Runtime
         [NotInsideKernel]
         public static AcceleratorType GetAcceleratorType<TView>(this TView view)
             where TView : IArrayView =>
-            view.Buffer?.AcceleratorType ?? AcceleratorType.CPU;
+            view.Buffer.AcceleratorType;
 
         /// <summary>
         /// Returns the associated default stream of the parent accelerator.
@@ -696,6 +696,7 @@ namespace ILGPU.Runtime
                 return;
 
             using var buffer = CPUMemoryBuffer.Create(
+                source.GetAccelerator(),
                 pageLockScope.AddrOfLockedObject,
                 pageLockScope.LengthInBytes,
                 Interop.SizeOf<byte>());
@@ -731,6 +732,7 @@ namespace ILGPU.Runtime
                 return;
 
             using var buffer = CPUMemoryBuffer.Create(
+                target.GetAccelerator(),
                 pageLockScope.AddrOfLockedObject,
                 pageLockScope.LengthInBytes,
                 Interop.SizeOf<byte>());

@@ -15,7 +15,6 @@ using ILGPU.Runtime.OpenCL;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.CPU
 {
@@ -348,22 +347,22 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Represents a buffer that allocates native memory in the CPU address space.
         /// </summary>
-        sealed class UnmanagedMemoryBuffer : PointerSourceBuffer
+        class UnmanagedMemoryBuffer : PointerSourceBuffer
         {
             #region Instance
 
             /// <summary>
             /// Allocates an unmanaged memory buffer on the CPU.
             /// </summary>
-            /// <param name="accelerator">The parent accelerator (if any).</param>
+            /// <param name="accelerator">The parent accelerator.</param>
             /// <param name="length">The length of this buffer.</param>
             /// <param name="elementSize">The element size.</param>
             internal UnmanagedMemoryBuffer(
-                CPUAccelerator accelerator,
+                Accelerator accelerator,
                 long length,
                 int elementSize)
                 : base(
-                      accelerator,
+                      GetCPUAccelerator(accelerator),
                       Marshal.AllocHGlobal(new IntPtr(length * elementSize)),
                       length,
                       elementSize)
@@ -386,46 +385,31 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary>
-        /// Represents a buffer that allocates native pinned memory in the CPU address
-        /// space using the Cuda API.
+        /// Represents a buffer that allocates native page-locked memory in the CPU
+        /// address space using the <see cref="PageLockScope{T}"/> class.
         /// </summary>
-        sealed class CudaPinnedMemoryBuffer : PointerSourceBuffer
+        class PageLockedMemoryBuffer : UnmanagedMemoryBuffer
         {
-            #region Static
-
-            /// <summary>
-            /// Performs a pinned memory allocation using the Cuda API.
-            /// </summary>
-            /// <param name="sizeInBytes">The size of this buffer in bytes.</param>
-            /// <returns>The allocated pinned memory buffer.</returns>
-            private static IntPtr AllocPinned(long sizeInBytes)
-            {
-                CudaException.ThrowIfFailed(
-                    CurrentAPI.AllocateHostMemory(
-                        out IntPtr hostPtr,
-                        new IntPtr(sizeInBytes)));
-                return hostPtr;
-            }
-
-            #endregion
-
             #region Instance
 
+            private readonly PageLockScope<byte> pageLockScope;
+
             /// <summary>
-            /// Allocates an unmanaged pinned memory buffer on the CPU.
+            /// Allocates an unmanaged page-locked memory buffer on the CPU.
             /// </summary>
-            /// <param name="accelerator">The parent accelerator (not used).</param>
+            /// <param name="accelerator">The parent accelerator.</param>
             /// <param name="length">The length of this buffer.</param>
             /// <param name="elementSize">The element size.</param>
-            internal CudaPinnedMemoryBuffer(
-                CudaAccelerator accelerator,
+            internal PageLockedMemoryBuffer(
+                Accelerator accelerator,
                 long length,
                 int elementSize)
-                : base(null,
-                      AllocPinned(length * elementSize),
-                      length,
-                      elementSize)
-            { }
+                : base(accelerator, length, elementSize)
+            {
+                pageLockScope = accelerator.CreatePageLockFromPinned<byte>(
+                    NativePtr,
+                    LengthInBytes);
+            }
 
             #endregion
 
@@ -436,8 +420,9 @@ namespace ILGPU.Runtime.CPU
             /// </summary>
             protected override void DisposeAcceleratorObject(bool disposing)
             {
-                CurrentAPI.FreeHostMemory(NativePtr);
-                NativePtr = IntPtr.Zero;
+                if (disposing)
+                    pageLockScope.Dispose();
+                base.DisposeAcceleratorObject(disposing);
             }
 
             #endregion
@@ -446,102 +431,104 @@ namespace ILGPU.Runtime.CPU
         #endregion
 
         #region Static
+
+        /// <summary>
+        /// Returns either the given accelerator (if it is a <see cref="CPUAccelerator"/>)
+        /// or the default accelerator of the parent <see cref="Context"/> instance.
+        /// </summary>
+        /// <param name="accelerator">The current accelerator instance.</param>
+        /// <returns>A valid parent CPU accelerator.</returns>
+        private static CPUAccelerator GetCPUAccelerator(Accelerator accelerator) =>
+            accelerator is CPUAccelerator cpuAccelerator
+            ? cpuAccelerator
+            : accelerator.Context.GetImplicitCPUAccelerator();
+
         /// <summary>
         /// Creates a wrapped pointer memory buffer.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="accelerator">The parent accelerator.</param>
         /// <param name="value">The value reference to the variable.</param>
         /// <param name="length">The length of this source.</param>
         /// <returns>A wrapped pointer memory buffer.</returns>
-        public static unsafe CPUMemoryBuffer Create<T>(ref T value, long length)
+        public static unsafe CPUMemoryBuffer Create<T>(
+            Accelerator accelerator,
+            ref T value,
+            long length)
             where T : unmanaged =>
-            Create((T*)Unsafe.AsPointer(ref value), length);
+            Create(
+                accelerator,
+                (T*)Unsafe.AsPointer(ref value),
+                length);
 
         /// <summary>
         /// Creates a wrapped pointer memory buffer.
         /// </summary>
+        /// <param name="accelerator">The parent accelerator.</param>
         /// <param name="value">The native value pointer.</param>
         /// <param name="length">The length of this source.</param>
         /// <returns>A wrapped pointer memory buffer.</returns>
         [CLSCompliant(false)]
-        public static unsafe CPUMemoryBuffer Create<T>(T* value, long length)
+        public static unsafe CPUMemoryBuffer Create<T>(
+            Accelerator accelerator,
+            T* value,
+            long length)
             where T : unmanaged =>
-            Create(new IntPtr(value), length, Interop.SizeOf<T>());
+            Create(
+                accelerator,
+                new IntPtr(value),
+                length,
+                Interop.SizeOf<T>());
 
         /// <summary>
         /// Creates a wrapped pointer memory buffer.
         /// </summary>
+        /// <param name="accelerator">The parent accelerator.</param>
         /// <param name="ptr">The native value pointer.</param>
         /// <param name="length">The length of this source.</param>
         /// <param name="elementSize">The element size.</param>
         /// <returns>A wrapped pointer memory buffer.</returns>
         [CLSCompliant(false)]
         public static unsafe CPUMemoryBuffer Create(
+            Accelerator accelerator,
             IntPtr ptr,
             long length,
             int elementSize) =>
-            new PointerSourceBuffer(null, ptr, length, elementSize);
+            new PointerSourceBuffer(
+                accelerator,
+                ptr,
+                length,
+                elementSize);
 
         /// <summary>
         /// Creates a new unmanaged memory buffer.
         /// </summary>
+        /// <param name="accelerator">The parent accelerator.</param>
         /// <param name="length">The length to allocate.</param>
         /// <param name="elementSize">The element size.</param>
         /// <returns>An unmanaged memory buffer.</returns>
         public static unsafe CPUMemoryBuffer Create(
-            long length,
-            int elementSize) =>
-            Create(null, length, elementSize);
-
-        /// <summary>
-        /// Creates a new unmanaged memory buffer.
-        /// </summary>
-        /// <param name="accelerator">The parent accelerator (if any).</param>
-        /// <param name="length">The length to allocate.</param>
-        /// <param name="elementSize">The element size.</param>
-        /// <returns>An unmanaged memory buffer.</returns>
-        internal static unsafe CPUMemoryBuffer Create(
-            CPUAccelerator accelerator,
+            Accelerator accelerator,
             long length,
             int elementSize) =>
             new UnmanagedMemoryBuffer(accelerator, length, elementSize);
 
         /// <summary>
-        /// Creates a new unmanaged memory view source.
+        /// Creates a new page-locked unmanaged memory view source.
         /// </summary>
         /// <param name="accelerator">
-        /// The GPU accelerator to associate the pinned memory allocation with.
+        /// The GPU accelerator to associate the page-locked memory allocation with.
         /// </param>
         /// <param name="length">The length to allocate.</param>
         /// <param name="elementSize">The element size.</param>
         /// <returns>An unsafe array view source.</returns>
-        public static unsafe CPUMemoryBuffer CreateCudaPinned(
-            CudaAccelerator accelerator,
-            long length,
-            int elementSize) =>
-            new CudaPinnedMemoryBuffer(accelerator, length, elementSize);
-
-        /// <summary>
-        /// Creates a new pinned unmanaged memory view source.
-        /// </summary>
-        /// <param name="accelerator">
-        /// The GPU accelerator to associate the pinned memory allocation with.
-        /// </param>
-        /// <param name="length">The length to allocate.</param>
-        /// <param name="elementSize">The element size.</param>
-        /// <returns>An unsafe array view source.</returns>
-        public static unsafe CPUMemoryBuffer CreatePinned(
+        public static unsafe CPUMemoryBuffer CreatePageLocked(
             Accelerator accelerator,
             long length,
-            int elementSize)
-        {
-            if (accelerator is null)
-                throw new ArgumentNullException(nameof(accelerator));
-
-            return accelerator is CudaAccelerator cudaAccelerator
-                ? CreateCudaPinned(cudaAccelerator, length, elementSize)
-                : Create(accelerator as CPUAccelerator, length, elementSize);
-        }
+            int elementSize) =>
+            accelerator is null
+            ? throw new ArgumentNullException(nameof(accelerator))
+            : new PageLockedMemoryBuffer(accelerator, length, elementSize);
 
         #endregion
     }
