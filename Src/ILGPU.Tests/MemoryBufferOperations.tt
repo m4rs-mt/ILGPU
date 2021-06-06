@@ -162,7 +162,8 @@ namespace ILGPU.Tests
             // Copy each element to CPU
             for (int i = 0; i < length; ++i)
             {
-                view.SubView(i, 1).CopyToCPU(out <#= type.Type #> element, 1);
+                <#= type.Type #> element = default;
+                view.SubView(i, 1).CopyToCPU(ref element, 1);
                 Assert.Equal(element, expected[i]);
             }
 
@@ -171,7 +172,7 @@ namespace ILGPU.Tests
             fixed (<#= type.Type #>* ptr = temp)
             {
                 view.AsContiguous().CopyToCPUUnsafeAsync(
-                    out Unsafe.AsRef<<#= type.Type #>>(ptr),
+                    ref Unsafe.AsRef<<#= type.Type #>>(ptr),
                     length);
                 Accelerator.Synchronize();
                 Verify1D(temp, expected);
@@ -236,7 +237,7 @@ namespace ILGPU.Tests
             // Test strided copies
             Verify(denseY.View.AsContiguous(), contiguousExpected);
             Verify2D(denseY.View, expected);
-            Verify2D(denseX.GetAs2DArray(), denseY.GetAs2DArray());
+            Verify2D(denseX.GetAsArray2D(), denseY.GetAsArray2D());
 
             // "Scatter" to buffers
             Execute<Index2D, <#= type.Type #>>(
@@ -249,7 +250,7 @@ namespace ILGPU.Tests
                 denseX2.View.AsGeneral());
 
             Verify2D(denseY2.View, expected);
-            Verify2D(denseX2.GetAs2DArray(), expected);
+            Verify2D(denseX2.GetAsArray2D(), expected);
         }
 
 <#  } #>
@@ -289,7 +290,7 @@ namespace ILGPU.Tests
             // Test strided copies
             Verify(denseY.View.AsContiguous(), contiguousExpected);
             Verify3D(denseY.View, expected);
-            Verify3D(denseX.GetAs3DArray(), denseY.GetAs3DArray());
+            Verify3D(denseX.GetAsArray3D(), denseY.GetAsArray3D());
 
             // "Scatter" to buffers
             Execute<Index3D, <#= type.Type #>>(
@@ -302,7 +303,7 @@ namespace ILGPU.Tests
                 denseX2.View.AsGeneral());
 
             Verify3D(denseY2.View, expected);
-            Verify3D(denseX2.GetAs3DArray(), expected);
+            Verify3D(denseX2.GetAsArray3D(), expected);
         }
 
 <#  } #>

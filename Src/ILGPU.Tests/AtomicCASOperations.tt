@@ -54,7 +54,7 @@ namespace ILGPU.Tests
             var reference = new <#= type.Type #>[] { second };
             Verify(a.View, reference);
 
-            var data = d.GetAs1DArray(Accelerator.DefaultStream);
+            var data = d.GetAsArray1D(Accelerator.DefaultStream);
             bool found = false;
             for (int i = 0, e = data.Length; i < e; ++i)
             {

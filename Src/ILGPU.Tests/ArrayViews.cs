@@ -744,8 +744,8 @@ namespace ILGPU.Tests
                 alignmentInBytes,
                 value);
 
-            var prefixLengths = prefixLengthData.GetAs1DArray();
-            var mainLengths = mainLengthData.GetAs1DArray();
+            var prefixLengths = prefixLengthData.GetAsArray1D();
+            var mainLengths = mainLengthData.GetAsArray1D();
 
             // Check whether the prefix and main lengths are the same for all threads
             long prefixLength = prefixLengths[0];
