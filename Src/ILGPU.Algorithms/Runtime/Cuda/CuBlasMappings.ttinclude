@@ -1,0 +1,375 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: CuBlasMappings.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ include file="../../TypeInformation.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#+
+public static readonly (string, string)[] CuBlasTypes = new (string, string)[]
+{
+    ("float", "float"),
+    ("double", "double"),
+    ("Float2", "float"),
+    ("Double2", "double")
+};
+
+// Level 1
+
+public static readonly string[] Amax = new string[]
+{
+    "Isamax_v2",
+    "Idamax_v2",
+    "Icamax_v2",
+    "Izamax_v2",
+};
+
+public static readonly string[] Amin = new string[]
+{
+    "Isamin_v2",
+    "Idamin_v2",
+    "Icamin_v2",
+    "Izamin_v2",
+};
+
+public static readonly string[] Asum = new string[]
+{
+    "Sasum_v2",
+    "Dasum_v2",
+    "Scasum_v2",
+    "Dzasum_v2",
+};
+
+public static readonly string[] Axpy = new string[]
+{
+    "Saxpy_v2",
+    "Daxpy_v2",
+    "Caxpy_v2",
+    "Zaxpy_v2",
+};
+
+public static readonly string[] Dot = new string[]
+{
+    "Sdot_v2",
+    "Ddot_v2",
+    "Cdotu_v2",
+    "Cdotc_v2",
+};
+
+public static readonly string[] Nrm2 = new string[]
+{
+    "Snrm2_v2",
+    "Dnrm2_v2",
+    "Scnrm2_v2",
+    "Dznrm2_v2"
+};
+
+public static readonly string[] Rot = new string[]
+{
+    "Srot_v2",
+    "Drot_v2",
+    "Csrot_v2",
+    "Zdrot_v2"
+};
+
+public static readonly string[] RotG = new string[]
+{
+    "Srotg_v2",
+    "Drotg_v2",
+    "Crotg_v2",
+    "Zrotg_v2"
+};
+
+public static readonly string[] RotM = new string[]
+{
+    "Srotm_v2",
+    "Drotm_v2",
+};
+
+public static readonly string[] Scal = new string[]
+{
+    "Sscal_v2",
+    "Dscal_v2",
+    "Cscal_v2",
+    "Zscal_v2",
+};
+
+public static readonly string[] Swap = new string[]
+{
+    "Sswap_v2",
+    "Dswap_v2",
+    "Cswap_v2",
+    "Zswap_v2",
+};
+
+// Level 2
+
+public static readonly string[] Gbmv = new string[]
+{
+    "Sgbmv_v2",
+    "Dgbmv_v2",
+    "Cgbmv_v2",
+    "Zgbmv_v2",
+};
+
+public static readonly string[] Gemv = new string[]
+{
+    "Sgemv_v2",
+    "Dgemv_v2",
+    "Cgemv_v2",
+    "Zgemv_v2",
+};
+
+public static readonly string[] Ger = new string[]
+{
+    "Sger_v2",
+    "Dger_v2",
+    "Cgeru_v2",
+    "Zgeru_v2",
+};
+
+public static readonly string[] Sbmv = new string[]
+{
+    "Ssbmv_v2",
+    "Dsbmv_v2",
+    "Chbmv_v2",
+    "Zhbmv_v2",
+};
+
+public static readonly string[] Spmv = new string[]
+{
+    "Sspmv_v2",
+    "Dspmv_v2",
+    "Chpmv_v2",
+    "Zhpmv_v2",
+};
+
+public static readonly string[] Spr = new string[]
+{
+    "Sspr_v2",
+    "Dspr_v2",
+    "Chpr_v2",
+    "Zhpr_v2",
+};
+
+public static readonly string[] Spr2 = new string[]
+{
+    "Sspr2_v2",
+    "Dspr2_v2",
+    "Chpr2_v2",
+    "Zhpr2_v2",
+};
+
+public static readonly string[] Symv = new string[]
+{
+    "Ssymv_v2",
+    "Dsymv_v2",
+    "Csymv_v2",
+    "Zsymv_v2",
+};
+
+public static readonly string[] Syr = new string[]
+{
+    "Ssyr_v2",
+    "Dsyr_v2",
+    "Csyr_v2",
+    "Zsyr_v2",
+};
+
+public static readonly string[] Syr2 = new string[]
+{
+    "Ssyr2_v2",
+    "Dsyr2_v2",
+    "Csyr2_v2",
+    "Zsyr2_v2",
+};
+
+public static readonly string[] Tbmv = new string[]
+{
+    "Stbmv_v2",
+    "Dtbmv_v2",
+    "Ctbmv_v2",
+    "Ztbmv_v2",
+};
+
+public static readonly string[] Tbsv = new string[]
+{
+    "Stbsv_v2",
+    "Dtbsv_v2",
+    "Ctbsv_v2",
+    "Ztbsv_v2",
+};
+
+public static readonly string[] Tpmv = new string[]
+{
+    "Stpmv_v2",
+    "Dtpmv_v2",
+    "Ctpmv_v2",
+    "Ztpmv_v2",
+};
+
+public static readonly string[] Tpsv = new string[]
+{
+    "Stpsv_v2",
+    "Dtpsv_v2",
+    "Ctpsv_v2",
+    "Ztpsv_v2",
+};
+
+public static readonly string[] Trmv = new string[]
+{
+    "Strmv_v2",
+    "Dtrmv_v2",
+    "Ctrmv_v2",
+    "Ztrmv_v2",
+};
+
+public static readonly string[] Trsv = new string[]
+{
+    "Strsv_v2",
+    "Dtrsv_v2",
+    "Ctrsv_v2",
+    "Ztrsv_v2",
+};
+
+// Level 3
+
+public static readonly string[] Gemm = new string[]
+{
+    "Sgemm_v2",
+    "Dgemm_v2",
+    "Cgemm_v2",
+    "Zgemm_v2",
+};
+
+public static readonly string[] Symm = new string[]
+{
+    "Ssymm_v2",
+    "Dsymm_v2",
+    "Csymm_v2",
+    "Zsymm_v2",
+};
+
+public static readonly string[] Syrk = new string[]
+{
+    "Ssyrk_v2",
+    "Dsyrk_v2",
+    "Csyrk_v2",
+    "Zsyrk_v2",
+};
+
+public static readonly string[] Syr2k = new string[]
+{
+    "Ssyr2k_v2",
+    "Dsyr2k_v2",
+    "Csyr2k_v2",
+    "Zsyr2k_v2",
+};
+
+public static readonly string[] Syrkx = new string[]
+{
+    "Ssyrkx",
+    "Dsyrkx",
+    "Csyrkx",
+    "Zsyrkx",
+};
+
+public static readonly string[] Trmm = new string[]
+{
+    "Strmm_v2",
+    "Dtrmm_v2",
+    "Ctrmm_v2",
+    "Ztrmm_v2",
+};
+
+public static readonly string[] Trsm = new string[]
+{
+    "Strsm_v2",
+    "Dtrsm_v2",
+    "Ctrsm_v2",
+    "Ztrsm_v2",
+};
+
+// Extensions
+
+public static readonly string[] Geam = new string[]
+{
+    "Sgeam",
+    "Dgeam",
+    "Cgeam",
+    "Zgeam",
+};
+
+public static readonly string[] Dgmm = new string[]
+{
+    "Sdgmm",
+    "Ddgmm",
+    "Cdgmm",
+    "Zdgmm",
+};
+
+// Helper
+
+public static IEnumerable<(T, string, string)> GetBlasMapping<T>(params T[] values)
+{
+    for (int i = 0; i < values.Length; ++i)
+    {
+        var (type, elemType) = CuBlasTypes[i];
+        yield return (values[i], type, elemType);
+    }
+}
+
+public static IEnumerable<(string, T, string, string)> GetBlasMapping<T>(params (string, T[])[] bindings)
+{
+    foreach (var (entry, values) in bindings)
+    {
+        for (int i = 0; i < values.Length; ++i)
+        {
+            var (type, elemType) = CuBlasTypes[i];
+            yield return (entry, values[i], type, elemType);
+        }
+    }
+}
+
+public static IEnumerable<(string, T, string, string, string, Func<string, string>, string)> GetBlasMappingHostDevice<T>(
+    params (string, T[])[] bindings) =>
+    GetBlasMappingHostDevice(false, bindings);
+
+public static IEnumerable<(string, T, string, string, string, Func<string, string>, string)> GetBlasMappingHostDevice<T>(
+    bool byRef,
+    params (string, T[])[] bindings)
+{
+    foreach (var (entry, func, type, elemType) in GetBlasMapping(bindings))
+    {
+        // Emit the default operand type
+        if (byRef)
+            yield return (entry, func, type, elemType,
+                "ref " + type, name => $"Unsafe.AsPointer(ref {name})",
+                "EnsurePointerMode(CuBlasPointerMode.Host)");
+        else
+            yield return (entry, func, type, elemType,
+                type, name => $"Unsafe.AsPointer(ref {name})",
+                "EnsurePointerMode(CuBlasPointerMode.Host)");
+
+        // Emit the view operand type
+        yield return (entry, func, type, elemType,
+            $"ArrayView<{type}>", name => $"LoadCuBlasAddress({name})",
+            "EnsurePointerMode(CuBlasPointerMode.Device)");
+    }
+}
+
+public static IEnumerable<(string, string)> GetBlasEntries(params string[][] bindings)
+{
+    foreach (var values in bindings)
+        foreach (var value in values)
+            yield return (value, "cublas" + value);
+}
+#>

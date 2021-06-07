@@ -1,0 +1,248 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: XMathTests.Round.tt/XMathTests.Round.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="XMathTests.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+using ILGPU.Runtime;
+using ILGPU.Tests;
+using System;
+using Xunit;
+
+// disable: max_line_length
+
+<#
+    var roundFunctions = new []
+    {
+        new RoundFunction(
+            "RoundAwayFromZero",
+            "float",
+            "{0}.Round({1}, MidpointRounding.AwayFromZero)"),
+        new RoundFunction(
+            "RoundAwayFromZero",
+            "double",
+            "{0}.Round({1}, MidpointRounding.AwayFromZero)"),
+
+        new RoundFunction(
+            "RoundToEven",
+            "float",
+            "{0}.Round({1}, MidpointRounding.ToEven)"),
+        new RoundFunction(
+            "RoundToEven",
+            "double",
+            "{0}.Round({1}, MidpointRounding.ToEven)"),
+
+        new RoundFunction("Truncate",   "float" ,   "{0}.Truncate({1})"),
+        new RoundFunction("Truncate",   "double",   "{0}.Truncate({1})"),
+
+        new RoundFunction("Floor",      "float" ,   "{0}.Floor({1})"),
+        new RoundFunction("Floor",      "double",   "{0}.Floor({1})"),
+
+        new RoundFunction("Ceiling",    "float" ,   "{0}.Ceiling({1})"),
+        new RoundFunction("Ceiling",    "double",   "{0}.Ceiling({1})"),
+
+        // Round(floatType, int)
+        new RoundFunction(
+            "Round4",
+            "Round",
+            "float",
+            4,
+            null,
+            "{0}.Round({1}, {2})"),
+        new RoundFunction(
+            "Round4",
+            "Round",
+            "double",
+            4,
+            null,
+            "{0}.Round({1}, {2})"),
+
+        // Round(floatType, MidpointRounding)
+        new RoundFunction(
+            "RoundModeToZero",
+            "Round",
+            "float",
+            null,
+            2, // MidpointRounding.ToZero
+            "{0}.Round({1}, (MidpointRounding){3})"),
+        new RoundFunction(
+            "RoundModeToZero",
+            "Round",
+            "double",
+            null,
+            2, // MidpointRounding.ToZero
+            "{0}.Round({1}, (MidpointRounding){3})"),
+
+        // Round(floatType, int, MidpointRounding)
+        new RoundFunction(
+            "Round6ToPositiveInfinity",
+            "Round",
+            "float",
+            6,
+            4, // MidpointRounding.ToPositiveInfinity
+            "{0}.Round({1}, {2}, (MidpointRounding){3})"),
+        new RoundFunction(
+            "Round6ToPositiveInfinity",
+             "Round",
+            "double",
+            6,
+            4, // MidpointRounding.ToPositiveInfinity
+            "{0}.Round({1}, {2}, (MidpointRounding){3})"),
+
+    };
+#>
+namespace ILGPU.Algorithms.Tests
+{
+    partial class XMathTests
+    {
+<#
+    // Share the theory data per float data type.
+    var roundingDataTypes =
+        roundFunctions
+        .GroupBy(x => x.DataType)
+        .Select(x => x.First());
+    foreach (var function in roundingDataTypes) {
+#>
+        public static TheoryData<<#= function.DataType #>>
+            Rounding<#= ToUpperFirst(function.DataType) #>TestData =>
+            new TheoryData<<#= function.DataType #>>
+            {
+                0.0<#= function.ValueSuffix #>,
+                0.4<#= function.ValueSuffix #>,
+                0.5<#= function.ValueSuffix #>,
+                0.6<#= function.ValueSuffix #>,
+                1.0<#= function.ValueSuffix #>,
+                2.1<#= function.ValueSuffix #>,
+                2.8<#= function.ValueSuffix #>,
+                2.5<#= function.ValueSuffix #>,
+                3.5<#= function.ValueSuffix #>,
+#if NETFRAMEWORK
+                (<#= function.DataType #>)Math.Pow(2, 53),
+#else
+                Math<#= function.MathSuffix #>.Pow(2, 53),
+#endif
+                -0.0<#= function.ValueSuffix #>,
+                -0.4<#= function.ValueSuffix #>,
+                -0.5<#= function.ValueSuffix #>,
+                -0.6<#= function.ValueSuffix #>,
+                -1.0<#= function.ValueSuffix #>,
+                -2.1<#= function.ValueSuffix #>,
+                -2.5<#= function.ValueSuffix #>,
+                -2.8<#= function.ValueSuffix #>,
+                -3.5<#= function.ValueSuffix #>,
+#if NETFRAMEWORK
+                (<#= function.DataType #>)-Math.Pow(2, 53),
+#else
+                -Math<#= function.MathSuffix #>.Pow(2, 53),
+#endif
+                <#= function.DataType #>.NaN,
+                <#= function.DataType #>.PositiveInfinity,
+                <#= function.DataType #>.NegativeInfinity,
+            };
+
+<# } #>
+<#
+    foreach (var function in roundFunctions)
+    {
+        // net47 and netstandard2.1 only support MidpointRounding.ToEven (0)
+        // and MidpointRounding.AwayFromZero (1).
+        bool restrictedRoundingMode =
+            function.RoundingMode.HasValue &&
+            function.RoundingMode.Value > (int)MidpointRounding.AwayFromZero;
+        if (restrictedRoundingMode)
+        {
+#>
+
+#if !NETFRAMEWORK // If MidpointRounding mode not supported
+<#      } #>
+        internal static void <#= function.KernelName #>(
+            Index1D index,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> input,
+            ArrayView1D<<#= function.DataType #>, Stride1D.Dense> output)
+        {
+            output[index] = XMath.<#= function.MethodName #>(input[index]
+<#      if (function.Digits.HasValue) { #>
+                , <#= function.Digits.Value #>
+<#      } #>
+<#      if (function.RoundingMode.HasValue) { #>
+                , (MidpointRounding)<#= function.RoundingMode.Value #>
+<#      } #>
+                );
+        }
+
+        [Theory]
+        [MemberData(nameof(Rounding<#= ToUpperFirst(function.DataType) #>TestData))]
+        [KernelMethod(nameof(<#= function.KernelName #>))]
+        public void <#= function.TestName #>(<#= function.DataType #> value)
+        {
+            var expected = new[]
+            {
+#if NETFRAMEWORK
+                <#= string.Format(
+                        function.ExpectedFormatString,
+                        "(" + function.DataType + ")Math",
+                        "value",
+                        function.Digits,
+                        function.RoundingMode)
+                #>
+#else
+                <#= string.Format(
+                        function.ExpectedFormatString,
+                        "Math" + function.MathSuffix,
+                        "value",
+                        function.Digits,
+                        function.RoundingMode)
+                #>
+#endif
+            };
+            using var input = Accelerator.Allocate1D<<#= function.DataType #>>(1);
+            using var output = Accelerator.Allocate1D<<#= function.DataType #>>(1);
+
+            input.View.CopyFromCPU(ref value, 1L);
+            Execute(input.Length, input.View, output.View);
+            Verify(output.View, expected);
+        }
+
+<# if (restrictedRoundingMode) { #>
+#endif
+<#      } #>
+<# } #>
+    }
+}
+<#+
+    class RoundFunction : XMathFunctionBase
+    {
+        public RoundFunction(string name, string dataType, string expectedFormatString)
+            : this(name, name, dataType, default, default, expectedFormatString)
+        { }
+
+        public RoundFunction(
+            string name,
+            string methodName,
+            string dataType,
+            int? digits,
+            int? mode,
+            string expectedFormatString)
+            : base(name, dataType)
+        {
+            MethodName = methodName;
+            ExpectedFormatString = expectedFormatString;
+            Digits = digits;
+            RoundingMode = mode;
+        }
+
+        public string MethodName { get; }
+        public string ExpectedFormatString { get; }
+        public int? Digits { get; }
+        public int? RoundingMode { get; }
+    }
+#>

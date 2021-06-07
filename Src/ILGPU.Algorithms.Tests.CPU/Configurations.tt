@@ -1,0 +1,46 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="../../ILGPU/Src/ILGPU.Tests/Generic/ConfigurationBase.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+using ILGPU.IR.Transformations;
+using ILGPU.Tests.CPU;
+using Xunit;
+using Xunit.Abstractions;
+
+<#
+var configurationFile = Host.ResolvePath("../ILGPU.Algorithms.Tests/Configurations.txt");
+var configurations = TestConfig.Parse(configurationFile, out var levels);
+#>
+namespace ILGPU.Algorithms.Tests.CPU
+{
+<# foreach (var optLevel in levels) { #>
+    public class CPUTestContext<#= optLevel #> : CPUTestContext
+    {
+        public CPUTestContext<#= optLevel #>()
+            : base(
+                OptimizationLevel.<#= optLevel #>,
+                builder => builder.EnableAlgorithms())
+        { }
+    }
+
+    [CollectionDefinition("CPUContextCollection<#= optLevel #>")]
+    public class CPUContextCollection<#= optLevel #> :
+        ICollectionFixture<CPUTestContext<#= optLevel #>> { }
+
+<# } #>
+<# foreach (var config in configurations) { #>
+<#      foreach (var optLevel in config.OptimizationLevels) { #>
+<#      var name = "CPU" + config.Name + "_" + optLevel; #>
+    [Collection("CPUContextCollection<#= optLevel #>")]
+    public sealed partial class <#= name #> : <#= config.Name #>
+    {
+        public <#= name #>(
+            ITestOutputHelper output,
+            CPUTestContext<#= optLevel #> testContext)
+            : base(output, testContext)
+        { }
+    }
+
+<#      } #>
+<# } #>
+}

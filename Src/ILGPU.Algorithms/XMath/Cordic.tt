@@ -1,0 +1,404 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: Cordic.tt/Cordic.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="Cordic.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Globalization" #>
+<#@ output extension=".cs" #>
+
+// disable: max_line_length
+
+<#
+    // Pre-calculate a table of inverse tangents of negative powers of two, in radians.
+    // i.e. angles = atan(2.^(-i))
+    //
+    // This table is used by the CORDIC algorithm to compute sine/cosine in rotation mode, and inverse tangent in vectoring mode.
+    //
+    var angles = new double[maxIterations];
+    var kvalues = new double[maxIterations];
+
+    for (var i = 0; i < maxIterations; i++)
+        angles[i] = Math.Atan(Math.Pow(2, -i));
+
+    // A table of products of reciprocal lengths
+    // i.e. kvalues = cumprod(cos(atan(2.^(-i))
+    //
+    // CORDIC rotations accumulate errors with each rotation.
+    // Pre-calculate a table of 'corrections' that will be used by the CORDIC algorithm to scale the final result.
+    //
+    kvalues[0] = Math.Cos(angles[0]);
+    for (var i = 1; i < kvalues.Length; i++)
+        kvalues[i] = kvalues[i - 1] * Math.Cos(angles[i]);
+
+    // For hyperbolic mode, pre-calculate a table of inverse hyperbolic tangents of negative powers of two.
+    // i.e. hyperbolicAngles = atanh(2.^(-i))
+    //                       = 0.5 * ln ((1 + 2.^(-i)) / 1 - 2.^(-i))
+    //
+    var hyperbolicAngles = new double[maxIterations];
+
+    for (var i = 0; i < maxIterations; i++)
+    {
+        var h = Math.Pow(2, -(i + 1));
+        hyperbolicAngles[i] = 0.5 * Math.Log((1.0 + h) / (1.0 - h));
+    }
+
+    // Hyperbolic mode applies a second multiplication every 3k + 1 iterations.
+    // i.e. 4, 13, 40, 121... k, 3k + 1
+    var hyperbolicNumMultiplications = new int[maxIterations];
+    var k = 4;
+
+    hyperbolicNumMultiplications[0] = 1;
+    for (var i = 1; i < maxIterations; i++)
+    {
+        if (i == k - 1)
+        {
+            hyperbolicNumMultiplications[i] = 2;
+            k = 3 * k + 1;
+        }
+        else
+            hyperbolicNumMultiplications[i] = 1;
+    }
+#>
+using ILGPU.Util;
+using System.Runtime.CompilerServices;
+
+namespace ILGPU.Algorithms
+{
+    partial class XMath
+    {
+        /// <summary>
+        /// Implementation of trigonometric/hyperbolic rotation and vector mode functions using CORDIC approximation.
+        /// https://en.wikipedia.org/wiki/CORDIC
+        ///
+        /// NB: CORDIC is typically implemented using a lookup table with angles. However, since
+        /// these are not currently available, we unroll the loop.
+        /// </summary>
+        internal static partial class Cordic
+        {
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Corrects the inaccuracies gained by rotating through the <#= operation.Iterations #> iterations.
+            /// NB: We are using a pre-defined number of iterations, so the scaling can be a constant value.
+            /// </summary>
+            private const <#= operation.DataType #> Gain<#= operation.XMathSuffix #> = <#= kvalues[operation.Iterations - 1].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>;
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Corrects the inaccuracies gained by rotating through the <#= operation.Iterations #> iterations.
+            /// NB: We are using a pre-defined number of iterations, so the scaling can be a constant value.
+            /// </summary>
+            private static readonly <#= operation.DataType #> HyperbolicGain<#= operation.XMathSuffix #> = HyperbolicGainFromCoshZero<#= operation.XMathSuffix #>();
+
+<# } #>
+            #region Utilities
+
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Calculates the inaccuracy gained by calculating the baseline of Cosh(0).
+            /// </summary>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static <#= operation.DataType #> HyperbolicGainFromCoshZero<#= operation.XMathSuffix #>()
+            {
+                // Cosh(0) should return 1. Any differences reflects inaccuracies in the CORDIC algorithm.
+                //
+                // Ideally, we should be able to calculate cumprod(Cosh(Atanh(2.^(-i)))), similar to the
+                // standard/circular CORDIC algorithm. However, the idealized constant converges at 1.2051,
+                // where-as our hyperbolic CORDIC algorithm produces a gain of 1.2075. As a workaround,
+                // calculate the gain at runtime using the real CORDIC algorithm.
+
+                // Apply <#= operation.Iterations #> iterations.
+                RotateHyperbolicIterations(0.0<#= operation.ValueSuffix #>, out var cosh, out _);
+                return 1.0<#= operation.ValueSuffix #> / cosh;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Performs the common matrix multiplication used by CORDIC (a 2x2 matrix with a 2x1 matrix).
+            /// </summary>
+            /// <param name="cos">The current cosine value. Filled in with the result cosine value</param>
+            /// <param name="sin">The current sine value. Filled in with the result sine value</param>
+            /// <param name="factor">The multiplication factor</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void MatrixMultiply(ref <#= operation.DataType #> cos, ref <#= operation.DataType #> sin, <#= operation.DataType #> factor)
+            {
+                // Matrix multiplication
+                // [ 1     , -factor ] [ currCos ]
+                // [ factor, 1       ] [ currSin ]
+                var currCos = cos;
+                var currSin = sin;
+                var nextCos = currCos - (currSin * factor);
+                var nextSin = (currCos * factor) + currSin;
+
+                cos = nextCos;
+                sin = nextSin;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Multiplies a 2x2 matrix with a 2x1 matrix for hyperbolic iterations.
+            /// </summary>
+            /// <param name="cosh">The current hyperbolic cosine value. Filled in with the result hyperbolic cosine value</param>
+            /// <param name="sinh">The current hyperbolic sine value. Filled in with the result hyperbolic sine value</param>
+            /// <param name="factor">The multiplication factor</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void MatrixMultiplyHyperbolic(ref <#= operation.DataType #> cosh, ref <#= operation.DataType #> sinh, <#= operation.DataType #> factor)
+            {
+                // Matrix multiplication
+                // [ 1     , factor ] [ currCos ]
+                // [ factor, 1      ] [ currSin ]
+                var currCosh = cosh;
+                var currSinh = sinh;
+                var nextCosh = currCosh + (currSinh * factor);
+                var nextSinh = (currCosh * factor) + currSinh;
+
+                cosh = nextCosh;
+                sinh = nextSinh;
+            }
+
+<# } #>
+            #endregion
+
+            #region Trigonometric
+
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Ensures that the radians are within the range [-PI, PI]
+            /// </summary>
+            /// <param name="radians">The angle in radians</param>
+            /// <returns>The angle, in radians</returns>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static <#= operation.DataType #> RangeLimit(<#= operation.DataType #> radians)
+            {
+                while (radians < -PI<#= operation.XMathSuffix #>)
+                    radians += 2 * PI<#= operation.XMathSuffix #>;
+                while (radians > PI<#= operation.XMathSuffix #>)
+                    radians -= 2 * PI<#= operation.XMathSuffix #>;
+                return radians;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the next iteration of CORDIC rotation
+            /// </summary>
+            /// <param name="angle">The angle for this iteration</param>
+            /// <param name="cos">The current cosine value</param>
+            /// <param name="sin">The current sine value</param>
+            /// <param name="radians">The current radians value</param>
+            /// <param name="powerOfTwo">The current multiplier</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void NextRotateIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cos, ref <#= operation.DataType #> sin, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo)
+            {
+                var sigma = Utilities.Select(radians < 0, -1, 1);
+                var factor = sigma * powerOfTwo;
+
+                MatrixMultiply(ref cos, ref sin, factor);
+
+                // Update the remaining angle
+                radians -= sigma * angle;
+                powerOfTwo /= 2.0<#= operation.ValueSuffix #>;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the iterations of CORDIC rotations
+            /// </summary>
+            /// <param name="radians">The radians value</param>
+            /// <param name="cos">Filled in with result cosine value</param>
+            /// <param name="sin">Filled in with result sine value</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void RotateIterations(<#= operation.DataType #> radians, out <#= operation.DataType #> cos, out <#= operation.DataType #> sin)
+            {
+                // Apply <#= operation.Iterations #> iterations.
+                var currCos = 1.0<#= operation.ValueSuffix #>;
+                var currSin = 0.0<#= operation.ValueSuffix #>;
+                var currRadians = radians;
+                var powerOfTwo = 1.0<#= operation.ValueSuffix #>;
+
+<# for (var i = 0; i < operation.Iterations; i++) { #>
+                NextRotateIteration(<#= angles[i].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>, ref currCos, ref currSin, ref currRadians, ref powerOfTwo);
+<# } #>
+
+                cos = currCos;
+                sin = currSin;
+            }
+
+<# } #>
+            #endregion
+
+            #region Inverse Trigonometric
+
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the next iteration of CORDIC vectoring
+            /// </summary>
+            /// <param name="angle">The angle for this iteration</param>
+            /// <param name="cos">The current cosine value</param>
+            /// <param name="sin">The current sine value</param>
+            /// <param name="radians">The current radians value</param>
+            /// <param name="powerOfTwo">The current multiplier</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void NextVectorIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cos, ref <#= operation.DataType #> sin, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo)
+            {
+                var sigma = Utilities.Select(sin >= 0, -1, 1);
+                var factor = sigma * powerOfTwo;
+
+                MatrixMultiply(ref cos, ref sin, factor);
+
+                radians -= sigma * angle;
+                powerOfTwo /= 2.0<#= operation.ValueSuffix #>;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the iterations of CORDIC vectoring
+            /// </summary>
+            /// <param name="target">The target sine value</param>
+            /// <returns>The angle in radians</returns>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static <#= operation.DataType #> VectorIterations(<#= operation.DataType #> target)
+            {
+                // Apply <#= operation.Iterations #> iterations.
+                var currCos = 1.0<#= operation.ValueSuffix #>;
+                var currSin = target;
+                var currRadians = 0.0<#= operation.ValueSuffix #>;
+                var powerOfTwo = 1.0<#= operation.ValueSuffix #>;
+
+<# for (var i = 0; i < operation.Iterations; i++) { #>
+                NextVectorIteration(<#= angles[i].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>, ref currCos, ref currSin, ref currRadians, ref powerOfTwo);
+<# } #>
+
+                return currRadians;
+            }
+
+<# } #>
+            #endregion
+
+            #region Hyperbolic
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the next iteration of CORDIC hyperbolic rotation
+            /// </summary>
+            /// <param name="angle">The angle for this iteration</param>
+            /// <param name="cosh">The current cosh value</param>
+            /// <param name="sinh">The current sinh value</param>
+            /// <param name="radians">The current radians value</param>
+            /// <param name="powerOfTwo">The current multiplier</param>
+            /// <param name="numMultiplications">The number of multiplications in this loop</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void NextRotateHyperbolicIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cosh, ref <#= operation.DataType #> sinh, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo, int numMultiplications)
+            {
+                // Apply second multiplication every 3k + 1 multiplcations
+                for (var i = 0; i < numMultiplications; i++)
+                {
+                    var sigma = Utilities.Select(radians < 0, -1, 1);
+                    var factor = sigma * powerOfTwo;
+
+                    MatrixMultiplyHyperbolic(ref cosh, ref sinh, factor);
+                    radians -= sigma * angle;
+                }
+
+                powerOfTwo /= 2.0<#= operation.ValueSuffix #>;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the iterations of CORDIC hyperbolic rotations
+            /// </summary>
+            /// <param name="radians">The current radians value</param>
+            /// <param name="cosh">The current cosh value</param>
+            /// <param name="sinh">The current sinh value</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void RotateHyperbolicIterations(<#= operation.DataType #> radians, out <#= operation.DataType #> cosh, out <#= operation.DataType #> sinh)
+            {
+                // Apply <#= operation.Iterations #> iterations.
+                var currCosh = 1.0<#= operation.ValueSuffix #>;
+                var currSinh = 0.0<#= operation.ValueSuffix #>;
+                var currRadians = radians;
+                var powerOfTwo = 0.5<#= operation.ValueSuffix #>;
+
+<# for (var i = 0; i < operation.Iterations; i++) { #>
+                NextRotateHyperbolicIteration(<#= hyperbolicAngles[i].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>, ref currCosh, ref currSinh, ref currRadians, ref powerOfTwo, <#= hyperbolicNumMultiplications[i] #>);
+<# } #>
+
+                cosh = currCosh;
+                sinh = currSinh;
+            }
+
+<# } #>
+            #endregion
+
+            #region Inverse Hyperbolic
+
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the next iteration of CORDIC hyperbolic vectoring
+            /// </summary>
+            /// <param name="angle">The angle for this iteration</param>
+            /// <param name="cosh">The current cosh value</param>
+            /// <param name="sinh">The current sinh value</param>
+            /// <param name="radians">The current radians value</param>
+            /// <param name="powerOfTwo">The current multiplier</param>
+            /// <param name="numMultiplications">The number of multiplications in this loop</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void NextVectorHyperbolicIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cosh, ref <#= operation.DataType #> sinh, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo, int numMultiplications)
+            {
+                // Apply second multiplication every 3k + 1 multiplcations
+                for (var i = 0; i < numMultiplications; i++)
+                {
+                    var sigma = Utilities.Select(sinh < 0, 1, -1);
+                    var factor = sigma * powerOfTwo;
+
+                    MatrixMultiplyHyperbolic(ref cosh, ref sinh, factor);
+                    radians -= sigma * angle;
+                }
+
+                powerOfTwo /= 2.0<#= operation.ValueSuffix #>;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the iterations of CORDIC hyperbolic vectoring
+            /// </summary>
+            /// <param name="cosh">The current cosh value</param>
+            /// <param name="sinh">The current sinh value</param>
+            /// <returns>The angle in radians</returns>
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static <#= operation.DataType #> VectorHyperbolicIterations(<#= operation.DataType #> cosh, <#= operation.DataType #> sinh)
+            {
+                // Apply <#= operation.Iterations #> iterations.
+                var currCosh = cosh;
+                var currSinh = sinh;
+                var currRadians = 0.0<#= operation.ValueSuffix #>;
+                var powerOfTwo = 0.5<#= operation.ValueSuffix #>;
+
+<# for (var i = 0; i < operation.Iterations; i++) { #>
+                NextVectorHyperbolicIteration(<#= hyperbolicAngles[i].ToString(operation.Format, CultureInfo.InvariantCulture) #><#= operation.ValueSuffix #>, ref currCosh, ref currSinh, ref currRadians, ref powerOfTwo, <#= hyperbolicNumMultiplications[i] #>);
+<# } #>
+
+                return currRadians;
+            }
+
+<# } #>
+            #endregion
+        }
+    }
+}

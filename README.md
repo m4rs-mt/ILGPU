@@ -6,6 +6,12 @@ It offers the flexibility and the convenience of C++ AMP on the one hand and the
 Functions in the scope of kernels do not have to be annotated (default C# functions) and are allowed to work on value types.
 All kernels (including all hardware features like shared memory and atomics) can be executed and debugged on the CPU using the integrated multi-threaded CPU accelerator.
 
+# ILGPU.Algorithms
+
+Real-world applications typically require a standard library and a set of standard algorithms that "simply work".
+The ILGPU Algorithms library meets these requirements by offering a set of auxiliary functions and high-level algorithms (e.g. sorting or prefix sum).
+All algorithms can be run on all supported accelerator types.
+
 # Build Instructions
 
 ILGPU requires Visual Studio 2019 (Community edition or higher).
@@ -77,3 +83,9 @@ Different parts of ILGPU require different third-party libraries.
 
 Detailed copyright and license information of these dependencies can be found in
 LICENSE-3RD-PARTY.txt.
+
+# Credits
+
+This work was supported by the [Deutsches Forschungszentrum für Künstliche Intelligenz GmbH](https://www.dfki.de/) (DFKI; German Research Center for Artificial Intelligence).
+<p><img src="https://www.dfki.de/fileadmin/user_upload/DFKI/Medien/Logos/Logos_DFKI/DFKI_Logo.png" alt="DFKI Logo" width="250"></p>
+
