@@ -21,11 +21,11 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\..\ILGPU\Src\ILGPU.Tests\.test.runsettings</RunSettingsFilePath>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\ILGPU.Tests\.test.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\ILGPU\Src\ILGPU.Tests\Generic\AssemblyAttributes.cs" Link="Generic\AssemblyAttributes.cs" />
+    <Compile Include="..\ILGPU.Tests\Generic\AssemblyAttributes.cs" Link="Generic\AssemblyAttributes.cs" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -111,8 +111,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ILGPU\Src\ILGPU.Tests\ILGPU.Tests.csproj" />
-    <ProjectReference Include="..\..\ILGPU\Src\ILGPU\ILGPU.csproj" />
+    <ProjectReference Include="..\ILGPU.Tests\ILGPU.Tests.csproj" />
+    <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
     <ProjectReference Include="..\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
   </ItemGroup>
 

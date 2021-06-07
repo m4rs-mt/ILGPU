@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-<#@ include file="../../ILGPU/Src/ILGPU/Static/TypeInformation.ttinclude" #>
+<#@ include file="..//ILGPU/Static/TypeInformation.ttinclude" #>
 <#+
 // Math functions
 

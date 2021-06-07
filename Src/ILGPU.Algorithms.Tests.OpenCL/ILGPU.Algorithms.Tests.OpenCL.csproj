@@ -15,11 +15,11 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\..\ILGPU\Src\ILGPU.Tests\.test.runsettings</RunSettingsFilePath>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\ILGPU.Tests\.test.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\ILGPU\Src\ILGPU.Tests.OpenCL\TestContext.cs" Link="TestContext.cs" />
+    <Compile Include="..\ILGPU.Tests.OpenCL\TestContext.cs" Link="TestContext.cs" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -48,7 +48,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ILGPU\Src\ILGPU\ILGPU.csproj" />
+    <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
     <ProjectReference Include="..\ILGPU.Algorithms.Tests\ILGPU.Algorithms.Tests.csproj" />
     <ProjectReference Include="..\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
   </ItemGroup>

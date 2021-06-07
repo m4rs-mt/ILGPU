@@ -69,7 +69,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ILGPU\Src\ILGPU\ILGPU.csproj" />
+    <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
   </ItemGroup>
 
   <ItemGroup>
