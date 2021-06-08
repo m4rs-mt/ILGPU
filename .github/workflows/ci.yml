@@ -6,6 +6,7 @@ on:
 
 env:
   DOTNET_NOLOGO: true
+  FEEDZ_IO_SOURCE_PRE_RELEASE: https://f.feedz.io/76testing/ilgpu/nuget/index.json
 
 jobs:
   check-style:
@@ -172,6 +173,35 @@ jobs:
         with:
           name: nuget-package
           path: ./Bin/Release/ILGPU.*.*nupkg
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [check-style, build-and-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download NuGet package artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: nuget-package
+      - name: Create release and upload NuGet package as an asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ILGPU.*.*nupkg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  publish-nuget-pre-release:
+    if: github.ref == 'refs/heads/algorithms'
+    needs: [check-style, build-and-test]
+    runs-on: windows-latest
+    steps:
+      - name: Download NuGet package artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: nuget-package
+      - name: Publish to FeedzIO
+        shell: bash
+        run: dotnet nuget push ILGPU.*.nupkg --api-key ${{ secrets.FEEDZ_IO_ACCESS_TOKEN }} --source ${{ env.FEEDZ_IO_SOURCE_PRE_RELEASE }}
 
   publish-nuget:
     if: startsWith(github.ref, 'refs/tags/v')
