@@ -116,7 +116,14 @@ namespace ILGPU.Backends.IL
                 emitter.EmitCall(field.FieldType.GetMethod(
                     EqualsInfo.Name,
                     new Type[] { field.FieldType }));
-                emitter.Emit(OpCodes.Brfalse_S, falseLabel);
+
+                // IMPORTANT: Each field can branch to the false label. However, if we
+                // have a large number of fields, depending on the number of IL bytes we
+                // emit per field, we may not be able to reach the false label using a
+                // 1-byte branch. In that case, we should instead use a 4-byte branch.
+                emitter.Emit(
+                    fieldsToUse.Length < 7 ? OpCodes.Brfalse_S : OpCodes.Brfalse,
+                    falseLabel);
             }
 
             emitter.EmitConstant(1);

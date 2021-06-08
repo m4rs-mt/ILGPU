@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace ILGPU.Tests
 {
-    public abstract class SpecializedKernels : TestBase
+    public abstract partial class SpecializedKernels : TestBase
     {
         protected SpecializedKernels(
             ITestOutputHelper output,

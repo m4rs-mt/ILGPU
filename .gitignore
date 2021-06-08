@@ -288,6 +288,7 @@ Src/ILGPU.Tests/ConvertIntOperations.Generated.cs
 Src/ILGPU.Tests/FixedBuffers.cs
 Src/ILGPU.Tests/MemoryBufferOperations.cs
 Src/ILGPU.Tests/ReinterpretCasts.cs
+Src/ILGPU.Tests/SpecializedKernels.Generated.cs
 Src/ILGPU.Tests/UnaryIntOperations.cs
 Src/ILGPU.Tests/ValueTuples.cs
 

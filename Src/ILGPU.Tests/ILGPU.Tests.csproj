@@ -184,6 +184,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ReinterpretCasts.tt</DependentUpon>
     </Compile>
+    <Compile Update="SpecializedKernels.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SpecializedKernels.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="UnaryIntOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -253,6 +258,10 @@
     <None Update="BasicCalls.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BasicCalls.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="SpecializedKernels.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SpecializedKernels.Generated.cs</LastGenOutput>
     </None>
     <None Update="UnaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
