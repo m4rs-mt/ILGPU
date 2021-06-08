@@ -32,7 +32,7 @@ namespace ILGPU.Runtime
             CudaAccelerator accelerator,
             IntPtr hostPtr,
             long numElements)
-            : base(accelerator)
+            : base(accelerator, numElements)
         {
             if (!accelerator.Device.SupportsMappingHostMemory)
             {
@@ -40,17 +40,26 @@ namespace ILGPU.Runtime
                     RuntimeErrorMessages.NotSupportedPageLock);
             }
             HostPtr = hostPtr;
-            Length = numElements;
 
+            bool supportsHostPointer = accelerator
+                .Device
+                .SupportsUsingHostPointerForRegisteredMemory;
+
+            // Setup internal memory registration flags.
             var flags = MemHostRegisterFlags.CU_MEMHOSTREGISTER_PORTABLE;
-            if (!accelerator.Device.SupportsUsingHostPointerForRegisteredMemory)
+            if (!supportsHostPointer)
                 flags |= MemHostRegisterFlags.CU_MEMHOSTREGISTER_DEVICEMAP;
+
+            // Perform the memory registration.
             CudaException.ThrowIfFailed(
                 CurrentAPI.MemHostRegister(
                     hostPtr,
                     new IntPtr(LengthInBytes),
                     flags));
-            if (accelerator.Device.SupportsUsingHostPointerForRegisteredMemory)
+
+            // Check whether we have to determine the actual device pointer or are able
+            // to reuse the host pointer for all operations.
+            if (supportsHostPointer)
             {
                 AddrOfLockedObject = hostPtr;
             }
@@ -65,21 +74,15 @@ namespace ILGPU.Runtime
             }
         }
 
+        /// <summary>
+        /// The host pointer used for registration.
+        /// </summary>
+        private IntPtr HostPtr { get; }
+
         /// <inheritdoc/>
         protected override void DisposeAcceleratorObject(bool disposing) =>
             CudaException.VerifyDisposed(
                 disposing,
                 CurrentAPI.MemHostUnregister(HostPtr));
-
-        /// <inheritdoc/>
-        public override IntPtr AddrOfLockedObject { get; }
-
-        /// <inheritdoc/>
-        public override long Length { get; }
-
-        /// <summary>
-        /// The host pointer used for registration.
-        /// </summary>
-        private IntPtr HostPtr { get; }
     }
 }

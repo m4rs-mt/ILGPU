@@ -238,12 +238,13 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T>(
             this <#= viewName #> source,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where T : unmanaged =>
-            source.BaseView.CopyToCPU(out cpuData, length);
+            source.BaseView.CopyToCPU(ref cpuData, length);
 
         /// <summary>
         /// Copies from the source view into the given CPU target address while
@@ -256,13 +257,14 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T>(
             this <#= viewName #> source,
             AcceleratorStream stream,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where T : unmanaged =>
-            source.BaseView.CopyToCPU(stream, out cpuData, length);
+            source.BaseView.CopyToCPU(stream, ref cpuData, length);
 
         /// <summary>
         /// Copies from the CPU source address into the given target view while
@@ -274,6 +276,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T>(
             this <#= viewName #> target,
             ref T cpuData,
@@ -292,6 +295,7 @@ namespace ILGPU.Runtime
         /// <param name="stream">The used accelerator stream.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T>(
             this <#= viewName #> target,
             AcceleratorStream stream,
@@ -316,6 +320,7 @@ namespace ILGPU.Runtime
         /// <param name="span">The CPU data target.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T>(
             this <#= viewName #> source,
             AcceleratorStream stream,
@@ -333,6 +338,7 @@ namespace ILGPU.Runtime
         /// <param name="span">The CPU data source.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T>(
             this <#= viewName #> target,
             AcceleratorStream stream,
@@ -415,8 +421,8 @@ namespace ILGPU.Runtime
                     ", ",
                     Enumerable.Range(0, dimension).
                     Select(t => $"data.GetLength({t})")) #>);
-            var buffer = accelerator.
-                Allocate<#= dimension #>D<#= strideName #><T>(extent);
+            var buffer = accelerator
+                .Allocate<#= dimension #>D<#= strideName #><T>(extent);
 
             // Copy the data
             buffer.View.CopyFromCPU(stream, data);
@@ -449,6 +455,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view,
             <#= arrayType #> data)
@@ -544,6 +551,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T>(
             this MemoryBuffer<
                 <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer,
@@ -565,6 +573,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T>(
             this MemoryBuffer<
                 <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer,
@@ -586,6 +595,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view,
             <#= arrayType #> data)
@@ -682,6 +692,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T>(
             this MemoryBuffer<
                 <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer,
@@ -703,6 +714,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T>(
             this MemoryBuffer<
                 <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer,
@@ -727,6 +739,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T>(
             this <#= viewName #> source,
             PageLockScope<T> pageLockScope)
@@ -743,6 +756,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T>(
             this <#= viewName #> source,
             AcceleratorStream stream,
@@ -759,6 +773,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T>(
             this <#= viewName #> target,
             PageLockScope<T> pageLockScope)
@@ -775,6 +790,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T>(
             this <#= viewName #> target,
             AcceleratorStream stream,
@@ -783,6 +799,157 @@ namespace ILGPU.Runtime
             target.BaseView.CopyFromPageLockedAsync(stream, pageLockScope);
 
 <# } #>
+        #endregion
+
+        #region Copy to/from Page Locked Array
+
+<# foreach (var (dimension, strideName, needsTranspose) in generalDimensionStrides) { #>
+<#      if (needsTranspose) continue; #>
+<#      var typeName = $"ArrayView{dimension}D"; #>
+<#      var strideTypeName = $"Stride{dimension}D"; #>
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToPageLockedAsync<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> source,
+            PageLockedArray<#= dimension #>D<T> pageLockedArray)
+            where T : unmanaged =>
+            source.CopyToPageLockedAsync(source.GetDefaultStream(), pageLockedArray);
+
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToPageLockedAsync<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> source,
+            AcceleratorStream stream,
+            PageLockedArray<#= dimension #>D<T> pageLockedArray)
+            where T : unmanaged =>
+            source.BaseView.CopyToPageLockedAsync(stream, pageLockedArray);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyFromPageLockedAsync<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> target,
+            PageLockedArray<#= dimension #>D<T> pageLockedArray)
+            where T : unmanaged =>
+            target.CopyFromPageLockedAsync(target.GetDefaultStream(), pageLockedArray);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        /// <remarks>
+<#      if (needsTranspose) { #>
+        /// CAUTION: this method transposes the data on the CPU.
+<#      } #>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyFromPageLockedAsync<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> target,
+            AcceleratorStream stream,
+            PageLockedArray<#= dimension #>D<T> pageLockedArray)
+            where T : unmanaged =>
+            target.BaseView.CopyFromPageLockedAsync(stream, pageLockedArray);
+
+<# } #>
+        #endregion
+
+        #region GetAsPageLockedArray
+
+<# foreach (var (dimension, strideName, needsTranspose) in generalDimensionStrides) { #>
+<#      if (needsTranspose) continue; #>
+<#      var typeName = $"ArrayView{dimension}D"; #>
+<#      var strideTypeName = $"Stride{dimension}D"; #>
+        /// <summary>
+        /// Copies the contents of the <#= dimension #>D view into a new
+        /// page locked <#= dimension #>D array.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PageLockedArray<#= dimension #>D<T>
+            GetAsPageLockedArray<#= dimension #>D<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view)
+            where T : unmanaged =>
+            view.GetAsPageLockedArray<#= dimension #>D(view.GetDefaultStream());
+
+        /// <summary>
+        /// Copies the contents of the <#= dimension #>D view into a new
+        /// page locked <#= dimension #>D array.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        public static PageLockedArray<#= dimension #>D<T>
+            GetAsPageLockedArray<#= dimension #>D<T>(
+            this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view,
+            AcceleratorStream stream)
+            where T : unmanaged
+        {
+            if (view.HasNoData())
+                return PageLockedArray<#= dimension #>D<T>.Empty;
+
+            // Allocate the return array
+            var result = view
+                .GetAccelerator()
+                .AllocatePageLockedArray<#= dimension #>D<T>(view.Extent);
+
+            // Copy the data
+            view.CopyToPageLockedAsync(stream, result);
+            stream.Synchronize();
+
+            return result;
+        }
+
+<# } #>
+
         #endregion
 
         #region GetAsArray
@@ -809,10 +976,11 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
-        public static T[<#= arrayExpr #>] GetAs<#= dimension #>DArray<T>(
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T[<#= arrayExpr #>] GetAsArray<#= dimension #>D<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view)
             where T : unmanaged =>
-            view.GetAs<#= dimension #>DArray(view.GetDefaultStream());
+            view.GetAsArray<#= dimension #>D(view.GetDefaultStream());
 
         /// <summary>
         /// Copies the contents of the <#= dimension #>D view into a new
@@ -833,15 +1001,17 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
-        public static T[<#= arrayExpr #>] GetAs<#= dimension #>DArray<T>(
+        public static T[<#= arrayExpr #>] GetAsArray<#= dimension #>D<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view,
             AcceleratorStream stream)
             where T : unmanaged
         {
             if (view.HasNoData())
+            {
                 return new T[<#= string.Join(
                     ", ",
                     Enumerable.Repeat("0", dimension)) #>];
+            }
 
             // Allocate the return array
             var result = new T[
@@ -873,11 +1043,11 @@ namespace ILGPU.Runtime
 <#      } #>
         /// This method is not supported on accelerators.
         /// </remarks>
-        public static T[<#= arrayExpr #>] GetAs<#= dimension #>DArray<T>(
+        public static T[<#= arrayExpr #>] GetAsArray<#= dimension #>D<T>(
             this MemoryBuffer<
                 <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer)
             where T : unmanaged =>
-            buffer.View.GetAs<#= dimension #>DArray();
+            buffer.View.GetAsArray<#= dimension #>D();
 
         /// <summary>
         /// Copies the contents of the <#= dimension #>D view into a new
@@ -897,12 +1067,12 @@ namespace ILGPU.Runtime
 <#      } #>
         /// This method is not supported on accelerators.
         /// </remarks>
-        public static T[<#= arrayExpr #>] GetAs<#= dimension #>DArray<T>(
+        public static T[<#= arrayExpr #>] GetAsArray<#= dimension #>D<T>(
             this MemoryBuffer<
                 <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer,
             AcceleratorStream stream)
             where T : unmanaged =>
-            buffer.View.GetAs<#= dimension #>DArray(stream);
+            buffer.View.GetAsArray<#= dimension #>D(stream);
 
 <# } #>
 

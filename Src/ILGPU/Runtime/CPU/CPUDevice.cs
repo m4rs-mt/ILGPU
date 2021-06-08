@@ -81,6 +81,18 @@ namespace ILGPU.Runtime.CPU
         #region Static
 
         /// <summary>
+        /// An implicitly defined CPU accelerator that is not intended for simulation
+        /// purposes. Instead, it acts as a placeholder accelerator for buffers that
+        /// are implicitly associated with a parent CPU accelerator.
+        /// </summary>
+        public static readonly CPUDevice Implicit =
+            new CPUDevice(
+                numThreadsPerWarp: 0,
+                numWarpsPerMultiprocessor: 0,
+                numMultiprocessors: 0,
+                skipChecks: true);
+
+        /// <summary>
         /// A CPU accelerator that simulates a common configuration of a default GPU
         /// simulator with 1 multiprocessor, a warp size of 4 and 4 warps per
         /// multiprocessor.
@@ -97,9 +109,9 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         public static readonly CPUDevice Nvidia =
             new CPUDevice(
-                32,
-                32,
-                1);
+                numThreadsPerWarp: 32,
+                numWarpsPerMultiprocessor: 32,
+                numMultiprocessors: 1);
 
         /// <summary>
         /// A CPU accelerator that simulates a common configuration of an AMD GPU with 1
@@ -107,17 +119,17 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         public static readonly CPUDevice AMD =
             new CPUDevice(
-                32,
-                8,
-                1);
+                numThreadsPerWarp: 32,
+                numWarpsPerMultiprocessor: 8,
+                numMultiprocessors: 1);
 
         /// A CPU accelerator that simulates a common configuration of a legacy GCN AMD
         /// GPU with 1 multiprocessor.
         public static readonly CPUDevice LegacyAMD =
             new CPUDevice(
-                64,
-                4,
-                1);
+                numThreadsPerWarp: 64,
+                numWarpsPerMultiprocessor: 4,
+                numMultiprocessors: 1);
 
         /// <summary>
         /// A CPU accelerator that simulates a common configuration of an Intel GPU with
@@ -125,9 +137,9 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         public static readonly CPUDevice Intel =
             new CPUDevice(
-                16,
-                8,
-                1);
+                numThreadsPerWarp: 16,
+                numWarpsPerMultiprocessor: 8,
+                numMultiprocessors: 1);
 
         /// <summary>
         /// Maps <see cref="CPUDeviceKind"/> values to
@@ -204,16 +216,21 @@ namespace ILGPU.Runtime.CPU
         /// <param name="numMultiprocessors">
         /// The number of multiprocessors (number of parallel groups) to simulate.
         /// </param>
-        public CPUDevice(
+        /// <param name="skipChecks">True, to skip internal bounds checks.</param>
+        private CPUDevice(
             int numThreadsPerWarp,
             int numWarpsPerMultiprocessor,
-            int numMultiprocessors)
+            int numMultiprocessors,
+            bool skipChecks)
         {
-            if (numThreadsPerWarp < 2 || !Utilities.IsPowerOf2(numWarpsPerMultiprocessor))
+            if (!skipChecks && (numThreadsPerWarp < 2 ||
+                !Utilities.IsPowerOf2(numWarpsPerMultiprocessor)))
+            {
                 throw new ArgumentOutOfRangeException(nameof(numThreadsPerWarp));
-            if (numWarpsPerMultiprocessor < 1)
+            }
+            if (!skipChecks && numWarpsPerMultiprocessor < 1)
                 throw new ArgumentOutOfRangeException(nameof(numWarpsPerMultiprocessor));
-            if (numMultiprocessors < 1)
+            if (!skipChecks && numMultiprocessors < 1)
                 throw new ArgumentOutOfRangeException(nameof(numMultiprocessors));
 
             // Check for existing limitations with respect to barrier participants
@@ -238,6 +255,29 @@ namespace ILGPU.Runtime.CPU
             MaxConstantMemory = int.MaxValue;
             NumThreads = MaxNumThreads * numMultiprocessors;
         }
+
+        /// <summary>
+        /// Constructs a new CPU accelerator description instance.
+        /// </summary>
+        /// <param name="numThreadsPerWarp">
+        /// The number of threads per warp within a group.
+        /// </param>
+        /// <param name="numWarpsPerMultiprocessor">
+        /// The number of warps per multiprocessor.
+        /// </param>
+        /// <param name="numMultiprocessors">
+        /// The number of multiprocessors (number of parallel groups) to simulate.
+        /// </param>
+        public CPUDevice(
+            int numThreadsPerWarp,
+            int numWarpsPerMultiprocessor,
+            int numMultiprocessors)
+            : this(
+                  numThreadsPerWarp,
+                  numWarpsPerMultiprocessor,
+                  numMultiprocessors,
+                  skipChecks: false)
+        { }
 
         #endregion
 

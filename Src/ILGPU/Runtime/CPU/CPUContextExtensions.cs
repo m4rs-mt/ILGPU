@@ -74,6 +74,20 @@ namespace ILGPU.Runtime.CPU
         #region Context
 
         /// <summary>
+        /// Returns the implicitly created CPU accelerator.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <returns>
+        /// The implicitly defined CPU accelerator with 0 threads per warp, 0 warps per
+        /// MP and 0 MPs.
+        /// </returns>
+        /// <remarks>
+        /// CAUTION: This accelerator is not intended for simulation purposes.
+        /// </remarks>
+        public static CPUAccelerator GetImplicitCPUAccelerator(this Context context) =>
+            context.CPUAccelerator;
+
+        /// <summary>
         /// Gets the i-th registered CPU device.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>

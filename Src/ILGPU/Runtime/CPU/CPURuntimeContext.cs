@@ -87,7 +87,8 @@ namespace ILGPU.Runtime.CPU
             /// <summary>
             /// Returns a reference to the parent broadcast cache.
             /// </summary>
-            public readonly MemoryBufferCache BroadcastBuffer => Parent.broadcastBuffer;
+            public readonly CPUMemoryBufferCache BroadcastBuffer =>
+                Parent.broadcastBuffer;
 
             /// <summary>
             /// Allocates the required broadcast memory.
@@ -121,7 +122,7 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// A temporary location for broadcast values.
         /// </summary>
-        private readonly MemoryBufferCache broadcastBuffer;
+        private readonly CPUMemoryBufferCache broadcastBuffer;
 
         /// <summary>
         /// A temporary location for broadcast indices.
@@ -137,7 +138,7 @@ namespace ILGPU.Runtime.CPU
             Multiprocessor = multiprocessor
                 ?? throw new ArgumentNullException(nameof(multiprocessor));
 
-            broadcastBuffer = new MemoryBufferCache(multiprocessor.Accelerator);
+            broadcastBuffer = new CPUMemoryBufferCache(multiprocessor.Accelerator);
             broadcastBuffer.Allocate<int>(16);
         }
 
