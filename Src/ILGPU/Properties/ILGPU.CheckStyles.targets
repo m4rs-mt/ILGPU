@@ -1,0 +1,143 @@
+﻿<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!--
+        In Visual Studio, after cleaning the project, check the various rules.
+    -->
+    <Target Name="CheckStyles"
+            Condition="$(BuildingInsideVisualStudio) == 'true'"
+            AfterTargets="AfterClean">
+        <ItemGroup>
+            <CheckStyles_TemplateFiles Include="@(None)"
+                                       Condition=" '%(None.Generator)' == 'TextTemplatingFileGenerator' " />
+            <CheckStyles_TemplateFiles Include="@(None)"
+                                       Condition="'%(Extension)' == '.ttinclude'"/>
+
+            <CheckStyles_CSharpFiles Include="@(Compile)"
+                                     Condition="'%(Extension)' == '.cs'" />
+        </ItemGroup>
+
+        <CheckLineLengths
+            BasePath="$(MSBuildProjectDirectory)"
+            Files="@(CheckStyles_TemplateFiles);@(CheckStyles_CSharpFiles)"
+            MaxLineLength="90" />
+        <CheckT4LineEndings
+            BasePath="$(MSBuildProjectDirectory)"
+            Files="@(CheckStyles_TemplateFiles)" />
+    </Target>
+
+    <!--
+        Check line length.
+    -->
+        <UsingTask TaskName="CheckLineLengths"
+                   TaskFactory="RoslynCodeTaskFactory"
+                   AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <BasePath ParameterType="System.String" Required="true" />
+            <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]"
+                   Required="true" />
+            <MaxLineLength ParameterType="System.Int32" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System"/>
+            <Using Namespace="System.IO"/>
+            <Using Namespace="System.Linq"/>
+            <Code Type="Fragment" Language="cs">
+                <![CDATA[
+foreach (var file in Files)
+{
+    var filePath = Path.Combine(BasePath, file.ItemSpec);
+
+    // Ignore files in the Resources directory.
+    var parentDirName = Path.GetFileName(Path.GetDirectoryName(filePath));
+    if (parentDirName == "Resources")
+        continue;
+
+    // Ignore files that disable line length checking.
+    var lines = File.ReadAllLines(filePath);
+    if (lines.Any(line => line.StartsWith("// disable: max_line_length")))
+        continue;
+
+    // Ignore generated C# files.
+    var ext = Path.GetExtension(filePath);
+    if (ext == ".cs")
+    {
+        var templatePath = Path.ChangeExtension(filePath, ".tt");
+        if (File.Exists(templatePath))
+            continue;
+    }
+
+    for (var i = 0; i < lines.Length; i++)
+    {
+        var line = lines[i];
+        if (line.Length > MaxLineLength)
+        {
+            var lineNum = i + 1;
+            var fromColumnNum = MaxLineLength;
+            var toColumnNum = line.Length;
+
+            Log.LogWarning(
+                "ILGPU.CheckStyles",
+                "ILGPU001",
+                null,
+                filePath,
+                lineNum,
+                fromColumnNum,
+                0,
+                toColumnNum,
+                "Line too long ({0} > {1} characters)",
+                line.Length,
+                MaxLineLength);
+        }
+    }
+}
+]]>
+            </Code>
+        </Task>
+    </UsingTask>
+
+    <!--
+        Check T4 line endings.
+        WORKAROUND: The TextTransform tool fails when the T4 template ends with a newline.
+    -->
+    <UsingTask TaskName="CheckT4LineEndings"
+               TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <BasePath ParameterType="System.String" Required="true" />
+            <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]"
+                   Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System"/>
+            <Using Namespace="System.IO"/>
+            <Using Namespace="System.Linq"/>
+            <Code Type="Fragment" Language="cs">
+                <![CDATA[
+foreach (var file in Files)
+{
+    var filePath = Path.Combine(BasePath, file.ItemSpec);
+    var content = File.ReadAllText(filePath);
+    if (content.EndsWith("\r\n"))
+    {
+        var lines = content.Split('\n');
+        var lastLine = lines.Last();
+        var lineNum = lines.Length;
+        var columnNum = lastLine.Length;
+
+        Log.LogWarning(
+            "ILGPU.CheckStyles",
+            "ILGPU002",
+            null,
+            filePath,
+            lineNum,
+            columnNum,
+            0,
+            0,
+            "Bad T4 line ending");
+    }
+}
+]]>
+            </Code>
+        </Task>
+    </UsingTask>
+
+</Project>
