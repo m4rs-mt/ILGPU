@@ -495,7 +495,7 @@ namespace ILGPU.Runtime.CPU
             long length,
             int elementSize) =>
             new PointerSourceBuffer(
-                accelerator,
+                GetCPUAccelerator(accelerator),
                 ptr,
                 length,
                 elementSize);
