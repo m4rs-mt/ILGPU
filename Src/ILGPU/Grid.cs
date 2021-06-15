@@ -13,6 +13,7 @@ using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.CPU;
 using System;
+using static ILGPU.IndexTypeExtensions;
 
 namespace ILGPU
 {
@@ -153,7 +154,9 @@ namespace ILGPU
         /// <summary>
         /// Returns the global index using 64-bit integers.
         /// </summary>
-        public static LongIndex3D LongGlobalIndex => GlobalIndex;
+        public static LongIndex3D LongGlobalIndex => ComputeLongGlobalIndex(
+            Index,
+            Group.Index);
 
         #endregion
 
@@ -165,8 +168,12 @@ namespace ILGPU
         /// <param name="gridIdx">The grid index.</param>
         /// <param name="groupIdx">The group index.</param>
         /// <returns>The computes global index.</returns>
-        public static Index1D ComputeGlobalIndex(Index1D gridIdx, Index1D groupIdx) =>
-            groupIdx + gridIdx * Group.Dimension.X;
+        public static Index1D ComputeGlobalIndex(Index1D gridIdx, Index1D groupIdx)
+        {
+            var groupDim = Group.Dimension;
+            AssertIntIndexRange(groupIdx.X + gridIdx.X * (long)groupDim.X);
+            return new Index1D(groupIdx + gridIdx * groupDim.X);
+        }
 
         /// <summary>
         /// Computes the global index of a given gridIdx and a groupIdx.
@@ -177,6 +184,8 @@ namespace ILGPU
         public static Index2D ComputeGlobalIndex(Index2D gridIdx, Index2D groupIdx)
         {
             var groupDim = Group.Dimension;
+            AssertIntIndexRange(groupIdx.X + gridIdx.X * (long)groupDim.X);
+            AssertIntIndexRange(groupIdx.Y + gridIdx.Y * (long)groupDim.Y);
             return new Index2D(
                 groupIdx.X + gridIdx.X * groupDim.X,
                 groupIdx.Y + gridIdx.Y * groupDim.Y);
@@ -191,10 +200,60 @@ namespace ILGPU
         public static Index3D ComputeGlobalIndex(Index3D gridIdx, Index3D groupIdx)
         {
             var groupDim = Group.Dimension;
+            AssertIntIndexRange(groupIdx.X + gridIdx.X * (long)groupDim.X);
+            AssertIntIndexRange(groupIdx.Y + gridIdx.Y * (long)groupDim.Y);
+            AssertIntIndexRange(groupIdx.Z + gridIdx.Z * (long)groupDim.Z);
             return new Index3D(
                 groupIdx.X + gridIdx.X * groupDim.X,
                 groupIdx.Y + gridIdx.Y * groupDim.Y,
                 groupIdx.Z + gridIdx.Z * groupDim.Z);
+        }
+
+        /// <summary>
+        /// Computes the global index of a given gridIdx and a groupIdx.
+        /// </summary>
+        /// <param name="gridIdx">The grid index.</param>
+        /// <param name="groupIdx">The group index.</param>
+        /// <returns>The computes global index.</returns>
+        public static LongIndex1D ComputeLongGlobalIndex(
+            Index1D gridIdx,
+            Index1D groupIdx)
+        {
+            var groupDim = Group.Dimension;
+            return new LongIndex1D(groupIdx + gridIdx * (long)groupDim.X);
+        }
+
+        /// <summary>
+        /// Computes the global index of a given gridIdx and a groupIdx.
+        /// </summary>
+        /// <param name="gridIdx">The grid index.</param>
+        /// <param name="groupIdx">The group index.</param>
+        /// <returns>The computes global index.</returns>
+        public static LongIndex2D ComputeLongGlobalIndex(
+            Index2D gridIdx,
+            Index2D groupIdx)
+        {
+            var groupDim = Group.Dimension;
+            return new LongIndex2D(
+                groupIdx.X + gridIdx.X * (long)groupDim.X,
+                groupIdx.Y + gridIdx.Y * (long)groupDim.Y);
+        }
+
+        /// <summary>
+        /// Computes the global index of a given gridIdx and a groupIdx.
+        /// </summary>
+        /// <param name="gridIdx">The grid index.</param>
+        /// <param name="groupIdx">The group index.</param>
+        /// <returns>The computes global index.</returns>
+        public static LongIndex3D ComputeLongGlobalIndex(
+            Index3D gridIdx,
+            Index3D groupIdx)
+        {
+            var groupDim = Group.Dimension;
+            return new LongIndex3D(
+                groupIdx.X + gridIdx.X * (long)groupDim.X,
+                groupIdx.Y + gridIdx.Y * (long)groupDim.Y,
+                groupIdx.Z + gridIdx.Z * (long)groupDim.Z);
         }
 
         #endregion
