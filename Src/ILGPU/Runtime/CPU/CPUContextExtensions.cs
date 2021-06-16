@@ -44,6 +44,20 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary>
+        /// Enables a CPU device of the given kind.
+        /// </summary>
+        /// <param name="builder">The builder instance.</param>
+        /// <param name="device">The custom CPU device.</param>
+        /// <returns>The updated builder instance.</returns>
+        public static Context.Builder CPU(
+            this Context.Builder builder,
+            CPUDevice device)
+        {
+            builder.DeviceRegistry.Register(device);
+            return builder;
+        }
+
+        /// <summary>
         /// Enables all CPU devices.
         /// </summary>
         /// <param name="builder">The builder instance.</param>
