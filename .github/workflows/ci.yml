@@ -191,7 +191,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
   publish-nuget-pre-release:
-    if: github.ref == 'refs/heads/algorithms'
+    if: github.ref == 'refs/heads/master'
     needs: [check-style, build-and-test]
     runs-on: windows-latest
     steps:
