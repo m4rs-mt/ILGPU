@@ -242,6 +242,97 @@ namespace ILGPU.Runtime
 
         #endregion
 
+        #region Transpose
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed dense view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView2D<T, Stride2D.DenseY> AsTransposed<T>(
+            this ArrayView2D<T, Stride2D.DenseX> view)
+            where T : unmanaged =>
+            new ArrayView2D<T, Stride2D.DenseY>(
+                view.BaseView,
+                new LongIndex2D(view.Extent.Y, view.Extent.X),
+                new Stride2D.DenseY(view.Stride.YStride));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed dense view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView2D<T, Stride2D.DenseX> AsTransposed<T>(
+            this ArrayView2D<T, Stride2D.DenseY> view)
+            where T : unmanaged =>
+            new ArrayView2D<T, Stride2D.DenseX>(
+                view.BaseView,
+                new LongIndex2D(view.Extent.Y, view.Extent.X),
+                new Stride2D.DenseX(view.Stride.XStride));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView2D<T, Stride2D.General> AsTransposed<T>(
+            this ArrayView2D<T, Stride2D.General> view)
+            where T : unmanaged =>
+            new ArrayView2D<T, Stride2D.General>(
+                view.BaseView,
+                new LongIndex2D(view.Extent.Y, view.Extent.X),
+                new Stride2D.General((view.Stride.YStride, view.Stride.XStride)));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed dense view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView3D<T, Stride3D.DenseZY> AsTransposed<T>(
+            this ArrayView3D<T, Stride3D.DenseXY> view)
+            where T : unmanaged =>
+            new ArrayView3D<T, Stride3D.DenseZY>(
+                view.BaseView,
+                new LongIndex3D(view.Extent.Z, view.Extent.Y, view.Extent.X),
+                new Stride3D.DenseZY(view.Stride.ZStride, view.Stride.YStride));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed dense view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView3D<T, Stride3D.DenseXY> AsTransposed<T>(
+            this ArrayView3D<T, Stride3D.DenseZY> view)
+            where T : unmanaged =>
+            new ArrayView3D<T, Stride3D.DenseXY>(
+                view.BaseView,
+                new LongIndex3D(view.Extent.Z, view.Extent.Y, view.Extent.X),
+                new Stride3D.DenseXY(view.Stride.YStride, view.Stride.XStride));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView3D<T, Stride3D.General> AsTransposed<T>(
+            this ArrayView3D<T, Stride3D.General> view)
+            where T : unmanaged =>
+            new ArrayView3D<T, Stride3D.General>(
+                view.BaseView,
+                new LongIndex3D(view.Extent.Z, view.Extent.Y, view.Extent.X),
+                new Stride3D.General(
+                    (view.Stride.ZStride,
+                    view.Stride.YStride,
+                    view.Stride.XStride)));
+
+        #endregion
+
         #region MemSet
 
         /// <summary>
