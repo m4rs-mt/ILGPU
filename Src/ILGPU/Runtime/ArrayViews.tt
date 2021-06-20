@@ -275,7 +275,8 @@ namespace ILGPU.Runtime
                 "Index/Extent <#= iName #> out of bounds");
 <#      } #>
             <#= baseType #> offset = ComputeLinearIndex(index);
-            var view = BaseView.SubView(offset, extent.Size);
+            <#= baseType #> length = Stride.ComputeBufferLength(extent);
+            var view = BaseView.SubView(offset, length);
             return new <#= typeName #><T, TStride>(
                 view,
                 extent,
