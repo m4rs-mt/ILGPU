@@ -33,7 +33,8 @@ namespace ILGPU.Tests
         {
             int counter = 0;
             int strideCounter = 0;
-            length *= stride;
+            if (stride > 1)
+                length = (length - 1) * stride + 1;
             var src = new T[length];
             for (int i = 0; i < length; i++)
                 src[i] = (strideCounter++) % stride == 0 ? builder(counter++) : default;
