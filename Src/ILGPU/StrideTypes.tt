@@ -39,7 +39,6 @@ namespace ILGPU
         int <#= IndexDimensions[i] #>Stride { get; }
 
 <#      } #>
-
         /// <summary>
         /// Returns this stride as general <#= def.Dimension #>D stride.
         /// </summary>
@@ -89,6 +88,14 @@ namespace ILGPU
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly long ComputeElementIndex(<#= longIndexName #> index) => 0L;
+
+            /// <summary>
+            /// Computes the 32-bit length of a required allocation.
+            /// </summary>
+            /// <param name="extent">The extent to allocate.</param>
+            /// <returns>The 32-bit length of a required allocation.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeBufferLength(<#= indexName #> extent) => 1;
 
             /// <summary>
             /// Computes the 64-bit length of a required allocation.
@@ -165,6 +172,14 @@ namespace ILGPU
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly long ComputeElementIndex(<#= longIndexName #> index) =>
                 index;
+
+            /// <summary>
+            /// Computes the 32-bit length of a required allocation.
+            /// </summary>
+            /// <param name="extent">The extent to allocate.</param>
+            /// <returns>The 32-bit length of a required allocation.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeBufferLength(<#= indexName #> extent) => extent;
 
             /// <summary>
             /// Computes the 64-bit length of a required allocation.
@@ -280,25 +295,22 @@ namespace ILGPU
                 <#= className #>.ComputeElementIndex(this, index);
 
             /// <summary>
+            /// Computes the 32-bit length of a required allocation.
+            /// </summary>
+            /// <param name="extent">The extent to allocate.</param>
+            /// <returns>The 3264-bit length of a required allocation.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeBufferLength(<#= indexName #> extent) =>
+                <#= className #>.ComputeBufferLength(this, extent);
+
+            /// <summary>
             /// Computes the 64-bit length of a required allocation.
             /// </summary>
             /// <param name="extent">The extent to allocate.</param>
             /// <returns>The 64-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeBufferLength(<#= longIndexName #> extent)
-<#      if  (def.Dimension == 1) { #>
-                => extent * StrideExtent;
-<#      } else { #>
-            {
-                Trace.Assert(extent.X <= YStride, "X extent out of range");
-<#          if  (def.Dimension == 2) { #>
-                return YStride * extent.Y;
-<#          } else { #>
-                Trace.Assert(extent.X * extent.Y <= ZStride, "Y extent out of range");
-                return ZStride * extent.Z;
-<#          } #>
-            }
-<#      } #>
+            public readonly long ComputeBufferLength(<#= longIndexName #> extent) =>
+                <#= className #>.ComputeBufferLength(this, extent);
 
             /// <summary>
             /// Returns this stride as general <#= def.Dimension #>D stride.
@@ -360,6 +372,32 @@ namespace ILGPU
 <#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
             index.<#= iName #> * stride.<#= iName #>Stride<#= separator #>
 <#      } #>
+
+        /// <summary>
+        /// Computes the 32-bit length of a required allocation.
+        /// </summary>
+        /// <param name="stride">The stride to use.</param>
+        /// <param name="extent">The extent to allocate.</param>
+        /// <returns>The 3264-bit length of a required allocation.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ComputeBufferLength<TStride>(
+            this TStride stride,
+            <#= indexName #> extent)
+            where TStride : <#= strideName #> =>
+            stride.ComputeElementIndex(extent - <#= indexName #>.One) + 1;
+
+        /// <summary>
+        /// Computes the 64-bit length of a required allocation.
+        /// </summary>
+        /// <param name="stride">The stride to use.</param>
+        /// <param name="extent">The extent to allocate.</param>
+        /// <returns>The 64-bit length of a required allocation.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long ComputeBufferLength<TStride>(
+            this TStride stride,
+            <#= longIndexName #> extent)
+            where TStride : <#= strideName #> =>
+            stride.ComputeElementIndex(extent - <#= longIndexName #>.One) + 1L;
     }
 
 <#  } #>
