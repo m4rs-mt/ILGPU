@@ -362,8 +362,13 @@ namespace ILGPU
         /// Returns the hash code of this index.
         /// </summary>
         /// <returns>The hash code of this index.</returns>
-        public readonly override int GetHashCode() =>
-            <#= def.Expression(" ^ ", p => $"{p}.GetHashCode()") #>;
+        public readonly override int GetHashCode()
+        {
+            int hash = <#= def.Expression(
+                $"{Environment.NewLine}            hash = (hash << 1) ^ (hash >> 1) ^ ",
+                p => $"{p}.GetHashCode();") #>
+            return hash;
+        }
 
         /// <summary>
         /// Returns the string representation of this index.
