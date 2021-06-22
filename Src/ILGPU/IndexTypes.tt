@@ -365,7 +365,7 @@ namespace ILGPU
         public readonly override int GetHashCode()
         {
             int hash = <#= def.Expression(
-                $"{Environment.NewLine}            hash = (hash << 1) ^ (hash >> 1) ^ ",
+                $"{Environment.NewLine}            hash ^= (hash << 1) ^ ",
                 p => $"{p}.GetHashCode();") #>
             return hash;
         }
