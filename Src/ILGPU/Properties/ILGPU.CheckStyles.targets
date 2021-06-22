@@ -51,11 +51,6 @@ foreach (var file in Files)
     if (parentDirName == "Resources")
         continue;
 
-    // Ignore files that disable line length checking.
-    var lines = File.ReadAllLines(filePath);
-    if (lines.Any(line => line.StartsWith("// disable: max_line_length")))
-        continue;
-
     // Ignore generated C# files.
     var ext = Path.GetExtension(filePath);
     if (ext == ".cs")
@@ -64,6 +59,11 @@ foreach (var file in Files)
         if (File.Exists(templatePath))
             continue;
     }
+
+    // Ignore files that disable line length checking.
+    var lines = File.ReadAllLines(filePath);
+    if (lines.Any(line => line.StartsWith("// disable: max_line_length")))
+        continue;
 
     for (var i = 0; i < lines.Length; i++)
     {
