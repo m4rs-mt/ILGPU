@@ -364,10 +364,11 @@ namespace ILGPU
         /// <returns>The hash code of this index.</returns>
         public readonly override int GetHashCode()
         {
-            int hash = <#= def.Expression(
-                $"{Environment.NewLine}            hash ^= (hash << 1) ^ ",
-                p => $"{p}.GetHashCode();") #>
-            return hash;
+<# if (dimension == 1) { #>
+            return <#= def.Expression(", ", p => $"{p}") #>.GetHashCode();
+<# } else { #>
+            return (<#= def.Expression(", ", p => $"{p}") #>).GetHashCode();
+<# } #>
         }
 
         /// <summary>
