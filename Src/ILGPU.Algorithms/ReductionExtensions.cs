@@ -126,21 +126,6 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Computes a group size for reduction-kernel dispatch.
-        /// </summary>
-        /// <param name="accelerator">The accelerator.</param>
-        /// <returns>
-        /// The grouped reduction dimension for reduction-kernel dispatch.
-        /// </returns>
-        private static Index1D ComputeReductionGroupSize(Accelerator accelerator)
-        {
-            var warpSize = accelerator.WarpSize;
-            return Math.Max(
-                warpSize,
-                (accelerator.MaxNumThreadsPerGroup / warpSize) * warpSize);
-        }
-
-        /// <summary>
         /// Creates a new instance of a reduction handler.
         /// </summary>
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
@@ -224,9 +209,10 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TReduction : struct, IScanReduceOperation<T>
         {
-            var output = accelerator.MemoryCache.Allocate<T>(1);
-            accelerator.Reduce<T, TReduction>(stream, input, output);
-            output.CopyToCPU(stream, out T result, 1);
+            using var output = accelerator.Allocate1D<T>(1);
+            accelerator.Reduce<T, TReduction>(stream, input, output.View);
+            T result = default;
+            output.View.CopyToCPU(stream, ref result, 1);
             return result;
         }
 
@@ -294,9 +280,10 @@ namespace ILGPU.Algorithms
             where TStride : struct, IStride1D
             where TReduction : struct, IScanReduceOperation<T>
         {
-            var output = accelerator.MemoryCache.Allocate<T>(1);
-            accelerator.Reduce<T, TStride, TReduction>(stream, input, output);
-            output.CopyToCPU(stream, out T result, 1);
+            using var output = accelerator.Allocate1D<T>(1);
+            accelerator.Reduce<T, TStride, TReduction>(stream, input, output.View);
+            T result = default;
+            output.View.CopyToCPU(stream, ref result, 1);
             return result;
         }
 

@@ -218,7 +218,8 @@ namespace ILGPU.Algorithms
                 input,
                 output.View,
                 temp.View);
-            output.View.CopyToCPU(stream, out long result, 1);
+            long result = 0L;
+            output.View.CopyToCPU(stream, ref result, 1);
             return result;
         }
 

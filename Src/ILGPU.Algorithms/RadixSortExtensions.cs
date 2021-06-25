@@ -136,39 +136,17 @@ namespace ILGPU.Algorithms
     {
         #region Instance
 
-        private readonly MemoryBufferCache bufferCache;
+        private readonly MemoryBuffer1D<int, Stride1D.Dense> tempBuffer;
 
-        internal RadixSortProvider(Accelerator accelerator)
+        internal RadixSortProvider(Accelerator accelerator, int tempSize)
             : base(accelerator)
         {
-            bufferCache = new MemoryBufferCache(accelerator);
+            tempBuffer = accelerator.Allocate1D<int>(tempSize);
         }
 
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Allocates a temporary memory view.
-        /// </summary>
-        /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
-        /// <typeparam name="TRadixSortOperation">
-        /// The type of the radix-sort operation.
-        /// </typeparam>
-        /// <param name="input">The input view.</param>
-        /// <returns>The allocated temporary view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ArrayView<int> AllocateTempRadixSortView<T, TRadixSortOperation>(
-            ArrayView<T> input)
-            where T : unmanaged
-            where TRadixSortOperation : struct, IRadixSortOperation<T>
-        {
-            var tempSize = Accelerator.ComputeRadixSortTempStorageSize<
-                T,
-                TRadixSortOperation>(
-                input.IntLength);
-            return bufferCache.Allocate<int>(tempSize);
-        }
 
         /// <summary>
         /// Creates a new radix sort operation.
@@ -183,39 +161,7 @@ namespace ILGPU.Algorithms
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
             var radixSort = Accelerator.CreateRadixSort<T, TRadixSortOperation>();
-            return (stream, input) =>
-            {
-                var tempView = AllocateTempRadixSortView<T, TRadixSortOperation>(input);
-                radixSort(stream, input, tempView);
-            };
-        }
-
-        /// <summary>
-        /// Allocates a temporary memory view.
-        /// </summary>
-        /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
-        /// <typeparam name="TValue">The value type of each element.</typeparam>
-        /// <typeparam name="TRadixSortOperation">
-        /// The type of the radix-sort operation.
-        /// </typeparam>
-        /// <param name="keys">The keys view.</param>
-        /// <returns>The allocated temporary view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ArrayView<int> AllocateTempRadixSortPairsView<
-            TKey,
-            TValue,
-            TRadixSortOperation>(
-            ArrayView<TKey> keys)
-            where TKey : unmanaged
-            where TValue : unmanaged
-            where TRadixSortOperation : struct, IRadixSortOperation<TKey>
-        {
-            var tempSize = Accelerator.ComputeRadixSortPairsTempStorageSize<
-                TKey,
-                TValue,
-                TRadixSortOperation>(
-                keys.IntLength);
-            return bufferCache.Allocate<int>(tempSize);
+            return (stream, input) => radixSort(stream, input, tempBuffer.View);
         }
 
         /// <summary>
@@ -241,13 +187,7 @@ namespace ILGPU.Algorithms
                 TValue,
                 TRadixSortOperation>();
             return (stream, keys, values) =>
-            {
-                var tempView = AllocateTempRadixSortPairsView<
-                    TKey,
-                    TValue,
-                    TRadixSortOperation>(keys);
-                radixSort(stream, keys, values, tempView);
-            };
+                radixSort(stream, keys, values, tempBuffer.View);
         }
 
         /// <summary>
@@ -279,13 +219,7 @@ namespace ILGPU.Algorithms
                 TSequencer,
                 TRadixSortOperation>();
             return (stream, keys, values, sequencer) =>
-            {
-                var tempView = AllocateTempRadixSortPairsView<
-                    TKey,
-                    TValue,
-                    TRadixSortOperation>(keys);
-                radixSort(stream, keys, values, sequencer, tempView);
-            };
+                radixSort(stream, keys, values, sequencer, tempBuffer.View);
         }
 
         #endregion
@@ -296,7 +230,7 @@ namespace ILGPU.Algorithms
         protected override void DisposeAcceleratorObject(bool disposing)
         {
             if (disposing)
-                bufferCache.Dispose();
+                tempBuffer.Dispose();
         }
 
         #endregion
@@ -1236,10 +1170,70 @@ namespace ILGPU.Algorithms
         /// Note that the resulting provider has to be disposed manually.
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
+        /// <param name="tempStorageSize">
+        /// The number of 32bit integers to use as a temp storage.
+        /// </param>
         /// <returns>The created provider.</returns>
         public static RadixSortProvider CreateRadixSortProvider(
-            this Accelerator accelerator) =>
-            new RadixSortProvider(accelerator);
+            this Accelerator accelerator,
+            Index1D tempStorageSize) =>
+            tempStorageSize < 1
+            ? throw new ArgumentOutOfRangeException(nameof(tempStorageSize))
+            : new RadixSortProvider(accelerator, tempStorageSize);
+
+        /// <summary>
+        /// Allocates a temporary memory view.
+        /// </summary>
+        /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
+        /// <param name="accelerator">The accelerator.</param>
+        /// <param name="dataLength">The expected maximum data length to sort.</param>
+        /// <returns>The allocated temporary view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RadixSortProvider CreateRadixSortProvider<T, TRadixSortOperation>(
+            this Accelerator accelerator,
+            Index1D dataLength)
+            where T : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<T>
+        {
+            var tempSize = accelerator.ComputeRadixSortTempStorageSize<
+                T,
+                TRadixSortOperation>(dataLength);
+            return CreateRadixSortProvider(accelerator, tempSize);
+        }
+
+        /// <summary>
+        /// Allocates a temporary memory view.
+        /// </summary>
+        /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
+        /// <param name="accelerator">The accelerator.</param>
+        /// <param name="dataLength">
+        /// The expected maximum data length to sort (number of keys).
+        /// </param>
+        /// <returns>The allocated temporary view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RadixSortProvider CreateRadixSortProvider<
+            TKey,
+            TValue,
+            TRadixSortOperation>(
+            this Accelerator accelerator,
+            Index1D dataLength)
+            where TKey : unmanaged
+            where TValue : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<TKey>
+        {
+            var tempSize = accelerator.ComputeRadixSortPairsTempStorageSize<
+                TKey,
+                TValue,
+                TRadixSortOperation>(dataLength);
+            return CreateRadixSortProvider(accelerator, tempSize);
+        }
 
         #endregion
     }
