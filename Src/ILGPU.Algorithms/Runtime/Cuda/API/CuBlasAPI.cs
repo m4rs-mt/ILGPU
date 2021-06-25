@@ -25,17 +25,10 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         /// <param name="version">The cuBlas version to use.</param>
         /// <returns>The created API wrapper.</returns>
-        public static CuBlasAPI Create(CuBlasAPIVersion? version)
-        {
-            if (version.HasValue)
-            {
-                return CreateInternal(version.Value);
-            }
-            else
-            {
-                return CreateLatest();
-            }
-        }
+        public static CuBlasAPI Create(CuBlasAPIVersion? version) =>
+            version.HasValue
+            ? CreateInternal(version.Value)
+            : CreateLatest();
 
         /// <summary>
         /// Creates a new API wrapper using the latest installed version.

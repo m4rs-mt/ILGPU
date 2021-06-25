@@ -26,3 +26,12 @@ dotnet_analyzer_diagnostic.category-Security.severity = none
 
 # CA5393: Do not use unsafe DllImportSearchPath value
 dotnet_diagnostic.CA5393.severity = none
+
+# Default severity for all analyzer diagnostics
+dotnet_analyzer_diagnostic.severity = none
+
+# CA5394: Do not use insecure randomness
+dotnet_diagnostic.CA5394.severity = none
+
+# CA1508: Avoid dead conditional code
+dotnet_diagnostic.CA1508.severity = none

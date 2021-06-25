@@ -10,6 +10,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms.Random
@@ -24,6 +25,10 @@ namespace ILGPU.Algorithms.Random
         /// Generates a random int in [0..int.MaxValue].
         /// </summary>
         /// <returns>A random int in [0..int.MaxValue].</returns>
+        [SuppressMessage(
+            "Naming",
+            "CA1716:Identifiers should not match keywords",
+            Justification = "Like the method System.Random.Next()")]
         int Next();
 
         /// <summary>

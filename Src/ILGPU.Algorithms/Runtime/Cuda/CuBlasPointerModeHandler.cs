@@ -79,13 +79,13 @@ namespace ILGPU.Runtime.Cuda
         /// Returns an automatic pointer mode handler that switches the underlying pointer
         /// mode of the <see cref="CuBlas{TPointerModeHandler}"/> class automatically.
         /// </summary>
-        public static AutomaticMode Automatic { get; } = default;
+        public static AutomaticMode Automatic { get; }
 
         /// <summary>
         /// Returns a manual pointer mode handler that does not change the underlying
         /// pointer mode of the <see cref="CuBlas{TPointerModeHandler}"/> class.
         /// </summary>
-        public static ManualMode Manual { get; } = default;
+        public static ManualMode Manual { get; }
 
         #endregion
     }
