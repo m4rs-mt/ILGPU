@@ -25,8 +25,20 @@ namespace ILGPU.Backends.SPIRV
 
         public override void GenerateCode()
         {
-            //var function = Allocate()
-            //Builder.GenerateOpFunction();
+
+            GenerateGeneralCode();
+            Builder.GenerateOpFunctionEnd();
+        }
+
+        private void GenerateFunctionHeader()
+        {
+            var function = Allocate(Method);
+
+            var returnType = Load(Method.ReturnType);
+            var control = Method.HasFlags(MethodFlags.Inline)
+                ? FunctionControl.Inline
+                : FunctionControl.None;
+            Builder.GenerateOpFunction(function, returnType, control, );
         }
     }
 }

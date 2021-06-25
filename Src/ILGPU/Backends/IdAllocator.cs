@@ -2,6 +2,7 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace ILGPU.Backends
 {
@@ -60,11 +61,13 @@ namespace ILGPU.Backends
             /// <param name="labelKind">The type used for labels</param>
             public TypeContext(Dictionary<BasicValueType, TKind> mapping,
                 TKind labelKind,
-                TKind typeKind)
+                TKind typeKind,
+                TKind functionKind)
             {
                 BasicValueTypeMapping = mapping;
                 LabelKind = labelKind;
                 TypeKind = typeKind;
+                FunctionKind = functionKind;
             }
 
             public Dictionary<BasicValueType, TKind> BasicValueTypeMapping { get; }
@@ -72,6 +75,8 @@ namespace ILGPU.Backends
             public TKind LabelKind { get; }
 
             public TKind TypeKind { get; }
+
+            public TKind FunctionKind { get; }
         }
 
         #endregion
@@ -90,7 +95,7 @@ namespace ILGPU.Backends
         private readonly Dictionary<NodeId, IdVariable> lookup =
             new Dictionary<NodeId, IdVariable>();
 
-        private uint idCounter = 0;
+        private int idCounter = 0;
 
         private readonly TypeContext typeContext;
 
@@ -116,11 +121,18 @@ namespace ILGPU.Backends
         {
             if (lookup.TryGetValue(node.Id, out IdVariable variable))
                 return variable;
-            variable = new IdVariable(idCounter, kind);
-            idCounter++;
+            variable = new IdVariable((uint) Interlocked.Increment(ref idCounter), kind);
             lookup.Add(node.Id, variable);
             return variable;
         }
+
+        /// <summary>
+        /// "Allocates" a function (stores the id for it)
+        /// </summary>
+        /// <param name="method">The method to "allocate"</param>
+        /// <returns>The id variable referring to they type</returns>
+        public IdVariable Allocate(Method method) =>
+            Allocate(method, typeContext.FunctionKind);
 
         /// <summary>
         /// Creates a label variable to refer to the given block.

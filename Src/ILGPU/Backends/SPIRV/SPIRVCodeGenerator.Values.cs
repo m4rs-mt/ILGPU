@@ -7,6 +7,7 @@ namespace ILGPU.Backends.SPIRV
     {
         public void GenerateCode(MethodCall methodCall) =>
             throw new NotImplementedException();
+
         public void GenerateCode(PhiValue phiValue) =>
             throw new NotImplementedException();
 

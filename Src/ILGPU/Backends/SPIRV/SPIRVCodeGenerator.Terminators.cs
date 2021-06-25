@@ -47,8 +47,8 @@ namespace ILGPU.Backends.SPIRV
                 var targetVar = Load(target);
                 switchTargets.Add(new PairLiteralIntegerIdRef
                 {
-                    base0 = (uint) i,
-                    base1 =  targetVar
+                    base0 = (uint) i, // Case Number
+                    base1 =  targetVar // Case Target
                 });
             }
             Builder.GenerateOpSwitch(

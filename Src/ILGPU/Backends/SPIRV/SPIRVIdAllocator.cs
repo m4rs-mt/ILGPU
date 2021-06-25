@@ -16,7 +16,8 @@ namespace ILGPU.Backends.SPIRV
         Float,
         Label,
         Void,
-        Type
+        Type,
+        Function
     }
 
     public class SPIRVIdAllocator : IdAllocator<SPIRVIdKind>
@@ -49,7 +50,8 @@ namespace ILGPU.Backends.SPIRV
             : base(
                 new TypeContext(mapping: basicValueTypeToIdKindMapping,
                 labelKind: SPIRVIdKind.Label,
-                typeKind: SPIRVIdKind.Type)
+                typeKind: SPIRVIdKind.Type,
+                functionKind: SPIRVIdKind.Function)
             )
         {
 
