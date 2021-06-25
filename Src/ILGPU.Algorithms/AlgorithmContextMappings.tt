@@ -1,0 +1,104 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2019 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: AlgorithmContextMappings.tt/AlgorithmContextMappings.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="TypeInformation.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+
+using ILGPU.Frontend.Intrinsic;
+
+namespace ILGPU
+{
+    partial class AlgorithmContext
+    {
+        /// <summary>
+        /// Registers all math remappings for faster code generation.
+        /// </summary>
+        private static void RegisterMathRemappings()
+        {
+            var systemMathType = typeof(System.Math);
+#if !NETFRAMEWORK
+            var systemMathFType = typeof(System.MathF);
+#endif
+
+            // Register math remappings
+<# foreach (var (name, types) in DefaultMathFunctions) { #>
+            RemappedIntrinsics.AddRemapping(
+                XMathType,
+                RemappedIntrinsics.MathType,
+                "<#= name #>",
+                <#= string.Join(", ", types.Select(t => $"typeof({t})")) #>);
+<# } #>
+
+            // Register CPU-math remappings
+<# foreach (var (name, type, kind, basicType) in UnaryMathFunctions) { #>
+            RemappedIntrinsics.AddRemapping(
+                XMathType,
+                RemappedIntrinsics.CPUMathType,
+                "<#= name #>",
+                typeof(<#= type #>));
+<# } #>
+<# foreach (var (name, type, kind, basicType) in BinaryMathFunctions) { #>
+            RemappedIntrinsics.AddRemapping(
+                XMathType,
+                RemappedIntrinsics.CPUMathType,
+                "<#= name #>",
+                typeof(<#= type #>), typeof(<#= type #>));
+<# } #>
+
+            // Register System.Math Round/Truncate remappings
+<#
+    foreach (var floatType in AtomicFloatTypes) {
+        var isFloat32 = floatType.Type == "float";
+        var remapSourceType = isFloat32 ? "systemMathFType" : "systemMathType";
+#>
+<#      if (isFloat32) { #>
+#if !NETFRAMEWORK
+<#      } #>
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Round",
+                typeof(<#= floatType.Type #>));
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Round",
+                typeof(<#= floatType.Type #>), typeof(int));
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Round",
+                typeof(<#= floatType.Type #>), typeof(System.MidpointRounding));
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Round",
+                typeof(<#= floatType.Type #>),
+                typeof(int),
+                typeof(System.MidpointRounding));
+            RemappedIntrinsics.AddRemapping(
+                <#= remapSourceType #>,
+                XMathType,
+                "Truncate",
+                typeof(<#= floatType.Type #>));
+<#      if (isFloat32) { #>
+#endif
+<#      } #>
+<# } #>
+
+        }
+    }
+}

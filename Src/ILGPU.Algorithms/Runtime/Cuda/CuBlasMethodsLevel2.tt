@@ -1,0 +1,468 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: CuBlasMethodsLevel2.tt/CuBlasMethodsLevel2.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="CuBlasMappings.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+
+using ILGPU.Util;
+using System.Runtime.CompilerServices;
+
+// disable: max_line_length
+
+namespace ILGPU.Runtime.Cuda
+{
+    partial class CuBlas<TPointerModeHandler>
+    {
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Gbmv), Gbmv))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasOperation trans,
+            int m,
+            int n,
+            int kl,
+            int ku,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> a,
+            int lda,
+            ArrayView<<#= type #>> x,
+            int incx,
+            <#= paramType #> beta,
+            ArrayView<<#= type #>> y,
+            int incy)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    trans,
+                    m,
+                    n,
+                    kl,
+                    ku,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(a),
+                    lda,
+                    LoadCuBlasAddress(x),
+                    incx,
+                    <#= paramGetter("beta") #>,
+                    LoadCuBlasAddress(y),
+                    incy));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Gemv), Gemv))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasOperation trans,
+            int m,
+            int n,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> a,
+            int lda,
+            ArrayView<<#= type #>> x,
+            int incx,
+            <#= paramType #> beta,
+            ArrayView<<#= type #>> y,
+            int incy)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    trans,
+                    m,
+                    n,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(a),
+                    lda,
+                    LoadCuBlasAddress(x),
+                    incx,
+                    <#= paramGetter("beta") #>,
+                    LoadCuBlasAddress(y),
+                    incy));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Ger), Ger))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            int m,
+            int n,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> x,
+            int incx,
+            ArrayView<<#= type #>> y,
+            int incy,
+            ArrayView<<#= type #>> a,
+            int lda)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    m,
+                    n,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(x),
+                    incx,
+                    LoadCuBlasAddress(y),
+                    incy,
+                    LoadCuBlasAddress(a),
+                    lda));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Sbmv), Sbmv))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            int n,
+            int k,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> a,
+            int lda,
+            ArrayView<<#= type #>> x,
+            int incx,
+            <#= paramType #> beta,
+            ArrayView<<#= type #>> y,
+            int incy)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    n,
+                    k,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(a),
+                    lda,
+                    LoadCuBlasAddress(x),
+                    incx,
+                    <#= paramGetter("beta") #>,
+                    LoadCuBlasAddress(y),
+                    incy));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Spmv), Spmv))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            int n,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> ap,
+            ArrayView<<#= type #>> x,
+            int incx,
+            <#= paramType #> beta,
+            ArrayView<<#= type #>> y,
+            int incy)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    n,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(ap),
+                    LoadCuBlasAddress(x),
+                    incx,
+                    <#= paramGetter("beta") #>,
+                    LoadCuBlasAddress(y),
+                    incy));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Spr), Spr))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            int n,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> x,
+            int incx,
+            ArrayView<<#= type #>> ap)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    n,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(x),
+                    incx,
+                    LoadCuBlasAddress(ap)));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Spr2), Spr2))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            int n,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> x,
+            int incx,
+            ArrayView<<#= type #>> y,
+            int incy,
+            ArrayView<<#= type #>> ap)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    n,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(x),
+                    incx,
+                    LoadCuBlasAddress(y),
+                    incy,
+                    LoadCuBlasAddress(ap)));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Symv), Symv))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            int n,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> a,
+            int lda,
+            ArrayView<<#= type #>> x,
+            int incx,
+            <#= paramType #> beta,
+            ArrayView<<#= type #>> y,
+            int incy)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    n,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(a),
+                    lda,
+                    LoadCuBlasAddress(x),
+                    incx,
+                    <#= paramGetter("beta") #>,
+                    LoadCuBlasAddress(y),
+                    incy));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Syr), Syr))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            int n,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> x,
+            int incx,
+            ArrayView<<#= type #>> a,
+            int lda)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    n,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(x),
+                    incx,
+                    LoadCuBlasAddress(a),
+                    lda));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Syr2), Syr2))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            int n,
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> x,
+            int incx,
+            ArrayView<<#= type #>> y,
+            int incy,
+            ArrayView<<#= type #>> a,
+            int lda)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    n,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(x),
+                    incx,
+                    LoadCuBlasAddress(y),
+                    incy,
+                    LoadCuBlasAddress(a),
+                    lda));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType) in GetBlasMapping(
+    (nameof(Tbmv), Tbmv),
+    (nameof(Tbsv), Tbsv))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            int k,
+            ArrayView<<#= type #>> a,
+            int lda,
+            ArrayView<<#= type #>> x,
+            int incx)
+        {
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    trans,
+                    diag,
+                    n,
+                    k,
+                    LoadCuBlasAddress(a),
+                    lda,
+                    LoadCuBlasAddress(x),
+                    incx));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType) in GetBlasMapping(
+    (nameof(Tpmv), Tpmv),
+    (nameof(Tpsv), Tpsv))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            ArrayView<<#= type #>> ap,
+            ArrayView<<#= type #>> x,
+            int incx)
+        {
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    trans,
+                    diag,
+                    n,
+                    LoadCuBlasAddress(ap),
+                    LoadCuBlasAddress(x),
+                    incx));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType) in GetBlasMapping(
+    (nameof(Trmv), Trmv),
+    (nameof(Trsv), Trsv))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        public unsafe void <#= entry #>(
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            ArrayView<<#= type #>> a,
+            int lda,
+            ArrayView<<#= type #>> x,
+            int incx)
+        {
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    uplo,
+                    trans,
+                    diag,
+                    n,
+                    LoadCuBlasAddress(a),
+                    lda,
+                    LoadCuBlasAddress(x),
+                    incx));
+        }
+
+<# } #>
+    }
+}

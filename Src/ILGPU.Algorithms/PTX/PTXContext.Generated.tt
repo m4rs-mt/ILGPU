@@ -1,0 +1,165 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2019 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: PTXContext.Generated.tt/PTXContext.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../TypeInformation.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+var hardwareMathFunctions =
+    new ValueTuple<ValueTuple<string, Type, string, string>, string>[]
+    {
+        ( UnaryMathFunctions[10],   null ), // IsInfinity
+        ( UnaryMathFunctions[11],   null ), // IsInfinity
+        ( UnaryMathFunctions[12],   null ), // IsNaN
+        ( UnaryMathFunctions[13],   null ), // IsNaN
+
+        ( UnaryMathFunctions[18],   null ), // Rcp
+        ( UnaryMathFunctions[19],   null ), // Rcp
+
+        ( UnaryMathFunctions[20],   null ), // Sqrt
+        ( UnaryMathFunctions[21],   null ), // Sqrt
+
+        ( UnaryMathFunctions[24],   null ), // Sin
+        ( UnaryMathFunctions[30],   null ), // Cos
+
+        ( UnaryMathFunctions[16],   null ), // Exp2
+
+        ( UnaryMathFunctions[8],    null ), // Log2
+
+        ( UnaryMathFunctions[40],   "SM_75" ),  // TanH
+    };
+var unaryMathFunctions = UnaryMathFunctions.Where(t =>
+    !hardwareMathFunctions.Any(t2 => {
+        var functionName = t.Item1;
+        var dataType = t.Item2;
+        var hardwareFunctionName = t2.Item1.Item1;
+        var hardwareDataType = t2.Item1.Item2;
+        return functionName == hardwareFunctionName && dataType == hardwareDataType;
+    }));
+var binaryMathFunctions = BinaryMathFunctions;
+var xmathUnaryRedirects = new[]
+    {
+        "RoundAwayFromZero",
+        "RoundToEven",
+    };
+var xmathBinaryRedirects = new[]
+    {
+        "IEEERemainder",
+    };
+#>
+using ILGPU.IR.Intrinsics;
+using ILGPU.IR.Values;
+using ILGPU.Runtime.Cuda;
+
+namespace ILGPU.Algorithms.PTX
+{
+    partial class PTXContext
+    {
+        public static void EnablePTXAlgorithms(IntrinsicImplementationManager manager)
+        {
+            // Register math intrinsics
+<# foreach (var (name, type, kind, basicType) in unaryMathFunctions) { #>
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                GetMathIntrinsic("<#= name #>", typeof(<#= type #>)));
+<# } #>
+
+<# foreach (var (name, type, kind, basicType) in binaryMathFunctions) { #>
+            manager.RegisterBinaryArithmetic(
+                BinaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                GetMathIntrinsic(
+                    "<#= name #>",
+                    typeof(<#= type #>),
+                    typeof(<#= type #>)));
+<# } #>
+
+<# foreach (var ((name, type, kind, basicType), sm) in hardwareMathFunctions) { #>
+<#
+       if (string.IsNullOrWhiteSpace(sm)) {
+           // Register hardware intrinsic
+#>
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                MathCodeGeneratorIntrinsic);
+<#
+        } else {
+            // Register software fallback first, so that it gets replaced
+            // by the specialized hardware intrinsic.
+#>
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                GetMathIntrinsic("<#= name #>", typeof(<#= type #>)));
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                GetMathCodeGeneratorIntrinsic(CudaArchitecture.<#= sm #>));
+<#      } #>
+<# } #>
+
+<# foreach (var functionName in xmathUnaryRedirects) { #>
+            RegisterXMathRedirect(
+                manager,
+                PTXMathType,
+                "<#= functionName #>",
+                "<#= functionName #>",
+                typeof(float));
+            RegisterXMathRedirect(
+                manager,
+                PTXMathType,
+                "<#= functionName #>",
+                "<#= functionName #>",
+                typeof(double));
+<# } #>
+<# foreach (var functionName in xmathBinaryRedirects) { #>
+            RegisterXMathRedirect(
+                manager,
+                PTXMathType,
+                "<#= functionName #>",
+                "<#= functionName #>",
+                typeof(float),
+                typeof(float));
+            RegisterXMathRedirect(
+                manager,
+                PTXMathType,
+                "<#= functionName #>",
+                "<#= functionName #>",
+                typeof(double),
+                typeof(double));
+<# } #>
+
+            // Register group intrinsics
+<# foreach (var name in GroupFunctions) { #>
+            RegisterIntrinsicMapping(
+                manager,
+                AlgorithmContext.GroupExtensionsType,
+                PTXGroupExtensionsType,
+                "<#= name #>");
+<# } #>
+
+            // Register warp intrinsics
+<# foreach (var name in WarpFunctions) { #>
+            RegisterIntrinsicMapping(
+                manager,
+                AlgorithmContext.WarpExtensionsType,
+                PTXWarpExtensionsType,
+                "<#= name #>");
+<# } #>
+        }
+    }
+}
