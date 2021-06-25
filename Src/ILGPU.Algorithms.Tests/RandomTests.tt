@@ -73,7 +73,7 @@ namespace ILGPU.Algorithms.Tests
             // The current RNG implementation does not yield zeros when using the
             // initial RNG seed 42. Moreover, it should yield more than length / 2
             // number of different values
-            var data = buffer.GetAs1DArray();
+            var data = buffer.GetAsArray1D();
             var dataSet = new HashSet<<#= randomType #>>(data);
             Assert.True(dataSet.Count > data.Length / 2);
         }

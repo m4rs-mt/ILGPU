@@ -113,7 +113,7 @@ namespace ILGPU.Algorithms.Tests
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
 
             T expected = CalcValue(sequence, func);
-            T actual = output.GetAs1DArray()[0];
+            T actual = output.GetAsArray1D()[0];
             Assert.Equal(expected, actual);
         }
 

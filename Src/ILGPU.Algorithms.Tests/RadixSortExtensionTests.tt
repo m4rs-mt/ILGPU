@@ -246,7 +246,7 @@ namespace ILGPU.Algorithms.Tests
 #>
             input.CopyFromCPU(stream, sequence);
             
-            using var radixSortProvider = Accelerator.CreateRadixSortProvider();
+            using var radixSortProvider = Accelerator.CreateRadixSortProvider(length);
             var radixSortUsingSortProvider =
                 radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
 
@@ -285,7 +285,7 @@ namespace ILGPU.Algorithms.Tests
 #>
             input.CopyFromCPU(stream, sequence);
             
-            using var radixSortProvider = Accelerator.CreateRadixSortProvider();
+            using var radixSortProvider = Accelerator.CreateRadixSortProvider(length);
             var radixSortUsingSortProvider =
                 radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
 
@@ -390,7 +390,7 @@ namespace ILGPU.Algorithms.Tests
             var sequence = sequencer.ComputeSequence(start, stepSize, length);
             input.CopyFromCPU(stream, sequence);
 
-            using var radixSortProvider = Accelerator.CreateRadixSortProvider();
+            using var radixSortProvider = Accelerator.CreateRadixSortProvider(length);
             var radixSortUsingSortProvider =
                 radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
 
