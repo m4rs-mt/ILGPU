@@ -1,0 +1,357 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: CuBlasMethodsLevel1.tt/CuBlasMethodsLevel1.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="CuBlasMappings.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+
+using ILGPU.Util;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
+// disable: max_line_length
+
+namespace ILGPU.Runtime.Cuda
+{
+    partial class CuBlas<TPointerModeHandler>
+    {
+<# foreach (var (entry, func, type, elemType) in GetBlasMapping(
+    (nameof(Amax), Amax),
+    (nameof(Amin), Amin))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="input">The input view.</param>
+        /// <returns>The computed value.</returns>
+        public unsafe int <#= entry #>(ArrayView<<#= type #>> input)
+        {
+            EnsurePointerMode(CuBlasPointerMode.Host);
+
+            int result;
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    input.IntLength,
+                    LoadCuBlasAddress(input),
+                    1,
+                    &result));
+            return result;
+        }
+
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="input">The input view.</param>
+        /// <param name="output">The output view.</param>
+        public unsafe void <#= entry #>(ArrayView<<#= type #>> input, ArrayView<int> output)
+        {
+            EnsurePointerMode(CuBlasPointerMode.Device);
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    input.IntLength,
+                    LoadCuBlasAddress(input),
+                    1,
+                    LoadCuBlasAddress(output)));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType) in GetBlasMapping(
+    (nameof(Asum), Asum),
+    (nameof(Nrm2), Nrm2))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="input">The input view.</param>
+        /// <returns>The computed value.</returns>
+        public unsafe <#= type #> <#= entry #>(ArrayView<<#= type #>> input)
+        {
+            EnsurePointerMode(CuBlasPointerMode.Host);
+
+            <#= type #> result = default;
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    input.IntLength,
+                    LoadCuBlasAddress(input),
+                    1,
+                    Unsafe.AsPointer(ref result)));
+            return result;
+        }
+
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="input">The input view.</param>
+        /// <param name="output">The output view.</param>
+        public unsafe void <#= entry #>(ArrayView<<#= type #>> input, ArrayView<<#= type #>> output)
+        {
+            EnsurePointerMode(CuBlasPointerMode.Device);
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    input.IntLength,
+                    LoadCuBlasAddress(input),
+                    1,
+                    LoadCuBlasAddress(output)));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Axpy), Axpy))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="alpha">The alpha value.</param>
+        /// <param name="x">The x vector.</param>
+        /// <param name="y">The y vector.</param>
+        public unsafe void <#= entry #>(
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> x,
+            ArrayView<<#= type #>> y)
+        {
+            <#= paramVerifier #>;
+            Debug.Assert(x.Length == y.Length, "Invalid length");
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    x.IntLength,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(x),
+                    1,
+                    LoadCuBlasAddress(y),
+                    1));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType) in GetBlasMapping(
+    (nameof(Dot), Dot))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="x">The x vector.</param>
+        /// <param name="y">The y vector.</param>
+        /// <returns>The computed value.</returns>
+        public unsafe <#= type #> <#= entry #>(
+            ArrayView<<#= type #>> x,
+            ArrayView<<#= type #>> y)
+        {
+            EnsurePointerMode(CuBlasPointerMode.Host);
+            Debug.Assert(x.Length == y.Length, "Invalid length");
+
+            <#= type #> result = default;
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    x.IntLength,
+                    LoadCuBlasAddress(x),
+                    1,
+                    LoadCuBlasAddress(y),
+                    1,
+                    Unsafe.AsPointer(ref result)));
+            return result;
+        }
+
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="x">The x vector.</param>
+        /// <param name="y">The y vector.</param>
+        /// <param name="output">The output view.</param>
+        public unsafe void <#= entry #>(
+            ArrayView<<#= type #>> x,
+            ArrayView<<#= type #>> y,
+            ArrayView<<#= type #>> output)
+        {
+            EnsurePointerMode(CuBlasPointerMode.Device);
+            Debug.Assert(x.Length == y.Length, "Invalid length");
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    x.IntLength,
+                    LoadCuBlasAddress(x),
+                    1,
+                    LoadCuBlasAddress(y),
+                    1,
+                    LoadCuBlasAddress(output)));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Rot), Rot))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="x">The x vector.</param>
+        /// <param name="y">The y vector.</param>
+        /// <param name="c">The cos angle.</param>
+        /// <param name="s">The sin angle.</param>
+        public unsafe void <#= entry #>(
+            ArrayView<<#= type #>> x,
+            ArrayView<<#= type #>> y,
+            <#= paramType #> c,
+            <#= paramType #> s)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    x.IntLength,
+                    LoadCuBlasAddress(x),
+                    1,
+                    LoadCuBlasAddress(y),
+                    1,
+                    <#= paramGetter("c") #>,
+                    <#= paramGetter("s") #>));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType) in GetBlasMapping(
+    (nameof(RotG), RotG))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="a">The a value.</param>
+        /// <param name="b">The b value.</param>
+        /// <param name="c">The cos angle.</param>
+        /// <param name="s">The sin angle.</param>
+        public unsafe void <#= entry #>(
+            <#= type #> a,
+            <#= type #> b,
+            <#= elemType #> c,
+            <#= type #> s)
+        {
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    Unsafe.AsPointer(ref a),
+                    Unsafe.AsPointer(ref b),
+                    Unsafe.AsPointer(ref c),
+                    Unsafe.AsPointer(ref s)));
+        }
+
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="a">The a value.</param>
+        /// <param name="b">The b value.</param>
+        /// <param name="c">The cos angle.</param>
+        /// <param name="s">The sin angle.</param>
+        public unsafe void <#= entry #>(
+            ArrayView<<#= type #>> a,
+            ArrayView<<#= type #>> b,
+            ArrayView<<#= elemType #>> c,
+            ArrayView<<#= type #>> s)
+        {
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    LoadCuBlasAddress(a),
+                    LoadCuBlasAddress(b),
+                    LoadCuBlasAddress(c),
+                    LoadCuBlasAddress(s)));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    true,
+    (nameof(RotM), RotM))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="x">The x vector.</param>
+        /// <param name="y">The y vector.</param>
+        /// <param name="param">The Givens param.</param>
+        public unsafe void <#= entry #>(
+            ArrayView<<#= type #>> x,
+            ArrayView<<#= type #>> y,
+            <#= paramType #> param)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    x.IntLength,
+                    LoadCuBlasAddress(x),
+                    1,
+                    LoadCuBlasAddress(y),
+                    1,
+                    <#= paramGetter("param") #>));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
+    (nameof(Scal), Scal))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="alpha">The alpha value.</param>
+        /// <param name="x">The x vector.</param>
+        public unsafe void <#= entry #>(
+            <#= paramType #> alpha,
+            ArrayView<<#= type #>> x)
+        {
+            <#= paramVerifier #>;
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    x.IntLength,
+                    <#= paramGetter("alpha") #>,
+                    LoadCuBlasAddress(x),
+                    1));
+        }
+
+<# } #>
+
+<# foreach (var (entry, func, type, elemType) in GetBlasMapping(
+    (nameof(Swap), Swap))) { #>
+        /// <summary>
+        /// Performs the CuBlas <#= entry #> operation.
+        /// </summary>
+        /// <param name="x">The x vector.</param>
+        /// <param name="y">The y vector.</param>
+        public unsafe void <#= entry #>(
+            ArrayView<<#= type #>> x,
+            ArrayView<<#= type #>> y)
+        {
+            Debug.Assert(x.Length == y.Length, "Invalid length");
+
+            CuBlasException.ThrowIfFailed(
+                API.<#= func #>(
+                    Handle,
+                    x.IntLength,
+                    LoadCuBlasAddress(x),
+                    1,
+                    LoadCuBlasAddress(y),
+                    1));
+        }
+
+<# } #>
+    }
+}

@@ -243,9 +243,6 @@ ModelManifest.xml
 # FAKE - F# Make
 .fake/
 
-# Doxygen ignore
-.doxygen
-
 # Ignore specific template outputs
 Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
@@ -276,6 +273,30 @@ Src/ILGPU/TypeInformation.cs
 Src/ILGPU/Util/DataBlocks.cs
 Src/ILGPU/Util/PrimitiveDataBlocks.cs
 
+# Ignore specific template outputs (Algorithms)
+Src/ILGPU.Algorithms/AlgorithmContextMappings.cs
+Src/ILGPU.Algorithms/CL/CLContext.Generated.cs
+Src/ILGPU.Algorithms/ComparisonOperations.cs
+Src/ILGPU.Algorithms/HistogramLaunchers.cs
+Src/ILGPU.Algorithms/HistogramOperations.cs
+Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
+Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
+Src/ILGPU.Algorithms/RadixSortOperations.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuRandNativeMethods.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuBlasNativeMethods.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel1.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel2.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel3.cs
+Src/ILGPU.Algorithms/ScanReduceOperations.cs
+Src/ILGPU.Algorithms/Sequencers.cs
+Src/ILGPU.Algorithms/TypeInformation.cs
+Src/ILGPU.Algorithms/UniqueLaunchers.cs
+Src/ILGPU.Algorithms/XMath/Cordic.cs
+Src/ILGPU.Algorithms/XMath/Cordic.Log.cs
+Src/ILGPU.Algorithms/XMath/Cordic.Pow.cs
+Src/ILGPU.Algorithms/XMath/Cordic.Trig.cs
+Src/ILGPU.Algorithms/XMath/RoundingModes.cs
+
 # Generated test source files
 Src/ILGPU.Tests/Generic/ConfigurationBase.cs
 Src/ILGPU.Tests/AtomicCASOperations.cs
@@ -300,3 +321,31 @@ Src/ILGPU.Tests.Cuda/Configurations.cs
 Src/ILGPU.Tests.Cuda/TestContexts.cs
 Src/ILGPU.Tests.OpenCL/Configurations.cs
 Src/ILGPU.Tests.OpenCL/TestContexts.cs
+
+# Generated test source files (Algorithms)
+Src/ILGPU.Algorithms.Tests/Generic/ConfigurationBase.cs
+Src/ILGPU.Algorithms.Tests/Generic/AlgorithmsTestData.cs
+Src/ILGPU.Algorithms.Tests/ArrayExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/GroupExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/HistogramTests.cs
+Src/ILGPU.Algorithms.Tests/RadixSortExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/RandomTests.cs
+Src/ILGPU.Algorithms.Tests/ReductionExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/ReorderExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/ScanExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/SequencerTests.cs
+Src/ILGPU.Algorithms.Tests/TransformerExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/UniqueExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/WarpExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/XMathTests.BitOperations.cs
+Src/ILGPU.Algorithms.Tests/XMathTests.Log.cs
+Src/ILGPU.Algorithms.Tests/XMathTests.Pow.cs
+Src/ILGPU.Algorithms.Tests/XMathTests.Rem.cs
+Src/ILGPU.Algorithms.Tests/XMathTests.Rcp.cs
+Src/ILGPU.Algorithms.Tests/XMathTests.Round.cs
+Src/ILGPU.Algorithms.Tests/XMathTests.Sqrt.cs
+Src/ILGPU.Algorithms.Tests/XMathTests.Trig.cs
+
+Src/ILGPU.Algorithms.Tests.CPU/Configurations.cs
+Src/ILGPU.Algorithms.Tests.Cuda/Configurations.cs
+Src/ILGPU.Algorithms.Tests.OpenCL/Configurations.cs

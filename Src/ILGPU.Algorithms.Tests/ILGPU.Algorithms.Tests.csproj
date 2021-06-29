@@ -1,0 +1,339 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp3.1</TargetFrameworks>
+
+    <IsPackable>false</IsPackable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT' AND '$(GITHUB_ACTIONS)' == 'true'">
+    <TargetFrameworks>$(TargetFrameworks);net47</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Channel)' == 'experimental'">
+    <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\ILGPU.Tests\.test.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ILGPU.Tests\Generic\AssemblyAttributes.cs" Link="Generic\AssemblyAttributes.cs" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GitHubActionsTestLogger" Version="1.1.0" />
+    <PackageReference Include="FluentAssertions" Version="5.10.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="T4.Build" Version="0.2.0" PrivateAssets="All" />
+    <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="ArrayExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ArrayExtensionTests.tt</DependentUpon>
+    </None>
+    <None Include="Generic\AlgorithmsTestData.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AlgorithmsTestData.tt</DependentUpon>
+    </None>
+    <None Include="Generic\ConfigurationBase.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConfigurationBase.tt</DependentUpon>
+    </None>
+    <None Include="GroupExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>GroupExtensionTests.tt</DependentUpon>
+    </None>
+    <None Include="RadixSortExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RadixSortExtensionTests.tt</DependentUpon>
+    </None>
+    <None Include="RandomTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RandomTests.tt</DependentUpon>
+    </None>
+    <None Include="ReductionExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ReductionExtensionTests.tt</DependentUpon>
+    </None>
+    <None Include="ReorderExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ReorderExtensionTests.tt</DependentUpon>
+    </None>
+    <None Include="ScanExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ScanExtensionTests.tt</DependentUpon>
+    </None>
+    <None Include="SequencerTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SequencerTests.tt</DependentUpon>
+    </None>
+    <None Include="TransformerExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>TransformerExtensionTests.tt</DependentUpon>
+    </None>
+    <None Include="XMathTests.Rem.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Rem.tt</DependentUpon>
+    </None>
+    <None Include="XMathTests.Round.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Round.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ILGPU.Tests\ILGPU.Tests.csproj" />
+    <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
+    <ProjectReference Include="..\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ArrayExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ArrayExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="Generic\AlgorithmsTestData.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AlgorithmsTestData.cs</LastGenOutput>
+    </None>
+    <None Update="Generic\ConfigurationBase.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ConfigurationBase.cs</LastGenOutput>
+    </None>
+    <None Update="GroupExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>GroupExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="Histogram.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Histogram.cs</LastGenOutput>
+    </None>
+    <None Update="HistogramTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>HistogramTests.cs</LastGenOutput>
+    </None>
+    <None Update="RadixSortExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RadixSortExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="RandomTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RandomTests.cs</LastGenOutput>
+    </None>
+    <None Update="ReductionExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ReductionExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="ReorderExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ReorderExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="ScanExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ScanExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="SequencerTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SequencerTests.cs</LastGenOutput>
+    </None>
+    <None Update="TransformerExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TransformerExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="UniqueExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>UniqueExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="WarpExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>WarpExtensionTests.cs</LastGenOutput>
+    </None>
+    <None Update="XMathTests.BitOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>XMathTests.BitOperations.cs</LastGenOutput>
+    </None>
+    <None Update="XMathTests.Log.tt">
+      <LastGenOutput>XMathTests.Log.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMathTests.Pow.tt">
+      <LastGenOutput>XMathTests.Pow.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMathTests.Rcp.tt">
+      <LastGenOutput>XMathTests.Rcp.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMathTests.Rem.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>XMathTests.Rem.cs</LastGenOutput>
+    </None>
+    <None Update="XMathTests.Round.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>XMathTests.Round.cs</LastGenOutput>
+    </None>
+    <None Update="XMathTests.Sqrt.tt">
+      <LastGenOutput>XMathTests.Sqrt.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMathTests.Trig.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>XMathTests.Trig.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="ArrayExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ArrayExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Generic\AlgorithmsTestData.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AlgorithmsTestData.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Generic\ConfigurationBase.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConfigurationBase.tt</DependentUpon>
+    </Compile>
+    <Compile Update="GroupExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>GroupExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Histogram.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Histogram.tt</DependentUpon>
+    </Compile>
+    <Compile Update="HistogramTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="RadixSortExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RadixSortExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="RandomTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RandomTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="ReductionExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ReductionExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="ReorderExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ReorderExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="ScanExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ScanExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="SequencerTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SequencerTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="TransformerExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>TransformerExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="UniqueExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>UniqueExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="WarpExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>WarpExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMathTests.BitOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.BitOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMathTests.Log.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Log.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMathTests.Pow.cs">
+      <DependentUpon>XMathTests.Pow.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="XMathTests.Rcp.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Rcp.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMathTests.Rem.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Rem.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMathTests.Round.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Round.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMathTests.Sqrt.cs">
+      <DependentUpon>XMathTests.Sqrt.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="XMathTests.Trig.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Trig.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Generic\" />
+  </ItemGroup>
+</Project>

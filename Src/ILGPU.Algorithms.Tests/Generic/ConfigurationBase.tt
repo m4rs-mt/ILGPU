@@ -1,0 +1,86 @@
+﻿<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#@ include file="../../ILGPU.Algorithms/TypeInformation.ttinclude" #>
+<#+
+public enum SequenceSortingKind
+{
+    Ascending,
+    Constant,
+    Descending,
+}
+
+public class SortingInformation
+{
+    public SortingInformation(
+        string name,
+        SequenceSortingKind kind)
+    {
+        Name = name;
+        Kind = kind;
+    }
+
+    public string Name { get; }
+
+    public SequenceSortingKind Kind { get; }
+
+    public bool IsAscendingSorting => Kind == SequenceSortingKind.Ascending;
+
+    public bool IsConstantSorting => Kind == SequenceSortingKind.Constant;
+
+    public bool IsDescendingSorting => Kind == SequenceSortingKind.Descending;
+};
+
+// Scan and Reduce struct
+public struct ScanReduceOperation
+{
+    public ScanReduceOperation(
+        string name,
+        string neutralElement,
+        string prefix,
+        string operation,
+        string suffix)
+    {
+        Name = name;
+        NeutralElement = neutralElement;
+        Prefix = prefix;
+        Operation = operation;
+        Suffix = suffix;
+    }
+
+    public string Name { get; }
+    public string NeutralElement { get; }
+    public string Prefix { get; }
+    public string Operation { get; }
+    public string Suffix { get; }
+}
+
+// Scan and Reduce functions
+
+public static readonly ScanReduceOperation[] ScanReduceOperations =
+    {
+        new ScanReduceOperation ( "Add", "0", "", " + ", "" ),
+        new ScanReduceOperation ( "Max", "{0}.MinValue", "XMath.Max(", ", ", ")" ),
+        new ScanReduceOperation ( "Min", "{0}.MaxValue", "XMath.Min(", ", ", ")" )
+    };
+
+public static readonly int[] ArraySizes = { 1, 31, 32 , 33, 65, 127, 1000, 10000, 50000 };
+
+// VerifyWithinRelativeError
+public struct RelativeError
+{
+    public RelativeError(double cpu, double cuda, double opencl)
+    {
+        CPU = cpu;
+        Cuda = cuda;
+        OpenCL = opencl;
+    }
+
+    public double CPU { get; }
+    public double Cuda { get; }
+    public double OpenCL { get; }
+}
+
+#>
