@@ -68,7 +68,7 @@ namespace ILGPU
         /// Enables algorithm extensions in the scope of the given context builder.
         /// </summary>
         /// <param name="builder">The builder to enable algorithms for.</param>
-        public static void EnableAlgorithms(this Context.Builder builder)
+        public static Context.Builder EnableAlgorithms(this Context.Builder builder)
         {
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
@@ -77,6 +77,7 @@ namespace ILGPU
             CLContext.EnableCLAlgorithms(intrinsicManager);
             ILContext.EnableILAlgorithms(intrinsicManager);
             PTXContext.EnablePTXAlgorithms(intrinsicManager);
+            return builder;
         }
 
         #endregion
