@@ -14,8 +14,22 @@
 <#
     var operations = new []
     {
-        new { DataType = "float", ValueSuffix = "f", Iterations = 24, Format = "E9", XMathSuffix = "" },
-        new { DataType = "double", ValueSuffix = "", Iterations = 53, Format = "E17", XMathSuffix = "D" },
+        new
+        {
+            DataType = "float",
+            ValueSuffix = "f",
+            Iterations = 24,
+            Format = "E9",
+            XMathSuffix = ""
+        },
+        new
+        {
+            DataType = "double",
+            ValueSuffix = "",
+            Iterations = 53,
+            Format = "E17",
+            XMathSuffix = "D"
+        },
     };
 
     var maxIterations  = operations.Max(x => x.Iterations);

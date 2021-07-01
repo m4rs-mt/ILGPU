@@ -336,4 +336,6 @@
   <ItemGroup>
     <Folder Include="Generic\" />
   </ItemGroup>
+
+  <Import Project="..\ILGPU\Properties\ILGPU.CheckStyles.targets" />
 </Project>

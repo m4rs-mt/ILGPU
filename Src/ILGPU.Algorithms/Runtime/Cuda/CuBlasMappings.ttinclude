@@ -327,7 +327,8 @@ public static IEnumerable<(T, string, string)> GetBlasMapping<T>(params T[] valu
     }
 }
 
-public static IEnumerable<(string, T, string, string)> GetBlasMapping<T>(params (string, T[])[] bindings)
+public static IEnumerable<(string, T, string, string)> GetBlasMapping<T>(
+    params (string, T[])[] bindings)
 {
     foreach (var (entry, values) in bindings)
     {
@@ -339,11 +340,25 @@ public static IEnumerable<(string, T, string, string)> GetBlasMapping<T>(params 
     }
 }
 
-public static IEnumerable<(string, T, string, string, string, Func<string, string>, string)> GetBlasMappingHostDevice<T>(
+public static IEnumerable<(
+    string,
+    T,
+    string,
+    string,
+    string,
+    Func<string, string>,
+    string)> GetBlasMappingHostDevice<T>(
     params (string, T[])[] bindings) =>
     GetBlasMappingHostDevice(false, bindings);
 
-public static IEnumerable<(string, T, string, string, string, Func<string, string>, string)> GetBlasMappingHostDevice<T>(
+public static IEnumerable<(
+    string,
+    T,
+    string,
+    string,
+    string,
+    Func<string, string>,
+    string)> GetBlasMappingHostDevice<T>(
     bool byRef,
     params (string, T[])[] bindings)
 {
