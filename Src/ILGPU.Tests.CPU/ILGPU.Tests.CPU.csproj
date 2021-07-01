@@ -82,4 +82,5 @@
     </Compile>
   </ItemGroup>
 
+  <Import Project="..\ILGPU\Properties\ILGPU.CheckStyles.targets" />
 </Project>
