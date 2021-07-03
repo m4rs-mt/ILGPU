@@ -13,7 +13,7 @@
 
     <PropertyGroup>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <VersionPrefix>1.0.0-beta2</VersionPrefix>
+        <VersionPrefix>1.0.0-beta3</VersionPrefix>
         <NeutralLanguage>en-US</NeutralLanguage>
         <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
         <LangVersion>8.0</LangVersion>
