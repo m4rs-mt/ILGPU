@@ -18,6 +18,19 @@ namespace ILGPU.Tests
         #region Static
 
         /// <summary>
+        /// The name of the environment variable to control whether to clear all caches
+        /// after running a test to have a clean test environment.
+        /// </summary>
+        public static readonly string CleanTestsEnvironmentVariable = "ILGPU_CLEAN_TESTS";
+
+        /// <summary>
+        /// Returns true if all tests should be executed in a clean environment.
+        /// </summary>
+        public static bool CleanTests { get; } =
+            !string.IsNullOrWhiteSpace(
+                Environment.GetEnvironmentVariable(CleanTestsEnvironmentVariable));
+
+        /// <summary>
         /// Resolves a kernel method.
         /// </summary>
         /// <param name="type">The parent type.</param>
@@ -67,7 +80,7 @@ namespace ILGPU.Tests
 
         #region Properties
 
-        private TestContext TestContext { get; }
+        protected TestContext TestContext { get; }
 
         /// <summary>
         /// Returns the output helper.
@@ -357,7 +370,8 @@ namespace ILGPU.Tests
         /// <summary cref="IDisposable.Dispose"/>
         protected override void Dispose(bool disposing)
         {
-            TestContext.ClearCaches();
+            if (CleanTests)
+                TestContext.ClearCaches();
             base.Dispose(disposing);
         }
 
