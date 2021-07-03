@@ -1,45 +1,45 @@
-﻿ArrayViews: Debug, Release, O2
-Arrays: Debug, Release, O2
-DebugTests: Debug, Release, O2
-DisassemblerTests: Debug, Release, O2
-EnumValues: Debug, Release, O2
-FixedBuffers: Debug, Release, O2
-Indices: Debug, Release, O2
-KernelEntryPoints: Debug, Release, O2
-MemoryBufferOperations : Debug, Release, O2
-PageLockedMemory: Debug, Release, O2
-ProfilingMarkers: Debug, Release, O2
-SharedMemory: Debug, Release, O2
-SizeOfValues: Debug, Release, O2
-SpecializedKernels: Debug, Release, O2
-StructureValues: Debug, Release, O2
-ValueTuples: Debug, Release, O2
-InteropTests: Debug, Release, O2
+﻿ArrayViews
+Arrays
+DebugTests
+DisassemblerTests
+EnumValues
+FixedBuffers
+Indices
+KernelEntryPoints
+MemoryBufferOperations
+PageLockedMemory
+ProfilingMarkers
+SharedMemory
+SizeOfValues
+SpecializedKernels
+StructureValues
+ValueTuples
+InteropTests
 
-BinaryIntOperations: Debug, Release, O2
-UnaryIntOperations: Debug, Release, O2
+BinaryIntOperations
+UnaryIntOperations
 
-CompareIntOperations: Debug, Release, O2
-CompareFloatOperations: Debug, Release, O2
+CompareIntOperations
+CompareFloatOperations
 
-AtomicOperations: Debug, Release, O2
-AtomicCASOperations: Debug, Release, O2
+AtomicOperations
+AtomicCASOperations
 
-GridOperations: Debug, Release, O2
-GroupOperations: Debug, Release, O2
-MemoryFenceOperations: Debug, Release, O2
-WarpOperations: Debug, Release, O2
+GridOperations
+GroupOperations
+MemoryFenceOperations
+WarpOperations
 
-ConvertFloatOperations: Debug, Release, O2
-ConvertIntOperations: Debug, Release, O2
-ReinterpretCasts: Debug, Release, O2
+ConvertFloatOperations
+ConvertIntOperations
+ReinterpretCasts
 
-BasicJumps: Debug, Release, O2
-BasicCalls: Debug, Release, O2
-BasicIfs: Debug, Release, O2
-BasicLoops: Debug, Release, O2
-BasicSwitches: Debug, Release, O2
-BasicPhis: Debug, Release, O2
+BasicJumps
+BasicCalls
+BasicIfs
+BasicLoops
+BasicSwitches
+BasicPhis
 
-FormatStringTests: Debug, Release, O2
-LanguageTests: Debug, Release, O2
+FormatStringTests
+LanguageTests
