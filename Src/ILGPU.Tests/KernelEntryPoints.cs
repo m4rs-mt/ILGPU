@@ -16,6 +16,15 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
+        /// <summary cref="IDisposable.Dispose"/>
+        protected override void Dispose(bool disposing)
+        {
+            // Clear the internal caches in case they will not be cleared
+            if (!CleanTests)
+                TestContext.ClearCaches();
+            base.Dispose(disposing);
+        }
+
         internal static void Index1EntryPointKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> output)
@@ -25,7 +34,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(513)]
         [InlineData(1025)]
         [KernelMethod(nameof(Index1EntryPointKernel))]
         public void Index1EntryPoint(int length)
@@ -48,7 +56,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(257)]
         [InlineData(513)]
         [KernelMethod(nameof(Index2EntryPointKernel))]
         public void Index2EntryPoint(int length)
@@ -72,7 +79,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(65)]
         [InlineData(257)]
         [KernelMethod(nameof(Index3EntryPointKernel))]
         public void Index3EntryPoint(int length)
@@ -95,7 +101,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(513)]
         [InlineData(1025)]
         [KernelMethod(nameof(GroupedIndex1EntryPointKernel))]
         public void GroupedIndex1EntryPoint(int length)
@@ -133,7 +138,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(65)]
         [InlineData(129)]
         [KernelMethod(nameof(GroupedIndex2EntryPointKernel))]
         public void GroupedIndex2EntryPoint(int length)
@@ -260,7 +264,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(513)]
         [InlineData(1025)]
         public void NonCapturingLambdaIndex1EntryPoint(int length)
         {
@@ -279,7 +282,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(257)]
         [InlineData(513)]
         public void NonCapturingLambdaIndex2EntryPoint(int length)
         {
@@ -300,7 +302,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(65)]
         [InlineData(257)]
         public void NonCapturingLambdaIndex3EntryPoint(int length)
         {
@@ -321,7 +322,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(513)]
         [InlineData(1025)]
         public void InstanceMethodIndex1EntryPoint(int length)
         {
@@ -339,7 +339,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(257)]
         [InlineData(513)]
         public void InstanceMethodIndex2EntryPoint(int length)
         {
@@ -358,7 +357,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(65)]
         [InlineData(257)]
         public void InstanceMethodIndex3EntryPoint(int length)
         {
@@ -377,7 +375,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(513)]
         [InlineData(1025)]
         public void StaticPropertyCapturingLambdaIndex1EntryPoint(int length)
         {
@@ -397,7 +394,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(257)]
         [InlineData(513)]
         public void StaticPropertyCapturingLambdaIndex2EntryPoint(int length)
         {
@@ -419,7 +415,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(65)]
         [InlineData(257)]
         public void StaticPropertyCapturingLambdaIndex3EntryPoint(int length)
         {
@@ -441,7 +436,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(513)]
         [InlineData(1025)]
         public void LocalCapturingLambdaIndex1EntryPoint(int length)
         {
@@ -459,7 +453,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(257)]
         [InlineData(513)]
         public void LocalCapturingLambdaIndex2EntryPoint(int length)
         {
@@ -479,7 +472,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(65)]
         [InlineData(257)]
         public void LocalCapturingLambdaIndex3EntryPoint(int length)
         {
@@ -499,7 +491,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(513)]
         [InlineData(1025)]
         public void StaticFieldCapturingLambdaIndex1EntryPoint(int length)
         {
@@ -517,7 +508,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(257)]
         [InlineData(513)]
         public void StaticFieldCapturingLambdaIndex2EntryPoint(int length)
         {
@@ -537,7 +527,6 @@ namespace ILGPU.Tests
 
         [Theory]
         [InlineData(33)]
-        [InlineData(65)]
         [InlineData(257)]
         public void StaticFieldCapturingLambdaIndex3EntryPoint(int length)
         {
