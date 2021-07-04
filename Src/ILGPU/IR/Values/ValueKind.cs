@@ -69,6 +69,11 @@ namespace ILGPU.IR
         ViewCast,
 
         /// <summary>
+        /// A <see cref="Values.ArrayToViewCast"/> value.
+        /// </summary>
+        ArrayToViewCast,
+
+        /// <summary>
         /// A <see cref="Values.IntAsPointerCast"/> value.
         /// </summary>
         IntAsPointerCast,

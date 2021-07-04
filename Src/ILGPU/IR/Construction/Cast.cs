@@ -148,6 +148,17 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
+        /// Creates an array to a view cast.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="value">The value to cast into a view.</param>
+        /// <returns>A node that represents the cast operation.</returns>
+        public ValueReference CreateArrayToViewCast(Location location, Value value) =>
+            value.Type is ViewType
+            ? value
+            : Append(new ArrayToViewCast(GetInitializer(location), value));
+
+        /// <summary>
         /// Creates a float as int reinterpret bit cast.
         /// </summary>
         /// <param name="location">The current location.</param>

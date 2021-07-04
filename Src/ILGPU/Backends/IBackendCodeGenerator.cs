@@ -412,6 +412,10 @@ namespace ILGPU.Backends
             public void Visit(ViewCast value) =>
                 throw new InvalidCodeGenerationException();
 
+            /// <summary cref="IValueVisitor.Visit(ArrayToViewCast)"/>
+            public void Visit(ArrayToViewCast value) =>
+                throw new InvalidCodeGenerationException();
+
             /// <summary cref="IValueVisitor.Visit(FloatAsIntCast)"/>
             public void Visit(FloatAsIntCast value) =>
                 CodeGenerator.GenerateCode(value);
