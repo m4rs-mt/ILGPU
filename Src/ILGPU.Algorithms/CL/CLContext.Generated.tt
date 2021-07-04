@@ -1,0 +1,183 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2019 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: CLContext.Generated.tt/CLContext.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../TypeInformation.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+var unaryMathFunctions = new ValueTuple<string, Type, string, string>[]
+    {
+        UnaryMathFunctions[18], // Rcp
+        UnaryMathFunctions[19], // Rcp
+    };
+var binaryMathFunctions = new ValueTuple<string, Type, string, string>[]
+    {
+        BinaryMathFunctions[6], // Log
+        BinaryMathFunctions[7], // Log
+    };
+var xmathUnaryCodeGenerators = new ValueTuple<string, string>[]
+    {
+        ( "RoundAwayFromZero",  "round" ),
+        ( "RoundToEven",        "rint" ),
+    };
+var xmathBinaryCodeGenerators = new ValueTuple<string, string>[]
+    {
+        ( "IEEERemainder", "remainder" ),
+    };
+#>
+using ILGPU.Backends.OpenCL;
+using ILGPU.IR;
+using ILGPU.IR.Intrinsics;
+using ILGPU.IR.Values;
+
+namespace ILGPU.Algorithms.CL
+{
+    partial class CLContext
+    {
+        public static void EnableCLAlgorithms(IntrinsicImplementationManager manager)
+        {
+            // Register math intrinsics
+<# foreach (var (name, type, kind, basicType) in binaryMathFunctions) { #>
+            manager.RegisterBinaryArithmetic(
+                BinaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                GetMathIntrinsic(
+                    "<#= name #>",
+                    typeof(<#= type #>), typeof(<#= type #>)));
+<# } #>
+
+<# foreach (var (name, type, kind, basicType) in unaryMathFunctions) { #>
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                MathCodeGeneratorIntrinsic);
+<# } #>
+
+<# foreach (var (name, functionName) in xmathUnaryCodeGenerators) { #>
+            RegisterXMathCodeGenerator(
+                manager,
+                typeof(CLContext),
+                "<#= name #>",
+                "Generate<#= name #>",
+                typeof(float));
+            RegisterXMathCodeGenerator(
+                manager,
+                typeof(CLContext),
+                "<#= name #>",
+                "Generate<#= name #>",
+                typeof(double));
+<# } #>
+<# foreach (var (name, functionName) in xmathBinaryCodeGenerators) { #>
+            RegisterXMathCodeGenerator(
+                manager,
+                typeof(CLContext),
+                "<#= name #>",
+                "Generate<#= name #>",
+                typeof(float),
+                typeof(float));
+            RegisterXMathCodeGenerator(
+                manager,
+                typeof(CLContext),
+                "<#= name #>",
+                "Generate<#= name #>",
+                typeof(double),
+                typeof(double));
+<# } #>
+
+            // Register group intrinsics
+<# foreach (var name in GroupFunctions.Take(4)) { #>
+            RegisterIntrinsicCodeGenerator(
+                manager,
+                AlgorithmContext.GroupExtensionsType,
+                CLGroupExtensionsType,
+                "<#= name #>",
+                "Generate<#= name #>");
+<# } #>
+<# foreach (var name in GroupFunctions.Skip(4)) { #>
+            RegisterIntrinsicMapping(
+                manager,
+                AlgorithmContext.GroupExtensionsType,
+                CLGroupExtensionsType,
+                "<#= name #>");
+<# } #>
+
+            // Register warp intrinsics
+<# foreach (var name in WarpFunctions) { #>
+            RegisterIntrinsicCodeGenerator(
+                manager,
+                AlgorithmContext.WarpExtensionsType,
+                CLWarpExtensionsType,
+                "<#= name #>",
+                "Generate<#= name #>");
+<# } #>
+        }
+
+        private static void GenerateMethodCall(
+            string functionName,
+            CLCodeGenerator codeGenerator,
+            MethodCall methodCall)
+        {
+            var target = methodCall.Target;
+            var returnType = target.ReturnType;
+
+            CLCodeGenerator.StatementEmitter statementEmitter;
+            if (!returnType.IsVoidType)
+            {
+                var returnValue = codeGenerator.Allocate(methodCall);
+                statementEmitter = codeGenerator.BeginStatement(returnValue);
+                statementEmitter.AppendCommand(functionName);
+            }
+            else
+            {
+                statementEmitter = codeGenerator.BeginStatement(functionName);
+            }
+
+            // Append arguments
+            statementEmitter.BeginArguments();
+            foreach (var argument in methodCall)
+            {
+                var variable = codeGenerator.Load(argument);
+                statementEmitter.AppendArgument(variable);
+            }
+            statementEmitter.EndArguments();
+
+            // End call
+            statementEmitter.Finish();
+        }
+
+<#
+   var xmathCodeGenerators = xmathUnaryCodeGenerators.Concat(xmathBinaryCodeGenerators);
+   foreach (var (name, functionName) in xmathCodeGenerators) {
+#>
+        /// <summary>
+        /// Generates an intrinsic code generator for <#= name #>.
+        /// </summary>
+        /// <param name="backend">The current backend.</param>
+        /// <param name="codeGenerator">The code generator.</param>
+        /// <param name="value">The value to generate code for.</param>
+        private static void Generate<#= name #>(
+            CLBackend backend,
+            CLCodeGenerator codeGenerator,
+            Value value)
+        {
+            GenerateMethodCall(
+                "<#= functionName #>",
+                codeGenerator,
+                value as MethodCall);
+        }
+
+<# } #>
+    }
+}

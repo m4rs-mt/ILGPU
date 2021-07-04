@@ -1,0 +1,163 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: PageLockedArrays.Generated.tt/PageLockedArrays.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../Static/TypeInformation.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using System;
+using System.Runtime.InteropServices;
+
+namespace ILGPU.Runtime
+{
+<#  foreach (var dim in IndexDimensions.Skip(1)) { #>
+<#      var dimension = dim.Dimension; #>
+<#      var range = Enumerable.Range(0, dimension).Select(t => IndexDimensions[t]); #>
+<#      var arrayType = "T[" + string.Join(
+        ",",
+        Enumerable.Repeat(string.Empty, dimension)) + "]"; #>
+<#      var arrayAccessor = string.Join(", ", range.Select(t => t.FieldName)); #>
+    /// <summary>
+    /// Represents a page locked <#= dimension #>D array in memory.
+    /// </summary>
+    /// <typeparam name="T">The array element type.</typeparam>
+    public sealed class PageLockedArray<#= dimension #>D<T> : PageLockedArray<T>
+        where T : unmanaged
+    {
+        #region Static
+
+        /// <summary>
+        /// Represents an empty <#= dimension #>D array.
+        /// </summary>
+        public static readonly PageLockedArray<#= dimension #>D<T> Empty =
+            new PageLockedArray<#= dimension #>D<T>(
+                null,
+                LongIndex<#= dimension #>D.Zero);
+
+        #endregion
+
+        #region Instance
+
+        private readonly <#= arrayType #> array;
+        private readonly GCHandle handle;
+
+        /// <summary>
+        /// Creates a new page-locked 2D array.
+        /// </summary>
+        /// <param name="accelerator">The parent accelerator.</param>
+        /// <param name="extent">The number of elements to allocate.</param>
+        internal unsafe PageLockedArray<#= dimension #>D(
+            Accelerator accelerator,
+            in LongIndex<#= dimension #>D extent)
+        {
+            Extent = extent;
+            array = new T[<#= string.Join(
+                ", ",
+                range.Select(t => $"extent.{t.PropertyName}")) #>];
+            handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+            Initialize(accelerator, handle.AddrOfPinnedObject(), extent.Size);
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the extent of this array.
+        /// </summary>
+        public LongIndex<#= dimension #>D Extent { get; }
+
+        /// <inheritdoc/>
+        public override unsafe Span<T> Span =>
+            new Span<T>(
+                handle.AddrOfPinnedObject().ToPointer(),
+                array.Length);
+
+        /// <summary>
+        /// Returns a reference to the i-th array element.
+        /// </summary>
+<#      for (int i = 0; i < dim.Dimension; ++i) { #>
+        /// <param name="<#= IndexDimensions[i].FieldName #>">
+        /// The <#= IndexDimensions[i].PropertyName #> index.
+        /// </param>
+<#      } #>
+        /// <returns>The determined value reference.</returns>
+        public ref T this[<#= string.Join(
+                ", ",
+                range.Select(t => $"int {t.FieldName}")) #>] =>
+            ref array[<#= arrayAccessor #>];
+
+        /// <summary>
+        /// Returns a reference to the i-th array element.
+        /// </summary>
+<#      for (int i = 0; i < dim.Dimension; ++i) { #>
+        /// <param name="<#= IndexDimensions[i].FieldName #>">
+        /// The <#= IndexDimensions[i].PropertyName #> index.
+        /// </param>
+<#      } #>
+        /// <returns>The determined value reference.</returns>
+        public ref T this[<#= string.Join(
+                ", ",
+                range.Select(t => $"long {t.FieldName}")) #>] =>
+            ref array[<#= arrayAccessor #>];
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Returns the underlying array.
+        /// </summary>
+        public <#= arrayType #> GetArray() => array;
+
+        #endregion
+
+        #region IDisposable
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            handle.Free();
+            base.Dispose(disposing);
+        }
+
+        #endregion
+    }
+
+<#  } #>
+
+    partial class PageLockedArrayExtensions
+    {
+<#  foreach (var dim in IndexDimensions) { #>
+<#      var dimension = dim.Dimension; #>
+<#      var arrayType = "T[" + string.Join(
+        ",",
+        Enumerable.Repeat(string.Empty, dimension)) + "]"; #>
+        /// <summary>
+        /// Creates a page locked array in CPU memory optimized for GPU data exchange.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="accelerator">The associated accelerator.</param>
+        /// <param name="extent">The number of elements.</param>
+        /// <returns>The allocated array.</returns>
+        public static PageLockedArray<#= dimension #>D<T>
+            AllocatePageLockedArray<#= dimension #>D<T>(
+            this Accelerator accelerator,
+            <#= dimension > 1 ? "in " : string.Empty #>LongIndex<#= dimension #>D extent)
+            where T : unmanaged =>
+            new PageLockedArray<#= dimension #>D<T>(accelerator, extent);
+
+<#  } #>
+    }
+}

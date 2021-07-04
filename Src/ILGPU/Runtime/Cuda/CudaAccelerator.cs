@@ -674,7 +674,7 @@ namespace ILGPU.Runtime.Cuda
             long numElements) =>
             Device.SupportsMappingHostMemory
             ? new CudaPageLockScope<T>(this, pinned, numElements)
-            : (PageLockScope<T>)new NullPageLockScope<T>(this, pinned, numElements);
+            : new NullPageLockScope<T>(this, pinned, numElements) as PageLockScope<T>;
 
         #endregion
 

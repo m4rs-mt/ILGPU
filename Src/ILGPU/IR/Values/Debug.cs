@@ -65,7 +65,10 @@ namespace ILGPU.IR.Values
         public (string FileName, int Line, string Method) GetLocationInfo()
         {
             const string KernelName = "Kernel";
-            if (Location.IsKnown && Location is FileLocation fileLocation)
+            if (Location.IsKnown &&
+                (Location is FileLocation fileLocation ||
+                Location is CompilationStackLocation compilationStackLocation &&
+                compilationStackLocation.TryGetLocation(out fileLocation)))
             {
                 // Return information based on the current file location
                 return (

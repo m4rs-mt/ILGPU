@@ -3,7 +3,7 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: MemoryBufferCache.cs
+// File: CPUMemoryBufferCache.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
@@ -15,13 +15,9 @@ using System.Diagnostics;
 namespace ILGPU.Runtime
 {
     /// <summary>
-    /// Represents a cached memory buffer with a specific capacity.  It minimizes
-    /// reallocations in cases of requests that can also be handled with the currently
-    /// allocated amount of memory.  If the requested amount of memory is not
-    /// sufficient, the current buffer will be freed and a new buffer will be allocated.
+    /// Represents a cached memory CPU buffer with a specific capacity.
     /// </summary>
-    /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed class MemoryBufferCache : AcceleratorObject, ICache
+    sealed class CPUMemoryBufferCache : AcceleratorObject
     {
         #region Instance
 
@@ -37,7 +33,7 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">
         /// The associated accelerator to allocate memory on.
         /// </param>
-        public MemoryBufferCache(Accelerator accelerator)
+        public CPUMemoryBufferCache(CPUAccelerator accelerator)
             : this(accelerator, 0)
         { }
 
@@ -48,7 +44,7 @@ namespace ILGPU.Runtime
         /// The associated accelerator to allocate memory on.
         /// </param>
         /// <param name="initialLength">The initial length of the buffer.</param>
-        public MemoryBufferCache(Accelerator accelerator, long initialLength)
+        public CPUMemoryBufferCache(CPUAccelerator accelerator, long initialLength)
             : base(accelerator)
         {
             if (initialLength > 0)
@@ -105,55 +101,6 @@ namespace ILGPU.Runtime
             return Cache.Cast<T>().SubView(0, numElements);
         }
 
-        /// <summary>
-        /// Copies a single element of this buffer to the given target variable
-        /// in CPU memory.
-        /// </summary>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <param name="target">The target location.</param>
-        /// <param name="sourceIndex">
-        /// The source index from which to copy to the output.
-        /// </param>
-        public unsafe void CopyTo<T>(
-            AcceleratorStream stream,
-            out T target,
-            long sourceIndex)
-            where T : unmanaged
-        {
-            target = default;
-
-            using var wrapper = CPUMemoryBuffer.Create(ref target, 1);
-            cache.CopyTo(stream, sourceIndex, wrapper.AsRawArrayView());
-        }
-
-        /// <summary>
-        /// Copies a single element from CPU memory to this buffer.
-        /// </summary>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <param name="source">The source value.</param>
-        /// <param name="targetIndex">
-        /// The target index to which to copy the input.
-        /// </param>
-        public unsafe void CopyFrom<T>(
-            AcceleratorStream stream,
-            T source,
-            long targetIndex)
-            where T : unmanaged
-        {
-            using var wrapper = CPUMemoryBuffer.Create(ref source, 1);
-            cache.CopyFrom(stream, wrapper.AsRawArrayView(), targetIndex);
-        }
-
-        /// <summary>
-        /// Clears all internal caches.
-        /// </summary>
-        /// <param name="mode">The clear mode.</param>
-        public void ClearCache(ClearCacheMode mode)
-        {
-            cache?.Dispose();
-            cache = null;
-        }
-
         #endregion
 
         #region IDisposable
@@ -163,8 +110,8 @@ namespace ILGPU.Runtime
         /// </summary>
         protected override void DisposeAcceleratorObject(bool disposing)
         {
-            if (disposing && cache != null)
-                cache.Dispose();
+            if (disposing)
+                cache?.Dispose();
             cache = null;
         }
 

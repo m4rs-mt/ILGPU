@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
+using ILGPU.Resources;
 using ILGPU.Runtime.CPU;
 using System;
 using System.Diagnostics;
@@ -151,9 +152,42 @@ namespace ILGPU.Runtime
         /// <returns>The associated parent accelerator.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Accelerator GetAccelerator<TView>(this TView view)
+            where TView : IArrayView
+        {
+            var parentBuffer = view.Buffer;
+            return parentBuffer is null
+                ? throw new InvalidOperationException(
+                    RuntimeErrorMessages.UnknownParentAccelerator)
+                : parentBuffer.Accelerator;
+        }
+
+        /// <summary>
+        /// Returns the associated parent context of the current view.
+        /// </summary>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The associated parent context.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Context GetContext<TView>(this TView view)
             where TView : IArrayView =>
-            view.Buffer.Accelerator;
+            view.GetAccelerator().Context;
+
+        /// <summary>
+        /// Returns the associated accelerator of the current view.
+        /// </summary>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The associated parent accelerator.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ContextProperties GetContextProperties<TView>(this TView view)
+            where TView : IArrayView =>
+            view.GetContext().Properties;
 
         /// <summary>
         /// Returns the associated accelerator type of the current view.
@@ -163,9 +197,10 @@ namespace ILGPU.Runtime
         /// <returns>The associated parent accelerator type.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static AcceleratorType GetAcceleratorType<TView>(this TView view)
             where TView : IArrayView =>
-            view.Buffer?.AcceleratorType ?? AcceleratorType.CPU;
+            view.Buffer.AcceleratorType;
 
         /// <summary>
         /// Returns the associated default stream of the parent accelerator.
@@ -175,9 +210,126 @@ namespace ILGPU.Runtime
         /// <returns>The default stream of the parent accelerator.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static AcceleratorStream GetDefaultStream<TView>(this TView view)
             where TView : IArrayView =>
-            view.GetAccelerator()?.DefaultStream ?? CPUStream.Default;
+            view.GetAccelerator().DefaultStream;
+
+        /// <summary>
+        /// Returns the current page locking mode.
+        /// </summary>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The current page locking mode.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static PageLockingMode GetPageLockingMode<TView>(this TView view)
+            where TView : IArrayView =>
+            view.GetContextProperties().PageLockingMode;
+
+        /// <summary>
+        /// Returns true if the view is attached to a context using
+        /// <see cref="PageLockingMode.Auto"/>.
+        /// </summary>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>True, if the parent context uses automatic page locking.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool UsesAutoPageLocking<TView>(this TView view)
+            where TView : IArrayView =>
+            view.GetPageLockingMode() >= PageLockingMode.Auto;
+
+        #endregion
+
+        #region Transpose
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed dense view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView2D<T, Stride2D.DenseY> AsTransposed<T>(
+            this ArrayView2D<T, Stride2D.DenseX> view)
+            where T : unmanaged =>
+            new ArrayView2D<T, Stride2D.DenseY>(
+                view.BaseView,
+                new LongIndex2D(view.Extent.Y, view.Extent.X),
+                new Stride2D.DenseY(view.Stride.YStride));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed dense view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView2D<T, Stride2D.DenseX> AsTransposed<T>(
+            this ArrayView2D<T, Stride2D.DenseY> view)
+            where T : unmanaged =>
+            new ArrayView2D<T, Stride2D.DenseX>(
+                view.BaseView,
+                new LongIndex2D(view.Extent.Y, view.Extent.X),
+                new Stride2D.DenseX(view.Stride.XStride));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView2D<T, Stride2D.General> AsTransposed<T>(
+            this ArrayView2D<T, Stride2D.General> view)
+            where T : unmanaged =>
+            new ArrayView2D<T, Stride2D.General>(
+                view.BaseView,
+                new LongIndex2D(view.Extent.Y, view.Extent.X),
+                new Stride2D.General((view.Stride.YStride, view.Stride.XStride)));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed dense view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView3D<T, Stride3D.DenseZY> AsTransposed<T>(
+            this ArrayView3D<T, Stride3D.DenseXY> view)
+            where T : unmanaged =>
+            new ArrayView3D<T, Stride3D.DenseZY>(
+                view.BaseView,
+                new LongIndex3D(view.Extent.Z, view.Extent.Y, view.Extent.X),
+                new Stride3D.DenseZY(view.Stride.ZStride, view.Stride.YStride));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed dense view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView3D<T, Stride3D.DenseXY> AsTransposed<T>(
+            this ArrayView3D<T, Stride3D.DenseZY> view)
+            where T : unmanaged =>
+            new ArrayView3D<T, Stride3D.DenseXY>(
+                view.BaseView,
+                new LongIndex3D(view.Extent.Z, view.Extent.Y, view.Extent.X),
+                new Stride3D.DenseXY(view.Stride.YStride, view.Stride.XStride));
+
+        /// <summary>
+        /// Reinterpets the given view as a transposed view.
+        /// </summary>
+        /// <typeparam name="T">The view element type.</typeparam>
+        /// <param name="view">The view instance.</param>
+        /// <returns>The transposed array view.</returns>
+        public static ArrayView3D<T, Stride3D.General> AsTransposed<T>(
+            this ArrayView3D<T, Stride3D.General> view)
+            where T : unmanaged =>
+            new ArrayView3D<T, Stride3D.General>(
+                view.BaseView,
+                new LongIndex3D(view.Extent.Z, view.Extent.Y, view.Extent.X),
+                new Stride3D.General(
+                    (view.Stride.ZStride,
+                    view.Stride.YStride,
+                    view.Stride.XStride)));
 
         #endregion
 
@@ -260,6 +412,7 @@ namespace ILGPU.Runtime
         /// <param name="target">The target view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyTo<TView>(
             this TView source,
             in TView target)
@@ -275,6 +428,7 @@ namespace ILGPU.Runtime
         /// <param name="target">The target view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyTo<TView>(
             this TView source,
             AcceleratorStream stream,
@@ -293,6 +447,7 @@ namespace ILGPU.Runtime
         /// <param name="target">The target view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFrom<TView>(
             this TView target,
             in TView source)
@@ -308,6 +463,7 @@ namespace ILGPU.Runtime
         /// <param name="source">The source view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFrom<TView>(
             this TView target,
             AcceleratorStream stream,
@@ -333,15 +489,16 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPUUnsafeAsync<T, TView>(
             this TView source,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
             source.CopyToCPUUnsafeAsync(
                 source.GetDefaultStream(),
-                out cpuData,
+                ref cpuData,
                 length);
 
         /// <summary>
@@ -356,26 +513,39 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
-        public static void CopyToCPUUnsafeAsync<T, TView>(
+        public static unsafe void CopyToCPUUnsafeAsync<T, TView>(
             this TView source,
             AcceleratorStream stream,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
-
-            cpuData = default;
             if (length < 1)
                 return;
 
-            using var buffer = CPUMemoryBuffer.Create(ref cpuData, length);
-            source.Buffer.CopyTo(
-                stream,
-                source.IndexInBytes,
-                buffer.AsRawArrayView());
+            // Check for an aggressive page-locking mode.
+            if (source.GetPageLockingMode() == PageLockingMode.Aggressive)
+            {
+                var accelerator = source.GetAccelerator();
+                using var pageLockScope = accelerator.CreatePageLockFromPinned<T>(
+                    new IntPtr(Unsafe.AsPointer(ref cpuData)),
+                    length);
+                source.CopyToPageLockedAsync(stream, pageLockScope);
+            }
+            else
+            {
+                using var buffer = CPUMemoryBuffer.Create(
+                    source.GetAccelerator(),
+                    ref cpuData,
+                    length);
+                source.Buffer.CopyTo(
+                    stream,
+                    source.IndexInBytes,
+                    buffer.AsRawArrayView());
+            }
         }
 
         /// <summary>
@@ -389,6 +559,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPUUnsafeAsync<T, TView>(
             this TView target,
             ref T cpuData,
@@ -412,7 +583,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
-        public static void CopyFromCPUUnsafeAsync<T, TView>(
+        public static unsafe void CopyFromCPUUnsafeAsync<T, TView>(
             this TView target,
             AcceleratorStream stream,
             ref T cpuData,
@@ -425,11 +596,26 @@ namespace ILGPU.Runtime
             if (length < 1)
                 return;
 
-            using var buffer = CPUMemoryBuffer.Create(ref cpuData, length);
-            target.Buffer.CopyFrom(
-                stream,
-                buffer.AsRawArrayView(),
-                target.IndexInBytes);
+            // Check for an aggressive page-locking mode.
+            if (target.GetPageLockingMode() == PageLockingMode.Aggressive)
+            {
+                var accelerator = target.GetAccelerator();
+                using var pageLockScope = accelerator.CreatePageLockFromPinned<T>(
+                    new IntPtr(Unsafe.AsPointer(ref cpuData)),
+                    length);
+                target.CopyFromPageLockedAsync(pageLockScope);
+            }
+            else
+            {
+                using var buffer = CPUMemoryBuffer.Create(
+                    target.GetAccelerator(),
+                    ref cpuData,
+                    length);
+                target.Buffer.CopyFrom(
+                    stream,
+                    buffer.AsRawArrayView(),
+                    target.IndexInBytes);
+            }
         }
 
         #endregion
@@ -447,15 +633,16 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T, TView>(
             this TView source,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
             source.CopyToCPU(
                 source.GetDefaultStream(),
-                out cpuData,
+                ref cpuData,
                 length);
 
         /// <summary>
@@ -470,15 +657,17 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToCPU<T, TView>(
             this TView source,
             AcceleratorStream stream,
-            out T cpuData,
+            ref T cpuData,
             long length)
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
-            source.CopyToCPUUnsafeAsync(stream, out cpuData, length);
+            // Copy async into memory
+            source.CopyToCPUUnsafeAsync(stream, ref cpuData, length);
             stream.Synchronize();
         }
 
@@ -493,6 +682,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T, TView>(
             this TView target,
             ref T cpuData,
@@ -516,6 +706,7 @@ namespace ILGPU.Runtime
         /// <param name="length">The number of elements to copy.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromCPU<T, TView>(
             this TView target,
             AcceleratorStream stream,
@@ -524,6 +715,7 @@ namespace ILGPU.Runtime
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
+            // Copy async into memory
             target.CopyFromCPUUnsafeAsync(stream, ref cpuData, length);
             stream.Synchronize();
         }
@@ -555,11 +747,10 @@ namespace ILGPU.Runtime
 
             fixed (T* ptr = span)
             {
-                using var buffer = CPUMemoryBuffer.Create(ptr, span.Length);
-                source.Buffer.CopyTo(
+                source.CopyToCPUUnsafeAsync(
                     stream,
-                    source.IndexInBytes,
-                    buffer.AsRawArrayView());
+                    ref Unsafe.AsRef<T>(ptr),
+                    span.Length);
                 stream.Synchronize();
             }
         }
@@ -587,11 +778,10 @@ namespace ILGPU.Runtime
 
             fixed (T* ptr = span)
             {
-                using var buffer = CPUMemoryBuffer.Create(ptr, span.Length);
-                target.Buffer.CopyFrom(
+                target.CopyFromCPUUnsafeAsync(
                     stream,
-                    buffer.AsRawArrayView(),
-                    target.IndexInBytes);
+                    ref Unsafe.AsRef<T>(ptr),
+                    span.Length);
                 stream.Synchronize();
             }
         }
@@ -627,7 +817,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
-        public static unsafe void CopyToCPU<T>(
+        public static void CopyToCPU<T>(
             this ArrayView<T> view,
             AcceleratorStream stream,
             T[] data)
@@ -696,6 +886,7 @@ namespace ILGPU.Runtime
                 return;
 
             using var buffer = CPUMemoryBuffer.Create(
+                source.GetAccelerator(),
                 pageLockScope.AddrOfLockedObject,
                 pageLockScope.LengthInBytes,
                 Interop.SizeOf<byte>());
@@ -731,6 +922,7 @@ namespace ILGPU.Runtime
                 return;
 
             using var buffer = CPUMemoryBuffer.Create(
+                target.GetAccelerator(),
                 pageLockScope.AddrOfLockedObject,
                 pageLockScope.LengthInBytes,
                 Interop.SizeOf<byte>());
@@ -752,12 +944,13 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T, TView>(
             this TView source,
             PageLockScope<T> pageLockScope)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
-            CopyToPageLockedAsync<T, TView>(
+            CopyToPageLockedAsync(
                 source,
                 source.GetDefaultStream(),
                 pageLockScope);
@@ -772,15 +965,96 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T, TView>(
             this TView target,
             PageLockScope<T> pageLockScope)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
-            CopyFromPageLockedAsync<T, TView>(
+            CopyFromPageLockedAsync(
                 target,
                 target.GetDefaultStream(),
                 pageLockScope);
+
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToPageLockedAsync<T, TView>(
+            this TView source,
+            AcceleratorStream stream,
+            PageLockedArray<T> pageLockedArray)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            source.CopyToPageLockedAsync(
+                stream,
+                pageLockedArray.Scope);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyFromPageLockedAsync<T, TView>(
+            this TView target,
+            AcceleratorStream stream,
+            PageLockedArray<T> pageLockedArray)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            target.CopyFromPageLockedAsync(
+                stream,
+                pageLockedArray.Scope);
+
+        /// <summary>
+        /// Copies from the source view into the given page locked memory without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToPageLockedAsync<T, TView>(
+            this TView source,
+            PageLockedArray<T> pageLockedArray)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            source.CopyToPageLockedAsync(pageLockedArray.Scope);
+
+        /// <summary>
+        /// Copies from the page locked memory into the given target view without
+        /// synchronizing the current accelerator stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="pageLockedArray">The page locked memory.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyFromPageLockedAsync<T, TView>(
+            this TView target,
+            PageLockedArray<T> pageLockedArray)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            target.CopyFromPageLockedAsync(pageLockedArray.Scope);
 
         #endregion
 
@@ -794,6 +1068,7 @@ namespace ILGPU.Runtime
         /// <returns>A new array holding the requested contents.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T[] GetAsArray<T>(this ArrayView<T> view)
             where T : unmanaged =>
             view.GetAsArray(view.GetDefaultStream());
@@ -814,8 +1089,57 @@ namespace ILGPU.Runtime
             if (view.HasNoData())
                 return Array.Empty<T>();
 
+            if (view.UsesAutoPageLocking())
+            {
+                // Extract the managed .Net array from the locked array, as this instance
+                // will not be disposed by the using statement.
+                using var lockedArray = view.GetAsPageLockedArray(stream);
+                return lockedArray.GetArray();
+            }
+
             var result = new T[view.Length];
             view.CopyToCPU(stream, new Span<T>(result, 0, result.Length));
+            return result;
+        }
+
+        /// <summary>
+        /// Copies the current contents into a new array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="view">The source view instance.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PageLockedArray1D<T> GetAsPageLockedArray<T>(this ArrayView<T> view)
+            where T : unmanaged =>
+            view.GetAsPageLockedArray(view.GetDefaultStream());
+
+        /// <summary>
+        /// Copies the current contents into a new array.
+        /// </summary>
+        /// <param name="view">The source view instance.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static PageLockedArray1D<T> GetAsPageLockedArray<T>(
+            this ArrayView<T> view,
+            AcceleratorStream stream)
+            where T : unmanaged
+        {
+            if (view.HasNoData())
+                return PageLockedArray1D<T>.Empty;
+            var accelerator = view.GetAccelerator();
+#if NET5_0
+            var result = accelerator.AllocatePageLockedArray1D<T>(
+                view.Length,
+                uninitialized: true);
+#else
+            var result = accelerator.AllocatePageLockedArray1D<T>(view.Length);
+#endif
+            view.CopyToPageLockedAsync(stream, result);
+            stream.Synchronize();
             return result;
         }
 
@@ -932,7 +1256,7 @@ namespace ILGPU.Runtime
         /// <returns>An allocated buffer on this accelerator.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
-        public static unsafe MemoryBuffer1D<T, Stride1D.Dense> Allocate1D<T>(
+        public static MemoryBuffer1D<T, Stride1D.Dense> Allocate1D<T>(
             this Accelerator accelerator,
             AcceleratorStream stream,
             T[] data)

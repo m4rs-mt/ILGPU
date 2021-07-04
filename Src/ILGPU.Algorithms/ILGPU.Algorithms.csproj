@@ -1,0 +1,291 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net47;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Unix'">netstandard2.1</TargetFrameworks>
+    <Platforms>AnyCPU</Platforms>
+    <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
+    <LangVersion>8.0</LangVersion>
+    <NeutralLanguage>en-US</NeutralLanguage>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Channel)' == 'experimental'">
+    <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <VersionPrefix>1.0.0-beta3</VersionPrefix>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>..\..\Bin\Release\ILGPU.Algorithms.xml</DocumentationFile>
+    <OutputPath>..\..\Bin\Release\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>..\..\Bin\Debug\ILGPU.Algorithms.xml</DocumentationFile>
+    <OutputPath>..\..\Bin\Debug\</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="AlgorithmContextMappings.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AlgorithmContextMappings.tt</DependentUpon>
+    </None>
+    <None Include="HistogramLaunchers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramLaunchers.tt</DependentUpon>
+    </None>
+    <None Include="HistogramOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramOperations.tt</DependentUpon>
+    </None>
+    <None Include="RadixSortOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RadixSortOperations.tt</DependentUpon>
+    </None>
+    <None Include="Runtime\Cuda\API\CuRandNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="T4.Build" Version="0.2.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="AlgorithmContextMappings.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AlgorithmContextMappings.cs</LastGenOutput>
+    </None>
+    <None Update="CL\CLContext.Generated.tt">
+      <LastGenOutput>CLContext.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="ComparisonOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ComparisonOperations.cs</LastGenOutput>
+    </None>
+    <None Update="HistogramLaunchers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>HistogramLaunchers.cs</LastGenOutput>
+    </None>
+    <None Update="HistogramOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>HistogramOperations.cs</LastGenOutput>
+    </None>
+    <None Update="IL\ILContext.Generated.tt">
+      <LastGenOutput>ILContext.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PTX\PTXContext.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PTXContext.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="RadixSortOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasMethodsLevel1.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasMethodsLevel1.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasMethodsLevel2.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasMethodsLevel2.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasMethodsLevel3.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasMethodsLevel3.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuBlasNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuRandNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuRandNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="ScanReduceOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ScanReduceOperations.cs</LastGenOutput>
+    </None>
+    <None Update="Sequencers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Sequencers.cs</LastGenOutput>
+    </None>
+    <None Update="UniqueLaunchers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>UniqueLaunchers.cs</LastGenOutput>
+    </None>
+    <None Update="XMath\Cordic.ttinclude">
+      <Generator></Generator>
+    </None>
+    <None Update="XMath\Cordic.tt">
+      <LastGenOutput>Cordic.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMath\Cordic.Log.tt">
+      <LastGenOutput>Cordic.Log.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMath\Cordic.Pow.tt">
+      <LastGenOutput>Cordic.Pow.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMath\Cordic.Trig.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Cordic.Trig.cs</LastGenOutput>
+    </None>
+    <None Update="XMath\RoundingModes.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RoundingModes.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="AlgorithmContextMappings.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AlgorithmContextMappings.tt</DependentUpon>
+    </Compile>
+    <Compile Update="CL\CLContext.Generated.cs">
+      <DependentUpon>CLContext.Generated.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="ComparisonOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ComparisonOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="HistogramLaunchers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramLaunchers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="HistogramOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="IL\ILContext.Generated.cs">
+      <DependentUpon>ILContext.Generated.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="PTX\PTXContext.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PTXContext.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="RadixSortOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RadixSortOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\ErrorMessages.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ErrorMessages.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasMethodsLevel1.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasMethodsLevel1.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasMethodsLevel2.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasMethodsLevel2.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasMethodsLevel3.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasMethodsLevel3.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuBlasNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuRandNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="ScanReduceOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ScanReduceOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Sequencers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Sequencers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="UniqueLaunchers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>UniqueLaunchers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\Cordic.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Cordic.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\Cordic.Log.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Cordic.Log.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\Cordic.Pow.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Cordic.Pow.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\Cordic.Trig.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Cordic.Trig.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\RoundingModes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RoundingModes.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\ErrorMessages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Import Project="Properties\ILGPU.Algorithms.nuspec.targets" />
+  <Import Project="..\ILGPU\Properties\ILGPU.CheckStyles.targets" />
+</Project>

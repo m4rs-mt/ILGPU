@@ -259,6 +259,13 @@ namespace ILGPU
                 TransformerConfiguration.Transformed,
                 Properties.InliningMode);
 
+            // Initialize the default CPU device
+            CPUAccelerator = new CPUAccelerator(
+                this,
+                CPUDevice.Implicit,
+                CPUAcceleratorMode.Parallel,
+                ThreadPriority.Lowest);
+
             // Initialize all devices
             Devices = devices;
             if (devices.IsDefaultOrEmpty)
@@ -283,6 +290,11 @@ namespace ILGPU
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// The "default" CPU accelerator used for all implicitly allocated CPU buffers.
+        /// </summary>
+        internal CPUAccelerator CPUAccelerator { get; }
 
         /// <summary>
         /// Returns the current instance id.
@@ -534,6 +546,8 @@ namespace ILGPU
         {
             if (disposing)
             {
+                CPUAccelerator.Dispose();
+
                 codeGenerationSemaphore.Dispose();
                 IRContext.Dispose();
 

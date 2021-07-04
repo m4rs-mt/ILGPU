@@ -13,7 +13,7 @@
 
     <PropertyGroup>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <VersionPrefix>1.0-beta1</VersionPrefix>
+        <VersionPrefix>1.0.0-beta3</VersionPrefix>
         <NeutralLanguage>en-US</NeutralLanguage>
         <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
         <LangVersion>8.0</LangVersion>
@@ -89,6 +89,11 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
+        </None>
+        <None Include="Runtime\PageLockedArrays.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>PageLockedArrays.Generated.tt</DependentUpon>
         </None>
         <None Include="Static\ArithmeticEnums.cs">
           <DesignTime>True</DesignTime>
@@ -213,6 +218,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>MemoryBuffers.tt</DependentUpon>
         </Compile>
+        <Compile Update="Runtime\PageLockedArrays.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>PageLockedArrays.Generated.tt</DependentUpon>
+        </Compile>
         <Compile Update="Static\ArithmeticEnums.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -330,6 +340,10 @@
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>ExchangeBufferExtensions.cs</LastGenOutput>
         </None>
+        <None Update="Runtime\PageLockedArrays.Generated.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>PageLockedArrays.Generated.cs</LastGenOutput>
+        </None>
         <None Update="Static\ArithmeticEnums.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>ArithmeticEnums.cs</LastGenOutput>
@@ -385,4 +399,5 @@
     </ItemGroup>
 
     <Import Project="Properties\ILGPU.nuspec.targets" />
+    <Import Project="Properties\ILGPU.CheckStyles.targets" />
 </Project>

@@ -92,7 +92,7 @@ namespace ILGPU.Runtime.OpenCL
                         stream,
                         target.NativePtr,
                         false,
-                        new IntPtr(targetView.Index * target.ElementSize),
+                        new IntPtr(targetView.Index * ArrayView<T>.ElementSize),
                         new IntPtr(target.LengthInBytes),
                         sourceView.LoadEffectiveAddressAsPtr()));
                 return;
@@ -108,7 +108,7 @@ namespace ILGPU.Runtime.OpenCL
                                 stream,
                                 source.NativePtr,
                                 false,
-                                new IntPtr(sourceView.Index * source.ElementSize),
+                                new IntPtr(sourceView.Index * ArrayView<T>.ElementSize),
                                 new IntPtr(target.LengthInBytes),
                                 targetView.LoadEffectiveAddressAsPtr()));
                         return;
@@ -119,8 +119,8 @@ namespace ILGPU.Runtime.OpenCL
                                 stream,
                                 source.NativePtr,
                                 target.NativePtr,
-                                new IntPtr(sourceView.Index * source.ElementSize),
-                                new IntPtr(targetView.Index * target.ElementSize),
+                                new IntPtr(sourceView.Index * ArrayView<T>.ElementSize),
+                                new IntPtr(targetView.Index * ArrayView<T>.ElementSize),
                                 new IntPtr(targetView.LengthInBytes)));
                         return;
                 }
