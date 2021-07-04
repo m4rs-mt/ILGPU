@@ -200,7 +200,7 @@ jobs:
       - name: Download NuGet package artifact
         uses: actions/download-artifact@v2
         with:
-          name: nuget-package
+          name: nuget-packages
       - name: Create release and upload NuGet package as an asset
         uses: softprops/action-gh-release@v1
         with:
