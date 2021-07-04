@@ -225,10 +225,27 @@ namespace ILGPU.IR
         /// </summary>
         SubView,
 
+        // Arrays
+
+        /// <summary>
+        /// A <see cref="Values.NewArray"/> value.
+        /// </summary>
+        Array,
+
+        /// <summary>
+        /// A <see cref="Values.GetArrayLength"/> value.
+        /// </summary>
+        GetArrayLength,
+
         /// <summary>
         /// A <see cref="Values.LoadElementAddress"/> value.
         /// </summary>
         LoadElementAddress,
+
+        /// <summary>
+        /// A <see cref="Values.LoadArrayElementAddress"/> value.
+        /// </summary>
+        LoadArrayElementAddress,
 
         /// <summary>
         /// A <see cref="Values.LoadFieldAddress"/> value.

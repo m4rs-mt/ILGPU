@@ -158,20 +158,23 @@ namespace ILGPU.IR.Construction
 
             // Prepare element type and check of empty arrays
             var elementType = CreateType(managedElementType);
+            var arrayType = CreateArrayType(elementType, array.Rank);
             if (array.Length < 1)
-                return CreateEmptyArray(location, elementType, array.Rank);
+                return CreateEmptyArray(location, arrayType);
+
+            // Create new array builder
+            var arrayBuilder = CreateNewArray(location, arrayType);
 
             // Convert array dimensions
-            var arrayLengths = ValueList.Create(array.Rank);
             for (int i = 0, e = array.Rank; i < e; ++i)
-                arrayLengths.Add(CreatePrimitiveValue(location, array.GetLength(i)));
+                arrayBuilder.Add(CreatePrimitiveValue(location, array.GetLength(i)));
 
-            // Create a new array value
-            var arrayInstance = CreateNewArray(location, elementType, ref arrayLengths);
-            var view = CreateGetViewFromArray(location, arrayInstance);
+            // Create a new array value that resides in local memory
+            var arrayInstance = arrayBuilder.Seal();
+            var arrayView = CreateArrayToViewCast(location, arrayInstance);
 
             // Convert and store each array element
-            var gcHandle  = GCHandle.Alloc(array, GCHandleType.Pinned);
+            var gcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
             try
             {
                 int elementSize = Interop.SizeOf(managedElementType);
@@ -190,7 +193,7 @@ namespace ILGPU.IR.Construction
                         location,
                         CreateLoadElementAddress(
                             location,
-                            view,
+                            arrayView,
                             CreatePrimitiveValue(location, i)),
                         irValue);
                 }
@@ -530,137 +533,47 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
-        /// Creates an empty array value with length 0 in each dimension.
+        /// Creates a new array value builder.
         /// </summary>
         /// <param name="location">The current location.</param>
-        /// <param name="elementType">The element type of the array.</param>
-        /// <param name="dimensions">The number of dimensions.</param>
+        /// <param name="arrayType">The parent array type of this array.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateEmptyArray(
-            Location location,
-            TypeNode elementType,
-            int dimensions)
+        public NewArray.Builder CreateNewArray(Location location, ArrayType arrayType)
         {
-            // Create an empty view
-            var baseView = CreateNewView(
-                location,
-                CreateNull(
-                    location,
-                    CreatePointerType(elementType, MemoryAddressSpace.Generic)),
-                CreatePrimitiveValue(location, 0L));
+            location.AssertNotNull(arrayType);
+            return new NewArray.Builder(this, location, arrayType);
+        }
 
-            // Create array instance
-            var arrayLengths = ValueList.Create(dimensions);
-            for (int i = 0; i < dimensions; ++i)
-                arrayLengths.Add(CreatePrimitiveValue(location, 0));
-            return CreateNewArrayInstance(
-                location,
-                elementType,
-                baseView,
-                ref arrayLengths);
+        /// <summary>
+        /// Creates a new empty array value.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="arrayType">The parent array type of this array.</param>
+        /// <returns>A reference to the requested value.</returns>
+        public NewArray CreateEmptyArray(Location location, ArrayType arrayType)
+        {
+            var builder = CreateNewArray(location, arrayType);
+            var length = CreatePrimitiveValue(location, 0);
+            for (int i = 0, e = arrayType.NumDimensions; i < e; ++i)
+                builder.Add(length);
+            return builder.Seal();
         }
 
         /// <summary>
         /// Creates a new array value with the given length in each dimension.
         /// </summary>
         /// <param name="location">The current location.</param>
-        /// <param name="elementType">The element type of the array.</param>
-        /// <param name="arrayLengths">The length in each dimension.</param>
-        /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateNewArray(
+        /// <param name="arrayType">The parent array type of this array.</param>
+        /// <param name="dimensions">The list of all array dimension lengths.</param>
+        /// <returns>The created array value.</returns>
+        internal NewArray FinishNewArray(
             Location location,
-            TypeNode elementType,
-            ref ValueList arrayLengths)
-        {
-            // Compute array length
-            Value totalLength = CreatePrimitiveValue(location, 1L);
-            foreach (Value length in arrayLengths)
-            {
-                var convertedLength = CreateConvertToInt64(location, length);
-                totalLength = CreateArithmetic(
-                    location,
-                    totalLength,
-                    convertedLength,
-                    BinaryArithmeticKind.Mul);
-            }
-
-            // Create the allocation and the base view
-            var allocation = CreateStaticAllocaArray(
-                location,
-                totalLength,
-                elementType,
-                MemoryAddressSpace.Local);
-            var baseView = CreateNewView(
-                location,
-                CreateAddressSpaceCast(
-                    location,
-                    allocation,
-                    MemoryAddressSpace.Generic),
-                totalLength);
-
-            // Create array instance
-            return CreateNewArrayInstance(
-                location,
-                elementType,
-                baseView,
-                ref arrayLengths);
-        }
-
-        /// <summary>
-        /// Internal helper to assist the array creation.
-        /// </summary>
-        /// <param name="location">The current location.</param>
-        /// <param name="elementType">The element type of the array.</param>
-        /// <param name="baseView">
-        /// The source view of this array holding the data.
-        /// </param>
-        /// <param name="arrayLengths">The length in each dimension.</param>
-        /// <returns>A reference to the requested value.</returns>
-        private ValueReference CreateNewArrayInstance(
-            Location location,
-            TypeNode elementType,
-            Value baseView,
-            ref ValueList arrayLengths)
-        {
-            // Create the actual array structure
-            var instance = CreateStructure(
-                location,
-                CreateArrayType(elementType, arrayLengths.Count)
-                    .As<StructureType>(location));
-
-            // Add view
-            instance.Add(baseView);
-
-            // Add array dimensions
-            foreach (Value length in arrayLengths)
-                instance.Add(CreateConvertToInt32(location, length));
-
-            // Finish array instance
-            return instance.Seal();
-        }
-
-        /// <summary>
-        /// Gets the view from the given array value.
-        /// </summary>
-        /// <param name="location">The current location.</param>
-        /// <param name="array">The array instance.</param>
-        /// <returns>A reference to the array view.</returns>
-        public ValueReference CreateGetViewFromArray(Location location, Value array) =>
-            CreateGetField(
-                location,
-                array,
-                new FieldSpan(0, 1));
-
-        /// <summary>
-        /// Creates a value representing the total 64-bit length of the given array.
-        /// </summary>
-        /// <param name="location">The current location.</param>
-        /// <param name="array">The array instance.</param>
-        /// <returns>A reference representing the total 64-bit array length.</returns>
-        public ValueReference CreateGetArrayLongLength(Location location, Value array) =>
-            CreateGetViewLongLength(
-                location,
-                CreateGetViewFromArray(location, array));
+            ArrayType arrayType,
+            ref ValueList dimensions) =>
+            Append(new NewArray(
+                GetInitializer(location),
+                arrayType,
+                ref dimensions));
 
         /// <summary>
         /// Creates a value representing the total 32-bit length of the given array.
@@ -669,22 +582,10 @@ namespace ILGPU.IR.Construction
         /// <param name="array">The array instance.</param>
         /// <returns>A reference representing the total 32-bit array length.</returns>
         public ValueReference CreateGetArrayLength(Location location, Value array) =>
-            CreateGetViewLength(
-                location,
-                CreateGetViewFromArray(location, array));
-
-        /// <summary>
-        /// Creates a value representing the dimension of the given array.
-        /// </summary>
-        /// <param name="location">The current location.</param>
-        /// <param name="array">The array instance.</param>
-        /// <returns>A reference representing the array dimension.</returns>
-        public ValueReference CreateGetArrayDimension(Location location, Value array)
-        {
-            var arrayType = array.Type.As<StructureType>(location);
-            // Subtract the base view field
-            return CreatePrimitiveValue(location, arrayType.NumFields - 1);
-        }
+            Append(new GetArrayLength(
+                GetInitializer(location),
+                array,
+                CreateUndefined()));
 
         /// <summary>
         /// Creates a value to determine the length of an array with respect to a
@@ -694,99 +595,43 @@ namespace ILGPU.IR.Construction
         /// <param name="array">The array instance.</param>
         /// <param name="dimension">The desired array dimension.</param>
         /// <returns>The target array element address.</returns>
-        [SuppressMessage(
-            "Maintainability",
-            "CA1508:Avoid dead conditional code",
-            Justification = "This check is required")]
         public ValueReference CreateGetArrayLength(
             Location location,
             Value array,
-            Value dimension)
-        {
-            var arrayType = array.Type.As<StructureType>(location);
-            Value convertedPrimitiveIndex = CreateConvertToInt32(location, dimension);
-            if (!(convertedPrimitiveIndex is PrimitiveValue primitiveValue))
-            {
-                throw location.GetNotSupportedException(
-                    ErrorMessages.NotSupportNonConstArrayDimension,
-                    dimension.ToString());
-            }
-            int index = primitiveValue.Int32Value;
-            if (index < 0 || index >= arrayType.NumFields - 1)
-            {
-                throw location.GetNotSupportedException(
-                    ErrorMessages.NotSupportNonConstArrayDimension,
-                    index.ToString());
-            }
-
-            return CreateGetField(
-                location,
+            Value dimension) =>
+            Append(new GetArrayLength(
+                GetInitializer(location),
                 array,
-                // BaseView + dimension offset
-                new FieldAccess(1 + primitiveValue.Int32Value));
-        }
+                dimension));
 
         /// <summary>
-        /// Creates a computation to determine an element address in the scope of an
-        /// array.
+        /// Creates a builder to compute an array element address.
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <param name="array">The array instance.</param>
-        /// <param name="indices">Indices for each array dimension.</param>
         /// <returns>The target array element address.</returns>
-        public ValueReference CreateGetArrayElementAddress(
+        public LoadArrayElementAddress.Builder CreateLoadArrayElementAddress(
             Location location,
-            Value array,
-            ref ValueList indices)
+            Value array)
         {
-            // Get and validate the array type
-            var arrayType = array.Type.As<StructureType>(location);
-            location.Assert(indices.Count == arrayType.NumFields - 1);
-
-            // Compute linear address based on the .Net array layouts
-            Value elementIndex = CreatePrimitiveValue(location, 0L);
-
-            // (((0 * Width + x) * Height) + y) * Depth + z...
-            for (int i = 0; i < indices.Count; ++i)
-            {
-                var intLength = CreateGetField(
-                    location,
-                    array,
-                    new FieldAccess(1 + i));
-                var length = CreateConvertToInt64(
-                    location,
-                    intLength);
-
-                // Create a debug assertion to check for out-of-bounds accesses
-                CreateDebugAssert(
-                    location,
-                    CreateCompare(
-                        location,
-                        CreateConvertToInt32(location, indices[i]),
-                        intLength,
-                        CompareKind.LessEqual),
-                    CreatePrimitiveValue(
-                        location,
-                        $"{i}-th array index out of range"));
-
-                // Update index computation
-                elementIndex = CreateArithmetic(
-                    location,
-                    elementIndex,
-                    length,
-                    BinaryArithmeticKind.Mul);
-                elementIndex = CreateArithmetic(
-                    location,
-                    elementIndex,
-                    CreateConvertToInt64(location, indices[i]),
-                    BinaryArithmeticKind.Add);
-            }
-
-            var view = CreateGetViewFromArray(location, array);
-            return CreateLoadElementAddress(
-                location,
-                view,
-                elementIndex);
+            location.AssertNotNull(array);
+            return new LoadArrayElementAddress.Builder(this, location, array);
         }
+
+        /// <summary>
+        /// Creates a laea value.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="values">
+        /// The array value and a single value index for each array dimension.
+        /// </param>
+        /// <returns>The array element address.</returns>
+        internal Value FinishLoadArrayElementAddress(
+            Location location,
+            ref ValueList values) =>
+            Append(new LoadArrayElementAddress(
+                GetInitializer(location),
+                ref values));
+
     }
 }
