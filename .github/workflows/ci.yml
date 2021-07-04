@@ -200,10 +200,10 @@ jobs:
       - name: Download NuGet package artifact
         uses: actions/download-artifact@v2
         with:
-          name: nuget-package
+          name: nuget-packages
       - name: Publish to FeedzIO
         shell: bash
-        run: dotnet nuget push ILGPU.*.nupkg --api-key ${{ secrets.FEEDZIO_API_KEY }} --source https://f.feedz.io/ilgpu/preview/nuget/index.json
+        run: dotnet nuget push "*.nupkg" --api-key ${{ secrets.FEEDZIO_API_KEY }} --source https://f.feedz.io/ilgpu/preview/nuget/index.json
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
