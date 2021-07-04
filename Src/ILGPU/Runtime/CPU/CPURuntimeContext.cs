@@ -151,6 +151,11 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         public CPUMultiprocessor Multiprocessor { get; }
 
+        /// <summary>
+        /// Returns the associated accelerator.
+        /// </summary>
+        public CPUAccelerator Accelerator => Multiprocessor.Accelerator;
+
         #endregion
 
         #region Methods

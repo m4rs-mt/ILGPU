@@ -428,6 +428,48 @@ namespace ILGPU.Runtime.CPU
             #endregion
         }
 
+        /// <summary>
+        /// Wraps a managed .Net array via a <see cref="GCHandle"/> instance.
+        /// </summary>
+        /// <remarks>
+        /// Note that wrapped arrays will not have an associated target accelerator.
+        /// </remarks>
+        sealed class ArraySourceBuffer : CPUMemoryBuffer
+        {
+            #region Instance
+
+            private readonly GCHandle handle;
+
+            /// <summary>
+            /// Constructs a new array wrapper.
+            /// </summary>
+            /// <param name="accelerator">The current CPU accelerator.</param>
+            /// <param name="array">The managed array value.</param>
+            /// <param name="elementSize">The element size.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public ArraySourceBuffer(
+                CPUAccelerator accelerator,
+                Array array,
+                int elementSize)
+                : base(accelerator, array.Length, elementSize)
+            {
+                handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+                NativePtr = handle.AddrOfPinnedObject();
+            }
+
+            #endregion
+
+            #region IDisposable
+
+            /// <summary>
+            /// Frees the internal GC handle.
+            /// </summary>
+            protected override void DisposeAcceleratorObject(bool disposing) =>
+                handle.Free();
+
+            #endregion
+        }
+
         #endregion
 
         #region Static
@@ -529,6 +571,38 @@ namespace ILGPU.Runtime.CPU
             accelerator is null
             ? throw new ArgumentNullException(nameof(accelerator))
             : new PageLockedMemoryBuffer(accelerator, length, elementSize);
+
+        /// <summary>
+        /// Creates a new memory buffer wrapper around the given .Net array.
+        /// </summary>
+        /// <param name="array">The managed source array.</param>
+        /// <remarks>Note that this operation is supported in kernels only.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static CPUMemoryBuffer FromArray(Array array)
+        {
+            if (array is null)
+                throw new ArgumentNullException(nameof(array));
+            int elementSize = Interop.SizeOf(array.GetType().GetElementType());
+            return FromArray(array, elementSize);
+
+        }
+
+        /// <summary>
+        /// Creates a new memory buffer wrapper around the given .Net array.
+        /// </summary>
+        /// <param name="array">The managed source array.</param>
+        /// <param name="elementSize">The custom element size in bytes.</param>
+        /// <returns>The wrapper memory buffer.</returns>
+        /// <remarks>Note that this operation is supported in kernels only.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static CPUMemoryBuffer FromArray(Array array, int elementSize)
+        {
+            var cpuAccelerator = CPURuntimeWarpContext.Current.Accelerator;
+            return new ArraySourceBuffer(
+                cpuAccelerator,
+                array ?? throw new ArgumentNullException(nameof(array)),
+                elementSize);
+        }
 
         #endregion
     }
