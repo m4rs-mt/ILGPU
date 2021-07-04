@@ -62,7 +62,7 @@ namespace ILGPU.IR.Types
         /// <param name="elementType">The element type.</param>
         /// <param name="dimensions">The number of array dimensions.</param>
         /// <returns>The created array dimensions.</returns>
-        TypeNode CreateArrayType(TypeNode elementType, int dimensions);
+        ArrayType CreateArrayType(TypeNode elementType, int dimensions);
 
         /// <summary>
         /// Creates a new structure type builder with the given capacity.
