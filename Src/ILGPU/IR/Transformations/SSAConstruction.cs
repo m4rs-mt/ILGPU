@@ -120,6 +120,32 @@ namespace ILGPU.IR.Transformations
             context.Remove(alloca);
         }
 
+        /// <summary>
+        /// Converts a store node into an SSA value.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static void ConvertStore<TConstructionData>(
+            SSARewriterContext<Value> context,
+            TConstructionData data,
+            Store store,
+            FieldRef storeRef)
+            where TConstructionData : IConstructionData
+        {
+            Value ssaValue = store.Value;
+            if (!storeRef.IsDirect)
+            {
+                ssaValue = context.GetValue(context.Block, storeRef.Source);
+                ssaValue = context.Builder.CreateSetField(
+                    store.Location,
+                    ssaValue,
+                    storeRef.FieldSpan,
+                    store.Value);
+            }
+
+            context.SetValue(context.Block, storeRef.Source, ssaValue);
+            context.Remove(store);
+        }
+
         #endregion
 
         #region Rewriter Methods
@@ -150,33 +176,6 @@ namespace ILGPU.IR.Transformations
             {
                 context.Remove(load);
             }
-        }
-
-        /// <summary>
-        /// Converts a store node into an SSA value.
-        /// </summary>
-        protected static void Convert<TConstructionData>(
-            SSARewriterContext<Value> context,
-            TConstructionData data,
-            Store store)
-            where TConstructionData : IConstructionData
-        {
-            if (!data.TryGetConverted(store.Target, out var storeRef))
-                return;
-
-            Value ssaValue = store.Value;
-            if (!storeRef.IsDirect)
-            {
-                ssaValue = context.GetValue(context.Block, storeRef.Source);
-                ssaValue = context.Builder.CreateSetField(
-                    store.Location,
-                    ssaValue,
-                    storeRef.FieldSpan,
-                    store.Value);
-            }
-
-            context.SetValue(context.Block, storeRef.Source, ssaValue);
-            context.Remove(store);
         }
 
         /// <summary>
@@ -225,7 +224,6 @@ namespace ILGPU.IR.Transformations
             where TConstructionData : IConstructionData
         {
             rewriter.Add<Load>(Convert);
-            rewriter.Add<Store>(Convert);
             rewriter.Add<LoadFieldAddress>(Convert);
             rewriter.Add<AddressSpaceCast>(Convert);
         }
@@ -376,6 +374,20 @@ namespace ILGPU.IR.Transformations
             ConvertAlloca(context, data, alloca, initValue);
         }
 
+        /// <summary>
+        /// Converts a store node to its associated value.
+        /// </summary>
+        private static void Convert(
+            SSARewriterContext<Value> context,
+            ConstructionData data,
+            Store store)
+        {
+            if (!data.TryGetConverted(store.Target, out var storeRef))
+                return;
+
+            ConvertStore(context, data, store, storeRef);
+        }
+
         #endregion
 
         #region Rewriter
@@ -394,6 +406,7 @@ namespace ILGPU.IR.Transformations
             RegisterRewriters(Rewriter);
 
             Rewriter.Add<Alloca>(Convert);
+            Rewriter.Add<Store>(Convert);
         }
 
         #endregion
@@ -537,6 +550,30 @@ namespace ILGPU.IR.Transformations
         }
 
         /// <summary>
+        /// Converts a store node to its associated value.
+        /// </summary>
+        private static void Convert(
+            SSARewriterContext<Value> context,
+            ConstructionData data,
+            Store store)
+        {
+            if (!data.TryGetConverted(store.Target, out var storeRef))
+                return;
+
+            // Check for additional array allocations
+            if (storeRef.IsDirect &&
+                storeRef.Source is Alloca alloca &&
+                alloca.IsArrayAllocation(out var arrayLength))
+            {
+                storeRef = new FieldRef(
+                    storeRef.Source,
+                    new FieldSpan(arrayLength.Int32Value));
+            }
+
+            ConvertStore(context, data, store, storeRef);
+        }
+
+        /// <summary>
         /// Converts a load node into an SSA value.
         /// </summary>
         private static void Convert<TConstructionData>(
@@ -549,7 +586,6 @@ namespace ILGPU.IR.Transformations
                 return;
 
             // Get the primitive constant field offset
-            loadElementAddress.Assert(loadElementAddress.IsViewAccess);
             var fieldOffset = loadElementAddress.Offset.ResolveAs<PrimitiveValue>();
             loadElementAddress.AssertNotNull(fieldOffset);
 
@@ -620,6 +656,7 @@ namespace ILGPU.IR.Transformations
             RegisterRewriters(Rewriter);
 
             Rewriter.Add<Alloca>(Convert);
+            Rewriter.Add<Store>(Convert);
             Rewriter.Add<LoadElementAddress>(Convert);
 
             Rewriter.Add<NewView>(Convert);
