@@ -67,7 +67,7 @@ namespace ILGPU.IR.Construction
         /// <param name="elementType">The element type.</param>
         /// <param name="dimensions">The number of array dimensions.</param>
         /// <returns>The created array type.</returns>
-        public TypeNode CreateArrayType(TypeNode elementType, int dimensions) =>
+        public ArrayType CreateArrayType(TypeNode elementType, int dimensions) =>
             TypeContext.CreateArrayType(elementType, dimensions);
 
         /// <summary>
