@@ -74,6 +74,15 @@ namespace ILGPU.IR.Construction
         {
             location.Assert(view.Type.IsViewType);
 
+            // Fold trivial cases
+            if (view is NewView newView)
+            {
+                return CreateConvert(
+                    location,
+                    newView.Length,
+                    lengthType);
+            }
+
             return Append(new GetViewLength(
                 GetInitializer(location),
                 view,
