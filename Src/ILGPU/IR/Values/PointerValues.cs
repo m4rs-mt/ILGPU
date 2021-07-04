@@ -3,7 +3,7 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: PointerValue.cs
+// File: PointerValues.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
@@ -11,6 +11,9 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using System;
+using System.Runtime.CompilerServices;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Values
 {
@@ -228,6 +231,173 @@ namespace ILGPU.IR.Values
             IsPointerAccess
             ? $"{Source} + {Offset}"
             : $"{Source}[{Offset}]";
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Loads the address of a single (possibly multi-dimensional) array element.
+    /// </summary>
+    [ValueKind(ValueKind.LoadArrayElementAddress)]
+    public sealed class LoadArrayElementAddress : PointerValue, IArrayValueOperation
+    {
+        #region Nested Types
+
+        /// <summary>
+        /// An instance builder for laea values.
+        /// </summary>
+        public struct Builder
+        {
+            #region Instance
+
+            private ValueList builder;
+
+            /// <summary>
+            /// Initializes a new laea builder.
+            /// </summary>
+            /// <param name="irBuilder">The current IR builder.</param>
+            /// <param name="location">The current location.</param>
+            /// <param name="arrayValue">The parent array value.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal Builder(IRBuilder irBuilder, Location location, Value arrayValue)
+            {
+                // Allocate number of dimensions + 1, to store the array value
+                var arrayType = arrayValue.Type.As<ArrayType>(location);
+                builder = ValueList.Create(arrayType.NumDimensions + 1);
+                builder.Add(arrayValue);
+
+                IRBuilder = irBuilder;
+                Location = location;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent builder.
+            /// </summary>
+            public IRBuilder IRBuilder { get; }
+
+            /// <summary>
+            /// Returns the current location.
+            /// </summary>
+            public Location Location { get; }
+
+            /// <summary>
+            /// Returns the source array value to load the element address from.
+            /// </summary>
+            public readonly Value ArrayValue => builder[0];
+
+            /// <summary>
+            /// Returns the array type.
+            /// </summary>
+            public readonly ArrayType ArrayType =>
+                ArrayValue.Type.As<ArrayType>(Location);
+
+            /// <summary>
+            /// The number of dimensions.
+            /// </summary>
+            public int Count => builder.Count;
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Adds the given dimension length to the array value builder.
+            /// </summary>
+            /// <param name="dimension">The value to add.</param>
+            public void Add(Value dimension)
+            {
+                Location.AssertNotNull(dimension);
+                Location.Assert(Count < ArrayType.NumDimensions + 1);
+                builder.Add(dimension);
+            }
+
+            /// <summary>
+            /// Constructs a new value that represents the current array value.
+            /// </summary>
+            /// <returns>The resulting value reference.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Value Seal() =>
+                IRBuilder.FinishLoadArrayElementAddress(Location, ref builder);
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new laea value.
+        /// </summary>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="values">
+        /// The array value and a single value index for each array dimension.
+        /// </param>
+        internal LoadArrayElementAddress(
+            in ValueInitializer initializer,
+            ref ValueList values)
+            : base(initializer)
+        {
+            this.Assert(
+                values[0].Type.As<ArrayType>(this).NumDimensions == values.Count - 1);
+
+            Seal(ref values);
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the source array value.
+        /// </summary>
+        public ValueReference ArrayValue => this[0];
+
+        /// <summary>
+        /// Returns all accessor dimensions.
+        /// </summary>
+        public ReadOnlySpan<ValueReference> Dimensions => Nodes.Slice(1);
+
+        /// <inheritdoc/>
+        public override ValueKind ValueKind => ValueKind.LoadArrayElementAddress;
+
+        #endregion
+
+        #region Methods
+
+        /// <inheritdoc/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer)
+        {
+            var sourceType = ArrayValue.Type.As<ArrayType>(Location);
+            return initializer.Context.CreatePointerType(
+                sourceType.ElementType,
+                MemoryAddressSpace.Generic);
+        }
+
+        /// <inheritdoc/>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder)
+        {
+            var values = rebuilder.Rebuild(Nodes);
+            return builder.FinishLoadArrayElementAddress(
+                Location,
+                ref values);
+        }
+
+        /// <inheritdoc/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <inheritdoc/>
+        protected override string ToPrefixString() => "laea";
 
         #endregion
     }
