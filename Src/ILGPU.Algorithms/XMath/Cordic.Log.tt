@@ -1,0 +1,92 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: Cordic.Log.tt/Cordic.Log.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="Cordic.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+namespace ILGPU.Algorithms
+{
+    partial class XMath
+    {
+        /// <summary>
+        /// Implementation of logarithmic functions using CORDIC approximation.
+        /// </summary>
+        partial class Cordic
+        {
+            #region Logarithm
+
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of natural logarithm using CORDIC approximation.
+            /// </summary>
+            /// <param name="value">The input value</param>
+            /// <returns>The exponent of a input value raised to base e</returns>
+            public static <#= operation.DataType #> Log(<#= operation.DataType #> value)
+            {
+                // Deal with edge cases
+                if (IsNaN(value) || value == <#= operation.DataType #>.PositiveInfinity)
+                    return value;
+                if (value == 0.0<#= operation.ValueSuffix #>)
+                    return <#= operation.DataType #>.NegativeInfinity;
+                if (value < 0.0<#= operation.ValueSuffix #>)
+                    return <#= operation.DataType #>.NaN;
+
+                // The exponential function is related to hyperbolic functions with the
+                // identity:
+                //  exp(x) = cosh(x) + sinh(x)
+                //
+                // Furthermore, the hyperbolic CORDIC algorithm cannot handle the full
+                // range of input values, so we simplify the calculations using the
+                // formula:
+                //
+                //  ln(x) = ln(base^power * multiplier)
+                //        = ln(base^power) + ln(multiplier)
+                //        = power * ln(base) + ln(multiplier)
+                //
+                // We can calculate base/power easily using repeated divisions, and using
+                // a suitable base, the multiplier fits within the CORDIC input range.
+                //
+                // NB: We picked base e, as it cancels out the ln(base).
+                //
+                // Reference:
+                //  https://en.wikipedia.org/wiki/Logarithm#Exponentiation
+                //
+                var power = 0;
+                var currValue = value;
+
+                while (currValue > E<#= operation.XMathSuffix #>)
+                {
+                    power += 1;
+                    currValue /= E<#= operation.XMathSuffix #>;
+                }
+
+                while (currValue < 1.0<#= operation.ValueSuffix #>)
+                {
+                    power -= 1;
+                    currValue *= E<#= operation.XMathSuffix #>;
+                }
+
+                // Apply <#= operation.Iterations #> iterations.
+                var cosh = currValue + 1.0<#= operation.ValueSuffix #>;
+                var sinh = currValue - 1.0<#= operation.ValueSuffix #>;
+                var radians = VectorHyperbolicIterations(cosh, sinh);
+
+                return power + (2.0<#= operation.ValueSuffix #> * radians);
+            }
+
+<# } #>
+            #endregion
+        }
+    }
+}

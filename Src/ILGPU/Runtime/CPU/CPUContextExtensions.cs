@@ -44,6 +44,20 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary>
+        /// Enables a CPU device of the given kind.
+        /// </summary>
+        /// <param name="builder">The builder instance.</param>
+        /// <param name="device">The custom CPU device.</param>
+        /// <returns>The updated builder instance.</returns>
+        public static Context.Builder CPU(
+            this Context.Builder builder,
+            CPUDevice device)
+        {
+            builder.DeviceRegistry.Register(device);
+            return builder;
+        }
+
+        /// <summary>
         /// Enables all CPU devices.
         /// </summary>
         /// <param name="builder">The builder instance.</param>
@@ -72,6 +86,20 @@ namespace ILGPU.Runtime.CPU
         #endregion
 
         #region Context
+
+        /// <summary>
+        /// Returns the implicitly created CPU accelerator.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <returns>
+        /// The implicitly defined CPU accelerator with 0 threads per warp, 0 warps per
+        /// MP and 0 MPs.
+        /// </returns>
+        /// <remarks>
+        /// CAUTION: This accelerator is not intended for simulation purposes.
+        /// </remarks>
+        public static CPUAccelerator GetImplicitCPUAccelerator(this Context context) =>
+            context.CPUAccelerator;
 
         /// <summary>
         /// Gets the i-th registered CPU device.

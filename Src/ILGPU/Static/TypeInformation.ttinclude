@@ -436,7 +436,8 @@ public MathOp[] GetBinaryMathOps(string rootPath) =>
 public MathOp[] GetTernaryMathOps(string rootPath) =>
     MathOperations.Load(rootPath, "TernaryMathOperations.xml");
 
-// FP16 raw implementations that can be implemented without the use of emulated FP32 operations.
+// FP16 raw implementations that can be implemented without the use of emulated FP32
+// operations.
 public static readonly (string, string)[] FP16ImplementationMethods =
     {
         ("Abs", "Abs"),

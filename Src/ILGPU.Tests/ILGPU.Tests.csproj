@@ -184,6 +184,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ReinterpretCasts.tt</DependentUpon>
     </Compile>
+    <Compile Update="SpecializedKernels.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SpecializedKernels.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="UnaryIntOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -254,6 +259,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BasicCalls.Generated.cs</LastGenOutput>
     </None>
+    <None Update="SpecializedKernels.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SpecializedKernels.Generated.cs</LastGenOutput>
+    </None>
     <None Update="UnaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>UnaryIntOperations.cs</LastGenOutput>
@@ -268,4 +277,5 @@
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
+  <Import Project="..\ILGPU\Properties\ILGPU.CheckStyles.targets" />
 </Project>

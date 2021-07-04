@@ -14,6 +14,7 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -335,6 +336,28 @@ namespace ILGPU.IR
         /// <returns>The merged location.</returns>
         public CompilationStackLocation Append(Location other) =>
             new CompilationStackLocation(Stack.Push(other));
+
+        /// <summary>
+        /// Returns the most recent location of the given type from the compilation
+        /// stack, if any.
+        /// </summary>
+        /// <param name="location">Filled in with the location found.</param>
+        /// <returns>True if this compilation stack has the location type.</returns>
+        public bool TryGetLocation<T>(out T location)
+            where T : Location
+        {
+            foreach (var loc in Stack.Reverse())
+            {
+                if (loc is T typedLocation)
+                {
+                    location = typedLocation;
+                    return true;
+                }
+            }
+
+            location = null;
+            return false;
+        }
 
         #endregion
 

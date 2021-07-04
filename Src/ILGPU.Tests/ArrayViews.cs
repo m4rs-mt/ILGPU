@@ -744,8 +744,8 @@ namespace ILGPU.Tests
                 alignmentInBytes,
                 value);
 
-            var prefixLengths = prefixLengthData.GetAs1DArray();
-            var mainLengths = mainLengthData.GetAs1DArray();
+            var prefixLengths = prefixLengthData.GetAsArray1D();
+            var mainLengths = mainLengthData.GetAsArray1D();
 
             // Check whether the prefix and main lengths are the same for all threads
             long prefixLength = prefixLengths[0];
@@ -812,10 +812,10 @@ namespace ILGPU.Tests
             Assert.Equal(linearLength, oneDView2.Length);
 
             var oneDGeneral = oneDView2.AsGeneral(new Stride1D.General(2));
-            Assert.Equal(linearLength * 2, oneDGeneral.Length);
+            Assert.Equal(linearLength * 2 - 1, oneDGeneral.Length);
 
             var oneDView3 = oneDGeneral.To1DView();
-            Assert.Equal(linearLength * 2, oneDView3.Length);
+            Assert.Equal(linearLength * 2 - 1, oneDView3.Length);
 
             // Verify 2D views
             var twoDView = oneDView.As2DView(
@@ -829,6 +829,17 @@ namespace ILGPU.Tests
             Assert.Equal(
                 twoDView.Stride.StrideExtent.Size,
                 length1);
+            var twoDViewTransposed = twoDView.AsTransposed();
+            Assert.Equal(
+                twoDViewTransposed.Extent,
+                new LongIndex2D(twoDView.Extent.Y, twoDView.Extent.X));
+            Assert.Equal(twoDViewTransposed.Length, twoDView.Length);
+            Assert.Equal(
+                twoDViewTransposed.AsTransposed().Extent,
+                twoDView.Extent);
+            Assert.Equal(
+                twoDViewTransposed.AsTransposed().Length,
+                twoDView.Length);
 
             var oneD2DView = twoDView.To1DView();
             Assert.Equal(length1 * length2, oneD2DView.Extent.Size);
@@ -842,6 +853,17 @@ namespace ILGPU.Tests
             Assert.Equal(length2, twoDViewY.Extent.Y);
             Assert.Equal(1, twoDViewY.Stride.YStride);
             Assert.Equal(length2, twoDViewY.Stride.XStride);
+            var twoDViewYTransposed = twoDViewY.AsTransposed();
+            Assert.Equal(twoDViewYTransposed.Length, twoDViewY.Length);
+            Assert.Equal(
+                twoDViewYTransposed.Extent,
+                new LongIndex2D(twoDViewY.Extent.Y, twoDViewY.Extent.X));
+            Assert.Equal(
+                twoDViewYTransposed.AsTransposed().Length,
+                twoDViewY.Length);
+            Assert.Equal(
+                twoDViewYTransposed.AsTransposed().Extent,
+                twoDView.Extent);
 
             // Verify 3D views
             var threeDView = oneDView.As3DView(
@@ -854,21 +876,35 @@ namespace ILGPU.Tests
             Assert.Equal(1, threeDView.Stride.XStride);
             Assert.Equal(length1, threeDView.Stride.YStride);
             Assert.Equal(length1 * length2, threeDView.Stride.ZStride);
+            var threeDViewTransposed = threeDView.AsTransposed();
+            Assert.Equal(threeDViewTransposed.Length, threeDView.Length);
+            Assert.Equal(
+                threeDViewTransposed.Extent,
+                new LongIndex3D(
+                    threeDView.Extent.Z,
+                    threeDView.Extent.Y,
+                    threeDView.Extent.X));
+            Assert.Equal(
+                threeDViewTransposed.AsTransposed().Length,
+                threeDView.Length);
+            Assert.Equal(
+                threeDViewTransposed.AsTransposed().Extent,
+                threeDView.Extent);
 
             var oneD3DView = threeDView.To1DView();
             Assert.Equal(length1 * length2 * length3, oneD3DView.Extent.Size);
             Assert.Equal(1, oneD3DView.Stride.XStride);
 
             var threeDViewZ = oneD3DView.As3DView(
-                new LongIndex3D(length1, length2, length3),
-                new Stride3D.DenseZY(length2 * length3, length2));
+                new LongIndex3D(length3, length2, length1),
+                new Stride3D.DenseZY(length2 * length1, length2));
             Assert.Equal(length1 * length2 * length3, threeDViewZ.Length);
-            Assert.Equal(length1, threeDViewZ.Extent.X);
+            Assert.Equal(length3, threeDViewZ.Extent.X);
             Assert.Equal(length2, threeDViewZ.Extent.Y);
-            Assert.Equal(length3, threeDViewZ.Extent.Z);
+            Assert.Equal(length1, threeDViewZ.Extent.Z);
             Assert.Equal(1, threeDViewZ.Stride.ZStride);
             Assert.Equal(length2, threeDViewZ.Stride.YStride);
-            Assert.Equal(length2 * length3, threeDViewZ.Stride.XStride);
+            Assert.Equal(length2 * length1, threeDViewZ.Stride.XStride);
         }
     }
 }

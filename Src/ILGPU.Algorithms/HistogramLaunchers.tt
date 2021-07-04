@@ -1,0 +1,110 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: HistogramLaunchers.tt/HistogramLaunchers.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="TypeInformation.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ILGPU.Algorithms.HistogramOperations;
+using ILGPU.Algorithms.Resources;
+using ILGPU.Runtime;
+using System;
+
+<#
+var incrementTypes = AtomicNumericTypes;
+#>
+namespace ILGPU.Algorithms
+{
+    /// <summary>
+    /// Contains extension methods for histogram operations.
+    /// </summary>
+    partial class HistogramExtensions
+    {
+<# foreach (var type in incrementTypes) { #>
+        #region Histogram <#= type.Name #> Launchers
+
+        /// <summary>
+        /// Calculates the histogram (<#= type.Type #>) on the given 1D view.
+        /// </summary>
+        /// <typeparam name="T">The input view element type.</typeparam>
+        /// <typeparam name="TStride">The input view element type.</typeparam>
+        /// <typeparam name="TLocator">
+        /// The operation to compute the bin location.
+        /// </typeparam>
+        /// <param name="accelerator">The accelerator.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        /// <param name="view">The input view.</param>
+        /// <param name="histogram">The histogram view to update.</param>
+        /// <param name="histogramOverflow">
+        /// Single-element view that indicates whether the histogram has overflowed.
+        /// </param>
+<# if (!type.IsCLSCompliant) { #>
+        [CLSCompliant(false)]
+<# } #>
+        public static void Histogram<T, TStride, TLocator>(
+            this Accelerator accelerator,
+            AcceleratorStream stream,
+            ArrayView1D<T, TStride> view,
+            ArrayView<<#= type.Type #>> histogram,
+            ArrayView<int> histogramOverflow)
+            where T : unmanaged
+            where TStride : unmanaged, IStride1D
+            where TLocator : struct, IComputeSingleBinOperation<T, Index1D>
+        {
+            var kernel = accelerator.CreateHistogram<
+                T,
+                TStride,
+                <#= type.Type #>,
+                HistogramIncrement<#= type.Name #>,
+                ComputeSingleBinAdapter<#= type.Name #><T, TLocator>>();
+            kernel(stream, view, histogram, histogramOverflow);
+        }
+
+        /// <summary>
+        /// Adapter to convert single-bin operation into a multi-bin operation for
+        /// histograms of type <#= type.Type #>.
+        /// </summary>
+        /// <typeparam name="T">
+        /// The underlying type of the histogram operation.
+        /// </typeparam>
+        /// <typeparam name="TLocator">
+        /// The operation to compute the bin location.
+        /// </typeparam>
+        internal readonly struct ComputeSingleBinAdapter<#= type.Name #><T, TLocator>
+            : IComputeMultiBinOperation<
+                T,
+                <#= type.Type #>,
+                HistogramIncrement<#= type.Name #>>
+            where T : unmanaged
+            where TLocator : struct, IComputeSingleBinOperation<T, Index1D>
+        {
+            public void ComputeHistogramBins(
+                T value,
+                ArrayView<<#= type.Type #>> histogram,
+                in HistogramIncrement<#= type.Name #> incrementOperation,
+                out bool incrementOverflow)
+            {
+                TLocator locator = default;
+                var binIdx = locator.ComputeHistogramBin(value, histogram.IntLength);
+                incrementOperation.Increment(
+                    ref histogram[binIdx],
+                    out incrementOverflow);
+            }
+        }
+
+        #endregion
+
+<# } #>
+    }
+}

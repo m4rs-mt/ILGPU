@@ -14,6 +14,14 @@ namespace ILGPU.Tests
 
         private const int Length = 1024;
 
+        public static TheoryData<object> Numbers => new TheoryData<object>
+        {
+            { 10 },
+            { -10 },
+            { int.MaxValue },
+            { int.MinValue },
+        };
+
         internal static void PinnedMemoryKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -71,5 +79,64 @@ namespace ILGPU.Tests
             Verify1D(array, expected);
         }
 #endif
+
+        internal static void CopyKernel(
+            Index1D index,
+            ArrayView1D<long, Stride1D.Dense> data)
+        {
+            data[index] -= 5;
+        }
+
+        [Theory]
+        [MemberData(nameof(Numbers))]
+        [KernelMethod(nameof(CopyKernel))]
+        public void Copy(long constant)
+        {
+            using var array = Accelerator.AllocatePageLockedArray1D<long>(Length);
+            for (int i = 0; i < Length; i++)
+                array[i] = constant;
+            using var buff = Accelerator.Allocate1D<long>(Length);
+
+            // Start copying, create the expected array in the meantime
+            buff.View.CopyFromPageLockedAsync(array);
+            var expected = Enumerable.Repeat(constant - 5, Length).ToArray();
+            Accelerator.Synchronize();
+
+            Execute(array.Extent.ToIntIndex(), buff.View);
+            Accelerator.Synchronize();
+
+            buff.View.CopyToPageLockedAsync(array);
+            Accelerator.Synchronize();
+
+            Assert.Equal(expected.Length, array.Length);
+            for (int i = 0; i < Length; i++)
+                Assert.Equal(expected[i], array[i]);
+        }
+
+        // No need for kernel, assuming copy tests pass.
+        // Just going to confirm integrity in this test.
+        [Fact]
+        public void GetAsArrayPageLocked()
+        {
+            using var array = Accelerator.AllocatePageLockedArray1D<long>(Length);
+            for (int i = 0; i < Length; i++)
+                array[i] = 10;
+
+            using var buff = Accelerator.Allocate1D<long>(Length);
+            buff.View.CopyFromPageLockedAsync(array);
+
+            var expected = new int[Length];
+            for (int i = 0; i < Length; i++)
+                expected[i] = 10;
+            Accelerator.Synchronize();
+
+            var data = buff.View.GetAsPageLockedArray1D();
+            Accelerator.Synchronize();
+
+            Assert.Equal(expected.Length, data.Length);
+
+            for (int i = 0; i < Length; i++)
+                Assert.Equal(expected[i], data[i]);
+        }
     }
 }

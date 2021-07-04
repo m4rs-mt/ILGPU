@@ -179,11 +179,11 @@ namespace ILGPU.Frontend.Intrinsic
 
             foreach (var part in parts)
             {
-                if (part == "%%")
+                if (part.Equals("%%", StringComparison.Ordinal))
                 {
                     result.Add(new FormatExpression("%"));
                 }
-                else if (part.StartsWith("%"))
+                else if (part.StartsWith("%", StringComparison.Ordinal))
                 {
                     // Check whether the argument can be resolved to an integer.
                     if (int.TryParse(part.Substring(1), out int argument))
