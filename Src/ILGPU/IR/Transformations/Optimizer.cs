@@ -141,7 +141,8 @@ namespace ILGPU.IR.Transformations
             InliningMode inliningMode,
             OptimizationLevel level)
         {
-            // Specialize accelerator properties and views
+            // Specialize accelerator properties, arrays and views
+            builder.Add(new LowerArrays(MemoryAddressSpace.Local));
             builder.Add(new LowerPointerViews());
             builder.Add(acceleratorSpecializer);
 
@@ -163,12 +164,16 @@ namespace ILGPU.IR.Transformations
 
             // Lower all value structures that could have been created during the
             // following passes:
-            // LowerPointerViews, AcceleratorSpecializer and AddressSpaceSpecializer
+            // LowerArrays, LowerPointerViews, AcceleratorSpecializer and
+            // AddressSpaceSpecializer
             builder.Add(new LowerStructures());
 
             // Apply DCE phase in release mode to remove all dead values that
             // could be created in prior passes
             builder.Add(new DeadCodeElimination());
+
+            // Converts local memory arrays into compile-time known structures
+            builder.Add(new SSAStructureConstruction());
 
             // Infer all specialized address spaces
             if (level > OptimizationLevel.O1)
@@ -223,8 +228,6 @@ namespace ILGPU.IR.Transformations
             builder.AddStructureOptimizations();
             builder.AddLoopOptimizations();
 
-            // Converts local memory arrays into structure values
-            builder.Add(new SSAStructureConstruction());
             // Append experimental if-condition conversion pass
             builder.Add(new IfConditionConversion());
             // Remove all temporarily generated values that are no longer required
