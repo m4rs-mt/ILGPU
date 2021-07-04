@@ -29,23 +29,6 @@ namespace ILGPU.Runtime
 
         #endregion
 
-        #region Properties
-
-        /// <summary>
-        /// Returns the accelerators for which the peer access has been enabled.
-        /// </summary>
-        [Obsolete("This property will be removed in the future for performance reasons")]
-        public IReadOnlyCollection<Accelerator> PeerAccelerators
-        {
-            get
-            {
-                lock (syncRoot)
-                    return storedPeerAccelerators.ToArray();
-            }
-        }
-
-        #endregion
-
         #region Methods
 
         /// <summary>

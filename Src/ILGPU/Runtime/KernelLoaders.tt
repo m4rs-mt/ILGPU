@@ -357,36 +357,6 @@ namespace ILGPU.Runtime
         /// <#= delegateParams.TypeParamDocumentation #>
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="action">The action to compile into a kernel.</param>
-        /// <param name="groupSize">
-        /// The estimated group size to gain maximum occupancy on this device.
-        /// </param>
-        /// <param name="minGridSize">
-        /// The minimum grid size to gain maximum occupancy on this device.
-        /// </param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        [Obsolete("Use LoadAutoGroupedKernel with a KernelInfo output instead")]
-        public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
-            this Accelerator accelerator,
-            Action<TIndex, <#= delegateParams.TypeParams #>> action,
-            out int groupSize,
-            out int minGridSize)
-            where TIndex : struct, IIndex
-            <#= delegateParams.TypeRestrictions #>
-        {
-            var result = accelerator.LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action, out var info);
-            groupSize = info.MinGroupSize.Value;
-            minGridSize = info.MinGridSize.Value;
-            return result;
-        }
-
-        /// <summary>
-        /// Loads the given implicitly grouped kernel and returns a launcher delegate that
-        /// can receive arbitrary accelerator streams (first parameter).
-        /// </summary>
-        /// <typeparam name="TIndex">The index type.</typeparam>
-        /// <#= delegateParams.TypeParamDocumentation #>
-        /// <param name="accelerator">The current accelerator.</param>
-        /// <param name="action">The action to compile into a kernel.</param>
         /// <param name="kernelInfo">Detailed information about the loaded kernel.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
@@ -421,37 +391,6 @@ namespace ILGPU.Runtime
             var baseKernel = accelerator.LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action);
             return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
-        }
-
-        /// <summary>
-        /// Loads the given implicitly grouped kernel and returns a launcher delegate that uses the default accelerator stream.
-        /// </summary>
-        /// <typeparam name="TIndex">The index type.</typeparam>
-        /// <#= delegateParams.TypeParamDocumentation #>
-        /// <param name="accelerator">The current accelerator.</param>
-        /// <param name="action">The action to compile into a kernel.</param>
-        /// <param name="groupSize">
-        /// The estimated group size to gain maximum occupancy on this device.
-        /// </param>
-        /// <param name="minGridSize">
-        /// The minimum grid size to gain maximum occupancy on this device.
-        /// </param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        [Obsolete("Use LoadAutoGroupedStreamKernel with a KernelInfo output instead")]
-        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
-            this Accelerator accelerator,
-            Action<TIndex, <#= delegateParams.TypeParams #>> action,
-            out int groupSize,
-            out int minGridSize)
-            where TIndex : struct, IIndex
-            <#= delegateParams.TypeRestrictions #>
-        {
-            var result = accelerator.LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
-                action,
-                out var info);
-            groupSize = info.MinGroupSize.Value;
-            minGridSize = info.MinGridSize.Value;
-            return result;
         }
 
         /// <summary>
