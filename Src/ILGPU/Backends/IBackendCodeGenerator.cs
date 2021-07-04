@@ -452,9 +452,21 @@ namespace ILGPU.Backends
             public void Visit(SubViewValue value) =>
                 throw new InvalidCodeGenerationException();
 
+            /// <summary cref="IValueVisitor.Visit(NewArray)"/>
+            public void Visit(NewArray value) =>
+                throw new InvalidCodeGenerationException();
+
+            /// <summary cref="IValueVisitor.Visit(GetArrayLength)"/>
+            public void Visit(GetArrayLength value) =>
+                throw new InvalidCodeGenerationException();
+
             /// <summary cref="IValueVisitor.Visit(LoadElementAddress)"/>
             public void Visit(LoadElementAddress value) =>
                 CodeGenerator.GenerateCode(value);
+
+            /// <summary cref="IValueVisitor.Visit(LoadArrayElementAddress)"/>
+            public void Visit(LoadArrayElementAddress value) =>
+                throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(LoadElementAddress)"/>
             public void Visit(LoadFieldAddress value) =>
