@@ -57,6 +57,7 @@ var castFunctions = new (string, string)[]
     ("ArrayView3D", "Stride3D.DenseZY"),
 };
 #>
+using ILGPU.Resources;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -482,11 +483,26 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             <#= arrayType #> data)
             where T : unmanaged
+<#      if (needsTranspose) { #>
+            => view.AsGeneral().CopyToCPU(stream, data);
+<#      } else { #>
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
             if (data.Length < 1)
                 return;
+<#      if (dimension > 1) { #>
+            // Check if we need to transpose the output on the CPU
+            if (view.Extent.Y % view.Stride.XStride != 0
+<#          if (dimension > 2) { #>
+                && view.Extent.Z % (view.Stride.XStride / view.Stride.YStride) != 0
+<#          } #>
+                )
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedEfficientStrideCopy);
+            }
+<#      } #>
 <#      for (int i = 0; i < dimension; ++i) { #>
 <#          var propertyName = IndexDimensions[i].PropertyName; #>
             if (data.GetLength(<#= i #>) <
@@ -544,11 +560,26 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             <#= arrayType #> data)
             where T : unmanaged
+<#      if (needsTranspose) { #>
+            => view.AsGeneral().CopyFromCPU(stream, data);
+<#      } else { #>
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
             if (view.HasNoData())
                 return;
+<#      if (dimension > 1) { #>
+            // Check if we need to transpose the output on the CPU
+            if (view.Extent.Y % view.Stride.XStride != 0
+<#          if (dimension > 2) { #>
+                && view.Extent.Z % (view.Stride.XStride / view.Stride.YStride) != 0
+<#          } #>
+                )
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedEfficientStrideCopy);
+            }
+<#      } #>
 <#      for (int i = 0; i < dimension; ++i) { #>
 <#          var propertyName = IndexDimensions[i].PropertyName; #>
             if (data.GetLength(<#= i #>) <
