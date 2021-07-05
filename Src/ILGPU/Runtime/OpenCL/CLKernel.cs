@@ -28,35 +28,6 @@ namespace ILGPU.Runtime.OpenCL
         /// Loads the given OpenCL kernel.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
-        /// <param name="source">The OpenCL source code.</param>
-        /// <param name="version">The OpenCL C version.</param>
-        /// <param name="programPtr">The created program pointer.</param>
-        /// <param name="kernelPtr">The created kernel pointer.</param>
-        /// <param name="errorLog">The error log (if any).</param>
-        /// <returns>
-        /// True, if the program and the kernel could be loaded successfully.
-        /// </returns>
-        [Obsolete("Use LoadKernel with an explicit entry point name instead.")]
-        public static CLError LoadKernel(
-            CLAccelerator accelerator,
-            string source,
-            CLCVersion version,
-            out IntPtr programPtr,
-            out IntPtr kernelPtr,
-            out string errorLog) =>
-            LoadKernel(
-                accelerator,
-                CLCompiledKernel.EntryName,
-                source,
-                version,
-                out programPtr,
-                out kernelPtr,
-                out errorLog);
-
-        /// <summary>
-        /// Loads the given OpenCL kernel.
-        /// </summary>
-        /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="name">The name of the entry-point function.</param>
         /// <param name="source">The OpenCL source code.</param>
         /// <param name="version">The OpenCL C version.</param>
