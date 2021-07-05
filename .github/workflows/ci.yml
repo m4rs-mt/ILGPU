@@ -194,15 +194,14 @@ jobs:
 
   publish-nuget-pre-release:
     if: github.ref == 'refs/heads/master'
-    needs: [check-style, build-and-test]
-    runs-on: windows-latest
+    needs: [check-style, build-and-test, package]
+    runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
         uses: actions/download-artifact@v2
         with:
           name: nuget-packages
       - name: Publish to FeedzIO
-        shell: bash
         run: dotnet nuget push "*.nupkg" --api-key ${{ secrets.FEEDZIO_API_KEY }} --source https://f.feedz.io/ilgpu/preview/nuget/index.json
 
   publish:
