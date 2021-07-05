@@ -98,9 +98,13 @@ jobs:
       - name: CPU Tests
         if: matrix.os != 'cuda'
         run: dotnet test --logger GitHubActions --no-build --configuration=Release Src/${{ matrix.library }}.Tests.CPU
+        env:
+          ILGPU_CLEAN_TESTS: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
       - name: CUDA Tests
         if: matrix.os == 'cuda'
         run: dotnet test --logger GitHubActions --no-build --configuration=Release Src/${{ matrix.library }}.Tests.Cuda
+        env:
+          ILGPU_CLEAN_TESTS: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
 
   package:
     runs-on: windows-latest
