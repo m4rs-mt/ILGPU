@@ -316,11 +316,8 @@ Src/ILGPU.Tests/ValueTuples.cs
 
 Src/ILGPU.Tests/.test.runsettings
 Src/ILGPU.Tests.CPU/Configurations.cs
-Src/ILGPU.Tests.CPU/TestContexts.cs
 Src/ILGPU.Tests.Cuda/Configurations.cs
-Src/ILGPU.Tests.Cuda/TestContexts.cs
 Src/ILGPU.Tests.OpenCL/Configurations.cs
-Src/ILGPU.Tests.OpenCL/TestContexts.cs
 
 # Generated test source files (Algorithms)
 Src/ILGPU.Algorithms.Tests/Generic/ConfigurationBase.cs

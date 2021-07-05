@@ -66,7 +66,7 @@ public static readonly ScanReduceOperation[] ScanReduceOperations =
         new ScanReduceOperation ( "Min", "{0}.MaxValue", "XMath.Min(", ", ", ")" )
     };
 
-public static readonly int[] ArraySizes = { 1, 31, 32 , 33, 65, 127, 1000, 10000, 50000 };
+public static readonly int[] ArraySizes = { 1, 31, 33, 127, 1027 };
 
 // VerifyWithinRelativeError
 public struct RelativeError

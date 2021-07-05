@@ -7,23 +7,34 @@ using Xunit.Abstractions;
 
 <#
 var configurationFile = Host.ResolvePath("../ILGPU.Tests/Configurations.txt");
-var configurations = TestConfig.Parse(configurationFile, out var _);
+var configurations = TestConfig.Parse(configurationFile);
 #>
 namespace ILGPU.Tests.OpenCL
 {
-<# foreach (var config in configurations) { #>
-<#      foreach (var optLevel in config.OptimizationLevels) { #>
-<#      var name = "CL" + config.Name + "_" + optLevel; #>
-    [Collection("CLContextCollection<#= optLevel #>")]
-    public sealed partial class <#= name #> : <#= config.Name #>
+<# foreach (var (test, level, collection) in configurations) { #>
+<#      var name = $"CL{test}_{level}"; #>
+    [Collection("CLContextCollection<#= collection #>")]
+    public sealed partial class <#= name #> : <#= test #>
     {
         public <#= name #>(
             ITestOutputHelper output,
-            CLTestContext<#= optLevel #> testContext)
+            CLTestContext<#= collection #> testContext)
             : base(output, testContext)
         { }
     }
 
-<#      } #>
+<# } #>
+<# foreach (var (config, level) in TestConfig.AllConfigurations) { #>
+    public class CLTestContext<#= config #> : CLTestContext
+    {
+        public CLTestContext<#= config #>()
+            : base(OptimizationLevel.<#= level #>)
+        { }
+    }
+
+    [CollectionDefinition("CLContextCollection<#= config #>")]
+    public class CLContextCollection<#= config #> :
+        ICollectionFixture<CLTestContext<#= config #>> { }
+
 <# } #>
 }
