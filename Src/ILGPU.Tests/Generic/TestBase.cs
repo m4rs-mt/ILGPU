@@ -26,9 +26,17 @@ namespace ILGPU.Tests
         /// <summary>
         /// Returns true if all tests should be executed in a clean environment.
         /// </summary>
-        public static bool CleanTests { get; } =
-            !string.IsNullOrWhiteSpace(
-                Environment.GetEnvironmentVariable(CleanTestsEnvironmentVariable));
+        public static bool CleanTests
+        {
+            get
+            {
+                var env = Environment.GetEnvironmentVariable(
+                    CleanTestsEnvironmentVariable);
+                return !string.IsNullOrWhiteSpace(env)
+                       && env.ToLower() != "false"
+                       && env != "0";
+            }
+        }
 
         /// <summary>
         /// Resolves a kernel method.
