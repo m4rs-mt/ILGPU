@@ -140,11 +140,7 @@ jobs:
           $version = "${{ steps.version.outputs.version }}"
 
           if (-not ("${{ github.ref }}" -like "refs/tags/v*")) {
-            # WORKAROUND: Add letter prefix to ensure that MSBuild treats
-            # the suffix as a string. e.g. '0313071' will fail as an invalid
-            # version string, but 'G0313071' will succeeded. It looks like
-            # the parser does not like numbers with a leading zero.
-            $suffix = 'g' + $(git rev-parse --short HEAD)
+            $suffix = "preview-$(Get-Date -Format yyyyMMddHHmmss -AsUTC)-$(git rev-parse --short HEAD)"
             $params = "--version-suffix", $suffix
             $version = "$version-$suffix"
           }
