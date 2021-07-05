@@ -19,16 +19,6 @@ namespace ILGPU.Backends.PTX
     /// </summary>
     public sealed class PTXCompiledKernel : CompiledKernel
     {
-        #region Constants
-
-        /// <summary>
-        /// The entry name of the kernel function.
-        /// </summary>
-        [Obsolete("Use CompiledKernel.Name instead")]
-        public const string EntryName = "ILGPUKernel";
-
-        #endregion
-
         #region Instance
 
         /// <summary>
