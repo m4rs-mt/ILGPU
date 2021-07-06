@@ -193,8 +193,8 @@ jobs:
           name: nuget-packages
           path: ./Bin/Release/ILGPU*.${{ steps.package.outputs.version }}.*nupkg
 
-      outputs:
-        tag: ${{ steps.version.outputs.tag }}
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
 
   release-and-publish:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -205,12 +205,28 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: nuget-packages
+
+      # if tag cointains suffix "-" treat it as pre-release
+      # example: 1.0.0-beta1
+      - name: Prerelease logic
+        id: prerelease-logic
+        run:
+          if [[ ${{ needs.package.outputs.tag }} =~ .+-.+$ ]]
+          ;then 
+            echo "::set-output name=prerelease::true"
+          ;else
+            echo "::set-output name=prerelease::false" 
+          ;fi
+
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
           name: Release v${{ needs.package.outputs.tag }}
+          draft: true
+          prerelease: ${{ steps.prerelease-logic.outputs.prerelease }}
           files: "*.nupkg"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish to NuGet
         run: dotnet nuget push "*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
