@@ -1,16 +1,13 @@
 ﻿using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
-using System.Collections.Generic;
 
 namespace ILGPU.Backends.SPIRV
 {
     /// <summary>
     /// A SPIR-V code generator.
     /// </summary>
-    public abstract partial class SPIRVCodeGenerator :
-        SPIRVIdAllocator,
-        IBackendCodeGenerator<ISPIRVBuilder>
+    public abstract partial class SPIRVCodeGenerator : IBackendCodeGenerator<ISPIRVBuilder>
     {
         #region Nested Types
 
@@ -20,16 +17,28 @@ namespace ILGPU.Backends.SPIRV
         public readonly struct GeneratorArgs
         {
 
+            // You may be wondering why the id allocator is included as a generator
+            // argument instead of SPIRVCodeGenerator inheriting from it.
+
+            // Well, the type generator needs access to the allocator which would mean
+            // that the type generator would have to be constructed in the code generator.
+            // That's bad because the backend needs access to the type generator too.
+            // The idea is to move type generator and allocator to generator args so they
+            // can be used here and in the backend.
             internal GeneratorArgs(
                 SPIRVBackend backend,
                 EntryPoint entryPoint,
+                SPIRVIdAllocator allocator,
                 ISPIRVBuilder builder,
+                SPIRVTypeGenerator generator,
                 in AllocaKindInformation sharedAllocations,
                 in AllocaKindInformation dynamicSharedAllocations)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
                 Builder = builder;
+                IdAllocator = allocator;
+                TypeGenerator = generator;
                 SharedAllocations = sharedAllocations;
                 DynamicSharedAllocations = dynamicSharedAllocations;
             }
@@ -43,6 +52,16 @@ namespace ILGPU.Backends.SPIRV
             /// Returns the current entry point.
             /// </summary>
             public EntryPoint EntryPoint { get; }
+
+            /// <summary>
+            /// Returns the id allocator to use
+            /// </summary>
+            public SPIRVIdAllocator IdAllocator { get; }
+
+            /// <summary>
+            /// Returns the type generator to use
+            /// </summary>
+            public SPIRVTypeGenerator TypeGenerator { get; }
 
             /// <summary>
             /// Returns the type of SPIRV builder this generator will use.
@@ -73,7 +92,8 @@ namespace ILGPU.Backends.SPIRV
         internal SPIRVCodeGenerator(in GeneratorArgs args, Method method, Allocas allocas)
         {
             Builder = args.Builder;
-            TypeGenerator = new SPIRVTypeGenerator(this, Builder);
+            IdAllocator = args.IdAllocator;
+            TypeGenerator = args.TypeGenerator;
             Method = method;
             Allocas = allocas;
         }
@@ -86,6 +106,11 @@ namespace ILGPU.Backends.SPIRV
         /// Returns the associated SPIR-V Builder.
         /// </summary>
         public ISPIRVBuilder Builder { get; }
+
+        /// <summary>
+        /// Returns the associated id allocator
+        /// </summary>
+        public SPIRVIdAllocator IdAllocator { get; }
 
         /// <summary>
         /// Returns the associated type generator.
@@ -125,12 +150,12 @@ namespace ILGPU.Backends.SPIRV
             // "Allocate" (store in allocator) all the blocks
             var blocks = Method.Blocks;
             foreach (var block in blocks)
-                Allocate(block);
+                IdAllocator.Allocate(block);
 
             // Generate code
             foreach (var block in blocks)
             {
-                Builder.GenerateOpLabel(Load(block));
+                Builder.GenerateOpLabel(IdAllocator.Load(block));
 
                 foreach (var value in block)
                 {

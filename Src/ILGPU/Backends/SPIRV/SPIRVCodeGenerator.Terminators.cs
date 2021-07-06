@@ -13,22 +13,22 @@ namespace ILGPU.Backends.SPIRV
             }
             else
             {
-                var variable = Load(returnTerminator.ReturnValue);
+                var variable = IdAllocator.Load(returnTerminator.ReturnValue);
                 Builder.GenerateOpReturnValue(variable);
             }
         }
 
         public void GenerateCode(UnconditionalBranch branch)
         {
-            var target = Load(branch.Target);
+            var target = IdAllocator.Load(branch.Target);
             Builder.GenerateOpBranch(target);
         }
 
         public void GenerateCode(IfBranch branch)
         {
-            var condition = Load(branch.Condition);
-            var trueTarget = Load(branch.TrueTarget);
-            var falseTarget = Load(branch.FalseTarget);
+            var condition = IdAllocator.Load(branch.Condition);
+            var trueTarget = IdAllocator.Load(branch.TrueTarget);
+            var falseTarget = IdAllocator.Load(branch.FalseTarget);
 
             Builder.GenerateOpBranchConditional(
                 condition,
@@ -38,13 +38,13 @@ namespace ILGPU.Backends.SPIRV
 
         public void GenerateCode(SwitchBranch branch)
         {
-            var selector = Load(branch.Condition);
-            var defaultBranch = Load(branch.DefaultBlock);
+            var selector = IdAllocator.Load(branch.Condition);
+            var defaultBranch = IdAllocator.Load(branch.DefaultBlock);
             var switchTargets = new List<PairLiteralIntegerIdRef>();
             for (int i = 0; i < branch.NumCasesWithoutDefault; i++)
             {
                 var target = branch.GetCaseTarget(i);
-                var targetVar = Load(target);
+                var targetVar = IdAllocator.Load(target);
                 switchTargets.Add(new PairLiteralIntegerIdRef
                 {
                     base0 = (uint) i, // Case Number

@@ -32,12 +32,12 @@ namespace ILGPU.Backends.SPIRV
 
         private void GenerateFunctionHeader()
         {
-            var function = Allocate(Method);
-
-            var returnType = Load(Method.ReturnType);
+            var function = IdAllocator.Allocate(Method);
+            var returnType = IdAllocator.Load(Method.ReturnType);
             var control = Method.HasFlags(MethodFlags.Inline)
                 ? FunctionControl.Inline
                 : FunctionControl.None;
+
             Builder.GenerateOpFunction(function, returnType, control, );
         }
     }

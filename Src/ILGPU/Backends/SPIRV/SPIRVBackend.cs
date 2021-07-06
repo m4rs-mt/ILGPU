@@ -79,12 +79,18 @@ namespace ILGPU.Backends.SPIRV
                 schema
             );
 
+            var allocator = new SPIRVIdAllocator();
+            var typeGenerator = new SPIRVTypeGenerator(allocator, builder);
+
             data = new SPIRVCodeGenerator.GeneratorArgs(
                 this,
                 entryPoint,
+                allocator,
                 builder,
+                typeGenerator,
                 backendContext.SharedAllocations,
                 backendContext.DynamicSharedAllocations);
+
             return builder;
         }
 
@@ -92,7 +98,7 @@ namespace ILGPU.Backends.SPIRV
             Method method,
             Allocas allocas,
             SPIRVCodeGenerator.GeneratorArgs data) =>
-            throw new NotImplementedException();
+            new SPIRVFunctionGenerator(data, method, allocas);
 
         protected override SPIRVCodeGenerator CreateKernelCodeGenerator(
             in AllocaKindInformation sharedAllocations,
@@ -100,9 +106,13 @@ namespace ILGPU.Backends.SPIRV
             Allocas allocas,
             SPIRVCodeGenerator.GeneratorArgs data) => throw new NotImplementedException();
 
-        protected override CompiledKernel CreateKernel(EntryPoint entryPoint,
+        protected override CompiledKernel CreateKernel(
+            EntryPoint entryPoint,
             CompiledKernel.KernelInfo kernelInfo,
-            ISPIRVBuilder builder, SPIRVCodeGenerator.GeneratorArgs data) =>
-            throw new NotImplementedException();
+            ISPIRVBuilder builder,
+            SPIRVCodeGenerator.GeneratorArgs data)
+        {
+            data.TypeGenerator
+        }
     }
 }
