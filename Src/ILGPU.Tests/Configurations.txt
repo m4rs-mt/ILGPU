@@ -1,45 +1,45 @@
-﻿ArrayViews
-Arrays
-DebugTests
-DisassemblerTests
-EnumValues
-FixedBuffers
-Indices
-KernelEntryPoints
-MemoryBufferOperations
-PageLockedMemory
-ProfilingMarkers
-SharedMemory
-SizeOfValues
-SpecializedKernels
-StructureValues
-ValueTuples
-InteropTests
+﻿// ArrayViews
+// Arrays
+// DebugTests
+// DisassemblerTests
+// EnumValues
+// FixedBuffers
+// Indices
+// KernelEntryPoints
+// MemoryBufferOperations
+// PageLockedMemory
+// ProfilingMarkers
+// SharedMemory
+// SizeOfValues
+// SpecializedKernels
+// StructureValues
+// ValueTuples
+// InteropTests
 
-BinaryIntOperations
-UnaryIntOperations
+// BinaryIntOperations
+// UnaryIntOperations
 
-CompareIntOperations
-CompareFloatOperations
+// CompareIntOperations
+// CompareFloatOperations
 
-AtomicOperations
-AtomicCASOperations
+// AtomicOperations
+// AtomicCASOperations
 
-GridOperations
-GroupOperations
-MemoryFenceOperations
-WarpOperations
+// GridOperations
+// GroupOperations
+// MemoryFenceOperations
+// WarpOperations
 
-ConvertFloatOperations
-ConvertIntOperations
-ReinterpretCasts
+// ConvertFloatOperations
+// ConvertIntOperations
+// ReinterpretCasts
 
-BasicJumps
-BasicCalls
-BasicIfs
-BasicLoops
-BasicSwitches
-BasicPhis
+// BasicJumps
+// BasicCalls
+// BasicIfs
+// BasicLoops
+// BasicSwitches
+// BasicPhis
 
-FormatStringTests
-LanguageTests
+// FormatStringTests
+// LanguageTests

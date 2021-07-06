@@ -1,16 +1,16 @@
-﻿ArrayExtensionTests
-GroupExtensionTests
-﻿HistogramTests
-InitializeTests
-RadixSortExtensionTests
-RandomTests
-ReductionExtensionTests
-ReorderExtensionTests
+﻿// ArrayExtensionTests
+// GroupExtensionTests
+﻿// HistogramTests
+// InitializeTests
+// RadixSortExtensionTests
+// RandomTests
+// ReductionExtensionTests
+// ReorderExtensionTests
 ScanExtensionTests
-SequencerTests
-TempViewManagerTests
-TransformExtensionTests
-UniqueExtensionTests
-VectorTests
-WarpExtensionTests
-XMathTests
+// SequencerTests
+// TempViewManagerTests
+// TransformExtensionTests
+// UniqueExtensionTests
+// VectorTests
+// WarpExtensionTests
+// XMathTests

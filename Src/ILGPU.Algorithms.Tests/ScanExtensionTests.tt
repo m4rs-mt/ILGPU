@@ -110,47 +110,6 @@ namespace ILGPU.Algorithms.Tests
 #>
         [Theory]
         [MemberData(nameof(<#= sorting.Name #><#= srOp.Name #>TestData))]
-        public void ScanInclusive<#= srOp.Name #><#= sorting.Name #>Test<
-            T,
-            TScanFunc,
-            TSequencer>(
-            T _,
-            TScanFunc func,
-            TSequencer sequencer,
-            T start,
-            T stepSize,
-            int length)
-            where T : unmanaged
-            where TSequencer : struct, ITestSequencer<T>
-            where TScanFunc : struct, IScanReduceOperation<T>
-        {
-            using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate1D<T>(length);
-            using var output = Accelerator.Allocate1D<T>(length);
-            
-            var tmpMemSize = Accelerator.ComputeScanTempStorageSize<T>(output.Length);
-            using var tmp = Accelerator.Allocate1D<int>(tmpMemSize);
-
-            var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
-            input.CopyFromCPU(stream, inputSeq);
-
-            var scan = Accelerator.CreateInclusiveScan<T, TScanFunc>();
-
-            scan(stream, input.View, output.View, tmp.View);
-            stream.Synchronize();
-
-            var expected = CalcValues(inputSeq, func, ScanKind.Inclusive);
-            Verify(output.View, expected);
-        }
-
-<#
-            }
-        }
-        foreach (var sorting in sortings) {
-            foreach (var srOp in ScanReduceOperations) {
-#>
-        [Theory]
-        [MemberData(nameof(<#= sorting.Name #><#= srOp.Name #>TestData))]
         public void ScanExclusive<#= srOp.Name #><#= sorting.Name #>Test<
             T,
             TScanFunc,
@@ -218,39 +177,6 @@ namespace ILGPU.Algorithms.Tests
             stream.Synchronize();
             
             var expected = CalcValues(inputSeq, func, ScanKind.Exclusive);
-            Verify(output.View, expected);
-        }
-
-        [Theory]
-        [MemberData(nameof(AscendingAddTestData))]
-        [MemberData(nameof(AscendingMaxTestData))]
-        [MemberData(nameof(AscendingMinTestData))]
-        public void InclusiveScanProviderAscendingTest<T, TScanFunc, TSequencer>(
-            T _,
-            TScanFunc func,
-            TSequencer sequencer,
-            T start,
-            T stepSize,
-            int length)
-            where T : unmanaged
-            where TSequencer : struct, ITestSequencer<T>
-            where TScanFunc : struct, IScanReduceOperation<T>
-        {
-            using var stream = Accelerator.CreateStream();
-            using var input = Accelerator.Allocate1D<T>(length);
-            using var output = Accelerator.Allocate1D<T>(length);
-
-            var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
-            input.CopyFromCPU(stream, inputSeq);
-
-            using var scanProvider = Accelerator.CreateScanProvider<T>(length);
-            var scan = scanProvider.CreateInclusiveScan<T, TScanFunc>();
-            stream.Synchronize();
-
-            scan(stream, input.View, output.View);
-            stream.Synchronize();
-            
-            var expected = CalcValues(inputSeq, func, ScanKind.Inclusive);
             Verify(output.View, expected);
         }
 
