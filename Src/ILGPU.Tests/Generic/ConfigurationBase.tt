@@ -68,58 +68,79 @@ public static IEnumerable<string> GetFloatRanges(
 
 public sealed class TestConfig
 {
-    public TestConfig(string name)
-        : this(name, null)
-    {}
+    public static readonly string TestParallelizationEnvironmentVariable =
+        "ILGPU_TEST_PARALLELIZATION_LEVEL";
 
-    public TestConfig(string name, string[] optimizationLevels)
-    {
-        Name = name;
-        OptimizationLevels = optimizationLevels ?? new string[]
+    private const int DefaultParallelizationLevel = 4;
+
+    public static Lazy<int> ParallelizationLevel =>
+        new Lazy<int>(() =>
         {
-            "Debug",
-            "Release",
-            "O2"
-        };
-    }
+            var levelString = Environment.GetEnvironmentVariable(
+                TestParallelizationEnvironmentVariable);
+            int result = DefaultParallelizationLevel;
+            if (int.TryParse(levelString, out int level))
+                result =Math.Max(result, level);
+            return result;
+        });
 
-    public string Name { get; }
-
-    public string[] OptimizationLevels { get; }
-
-    public static IEnumerable<TestConfig> Parse(
-        string fileName,
-        out IEnumerable<string> levels)
+    public static readonly string[] OptimizationLevels =
     {
-        return Parse(System.IO.File.ReadAllLines(fileName), out levels);
-    }
+        "Debug",
+        "Release",
+        "O2"
+    };
 
-    public static IEnumerable<TestConfig> Parse(
-        string[] lines,
-        out IEnumerable<string> levels)
+    private static string GetLevelConfig(string level, int index) =>
+        index > 0 ? $"{level}_{index + 1}" : level;
+
+    public static IEnumerable<(string, string)> AllConfigurations =>
+        Enumerable
+            .Range(0, ParallelizationLevel.Value)
+            .SelectMany(t =>
+                OptimizationLevels.Select(level =>
+                    (GetLevelConfig(level, t), level)));
+
+    public static TestConfig Parse(string fileName) =>
+        Parse(System.IO.File.ReadAllLines(fileName));
+
+    public static TestConfig Parse(string[] lines)
     {
-        var result = new List<TestConfig>(lines.Length);
-
+        var results = new List<string>(lines.Length);
         for (int i = 0, e = lines.Length; i < e; ++i)
         {
             var line = lines[i].Trim();
             if (line.StartsWith("//") || line.Length < 1)
                 continue;
-            var parts = line.Split(':');
-            var testName = parts[0].Trim();
-            string[] optimizationLevels = null;
-            if (parts.Length > 1)
-            {
-                var levelString = parts[1].Split(',');
-                optimizationLevels = new string[levelString.Length];
-                for (int j = 0; j < optimizationLevels.Length; ++j)
-                    optimizationLevels[j] = levelString[j].Trim();
-            }
-            result.Add(new TestConfig(testName, optimizationLevels));
+            results.Add(line);
         }
+        return new TestConfig(results.ToArray());
+    }
 
-        levels = result.SelectMany(t => t.OptimizationLevels).Distinct();
-        return result;
+    private TestConfig(string[] tests)
+    {
+        Tests = tests;
+    }
+
+    public string[] Tests { get; }
+
+    public IEnumerator<(string, string, string)> GetEnumerator()
+    {
+        // Switch between the different contexts
+        var mapping = new Dictionary<string, int>();
+        foreach (var level in OptimizationLevels)
+            mapping.Add(level, 0);
+
+        foreach (var test in Tests)
+        {
+            foreach (var level in OptimizationLevels)
+            {
+                int levelIndex = mapping[level];
+                yield return (test, level, GetLevelConfig(level, levelIndex));
+                mapping[level] = (levelIndex + 1) % ParallelizationLevel.Value;
+            }
+        }
+        yield break;
     }
 }
 #>

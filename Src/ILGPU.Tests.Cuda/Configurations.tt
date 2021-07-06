@@ -2,29 +2,39 @@
 <#@ include file="../ILGPU.Tests/Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-using ILGPU.IR.Transformations;
 using Xunit;
 using Xunit.Abstractions;
 
 <#
 var configurationFile = Host.ResolvePath("../ILGPU.Tests/Configurations.txt");
-var configurations = TestConfig.Parse(configurationFile, out var _);
+var configurations = TestConfig.Parse(configurationFile);
 #>
 namespace ILGPU.Tests.Cuda
 {
-<# foreach (var config in configurations) { #>
-<#      foreach (var optLevel in config.OptimizationLevels) { #>
-<#      var name = "Cuda" + config.Name + "_" + optLevel; #>
-    [Collection("CudaContextCollection<#= optLevel #>")]
-    public sealed partial class <#= name #> : <#= config.Name #>
+<# foreach (var (test, level, collection) in configurations) { #>
+<#      var name = $"Cuda{test}_{level}"; #>
+    [Collection("CudaContextCollection<#= collection #>")]
+    public sealed partial class <#= name #> : <#= test #>
     {
         public <#= name #>(
             ITestOutputHelper output,
-            CudaTestContext<#= optLevel #> testContext)
+            CudaTestContext<#= collection #> testContext)
             : base(output, testContext)
         { }
     }
 
-<#      } #>
+<# } #>
+<# foreach (var (config, level) in TestConfig.AllConfigurations) { #>
+    public class CudaTestContext<#= config #> : CudaTestContext
+    {
+        public CudaTestContext<#= config #>()
+            : base(OptimizationLevel.<#= level #>)
+        { }
+    }
+
+    [CollectionDefinition("CudaContextCollection<#= config #>")]
+    public class CudaContextCollection<#= config #> :
+        ICollectionFixture<CudaTestContext<#= config #>> { }
+
 <# } #>
 }

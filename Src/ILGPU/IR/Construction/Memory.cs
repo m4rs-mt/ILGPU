@@ -91,16 +91,21 @@ namespace ILGPU.IR.Construction
                 addressSpace == MemoryAddressSpace.Local ||
                 addressSpace == MemoryAddressSpace.Shared);
 
-            return arrayLength is PrimitiveValue primitiveValue &&
-                primitiveValue.Int32Value == 0
-                ? CreateNull(
-                    location,
-                    CreatePointerType(type, addressSpace))
-                : Append(new Alloca(
-                    GetInitializer(location),
-                    arrayLength,
-                    type,
-                    addressSpace));
+            if (arrayLength is PrimitiveValue primitiveValue)
+            {
+                // Remove empty allocations
+                if (primitiveValue.HasIntValue(0L))
+                    return CreateNull(location, CreatePointerType(type, addressSpace));
+                // Fold simple array lengths
+                else if (primitiveValue.HasIntValue(1L))
+                    arrayLength = CreateUndefined();
+            }
+
+            return Append(new Alloca(
+                GetInitializer(location),
+                arrayLength,
+                type,
+                addressSpace));
         }
 
         /// <summary>

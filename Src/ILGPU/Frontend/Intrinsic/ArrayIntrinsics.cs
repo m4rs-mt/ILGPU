@@ -12,7 +12,6 @@
 using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
-using ILGPU.Util;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -46,9 +45,9 @@ namespace ILGPU.Frontend.Intrinsic
                 "get_Length" => builder.CreateGetArrayLength(
                     location,
                     context[0]),
-                "get_LongLength" => builder.CreateGetArrayLongLength(
+                "get_LongLength" => builder.CreateConvertToInt64(
                     location,
-                    context[0]),
+                    builder.CreateGetArrayLength(location, context[0])),
                 nameof(Array.GetLowerBound) => CreateGetArrayLowerBound(ref context),
                 nameof(Array.GetUpperBound) => CreateGetArrayUpperBound(ref context),
                 nameof(Array.GetLength) => CreateGetArrayLength(ref context),
@@ -80,27 +79,14 @@ namespace ILGPU.Frontend.Intrinsic
 
             // Create an array view type of the appropriate dimension
             var managedElementType = context.Method.DeclaringType.GetElementType();
-            var elementType = builder.CreateType(
-                managedElementType,
-                MemoryAddressSpace.Generic);
-            var dimensionLengths = context.Arguments.Slice(1, dimension);
+            var elementType = builder.CreateType(managedElementType);
+            var arrayType = builder.CreateArrayType(elementType, dimension);
 
-            // Create and store array instance
-            var newArray = builder.CreateNewArray(
-                location,
-                elementType,
-                ref dimensionLengths);
-
-            // Clear array data
-            var callArguments = InlineList<ValueReference>.Create(
-                builder.CreateGetViewFromArray(
-                    location,
-                    newArray));
-            builder.CreateCall(
-                location,
-                context.DeclareMethod(
-                    LocalMemory.GetClearMethod(managedElementType)),
-                ref callArguments);
+            // Create array instance
+            var arrayBuilder = builder.CreateNewArray(location, arrayType);
+            for (int i = 0; i < dimension; ++i)
+                arrayBuilder.Add(context.Arguments[i + 1]);
+            var newArray = arrayBuilder.Seal();
 
             // Store instance
             builder.CreateStore(location, context[0], newArray);
@@ -118,7 +104,8 @@ namespace ILGPU.Frontend.Intrinsic
             var builder = context.Builder;
 
             var elementType = builder.CreateType(context.GetMethodGenericArguments()[0]);
-            return builder.CreateEmptyArray(location, elementType, 1);
+            var arrayType = builder.CreateArrayType(elementType, 1);
+            return builder.CreateEmptyArray(location, arrayType);
         }
 
         /// <summary>
@@ -131,13 +118,12 @@ namespace ILGPU.Frontend.Intrinsic
             var location = context.Location;
             var builder = context.Builder;
 
-            var arguments = context.Arguments.Slice(1, context.NumArguments - 1);
-            return builder.CreateLoad(
+            var laeaBuilder = builder.CreateLoadArrayElementAddress(
                 location,
-                builder.CreateGetArrayElementAddress(
-                    location,
-                    context[0],
-                    ref arguments));
+                context.Arguments[0]);
+            for (int i = 1, e = context.NumArguments; i < e; ++i)
+                laeaBuilder.Add(context.Arguments[i]);
+            return builder.CreateLoad(location, laeaBuilder.Seal());
         }
 
         /// <summary>
@@ -150,13 +136,14 @@ namespace ILGPU.Frontend.Intrinsic
             var location = context.Location;
             var builder = context.Builder;
 
-            var arguments = context.Arguments.Slice(1, context.NumArguments - 2);
+            var laeaBuilder = builder.CreateLoadArrayElementAddress(
+                location,
+                context.Arguments[0]);
+            for (int i = 1, e = context.NumArguments - 1; i < e; ++i)
+                laeaBuilder.Add(context.Arguments[i]);
             return builder.CreateStore(
                 location,
-                builder.CreateGetArrayElementAddress(
-                    location,
-                    context[0],
-                    ref arguments),
+                laeaBuilder.Seal(),
                 context[context.NumArguments - 1]);
         }
 
