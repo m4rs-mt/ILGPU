@@ -144,6 +144,9 @@ public static readonly string[] GroupFunctions =
 
         "ExclusiveScanWithBoundaries",
         "InclusiveScanWithBoundaries",
+
+        "ExclusiveScanNextIteration",
+        "InclusiveScanNextIteration",
     };
 
 // Warp functions
