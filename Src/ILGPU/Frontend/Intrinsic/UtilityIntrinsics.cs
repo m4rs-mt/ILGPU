@@ -9,7 +9,9 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -17,6 +19,7 @@ namespace ILGPU.Frontend.Intrinsic
     enum UtilityIntrinsicKind
     {
         Select,
+        CastArrayToView,
     }
 
     /// <summary>
@@ -49,10 +52,21 @@ namespace ILGPU.Frontend.Intrinsic
         private static ValueReference HandleUtilityOperation(
             ref InvocationContext context,
             UtilityIntrinsicAttribute attribute) =>
-            context.Builder.CreatePredicate(
-                context.Location,
-                context[0],
-                context[1],
-                context[2]);
+            attribute.IntrinsicKind switch
+            {
+                UtilityIntrinsicKind.Select =>
+                    context.Builder.CreatePredicate(
+                        context.Location,
+                        context[0],
+                        context[1],
+                        context[2]),
+                UtilityIntrinsicKind.CastArrayToView =>
+                    context.Builder.CreateArrayToViewCast(
+                        context.Location,
+                        context[0]),
+                _ => throw context.Location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedViewIntrinsic,
+                    attribute.IntrinsicKind.ToString()),
+            };
     }
 }

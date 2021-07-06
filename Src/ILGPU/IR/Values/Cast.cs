@@ -510,6 +510,78 @@ namespace ILGPU.IR.Values
     }
 
     /// <summary>
+    /// Casts an array to a linear array view.
+    /// </summary>
+    [ValueKind(ValueKind.ArrayToViewCast)]
+    public sealed class ArrayToViewCast : CastValue
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new cast value.
+        /// </summary>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="sourceArray">The source array to cast to a view.</param>
+        internal ArrayToViewCast(
+            in ValueInitializer initializer,
+            ValueReference sourceArray)
+            : base(initializer, sourceArray)
+        {
+            this.Assert(sourceArray.Type.IsArrayType);
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.ArrayToViewCast;
+
+        /// <summary>
+        /// Returns the array type of the source value.
+        /// </summary>
+        public new ArrayType SourceType => base.SourceType as ArrayType;
+
+        /// <summary>
+        /// Returns the array element type.
+        /// </summary>
+        public TypeNode ElementType => SourceType.ElementType;
+
+        #endregion
+
+        #region Methods
+
+        /// <inheritdoc/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.CreateViewType(
+                ElementType,
+                MemoryAddressSpace.Generic);
+
+        /// <inheritdoc/>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
+            builder.CreateArrayToViewCast(
+                Location,
+                rebuilder.Rebuild(Value));
+
+        /// <inheritdoc/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <inheritdoc/>
+        protected override string ToPrefixString() => "arrayToView";
+
+        /// <inheritdoc/>
+        protected override string ToArgString() => $"{Value} -> View<{ElementType}>";
+
+        #endregion
+    }
+
+    /// <summary>
     /// Casts from one value type to another while reinterpreting
     /// the value as another type.
     /// </summary>

@@ -273,7 +273,7 @@ namespace ILGPU.Frontend.Intrinsic
 
             // Convert unsafe data into target chunks and emit
             // appropriate store instructions
-            Value target = builder.CreateGetViewFromArray(location, context[0]);
+            Value target = builder.CreateArrayToViewCast(location, context[0]);
             var arrayType = target.Type.As<ViewType>(location);
             var elementType = arrayType.ElementType.LoadManagedType();
 

@@ -41,12 +41,6 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Makes this accelerator the current one for this thread.
         /// </summary>
-        [Obsolete("Use Accelerator.Bind instead")]
-        public void MakeCurrent() => Bind();
-
-        /// <summary>
-        /// Makes this accelerator the current one for this thread.
-        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Bind()
         {
@@ -80,14 +74,9 @@ namespace ILGPU.Runtime
     }
 
     /// <summary>
-    /// Represents a temporary binding of an accelerator object.
-    /// The old binding can be recovered by either <see cref="Recover"/>
-    /// or the <see cref="Dispose"/> method.
+    /// Represents a temporary binding of an accelerator object. The old binding can be
+    /// recovered by either <see cref="Recover"/> or the <see cref="Dispose"/> method.
     /// </summary>
-    /// <remarks>
-    /// The objects implements <see cref="IDisposable"/> in order
-    /// to use it in the scope of using statements
-    /// </remarks>
     public struct ScopedAcceleratorBinding :
         IDisposable,
         IEquatable<ScopedAcceleratorBinding>
