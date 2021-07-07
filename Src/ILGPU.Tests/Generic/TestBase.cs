@@ -33,7 +33,7 @@ namespace ILGPU.Tests
                 var env = Environment.GetEnvironmentVariable(
                     CleanTestsEnvironmentVariable);
                 return !string.IsNullOrWhiteSpace(env)
-                       && env.ToLower() != "false"
+                       && env.ToUpperInvariant() != "FALSE"
                        && env != "0";
             }
         }
