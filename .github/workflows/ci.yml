@@ -69,8 +69,18 @@ jobs:
       - name: Setup OS matrix
         id: setup-os-matrix
         run: |
-          os='["ubuntu-latest","windows-latest","macos-latest"'
+          os='["ubuntu-latest","windows-latest"'
+
+          # runs on macOS only if there is a push to master, or a tag is 
+          # pushed, we do this since macOS builds last too long and ILGPU 
+          # is rarely used on a macOS
+          [ "${{ github.ref }}" == "refs/heads/master" ] ||
+          [[ "${{ github.ref }}" =~ "refs/tags/v" ]] && 
+          [ "${{ github.event_name }}" == "push" ] &&
+          os="$os,\"macos-latest\""
+
           [ "${{ github.event.repository.fork }}" == "false" ] && os="$os,\"cuda\""
+
           os="$os]"
           echo "::set-output name=os::$os"
     outputs:
