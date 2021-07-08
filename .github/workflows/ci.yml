@@ -3,6 +3,9 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    # Daily at 00:00. 
+    - cron:  '0 0 * * *'
 
 env:
   DOTNET_NOLOGO: true
@@ -88,33 +91,60 @@ jobs:
     outputs:
       os: ${{ steps.setup-os-matrix.outputs.os }}
 
-  build-and-test:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup the latest .NET 5 SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.x
+
+      - name: Build
+        run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
+
+  test:
     needs: setup-os-matrix
     strategy:
       matrix:
         os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
         library: [ILGPU, ILGPU.Algorithms]
+        framework: [netcoreapp3.1, net5.0]
+        include:
+          - os: windows-latest
+            library: ILGPU
+            framework: net47
+          - os: windows-latest
+            library: ILGPU.Algorithms
+            framework: net47
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup .NET Core SDK
+
+      - name: Setup the latest .NET 5 SDK
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 3.1.407
-      - name: Pin .NET Core SDK
-        run: dotnet new globaljson --sdk-version 3.1.407
-      - name: Release Build
-        run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
-      - name: CPU Tests
+          dotnet-version: 5.0.x
+      
+      - name: Setup the latest .NET Core 3.1 SDK
+        if: matrix.framework == 'netcoreapp3.1'
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.x
+
+      - name: Build and test - CPU
         if: matrix.os != 'cuda'
-        run: dotnet test --logger GitHubActions --no-build --configuration=Release Src/${{ matrix.library }}.Tests.CPU
+        run: dotnet test --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger GitHubActions Src/${{ matrix.library }}.Tests.CPU
         env:
           ILGPU_CLEAN_TESTS: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
-      - name: CUDA Tests
+
+      - name: Build and test - CUDA
         if: matrix.os == 'cuda'
-        run: dotnet test --logger GitHubActions --no-build --configuration=Release Src/${{ matrix.library }}.Tests.Cuda
+        run: dotnet test --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger GitHubActions Src/${{ matrix.library }}.Tests.Cuda
         env:
           ILGPU_CLEAN_TESTS: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
 
@@ -128,12 +158,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup .NET Core SDK
+
+      - name: Setup the latest .NET 5 SDK
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 3.1.407
-      - name: Pin .NET Core SDK
-        run: dotnet new globaljson --sdk-version 3.1.407
+          dotnet-version: 5.0.x
+
       - name: Check version
         id: version
         run: |
@@ -214,7 +244,7 @@ jobs:
 
   publish-nuget-pre-release:
     if: github.ref == 'refs/heads/master' && github.event.repository.fork == 'false'
-    needs: [check-style, build-and-test, package]
+    needs: [check-style, build, test, package]
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
@@ -226,7 +256,7 @@ jobs:
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v') && github.event.repository.fork == 'false'
-    needs: [check-style, build-and-test, package]
+    needs: [check-style, build, test, package]
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
