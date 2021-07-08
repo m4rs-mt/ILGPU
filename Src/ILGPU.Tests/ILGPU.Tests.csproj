@@ -1,17 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <StartupObject />
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT' AND '$(GITHUB_ACTIONS)' == 'true'">
     <TargetFrameworks>$(TargetFrameworks);net47</TargetFrameworks>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Channel)' == 'experimental'">
-    <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
