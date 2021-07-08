@@ -6,6 +6,8 @@ using ILGPU.Tests.OpenCL;
 using Xunit;
 using Xunit.Abstractions;
 
+#pragma warning disable CA1707 // Identifiers should not contain underscores
+
 <#
 var configurationFile = Host.ResolvePath("../ILGPU.Algorithms.Tests/Configurations.txt");
 var configurations = TestConfig.Parse(configurationFile);
@@ -41,3 +43,5 @@ namespace ILGPU.Algorithms.Tests.OpenCL
 
 <# } #>
 }
+
+#pragma warning restore CA1707 // Identifiers should not contain underscores
