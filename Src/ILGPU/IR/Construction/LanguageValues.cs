@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
-using ILGPU.Runtime;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
     ILGPU.Util.FormatString.FormatExpression>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;

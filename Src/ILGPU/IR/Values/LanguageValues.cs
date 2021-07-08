@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using ILGPU.Runtime;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;

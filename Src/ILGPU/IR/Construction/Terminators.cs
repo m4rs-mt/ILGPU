@@ -177,6 +177,6 @@ namespace ILGPU.IR.Construction
             ref BlockList targets) =>
             CreateTerminator(new BuilderTerminator(
                 GetInitializer(Location.Unknown),
-                ref targets)) as BuilderTerminator;
+                ref targets));
     }
 }

@@ -63,10 +63,8 @@ namespace ILGPU.Frontend.Intrinsic
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleLanguageOperation(
             ref InvocationContext context,
-            LanguageIntrinsicAttribute attribute)
-        {
-            var builder = context.Builder;
-            return attribute.IntrinsicKind switch
+            LanguageIntrinsicAttribute attribute) =>
+            attribute.IntrinsicKind switch
             {
                 LanguageIntrinsicKind.EmitPTX =>
                     CreateLanguageEmitPTX(ref context),
@@ -74,7 +72,6 @@ namespace ILGPU.Frontend.Intrinsic
                     ErrorMessages.NotSupportedLanguageIntrinsic,
                     attribute.IntrinsicKind.ToString()),
             };
-        }
 
         /// <summary>
         /// Creates a new inline PTX instruction.

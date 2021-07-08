@@ -41,6 +41,20 @@ namespace ILGPU.Runtime.Cuda
             Error = errorCode;
         }
 
+        /// <summary cref="Exception(string)"/>
+        public CuBlasException(string message)
+            : base(message)
+        {
+            Error = CuBlasStatus.CUBLAS_STATUS_NOT_SUPPORTED;
+        }
+
+        /// <summary cref="Exception(string, Exception)"/>
+        public CuBlasException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+            Error = CuBlasStatus.CUBLAS_STATUS_NOT_SUPPORTED;
+        }
+
         /// <summary cref="Exception(SerializationInfo, StreamingContext)"/>
         private CuBlasException(SerializationInfo info, StreamingContext context)
             : base(info, context)

@@ -12,6 +12,8 @@
 #pragma warning disable CA1707 // Identifiers should not contain underscores
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace ILGPU.Runtime.Cuda
 {
     public enum CuBlasStatus : int
@@ -47,6 +49,10 @@ namespace ILGPU.Runtime.Cuda
         Unit = 1
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1027:Mark enums with FlagsAttribute",
+        Justification = "This is not a flag enumeration")]
     public enum CuBlasOperation : int
     {
         NonTranspose = 0,

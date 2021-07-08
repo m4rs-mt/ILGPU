@@ -666,7 +666,8 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             private Dictionary<
                 Value,
-                (int ArrayLength, int NumElementFields)> ArrayData { get; }
+                (int ArrayLength, int NumElementFields)> ArrayData
+            { get; }
 
             /// <summary>
             /// Returns true if the given alloca should be converted.
@@ -746,7 +747,7 @@ namespace ILGPU.IR.Transformations
 
             // Prepare the internal data structure to refer to this array
             var initFieldRef = new FieldRef(alloca, new FieldSpan(0, numStructFields));
-            var arrayData =  new ArrayData(
+            var arrayData = new ArrayData(
                 arrayLength,
                 numFields,
                 new ConstructionFieldRef(initFieldRef));
