@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+#pragma warning disable CA1008 // Enums should have zero value
 #pragma warning disable CA1707 // Identifiers should not contain underscores
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -69,5 +70,6 @@ namespace ILGPU.Runtime.Cuda
     }
 }
 
+#pragma warning restore CA1008 // Enums should have zero value
 #pragma warning restore CA1707 // Identifiers should not contain underscores
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
