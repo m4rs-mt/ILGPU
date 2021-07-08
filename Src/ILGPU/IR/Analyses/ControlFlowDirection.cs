@@ -52,7 +52,7 @@ namespace ILGPU.IR.Analyses.ControlFlowDirection
         /// <returns>The entry block.</returns>
         BasicBlock GetEntryBlock<TSource, TDirection>(in TSource source)
             where TSource : IControlFlowAnalysisSource<TDirection>
-            where TDirection : IControlFlowDirection;
+            where TDirection : struct, IControlFlowDirection;
     }
 
     /// <summary>
@@ -72,7 +72,7 @@ namespace ILGPU.IR.Analyses.ControlFlowDirection
         public readonly BasicBlock GetEntryBlock<TSource, TDirection>(
             in TSource source)
             where TSource : IControlFlowAnalysisSource<TDirection>
-            where TDirection : IControlFlowDirection
+            where TDirection : struct, IControlFlowDirection
         {
             TDirection direction = default;
             return direction.IsForwards ? source.EntryBlock : source.FindExitBlock();
@@ -97,7 +97,7 @@ namespace ILGPU.IR.Analyses.ControlFlowDirection
         public readonly BasicBlock GetEntryBlock<TSource, TDirection>(
             in TSource source)
             where TSource : IControlFlowAnalysisSource<TDirection>
-            where TDirection : IControlFlowDirection
+            where TDirection : struct, IControlFlowDirection
         {
             TDirection direction = default;
             return direction.IsForwards ? source.FindExitBlock() : source.EntryBlock;
