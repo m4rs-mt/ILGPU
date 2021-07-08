@@ -12,7 +12,6 @@
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.CPU;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU

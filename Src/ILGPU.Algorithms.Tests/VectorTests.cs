@@ -92,7 +92,7 @@ namespace ILGPU.Algorithms.Tests
                 new Vector2(1, -1),
                 size);
             targetBuffer.CopyFromCPU(stream, sequence);
-            
+
             Execute(targetBuffer.Length, targetBuffer.View, vector.GetVector());
 
             var expected = new Vector2[size];
@@ -169,9 +169,9 @@ namespace ILGPU.Algorithms.Tests
         }
 
         [Theory]
-        [InlineData(0,0,0)]
-        [InlineData(1,2,3)]
-        [InlineData(3,2,1)]
+        [InlineData(0, 0, 0)]
+        [InlineData(1, 2, 3)]
+        [InlineData(3, 2, 1)]
         public void Index3Vector3Conv(float x, float y, float z)
         {
             Vector3 initVector = new Vector3(x, y, z);
