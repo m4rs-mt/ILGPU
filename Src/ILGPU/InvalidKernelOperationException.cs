@@ -11,7 +11,6 @@
 
 using ILGPU.Resources;
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 
 namespace ILGPU
@@ -20,9 +19,6 @@ namespace ILGPU
     /// An exception that is thrown when an ILGPU kernel method is called from the
     /// managed CPU side instead of a kernel.
     /// </summary>
-    [SuppressMessage(
-        "Microsoft.Design",
-        "CA1032:ImplementStandardExceptionConstructors")]
     [Serializable]
     public sealed class InvalidKernelOperationException : InvalidOperationException
     {
@@ -31,6 +27,16 @@ namespace ILGPU
         /// </summary>
         public InvalidKernelOperationException()
             : base(ErrorMessages.InvalidKernelOperation)
+        { }
+
+        /// <summary cref="Exception(string)"/>
+        public InvalidKernelOperationException(string message)
+            : base(message)
+        { }
+
+        /// <summary cref="Exception(string, Exception)"/>
+        public InvalidKernelOperationException(string message, Exception innerException)
+            : base(message, innerException)
         { }
 
         private InvalidKernelOperationException(
