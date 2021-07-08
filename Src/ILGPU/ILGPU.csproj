@@ -1,403 +1,403 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net47;netstandard2.1</TargetFrameworks>
-        <TargetFrameworks Condition="'$(OS)' == 'Unix'">netstandard2.1</TargetFrameworks>
-        <OutputPath>../../Bin/$(Configuration)/</OutputPath>
-        <DocumentationFile>../../Bin/$(Configuration)/ILGPU.xml</DocumentationFile>
-        <Configurations>Debug;Release</Configurations>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net47;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Unix'">netstandard2.1</TargetFrameworks>
+    <OutputPath>../../Bin/$(Configuration)/</OutputPath>
+    <DocumentationFile>../../Bin/$(Configuration)/ILGPU.xml</DocumentationFile>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Channel)' == 'experimental'">
-        <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
-    </PropertyGroup>
+  <PropertyGroup Condition="'$(Channel)' == 'experimental'">
+    <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <VersionPrefix>1.0.0-beta3</VersionPrefix>
-        <NeutralLanguage>en-US</NeutralLanguage>
-        <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
-        <LangVersion>8.0</LangVersion>
-        <AssemblyVersion>1.0.0.0</AssemblyVersion>
-        <FileVersion>1.0.0.0</FileVersion>
-    </PropertyGroup>
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <VersionPrefix>1.0.0-beta3</VersionPrefix>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
+    <LangVersion>8.0</LangVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net47|AnyCPU'">
-        <DebugType>full</DebugType>
-        <DebugSymbols>true</DebugSymbols>
-    </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net47|AnyCPU'">
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net47|AnyCPU'">
-        <DebugType>pdbonly</DebugType>
-        <DebugSymbols>true</DebugSymbols>
-    </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net47|AnyCPU'">
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <EnableNETAnalyzers>true</EnableNETAnalyzers>
-        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-    </PropertyGroup>
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
-        <PackageReference Include="System.Memory" Version="4.5.4" />
-        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
-        <PackageReference Include="System.Reflection.Metadata" Version="1.8.0" />
-        <PackageReference Include="T4.Build" Version="0.2.0" PrivateAssets="All" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
+    <PackageReference Include="System.Memory" Version="4.5.4" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
+    <PackageReference Include="System.Reflection.Metadata" Version="1.8.0" />
+    <PackageReference Include="T4.Build" Version="0.2.0" PrivateAssets="All" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <None Include="AtomicFunctions.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>AtomicFunctions.tt</DependentUpon>
-        </None>
-        <None Include="Backends\PTX\PTXIntrinsics.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
-        </None>
-        <None Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
-        </None>
-        <None Include="IndexTypes.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>IndexTypes.tt</DependentUpon>
-        </None>
-        <None Include="Interop.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>Interop.Generated.tt</DependentUpon>
-        </None>
-        <None Include="IntrinsicMath.CPUOnly.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
-        </None>
-        <None Include="HalfConversion.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>HalfConversion.tt</DependentUpon>
-        </None>
-        <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
-        </None>
-        <None Include="Runtime\Cuda\CudaAsm.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
-        </None>
-        <None Include="Runtime\PageLockedArrays.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>PageLockedArrays.Generated.tt</DependentUpon>
-        </None>
-        <None Include="Static\ArithmeticEnums.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>ArithmeticEnums.tt</DependentUpon>
-        </None>
-        <None Include="Runtime\KernelLoaders.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>KernelLoaders.tt</DependentUpon>
-        </None>
-        <None Include="Runtime\MemoryBuffers.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>MemoryBuffers.tt</DependentUpon>
-        </None>
-        <None Include="IR\Construction\CompareOperations.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>CompareOperations.tt</DependentUpon>
-        </None>
-        <None Include="IR\Construction\ArithmeticOperations.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>ArithmeticOperations.tt</DependentUpon>
-        </None>
-        <None Include="Resources\ErrorMessages.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>ErrorMessages.resx</DependentUpon>
-        </None>
-        <None Include="Resources\RuntimeErrorMessages.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
-        </None>
-        <None Include="Static\DllImports.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>DllImports.tt</DependentUpon>
-        </None>
-        <None Include="Util\DataBlocks.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>DataBlocks.tt</DependentUpon>
-        </None>
-        <None Include="Util\PrimitiveDataBlocks.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
-        </None>
-    </ItemGroup>
+  <ItemGroup>
+    <None Include="AtomicFunctions.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AtomicFunctions.tt</DependentUpon>
+    </None>
+    <None Include="Backends\PTX\PTXIntrinsics.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
+    </None>
+    <None Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
+    </None>
+    <None Include="IndexTypes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>IndexTypes.tt</DependentUpon>
+    </None>
+    <None Include="Interop.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Interop.Generated.tt</DependentUpon>
+    </None>
+    <None Include="IntrinsicMath.CPUOnly.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
+    </None>
+    <None Include="HalfConversion.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HalfConversion.tt</DependentUpon>
+    </None>
+    <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
+    </None>
+    <None Include="Runtime\Cuda\CudaAsm.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
+    </None>
+    <None Include="Runtime\PageLockedArrays.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PageLockedArrays.Generated.tt</DependentUpon>
+    </None>
+    <None Include="Static\ArithmeticEnums.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ArithmeticEnums.tt</DependentUpon>
+    </None>
+    <None Include="Runtime\KernelLoaders.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>KernelLoaders.tt</DependentUpon>
+    </None>
+    <None Include="Runtime\MemoryBuffers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MemoryBuffers.tt</DependentUpon>
+    </None>
+    <None Include="IR\Construction\CompareOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CompareOperations.tt</DependentUpon>
+    </None>
+    <None Include="IR\Construction\ArithmeticOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ArithmeticOperations.tt</DependentUpon>
+    </None>
+    <None Include="Resources\ErrorMessages.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ErrorMessages.resx</DependentUpon>
+    </None>
+    <None Include="Resources\RuntimeErrorMessages.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
+    </None>
+    <None Include="Static\DllImports.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DllImports.tt</DependentUpon>
+    </None>
+    <None Include="Util\DataBlocks.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DataBlocks.tt</DependentUpon>
+    </None>
+    <None Include="Util\PrimitiveDataBlocks.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
+    </None>
+  </ItemGroup>
 
-    <ItemGroup>
-        <Compile Update="Memory.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>Memory.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\ArrayViews.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>ArrayViews.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\ArrayViewExtensions.Generated.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>ArrayViewExtensions.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="AtomicFunctions.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>AtomicFunctions.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Backends\PTX\PTXIntrinsics.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="IndexTypes.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>IndexTypes.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Interop.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>Interop.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="IntrinsicMath.CPUOnly.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
-        </Compile>
-        <Compile Update="HalfConversion.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>HalfConversion.tt</DependentUpon>
-        </Compile>
-        <Compile Update="IR\Intrinsics\IntrinsicMatchers.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
-        </Compile>
-        <Compile Update="IR\Types\ValueTuples.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>ValueTuples.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\Cuda\CudaAsm.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\MemoryBuffers.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>MemoryBuffers.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\PageLockedArrays.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>PageLockedArrays.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Static\ArithmeticEnums.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>ArithmeticEnums.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\KernelLoaders.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>KernelLoaders.tt</DependentUpon>
-        </Compile>
-        <Compile Update="IR\Construction\CompareOperations.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>CompareOperations.tt</DependentUpon>
-        </Compile>
-        <Compile Update="IR\Construction\ArithmeticOperations.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>ArithmeticOperations.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Resources\ErrorMessages.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>ErrorMessages.resx</DependentUpon>
-        </Compile>
-        <Compile Update="Resources\RuntimeErrorMessages.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
-        </Compile>
-        <Compile Update="Static\CapabilityContext.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>CapabilityContext.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Static\DllImports.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>DllImports.tt</DependentUpon>
-        </Compile>
-        <Compile Update="StrideTypes.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>StrideTypes.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Util\DataBlocks.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>DataBlocks.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Util\PrimitiveDataBlocks.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
-        </Compile>
-    </ItemGroup>
-    <ItemGroup>
-        <None Update="Runtime\ArrayViews.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>ArrayViews.cs</LastGenOutput>
-        </None>
-        <None Update="Runtime\ArrayViewExtensions.Generated.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>ArrayViewExtensions.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="AtomicFunctions.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>AtomicFunctions.cs</LastGenOutput>
-        </None>
-        <None Update="Backends\PTX\PTXIntrinsics.Generated.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>PTXIntrinsics.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="IndexTypes.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>IndexTypes.cs</LastGenOutput>
-        </None>
-        <None Update="Interop.Generated.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>Interop.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="IntrinsicMath.CPUOnly.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>IntrinsicMath.CPUOnly.cs</LastGenOutput>
-        </None>
-        <None Update="HalfConversion.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>HalfConversion.cs</LastGenOutput>
-        </None>
-        <None Update="IR\Construction\CompareOperations.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>CompareOperations.cs</LastGenOutput>
-        </None>
-        <None Update="IR\Construction\ArithmeticOperations.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>ArithmeticOperations.cs</LastGenOutput>
-        </None>
-        <None Update="IR\Intrinsics\IntrinsicMatchers.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>IntrinsicMatchers.cs</LastGenOutput>
-        </None>
-        <None Update="IR\Types\ValueTuples.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>ValueTuples.cs</LastGenOutput>
-        </None>
-        <None Update="Runtime\Cuda\CudaAsm.Generated.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>CudaAsm.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="Runtime\ExchangeBufferExtensions.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>ExchangeBufferExtensions.cs</LastGenOutput>
-        </None>
-        <None Update="Runtime\PageLockedArrays.Generated.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>PageLockedArrays.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="Static\ArithmeticEnums.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>ArithmeticEnums.cs</LastGenOutput>
-        </None>
-        <None Update="Runtime\KernelLoaders.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>KernelLoaders.cs</LastGenOutput>
-        </None>
-        <None Update="Runtime\MemoryBuffers.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
-        </None>
-        <None Update="Memory.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>Memory.cs</LastGenOutput>
-        </None>
-        <None Update="Static\CapabilitiesImporter.ttinclude">
-          <Generator></Generator>
-        </None>
-        <None Update="Static\DllImports.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>DllImports.cs</LastGenOutput>
-        </None>
-        <None Update="Static\CapabilityContext.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>CapabilityContext.cs</LastGenOutput>
-        </None>
-        <None Update="StrideTypes.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>StrideTypes.cs</LastGenOutput>
-        </None>
-        <None Update="Util\PrimitiveDataBlocks.tt">
-          <LastGenOutput>PrimitiveDataBlocks.cs</LastGenOutput>
-          <Generator>TextTemplatingFileGenerator</Generator>
-        </None>
-        <None Update="Util\DataBlocks.tt">
-          <LastGenOutput>DataBlocks.cs</LastGenOutput>
-          <Generator>TextTemplatingFileGenerator</Generator>
-        </None>
-    </ItemGroup>
-    <ItemGroup>
-        <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-    </ItemGroup>
-    <ItemGroup>
-        <EmbeddedResource Update="Resources\ErrorMessages.resx">
-            <Generator>ResXFileCodeGenerator</Generator>
-            <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
-        <EmbeddedResource Update="Resources\RuntimeErrorMessages.resx">
-            <Generator>ResXFileCodeGenerator</Generator>
-            <LastGenOutput>RuntimeErrorMessages.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
-    </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Memory.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Memory.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\ArrayViews.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ArrayViews.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\ArrayViewExtensions.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ArrayViewExtensions.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="AtomicFunctions.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AtomicFunctions.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Backends\PTX\PTXIntrinsics.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="IndexTypes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>IndexTypes.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Interop.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Interop.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="IntrinsicMath.CPUOnly.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
+    </Compile>
+    <Compile Update="HalfConversion.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HalfConversion.tt</DependentUpon>
+    </Compile>
+    <Compile Update="IR\Intrinsics\IntrinsicMatchers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="IR\Types\ValueTuples.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ValueTuples.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CudaAsm.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\MemoryBuffers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MemoryBuffers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\PageLockedArrays.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PageLockedArrays.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Static\ArithmeticEnums.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ArithmeticEnums.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\KernelLoaders.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>KernelLoaders.tt</DependentUpon>
+    </Compile>
+    <Compile Update="IR\Construction\CompareOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CompareOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="IR\Construction\ArithmeticOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ArithmeticOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\ErrorMessages.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ErrorMessages.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\RuntimeErrorMessages.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Static\CapabilityContext.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CapabilityContext.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Static\DllImports.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DllImports.tt</DependentUpon>
+    </Compile>
+    <Compile Update="StrideTypes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>StrideTypes.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Util\DataBlocks.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DataBlocks.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Util\PrimitiveDataBlocks.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Runtime\ArrayViews.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ArrayViews.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\ArrayViewExtensions.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ArrayViewExtensions.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="AtomicFunctions.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AtomicFunctions.cs</LastGenOutput>
+    </None>
+    <None Update="Backends\PTX\PTXIntrinsics.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PTXIntrinsics.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="IndexTypes.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>IndexTypes.cs</LastGenOutput>
+    </None>
+    <None Update="Interop.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Interop.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="IntrinsicMath.CPUOnly.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>IntrinsicMath.CPUOnly.cs</LastGenOutput>
+    </None>
+    <None Update="HalfConversion.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>HalfConversion.cs</LastGenOutput>
+    </None>
+    <None Update="IR\Construction\CompareOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CompareOperations.cs</LastGenOutput>
+    </None>
+    <None Update="IR\Construction\ArithmeticOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ArithmeticOperations.cs</LastGenOutput>
+    </None>
+    <None Update="IR\Intrinsics\IntrinsicMatchers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>IntrinsicMatchers.cs</LastGenOutput>
+    </None>
+    <None Update="IR\Types\ValueTuples.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ValueTuples.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CudaAsm.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaAsm.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\ExchangeBufferExtensions.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ExchangeBufferExtensions.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\PageLockedArrays.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PageLockedArrays.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Static\ArithmeticEnums.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ArithmeticEnums.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\KernelLoaders.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>KernelLoaders.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\MemoryBuffers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
+    </None>
+    <None Update="Memory.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Memory.cs</LastGenOutput>
+    </None>
+    <None Update="Static\CapabilitiesImporter.ttinclude">
+      <Generator></Generator>
+    </None>
+    <None Update="Static\DllImports.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DllImports.cs</LastGenOutput>
+    </None>
+    <None Update="Static\CapabilityContext.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CapabilityContext.cs</LastGenOutput>
+    </None>
+    <None Update="StrideTypes.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>StrideTypes.cs</LastGenOutput>
+    </None>
+    <None Update="Util\PrimitiveDataBlocks.tt">
+      <LastGenOutput>PrimitiveDataBlocks.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="Util\DataBlocks.tt">
+      <LastGenOutput>DataBlocks.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\ErrorMessages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\RuntimeErrorMessages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>RuntimeErrorMessages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
 
-    <Import Project="Properties\ILGPU.nuspec.targets" />
-    <Import Project="Properties\ILGPU.CheckStyles.targets" />
+  <Import Project="Properties\ILGPU.nuspec.targets" />
+  <Import Project="Properties\ILGPU.CheckStyles.targets" />
 </Project>
