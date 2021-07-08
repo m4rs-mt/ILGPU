@@ -150,7 +150,7 @@ namespace ILGPU.IR.Construction
             Method.ParameterMapping parameterMapping,
             Method.MethodMapping methodRemapping,
             in BlockCollection blocks)
-            where TMode : IMode =>
+            where TMode : struct, IMode =>
             Create<TMode, IdentityRemapper>(
                 builder,
                 parameterMapping,
@@ -175,7 +175,7 @@ namespace ILGPU.IR.Construction
             Method.MethodMapping methodRemapping,
             in BlockCollection blocks,
             in TRemapper remapper)
-            where TMode : IMode
+            where TMode : struct, IMode
             where TRemapper : struct, IDirectTargetRemapper
         {
             // Init mapping
