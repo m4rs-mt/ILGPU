@@ -1,8 +1,8 @@
 # ILGPU
 ![CI](https://github.com/G-Research/consuldotnet/workflows/CI/badge.svg?style=flat)
-[![release](https://img.shields.io/nuget/v/ilgpu?style=flat)](https://www.nuget.org/packages/ilgpu/)
-[![pre-release](https://img.shields.io/nuget/vpre/ilgpu?style=flat)](https://www.nuget.org/packages/ilgpu/)
-[![preview](https://img.shields.io/feedz/vpre/ilgpu/preview/ilgpu?style=flat&color=blue)](#preview-versions)
+[![](https://img.shields.io/nuget/v/ilgpu?style=flat&label=release)](https://www.nuget.org/packages/ilgpu/)
+[![](https://img.shields.io/nuget/vpre/ilgpu?style=flat&label=pre-release)](https://www.nuget.org/packages/ilgpu/)
+[![](https://img.shields.io/feedz/vpre/ilgpu/preview/ilgpu?style=flat&color=blue&label=preview)](#preview-versions)
 
 ILGPU is a JIT (just-in-time) compiler for high-performance GPU programs written in .Net-based languages.
 ILGPU is entirely written in C# without any native dependencies.
