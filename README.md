@@ -1,4 +1,7 @@
 # ILGPU
+![CI](https://github.com/G-Research/consuldotnet/workflows/CI/badge.svg)
+[![](https://img.shields.io/nuget/v/ilgpu)](https://www.nuget.org/packages/ilgpu/)
+[![](https://img.shields.io/feedz/vpre/ilgpu/preview/ilgpu)](#preview-versions)
 
 ILGPU is a JIT (just-in-time) compiler for high-performance GPU programs written in .Net-based languages.
 ILGPU is entirely written in C# without any native dependencies.
@@ -37,6 +40,17 @@ execute the Cuda test cases.
 * ILGPU Documentation (http://www.ilgpu.net/Documentation)
 * Nuget (https://www.nuget.org/packages/ILGPU)
 * Release Notes (http://www.ilgpu.net/ReleaseVersions)
+
+# Preview versions
+Preview/Daily builds are distributed using https://feedz.io/. To pull preview versions into your project, use the following NuGet.config file:
+~~~xml
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="ilgpu" value="https://f.feedz.io/ilgpu/preview/nuget/index.json" />
+  </packageSources>
+</configuration>
+~~~
 
 # General Contribution Guidelines
 
