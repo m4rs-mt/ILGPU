@@ -227,7 +227,7 @@ jobs:
       - name: Prerelease logic
         id: prerelease-logic
         run:
-          if [[ ${{ needs.package.outputs.version }} =~ .+-.+$ ]]
+          if [[ ${{ contains(needs.package.outputs.version, '-') }} == True ]]
           ;then 
             echo "::set-output name=prerelease::true"
           ;else
