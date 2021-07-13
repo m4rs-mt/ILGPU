@@ -723,6 +723,428 @@ namespace ILGPU.Runtime
 
         #endregion
 
+        #region Copy elements to/from CPU (specialized Views)
+
+        // Remarks:
+        // The following functions rearrange the input/output data in the CPU. To this
+        // extent, the transfer functions perform a single bulk copy to transfer all data
+        // items (including items to be discarded). This functionality could be improved
+        // by splitting the single copy operation into several small ones in certain
+        // cases. Support for this feature remains future work.
+
+        /// <summary>
+        /// Copies the contents of the 1D array into the given 1D view using the default
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CopyFromCPU<T>(
+            this ArrayView1D<T, Stride1D.General> view,
+            T[] data)
+            where T : unmanaged =>
+            view.CopyFromCPU(view.GetDefaultStream(), data);
+
+        /// <summary>
+        /// Copies the contents of the 1D array into the given 1D view using the given
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method transposes the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyFromCPU<T>(
+            this ArrayView1D<T, Stride1D.General> view,
+            AcceleratorStream stream,
+            T[] data)
+            where T : unmanaged
+        {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+            if (view.HasNoData())
+                return;
+            if (data.Length < view.Extent.X)
+                throw new ArgumentOutOfRangeException(nameof(data));
+
+            var tempBuffer = new T[view.Length];
+            fixed (T* ptr = data)
+            {
+                var span = new ReadOnlySpan<T>(ptr, data.Length);
+
+                // Reorder the input elements and store them in the result buffer
+                var extent = (Index1D)view.Extent;
+                var stride = view.Stride;
+                for (int x = 0; x < extent.X; ++x)
+                {
+                    int targetElementIndex = view.Stride.ComputeElementIndex(x);
+                    tempBuffer[targetElementIndex] = span[x];
+                }
+            }
+            fixed (T* ptr = tempBuffer)
+            {
+                view.BaseView.CopyFromCPU(
+                    stream,
+                    new ReadOnlySpan<T>(ptr, tempBuffer.Length));
+            }
+        }
+
+        /// <summary>
+        /// Copies the contents of the 2D array into the given 2D view using the default
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CopyFromCPU<T>(
+            this ArrayView2D<T, Stride2D.General> view,
+            T[,] data)
+            where T : unmanaged =>
+            view.CopyFromCPU(view.GetDefaultStream(), data);
+
+        /// <summary>
+        /// Copies the contents of the 2D array into the given 2D view using the given
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyFromCPU<T>(
+            this ArrayView2D<T, Stride2D.General> view,
+            AcceleratorStream stream,
+            T[,] data)
+            where T : unmanaged
+        {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+            if (view.HasNoData())
+                return;
+            if (data.GetLength(0) < view.Extent.X || data.GetLength(1) < view.Extent.Y)
+                throw new ArgumentOutOfRangeException(nameof(data));
+
+            var tempBuffer = new T[view.Length];
+            fixed (T* ptr = data)
+            {
+                var span = new ReadOnlySpan<T>(ptr, data.Length);
+
+                // Reorder the input elements and store them in the result buffer
+                var extent = (Index2D)view.Extent;
+                var stride = view.Stride;
+                for (int x = 0; x < extent.X; ++x)
+                {
+                    for (int y = 0; y < extent.Y; ++y)
+                    {
+                        int targetElementIndex = view.Stride.ComputeElementIndex(
+                            new Index2D(x, y));
+                        int sourceElementIndex = x * (int)view.Extent.Y + y;
+
+                        tempBuffer[targetElementIndex] = span[sourceElementIndex];
+                    }
+                }
+            }
+            fixed (T* ptr = tempBuffer)
+            {
+                view.BaseView.CopyFromCPU(
+                    stream,
+                    new ReadOnlySpan<T>(ptr, tempBuffer.Length));
+            }
+        }
+
+        /// <summary>
+        /// Copies the contents of the 3D array into the given 3D view using the default
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CopyFromCPU<T>(
+            this ArrayView3D<T, Stride3D.General> view,
+            T[,,] data)
+            where T : unmanaged =>
+            view.CopyFromCPU(view.GetDefaultStream(), data);
+
+        /// <summary>
+        /// Copies the contents of the 3D array into the given 3D view using the given
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyFromCPU<T>(
+            this ArrayView3D<T, Stride3D.General> view,
+            AcceleratorStream stream,
+            T[,,] data)
+            where T : unmanaged
+        {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+            if (view.HasNoData())
+                return;
+            if (data.GetLength(0) < view.Extent.X ||
+                data.GetLength(1) < view.Extent.Y ||
+                data.GetLength(2) < view.Extent.Z)
+            {
+                throw new ArgumentOutOfRangeException(nameof(data));
+            }
+
+            var tempBuffer = new T[view.Length];
+            fixed (T* ptr = data)
+            {
+                var span = new ReadOnlySpan<T>(ptr, data.Length);
+
+                // Reorder the input elements and store them in the result buffer
+                var extent = (Index3D)view.Extent;
+                var stride = view.Stride;
+                for (int x = 0; x < extent.X; ++x)
+                {
+                    for (int y = 0; y < extent.Y; ++y)
+                    {
+                        for (int z = 0; z < extent.Z; ++z)
+                        {
+                            int targetElementIndex = view.Stride.ComputeElementIndex(
+                                new Index3D(x, y, z));
+                            int sourceElementIndex =
+                                (x * (int)view.Extent.Y + y) *
+                                (int)view.Extent.Z + z;
+
+                            tempBuffer[targetElementIndex] = span[sourceElementIndex];
+                        }
+                    }
+                }
+            }
+            fixed (T* ptr = tempBuffer)
+            {
+                view.BaseView.CopyFromCPU(
+                    stream,
+                    new ReadOnlySpan<T>(ptr, tempBuffer.Length));
+            }
+        }
+
+        /// <summary>
+        /// Copies the contents of the 1D view into the given 1D array using the default
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyToCPU<T>(
+            this ArrayView1D<T, Stride1D.General> view,
+            T[] data)
+            where T : unmanaged =>
+            view.CopyToCPU(view.GetDefaultStream(), data);
+
+        /// <summary>
+        /// Copies the contents of the 1D view into the given 1D array using the given
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyToCPU<T>(
+            this ArrayView1D<T, Stride1D.General> view,
+            AcceleratorStream stream,
+            T[] data)
+            where T : unmanaged
+        {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+            if (data.Length < 1)
+                return;
+            if (data.Length < view.Extent.X)
+                throw new ArgumentOutOfRangeException(nameof(data));
+
+            var tempBuffer = new T[view.BaseView.Length];
+            fixed (T* ptr = tempBuffer)
+            {
+                var span = new Span<T>(ptr, tempBuffer.Length);
+                view.BaseView.CopyToCPU(stream, span);
+
+                // Reorder the input elements and store them in the result buffer
+                var extent = (Index1D)view.Extent;
+                var stride = view.Stride;
+                for (int x = 0; x < extent.X; ++x)
+                {
+                    int elementIndex = stride.ComputeElementIndex(x);
+                    data[x] = span[elementIndex];
+                }
+            }
+        }
+
+        /// <summary>
+        /// Copies the contents of the 2D view into the given 2D array using the default
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CopyToCPU<T>(
+            this ArrayView2D<T, Stride2D.General> view,
+            T[,] data)
+            where T : unmanaged =>
+            view.CopyToCPU(view.GetDefaultStream(), data);
+
+        /// <summary>
+        /// Copies the contents of the 2D view into the given 2D array using the given
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyToCPU<T>(
+            this ArrayView2D<T, Stride2D.General> view,
+            AcceleratorStream stream,
+            T[,] data)
+            where T : unmanaged
+        {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+            if (data.Length < 1)
+                return;
+            if (data.GetLength(0) < view.Extent.X || data.GetLength(1) < view.Extent.Y)
+                throw new ArgumentOutOfRangeException(nameof(data));
+
+            var tempBuffer = new T[view.BaseView.Length];
+            fixed (T* ptr = tempBuffer)
+            {
+                var span = new Span<T>(ptr, tempBuffer.Length);
+                view.BaseView.CopyToCPU(stream, span);
+
+                // Reorder the input elements and store them in the result buffer
+                var extent = (Index2D)view.Extent;
+                var stride = view.Stride;
+                for (int x = 0; x < extent.X; ++x)
+                {
+                    for (int y = 0; y < extent.Y; ++y)
+                    {
+                        var multiDimIndex = new Index2D(x, y);
+                        int elementIndex = stride.ComputeElementIndex(multiDimIndex);
+                        data[x, y] = span[elementIndex];
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Copies the contents of the 3D view into the given 3D array using the default
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CopyToCPU<T>(
+            this ArrayView3D<T, Stride3D.General> view,
+            T[,,] data)
+            where T : unmanaged =>
+            view.CopyToCPU(view.GetDefaultStream(), data);
+
+        /// <summary>
+        /// Copies the contents of the 3D view into the given 3D array using the given
+        /// stream.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+        /// CAUTION: this method reorders the data on the CPU.
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyToCPU<T>(
+            this ArrayView3D<T, Stride3D.General> view,
+            AcceleratorStream stream,
+            T[,,] data)
+            where T : unmanaged
+        {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+            if (data.Length < 1)
+                return;
+            if (data.GetLength(0) < view.Extent.X ||
+                data.GetLength(1) < view.Extent.Y ||
+                data.GetLength(2) < view.Extent.Z)
+            {
+                throw new ArgumentOutOfRangeException(nameof(data));
+            }
+
+            var tempBuffer = new T[view.BaseView.Length];
+            fixed (T* ptr = tempBuffer)
+            {
+                var span = new Span<T>(ptr, tempBuffer.Length);
+                view.BaseView.CopyToCPU(stream, span);
+
+                // Reorder the input elements and store them in the result buffer
+                var extent = (Index3D)view.Extent;
+                var stride = view.Stride;
+                for (int x = 0; x < extent.X; ++x)
+                {
+                    for (int y = 0; y < extent.Y; ++y)
+                    {
+                        for (int z = 0; z < extent.Z; ++z)
+                        {
+                            var multiDimIndex = new Index3D(x, y, z);
+                            int elementIndex = stride.ComputeElementIndex(multiDimIndex);
+                            data[x, y, z] = span[elementIndex];
+                        }
+                    }
+                }
+            }
+        }
+
+
+        #endregion
+
         #region Copy from/to Spans
 
         /// <summary>
