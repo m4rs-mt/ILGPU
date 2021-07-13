@@ -425,6 +425,40 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
+        public struct MyData<T>
+            where T : unmanaged
+        {
+            public T[] First;
+            public int Second;
+            public int Third;
+            public int Fourth;
+            public long Fifth;
+        }
+
+        internal static void ArrayInMultiFieldStructureKernel<T>(
+            Index1D index,
+            ArrayView<long> view)
+            where T : unmanaged
+        {
+            var d = new MyData<T>();
+            d.Fifth = 42;
+            view[index] = d.Fifth;
+        }
+
+        [Theory]
+        [MemberData(nameof(MultiDimArraySimpleTestData))]
+        [KernelMethod(nameof(ArrayInMultiFieldStructureKernel))]
+        public void ArrayInMultiFieldStructure<T, TArraySize>(T value, TArraySize _)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            using var buffer = Accelerator.Allocate1D<long>(1);
+            Execute<Index1D, T>(1, buffer.AsContiguous());
+
+            var expected = new long[] { 42 };
+            Verify(buffer.View, expected);
+        }
+
         // -----------------------------------------------------------------------
         // MultiDim Arrays
         // -----------------------------------------------------------------------
@@ -588,6 +622,134 @@ namespace ILGPU.Tests
             Execute<Index1D, T, TArraySize>(1, buffer.AsContiguous());
 
             var expected = new int[] { 0, size.Length - 1 };
+            Verify(buffer.View, expected);
+        }
+
+        // -----------------------------------------------------------------------
+        // Array view conversions
+        // -----------------------------------------------------------------------
+
+        public static TheoryData<object, object> ArrayViewConversionTestData =>
+            new TheoryData<object, object>
+        {
+            { sbyte.MinValue, default(Length1) },
+            { byte.MaxValue, default(Length1) },
+            { short.MinValue, default(Length1) },
+            { ushort.MaxValue, default(Length1) },
+            { int.MinValue, default(Length1) },
+            { uint.MaxValue, default(Length1) },
+            { long.MinValue, default(Length1) },
+            { ulong.MaxValue, default(Length1) },
+            { float.Epsilon, default(Length1) },
+            { double.Epsilon, default(Length1) },
+            { default(EmptyStruct), default(Length1) },
+            { default(TestStruct), default(Length1) },
+            { default(TestStruct<TestStruct<byte>>), default(Length1) },
+
+            { byte.MaxValue, default(Length2) },
+            { short.MinValue, default(Length2) },
+            { int.MinValue, default(Length2) },
+            { long.MinValue, default(Length2) },
+            { default(EmptyStruct), default(Length2) },
+            { default(TestStruct), default(Length2) },
+            { default(TestStruct<TestStruct<byte>>), default(Length2) },
+        };
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void SetViewValues<T>(ArrayView<T> view, T value)
+            where T : unmanaged
+        {
+            for (int i = 0; i < view.Length; ++i)
+                view[i] = value;
+        }
+
+        internal static void ArrayAsContiguousViewKernel<T, TArraySize>(
+            Index1D index,
+            T value,
+            ArrayView<T> view)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            TArraySize arraySize = default;
+            var data = new T[arraySize.Length];
+
+            SetViewValues(data.AsContiguousArrayView(), value);
+
+            view[index] = data[index];
+        }
+
+        [Theory]
+        [MemberData(nameof(ArrayViewConversionTestData))]
+        [KernelMethod(nameof(ArrayAsContiguousViewKernel))]
+        public void ArrayAsContiguousView<T, TArraySize>(T value, TArraySize size)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            int length = Math.Min(size.Length, 16);
+            using var buffer = Accelerator.Allocate1D<T>(length);
+            Execute<Index1D, T, TArraySize>(length, value, buffer.AsContiguous());
+
+            var expected = Enumerable.Repeat(value, length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void ArrayAsView2DKernel<T, TArraySize>(
+            Index1D index,
+            T value,
+            ArrayView<T> view)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            TArraySize arraySize = default;
+            var data = new T[arraySize.Length, arraySize.Length];
+
+            SetViewValues(data.AsArrayView().AsContiguous(), value);
+
+            view[index] = data[index, index];
+        }
+
+        [Theory]
+        [MemberData(nameof(ArrayViewConversionTestData))]
+        [KernelMethod(nameof(ArrayAsView2DKernel))]
+        public void ArrayAsView2D<T, TArraySize>(T value, TArraySize size)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            int length = Math.Min(size.Length, 2);
+            using var buffer = Accelerator.Allocate1D<T>(length);
+            Execute<Index1D, T, TArraySize>(length, value, buffer.AsContiguous());
+
+            var expected = Enumerable.Repeat(value, length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void ArrayAsView3DKernel<T, TArraySize>(
+            Index1D index,
+            T value,
+            ArrayView<T> view)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            TArraySize arraySize = default;
+            var data = new T[arraySize.Length, arraySize.Length, arraySize.Length];
+
+            SetViewValues(data.AsArrayView().AsContiguous(), value);
+
+            view[index] = data[index, index, index];
+        }
+
+        [Theory]
+        [MemberData(nameof(ArrayViewConversionTestData))]
+        [KernelMethod(nameof(ArrayAsView3DKernel))]
+        public void ArrayAsView3D<T, TArraySize>(T value, TArraySize size)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            int length = Math.Min(size.Length, 2);
+            using var buffer = Accelerator.Allocate1D<T>(length);
+            Execute<Index1D, T, TArraySize>(length, value, buffer.AsContiguous());
+
+            var expected = Enumerable.Repeat(value, length).ToArray();
             Verify(buffer.View, expected);
         }
 

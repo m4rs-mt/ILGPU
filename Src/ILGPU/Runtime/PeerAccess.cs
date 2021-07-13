@@ -12,7 +12,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace ILGPU.Runtime
 {
@@ -26,23 +25,6 @@ namespace ILGPU.Runtime
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly HashSet<Accelerator> storedPeerAccelerators =
             new HashSet<Accelerator>();
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the accelerators for which the peer access has been enabled.
-        /// </summary>
-        [Obsolete("This property will be removed in the future for performance reasons")]
-        public IReadOnlyCollection<Accelerator> PeerAccelerators
-        {
-            get
-            {
-                lock (syncRoot)
-                    return storedPeerAccelerators.ToArray();
-            }
-        }
 
         #endregion
 

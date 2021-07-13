@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">netcoreapp3.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
 
     <IsPackable>false</IsPackable>
     <LangVersion>latest</LangVersion>
@@ -14,10 +13,6 @@
 
   <PropertyGroup Condition="'$(Channel)' == 'experimental'">
     <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -331,10 +326,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>XMathTests.Trig.tt</DependentUpon>
     </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Generic\" />
   </ItemGroup>
 
   <Import Project="..\ILGPU\Properties\ILGPU.CheckStyles.targets" />

@@ -139,7 +139,7 @@ namespace ILGPU.IR.Types
             type.ElementType == ElementType &&
             base.Equals(obj);
 
-        /// <summary cref="TypeNode.ToString"/>
+        /// <inheritdoc/>
         public override string ToString() =>
             $"{ToPrefixString()}<{ElementType}, {AddressSpace}>";
 

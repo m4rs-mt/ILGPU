@@ -327,7 +327,7 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TDelegate CreateLauncherDelegate<TDelegate>()
             where TDelegate : Delegate =>
-            Launcher.CreateDelegate(typeof(TDelegate), this) as object as TDelegate;
+            Launcher.CreateDelegate(typeof(TDelegate), this) as TDelegate;
 
         /// <summary>
         /// Invokes the associated launcher via reflection.

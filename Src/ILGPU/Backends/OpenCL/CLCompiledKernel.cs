@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
-using System;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -19,16 +18,6 @@ namespace ILGPU.Backends.OpenCL
     /// </summary>
     public sealed class CLCompiledKernel : CompiledKernel
     {
-        #region Constants
-
-        /// <summary>
-        /// The entry name of the kernel function.
-        /// </summary>
-        [Obsolete("Use CompiledKernel.Name instead")]
-        public const string EntryName = "ILGPUKernel";
-
-        #endregion
-
         #region Instance
 
         /// <summary>

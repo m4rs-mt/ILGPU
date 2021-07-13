@@ -138,6 +138,53 @@ namespace ILGPU.Algorithms.CL
             return scanned;
         }
 
+        /// <summary>
+        /// Prepares for the next iteration of a group-wide exclusive scan within the
+        /// same kernel.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
+        /// <param name="leftBoundary">The left boundary value.</param>
+        /// <param name="rightBoundary">The right boundary value.</param>
+        /// <param name="currentValue">The current value.</param>
+        /// <returns>The starting value for the next iteration.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T ExclusiveScanNextIteration<T, TScanOperation>(
+            T leftBoundary,
+            T rightBoundary,
+            T currentValue)
+            where T : unmanaged
+            where TScanOperation : struct, IScanReduceOperation<T>
+        {
+            var scanOperation = default(TScanOperation);
+            var nextBoundary = scanOperation.Apply(leftBoundary, rightBoundary);
+            return scanOperation.Apply(
+                nextBoundary,
+                Group.Broadcast(currentValue, Group.DimX - 1));
+        }
+
+        /// <summary>
+        /// Prepares for the next iteration of a group-wide inclusive scan within the
+        /// same kernel.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
+        /// <param name="leftBoundary">The left boundary value.</param>
+        /// <param name="rightBoundary">The right boundary value.</param>
+        /// <param name="currentValue">The current value.</param>
+        /// <returns>The starting value for the next iteration.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T InclusiveScanNextIteration<T, TScanOperation>(
+            T leftBoundary,
+            T rightBoundary,
+            T currentValue)
+            where T : unmanaged
+            where TScanOperation : struct, IScanReduceOperation<T>
+        {
+            var scanOperation = default(TScanOperation);
+            return scanOperation.Apply(leftBoundary, rightBoundary);
+        }
+
         #endregion
     }
 }

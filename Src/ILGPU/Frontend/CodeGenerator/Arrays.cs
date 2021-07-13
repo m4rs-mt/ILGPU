@@ -22,27 +22,22 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes an array creation.
         /// </summary>
-        /// <param name="elementType">The element type.</param>
-        private void MakeNewArray(Type elementType)
+        /// <param name="managedElementType">The element type.</param>
+        private void MakeNewArray(Type managedElementType)
         {
-            // Setup length argument
-            var arguments = InlineList<ValueReference>.Create(
+            // Create the array type to create
+            var elementType = Builder.CreateType(
+                managedElementType,
+                MemoryAddressSpace.Generic);
+            var arrayType = Builder.CreateArrayType(elementType, 1);
+
+            // Build the actual array instance
+            var arrayBuilder = Builder.CreateNewArray(Location, arrayType);
+            arrayBuilder.Add(
                 Builder.CreateConvertToInt32(
                     Location,
                     Block.PopInt(Location, ConvertFlags.None)));
-            var array = Builder.CreateNewArray(
-                Location,
-                Builder.CreateType(elementType, MemoryAddressSpace.Generic),
-                ref arguments);
-
-            // Clear array data
-            var callArguments = InlineList<ValueReference>.Create(
-                Builder.CreateGetViewFromArray(
-                    Location,
-                    array));
-            CreateCall(
-                LocalMemory.GetClearMethod(elementType),
-                ref callArguments);
+            var array = arrayBuilder.Seal();
 
             // Push array instance
             Block.Push(array);
@@ -61,12 +56,9 @@ namespace ILGPU.Frontend
 
             type = Builder.CreateType(elementType);
 
-            var indices = InlineList<ValueReference>.Create(index);
-            var address = Builder.CreateGetArrayElementAddress(
-                Location,
-                array,
-                ref indices);
-            return address;
+            var laeaBuilder = Builder.CreateLoadArrayElementAddress(Location, array);
+            laeaBuilder.Add(index);
+            return laeaBuilder.Seal();
         }
 
         /// <summary>

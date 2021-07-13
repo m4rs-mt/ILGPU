@@ -85,7 +85,7 @@ namespace ILGPU.IR.Transformations
             TValue value)
             where TValue : ThreadValue
             where TLoweringImplementation :
-                LowerThreadIntrinsics.ILoweringImplementation<TValue>
+                struct, LowerThreadIntrinsics.ILoweringImplementation<TValue>
         {
             // We require a single input
             var variable = AssembleStructure(

@@ -20,7 +20,7 @@ namespace ILGPU.Backends
     /// An exception that is thrown in case of a not support intrinsic.
     /// </summary>
     [Serializable]
-    public class NotSupportedIntrinsicException : Exception
+    public sealed class NotSupportedIntrinsicException : Exception
     {
         /// <summary>
         /// Constructs a new intrinsic exception.
@@ -60,19 +60,15 @@ namespace ILGPU.Backends
         /// <param name="innerException">The inner exception.</param>
         public NotSupportedIntrinsicException(string message, Exception innerException)
             : base(message, innerException)
-        {
-            // Add any type-specific logic for inner exceptions.
-        }
+        { }
 
         /// <summary>
         /// Constructs a new intrinsic exception.
         /// </summary>
-        protected NotSupportedIntrinsicException(
+        private NotSupportedIntrinsicException(
             SerializationInfo info,
             StreamingContext context)
             : base(info, context)
-        {
-            // Implement type-specific serialization constructor logic.
-        }
+        { }
     }
 }

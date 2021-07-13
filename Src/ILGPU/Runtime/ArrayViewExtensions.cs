@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Types;
 using ILGPU.Resources;
 using ILGPU.Runtime.CPU;
@@ -1279,6 +1280,90 @@ namespace ILGPU.Runtime
             buffer.View.CopyFromCPU(stream, data);
 
             return buffer;
+        }
+
+        #endregion
+
+        #region Array/View Casts
+
+        /// <summary>
+        /// Converts a raw .Net array into an internal view representation.
+        /// </summary>
+        /// <typeparam name="T">The array element type.</typeparam>
+        /// <param name="array">The managed array instance.</param>
+        /// <returns>The created raw array view.</returns>
+        [UtilityIntrinsic(UtilityIntrinsicKind.CastArrayToView)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ArrayView<T> AsRawArrayView<T>(Array array)
+            where T : unmanaged
+        {
+            var arraySource = CPUMemoryBuffer.FromArray(array, Interop.SizeOf<T>());
+            return new ArrayView<T>(arraySource, 0L, array.LongLength);
+        }
+
+        /// <summary>
+        /// Converts the array into a view representation.
+        /// </summary>
+        /// <typeparam name="T">The array element type.</typeparam>
+        /// <param name="array">The managed array instance.</param>
+        /// <returns>The converted array view.</returns>
+        /// <remarks>Note that this operation is supported in kernels only.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView<T> AsContiguousArrayView<T>(this T[] array)
+            where T : unmanaged =>
+            AsRawArrayView<T>(array);
+
+        /// <summary>
+        /// Converts the array into a view representation.
+        /// </summary>
+        /// <typeparam name="T">The array element type.</typeparam>
+        /// <param name="array">The managed array instance.</param>
+        /// <returns>The converted array view.</returns>
+        /// <remarks>Note that this operation is supported in kernels only.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.Dense> AsArrayView<T>(this T[] array)
+            where T : unmanaged =>
+            AsContiguousArrayView(array);
+
+        /// <summary>
+        /// Converts the array into a view representation.
+        /// </summary>
+        /// <typeparam name="T">The array element type.</typeparam>
+        /// <param name="array">The managed array instance.</param>
+        /// <returns>The converted array view.</returns>
+        /// <remarks>Note that this operation is supported in kernels only.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView2D<T, Stride2D.DenseY> AsArrayView<T>(this T[,] array)
+            where T : unmanaged
+        {
+            var baseView = AsRawArrayView<T>(array);
+            int width = array.GetLength(0);
+            int height = array.GetLength(1);
+            return new ArrayView2D<T, Stride2D.DenseY>(
+                baseView,
+                new LongIndex2D(width, height),
+                new Stride2D.DenseY(height));
+        }
+
+        /// <summary>
+        /// Converts the array into a view representation.
+        /// </summary>
+        /// <typeparam name="T">The array element type.</typeparam>
+        /// <param name="array">The managed array instance.</param>
+        /// <returns>The converted array view.</returns>
+        /// <remarks>Note that this operation is supported in kernels only.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView3D<T, Stride3D.DenseZY> AsArrayView<T>(this T[,,] array)
+            where T : unmanaged
+        {
+            var baseView = AsRawArrayView<T>(array);
+            int width = array.GetLength(0);
+            int height = array.GetLength(1);
+            int depth = array.GetLength(2);
+            return new ArrayView3D<T, Stride3D.DenseZY>(
+                baseView,
+                new LongIndex3D(width, height, depth),
+                new Stride3D.DenseZY(height * depth, depth));
         }
 
         #endregion

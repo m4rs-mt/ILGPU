@@ -395,7 +395,7 @@ namespace ILGPU.IR
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ReadOnlySpan<BasicBlock> GetPredecessors<TDirection>()
-            where TDirection : IControlFlowDirection
+            where TDirection : struct, IControlFlowDirection
         {
             AssertNoControlFlowUpdate();
 
@@ -409,7 +409,7 @@ namespace ILGPU.IR
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ReadOnlySpan<BasicBlock> GetSuccessors<TDirection>()
-            where TDirection : IControlFlowDirection
+            where TDirection : struct, IControlFlowDirection
         {
             AssertNoControlFlowUpdate();
 

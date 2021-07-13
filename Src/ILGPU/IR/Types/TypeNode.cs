@@ -167,6 +167,11 @@ namespace ILGPU.IR.Types
         public bool IsViewType => this is ViewType;
 
         /// <summary>
+        /// Returns true if the current type is a <see cref="ArrayType"/>.
+        /// </summary>
+        public bool IsArrayType => this is ArrayType;
+
+        /// <summary>
         /// Returns true if the current type is an <see cref="ObjectType"/>.
         /// </summary>
         public bool IsObjectType => this is ObjectType;

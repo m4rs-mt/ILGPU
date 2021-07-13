@@ -25,6 +25,7 @@ using ILGPU.Resources;
 using System;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CA5393 // Do not use unsafe DllImportSearchPath value
 #pragma warning disable IDE1006 // Naming
 
 <# foreach (var importFile in importFiles) { #>
@@ -164,4 +165,5 @@ namespace <#= imports.Namespace #>
 
 <# } #>
 
+#pragma warning restore CA5393 // Do not use unsafe DllImportSearchPath value
 #pragma warning restore IDE1006 // Naming

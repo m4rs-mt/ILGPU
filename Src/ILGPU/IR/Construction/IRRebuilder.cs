@@ -10,12 +10,14 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using static ILGPU.IR.Values.TerminatorValue;
 using BlockCollection = ILGPU.IR.BasicBlockCollection<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Construction
 {
@@ -148,7 +150,7 @@ namespace ILGPU.IR.Construction
             Method.ParameterMapping parameterMapping,
             Method.MethodMapping methodRemapping,
             in BlockCollection blocks)
-            where TMode : IMode =>
+            where TMode : struct, IMode =>
             Create<TMode, IdentityRemapper>(
                 builder,
                 parameterMapping,
@@ -173,7 +175,7 @@ namespace ILGPU.IR.Construction
             Method.MethodMapping methodRemapping,
             in BlockCollection blocks,
             in TRemapper remapper)
-            where TMode : IMode
+            where TMode : struct, IMode
             where TRemapper : struct, IDirectTargetRemapper
         {
             // Init mapping
@@ -507,6 +509,32 @@ namespace ILGPU.IR.Construction
         /// <returns>The resolved block builder.</returns>
         public BasicBlock LookupTarget(BasicBlock oldTarget) =>
             this[oldTarget].BasicBlock;
+
+        /// <summary>
+        /// Rebuilds the given values as span into the <paramref name="rebuilt"/> list.
+        /// </summary>
+        /// <param name="values">The values to rebuild.</param>
+        /// <param name="rebuilt">The target list to insert all elements into.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void RebuildTo(ReadOnlySpan<ValueReference> values, ref ValueList rebuilt)
+        {
+            rebuilt.Reserve(rebuilt.Count + values.Length);
+            foreach (var value in values)
+                rebuilt.Add(Rebuild(value));
+        }
+
+        /// <summary>
+        /// Rebuilds the given values as span and returns the rebuilt value list.
+        /// </summary>
+        /// <param name="values">The values to rebuild.</param>
+        /// <returns>The new nodes.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ValueList Rebuild(ReadOnlySpan<ValueReference> values)
+        {
+            var result = ValueList.Create(values.Length);
+            RebuildTo(values, ref result);
+            return result;
+        }
 
         /// <summary>
         /// Rebuilds to given source node using lookup tables.

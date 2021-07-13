@@ -98,11 +98,20 @@ jobs:
       - name: CPU Tests
         if: matrix.os != 'cuda'
         run: dotnet test --logger GitHubActions --no-build --configuration=Release Src/${{ matrix.library }}.Tests.CPU
+        env:
+          ILGPU_CLEAN_TESTS: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
       - name: CUDA Tests
         if: matrix.os == 'cuda'
         run: dotnet test --logger GitHubActions --no-build --configuration=Release Src/${{ matrix.library }}.Tests.Cuda
+        env:
+          ILGPU_CLEAN_TESTS: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
 
   package:
+    # Do not run this job for pull requests where both branches are from the same repo.
+    # Jobs that depend on this one will be skipped too.
+    # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
+    # run the CI for each branch push to a fork, and for each pull request originating from a fork.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -140,11 +149,7 @@ jobs:
           $version = "${{ steps.version.outputs.version }}"
 
           if (-not ("${{ github.ref }}" -like "refs/tags/v*")) {
-            # WORKAROUND: Add letter prefix to ensure that MSBuild treats
-            # the suffix as a string. e.g. '0313071' will fail as an invalid
-            # version string, but 'G0313071' will succeeded. It looks like
-            # the parser does not like numbers with a leading zero.
-            $suffix = 'g' + $(git rev-parse --short HEAD)
+            $suffix = "preview-$(Get-Date -Format yyyyMMddHHmmss -AsUTC)-$(git rev-parse --short HEAD)"
             $params = "--version-suffix", $suffix
             $version = "$version-$suffix"
           }
@@ -195,8 +200,20 @@ jobs:
     outputs:
       tag: ${{ steps.version.outputs.version }}
 
-  release-and-publish:
-    if: startsWith(github.ref, 'refs/tags/v')
+  publish-nuget-pre-release:
+    if: github.ref == 'refs/heads/master' && github.event.repository.fork == 'false'
+    needs: [check-style, build-and-test, package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download NuGet package artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: nuget-packages
+      - name: Publish to FeedzIO
+        run: dotnet nuget push "*.nupkg" --api-key ${{ secrets.FEEDZIO_API_KEY }} --source https://f.feedz.io/ilgpu/preview/nuget/index.json
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v') && github.event.repository.fork == 'false'
     needs: [check-style, build-and-test, package]
     runs-on: ubuntu-latest
     steps:

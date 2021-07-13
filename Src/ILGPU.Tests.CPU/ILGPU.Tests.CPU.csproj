@@ -47,21 +47,12 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Configurations.tt</DependentUpon>
     </None>
-    <None Include="TestContexts.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>TestContexts.tt</DependentUpon>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
     <None Update="Configurations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Configurations.cs</LastGenOutput>
-    </None>
-    <None Update="TestContexts.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>TestContexts.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -74,11 +65,6 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Configurations.tt</DependentUpon>
-    </Compile>
-    <Compile Update="TestContexts.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>TestContexts.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

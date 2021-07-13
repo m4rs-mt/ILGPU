@@ -227,11 +227,11 @@ namespace ILGPU.Algorithms
             /// <summary cref="IScanImplementation{T, TScanOperation}.
             /// NextIteration(T, T, T)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public T NextIteration(T leftBoundary, T rightBoundary, T currentValue)
-            {
-                var scanOperation = default(TScanOperation);
-                return scanOperation.Apply(leftBoundary, rightBoundary);
-            }
+            public T NextIteration(T leftBoundary, T rightBoundary, T currentValue) =>
+                InclusiveScanNextIteration<T, TScanOperation>(
+                    leftBoundary,
+                    rightBoundary,
+                    currentValue);
         }
 
         /// <summary>
@@ -262,14 +262,11 @@ namespace ILGPU.Algorithms
             /// <summary cref="IScanImplementation{T, TScanOperation}.
             /// NextIteration(T, T, T)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public T NextIteration(T leftBoundary, T rightBoundary, T currentValue)
-            {
-                var scanOperation = default(TScanOperation);
-                var nextBoundary = scanOperation.Apply(leftBoundary, rightBoundary);
-                return scanOperation.Apply(
-                    nextBoundary,
-                    Group.Broadcast(currentValue, Group.DimX - 1));
-            }
+            public T NextIteration(T leftBoundary, T rightBoundary, T currentValue) =>
+                ExclusiveScanNextIteration<T, TScanOperation>(
+                    leftBoundary,
+                    rightBoundary,
+                    currentValue);
         }
 
         /// <summary>
@@ -293,7 +290,7 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TGroupScanImplementation
-                : struct,IScanImplementation<T, TScanOperation>
+                : struct, IScanImplementation<T, TScanOperation>
         {
             TScanOperation scanOperation = default;
             TGroupScanImplementation groupScan = default;

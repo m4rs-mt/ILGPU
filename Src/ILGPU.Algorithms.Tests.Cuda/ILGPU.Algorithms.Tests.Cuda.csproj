@@ -19,6 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\ILGPU.Tests\Generic\AssemblyAttributes.cs" Link="Generic\AssemblyAttributes.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\ILGPU.Tests.Cuda\TestContext.cs" Link="TestContext.cs" />
   </ItemGroup>
 

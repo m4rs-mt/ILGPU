@@ -98,6 +98,12 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="value">The node.</param>
+        void Visit(ArrayToViewCast value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
         void Visit(FloatAsIntCast value);
 
         /// <summary>
@@ -164,6 +170,12 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="value">The node.</param>
+        void Visit(LoadArrayElementAddress value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
         void Visit(LoadFieldAddress value);
 
         /// <summary>
@@ -183,6 +195,18 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="value">The node.</param>
         void Visit(AlignViewTo value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
+        void Visit(NewArray value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
+        void Visit(GetArrayLength value);
 
         /// <summary>
         /// Visits the node.

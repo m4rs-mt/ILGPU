@@ -69,6 +69,11 @@ namespace ILGPU.IR
         ViewCast,
 
         /// <summary>
+        /// A <see cref="Values.ArrayToViewCast"/> value.
+        /// </summary>
+        ArrayToViewCast,
+
+        /// <summary>
         /// A <see cref="Values.IntAsPointerCast"/> value.
         /// </summary>
         IntAsPointerCast,
@@ -225,10 +230,27 @@ namespace ILGPU.IR
         /// </summary>
         SubView,
 
+        // Arrays
+
+        /// <summary>
+        /// A <see cref="Values.NewArray"/> value.
+        /// </summary>
+        Array,
+
+        /// <summary>
+        /// A <see cref="Values.GetArrayLength"/> value.
+        /// </summary>
+        GetArrayLength,
+
         /// <summary>
         /// A <see cref="Values.LoadElementAddress"/> value.
         /// </summary>
         LoadElementAddress,
+
+        /// <summary>
+        /// A <see cref="Values.LoadArrayElementAddress"/> value.
+        /// </summary>
+        LoadArrayElementAddress,
 
         /// <summary>
         /// A <see cref="Values.LoadFieldAddress"/> value.

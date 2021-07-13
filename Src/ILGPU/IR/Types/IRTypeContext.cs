@@ -277,27 +277,16 @@ namespace ILGPU.IR.Types
         /// <param name="elementType">The element type.</param>
         /// <param name="dimensions">The number of array dimensions.</param>
         /// <returns>The created array type.</returns>
-        public TypeNode CreateArrayType(TypeNode elementType, int dimensions)
-        {
-            // Map arbitrary array dimensions
-            if (dimensions < 1)
-            {
-                throw new NotSupportedException(
-                    string.Format(
-                        ErrorMessages.NotSupportedArrayDimension,
-                        dimensions.ToString()));
-            }
-
-            // We need one element to store the base view type and an extent in each
-            // dimension
-            var builder = CreateStructureType(1 + dimensions);
-            // Attach the data view
-            builder.Add(CreateViewType(elementType, MemoryAddressSpace.Generic));
-            // Add each dimension
-            for (int i = 0; i < dimensions; ++i)
-                builder.Add(GetPrimitiveType(BasicValueType.Int32));
-            return builder.Seal();
-        }
+        public ArrayType CreateArrayType(TypeNode elementType, int dimensions) =>
+            dimensions < 1
+            ? throw new NotSupportedException(
+                string.Format(
+                    ErrorMessages.NotSupportedArrayDimension,
+                    dimensions.ToString()))
+            : UnifyType(new ArrayType(
+                this,
+                elementType,
+                dimensions));
 
         /// <summary>
         /// Creates a new type based on a type from the .Net world.

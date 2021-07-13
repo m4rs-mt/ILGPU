@@ -2,45 +2,46 @@
 <#@ include file="../ILGPU.Tests/Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
-using ILGPU.IR.Transformations;
 using ILGPU.Tests.CPU;
 using Xunit;
 using Xunit.Abstractions;
 
+#pragma warning disable CA1707 // Identifiers should not contain underscores
+
 <#
 var configurationFile = Host.ResolvePath("../ILGPU.Algorithms.Tests/Configurations.txt");
-var configurations = TestConfig.Parse(configurationFile, out var levels);
+var configurations = TestConfig.Parse(configurationFile);
 #>
 namespace ILGPU.Algorithms.Tests.CPU
 {
-<# foreach (var optLevel in levels) { #>
-    public class CPUTestContext<#= optLevel #> : CPUTestContext
-    {
-        public CPUTestContext<#= optLevel #>()
-            : base(
-                OptimizationLevel.<#= optLevel #>,
-                builder => builder.EnableAlgorithms())
-        { }
-    }
-
-    [CollectionDefinition("CPUContextCollection<#= optLevel #>")]
-    public class CPUContextCollection<#= optLevel #> :
-        ICollectionFixture<CPUTestContext<#= optLevel #>> { }
-
-<# } #>
-<# foreach (var config in configurations) { #>
-<#      foreach (var optLevel in config.OptimizationLevels) { #>
-<#      var name = "CPU" + config.Name + "_" + optLevel; #>
-    [Collection("CPUContextCollection<#= optLevel #>")]
-    public sealed partial class <#= name #> : <#= config.Name #>
+<# foreach (var (test, level, collection) in configurations) { #>
+<#      var name = $"CPU{test}_{level}"; #>
+    [Collection("CPUContextCollection<#= collection #>")]
+    public sealed partial class <#= name #> : <#= test #>
     {
         public <#= name #>(
             ITestOutputHelper output,
-            CPUTestContext<#= optLevel #> testContext)
+            CPUTestContext<#= collection #> testContext)
             : base(output, testContext)
         { }
     }
 
-<#      } #>
+<# } #>
+<# foreach (var (config, level) in TestConfig.AllConfigurations) { #>
+    public class CPUTestContext<#= config #> : CPUTestContext
+    {
+        public CPUTestContext<#= config #>()
+            : base(
+                OptimizationLevel.<#= level #>,
+                builder => builder.EnableAlgorithms())
+        { }
+    }
+
+    [CollectionDefinition("CPUContextCollection<#= config #>")]
+    public class CPUContextCollection<#= config #> :
+        ICollectionFixture<CPUTestContext<#= config #>> { }
+
 <# } #>
 }
+
+#pragma warning restore CA1707 // Identifiers should not contain underscores
