@@ -37,10 +37,11 @@ var threeDStrides = new (string, bool)[]
 var dimensionStrides =
     twoDStrides.Select(t => (2, t.Item1, t.Item2)).Concat(
     threeDStrides.Select(t => (3, t.Item1, t.Item2)));
+var extendedDimensionStrides =
+    dimensionStrides.Concat(new [] { (1, "Dense", false) });
 var generalDimensionStrides =
-    dimensionStrides.Concat(
+    extendedDimensionStrides.Concat(
         new [] {
-            (1, "Dense", false),
             (1, "General", true),
             (2, "General", true),
             (3, "General", true) });
@@ -436,7 +437,7 @@ namespace ILGPU.Runtime
 
         #region Copy to/from arrays
 
-<# foreach (var (dimension, strideName, needsTranspose) in generalDimensionStrides) { #>
+<# foreach (var (dimension, strideName, needsTranspose) in extendedDimensionStrides) { #>
 <#      var typeName = $"ArrayView{dimension}D"; #>
 <#      var strideTypeName = $"Stride{dimension}D"; #>
 <#      var arrayDimExpr = string.Join(",",
@@ -495,89 +496,14 @@ namespace ILGPU.Runtime
             }
 <#      } #>
 
-<#      if (!needsTranspose) { #>
             fixed (T* ptr = data)
             {
                 view.BaseView.CopyToCPU(
                     stream,
                     new Span<T>(ptr, data.Length));
             }
-<#      } else { #>
-            var tempBuffer = new T[view.BaseView.Length];
-            fixed (T* ptr = tempBuffer)
-            {
-                var span = new Span<T>(ptr, tempBuffer.Length);
-                view.BaseView.CopyToCPU(stream, span);
-
-                // Transpose the input elements and store them in the result buffer
-                var extent = (Index<#= dimension #>D)view.Extent;
-                var stride = view.Stride;
-<#      for (int i = 0; i < dimension; ++i) { #>
-<#          var fieldName = IndexDimensions[i].FieldName; #>
-                for (
-                    int <#= fieldName #> = 0;
-                    <#= fieldName #> < extent.<#= IndexDimensions[i].PropertyName #>;
-                    ++<#= fieldName #>)
-                {
-<#      } #>
-                    var multiDimIndex = new Index<#= dimension #>D(<#= string.Join(
-                        ", ",
-                        IndexDimensions.Take(dimension).Select(t => t.FieldName)) #>);
-                    int elementIndex = stride.ComputeElementIndex(multiDimIndex);
-                    data[<#= string.Join(", ",
-                        Enumerable.Range(0, dimension)
-                        .Select(t => IndexDimensions[t].FieldName)) #>] =
-                        span[elementIndex];
-<#      for (int i = 0; i < dimension; ++i) { #>
-                }
-<#      } #>
-            }
-<#      } #>
         }
-
-        /// <summary>
-        /// Copies the contents of the <#= dimension #>D view into the given
-        /// <#= dimension #>D array using the default accelerator stream.
-        /// </summary>
-        /// <param name="buffer">The source buffer.</param>
-        /// <param name="data">The target data array.</param>
-        /// <remarks>
-<#      if (needsTranspose) { #>
-        /// CAUTION: this method transposes the data on the CPU.
 <#      } #>
-        /// This method is not supported on accelerators.
-        /// </remarks>
-        [NotInsideKernel]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CopyToCPU<T>(
-            this MemoryBuffer<
-                <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer,
-            <#= arrayType #> data)
-            where T : unmanaged =>
-            buffer.View.CopyToCPU(data);
-
-        /// <summary>
-        /// Copies the contents of the <#= dimension #>D view into the given
-        /// <#= dimension #>D array using the given accelerator stream.
-        /// </summary>
-        /// <param name="buffer">The source buffer.</param>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <param name="data">The target data array.</param>
-        /// <remarks>
-<#      if (needsTranspose) { #>
-        /// CAUTION: this method transposes the data on the CPU.
-<#      } #>
-        /// This method is not supported on accelerators.
-        /// </remarks>
-        [NotInsideKernel]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CopyToCPU<T>(
-            this MemoryBuffer<
-                <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer,
-            AcceleratorStream stream,
-            <#= arrayType #> data)
-            where T : unmanaged =>
-            buffer.View.CopyToCPU(stream, data);
 
         /// <summary>
         /// Copies the contents of the <#= dimension #>D array into the given
@@ -632,42 +558,7 @@ namespace ILGPU.Runtime
             }
 <#      } #>
 
-<#      if (needsTranspose) { #>
-            var tempBuffer = new T[view.Length];
-            fixed (T* ptr = data)
-            {
-                var span = new ReadOnlySpan<T>(ptr, data.Length);
-
-                // Transpose the input elements and store them in the result buffer
-                var extent = (Index<#= dimension #>D)view.Extent;
-                var stride = view.Stride;
-<#      for (int i = 0; i < dimension; ++i) { #>
-<#          var fieldName = IndexDimensions[i].FieldName; #>
-                for (
-                    int <#= fieldName #> = 0;
-                    <#= fieldName #> < extent.<#= IndexDimensions[i].PropertyName #>;
-                    ++<#= fieldName #>)
-                {
-<#      } #>
-                    int targetElementIndex = view.Stride.ComputeElementIndex(
-                        new Index<#= dimension #>D(<#= string.Join(
-                        ", ",
-                        IndexDimensions.Take(dimension).Select(t => t.FieldName)) #>));
-                    int sourceElementIndex = <#= IndexDimensions[0].FieldName #>;
-<#      for (int i = 1; i < dimension; ++i) { #>
-<#          var dim = IndexDimensions[i]; #>
-                    sourceElementIndex *= (int)view.Extent.<#= dim.PropertyName #>;
-                    sourceElementIndex += <#= dim.FieldName #>;
-
-<#      } #>
-                    tempBuffer[targetElementIndex] = span[sourceElementIndex];
-<#      for (int i = 0; i < dimension; ++i) { #>
-                }
-<#      } #>
-            }
-<#      } else { #>
             var tempBuffer = data;
-<#      } #>
             fixed (T* ptr = tempBuffer)
             {
                 view.BaseView.CopyFromCPU(
@@ -675,6 +566,60 @@ namespace ILGPU.Runtime
                     new ReadOnlySpan<T>(ptr, tempBuffer.Length));
             }
         }
+<#      } #>
+
+<# } #>
+
+<# foreach (var (dimension, strideName, needsTranspose) in generalDimensionStrides) { #>
+<#      var typeName = $"ArrayView{dimension}D"; #>
+<#      var strideTypeName = $"Stride{dimension}D"; #>
+<#      var arrayDimExpr = string.Join(",",
+            Enumerable.Repeat(string.Empty, dimension)); #>
+<#      var arrayType = $"T[{arrayDimExpr}]"; #>
+
+        /// <summary>
+        /// Copies the contents of the <#= dimension #>D view into the given
+        /// <#= dimension #>D array using the default accelerator stream.
+        /// </summary>
+        /// <param name="buffer">The source buffer.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+<#      if (needsTranspose) { #>
+        /// CAUTION: this method transposes the data on the CPU.
+<#      } #>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToCPU<T>(
+            this MemoryBuffer<
+                <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer,
+            <#= arrayType #> data)
+            where T : unmanaged =>
+            buffer.View.CopyToCPU(data);
+
+        /// <summary>
+        /// Copies the contents of the <#= dimension #>D view into the given
+        /// <#= dimension #>D array using the given accelerator stream.
+        /// </summary>
+        /// <param name="buffer">The source buffer.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="data">The target data array.</param>
+        /// <remarks>
+<#      if (needsTranspose) { #>
+        /// CAUTION: this method transposes the data on the CPU.
+<#      } #>
+        /// This method is not supported on accelerators.
+        /// </remarks>
+        [NotInsideKernel]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CopyToCPU<T>(
+            this MemoryBuffer<
+                <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>>> buffer,
+            AcceleratorStream stream,
+            <#= arrayType #> data)
+            where T : unmanaged =>
+            buffer.View.CopyToCPU(stream, data);
 
         /// <summary>
         /// Copies the contents of the <#= dimension #>D array into the given
