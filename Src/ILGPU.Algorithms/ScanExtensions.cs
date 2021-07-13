@@ -290,7 +290,7 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TGroupScanImplementation
-                : struct,IScanImplementation<T, TScanOperation>
+                : struct, IScanImplementation<T, TScanOperation>
         {
             TScanOperation scanOperation = default;
             TGroupScanImplementation groupScan = default;

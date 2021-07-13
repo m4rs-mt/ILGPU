@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
-using System;
 
 namespace ILGPU.Backends.OpenCL
 {

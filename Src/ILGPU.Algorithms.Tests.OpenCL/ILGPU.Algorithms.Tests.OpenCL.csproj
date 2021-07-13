@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
@@ -17,6 +17,10 @@
   <PropertyGroup>
     <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\ILGPU.Tests\.test.runsettings</RunSettingsFilePath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ILGPU.Tests\Generic\AssemblyAttributes.cs" Link="Generic\AssemblyAttributes.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\ILGPU.Tests.OpenCL\TestContext.cs" Link="TestContext.cs" />

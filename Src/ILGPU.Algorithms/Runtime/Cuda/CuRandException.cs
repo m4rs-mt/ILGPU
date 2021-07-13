@@ -41,6 +41,20 @@ namespace ILGPU.Runtime.Cuda
             Error = errorCode;
         }
 
+        /// <summary cref="Exception(string)"/>
+        public CuRandException(string message)
+            : base(message)
+        {
+            Error = CuRandStatus.CURAND_STATUS_NOT_INITIALIZED;
+        }
+
+        /// <summary cref="Exception(string, Exception)"/>
+        public CuRandException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+            Error = CuRandStatus.CURAND_STATUS_NOT_INITIALIZED;
+        }
+
         /// <summary cref="Exception(SerializationInfo, StreamingContext)"/>
         private CuRandException(SerializationInfo info, StreamingContext context)
             : base(info, context)
@@ -62,7 +76,9 @@ namespace ILGPU.Runtime.Cuda
         #region Methods
 
         /// <summary cref="Exception.GetObjectData(SerializationInfo, StreamingContext)"/>
+#if !NET5_0
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
+#endif
         public override void GetObjectData(
             SerializationInfo info,
             StreamingContext context)

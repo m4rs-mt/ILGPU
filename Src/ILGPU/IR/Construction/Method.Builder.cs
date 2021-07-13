@@ -346,7 +346,7 @@ namespace ILGPU.IR
             public IRRebuilder CreateRebuilder<TMode>(
                 ParameterMapping parameterMapping,
                 in BasicBlockCollection<ReversePostOrder, Forwards> blocks)
-                where TMode : IRRebuilder.IMode =>
+                where TMode : struct, IRRebuilder.IMode =>
                 CreateRebuilder<TMode>(parameterMapping, default, blocks);
 
             /// <summary>
@@ -363,7 +363,7 @@ namespace ILGPU.IR
                 ParameterMapping parameterMapping,
                 MethodMapping methodMapping,
                 in BasicBlockCollection<ReversePostOrder, Forwards> blocks)
-                where TMode : IRRebuilder.IMode =>
+                where TMode : struct, IRRebuilder.IMode =>
                 IRRebuilder.Create<TMode>(
                     this,
                     parameterMapping,

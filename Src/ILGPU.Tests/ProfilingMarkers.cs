@@ -1,7 +1,5 @@
 ﻿using ILGPU.Runtime;
-using System;
 using System.Linq;
-using System.Threading;
 using Xunit;
 using Xunit.Abstractions;
 
