@@ -1,5 +1,5 @@
 # ILGPU
-![CI](https://github.com/G-Research/consuldotnet/workflows/CI/badge.svg?style=flat)
+![CI](https://github.com/m4rs-mt/ILGPU/actions/workflows/ci.yml/badge.svg?style=flat)
 [![](https://img.shields.io/nuget/v/ilgpu?style=flat&label=release)](https://www.nuget.org/packages/ilgpu/)
 [![](https://img.shields.io/nuget/vpre/ilgpu?style=flat&label=pre-release)](https://www.nuget.org/packages/ilgpu/)
 [![](https://img.shields.io/feedz/vpre/ilgpu/preview/ilgpu?style=flat&color=blue&label=preview)](#preview-versions)
