@@ -224,22 +224,12 @@ jobs:
 
       # if tag cointains suffix "-" treat it as pre-release
       # example: 1.0.0-beta1
-      - name: Prerelease logic
-        id: prerelease-logic
-        run:
-          if [[ ${{ contains(needs.package.outputs.version, '-') }} == True ]]
-          ;then 
-            echo "::set-output name=prerelease::true"
-          ;else
-            echo "::set-output name=prerelease::false" 
-          ;fi
-
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
           name: Release v${{ needs.package.outputs.version }}
           draft: true
-          prerelease: ${{ steps.prerelease-logic.outputs.prerelease }}
+          prerelease: ${{ contains(needs.package.outputs.version, '-') }}
           files: "*.nupkg"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
