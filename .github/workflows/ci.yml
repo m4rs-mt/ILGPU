@@ -4,13 +4,16 @@ on:
   push:
   pull_request:
   schedule:
-    # Daily at 00:00. 
+    # Run daily at 00:00 so we get notified if CI is broken before a pull request
+    # is submitted.
     - cron:  '0 0 * * *'
 
 env:
   DOTNET_NOLOGO: true
 
 jobs:
+
+  # Check some basic style rules.
   check-style:
     # Do not run this job for pull requests where both branches are from the same repo.
     # Jobs that depend on this one will be skipped too.
@@ -60,7 +63,8 @@ jobs:
             Exit 1
           }
 
-  # Setup the OS matrix so that CUDA tests do not run on forks, as it needs self-hosted runners
+  # Setup the OS matrix so that CUDA tests do not run on forks, as it needs self-hosted runners.
+  # Skip running on macOS in most cases.
   setup-os-matrix:
     # Do not run this job for pull requests where both branches are from the same repo.
     # Jobs that depend on this one will be skipped too.
@@ -91,6 +95,7 @@ jobs:
     outputs:
       os: ${{ steps.setup-os-matrix.outputs.os }}
 
+  # Check that building the entire solution for all target frameworks works.
   build:
     runs-on: windows-latest
     steps:
@@ -105,6 +110,7 @@ jobs:
       - name: Build
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
 
+  # Run tests for all supported combinations of OS/library/framework.
   test:
     needs: setup-os-matrix
     strategy:
@@ -148,6 +154,7 @@ jobs:
         env:
           ILGPU_CLEAN_TESTS: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
 
+  # Create the NuGet packages, with fixes for portable symbols.
   package:
     # Do not run this job for pull requests where both branches are from the same repo.
     # Jobs that depend on this one will be skipped too.
@@ -242,7 +249,9 @@ jobs:
     outputs:
       tag: ${{ steps.version.outputs.version }}
 
-  publish-nuget-pre-release:
+  # Publish a preview version of the NuGet packages on feedz.io when there is
+  # a push to master.
+  publish-preview:
     if: github.ref == 'refs/heads/master' && github.event.repository.fork == 'false'
     needs: [check-style, build, test, package]
     runs-on: ubuntu-latest
@@ -254,7 +263,10 @@ jobs:
       - name: Publish to FeedzIO
         run: dotnet nuget push "*.nupkg" --api-key ${{ secrets.FEEDZIO_API_KEY }} --source https://f.feedz.io/ilgpu/preview/nuget/index.json
 
-  publish:
+
+  # Create a GitHub release and publish the NuGet packages to nuget.org when
+  # a tag is pushed.
+  publish-release:
     if: startsWith(github.ref, 'refs/tags/v') && github.event.repository.fork == 'false'
     needs: [check-style, build, test, package]
     runs-on: ubuntu-latest
