@@ -255,11 +255,19 @@ jobs:
     outputs:
       tag: ${{ steps.version.outputs.version }}
 
+  # Virtual job that can be configured as a required check before a PR can be
+  # merged.
+  all-required-checks-done:
+    needs: [check-style, build, test, package]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All required checks done"
+
   # Publish a preview version of the NuGet packages on feedz.io when there is
   # a push to master.
   publish-preview:
     if: github.ref == 'refs/heads/master' && github.event.repository.fork == 'false'
-    needs: [check-style, build, test, package]
+    needs: [all-required-checks-done]
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
@@ -274,7 +282,7 @@ jobs:
   # a tag is pushed.
   publish-release:
     if: startsWith(github.ref, 'refs/tags/v') && github.event.repository.fork == 'false'
-    needs: [check-style, build, test, package]
+    needs: [all-required-checks-done]
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
