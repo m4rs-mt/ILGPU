@@ -252,6 +252,26 @@ namespace ILGPU.Tests
 
             Verify2D(denseY2.View, expected);
             Verify2D(denseX2.GetAsArray2D(), expected);
+
+            // Test subview copies
+            var expectedSub = InitializeArray2D(length / 2, converter);
+            denseX.MemSetToZero();
+            denseY.MemSetToZero();
+            var subViewX = denseX.View.SubView(
+                (1, 1),
+                (length / 2, length / 2));
+            var subViewY = denseY.View.SubView(
+                (1, 1),
+                (length / 2, length / 2));
+            var subViewYGeneral = subViewY.AsGeneral();
+            subViewX.CopyFromCPU(expectedSub);
+            Assert.Throws<NotSupportedException>(() =>
+                subViewY.CopyFromCPU(expectedSub));
+            subViewYGeneral.CopyFromCPU(expectedSub);
+            Verify2D(expectedSub, subViewX.GetAsArray2D());
+            Assert.Throws<NotSupportedException>(() =>
+                Verify2D(expectedSub, subViewY.GetAsArray2D()));
+            Verify2D(expectedSub, subViewYGeneral.GetAsArray2D());
         }
 
 <#  } #>
@@ -305,6 +325,26 @@ namespace ILGPU.Tests
 
             Verify3D(denseY2.View, expected);
             Verify3D(denseX2.GetAsArray3D(), expected);
+
+            // Test subview copies
+            var expectedSub = InitializeArray3D(length / 2, converter);
+            denseX.MemSetToZero();
+            denseY.MemSetToZero();
+            var subViewX = denseX.View.SubView(
+                (1, 1, 1),
+                (length / 2, length / 2, length / 2));
+            var subViewY = denseY.View.SubView(
+                (1, 1, 1),
+                (length / 2, length / 2, length / 2));
+            var subViewYGeneral = subViewY.AsGeneral();
+            subViewX.CopyFromCPU(expectedSub);
+            Assert.Throws<NotSupportedException>(() =>
+                subViewY.CopyFromCPU(expectedSub));
+            subViewYGeneral.CopyFromCPU(expectedSub);
+            Verify3D(expectedSub, subViewX.GetAsArray3D());
+            Assert.Throws<NotSupportedException>(() =>
+                Verify3D(expectedSub, subViewY.GetAsArray3D()));
+            Verify3D(expectedSub, subViewYGeneral.GetAsArray3D());
         }
 
 <#  } #>

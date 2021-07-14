@@ -241,6 +241,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The stride information does not allow to perform an efficient copy operation without reordering. Use AsGeneral to convert the view to a general view with a CPU-based reordering operation..
+        /// </summary>
+        internal static string NotSupportedEfficientStrideCopy {
+            get {
+                return ResourceManager.GetString("NotSupportedEfficientStrideCopy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported explicitly-grouped kernel.
         /// </summary>
         internal static string NotSupportedExplicitlyGroupedKernel {
