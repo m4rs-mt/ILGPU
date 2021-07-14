@@ -124,7 +124,7 @@
     <value>An entry point must receive at least one index parameter</value>
   </data>
   <data name="InvalidEntryPointIndexParameterOfWrongType" xml:space="preserve">
-    <value>An implicitly grouped entry point must receive an int index type as first parameter, long indecies will not work.</value>
+    <value>An implicitly grouped entry point must receive an int index type as first parameter, long indices will not work.</value>
   </data>
   <data name="InvalidEntryPointInstanceKernelMethod" xml:space="preserve">
     <value>Only static methods and non-capturing lambdas are supported at the moment</value>
