@@ -222,7 +222,7 @@ jobs:
         with:
           name: nuget-packages
 
-      # if tag cointains suffix "-" treat it as pre-release
+      # if tag contains "-" treat it as pre-release
       # example: 1.0.0-beta1
       - name: Create release
         uses: softprops/action-gh-release@v1
