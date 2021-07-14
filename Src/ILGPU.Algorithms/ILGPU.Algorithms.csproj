@@ -20,7 +20,7 @@
 
   <PropertyGroup>
     <OutputPath>../../Bin/$(Configuration)/</OutputPath>
-    <DocumentationFile>../../Bin/$(Configuration)/ILGPU.Algorithms.xml</DocumentationFile>
+    <DocumentationFile>../../Bin/$(Configuration)/$(TargetFramework)/ILGPU.Algorithms.xml</DocumentationFile>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
