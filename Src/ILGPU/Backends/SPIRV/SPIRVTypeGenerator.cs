@@ -20,59 +20,67 @@ namespace ILGPU.Backends.SPIRV
         /// <param name="spirvBuilder">
         /// The SPIR-V builder to append binary SPIR-V type declaration instructions to.
         /// </param>
-        public SPIRVTypeGenerator(SPIRVIdAllocator allocator, ISPIRVBuilder spirvBuilder)
+        public SPIRVTypeGenerator(SPIRVIdAllocator allocator)
         {
             idAllocator = allocator;
-            builder = spirvBuilder;
         }
 
         private readonly SPIRVIdAllocator idAllocator;
-        private readonly ISPIRVBuilder builder;
 
+        // Since the IdAllocator only keeps track of NodeIds, we need to keep track of
+        // all the type nodes we encounter so we can generate their definitions later
         #endregion
 
+        #region Methods
+
+        public void GenerateTypes(ISPIRVBuilder builder)
+        {
+            foreach (var node in idAllocator.GetTypeNodes())
+            {
+                GenerateTypeDefinition(node, builder);
+            }
+        }
+
         /// <summary>
-        /// Generates the type definition for a given node. Intermediate nodes and
-        /// the given node are stored in this type generator's ID allocator. Binary
-        /// instructions to generate this type are appended to this type generator's
-        /// SPIR-V builder.
+        /// Generates the type definition for a given node. Uses already stored
+        /// <see cref="IdVariable"/>s from the allocator for each <see cref="TypeNode"/>.
         /// </summary>
         /// <param name="typeNode">The type node to generate a definition for.</param>
         /// <returns>
         /// The <see cref="IdVariable"/> representing the final allocated type.
         /// </returns>
-        public IdVariable GenerateTypeDefinition(TypeNode typeNode)
+        private void GenerateTypeDefinition(TypeNode typeNode, ISPIRVBuilder builder)
         {
             Debug.Assert(!(typeNode is ViewType), "Invalid view type");
 
-            if (idAllocator.TryLoad(typeNode, out var variable))
+            switch (typeNode)
             {
-                return variable;
+                case VoidType v:
+                    GenerateVoidType(v, builder);
+                    break;
+                case PrimitiveType p:
+                    GeneratePrimitiveType(p, builder);
+                    break;
+                case PointerType p:
+                    GeneratePointerType(p, builder);
+                    break;
+                case StructureType s:
+                    GenerateStructureType(s, builder);
+                    break;
+                default:
+                    throw new InvalidCodeGenerationException();
             }
-
-            // The reason we return a value here where it's seemingly unnecessary
-            // is to make generation of structure types easier. I *could* add
-            // wrapper method with a void return, but it seems unnecessary.
-            return typeNode switch
-            {
-                VoidType v => GenerateVoidType(v),
-                PrimitiveType p => GeneratePrimitiveType(p),
-                PointerType p => GeneratePointerType(p),
-                StructureType s => GenerateStructureType(s),
-                _ => throw new InvalidCodeGenerationException()
-            };
         }
 
-        private IdVariable GenerateVoidType(VoidType typeNode)
+        private void GenerateVoidType(VoidType typeNode, ISPIRVBuilder builder)
         {
-            var typeVar = idAllocator.Allocate(typeNode);
+            var typeVar = idAllocator.Load(typeNode);
             builder.GenerateOpTypeVoid(typeVar);
-            return typeVar;
         }
 
-        private IdVariable GeneratePrimitiveType(PrimitiveType typeNode)
+        private void GeneratePrimitiveType(PrimitiveType typeNode, ISPIRVBuilder builder)
         {
-            var typeVar = idAllocator.Allocate(typeNode);
+            var typeVar = idAllocator.Load(typeNode);
             if (typeNode.BasicValueType.IsInt())
             {
                 // Only BasicValueType.None has a size of -1
@@ -83,33 +91,32 @@ namespace ILGPU.Backends.SPIRV
                 // Only BasicValueType.None has a size of -1
                 builder.GenerateOpTypeFloat(typeVar, (uint) typeNode.Size);
             }
-            else
-            {
-                throw new InvalidCodeGenerationException(
+            throw new InvalidCodeGenerationException(
                     "Cannot generate primitive type with basic value type None");
-            }
-
-            return typeVar;
         }
 
-        private IdVariable GeneratePointerType(PointerType typeNode)
+        private void GeneratePointerType(PointerType typeNode, ISPIRVBuilder builder)
         {
-            var typeVar = idAllocator.Allocate(typeNode);
-            var element = GenerateTypeDefinition(typeNode.ElementType);
+            var typeVar = idAllocator.Load(typeNode);
+            GenerateTypeDefinition(typeNode.ElementType, builder);
+            var element = idAllocator.Load(typeNode);
             builder.GenerateOpTypePointer(typeVar, StorageClass.Generic, element);
-            return typeVar;
         }
 
-        private IdVariable GenerateStructureType(StructureType typeNode)
+        private void GenerateStructureType(StructureType typeNode, ISPIRVBuilder builder)
         {
             var fields = typeNode.Fields
-                .Select(x => (uint) GenerateTypeDefinition(x))
+                .Select(x =>
+                {
+                    GenerateTypeDefinition(x, builder);
+                    return (uint)idAllocator.Load(x);
+                })
                 .ToArray();
 
-            var typeVar = idAllocator.Allocate(typeNode);
+            var typeVar = idAllocator.Load(typeNode);
             builder.GenerateOpTypeStruct(typeVar, fields);
-            return typeVar;
         }
 
+        #endregion
     }
 }

@@ -4,6 +4,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using System;
+using System.Diagnostics;
 using System.Text;
 
 namespace ILGPU.Backends.SPIRV
@@ -80,7 +81,7 @@ namespace ILGPU.Backends.SPIRV
             );
 
             var allocator = new SPIRVIdAllocator();
-            var typeGenerator = new SPIRVTypeGenerator(allocator, builder);
+            var typeGenerator = new SPIRVTypeGenerator(allocator);
 
             data = new SPIRVCodeGenerator.GeneratorArgs(
                 this,
@@ -112,7 +113,29 @@ namespace ILGPU.Backends.SPIRV
             ISPIRVBuilder builder,
             SPIRVCodeGenerator.GeneratorArgs data)
         {
-            data.TypeGenerator
+            ISPIRVBuilder typeBuilder = _builderType switch
+            {
+                SPIRVBuilderType.Binary => new BinarySPIRVBuilder(),
+                SPIRVBuilderType.StringRepresentation => new StringSPIRVBuilder(),
+                _ => new BinarySPIRVBuilder()
+            };
+
+            data.TypeGenerator.GenerateTypes(typeBuilder);
+
+            // Merge main builder into type builder so the types stay at the start
+            typeBuilder.Merge(builder);
+
+            var source = typeBuilder.ToByteArray();
+
+            Debug.Assert(typeBuilder is BinarySPIRVBuilder,
+                "You are creating a compiled kernel with string " +
+                "source instead of bytecode. Is this a mistake?");
+
+            return new SPIRVCompiledKernel(
+                Context,
+                entryPoint as SeparateViewEntryPoint,
+                kernelInfo,
+                source);
         }
     }
 }

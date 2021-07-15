@@ -1,7 +1,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Types;
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace ILGPU.Backends
@@ -92,8 +92,8 @@ namespace ILGPU.Backends
             typeContext = context;
         }
 
-        private readonly Dictionary<NodeId, IdVariable> lookup =
-            new Dictionary<NodeId, IdVariable>();
+        private readonly Dictionary<Node, IdVariable> lookup =
+            new Dictionary<Node, IdVariable>();
 
         private int idCounter = 0;
 
@@ -119,10 +119,10 @@ namespace ILGPU.Backends
         /// <returns>The allocated variable.</returns>
         public IdVariable Allocate(Node node, TKind kind)
         {
-            if (lookup.TryGetValue(node.Id, out IdVariable variable))
+            if (lookup.TryGetValue(node, out IdVariable variable))
                 return variable;
             variable = new IdVariable((uint) Interlocked.Increment(ref idCounter), kind);
-            lookup.Add(node.Id, variable);
+            lookup.Add(node, variable);
             return variable;
         }
 
@@ -155,18 +155,12 @@ namespace ILGPU.Backends
         /// <param name="node">The node to load.</param>
         /// <returns>The loaded variable.</returns>
         public IdVariable Load(Node node) =>
-            lookup[node.Id];
+            lookup[node];
 
-        /// <summary>
-        /// Tries to load the given node.
-        /// </summary>
-        /// <param name="node">The node to load.</param>
-        /// <param name="variable">The loaded variable (if successful).</param>
-        /// <returns>
-        /// A bool, stating whether the variable was loaded successfully.
-        /// </returns>
-        public bool TryLoad(Node node, out IdVariable variable) =>
-            lookup.TryGetValue(node.Id, out variable);
+        // TODO: A better solution than this?
+        public IEnumerable<TypeNode> GetTypeNodes() =>
+            (IEnumerable<TypeNode>)lookup.Where(pair => pair.Key is TypeNode)
+                .Select(pair => pair.Key);
 
         #endregion
     }
