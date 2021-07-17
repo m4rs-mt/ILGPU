@@ -50,36 +50,37 @@ namespace ILGPU.Backends
         #region Nested Types
 
         /// <summary>
-        /// Represents a readonly list of phi entries.
+        /// A collection of intermediate phi values that need to be stored to temporary
+        /// intermediate registers.
         /// </summary>
-        public readonly struct PhiBindingCollection : IReadOnlyList<(Value, PhiValue)>
+        public readonly struct IntermediatePhiCollection
         {
             #region Nested Types
 
             /// <summary>
             /// An enumerator to enumerate all entries in this collection.
             /// </summary>
-            public struct Enumerator : IEnumerator<(Value, PhiValue)>
+            public struct Enumerator : IEnumerator<PhiValue>
             {
-                private List<(Value, PhiValue)>.Enumerator enumerator;
+                private HashSet<PhiValue>.Enumerator enumerator;
 
                 /// <summary>
                 /// Constructs a new entry enumerator.
                 /// </summary>
-                /// <param name="collection">The parent collection.</param>
-                internal Enumerator(in PhiBindingCollection collection)
+                /// <param name="blockInfo">The parent collection.</param>
+                internal Enumerator(in BlockInfo blockInfo)
                 {
-                    enumerator = collection.values.GetEnumerator();
+                    enumerator = blockInfo.IntermediatePhis.GetEnumerator();
                 }
 
                 /// <summary cref="IEnumerator{T}.Current"/>
-                public (Value, PhiValue) Current => enumerator.Current;
+                public PhiValue Current => enumerator.Current;
 
                 /// <summary cref="IEnumerator.Current"/>
                 object IEnumerator.Current => Current;
 
                 /// <summary cref="IDisposable.Dispose"/>
-                public void Dispose() { }
+                void IDisposable.Dispose() { }
 
                 /// <summary cref="IEnumerator.MoveNext"/>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -93,32 +94,16 @@ namespace ILGPU.Backends
 
             #region Instance
 
-            private readonly List<(Value, PhiValue)> values;
+            private readonly BlockInfo blockInfo;
 
             /// <summary>
-            /// Constructs a new parameter collection.
+            /// Constructs a new temp assignment collection.
             /// </summary>
-            /// <param name="valueList">The list of all values.</param>
-            internal PhiBindingCollection(List<(Value, PhiValue)> valueList)
+            /// <param name="info">The phi information per block.</param>
+            internal IntermediatePhiCollection(in BlockInfo info)
             {
-                values = valueList;
+                blockInfo = info;
             }
-
-            #endregion
-
-            #region Properties
-
-            /// <summary>
-            /// Returns the number of entries.
-            /// </summary>
-            public int Count => values.Count;
-
-            /// <summary>
-            /// Returns the i-th entry.
-            /// </summary>
-            /// <param name="index">The index of the entry to get.</param>
-            /// <returns>The desired entry.</returns>
-            public (Value, PhiValue) this[int index] => values[index];
 
             #endregion
 
@@ -130,32 +115,165 @@ namespace ILGPU.Backends
             /// <returns>
             /// An enumerator to enumerate all entries in this collection.
             /// </returns>
-            public Enumerator GetEnumerator() => new Enumerator(this);
-
-            /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<(Value, PhiValue)>
-                IEnumerable<(Value, PhiValue)>.GetEnumerator() => GetEnumerator();
-
-            /// <summary cref="IEnumerable.GetEnumerator"/>
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+            public readonly Enumerator GetEnumerator() => new Enumerator(blockInfo);
 
             #endregion
         }
 
         /// <summary>
+        /// Represents a readonly list of phi entries.
+        /// </summary>
+        public readonly struct PhiBindingCollection
+        {
+            #region Nested Types
+
+            /// <summary>
+            /// An enumerator to enumerate all entries in this collection.
+            /// </summary>
+            public struct Enumerator : IEnumerator<(PhiValue Phi, Value Value)>
+            {
+                private List<(PhiValue, Value)>.Enumerator enumerator;
+
+                /// <summary>
+                /// Constructs a new entry enumerator.
+                /// </summary>
+                /// <param name="collection">The parent collection.</param>
+                internal Enumerator(in PhiBindingCollection collection)
+                {
+                    enumerator = collection.blockInfo.Bindings.GetEnumerator();
+                }
+
+                /// <summary cref="IEnumerator{T}.Current"/>
+                public (PhiValue Phi, Value Value) Current => enumerator.Current;
+
+                /// <summary cref="IEnumerator.Current"/>
+                object IEnumerator.Current => Current;
+
+                /// <summary cref="IDisposable.Dispose"/>
+                void IDisposable.Dispose() { }
+
+                /// <summary cref="IEnumerator.MoveNext"/>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public bool MoveNext() => enumerator.MoveNext();
+
+                /// <summary cref="IEnumerator.Reset"/>
+                void IEnumerator.Reset() => throw new InvalidOperationException();
+            }
+
+            #endregion
+
+            #region Instance
+
+            private readonly BlockInfo blockInfo;
+
+            /// <summary>
+            /// Constructs a new binding collection.
+            /// </summary>
+            /// <param name="info">The phi information per block.</param>
+            internal PhiBindingCollection(in BlockInfo info)
+            {
+                blockInfo = info;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns all intermediate phi values that must be assigned to temporaries.
+            /// </summary>
+            public readonly IntermediatePhiCollection Intermediates =>
+                new IntermediatePhiCollection(blockInfo);
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns true if the given phi is an intermediate phi value that requires
+            /// a temporary intermediate variable to be assigned to.
+            /// </summary>
+            /// <param name="phi">The phi value to test.</param>
+            public readonly bool IsIntermediate(PhiValue phi) =>
+                blockInfo.IntermediatePhis.Contains(phi);
+
+            /// <summary>
+            /// Returns an enumerator to enumerate all entries in this collection.
+            /// </summary>
+            /// <returns>
+            /// An enumerator to enumerate all entries in this collection.
+            /// </returns>
+            public readonly Enumerator GetEnumerator() => new Enumerator(this);
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Stores <see cref="PhiValue"/> information per block.
+        /// </summary>
+        internal readonly struct BlockInfo
+        {
+            /// <summary>
+            /// Constructs a new information object.
+            /// </summary>
+            /// <param name="capacity">
+            /// The initial capacity of the internal data structures.
+            /// </param>
+            public BlockInfo(int capacity)
+            {
+#if NET5_0 || NETSTANDARD2_1_OR_GREATER
+                LHSPhis = new HashSet<PhiValue>(capacity);
+                IntermediatePhis = new HashSet<PhiValue>(capacity);
+#else
+                LHSPhis = new HashSet<PhiValue>();
+                IntermediatePhis = new HashSet<PhiValue>();
+#endif
+                Bindings = new List<(PhiValue, Value)>(capacity);
+            }
+
+            /// <summary>
+            /// The set of all phi values in this block on the left-hand side.
+            /// </summary>
+            public HashSet<PhiValue> LHSPhis { get; }
+
+            /// <summary>
+            /// The set of all phi values in this block that need to be stored into a
+            /// temporary location in order to recover their original value.
+            /// </summary>
+            public HashSet<PhiValue> IntermediatePhis { get; }
+
+            /// <summary>
+            /// The list of value phi bindings.
+            /// </summary>
+            public List<(PhiValue Phi, Value Value)> Bindings { get; }
+
+            /// <summary>
+            /// Registers a new phi binding.
+            /// </summary>
+            /// <param name="phi">The phi value it has to be bound to.</param>
+            /// <param name="value">The source value to read from.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly void Add(PhiValue phi, Value value)
+            {
+                LHSPhis.Add(phi);
+                // Check whether we are assigning the value of a phi value
+                if (value is PhiValue phiValue && LHSPhis.Contains(phiValue))
+                    IntermediatePhis.Add(phiValue);
+                Bindings.Add((phi, value));
+            }
+        }
+
+        /// <summary>
         /// Provides new intermediate list instances.
         /// </summary>
-        private readonly struct ListProvider :
-            IBasicBlockMapValueProvider<List<(Value, PhiValue)>>
+        private readonly struct InfoProvider : IBasicBlockMapValueProvider<BlockInfo>
         {
             /// <summary>
             /// Creates a new <see cref="List{T}"/> instance.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly List<(Value, PhiValue)> GetValue(
-                BasicBlock block,
-                int traversalIndex) =>
-                new List<(Value, PhiValue)>();
+            public readonly BlockInfo GetValue(BasicBlock block, int traversalIndex) =>
+                new BlockInfo(block.Count);
         }
 
         #endregion
@@ -178,7 +296,7 @@ namespace ILGPU.Backends
             where TDirection : struct, IControlFlowDirection
             where TAllocator : IPhiBindingAllocator
         {
-            var mapping = collection.CreateMap(new ListProvider());
+            var mapping = collection.CreateMap(new InfoProvider());
 
             foreach (var block in collection)
             {
@@ -199,28 +317,52 @@ namespace ILGPU.Backends
                     for (int i = 0, e = phi.Count; i < e; ++i)
                     {
                         var argumentBlock = phi.Sources[i];
-                        mapping[argumentBlock].Add((phi[i], phi));
+                        mapping[argumentBlock].Add(phi, phi[i]);
                     }
                 }
             }
 
-            return new PhiBindings(mapping);
+            // Determine the maximum number of intermediate phi values
+            int maxNumIntermediatePhis = 0;
+            foreach (var (_, info) in mapping)
+            {
+                maxNumIntermediatePhis = Math.Max(
+                    maxNumIntermediatePhis,
+                    info.IntermediatePhis.Count);
+            }
+
+            return new PhiBindings(mapping, maxNumIntermediatePhis);
         }
 
         #endregion
 
         #region Instance
 
-        private readonly BasicBlockMap<List<(Value, PhiValue)>> phiMapping;
+        private readonly BasicBlockMap<BlockInfo> phiMapping;
 
         /// <summary>
         /// Constructs new phi bindings.
         /// </summary>
         /// <param name="mapping">The phi mapping.</param>
-        private PhiBindings(in BasicBlockMap<List<(Value, PhiValue)>> mapping)
+        /// <param name="maxNumIntermediatePhis">
+        /// The maximum number of intermediate phi values.
+        /// </param>
+        private PhiBindings(
+            in BasicBlockMap<BlockInfo> mapping,
+            int maxNumIntermediatePhis)
         {
             phiMapping = mapping;
+            MaxNumIntermediatePhis = maxNumIntermediatePhis;
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the maximum number of intermediate phi values to store temporarily.
+        /// </summary>
+        public int MaxNumIntermediatePhis { get; }
 
         #endregion
 
@@ -233,12 +375,14 @@ namespace ILGPU.Backends
         /// <param name="bindings">The resolved bindings (if any)</param>
         /// <returns>True, if phi bindings could be resolved.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetBindings(BasicBlock block, out PhiBindingCollection bindings)
+        public readonly bool TryGetBindings(
+            BasicBlock block,
+            out PhiBindingCollection bindings)
         {
             bindings = default;
-            if (!phiMapping.TryGetValue(block, out var values))
+            if (!phiMapping.TryGetValue(block, out var info))
                 return false;
-            bindings = new PhiBindingCollection(values);
+            bindings = new PhiBindingCollection(info);
             return true;
         }
 
