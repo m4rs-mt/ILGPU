@@ -51,7 +51,6 @@ namespace ILGPU.Backends.OpenCL
                     // There is a specific cast operation
                     statement.AppendCommand(operation);
                     statement.BeginArguments();
-                    statement.Append(source);
                 }
                 else
                 {
