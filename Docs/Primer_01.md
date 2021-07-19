@@ -29,7 +29,7 @@ doing its own fetch, decode, execute. You can spread the algorithm across all th
 in the end each core will still be running a stream of instructions, likely the *same* stream of instructions,
 but with *different* data.
 
-GPUs and CPUs both try to exploit this fact, but use very two different methods.
+GPUs and CPUs both try and exploit this fact, but use very two different methods.
 
 ##### CPU | SIMD: Single Instruction Multiple Data.
 CPUs have a trick for parallel programs called SIMD. These are a set of instructions
@@ -85,20 +85,23 @@ interface for running parallel functions.
 using System;
 using System.Threading.Tasks;
 
-public static class Program
+namespace Primer_01
 {
-    static void Main(string[] args)
+    class Program
     {
-        //Load the data
-        int[] data = { 0, 1, 2, 4, 5, 6, 7, 8, 9 };
-        int[] output = new int[10_000];
-            
-        //Load the action and execute
-        Parallel.For(0, output.Length, 
-        (int i) =>
+        static void Main(string[] args)
         {
-            output[i] = data[i % data.Length];
-        });
+            //Load the data
+            int[] data = { 0, 1, 2, 4, 5, 6, 7, 8, 9 };
+            int[] output = new int[10_000];
+            
+            //Load the action and execute
+            Parallel.For(0, output.Length, 
+            (int i) =>
+            {
+                output[i] = data[i % data.Length];
+            });
+        }
     }
 }
 ```
@@ -108,34 +111,32 @@ using ILGPU;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 
-public static class Program
+namespace Primer_01
 {
-    static void Main()
+    class Program
     {
-        // Initialize ILGPU.
-        Context context = Context.CreateDefault();
-        Accelerator accelerator = context.CreateCPUAccelerator(0);
-
-        // Load the data.
-        var deviceData = accelerator.Allocate1D(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
-        var deviceOutput = accelerator.Allocate1D<int>(10_000);
-
-        // load / compile the kernel
-        var loadedKernel = accelerator.LoadAutoGroupedStreamKernel(
-        (Index1D i, ArrayView<int> data, ArrayView<int> output) =>
+        static void Main()
         {
-            output[i] = data[i % data.Length];
-        });
+            Context context = new Context();
+            Accelerator accelerator = accelerator = new CPUAccelerator(context);
 
-        // tell the accelerator to start computing the kernel
-        loadedKernel((int)deviceOutput.Length, deviceData.View, deviceOutput.View);
+            //Load the data.
+            var deviceData = accelerator.Allocate(new int[] { 0, 1, 2, 4, 5, 6, 7, 8, 9 });
+            var deviceOutput = accelerator.Allocate<int>(10_000);
+            
+            // load the kernel and execute.
+            var loadedKernel = accelerator.LoadAutoGroupedStreamKernel(
+            (Index1 i, ArrayView<int> data, ArrayView<int> output) =>
+            {
+                output[i] = data[i % data.Length];
+            });
+            loadedKernel(deviceOutput.Length, deviceData, deviceOutput);
 
-        // wait for the accelerator to be finished with whatever it's doing
-        // in this case it just waits for the kernel to finish.
-        accelerator.Synchronize();
+            accelerator.Synchronize();
 
-        accelerator.Dispose();
-        context.Dispose();
+            accelerator.Dispose();
+            context.Dispose();
+        }
     }
 }
 ```

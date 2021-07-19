@@ -7,8 +7,6 @@ CUDA / OpenCL with the ease of use of C#.
 
 # Setting up ILGPU.
 
-This tutorial is a little different now because we are going to be looking at the ILGPU 1.0.0 beta.
-
 ILGPU should work on any 64bit platform that .Net supports. I have even used it on the inexpensive nvidia jetson nano with pretty decent cuda performance. 
 
 Technically ILGPU supports F# but I don't use F# enough to really tutorialize it. I will be sticking to C# in these tutorials.
@@ -17,11 +15,11 @@ Technically ILGPU supports F# but I don't use F# enough to really tutorialize it
 
 If enough people care I can record a short video of this process, but I expect this will be enough for most programmers.
 
-1. Install the most recent [.Net SDK](https://dotnet.microsoft.com/download/visual-studio-sdks) for your chosen platform.
+1. Install the most recent [.Net SDK](https://dotnet.microsoft.com/download/visual-studio-sdks) for your chosen platform and/or [Visual Studio](https://visualstudio.microsoft.com/) on Windows.
 2. Create a new C# project.
 ![dotnet new console](Images/newProject.png?raw=true)
-3. Add the ILGPU package
-![dotnet add ILGPU](Images/beta.png?raw=true)
+3. Add the ILGPU and the ILGPU.Algorithms nuget packages.
+![dotnet add ILGPU](Images/addILGPU.png?raw=true)
 4. ??????
 5. Profit
 
