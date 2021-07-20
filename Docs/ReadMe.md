@@ -1,13 +1,3 @@
-# This is a transitional period.
-
-We are currently in the process of creating new documentation. This should be an awesome update that will hopefully 
-be beginner friendly while still short enough that GPGPU experts will not get bored.
-
-During this transitional period all old documentation will be available still. You can find it [here](Old-Home.md)
-or at the bottom of this page under the table of contents for the new tutorial.
-
-The following is the table of contents for the new tutorial:
-
 # ILGPU Tutorials
 
 ## Primers (How a GPU works)
@@ -56,16 +46,9 @@ Well at least I think. This is where I will put ILGPUView bitmap shader things I
 3. Other things I see on shadertoy
 
 
-# Old Table of Contents
-This is the old Table of Contents:
+# Advanced Resources
 
 #### Overview
-
-[Home](Old-Home.md)
-
-[Getting Started](Getting-Started.md)
-
-[Accelerators & Streams](Accelerators-and-Streams.md)
 
 [MemoryBuffers & Views](Memory-Buffers-and-Views.md)
 
@@ -75,14 +58,11 @@ This is the old Table of Contents:
 
 [Math Functions](Math-Functions.md)
 
-#### Advanced
-
 [Dynamically Specialized Kernels](Dynamically-Specialized-Kernels.md)
 
 [Debugging & Profiling](Debugging-and-Profiling.md)
 
 [Inside ILGPU](Inside-ILGPU.md)
-
 
 #### Upgrade Guides
 
