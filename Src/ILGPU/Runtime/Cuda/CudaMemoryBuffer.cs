@@ -116,11 +116,18 @@ namespace ILGPU.Runtime.Cuda
             int elementSize)
             : base(accelerator, length, elementSize)
         {
-            CudaException.ThrowIfFailed(
-                CurrentAPI.AllocateMemory(
-                    out IntPtr resultPtr,
-                    new IntPtr(LengthInBytes)));
-            NativePtr = resultPtr;
+            if (LengthInBytes == 0)
+            {
+                NativePtr = IntPtr.Zero;
+            }
+            else
+            {
+                CudaException.ThrowIfFailed(
+                    CurrentAPI.AllocateMemory(
+                        out IntPtr resultPtr,
+                        new IntPtr(LengthInBytes)));
+                NativePtr = resultPtr;
+            }
         }
 
         #endregion
