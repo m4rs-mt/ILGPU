@@ -1,4 +1,6 @@
 ﻿using ILGPU.Runtime;
+using ILGPU.Util;
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -542,6 +544,72 @@ namespace ILGPU.Tests
 
             var expected = Enumerable.Repeat(13, Length).ToArray();
             Verify(source.View, expected);
+        }
+
+        private static void LoopViewSwap_Kernel(
+            Index1D index,
+            ArrayView1D<(int, int), Stride1D.Dense> target1,
+            ArrayView1D<(int, int), Stride1D.Dense> target2,
+            ArrayView1D<int, Stride1D.Dense> source1,
+            ArrayView1D<int, Stride1D.Dense> source2,
+            int numIterations)
+        {
+            var view1 = source1;
+            var view2 = source2;
+
+            for (int i = 0; i < numIterations; ++i)
+                Utilities.Swap(ref view1, ref view2);
+            target1[index] = (view1[0], view2[0]);
+
+            view1 = source1;
+            view2 = source2;
+            for (int i = 1; i < numIterations; ++i)
+            {
+                var t = view1;
+                view1 = view2;
+                view2 = t;
+            }
+            target2[index] = (view1[0], view2[0]);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(7)]
+        [InlineData(10)]
+        [KernelMethod(nameof(LoopViewSwap_Kernel))]
+        public void LoopViewSwap(int numIterations)
+        {
+            using var target1 = Accelerator.Allocate1D<(int, int)>(Length);
+            using var target2 = Accelerator.Allocate1D<(int, int)>(Length);
+            var expected = new int[] { int.MinValue, int.MaxValue };
+            var expected2 = new int[expected.Length];
+            expected.CopyTo(expected2, 0);
+            using var source = Accelerator.Allocate1D(expected);
+            target1.MemSetToZero();
+            target2.MemSetToZero();
+            Accelerator.Synchronize();
+
+            Execute(
+                Length,
+                target1.View,
+                target2.View,
+                source.View.SubView(0, 1),
+                source.View.SubView(1, 1),
+                numIterations);
+
+            for (int i = 0; i < numIterations; ++i)
+                Utilities.Swap(ref expected[0], ref expected[1]);
+            var expectedData = Enumerable.Repeat(
+                (expected[0], expected[1]), Length).ToArray();
+            Verify(target1.View, expectedData);
+
+            for (int i = 1; i < numIterations; ++i)
+                Utilities.Swap(ref expected2[0], ref expected2[1]);
+            var expectedData2 = Enumerable.Repeat(
+                (expected2[0], expected2[1]), Length).ToArray();
+            Verify(target2.View, expectedData2);
         }
     }
 }

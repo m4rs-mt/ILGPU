@@ -562,7 +562,7 @@ namespace ILGPU.Backends
         public void Free(Value node)
         {
             node.AssertNotNull(node);
-            FreeRecursive(registerLookup[node].Register);
+            Free(registerLookup[node].Register);
             registerLookup.Remove(node);
         }
 
@@ -570,7 +570,7 @@ namespace ILGPU.Backends
         /// Frees the given register recursively.
         /// </summary>
         /// <param name="register">The register to free.</param>
-        private void FreeRecursive(Register register)
+        public void Free(Register register)
         {
             switch (register)
             {
@@ -579,7 +579,7 @@ namespace ILGPU.Backends
                     break;
                 case CompoundRegister compoundRegister:
                     foreach (var child in compoundRegister.Children)
-                        FreeRecursive(child);
+                        Free(child);
                     break;
             }
         }
