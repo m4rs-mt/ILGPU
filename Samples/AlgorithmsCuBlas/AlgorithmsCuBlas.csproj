@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Src\ILGPU\ILGPU.csproj" />>
+    <ProjectReference Include="..\Src\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
+  </ItemGroup>
+</Project>

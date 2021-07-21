@@ -1,0 +1,64 @@
+﻿[*.cs]
+
+###############################
+# .NET Coding Conventions     #
+###############################
+
+# Organize usings
+dotnet_separate_import_directive_groups = false
+dotnet_sort_system_directives_first = false
+
+###############################
+# C# Formatting Rules         #
+###############################
+
+# Indentation preferences
+csharp_indent_block_contents = true
+csharp_indent_braces = false
+csharp_indent_case_contents = true
+csharp_indent_case_contents_when_block = true
+csharp_indent_labels = no_change
+csharp_indent_switch_labels = true
+
+###############################
+# Naming Conventions          #
+###############################
+
+# Naming rules
+
+dotnet_naming_rule.types_should_be_pascal_case.severity = silent
+dotnet_naming_rule.types_should_be_pascal_case.symbols = types
+dotnet_naming_rule.types_should_be_pascal_case.style = pascal_case
+
+dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = silent
+dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
+dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
+
+dotnet_naming_rule.private_or_internal_field_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.private_or_internal_field_should_be_camel_case.symbols = private_or_internal_field
+dotnet_naming_rule.private_or_internal_field_should_be_camel_case.style = camel_case
+
+# Naming styles
+
+dotnet_naming_style.pascal_case.required_prefix = 
+dotnet_naming_style.pascal_case.required_suffix = 
+dotnet_naming_style.pascal_case.word_separator = 
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.camel_case.required_prefix = 
+dotnet_naming_style.camel_case.required_suffix = 
+dotnet_naming_style.camel_case.word_separator = 
+dotnet_naming_style.camel_case.capitalization = camel_case
+
+###############################
+# Code Analysis               #
+###############################
+
+# CA1303: Do not pass literals as localized parameters
+dotnet_diagnostic.CA1303.severity = none
+
+# CA1814: Prefer jagged arrays over multidimensional
+dotnet_diagnostic.CA1814.severity = none
+
+# CA1815: Override equals and operator equals on value types
+dotnet_diagnostic.CA1815.severity = none
