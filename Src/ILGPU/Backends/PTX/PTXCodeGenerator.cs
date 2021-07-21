@@ -514,6 +514,8 @@ namespace ILGPU.Backends.PTX
             // Find all phi nodes, allocate target registers and setup internal mapping
             var phiBindings = Schedule.ComputePhiBindings(
                 new PhiBindingAllocator(this));
+            var intermediatePhiRegisters = new Dictionary<Value, Register>(
+                phiBindings.MaxNumIntermediatePhis);
             Builder.AppendLine();
 
             // Generate code
@@ -551,18 +553,44 @@ namespace ILGPU.Backends.PTX
                 // Wire phi nodes
                 if (phiBindings.TryGetBindings(block, out var bindings))
                 {
-                    foreach (var (value, phiValue) in bindings)
+                    // Assign all phi values
+                    foreach (var (phiValue, value) in bindings)
                     {
+                        // Load the current phi target register
                         var phiTargetRegister = Load(phiValue);
-                        var sourceRegister = Load(value);
 
-                        // Prepare move
+                        // Check for an intermediate phi value
+                        if (bindings.IsIntermediate(phiValue))
+                        {
+                            var intermediateRegister = AllocateType(phiValue.Type);
+                            intermediatePhiRegisters.Add(phiValue, intermediateRegister);
+
+                            // Move this phi value into a temporary register for reuse
+                            EmitComplexCommand(
+                                PTXInstructions.MoveOperation,
+                                new PhiMoveEmitter(),
+                                intermediateRegister,
+                                phiTargetRegister);
+                        }
+
+                        // Determine the source value from which we need to copy from
+                        var sourceRegister = intermediatePhiRegisters
+                            .TryGetValue(value, out var tempRegister)
+                            ? tempRegister
+                            : Load(value);
+
+                        // Move contents
                         EmitComplexCommand(
                             PTXInstructions.MoveOperation,
                             new PhiMoveEmitter(),
                             phiTargetRegister,
                             sourceRegister);
                     }
+
+                    // Free temporary registers
+                    foreach (var register in intermediatePhiRegisters.Values)
+                        Free(register);
+                    intermediatePhiRegisters.Clear();
                 }
 
                 // Build terminator
@@ -990,7 +1018,7 @@ namespace ILGPU.Backends.PTX
             foreach (var (alloca, valueReference) in allocations)
             {
                 // Allocate a type-specific target register holding the pointer.
-                // Note that this pointer will direclty point to either the local or
+                // Note that this pointer will directly point to either the local or
                 // the shared address space and does not need to be converted.
                 var targetRegister = AllocateHardware(alloca);
                 using var command = BeginMove();

@@ -494,6 +494,8 @@ namespace ILGPU.Backends.OpenCL
             // Find all phi nodes, allocate target registers and setup internal mapping
             var bindingAllocator = new PhiBindingAllocator(this, blocks);
             var phiBindings = PhiBindings.Create(blocks, bindingAllocator);
+            var intermediatePhiVariables = new Dictionary<Value, Variable>(
+                phiBindings.MaxNumIntermediatePhis);
 
             // Generate code
             foreach (var block in blocks)
@@ -528,12 +530,31 @@ namespace ILGPU.Backends.OpenCL
                 // Wire phi nodes
                 if (phiBindings.TryGetBindings(block, out var bindings))
                 {
-                    foreach (var (value, phiValue) in bindings)
+                    // Assign all temporaries
+                    foreach (var (phiValue, value) in bindings)
                     {
-                        var phiTargetRegister = Load(phiValue);
-                        var sourceRegister = Load(value);
+                        // Load the current phi target variable
+                        var phiTargetVariable = Load(phiValue);
 
-                        Move(phiTargetRegister, sourceRegister);
+                        // Check for an intermediate phi value
+                        if (bindings.IsIntermediate(phiValue))
+                        {
+                            var intermediateVariable = AllocateType(phiValue.Type);
+                            intermediatePhiVariables.Add(phiValue, intermediateVariable);
+
+                            // Move this phi value into a temporary variable for reuse
+                            Declare(intermediateVariable);
+                            Move(intermediateVariable, phiTargetVariable);
+                        }
+
+                        // Determine the source value from which we need to copy from
+                        var sourceVariable = intermediatePhiVariables
+                            .TryGetValue(value, out var tempVariable)
+                            ? tempVariable
+                            : Load(value);
+
+                        // Move contents
+                        Move(phiTargetVariable, sourceVariable);
                     }
                 }
 

@@ -17,6 +17,10 @@ The ILGPU Algorithms library meets these requirements by offering a set of auxil
 All algorithms can be run on all supported accelerator types.
 The CPU accelerator support is especially useful for kernel debugging.
 
+# ILGPU Samples
+
+The sample projects demonstrate the basic usage of ILGPU to help you get started with high performance GPU programming.
+
 # Build Instructions
 
 ILGPU requires Visual Studio 2019 (Community edition or higher).
