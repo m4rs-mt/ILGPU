@@ -250,31 +250,29 @@ namespace ILGPU.IR.Construction
                                         location,
                                         Convert.ToDouble(value.Int64Value));
                             default:
-                                if (!isSourceUnsigned && !isTargetUnsigned)
+                                var rawValue = value.BasicValueType switch
                                 {
-                                    switch (value.BasicValueType)
-                                    {
-                                        case BasicValueType.Int8:
-                                            return CreatePrimitiveValue(
-                                                location,
-                                                targetBasicValueType,
-                                                value.Int8Value);
-                                        case BasicValueType.Int16:
-                                            return CreatePrimitiveValue(
-                                                location,
-                                                targetBasicValueType,
-                                                value.Int16Value);
-                                        case BasicValueType.Int32:
-                                            return CreatePrimitiveValue(
-                                                location,
-                                                targetBasicValueType,
-                                                value.Int32Value);
-                                    }
-                                }
+                                    BasicValueType.Int8 => isSourceUnsigned
+                                        ? (long)value.UInt8Value
+                                        : value.Int8Value,
+                                    BasicValueType.Int16 => isSourceUnsigned
+                                        ? (long)value.UInt16Value
+                                        : value.Int16Value,
+                                    BasicValueType.Int32 => isSourceUnsigned
+                                        ? (long)value.UInt32Value
+                                        : value.Int32Value,
+                                    BasicValueType.Int64 => isSourceUnsigned
+                                        ? (long)value.UInt64Value
+                                        : value.Int64Value,
+                                    _ => throw location.GetNotSupportedException(
+                                        ErrorMessages.NotSupportedConversion,
+                                        value.BasicValueType,
+                                        targetBasicValueType)
+                                };
                                 return CreatePrimitiveValue(
                                     location,
                                     targetBasicValueType,
-                                    value.RawValue);
+                                    rawValue);
                         }
                     case BasicValueType.Float16:
                         switch (targetBasicValueType)
