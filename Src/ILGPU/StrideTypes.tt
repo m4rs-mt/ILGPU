@@ -383,8 +383,15 @@ namespace ILGPU
         public static int ComputeBufferLength<TStride>(
             this TStride stride,
             <#= indexName #> extent)
-            where TStride : <#= strideName #> =>
-            stride.ComputeElementIndex(extent - <#= indexName #>.One) + 1;
+            where TStride : <#= strideName #> {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+            if (extent.<#= iName #> == 0) {
+                return 0;
+            }
+<#      } #>
+            return stride.ComputeElementIndex(extent - <#= indexName #>.One) + 1;
+        }
 
         /// <summary>
         /// Computes the 64-bit length of a required allocation.
@@ -396,8 +403,16 @@ namespace ILGPU
         public static long ComputeBufferLength<TStride>(
             this TStride stride,
             <#= longIndexName #> extent)
-            where TStride : <#= strideName #> =>
-            stride.ComputeElementIndex(extent - <#= longIndexName #>.One) + 1L;
+            where TStride : <#= strideName #> {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+            if (extent.<#= iName #> == 0L) {
+                return 0L;
+            }
+<#      } #>
+            return stride.ComputeElementIndex(extent - <#= longIndexName #>.One) + 1L;
+        }
+
     }
 
 <#  } #>

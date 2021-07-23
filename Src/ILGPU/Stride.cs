@@ -318,8 +318,14 @@ namespace ILGPU
             /// <param name="extent">The extent to allocate.</param>
             /// <returns>The 32-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeBufferLength(Index2D extent) =>
-                ComputeElementIndex(extent - Index2D.One) + 1;
+            public readonly int ComputeBufferLength(Index2D extent)
+            {
+                if (extent.X == 0 || extent.Y == 0)
+                {
+                    return 0;
+                }
+                return ComputeElementIndex(extent - Index2D.One) + 1;
+            }
 
             /// <summary>
             /// Computes the 64-bit length of a required allocation.
@@ -327,8 +333,14 @@ namespace ILGPU
             /// <param name="extent">The extent to allocate.</param>
             /// <returns>The 64-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeBufferLength(LongIndex2D extent) =>
-                ComputeElementIndex(extent - LongIndex2D.One) + 1L;
+            public readonly long ComputeBufferLength(LongIndex2D extent)
+            {
+                if (extent.X == 0 || extent.Y == 0)
+                {
+                    return 0;
+                }
+                return ComputeElementIndex(extent - LongIndex2D.One) + 1L;
+            }
 
             /// <summary>
             /// Computes a new extent and stride based on the given cast context.
@@ -445,8 +457,14 @@ namespace ILGPU
             /// <returns>The 32-bit length of a required allocation.</returns>
             /// <remarks>This method is not supported on accelerators.</remarks>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeBufferLength(Index2D extent) =>
-                Stride2D.ComputeBufferLength(this, extent);
+            public readonly int ComputeBufferLength(Index2D extent)
+            {
+                if (extent.X == 0 || extent.Y == 0)
+                {
+                    return 0;
+                }
+                return Stride2D.ComputeBufferLength(this, extent);
+            }
 
             /// <summary>
             /// Computes the 64-bit length of a required allocation.
@@ -455,8 +473,15 @@ namespace ILGPU
             /// <returns>The 64-bit length of a required allocation.</returns>
             /// <remarks>This method is not supported on accelerators.</remarks>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeBufferLength(LongIndex2D extent) =>
-                Stride2D.ComputeBufferLength(this, extent);
+            public readonly long ComputeBufferLength(LongIndex2D extent)
+            {
+                if (extent.X == 0 || extent.Y == 0)
+                {
+                    return 0;
+                }
+
+                return Stride2D.ComputeBufferLength(this, extent);
+            }
 
             /// <summary>
             /// Computes a new extent and stride based on the given cast context.
@@ -586,8 +611,14 @@ namespace ILGPU
             /// <returns>The 3264-bit length of a required allocation.</returns>
             /// <remarks>This method is not supported on accelerators.</remarks>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeBufferLength(Index3D extent) =>
-                Stride3D.ComputeBufferLength(this, extent);
+            public readonly int ComputeBufferLength(Index3D extent)
+            {
+                if (extent.X == 0 || extent.Y == 0 || extent.Z == 0)
+                {
+                    return 0;
+                }
+                return Stride3D.ComputeBufferLength(this, extent);
+            }
 
             /// <summary>
             /// Computes the 64-bit length of a required allocation.
@@ -596,8 +627,15 @@ namespace ILGPU
             /// <returns>The 64-bit length of a required allocation.</returns>
             /// <remarks>This method is not supported on accelerators.</remarks>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeBufferLength(LongIndex3D extent) =>
-                Stride3D.ComputeBufferLength(this, extent);
+            public readonly long ComputeBufferLength(LongIndex3D extent)
+            {
+                if (extent.X == 0 || extent.Y == 0 || extent.Z == 0)
+                {
+                    return 0;
+                }
+
+                return Stride3D.ComputeBufferLength(this, extent);
+            }
 
             /// <summary>
             /// Computes a new extent and stride based on the given cast context.
@@ -725,8 +763,14 @@ namespace ILGPU
             /// <returns>The 32-bit length of a required allocation.</returns>
             /// <remarks>This method is not supported on accelerators.</remarks>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeBufferLength(Index3D extent) =>
-                Stride3D.ComputeBufferLength(this, extent);
+            public readonly int ComputeBufferLength(Index3D extent)
+            {
+                if (extent.X == 0 || extent.Y == 0 || extent.Z == 0)
+                {
+                    return 0;
+                }
+                return Stride3D.ComputeBufferLength(this, extent);
+            }
 
             /// <summary>
             /// Computes the 64-bit length of a required allocation.
@@ -735,8 +779,14 @@ namespace ILGPU
             /// <returns>The 64-bit length of a required allocation.</returns>
             /// <remarks>This method is not supported on accelerators.</remarks>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeBufferLength(LongIndex3D extent) =>
-                Stride3D.ComputeBufferLength(this, extent);
+            public readonly long ComputeBufferLength(LongIndex3D extent)
+            {
+                if (extent.X == 0 || extent.Y == 0 || extent.Z == 0)
+                {
+                    return 0;
+                }
+                return Stride3D.ComputeBufferLength(this, extent);
+            }
 
             /// <summary>
             /// Computes a new extent and stride based on the given cast context.
