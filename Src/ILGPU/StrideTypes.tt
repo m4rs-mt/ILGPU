@@ -298,7 +298,7 @@ namespace ILGPU
             /// Computes the 32-bit length of a required allocation.
             /// </summary>
             /// <param name="extent">The extent to allocate.</param>
-            /// <returns>The 3264-bit length of a required allocation.</returns>
+            /// <returns>The 32-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly int ComputeBufferLength(<#= indexName #> extent) =>
                 <#= className #>.ComputeBufferLength(this, extent);
@@ -378,7 +378,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="stride">The stride to use.</param>
         /// <param name="extent">The extent to allocate.</param>
-        /// <returns>The 3264-bit length of a required allocation.</returns>
+        /// <returns>The 32-bit length of a required allocation.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ComputeBufferLength<TStride>(
             this TStride stride,
