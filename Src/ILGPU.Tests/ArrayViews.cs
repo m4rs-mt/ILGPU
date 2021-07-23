@@ -234,9 +234,16 @@ namespace ILGPU.Tests
         public void ArrayViewZeroLengthSubview1d()
         {
             using var buffer = Accelerator.Allocate1D<int>(128);
-            var zero = buffer.View.SubView(64, 0);
-            Assert.Equal(0, zero.Length);
-            Assert.Equal(0, zero.LengthInBytes);
+
+            var subView1 = buffer.View.SubView(64, 0);
+            Assert.Equal(0, subView1.Length);
+            Assert.Equal(0, subView1.LengthInBytes);
+            Assert.Equal(0, subView1.Extent.X);
+
+            var subView2 = buffer.View.AsGeneral().SubView(64, 0);
+            Assert.Equal(0, subView2.Length);
+            Assert.Equal(0, subView2.LengthInBytes);
+            Assert.Equal(0, subView2.Extent.X);
         }
 
         [Fact]
