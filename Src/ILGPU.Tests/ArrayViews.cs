@@ -230,6 +230,75 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
+        [Fact]
+        public void ArrayViewZeroLengthSubview1d()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(128);
+            var zero = buffer.View.SubView(64, 0);
+            Assert.Equal(0, zero.Length);
+            Assert.Equal(0, zero.LengthInBytes);
+        }
+
+        [Fact]
+        public void ArrayViewZeroLengthSubview2d()
+        {
+            void Check<TStride>(ArrayView2D<int, TStride> view) where TStride : struct, IStride2D
+            {
+                var extents = new[]
+                {
+                    new Index2D(0, 2),
+                    new Index2D(2, 0),
+                };
+
+                foreach (var extent in extents)
+                {
+                    var subView = view.SubView((4, 4), extent);
+                    Assert.Equal(0, subView.Length);
+                    Assert.Equal(0, subView.LengthInBytes);
+                    Assert.Equal(extent.X, subView.Extent.X);
+                    Assert.Equal(extent.Y, subView.Extent.Y);
+                }
+            }
+
+            using var buff1 = Accelerator.Allocate2DDenseY<int>((10, 10));
+            using var buff2 = Accelerator.Allocate2DDenseX<int>((10, 10));
+            Check<Stride2D.DenseY>(buff1.View);
+            Check<Stride2D.General>(buff1.View.AsGeneral());
+            Check<Stride2D.DenseX>(buff2.View);
+            Check<Stride2D.General>(buff2.View.AsGeneral());
+        }
+
+        [Fact]
+        public void ArrayViewZeroLengthSubview3d()
+        {
+            void Check<TStride>(ArrayView3D<int, TStride> view) where TStride : struct, IStride3D
+            {
+                var extents = new[]
+                {
+                    new Index3D(0, 2, 2),
+                    new Index3D(2, 0, 2),
+                    new Index3D(2, 2, 0),
+                };
+
+                foreach (var extent in extents)
+                {
+                    var subView = view.SubView((4, 4, 4), extent);
+                    Assert.Equal(0, subView.Length);
+                    Assert.Equal(0, subView.LengthInBytes);
+                    Assert.Equal(extent.X, subView.Extent.X);
+                    Assert.Equal(extent.Y, subView.Extent.Y);
+                    Assert.Equal(extent.Z, subView.Extent.Z);
+                }
+            }
+
+            using var buff1 = Accelerator.Allocate3DDenseXY<int>((10, 10, 10));
+            using var buff2 = Accelerator.Allocate3DDenseZY<int>((10, 10, 10));
+            Check<Stride3D.DenseXY>(buff1.View);
+            Check<Stride3D.General>(buff1.View.AsGeneral());
+            Check<Stride3D.DenseZY>(buff2.View);
+            Check<Stride3D.General>(buff2.View.AsGeneral());
+        }
+
         internal static void ArrayViewGetSubViewKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data,
