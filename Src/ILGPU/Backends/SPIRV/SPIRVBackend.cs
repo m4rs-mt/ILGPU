@@ -80,12 +80,14 @@ namespace ILGPU.Backends.SPIRV
                 schema
             );
 
-            var allocator = new SPIRVIdAllocator();
-            var typeGenerator = new SPIRVTypeGenerator(allocator);
+            var provider = new ConcurrentIdProvider();
+            var allocator = new SPIRVIdAllocator(provider);
+            var typeGenerator = new SPIRVTypeGenerator(provider);
 
             data = new SPIRVCodeGenerator.GeneratorArgs(
                 this,
                 entryPoint,
+                provider,
                 allocator,
                 builder,
                 typeGenerator,
@@ -120,7 +122,7 @@ namespace ILGPU.Backends.SPIRV
                 _ => new BinarySPIRVBuilder()
             };
 
-            data.TypeGenerator.GenerateTypes(typeBuilder);
+            data.GeneralTypeGenerator.GenerateTypes(typeBuilder);
 
             // Merge main builder into type builder so the types stay at the start
             typeBuilder.Merge(builder);

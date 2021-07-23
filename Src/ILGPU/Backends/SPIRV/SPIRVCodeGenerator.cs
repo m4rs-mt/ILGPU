@@ -1,6 +1,8 @@
 ﻿using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ILGPU.Backends.SPIRV
 {
@@ -28,6 +30,7 @@ namespace ILGPU.Backends.SPIRV
             internal GeneratorArgs(
                 SPIRVBackend backend,
                 EntryPoint entryPoint,
+                ConcurrentIdProvider provider,
                 SPIRVIdAllocator allocator,
                 ISPIRVBuilder builder,
                 SPIRVTypeGenerator generator,
@@ -37,8 +40,9 @@ namespace ILGPU.Backends.SPIRV
                 Backend = backend;
                 EntryPoint = entryPoint;
                 Builder = builder;
+                IdProvider = provider;
                 IdAllocator = allocator;
-                TypeGenerator = generator;
+                GeneralTypeGenerator = generator;
                 SharedAllocations = sharedAllocations;
                 DynamicSharedAllocations = dynamicSharedAllocations;
             }
@@ -54,6 +58,11 @@ namespace ILGPU.Backends.SPIRV
             public EntryPoint EntryPoint { get; }
 
             /// <summary>
+            /// Returns the id provider to use
+            /// </summary>
+            public ConcurrentIdProvider IdProvider { get; }
+
+            /// <summary>
             /// Returns the id allocator to use
             /// </summary>
             public SPIRVIdAllocator IdAllocator { get; }
@@ -61,7 +70,7 @@ namespace ILGPU.Backends.SPIRV
             /// <summary>
             /// Returns the type generator to use
             /// </summary>
-            public SPIRVTypeGenerator TypeGenerator { get; }
+            public SPIRVTypeGenerator GeneralTypeGenerator { get; }
 
             /// <summary>
             /// Returns the type of SPIRV builder this generator will use.
@@ -92,11 +101,14 @@ namespace ILGPU.Backends.SPIRV
         internal SPIRVCodeGenerator(in GeneratorArgs args, Method method, Allocas allocas)
         {
             Builder = args.Builder;
+            IdProvider = args.IdProvider;
             IdAllocator = args.IdAllocator;
-            TypeGenerator = args.TypeGenerator;
+            GeneralTypeGenerator = args.GeneralTypeGenerator;
             Method = method;
             Allocas = allocas;
         }
+
+        private Dictionary<BasicBlock, uint> _labels = new Dictionary<BasicBlock, uint>();
 
         #endregion
 
@@ -108,6 +120,11 @@ namespace ILGPU.Backends.SPIRV
         public ISPIRVBuilder Builder { get; }
 
         /// <summary>
+        /// Returns the id provider to use
+        /// </summary>
+        public ConcurrentIdProvider IdProvider { get; }
+
+        /// <summary>
         /// Returns the associated id allocator
         /// </summary>
         public SPIRVIdAllocator IdAllocator { get; }
@@ -115,7 +132,7 @@ namespace ILGPU.Backends.SPIRV
         /// <summary>
         /// Returns the associated type generator.
         /// </summary>
-        public SPIRVTypeGenerator TypeGenerator { get; }
+        public SPIRVTypeGenerator GeneralTypeGenerator { get; }
 
         /// <summary>
         /// Returns the associated method.
@@ -142,20 +159,20 @@ namespace ILGPU.Backends.SPIRV
         public abstract void GenerateCode();
 
         /// <summary>
-        /// Generates code for generic blocks
+        /// Generates code for generic blocks.
         /// </summary>
-        /// <remarks>This is for use by classes like the SPIRVFunctionGenerator</remarks>
+        /// <remarks>
+        /// This is for use by classes like the <see cref="SPIRVFunctionGenerator"/>.
+        /// </remarks>
         protected void GenerateGeneralCode()
         {
-            // "Allocate" (store in allocator) all the blocks
-            var blocks = Method.Blocks;
-            foreach (var block in blocks)
-                IdAllocator.Allocate(block);
+            var blocksWithIds = Method.Blocks.Select(b => (b, IdProvider.Next()));
 
             // Generate code
-            foreach (var block in blocks)
+            foreach (var (block, id) in blocksWithIds)
             {
-                Builder.GenerateOpLabel(IdAllocator.Load(block));
+                _labels.Add(block, id);
+                Builder.GenerateOpLabel(id);
 
                 foreach (var value in block)
                 {

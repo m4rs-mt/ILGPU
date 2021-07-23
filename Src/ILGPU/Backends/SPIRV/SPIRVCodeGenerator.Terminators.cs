@@ -20,15 +20,15 @@ namespace ILGPU.Backends.SPIRV
 
         public void GenerateCode(UnconditionalBranch branch)
         {
-            var target = IdAllocator.Load(branch.Target);
+            var target = _labels[branch.Target];
             Builder.GenerateOpBranch(target);
         }
 
         public void GenerateCode(IfBranch branch)
         {
             var condition = IdAllocator.Load(branch.Condition);
-            var trueTarget = IdAllocator.Load(branch.TrueTarget);
-            var falseTarget = IdAllocator.Load(branch.FalseTarget);
+            var trueTarget = _labels[branch.TrueTarget];
+            var falseTarget = _labels[branch.FalseTarget];
 
             Builder.GenerateOpBranchConditional(
                 condition,
@@ -39,12 +39,12 @@ namespace ILGPU.Backends.SPIRV
         public void GenerateCode(SwitchBranch branch)
         {
             var selector = IdAllocator.Load(branch.Condition);
-            var defaultBranch = IdAllocator.Load(branch.DefaultBlock);
+            var defaultBranch = _labels[branch.DefaultBlock];
             var switchTargets = new List<PairLiteralIntegerIdRef>();
             for (int i = 0; i < branch.NumCasesWithoutDefault; i++)
             {
                 var target = branch.GetCaseTarget(i);
-                var targetVar = IdAllocator.Load(target);
+                var targetVar = _labels[target];
                 switchTargets.Add(new PairLiteralIntegerIdRef
                 {
                     base0 = (uint) i, // Case Number
