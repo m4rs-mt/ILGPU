@@ -6,12 +6,12 @@ namespace ILGPU.Backends
     /// <summary>
     /// An allocator that can assign unique IDs to values.
     /// </summary>
-    public abstract class IdAllocator
+    public abstract class IdAllocator<T>
     {
         #region Instance
 
-        private readonly Dictionary<Value, uint> lookup =
-            new Dictionary<Value, uint>();
+        private readonly Dictionary<T, uint> lookup =
+            new Dictionary<T, uint>();
 
         #endregion
 
@@ -21,7 +21,7 @@ namespace ILGPU.Backends
         /// Allocates a new variable.
         /// </summary>
         /// <returns>The allocated variable.</returns>
-        public uint Allocate(Value value)
+        public uint Allocate(T value)
         {
             if (lookup.TryGetValue(value, out uint id))
                 return id;
@@ -41,7 +41,7 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="node">The node to load.</param>
         /// <returns>The loaded variable.</returns>
-        public uint Load(Value node) =>
+        public uint Load(T node) =>
             lookup[node];
 
         #endregion

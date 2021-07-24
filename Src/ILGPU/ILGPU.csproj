@@ -159,6 +159,9 @@
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>StringSPIRVBuilder.cs</LastGenOutput>
         </None>
+        <None Update="Backends\SPIRV\BuilderCommon.ttinclude">
+          <Generator>TextTemplatingFileGenerator</Generator>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

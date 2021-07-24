@@ -31,7 +31,8 @@ namespace ILGPU.Backends.SPIRV
                 SPIRVBackend backend,
                 EntryPoint entryPoint,
                 ConcurrentIdProvider provider,
-                SPIRVIdAllocator allocator,
+                SPIRVIdAllocator<Value> valueAllocator,
+                SPIRVIdAllocator<Method> methodAllocator,
                 ISPIRVBuilder builder,
                 SPIRVTypeGenerator generator,
                 in AllocaKindInformation sharedAllocations,
@@ -41,7 +42,8 @@ namespace ILGPU.Backends.SPIRV
                 EntryPoint = entryPoint;
                 Builder = builder;
                 IdProvider = provider;
-                IdAllocator = allocator;
+                ValueAllocator = valueAllocator;
+                MethodAllocator = methodAllocator;
                 GeneralTypeGenerator = generator;
                 SharedAllocations = sharedAllocations;
                 DynamicSharedAllocations = dynamicSharedAllocations;
@@ -63,9 +65,14 @@ namespace ILGPU.Backends.SPIRV
             public ConcurrentIdProvider IdProvider { get; }
 
             /// <summary>
-            /// Returns the id allocator to use
+            /// Returns the value allocator to use
             /// </summary>
-            public SPIRVIdAllocator IdAllocator { get; }
+            public SPIRVIdAllocator<Value> ValueAllocator { get; }
+
+            /// <summary>
+            /// Returns the method allocator to use
+            /// </summary>
+            public SPIRVIdAllocator<Method> MethodAllocator { get; }
 
             /// <summary>
             /// Returns the type generator to use
@@ -102,7 +109,8 @@ namespace ILGPU.Backends.SPIRV
         {
             Builder = args.Builder;
             IdProvider = args.IdProvider;
-            IdAllocator = args.IdAllocator;
+            ValueAllocator = args.ValueAllocator;
+            MethodAllocator = args.MethodAllocator;
             GeneralTypeGenerator = args.GeneralTypeGenerator;
             Method = method;
             Allocas = allocas;
@@ -125,9 +133,14 @@ namespace ILGPU.Backends.SPIRV
         public ConcurrentIdProvider IdProvider { get; }
 
         /// <summary>
-        /// Returns the associated id allocator
+        /// Returns the value allocator to use
         /// </summary>
-        public SPIRVIdAllocator IdAllocator { get; }
+        public SPIRVIdAllocator<Value> ValueAllocator { get; }
+
+        /// <summary>
+        /// Returns the method allocator to use
+        /// </summary>
+        public SPIRVIdAllocator<Method> MethodAllocator { get; }
 
         /// <summary>
         /// Returns the associated type generator.

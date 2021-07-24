@@ -22,6 +22,7 @@ namespace ILGPU.Backends.SPIRV
         { }
 
         private uint _methodId;
+        private uint _methodTypeId;
 
         #endregion
 
@@ -30,14 +31,18 @@ namespace ILGPU.Backends.SPIRV
         /// <inheritdoc />
         public override void GenerateHeader(ISPIRVBuilder builder)
         {
-            uint methodId = IdProvider.Next();
+            // Method must be allocated here so it can be used in general generation
+            // for the kernel
+            uint methodId = MethodAllocator.Allocate(Method);
+            uint methodTypeId = IdProvider.Next();
             uint returnTypeId = GeneralTypeGenerator[Method.ReturnType];
 
             var parameters = Method.Parameters
                 .Select(x => GeneralTypeGenerator[x.ParameterType])
                 .ToArray();
 
-            builder.GenerateOpTypeFunction(methodId, returnTypeId, parameters);
+            builder.GenerateOpTypeFunction(methodTypeId, returnTypeId, parameters);
+            _methodTypeId = methodTypeId;
             _methodId = methodId;
         }
 
@@ -51,14 +56,13 @@ namespace ILGPU.Backends.SPIRV
 
         private void GenerateFunctionStart()
         {
-            var method = IdProvider.Next();
             var returnType = GeneralTypeGenerator[Method.ReturnType];
 
             var control = Method.HasFlags(MethodFlags.Inline)
                 ? FunctionControl.Inline
                 : FunctionControl.None;
 
-            Builder.GenerateOpFunction(method, returnType, control, _methodId);
+            Builder.GenerateOpFunction(_methodId, returnType, control, _methodTypeId);
         }
 
         private void GenerateFunctionEnd() => Builder.GenerateOpFunctionEnd();

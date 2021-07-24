@@ -81,14 +81,16 @@ namespace ILGPU.Backends.SPIRV
             );
 
             var provider = new ConcurrentIdProvider();
-            var allocator = new SPIRVIdAllocator(provider);
+            var valueAllocator = new SPIRVIdAllocator<Value>(provider);
+            var methodAllocator = new SPIRVIdAllocator<Method>(provider);
             var typeGenerator = new SPIRVTypeGenerator(provider);
 
             data = new SPIRVCodeGenerator.GeneratorArgs(
                 this,
                 entryPoint,
                 provider,
-                allocator,
+                valueAllocator,
+                methodAllocator,
                 builder,
                 typeGenerator,
                 backendContext.SharedAllocations,

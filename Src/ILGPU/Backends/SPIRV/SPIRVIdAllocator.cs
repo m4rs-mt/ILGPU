@@ -1,7 +1,9 @@
-﻿namespace ILGPU.Backends.SPIRV
+﻿using ILGPU.IR;
+
+namespace ILGPU.Backends.SPIRV
 {
     /// <inheritdoc />
-    public class SPIRVIdAllocator : IdAllocator
+    public class SPIRVIdAllocator<T> : IdAllocator<T> where T: Node
     {
         #region Instance
 

@@ -13,7 +13,7 @@ namespace ILGPU.Backends.SPIRV
             }
             else
             {
-                var variable = IdAllocator.Load(returnTerminator.ReturnValue);
+                var variable = ValueAllocator.Load(returnTerminator.ReturnValue);
                 Builder.GenerateOpReturnValue(variable);
             }
         }
@@ -26,7 +26,7 @@ namespace ILGPU.Backends.SPIRV
 
         public void GenerateCode(IfBranch branch)
         {
-            var condition = IdAllocator.Load(branch.Condition);
+            var condition = ValueAllocator.Load(branch.Condition);
             var trueTarget = _labels[branch.TrueTarget];
             var falseTarget = _labels[branch.FalseTarget];
 
@@ -38,7 +38,7 @@ namespace ILGPU.Backends.SPIRV
 
         public void GenerateCode(SwitchBranch branch)
         {
-            var selector = IdAllocator.Load(branch.Condition);
+            var selector = ValueAllocator.Load(branch.Condition);
             var defaultBranch = _labels[branch.DefaultBlock];
             var switchTargets = new List<PairLiteralIntegerIdRef>();
             for (int i = 0; i < branch.NumCasesWithoutDefault; i++)
