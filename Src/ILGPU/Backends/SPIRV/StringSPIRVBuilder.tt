@@ -71,16 +71,19 @@
 #> {
 <#
         PushIndent(standardIndent);
-        int startingIndex = 0;
-        if (paramInfos.Count > 0 && paramInfos[0].operand.Type == "IdResult")
+
+        // IdResult must always come first in string form (but not in binary form)
+        int index = paramInfos.FindIndex(pair => pair.operand.Type == "IdResult");
+        if (index != -1)
         {
-            var type = typeInfo[paramInfos[0].operand.Type];
-            CreateAppend(type, paramInfos[0].name);
-            startingIndex = 1;
+            var param = paramInfos[index];
+            var type = typeInfo[param.operand.Type];
+            CreateAppend(type, param.name);
+            paramInfos.RemoveAt(index);
         }
 #>_builder.Append("<#= opName#> ");
 <#
-        for (int i = startingIndex; i < paramInfos.Count; i++)
+        for (int i = 0; i < paramInfos.Count; i++)
         {
             var (operand, name) = paramInfos[i];
             var type = typeInfo[operand.Type];

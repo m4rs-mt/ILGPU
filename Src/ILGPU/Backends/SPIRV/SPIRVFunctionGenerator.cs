@@ -62,7 +62,7 @@ namespace ILGPU.Backends.SPIRV
                 ? FunctionControl.Inline
                 : FunctionControl.None;
 
-            Builder.GenerateOpFunction(_methodId, returnType, control, _methodTypeId);
+            Builder.GenerateOpFunction(returnType, _methodId, control, _methodTypeId);
         }
 
         private void GenerateFunctionEnd() => Builder.GenerateOpFunctionEnd();

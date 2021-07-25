@@ -1,6 +1,6 @@
 ﻿using ILGPU.IR.Values;
 using System;
-using System.Drawing.Imaging;
+using System.Linq;
 
 namespace ILGPU.Backends.SPIRV
 {
@@ -21,13 +21,31 @@ namespace ILGPU.Backends.SPIRV
                 arguments[i] = id;
             }
 
-            Builder.GenerateOpFunctionCall(returnValue, returnType, method, arguments);
+            Builder.GenerateOpFunctionCall(returnType, returnValue, method, arguments);
         }
 
         /// <inheritdoc />
         public void GenerateCode(PhiValue phiValue)
         {
+            var blocksArr = phiValue.Sources.ToArray();
 
+            var blockIds = blocksArr.Select(x => _labels[x]);
+            var variablesIds = blocksArr
+                .Select(phiValue.GetValue)
+                .Select(ValueAllocator.Allocate);
+
+            var paired = blockIds
+                .Zip(variablesIds, (block, variable) => new PairIdRefIdRef
+                {
+                    base0 = variable,
+                    base1 = block
+                })
+                .ToArray();
+
+            var returnId = ValueAllocator.Allocate(phiValue);
+            var returnType = GeneralTypeGenerator[phiValue.PhiType];
+
+            Builder.GenerateOpPhi(returnType, returnId, paired);
         }
 
         /// <inheritdoc />

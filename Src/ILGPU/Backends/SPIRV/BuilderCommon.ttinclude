@@ -32,7 +32,10 @@
 
         if (operand.Type == "IdResult")
         {
-            paramName = "returnId";
+            paramName = "resultId";
+        } else if (operand.Type == "IdResultType")
+        {
+            paramName = "resultType";
         }
 
         return paramName;
@@ -58,14 +61,6 @@
     {
         List<SPIRVOperand> operands = instruction.Operands?.Operands;
         var pairs = new List<(SPIRVOperand, string)>();
-
-        // Result should be at the front
-        var resultOperand = operands?.Find(x => x.Type == "IdResult");
-        if (resultOperand != null)
-        {
-            operands.Remove(resultOperand);
-            operands.Insert(0, resultOperand);
-        }
 
         if (operands != null)
         {
