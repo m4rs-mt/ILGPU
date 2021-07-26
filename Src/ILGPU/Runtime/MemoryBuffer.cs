@@ -152,7 +152,7 @@ namespace ILGPU.Runtime
         /// <returns></returns>
         public ArrayView<byte> AsRawArrayView(long offsetInBytes, long lengthInBytes)
         {
-            if (offsetInBytes < 0 || offsetInBytes >= LengthInBytes)
+            if (offsetInBytes < 0 || ((LengthInBytes > 0) && (offsetInBytes >= LengthInBytes)))
                 throw new ArgumentOutOfRangeException(nameof(offsetInBytes));
             if (lengthInBytes < 0 || offsetInBytes + lengthInBytes > LengthInBytes)
                 throw new ArgumentOutOfRangeException(nameof(lengthInBytes));
@@ -175,7 +175,7 @@ namespace ILGPU.Runtime
                     ErrorMessages.NotSupportedType,
                     nameof(T)));
             }
-            if (offset >= Length)
+            if ((Length > 0) && (offset >= Length))
                 throw new ArgumentOutOfRangeException(nameof(offset));
             if (offset + length > Length)
                 throw new ArgumentOutOfRangeException(nameof(length));
