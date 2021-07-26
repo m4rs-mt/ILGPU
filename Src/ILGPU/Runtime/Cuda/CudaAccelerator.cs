@@ -667,7 +667,7 @@ namespace ILGPU.Runtime.Cuda
         protected unsafe override PageLockScope<T> CreatePageLockFromPinnedInternal<T>(
             IntPtr pinned,
             long numElements) =>
-            Device.SupportsMappingHostMemory
+            Device.SupportsMappingHostMemory && numElements > 0
             ? new CudaPageLockScope<T>(this, pinned, numElements)
             : new NullPageLockScope<T>(this, pinned, numElements) as PageLockScope<T>;
 
