@@ -145,14 +145,21 @@ namespace ILGPU.Runtime.OpenCL
             int elementSize)
             : base(accelerator, length, elementSize)
         {
-            CLException.ThrowIfFailed(
-                CurrentAPI.CreateBuffer(
-                    accelerator.NativePtr,
-                    CLBufferFlags.CL_MEM_READ_WRITE,
-                    new IntPtr(LengthInBytes),
-                    IntPtr.Zero,
-                    out IntPtr resultPtr));
-            NativePtr = resultPtr;
+            if (LengthInBytes == 0)
+            {
+                NativePtr = IntPtr.Zero;
+            }
+            else
+            {
+                CLException.ThrowIfFailed(
+                    CurrentAPI.CreateBuffer(
+                        accelerator.NativePtr,
+                        CLBufferFlags.CL_MEM_READ_WRITE,
+                        new IntPtr(LengthInBytes),
+                        IntPtr.Zero,
+                        out IntPtr resultPtr));
+                NativePtr = resultPtr;
+            }
         }
 
         #endregion
