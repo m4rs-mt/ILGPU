@@ -231,7 +231,7 @@ namespace ILGPU.Tests
         }
 
         [Fact]
-        public void ArrayViewZeroLengthSubview1d()
+        public void ArrayViewZeroLengthSubView1D()
         {
             using var buffer = Accelerator.Allocate1D<int>(128);
 
@@ -247,7 +247,7 @@ namespace ILGPU.Tests
         }
 
         [Fact]
-        public void ArrayViewZeroLengthSubview2d()
+        public void ArrayViewZeroLengthSubView2D()
         {
             void Check<TStride>(ArrayView2D<int, TStride> view) where TStride : struct, IStride2D
             {
@@ -276,7 +276,7 @@ namespace ILGPU.Tests
         }
 
         [Fact]
-        public void ArrayViewZeroLengthSubview3d()
+        public void ArrayViewZeroLengthSubView3D()
         {
             void Check<TStride>(ArrayView3D<int, TStride> view) where TStride : struct, IStride3D
             {

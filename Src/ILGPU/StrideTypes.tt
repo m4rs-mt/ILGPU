@@ -386,9 +386,8 @@ namespace ILGPU
             where TStride : <#= strideName #> {
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
-            if (extent.<#= iName #> == 0) {
+            if (extent.<#= iName #> == 0)
                 return 0;
-            }
 <#      } #>
             return stride.ComputeElementIndex(extent - <#= indexName #>.One) + 1;
         }
@@ -406,9 +405,8 @@ namespace ILGPU
             where TStride : <#= strideName #> {
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
-            if (extent.<#= iName #> == 0L) {
+            if (extent.<#= iName #> == 0L)
                 return 0L;
-            }
 <#      } #>
             return stride.ComputeElementIndex(extent - <#= longIndexName #>.One) + 1L;
         }
