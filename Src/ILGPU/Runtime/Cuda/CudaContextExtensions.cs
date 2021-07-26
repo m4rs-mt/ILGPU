@@ -9,7 +9,9 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Backends;
 using ILGPU.Backends.PTX;
+using ILGPU.Resources;
 using System;
 
 namespace ILGPU.Runtime.Cuda
@@ -45,6 +47,13 @@ namespace ILGPU.Runtime.Cuda
             this Context.Builder builder,
             Predicate<CudaDevice> predicate)
         {
+            if (Backend.RuntimePlatform != TargetPlatform.X64)
+            {
+                throw new NotSupportedException(string.Format(
+                    RuntimeErrorMessages.CudaPlatformX64,
+                    Backend.RuntimePlatform));
+            }
+
             CudaDevice.GetDevices(
                 predicate,
                 builder.DeviceRegistry);

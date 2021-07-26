@@ -71,9 +71,6 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The resolved memory type</returns>
         public static unsafe CudaMemoryType GetCudaMemoryType(IntPtr value)
         {
-            // This functionality requires unified addresses (X64)
-            Backends.Backend.EnsureRunningOnPlatform(TargetPlatform.X64);
-
             int data = 0;
             var err = CurrentAPI.GetPointerAttribute(
                     new IntPtr(Unsafe.AsPointer(ref data)),
@@ -164,8 +161,6 @@ namespace ILGPU.Runtime.Cuda
             CudaAcceleratorFlags acceleratorFlags)
             : base(context, description)
         {
-            Backends.Backend.EnsureRunningOnPlatform(TargetPlatform.X64);
-
             // Create new context
             CudaException.ThrowIfFailed(
                 CurrentAPI.CreateContext(
