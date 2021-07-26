@@ -249,7 +249,8 @@ namespace ILGPU.Tests
         [Fact]
         public void ArrayViewZeroLengthSubView2D()
         {
-            void Check<TStride>(ArrayView2D<int, TStride> view) where TStride : struct, IStride2D
+            void Check<TStride>(ArrayView2D<int, TStride> view)
+                where TStride : struct, IStride2D
             {
                 var extents = new[]
                 {
@@ -278,7 +279,8 @@ namespace ILGPU.Tests
         [Fact]
         public void ArrayViewZeroLengthSubView3D()
         {
-            void Check<TStride>(ArrayView3D<int, TStride> view) where TStride : struct, IStride3D
+            void Check<TStride>(ArrayView3D<int, TStride> view)
+                where TStride : struct, IStride3D
             {
                 var extents = new[]
                 {
