@@ -145,8 +145,6 @@ namespace ILGPU.Runtime.Cuda
             if (deviceId < 0)
                 throw new ArgumentOutOfRangeException(nameof(deviceId));
 
-            Backend.EnsureRunningOnPlatform(TargetPlatform.X64);
-
             DeviceId = deviceId;
 
             InitDeviceInfo();

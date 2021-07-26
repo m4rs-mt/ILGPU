@@ -54,6 +54,33 @@ namespace ILGPU.Tests
             Verify(b.View, reference);
         }
 
+        internal static void <#= kernelName #>_MaxValue(
+            Index1D index,
+            ArrayView1D<<#= targetType.Type #>, Stride1D.Dense> output)
+        {
+            unchecked
+            {
+                output[index] = (<#= targetType.Type #>)<#= type.Type #>.MaxValue;
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(<#= kernelName #>_MaxValue))]
+        public void <#= testName #>_MaxValue()
+        {
+            const int length = 32;
+            using var output = Accelerator.Allocate1D<<#= targetType.Type #>>(length);
+            Execute(length, output.View);
+
+            <#= targetType.Type #> result;
+            unchecked
+            {
+                result = (<#= targetType.Type #>)(<#= type.Type #>.MaxValue);
+            }
+            var reference = Enumerable.Repeat(result, length).ToArray();
+            Verify(output.View, reference);
+        }
+
 <#      } #>
 <# } #>
     }

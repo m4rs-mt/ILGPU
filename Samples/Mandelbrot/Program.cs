@@ -1,0 +1,35 @@
+﻿// -----------------------------------------------------------------------------
+//                                ILGPU Samples
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
+//                                www.ilgpu.net
+//
+// File: Program.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+using System;
+using System.Windows.Forms;
+
+namespace Mandelbrot
+{
+    static class Program
+    {
+        /// <summary>
+        /// Main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+#if !NETFRAMEWORK
+            Application.SetHighDpiMode(HighDpiMode.SystemAware);
+#endif
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            Application.Run(new Form());
+#pragma warning restore CA2000 // Dispose objects before losing scope
+        }
+    }
+}
