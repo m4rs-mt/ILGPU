@@ -1,3 +1,14 @@
+[*.*]
+indent_style = space
+indent_size = 2
+tab_width = 2
+end_of_line = crlf
+trim_trailing_whitespace = true
+
+[*.csproj]
+indent_size = 2
+tab_width = 2
+
 [*.cs]
 
 # CA1034: Nested types should not be visible
