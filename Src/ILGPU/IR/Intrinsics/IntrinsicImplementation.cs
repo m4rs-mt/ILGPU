@@ -73,12 +73,12 @@ namespace ILGPU.IR.Intrinsics
             string methodName,
             IntrinsicImplementationMode mode)
             : this(
-                  backendType,
-                  handlerType.GetMethod(
-                      methodName ?? "Invoke",
-                      BindingFlags.Public | BindingFlags.NonPublic |
-                      BindingFlags.Static | BindingFlags.Instance),
-                  mode)
+                backendType,
+                handlerType.GetMethod(
+                    methodName ?? "Invoke",
+                    BindingFlags.Public | BindingFlags.NonPublic |
+                    BindingFlags.Static | BindingFlags.Instance),
+                mode)
         { }
 
         #endregion
@@ -141,5 +141,6 @@ namespace ILGPU.IR.Intrinsics
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     [CLSCompliant(false)]
-    public sealed class IntrinsicImplementationAttribute : Attribute { }
+    public sealed class IntrinsicImplementationAttribute : Attribute
+    { }
 }

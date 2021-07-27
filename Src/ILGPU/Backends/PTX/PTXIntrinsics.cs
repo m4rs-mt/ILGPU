@@ -76,13 +76,13 @@ namespace ILGPU.Backends.PTX
             string name,
             CudaArchitecture? maxArchitecture) =>
             maxArchitecture.HasValue
-            ? new PTXIntrinsic(
-                HalfType,
-                name,
-                IntrinsicImplementationMode.Redirect,
-                null,
-                maxArchitecture.Value)
-            : new PTXIntrinsic(HalfType, name, IntrinsicImplementationMode.Redirect);
+                ? new PTXIntrinsic(
+                    HalfType,
+                    name,
+                    IntrinsicImplementationMode.Redirect,
+                    null,
+                    maxArchitecture.Value)
+                : new PTXIntrinsic(HalfType, name, IntrinsicImplementationMode.Redirect);
 
         /// <summary>
         /// Registers all PTX intrinsics with the given manager.

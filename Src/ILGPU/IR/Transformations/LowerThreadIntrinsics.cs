@@ -149,6 +149,7 @@ namespace ILGPU.IR.Transformations
                     result,
                     variable.Type);
             }
+
             return result;
         }
 

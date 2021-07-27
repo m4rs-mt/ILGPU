@@ -60,8 +60,8 @@ namespace ILGPU.IR.Types
         /// <returns>The basic value type (if any).</returns>
         public static BasicValueType GetBasicValueTypeBySize(int size) =>
             size > BasicSizeInformation.Length
-            ? BasicValueType.None
-            : BasicSizeInformation[size];
+                ? BasicValueType.None
+                : BasicSizeInformation[size];
 
         #endregion
 

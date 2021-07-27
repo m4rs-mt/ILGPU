@@ -133,7 +133,7 @@ namespace ILGPU.IR
             "Globalization",
             "CA1307:Specify StringComparison",
             Justification = "string.GetHashCode(StringComparison) not " +
-            "available in net47")]
+                            "available in net47")]
         public override int GetHashCode() =>
             Id.GetHashCode() ^ Name?.GetHashCode() ?? 0;
 
@@ -253,7 +253,7 @@ namespace ILGPU.IR
         {
             Handle = handle;
             ReturnType = returnType
-                ?? throw new ArgumentNullException(nameof(returnType));
+                         ?? throw new ArgumentNullException(nameof(returnType));
             Source = source;
             Flags = flags;
 

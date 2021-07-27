@@ -68,10 +68,13 @@ namespace ILGPU.Frontend
 
             private readonly Dictionary<int, int> offsetMapping =
                 new Dictionary<int, int>();
+
             private readonly Dictionary<int, Block> blockMapping =
                 new Dictionary<int, Block>();
+
             private readonly Dictionary<BasicBlock, Block> basicBlockMapping =
                 new Dictionary<BasicBlock, Block>();
+
             private readonly Dictionary<Block, List<Block>> successorMapping =
                 new Dictionary<Block, List<Block>>();
 
@@ -119,6 +122,7 @@ namespace ILGPU.Frontend
                     blockMapping.Add(target, block);
                     basicBlockMapping.Add(block.BasicBlock, block);
                 }
+
                 return block;
             }
 
@@ -164,6 +168,7 @@ namespace ILGPU.Frontend
                     successors = new List<Block>();
                     successorMapping.Add(current, successors);
                 }
+
                 successors.Add(successor);
             }
 
@@ -254,6 +259,7 @@ namespace ILGPU.Frontend
                                         targetOffsets[0]);
                                 }
                             }
+
                             break;
                         }
                     }

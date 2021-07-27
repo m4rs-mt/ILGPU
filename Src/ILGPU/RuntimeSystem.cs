@@ -188,14 +188,14 @@ namespace ILGPU
         /// All method attributes to clear when implementing a wrapper method.
         /// </summary>
         private const MethodAttributes ImplAttributesToClear =
-             MethodAttributes.Abstract | MethodAttributes.NewSlot;
+            MethodAttributes.Abstract | MethodAttributes.NewSlot;
 
         /// <summary>
         /// The constructor of the class <see cref="NotSupportedException"/>.
         /// </summary>
         private static readonly ConstructorInfo NotSupportedExceptionConstructor =
             typeof(NotSupportedException)
-            .GetConstructor(new Type[] { typeof(string) });
+                .GetConstructor(new Type[] { typeof(string) });
 
         /// <summary>
         /// The constructor of the class
@@ -203,7 +203,7 @@ namespace ILGPU
         /// </summary>
         private static readonly ConstructorInfo SuppressCodeSecurityConstructor =
             typeof(SuppressUnmanagedCodeSecurityAttribute)
-            .GetConstructor(Array.Empty<Type>());
+                .GetConstructor(Array.Empty<Type>());
 
         /// <summary>
         /// Implements all given abstract methods by throwing
@@ -540,9 +540,9 @@ namespace ILGPU
 
             // Get all methods that need to be implemented by the wrapper type
             var methods = classType.GetMethods(
-                BindingFlags.Public |
-                BindingFlags.NonPublic |
-                BindingFlags.Instance)
+                    BindingFlags.Public |
+                    BindingFlags.NonPublic |
+                    BindingFlags.Instance)
                 .Where(t => t.IsAbstract)
                 .Select(t => new ImportMethod
                 (
@@ -624,10 +624,10 @@ namespace ILGPU
             {
                 T instance =
                     RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                    ? CreateDllWrapper<T>(linux)
-                    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                    ? CreateDllWrapper<T>(macos)
-                    : CreateDllWrapper<T>(windows);
+                        ? CreateDllWrapper<T>(linux)
+                        : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                            ? CreateDllWrapper<T>(macos)
+                            : CreateDllWrapper<T>(windows);
                 // Try to initialize the new interface
                 if (!instance.Init())
                     instance = CreateNotSupportedDllWrapper<T>(errorMessage);

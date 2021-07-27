@@ -71,6 +71,7 @@ namespace ILGPU.Backends.OpenCL
             {
                 throw new NotSupportedIntrinsicException(kind.ToString());
             }
+
             isFunction = operation.Item2;
             return operation.Item1;
         }
@@ -95,6 +96,7 @@ namespace ILGPU.Backends.OpenCL
             {
                 throw new NotSupportedIntrinsicException(kind.ToString());
             }
+
             isFunction = operation.Item2;
             return operation.Item1;
         }

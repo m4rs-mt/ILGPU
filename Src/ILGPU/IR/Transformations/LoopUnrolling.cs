@@ -250,8 +250,8 @@ namespace ILGPU.IR.Transformations
             /// <returns>The new entry and exit blocks.</returns>
             public readonly (BasicBlock.Builder entry, BasicBlock.Builder exit)
                 SpecializeLoop(
-                BasicBlock exitBlock,
-                Value initValue)
+                    BasicBlock exitBlock,
+                    Value initValue)
             {
                 // Setup a temporary exit block that links the new blocks with the other
                 // parts of the program
@@ -286,6 +286,7 @@ namespace ILGPU.IR.Transformations
                     phi.AssertNotNull(backEdgeValue);
                     phiMapping[phi] = rebuilder[backEdgeValue];
                 }
+
                 phiMapping[PhiVariable] = rebuilder[Variable.Update];
 
                 // Remove the back-edge branch and simplify the exit branch to form a

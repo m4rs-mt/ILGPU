@@ -1,4 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
+
 <Operations>
     <Operation Name="Neg">
         <Summary>The neg operation.</Summary>
@@ -8,9 +9,9 @@
             <Source>{Value0}.BasicValueType == BasicValueType.Int1</Source>
             <Target>
                 CreateArithmetic(
-                    location,
-                    {Value0},
-                    UnaryArithmeticKind.Not)
+                location,
+                {Value0},
+                UnaryArithmeticKind.Not)
             </Target>
         </Rewriter>
     </Operation>

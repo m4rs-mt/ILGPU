@@ -170,6 +170,7 @@ namespace ILGPU.Backends.OpenCL
                 builder.Append(typeName);
                 builder.AppendLine(";");
             }
+
             builder.AppendLine();
         }
 
@@ -192,14 +193,16 @@ namespace ILGPU.Backends.OpenCL
 
 #if DEBUG
                 // Get the current view mapping
-                var viewMapping = EntryPoint.GetViewParameters(
+                var viewMapping
+ = EntryPoint.GetViewParameters(
                     paramIdx - ParameterOffset);
                 Debug.Assert(
                     viewMapping.Count > 0,
                     "There must be at least one view entry");
 
                 for (
-                    int i = 0, specialParamIdx = 0, e = type.NumFields;
+                    int i
+ = 0, specialParamIdx = 0, e = type.NumFields;
                     i < e && specialParamIdx < viewMapping.Count;
                     ++i)
                 {

@@ -193,7 +193,7 @@ namespace ILGPU.Algorithms
                     return;
 
                 long sequenceIndex = (linearIndex / SequenceBatchLength)
-                    % SequenceLength;
+                                     % SequenceLength;
                 View[linearIndex] = Sequencer.ComputeSequenceElement(sequenceIndex);
             }
 
@@ -214,11 +214,11 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded sequencer.</returns>
         private static Action<
-            AcceleratorStream,
-            LongIndex1D,
-            SequenceImplementation<T, TStride, TSequencer>>
+                AcceleratorStream,
+                LongIndex1D,
+                SequenceImplementation<T, TStride, TSequencer>>
             CreateRawSequencer<T, TStride, TSequencer>(
-            this Accelerator accelerator)
+                this Accelerator accelerator)
             where T : unmanaged
             where TStride : struct, IStride1D
             where TSequencer : struct, ISequencer<T> =>
@@ -353,7 +353,7 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded sequencer.</returns>
         public static RepeatedBatchedSequencer<T, TStride, TSequencer>
             CreateRepeatedBatchedSequencer<T, TStride, TSequencer>(
-            this Accelerator accelerator)
+                this Accelerator accelerator)
             where T : unmanaged
             where TStride : struct, IStride1D
             where TSequencer : struct, ISequencer<T>

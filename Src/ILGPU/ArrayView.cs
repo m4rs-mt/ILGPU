@@ -420,7 +420,7 @@ namespace ILGPU
         [ViewIntrinsic(ViewIntrinsicKind.AlignTo)]
         internal readonly unsafe (ArrayView<T> prefix, ArrayView<T> main)
             AlignToInternal(
-            int alignmentInBytes)
+                int alignmentInBytes)
         {
             long elementsToSkip = IntrinsicMath.Min(
                 Interop.ComputeAlignmentOffset(

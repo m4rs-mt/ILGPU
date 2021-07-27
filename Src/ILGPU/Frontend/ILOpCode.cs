@@ -21,11 +21,8 @@
 
 namespace ILGPU.Frontend
 {
-
-
     enum ILOpCode
     {
-
         Nop = 0,
 
         Break = 1,

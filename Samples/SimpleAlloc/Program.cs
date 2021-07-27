@@ -70,7 +70,8 @@ namespace SimpleAlloc
             for (int i = 0; i < AllocationSize1D; ++i)
             {
                 if (data[i] != targetData[i])
-                    Console.WriteLine($"Error comparing data and target data at {i}: {targetData[i]} found, but {data[i]} expected");
+                    Console.WriteLine(
+                        $"Error comparing data and target data at {i}: {targetData[i]} found, but {data[i]} expected");
             }
         }
 
@@ -88,24 +89,30 @@ namespace SimpleAlloc
                 for (int j = 0; j < AllocationSize2D; ++j)
                     data[i, j] = j * AllocationSize1D + i;
             }
+
             var targetData = new int[AllocationSize1D, AllocationSize2D];
-            using (var buffer = accelerator.Allocate<int>(AllocationSize1D + 32, AllocationSize2D))
-            // You can also use:
-            // using (var buffer = accl.Allocate<int>(new Index2(AllocationSize1D + 32, AllocationSize2D)))
+            using (var buffer =
+                    accelerator.Allocate<int>(AllocationSize1D + 32, AllocationSize2D))
+                // You can also use:
+                // using (var buffer = accl.Allocate<int>(new Index2(AllocationSize1D + 32, AllocationSize2D)))
             {
                 // Copy to accelerator
                 buffer.CopyFrom(
                     data,                                             // data source
                     new Index2(),                                     // source index in the scope of the data source
-                    new Index2(32, 0),                                // target index in the scope of the buffer
-                    new Index2(AllocationSize1D, AllocationSize2D));  // the number of elements to copy
+                    new Index2(32,
+                        0),                                // target index in the scope of the buffer
+                    new Index2(AllocationSize1D,
+                        AllocationSize2D));  // the number of elements to copy
 
                 // Copy from accelerator
                 buffer.CopyTo(
                     targetData,                                       // data target
-                    new Index2(32, 0),                                // source index in the scope of the data source
+                    new Index2(32,
+                        0),                                // source index in the scope of the data source
                     new Index2(),                                     // target index in the scope of the buffer
-                    new Index2(AllocationSize1D, AllocationSize2D));  // the number of elements to copy
+                    new Index2(AllocationSize1D,
+                        AllocationSize2D));  // the number of elements to copy
             }
 
             // Verify data
@@ -114,7 +121,8 @@ namespace SimpleAlloc
                 for (int j = 0; j < AllocationSize2D; ++j)
                 {
                     if (data[i, j] != targetData[i, j])
-                        Console.WriteLine($"Error comparing data and target data at {i}, {j}: {targetData[i, j]} found, but {data[i, j]} expected");
+                        Console.WriteLine(
+                            $"Error comparing data and target data at {i}, {j}: {targetData[i, j]} found, but {data[i, j]} expected");
                 }
             }
         }
@@ -131,27 +139,34 @@ namespace SimpleAlloc
             for (int i = 0; i < AllocationSize1D; ++i)
             {
                 for (int j = 0; j < AllocationSize2D; ++j)
-                    for (int k = 0; k < AllocationSize3D; ++k)
-                        data[i, j, k] = ((k * AllocationSize2D) + j) * AllocationSize1D + i;
+                for (int k = 0; k < AllocationSize3D; ++k)
+                    data[i, j, k] = ((k * AllocationSize2D) + j) * AllocationSize1D + i;
             }
-            var targetData = new int[AllocationSize1D, AllocationSize2D, AllocationSize3D];
-            using (var buffer = accelerator.Allocate<int>(AllocationSize1D + 32, AllocationSize2D, AllocationSize3D))
-            // You can also use:
-            // using (var buffer = accl.Allocate<int>(new Index3(AllocationSize1D + 32, AllocationSize2D, AllocationSize3D)))
+
+            var targetData =
+                new int[AllocationSize1D, AllocationSize2D, AllocationSize3D];
+            using (var buffer = accelerator.Allocate<int>(AllocationSize1D + 32,
+                    AllocationSize2D, AllocationSize3D))
+                // You can also use:
+                // using (var buffer = accl.Allocate<int>(new Index3(AllocationSize1D + 32, AllocationSize2D, AllocationSize3D)))
             {
                 // Copy to accelerator
                 buffer.CopyFrom(
                     data,                                                               // data source
                     new Index3(),                                                       // source index in the scope of the data source
-                    new Index3(32, 0, 0),                                               // target index in the scope of the buffer
-                    new Index3(AllocationSize1D, AllocationSize2D, AllocationSize3D));  // the number of elements to copy
+                    new Index3(32, 0,
+                        0),                                               // target index in the scope of the buffer
+                    new Index3(AllocationSize1D, AllocationSize2D,
+                        AllocationSize3D));  // the number of elements to copy
 
                 // Copy from accelerator
                 buffer.CopyTo(
                     targetData,                                                         // data target
-                    new Index3(32, 0, 0),                                               // target index in the scope of the buffer
+                    new Index3(32, 0,
+                        0),                                               // target index in the scope of the buffer
                     new Index3(),                                                       // source index in the scope of the data source
-                    new Index3(AllocationSize1D, AllocationSize2D, AllocationSize3D));  // the number of elements to copy
+                    new Index3(AllocationSize1D, AllocationSize2D,
+                        AllocationSize3D));  // the number of elements to copy
             }
 
             // Verify data
@@ -162,7 +177,8 @@ namespace SimpleAlloc
                     for (int k = 0; k < AllocationSize3D; ++k)
                     {
                         if (data[i, j, k] != targetData[i, j, k])
-                            Console.WriteLine($"Error comparing data and target data at {i}, {j}, {k}: {targetData[i, j, k]} found, but {data[i, j, k]} expected");
+                            Console.WriteLine(
+                                $"Error comparing data and target data at {i}, {j}, {k}: {targetData[i, j, k]} found, but {data[i, j, k]} expected");
                     }
                 }
             }
@@ -202,7 +218,6 @@ namespace SimpleAlloc
                     }
                 }
             }
-
         }
     }
 }

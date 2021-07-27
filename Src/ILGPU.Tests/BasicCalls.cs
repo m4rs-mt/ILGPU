@@ -37,13 +37,7 @@ namespace ILGPU.Tests
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static Parent GetStructureValue() =>
-            new Parent()
-            {
-                Second = new Nested()
-                {
-                    Value = 23
-                }
-            };
+            new Parent() { Second = new Nested() { Value = 23 } };
 
         internal static void NestedStructureCallKernel(
             Index1D index,
@@ -88,13 +82,7 @@ namespace ILGPU.Tests
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static void GetStructureValue(out Parent value) =>
-            value = new Parent()
-            {
-                Second = new Nested()
-                {
-                    Value = 23
-                }
-            };
+            value = new Parent() { Second = new Nested() { Value = 23 } };
 
         internal static void NestedStructureCallOutKernel(
             Index1D index,
@@ -145,13 +133,8 @@ namespace ILGPU.Tests
         public void NestedCallInstance()
         {
             using var buffer = Accelerator.Allocate1D<int>(Length);
-            Execute(buffer.Length, buffer.View, new Parent()
-            {
-                Second = new Nested()
-                {
-                    Value = 41,
-                }
-            });
+            Execute(buffer.Length, buffer.View,
+                new Parent() { Second = new Nested() { Value = 41, } });
 
             var expected = Enumerable.Repeat(42, Length).ToArray();
             Verify(buffer.View, expected);
@@ -251,4 +234,3 @@ namespace ILGPU.Tests
         }
     }
 }
-

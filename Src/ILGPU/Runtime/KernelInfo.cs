@@ -35,9 +35,9 @@ namespace ILGPU.Runtime
             int? minGroupSize,
             int? minGridSize) =>
             info is null
-            ? new KernelInfo(minGroupSize, minGridSize)
-            : new KernelInfo(minGroupSize, minGridSize,
-                info.SharedAllocations, info.Functions);
+                ? new KernelInfo(minGroupSize, minGridSize)
+                : new KernelInfo(minGroupSize, minGridSize,
+                    info.SharedAllocations, info.Functions);
 
         #endregion
 
@@ -50,12 +50,12 @@ namespace ILGPU.Runtime
         /// <param name="minGridSize">The minimum grid size (if known).</param>
         public KernelInfo(int? minGroupSize, int? minGridSize)
             : this(
-                  minGroupSize,
-                  minGridSize,
-                  new AllocaKindInformation(
-                      ImmutableArray<AllocaInformation>.Empty,
-                      0),
-                  ImmutableArray<CompiledKernel.FunctionInfo>.Empty)
+                minGroupSize,
+                minGridSize,
+                new AllocaKindInformation(
+                    ImmutableArray<AllocaInformation>.Empty,
+                    0),
+                ImmutableArray<CompiledKernel.FunctionInfo>.Empty)
         { }
 
         /// <summary>
@@ -111,6 +111,7 @@ namespace ILGPU.Runtime
                 textWriter.Write(' ');
                 textWriter.WriteLine(MinGroupSize);
             }
+
             if (MinGridSize.HasValue)
             {
                 textWriter.Write(nameof(MinGridSize));

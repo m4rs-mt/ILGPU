@@ -93,13 +93,8 @@ namespace ILGPU
         /// </summary>
         private static readonly Type[] ManagedIndexTypes =
         {
-            null,
-            typeof(Index1D),
-            typeof(Index2D),
-            typeof(Index3D),
-            typeof(LongIndex1D),
-            typeof(LongIndex2D),
-            typeof(LongIndex3D),
+            null, typeof(Index1D), typeof(Index2D), typeof(Index3D),
+            typeof(LongIndex1D), typeof(LongIndex2D), typeof(LongIndex3D),
             typeof(KernelConfig)
         };
 
@@ -163,7 +158,7 @@ namespace ILGPU
         {
             var resultType = ManagedIndexTypes[(int)indexType];
             return resultType ??
-                throw new ArgumentOutOfRangeException(nameof(indexType));
+                   throw new ArgumentOutOfRangeException(nameof(indexType));
         }
 
         /// <summary>

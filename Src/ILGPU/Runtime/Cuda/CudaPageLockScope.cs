@@ -39,6 +39,7 @@ namespace ILGPU.Runtime
                 throw new NotSupportedException(
                     RuntimeErrorMessages.NotSupportedPageLock);
             }
+
             HostPtr = hostPtr;
 
             bool supportsHostPointer = accelerator

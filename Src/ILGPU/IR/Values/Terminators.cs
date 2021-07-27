@@ -55,7 +55,8 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// An abstract target remapper.
         /// </summary>
-        public interface ITargetRemapper : IBlockRemapper, IDirectTargetRemapper { }
+        public interface ITargetRemapper : IBlockRemapper, IDirectTargetRemapper
+        { }
 
         /// <summary>
         /// An identity remapper that does not remap any targets.
@@ -409,6 +410,7 @@ namespace ILGPU.IR.Values
                 otherBlock = Targets[0];
                 return true;
             }
+
             return false;
         }
 
@@ -524,8 +526,8 @@ namespace ILGPU.IR.Values
         public (BasicBlock TrueTarget, BasicBlock FalseTarget)
             NotInvertedBranchTargets =>
             IsInverted
-            ? (FalseTarget, TrueTarget)
-            : (TrueTarget, FalseTarget);
+                ? (FalseTarget, TrueTarget)
+                : (TrueTarget, FalseTarget);
 
         #endregion
 
@@ -555,9 +557,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             PrimitiveValue condition)
         {
-            var target = condition.Int1Value ?
-                TrueTarget :
-                FalseTarget;
+            var target = condition.Int1Value ? TrueTarget : FalseTarget;
             return builder.CreateBranch(Location, target);
         }
 
@@ -599,7 +599,7 @@ namespace ILGPU.IR.Values
         protected override string ToArgString()
         {
             var result = $"{Condition} ? {TrueTarget.ToReferenceString()} : " +
-                FalseTarget.ToReferenceString();
+                         FalseTarget.ToReferenceString();
             if (IsInverted)
                 result += " [Inverted]";
             return result;
@@ -756,9 +756,9 @@ namespace ILGPU.IR.Values
             PrimitiveValue condition)
         {
             int caseValue = condition.Int32Value;
-            var target = caseValue < 0 || caseValue >= NumCasesWithoutDefault ?
-                Targets[0] :
-                GetCaseTarget(caseValue);
+            var target = caseValue < 0 || caseValue >= NumCasesWithoutDefault
+                ? Targets[0]
+                : GetCaseTarget(caseValue);
             return builder.CreateBranch(Location, target);
         }
 
@@ -809,6 +809,7 @@ namespace ILGPU.IR.Values
                 if (i + 1 < e)
                     result.Append(", ");
             }
+
             result.Append(" - default: ");
             result.Append(Targets[0].ToReferenceString());
             return result.ToString();

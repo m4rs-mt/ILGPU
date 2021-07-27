@@ -76,9 +76,9 @@ namespace ILGPU.Runtime.Cuda
 
             int data = 0;
             var err = CurrentAPI.GetPointerAttribute(
-                    new IntPtr(Unsafe.AsPointer(ref data)),
-                    PointerAttribute.CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
-                    value);
+                new IntPtr(Unsafe.AsPointer(ref data)),
+                PointerAttribute.CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
+                value);
             if (err == CudaError.CUDA_ERROR_INVALID_VALUE)
                 return CudaMemoryType.None;
             CudaException.ThrowIfFailed(err);
@@ -107,12 +107,12 @@ namespace ILGPU.Runtime.Cuda
 
             foreach (var supportedSet in PTXCodeGenerator.SupportedInstructionSets)
             {
-                var instructionSetMinDriverVersion = CudaDriverVersionUtils.
-                    GetMinimumDriverVersion(supportedSet);
+                var instructionSetMinDriverVersion =
+                    CudaDriverVersionUtils.GetMinimumDriverVersion(supportedSet);
                 minDriverVersion =
                     architectureMinDriverVersion >= instructionSetMinDriverVersion
-                    ? architectureMinDriverVersion
-                    : instructionSetMinDriverVersion;
+                        ? architectureMinDriverVersion
+                        : instructionSetMinDriverVersion;
                 if (installedDriverVersion >= minDriverVersion)
                 {
                     instructionSet = supportedSet;
@@ -138,12 +138,12 @@ namespace ILGPU.Runtime.Cuda
                 installedDriverVersion,
                 out var minDriverVersion,
                 out var instructionSet)
-            ? instructionSet
-            : throw new NotSupportedException(
-                string.Format(
-                    RuntimeErrorMessages.NotSupportedDriverVersion,
-                    installedDriverVersion,
-                    minDriverVersion));
+                ? instructionSet
+                : throw new NotSupportedException(
+                    string.Format(
+                        RuntimeErrorMessages.NotSupportedDriverVersion,
+                        installedDriverVersion,
+                        minDriverVersion));
 
         #endregion
 
@@ -673,8 +673,8 @@ namespace ILGPU.Runtime.Cuda
             IntPtr pinned,
             long numElements) =>
             Device.SupportsMappingHostMemory
-            ? new CudaPageLockScope<T>(this, pinned, numElements)
-            : new NullPageLockScope<T>(this, pinned, numElements) as PageLockScope<T>;
+                ? new CudaPageLockScope<T>(this, pinned, numElements)
+                : new NullPageLockScope<T>(this, pinned, numElements) as PageLockScope<T>;
 
         #endregion
 

@@ -48,7 +48,8 @@ namespace AlgorithmsInitialize
                         using (var buffer = accelerator.Allocate<int>(64))
                         {
                             // Initializes all values by setting the value to 23.
-                            accelerator.Initialize(accelerator.DefaultStream, buffer.View, 23);
+                            accelerator.Initialize(accelerator.DefaultStream, buffer.View,
+                                23);
                             accelerator.Synchronize();
 
                             var data = buffer.GetAsArray();
@@ -66,11 +67,12 @@ namespace AlgorithmsInitialize
                             // We can now use the initializer without any further heap allocations
                             // during the invocation. Note that the initializer requires an explicit
                             // accelerator stream.
-                            initializer(accelerator.DefaultStream, buffer2.View, new CustomStruct()
-                            {
-                                First = 23,
-                                Second = 42
-                            });
+                            initializer(accelerator.DefaultStream, buffer2.View,
+                                new CustomStruct()
+                                {
+                                    First = 23,
+                                    Second = 42
+                                });
 
                             accelerator.Synchronize();
 

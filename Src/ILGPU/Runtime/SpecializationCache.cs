@@ -48,6 +48,7 @@ namespace ILGPU.Runtime
         #region Instance
 
         private readonly ReaderWriterLockSlim cacheLock = new ReaderWriterLockSlim();
+
         private readonly Dictionary<TArgs, TDelegate> kernelCache =
             new Dictionary<TArgs, TDelegate>();
 
@@ -166,9 +167,11 @@ namespace ILGPU.Runtime
                         callBuilder.Add(newParam);
                     }
                 }
+
                 callBuilder.Seal();
                 blockBuilder.CreateReturn(location);
             }
+
             return targetMethod;
         }
 
@@ -215,6 +218,7 @@ namespace ILGPU.Runtime
                 launcher = SpecializeKernel(args);
                 kernelCache.Add(args, launcher);
             }
+
             return launcher;
         }
 

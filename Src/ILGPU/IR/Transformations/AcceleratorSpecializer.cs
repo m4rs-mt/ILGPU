@@ -385,4 +385,3 @@ namespace ILGPU.IR.Transformations
         #endregion
     }
 }
-

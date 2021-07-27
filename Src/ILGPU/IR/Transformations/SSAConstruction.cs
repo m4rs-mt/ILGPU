@@ -108,6 +108,7 @@ namespace ILGPU.IR.Transformations
                 default:
                     return true;
             }
+
             return false;
         }
 
@@ -125,6 +126,7 @@ namespace ILGPU.IR.Transformations
                 if (RequiresAddressForUse(use))
                     return true;
             }
+
             return false;
         }
 
@@ -196,8 +198,8 @@ namespace ILGPU.IR.Transformations
                 {
                     ssaValue = context.Builder.CreateGetField(
                         load.Location,
-                         ssaValue,
-                         loadRef.FieldSpan);
+                        ssaValue,
+                        loadRef.FieldSpan);
                 }
 
                 context.ReplaceAndRemove(load, ssaValue);
@@ -552,7 +554,7 @@ namespace ILGPU.IR.Transformations
             LoadElementAddress lea,
             int arrayLength) =>
             !(lea.Offset.Resolve() is PrimitiveValue index &&
-            index.Int32Value >= 0 && index.Int32Value < arrayLength) ||
+              index.Int32Value >= 0 && index.Int32Value < arrayLength) ||
             RequiresAddress(lea);
 
         /// <summary>
@@ -587,6 +589,7 @@ namespace ILGPU.IR.Transformations
                         break;
                 }
             }
+
             return false;
         }
 
@@ -667,7 +670,9 @@ namespace ILGPU.IR.Transformations
             private Dictionary<
                 Value,
                 (int ArrayLength, int NumElementFields)> ArrayData
-            { get; }
+            {
+                get;
+            }
 
             /// <summary>
             /// Returns true if the given alloca should be converted.

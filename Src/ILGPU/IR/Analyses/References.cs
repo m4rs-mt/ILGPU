@@ -141,7 +141,7 @@ namespace ILGPU.IR.Analyses
             references.Add(method);
             referencesList.Add(method);
 
-            for (; ; )
+            for (;;)
             {
                 collection.ForEachValue<MethodCall>(call =>
                 {

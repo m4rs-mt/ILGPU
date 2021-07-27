@@ -143,10 +143,10 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded transformer.</returns>
         public static ReorderTransformer<TSource, TTarget, TTransformer>
             CreateReorderTransformer<
-            TSource,
-            TTarget,
-            TTransformer>(
-            this Accelerator accelerator)
+                TSource,
+                TTarget,
+                TTransformer>(
+                this Accelerator accelerator)
             where TSource : unmanaged
             where TTarget : unmanaged
             where TTransformer : struct, ITransformer<TSource, TTarget>
@@ -170,6 +170,7 @@ namespace ILGPU.Algorithms
                     throw new NotSupportedException(
                         ErrorMessages.NotSupportedArrayView64);
                 }
+
                 baseTransformer(stream, reorderView, target,
                     new ReorderTransformWrapper<TSource, TTarget, TTransformer>(
                         source,

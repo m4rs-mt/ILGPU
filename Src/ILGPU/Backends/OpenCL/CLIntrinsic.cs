@@ -46,9 +46,9 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="mode">The code-generation mode.</param>
         public CLIntrinsic(MethodInfo targetMethod, IntrinsicImplementationMode mode)
             : base(
-                  BackendType.OpenCL,
-                  targetMethod,
-                  mode)
+                BackendType.OpenCL,
+                targetMethod,
+                mode)
         { }
 
         /// <summary>
@@ -58,10 +58,10 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="mode">The code-generation mode.</param>
         public CLIntrinsic(Type handlerType, IntrinsicImplementationMode mode)
             : base(
-                  BackendType.OpenCL,
-                  handlerType,
-                  null,
-                  mode)
+                BackendType.OpenCL,
+                handlerType,
+                null,
+                mode)
         { }
 
         /// <summary>
@@ -75,10 +75,10 @@ namespace ILGPU.Backends.OpenCL
             string methodName,
             IntrinsicImplementationMode mode)
             : base(
-                  BackendType.OpenCL,
-                  handlerType,
-                  methodName,
-                  mode)
+                BackendType.OpenCL,
+                handlerType,
+                methodName,
+                mode)
         { }
 
         #endregion

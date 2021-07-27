@@ -170,8 +170,10 @@ namespace ILGPU.IR
 
         private readonly Dictionary<MethodBase, MethodHandle> managedMethods =
             new Dictionary<MethodBase, MethodHandle>();
+
         private readonly Dictionary<MethodHandle, int> methods =
             new Dictionary<MethodHandle, int>();
+
         private readonly List<T> dataList = new List<T>();
 
         #endregion
@@ -256,8 +258,8 @@ namespace ILGPU.IR
                 index = dataList.Count;
                 dataList.Add(data);
                 methods[handle] = index;
-
             }
+
             var source = data.Source;
             if (source != null)
                 managedMethods[source] = handle;

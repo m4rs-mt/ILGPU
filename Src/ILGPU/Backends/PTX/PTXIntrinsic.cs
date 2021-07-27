@@ -47,9 +47,9 @@ namespace ILGPU.Backends.PTX
         /// <param name="mode">The code-generation mode.</param>
         public PTXIntrinsic(MethodInfo targetMethod, IntrinsicImplementationMode mode)
             : base(
-                  BackendType.PTX,
-                  targetMethod,
-                  mode)
+                BackendType.PTX,
+                targetMethod,
+                mode)
         { }
 
         /// <summary>
@@ -59,10 +59,10 @@ namespace ILGPU.Backends.PTX
         /// <param name="mode">The code-generation mode.</param>
         public PTXIntrinsic(Type handlerType, IntrinsicImplementationMode mode)
             : base(
-                  BackendType.PTX,
-                  handlerType,
-                  null,
-                  mode)
+                BackendType.PTX,
+                handlerType,
+                null,
+                mode)
         { }
 
         /// <summary>
@@ -92,10 +92,10 @@ namespace ILGPU.Backends.PTX
             string methodName,
             IntrinsicImplementationMode mode)
             : base(
-                  BackendType.PTX,
-                  handlerType,
-                  methodName,
-                  mode)
+                BackendType.PTX,
+                handlerType,
+                methodName,
+                mode)
         { }
 
         /// <summary>
@@ -111,10 +111,10 @@ namespace ILGPU.Backends.PTX
             IntrinsicImplementationMode mode,
             CudaArchitecture minArchitecture)
             : base(
-                  BackendType.PTX,
-                  handlerType,
-                  methodName,
-                  mode)
+                BackendType.PTX,
+                handlerType,
+                methodName,
+                mode)
         {
             MinArchitecture = minArchitecture;
         }
@@ -134,10 +134,10 @@ namespace ILGPU.Backends.PTX
             CudaArchitecture? minArchitecture,
             CudaArchitecture maxArchitecture)
             : base(
-                  BackendType.PTX,
-                  handlerType,
-                  methodName,
-                  mode)
+                BackendType.PTX,
+                handlerType,
+                methodName,
+                mode)
         {
             MinArchitecture = minArchitecture;
             MaxArchitecture = maxArchitecture;
@@ -174,7 +174,7 @@ namespace ILGPU.Backends.PTX
             && (!MinArchitecture.HasValue ||
                 ptxBackend.Architecture >= MinArchitecture.Value)
             && (!MaxArchitecture.HasValue ||
-                    ptxBackend.Architecture < MaxArchitecture.Value);
+                ptxBackend.Architecture < MaxArchitecture.Value);
 
         #endregion
     }

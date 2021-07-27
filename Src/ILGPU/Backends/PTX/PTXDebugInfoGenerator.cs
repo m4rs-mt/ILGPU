@@ -208,6 +208,7 @@ namespace ILGPU.Backends.PTX
                         SyncLock.ExitWriteLock();
                     }
                 }
+
                 return fileIndex;
             }
             finally
@@ -305,7 +306,7 @@ namespace ILGPU.Backends.PTX
             "Microsoft.Design",
             "CA1031:DoNotCatchGeneralExceptionTypes",
             Justification = "Exceptions of any kind are ignored when trying to load" +
-            "the referenced source files")]
+                            "the referenced source files")]
         protected override void OnRegisterFile(FileLocation location)
         {
             base.OnRegisterFile(location);

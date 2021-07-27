@@ -39,6 +39,7 @@ namespace ILGPU.Tests
             {
                 sourceData[i] = i % (length / 2);
             }
+
             source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
 
             Execute(length, buffer.View, source.View);
@@ -92,6 +93,7 @@ namespace ILGPU.Tests
             {
                 sourceData[i] = i % (length / 2);
             }
+
             source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
 
             Execute(length, buffer.View, buffer2.View, source.View);

@@ -100,6 +100,7 @@ namespace ILGPU.Frontend.Intrinsic
                     break;
                 }
             }
+
             var irType = context.Builder.CreateType(typeInfo.ManagedType);
             return context.Builder.CreateOffsetOf(
                 context.Location,

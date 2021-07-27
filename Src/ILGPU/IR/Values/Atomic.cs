@@ -82,7 +82,7 @@ namespace ILGPU.IR.Values
         /// Returns true if the operation has enabled unsigned semantics.
         /// </summary>
         public bool IsUnsigned => (Flags & AtomicFlags.Unsigned) ==
-            AtomicFlags.Unsigned;
+                                  AtomicFlags.Unsigned;
 
         #endregion
 

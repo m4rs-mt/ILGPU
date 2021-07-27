@@ -32,7 +32,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// </summary>
         private readonly Dictionary<MethodBase, MethodDebugInformation>
             debugInformation =
-            new Dictionary<MethodBase, MethodDebugInformation>();
+                new Dictionary<MethodBase, MethodDebugInformation>();
 
         /// <summary>
         /// The internal reader provider.
@@ -137,6 +137,7 @@ namespace ILGPU.Frontend.DebugInformation
                 if (method != null)
                     return true;
             }
+
             method = null;
             return false;
         }
@@ -163,6 +164,7 @@ namespace ILGPU.Frontend.DebugInformation
             {
                 methodBase = methodInfo.GetGenericMethodDefinition();
             }
+
             return debugInformation.TryGetValue(
                 methodBase,
                 out methodDebugInformation);

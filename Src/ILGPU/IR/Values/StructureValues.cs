@@ -226,7 +226,7 @@ namespace ILGPU.IR.Values
         {
             int sourceIndex = fieldSpan.Index;
             return Index <= sourceIndex &&
-                sourceIndex + fieldSpan.Span <= Index + Span;
+                   sourceIndex + fieldSpan.Span <= Index + Span;
         }
 
         /// <summary>
@@ -241,7 +241,7 @@ namespace ILGPU.IR.Values
         {
             int lastIndex = GetLastAccess().Index;
             return lastIndex < fieldSpan.Index ||
-                Index > fieldSpan.GetLastAccess().Index;
+                   Index > fieldSpan.GetLastAccess().Index;
         }
 
         /// <summary>
@@ -433,6 +433,7 @@ namespace ILGPU.IR.Values
                 if (this[i] != other[i])
                     return false;
             }
+
             return true;
         }
 
@@ -481,6 +482,7 @@ namespace ILGPU.IR.Values
                 if (chain[i] != otherChain[i])
                     return false;
             }
+
             return true;
         }
 
@@ -517,6 +519,7 @@ namespace ILGPU.IR.Values
                 result.Append(entry);
                 result.Append(']');
             }
+
             return result.ToString();
         }
 
@@ -618,8 +621,8 @@ namespace ILGPU.IR.Values
         /// <returns>The new field reference.</returns>
         public FieldRef Access(FieldSpan fieldSpan) =>
             IsDirect
-            ? new FieldRef(Source, fieldSpan)
-            : new FieldRef(Source, FieldSpan.Narrow(fieldSpan));
+                ? new FieldRef(Source, fieldSpan)
+                : new FieldRef(Source, FieldSpan.Narrow(fieldSpan));
 
         #endregion
 
@@ -711,7 +714,8 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// An abstract structure value builder.
         /// </summary>
-        public interface IBuilder : IValueBuilder { }
+        public interface IBuilder : IValueBuilder
+        { }
 
         /// <summary>
         /// An internal instance builder.

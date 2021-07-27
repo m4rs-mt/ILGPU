@@ -269,6 +269,7 @@ namespace ILGPU.Backends.EntryPoints
                 throw new ArgumentOutOfRangeException(
                     nameof(numImplementationFieldsPerView));
             }
+
             NumImplementationFieldsPerView = numImplementationFieldsPerView;
 
             var builder = ImmutableArray.CreateBuilder<ViewParameter>(

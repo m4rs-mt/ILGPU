@@ -111,6 +111,7 @@ namespace ILGPU.IR.Transformations
                         new FieldSpan(span.Index + i));
                     instance.Add(viewField);
                 }
+
                 newValue = instance.Seal();
             }
             else
@@ -121,6 +122,7 @@ namespace ILGPU.IR.Transformations
                     getValue.ObjectValue,
                     span);
             }
+
             context.ReplaceAndRemove(getValue, newValue);
         }
 
@@ -164,6 +166,7 @@ namespace ILGPU.IR.Transformations
                     span,
                     setValue.Value);
             }
+
             context.ReplaceAndRemove(setValue, targetValue);
         }
 

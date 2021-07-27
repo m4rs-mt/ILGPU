@@ -165,6 +165,7 @@ namespace ILGPU.IR.Analyses
                 if (allocaInfo.Alloca == alloca)
                     return true;
             }
+
             return false;
         }
 
@@ -347,8 +348,8 @@ namespace ILGPU.IR.Analyses
             // Assume that we can align the type to an appropriate power of
             // 2 if the type size is compatible
             Utilities.IsPowerOf2(type.Size)
-            ? Math.Max(type.Alignment, type.Size)
-            : type.Alignment;
+                ? Math.Max(type.Alignment, type.Size)
+                : type.Alignment;
 
         /// <summary>
         /// Tries to determine type information that can be used to compute a compatible

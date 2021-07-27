@@ -225,8 +225,8 @@ namespace ILGPU.Tests
             using var buffer = Accelerator.Allocate1D<long>(length);
             Execute(length, buffer.View);
 
-            var expected = Enumerable.Repeat((long)length * sizeof(long), length).
-                ToArray();
+            var expected = Enumerable.Repeat((long)length * sizeof(long), length)
+                .ToArray();
             Verify(buffer.View, expected);
         }
 
@@ -577,6 +577,7 @@ namespace ILGPU.Tests
                     new ReadOnlySpan<int>(expectedData));
                 Execute((int)extent.Size, buffer.View, source.View);
             }
+
             Verify(buffer.AsContiguous(), expectedData);
         }
 
@@ -625,19 +626,16 @@ namespace ILGPU.Tests
                     default(PairStruct<long, long>),
                     default(PairStruct<PairStruct<long, long>, PairStruct<long, long>>)
                 },
-
                 { default(float), default(PairStruct<float, float>) },
                 { default(double), default(PairStruct<double, double>) },
                 {
-                    default(PairStruct<float, float>),
-                    default(
+                    default(PairStruct<float, float>), default(
                         PairStruct<
                             PairStruct<float, float>,
                             PairStruct<float, float>>)
                 },
                 {
-                    default(PairStruct<double, double>),
-                    default(
+                    default(PairStruct<double, double>), default(
                         PairStruct<
                             PairStruct<double, double>,
                             PairStruct<double, double>>)
@@ -695,21 +693,18 @@ namespace ILGPU.Tests
                 { 128, int.MaxValue },
                 { 256, int.MaxValue },
                 { 512, int.MaxValue },
-
                 { 16, long.MaxValue },
                 { 32, long.MaxValue },
                 { 64, long.MaxValue },
                 { 128, long.MaxValue },
                 { 256, long.MaxValue },
                 { 512, long.MaxValue },
-
                 { 16, PairStruct.MaxFloats },
                 { 32, PairStruct.MaxFloats },
                 { 64, PairStruct.MaxFloats },
                 { 128, PairStruct.MaxFloats },
                 { 256, PairStruct.MaxFloats },
                 { 512, PairStruct.MaxFloats },
-
                 { 32, PairStruct.MaxDoubles },
                 { 64, PairStruct.MaxDoubles },
                 { 128, PairStruct.MaxDoubles },
@@ -771,7 +766,7 @@ namespace ILGPU.Tests
                 // Determine the main view length using the raw pointers
                 var mainViewPtr = mainView.LoadEffectiveAddressAsPtr();
                 long prefixViewLength = ((long)mainViewPtr - data.NativePtr.ToInt64()) /
-                    Interop.SizeOf<T>();
+                                        Interop.SizeOf<T>();
                 Assert.Equal(prefixLength, prefixViewLength);
                 Assert.Equal(prefixLength, prefixView.Length);
                 Assert.Equal(mainLength, mainView.Length);

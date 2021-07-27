@@ -661,9 +661,9 @@ namespace ILGPU.IR.Values
             ValueReference source,
             PrimitiveType targetType)
             : base(
-                  initializer,
-                  source,
-                  targetType)
+                initializer,
+                source,
+                targetType)
         {
             var basicValueType = source.Type.BasicValueType;
             initializer.Assert(
@@ -727,9 +727,9 @@ namespace ILGPU.IR.Values
             ValueReference source,
             PrimitiveType targetType)
             : base(
-                  initializer,
-                  source,
-                  targetType)
+                initializer,
+                source,
+                targetType)
         {
             var basicValueType = source.Type.BasicValueType;
             initializer.Assert(

@@ -54,10 +54,10 @@ namespace ILGPU.Backends.OpenCL.Transformations
         /// <param name="pointerType">The actual pointer type to use.</param>
         public CLAcceleratorSpecializer(PrimitiveType pointerType)
             : base(
-                  AcceleratorType.OpenCL,
-                  null,
-                  pointerType,
-                  false)
+                AcceleratorType.OpenCL,
+                null,
+                pointerType,
+                false)
         { }
 
         #region Methods

@@ -66,7 +66,8 @@ namespace AlgorithmsTransform
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         var sourceBuffer = accelerator.Allocate<int>(64);
-                        accelerator.Initialize(accelerator.DefaultStream, sourceBuffer.View, 2);
+                        accelerator.Initialize(accelerator.DefaultStream,
+                            sourceBuffer.View, 2);
 
                         using (var targetBuffer = accelerator.Allocate<CustomStruct>(64))
                         {
@@ -89,7 +90,9 @@ namespace AlgorithmsTransform
                             // Calling the convenient Transform function on the accelerator
                             // involves internal heap allocations. This can be avoided by constructing
                             // a transformer explicitly:
-                            var transformer = accelerator.CreateTransformer<int, CustomStruct, IntToCustomStructTransformer>();
+                            var transformer = accelerator
+                                .CreateTransformer<int, CustomStruct,
+                                    IntToCustomStructTransformer>();
 
                             // We can now use the transformer without any further heap allocations
                             // during the invocation. Note that the transformer requires an explicit

@@ -126,8 +126,8 @@ namespace ILGPU.IR.Analyses
                         Current = (MemoryAddressSpace)(++index);
                         if (Info.HasAddressSpace(Current))
                             return true;
-                    }
-                    while (index <= (int)MemoryAddressSpace.Local);
+                    } while (index <= (int)MemoryAddressSpace.Local);
+
                     return false;
                 }
 
@@ -191,6 +191,7 @@ namespace ILGPU.IR.Analyses
                         unifiedAddressSpace,
                         childData);
                 }
+
                 return AnalysisValue.Create(unifiedAddressSpace, type);
             }
 
@@ -235,14 +236,14 @@ namespace ILGPU.IR.Analyses
             /// </summary>
             public MemoryAddressSpace UnifiedAddressSpace =>
                 Flags == AddressSpaceFlags.None || !Utilities.IsPowerOf2((int)Flags)
-                ? MemoryAddressSpace.Generic
-                : HasFlags(AddressSpaceFlags.Global)
-                ? MemoryAddressSpace.Global
-                : HasFlags(AddressSpaceFlags.Shared)
-                ? MemoryAddressSpace.Shared
-                : HasFlags(AddressSpaceFlags.Local)
-                ? MemoryAddressSpace.Local
-                : MemoryAddressSpace.Generic;
+                    ? MemoryAddressSpace.Generic
+                    : HasFlags(AddressSpaceFlags.Global)
+                        ? MemoryAddressSpace.Global
+                        : HasFlags(AddressSpaceFlags.Shared)
+                            ? MemoryAddressSpace.Shared
+                            : HasFlags(AddressSpaceFlags.Local)
+                                ? MemoryAddressSpace.Local
+                                : MemoryAddressSpace.Generic;
 
             #endregion
 
@@ -317,8 +318,8 @@ namespace ILGPU.IR.Analyses
             /// <returns>The string representation of this instance.</returns>
             public override readonly string ToString() =>
                 Flags == AddressSpaceFlags.None
-                ? "<None>"
-                : UnifiedAddressSpace.ToString();
+                    ? "<None>"
+                    : UnifiedAddressSpace.ToString();
 
             #endregion
 
@@ -332,9 +333,9 @@ namespace ILGPU.IR.Analyses
             public static implicit operator AddressSpaceInfo(
                 MemoryAddressSpace? addressSpace) =>
                 !addressSpace.HasValue
-                ? new AddressSpaceInfo()
-                : new AddressSpaceInfo(
-                    (AddressSpaceFlags)(1 << (int)addressSpace.Value));
+                    ? new AddressSpaceInfo()
+                    : new AddressSpaceInfo(
+                        (AddressSpaceFlags)(1 << (int)addressSpace.Value));
 
             /// <summary>
             /// Returns true if the first and second information instances are the same.
@@ -395,8 +396,8 @@ namespace ILGPU.IR.Analyses
             private AddressSpaceInfo GetInitialAddressSpace(Value value) =>
                 value is Parameter parameter &&
                 parameter.Type.HasFlags(TypeFlags.AddressSpaceDependent)
-                ? AddressSpace
-                : default(AddressSpaceInfo);
+                    ? AddressSpace
+                    : default(AddressSpaceInfo);
 
             /// <summary>
             /// Returns address-space information based on <see cref="AddressSpace"/>
@@ -489,8 +490,8 @@ namespace ILGPU.IR.Analyses
             return
                 type.AddressSpace != MemoryAddressSpace.Generic ||
                 !HasFlags(AnalysisFlags.IgnoreGenericAddressSpace)
-                ? type.AddressSpace
-                : default(AddressSpaceInfo);
+                    ? type.AddressSpace
+                    : default(AddressSpaceInfo);
         }
 
         /// <summary>
@@ -521,8 +522,8 @@ namespace ILGPU.IR.Analyses
         protected override AnalysisValue<AddressSpaceInfo>?
             TryProvide(TypeNode typeNode) =>
             typeNode is AddressSpaceType spaceType
-            ? AnalysisValue.Create<AddressSpaceInfo>(spaceType.AddressSpace, typeNode)
-            : default(AnalysisValue<AddressSpaceInfo>?);
+                ? AnalysisValue.Create<AddressSpaceInfo>(spaceType.AddressSpace, typeNode)
+                : default(AnalysisValue<AddressSpaceInfo>?);
 
         #endregion
     }

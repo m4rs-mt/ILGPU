@@ -56,6 +56,7 @@ namespace ILGPU.Backends.OpenCL
                 {
                     statement.AppendPointerCast(TypeGenerator[targetType.ElementType]);
                 }
+
                 statement.Append(source);
             }
 

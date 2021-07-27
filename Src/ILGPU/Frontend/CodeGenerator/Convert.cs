@@ -39,6 +39,7 @@ namespace ILGPU.Frontend
                 convertFlags |= ConvertFlags.SourceUnsigned;
                 convertFlags |= ConvertFlags.TargetUnsigned;
             }
+
             var targetTypeNode = Builder.CreateType(targetType);
             Block.Push(CreateConversion(
                 value,
@@ -86,6 +87,7 @@ namespace ILGPU.Frontend
                 Location.Assert(value.Type is StructureType);
                 return value;
             }
+
             return Builder.CreateConvert(
                 Location,
                 value,

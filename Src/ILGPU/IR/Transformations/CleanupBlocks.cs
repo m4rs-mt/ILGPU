@@ -88,6 +88,7 @@ namespace ILGPU.IR.Transformations
                 if (target != targets[i])
                     return false;
             }
+
             return true;
         }
 
@@ -128,6 +129,7 @@ namespace ILGPU.IR.Transformations
                         builder[pred],
                         new Remapper(block, successor));
                 }
+
                 updated = true;
             }
 

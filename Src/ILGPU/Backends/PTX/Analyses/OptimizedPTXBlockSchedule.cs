@@ -53,6 +53,7 @@ namespace ILGPU.Backends.PTX.Analyses
                     tempList.Reverse();
                     successors = tempList;
                 }
+
                 return successors;
             }
         }
@@ -161,6 +162,7 @@ namespace ILGPU.Backends.PTX.Analyses
                     tempList.Reverse();
                     successors = tempList;
                 }
+
                 return successors;
             }
         }

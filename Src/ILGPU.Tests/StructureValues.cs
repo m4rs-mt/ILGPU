@@ -22,34 +22,20 @@ namespace ILGPU.Tests
         {
             { default(EmptyStruct) },
             { default(TestStruct) },
-            { new TestStruct<byte>()
             {
-                Val0 = 1,
-                Val1 = byte.MaxValue,
-                Val2 = short.MinValue
-            } },
-            { new TestStruct<EmptyStruct, sbyte>()
-            {
-                Val0 = default,
-                Val1 = ushort.MaxValue,
-                Val2 = sbyte.MinValue,
-            } },
-            { new TestStruct<float, TestStruct<EmptyStruct, sbyte>>()
-            {
-                Val0 = float.Epsilon,
-                Val1 = ushort.MaxValue,
-                Val2 = new TestStruct<EmptyStruct, sbyte>()
+                new TestStruct<byte>()
                 {
-                    Val0 = default,
-                    Val1 = ushort.MaxValue,
-                    Val2 = sbyte.MinValue,
+                    Val0 = 1, Val1 = byte.MaxValue, Val2 = short.MinValue
                 }
-            } },
-            { new TestStruct<int, TestStruct<float, TestStruct<EmptyStruct, sbyte>>>()
+            },
             {
-                Val0 = int.MinValue,
-                Val1 = ushort.MaxValue,
-                Val2 = new TestStruct<float, TestStruct<EmptyStruct, sbyte>>()
+                new TestStruct<EmptyStruct, sbyte>()
+                {
+                    Val0 = default, Val1 = ushort.MaxValue, Val2 = sbyte.MinValue,
+                }
+            },
+            {
+                new TestStruct<float, TestStruct<EmptyStruct, sbyte>>()
                 {
                     Val0 = float.Epsilon,
                     Val1 = ushort.MaxValue,
@@ -60,31 +46,52 @@ namespace ILGPU.Tests
                         Val2 = sbyte.MinValue,
                     }
                 }
-            } },
-            { new DeepStructure<EmptyStruct>() },
-            { new TestStruct<SmallCustomSizeStruct, long>()
+            },
             {
-                Val0 = new SmallCustomSizeStruct()
+                new TestStruct<int, TestStruct<float, TestStruct<EmptyStruct, sbyte>>>()
                 {
-                    Data = byte.MaxValue,
-                },
-                Val1 = ushort.MaxValue,
-                Val2 = long.MinValue,
-            } },
+                    Val0 = int.MinValue,
+                    Val1 = ushort.MaxValue,
+                    Val2 = new TestStruct<float, TestStruct<EmptyStruct, sbyte>>()
+                    {
+                        Val0 = float.Epsilon,
+                        Val1 = ushort.MaxValue,
+                        Val2 = new TestStruct<EmptyStruct, sbyte>()
+                        {
+                            Val0 = default,
+                            Val1 = ushort.MaxValue,
+                            Val2 = sbyte.MinValue,
+                        }
+                    }
+                }
+            },
+            { new DeepStructure<EmptyStruct>() },
+            {
+                new TestStruct<SmallCustomSizeStruct, long>()
+                {
+                    Val0 = new SmallCustomSizeStruct() { Data = byte.MaxValue, },
+                    Val1 = ushort.MaxValue,
+                    Val2 = long.MinValue,
+                }
+            },
             { new ShortFixedBufferStruct(short.MaxValue) },
             { new LongFixedBufferStruct(long.MaxValue) },
-            { new TestStruct<EmptyStruct, ShortFixedBufferStruct>()
             {
-                Val0 = default,
-                Val1 = ushort.MaxValue,
-                Val2 = new ShortFixedBufferStruct(short.MaxValue),
-            } },
-            { new TestStruct<ShortFixedBufferStruct, LongFixedBufferStruct>()
+                new TestStruct<EmptyStruct, ShortFixedBufferStruct>()
+                {
+                    Val0 = default,
+                    Val1 = ushort.MaxValue,
+                    Val2 = new ShortFixedBufferStruct(short.MaxValue),
+                }
+            },
             {
-                Val0 = new ShortFixedBufferStruct(short.MinValue),
-                Val1 = ushort.MaxValue,
-                Val2 = new LongFixedBufferStruct(long.MinValue),
-            } },
+                new TestStruct<ShortFixedBufferStruct, LongFixedBufferStruct>()
+                {
+                    Val0 = new ShortFixedBufferStruct(short.MinValue),
+                    Val1 = ushort.MaxValue,
+                    Val2 = new LongFixedBufferStruct(long.MinValue),
+                }
+            },
         };
 
         internal static void StructureInteropKernel<T>(
@@ -111,32 +118,35 @@ namespace ILGPU.Tests
 
         public static TheoryData<object> StructureViewInteropData =>
             new TheoryData<object>
-        {
-            { default(EmptyStruct) },
-            { default(TestStruct) },
-            { new TestStruct<byte>()
             {
-                Val0 = 1,
-                Val1 = byte.MaxValue,
-                Val2 = short.MinValue
-            } },
-            { new TestStruct<int, TestStruct<float, TestStruct<EmptyStruct, sbyte>>>()
-            {
-                Val0 = int.MinValue,
-                Val1 = ushort.MaxValue,
-                Val2 = new TestStruct<float, TestStruct<EmptyStruct, sbyte>>()
+                { default(EmptyStruct) },
+                { default(TestStruct) },
                 {
-                    Val0 = float.Epsilon,
-                    Val1 = 0,
-                    Val2 = new TestStruct<EmptyStruct, sbyte>()
+                    new TestStruct<byte>()
                     {
-                        Val0 = default,
-                        Val1 = ushort.MinValue,
-                        Val2 = sbyte.MinValue,
+                        Val0 = 1, Val1 = byte.MaxValue, Val2 = short.MinValue
+                    }
+                },
+                {
+                    new TestStruct<int,
+                        TestStruct<float, TestStruct<EmptyStruct, sbyte>>>()
+                    {
+                        Val0 = int.MinValue,
+                        Val1 = ushort.MaxValue,
+                        Val2 = new TestStruct<float, TestStruct<EmptyStruct, sbyte>>()
+                        {
+                            Val0 = float.Epsilon,
+                            Val1 = 0,
+                            Val2 = new TestStruct<EmptyStruct, sbyte>()
+                            {
+                                Val0 = default,
+                                Val1 = ushort.MinValue,
+                                Val2 = sbyte.MinValue,
+                            }
+                        }
                     }
                 }
-            } }
-        };
+            };
 
         internal static void StructureViewInteropKernel<T>(
             Index1D index,
@@ -213,16 +223,8 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(StructureGetNestedKernel))]
         public void StructureGetNested()
         {
-            var nested = new Nested()
-            {
-                Value1 = int.MinValue,
-                Value2 = int.MaxValue,
-            };
-            var value = new Parent()
-            {
-                First = nested,
-                Second = nested,
-            };
+            var nested = new Nested() { Value1 = int.MinValue, Value2 = int.MaxValue, };
+            var value = new Parent() { First = nested, Second = nested, };
 
             using var buffer = Accelerator.Allocate1D<Nested>(1);
             Execute(buffer.IntExtent, buffer.View, value);
@@ -234,11 +236,7 @@ namespace ILGPU.Tests
             ArrayView1D<Parent, Stride1D.Dense> data,
             Nested value)
         {
-            var dataValue = new Parent
-            {
-                First = value,
-                Second = value
-            };
+            var dataValue = new Parent { First = value, Second = value };
             data[index] = dataValue;
         }
 
@@ -246,16 +244,8 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(StructureSetNestedKernel))]
         public void StructureSetNested()
         {
-            var nested = new Nested()
-            {
-                Value1 = int.MinValue,
-                Value2 = int.MaxValue,
-            };
-            var value = new Parent()
-            {
-                First = nested,
-                Second = nested,
-            };
+            var nested = new Nested() { Value1 = int.MinValue, Value2 = int.MaxValue, };
+            var value = new Parent() { First = nested, Second = nested, };
 
             using var buffer = Accelerator.Allocate1D<Parent>(1);
             Execute(buffer.Length, buffer.View, nested);
@@ -296,9 +286,7 @@ namespace ILGPU.Tests
         {
             var expected = new TestStruct<EmptyStruct, T>()
             {
-                Val0 = default,
-                Val1 = ushort.MaxValue,
-                Val2 = default,
+                Val0 = default, Val1 = ushort.MaxValue, Val2 = default,
             };
 
             using var buffer = Accelerator.Allocate1D<TestStruct<EmptyStruct, T>>(1);
@@ -314,9 +302,7 @@ namespace ILGPU.Tests
         {
             var expected = new TestStruct<T, EmptyStruct>()
             {
-                Val0 = default,
-                Val1 = ushort.MaxValue,
-                Val2 = default,
+                Val0 = default, Val1 = ushort.MaxValue, Val2 = default,
             };
 
             using var buffer = Accelerator.Allocate1D<TestStruct<T, EmptyStruct>>(1);
@@ -355,9 +341,7 @@ namespace ILGPU.Tests
 
             var input = new UnsignedFieldStruct
             {
-                x = maxUInt8,
-                y = maxUInt16,
-                z = maxUInt32
+                x = maxUInt8, y = maxUInt16, z = maxUInt32
             };
 
             using var output = Accelerator.Allocate1D<long>(3);

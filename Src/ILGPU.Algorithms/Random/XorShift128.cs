@@ -58,7 +58,7 @@ namespace ILGPU.Algorithms.Random
         public XorShift128(uint state0, uint state1, uint state2, uint state3)
         {
             Trace.Assert(state0 != 0 || state1 != 0 ||
-                state2 != 0 || state3 != 0, "State must not be zero");
+                         state2 != 0 || state3 != 0, "State must not be zero");
             State0 = state0;
             State1 = state1;
             State2 = state2;

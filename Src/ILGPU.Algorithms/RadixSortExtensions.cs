@@ -599,6 +599,7 @@ namespace ILGPU.Algorithms
                     scanMemory[address] =
                         GroupExtensions.ExclusiveScan<int, AddInt32>(scanMemory[address]);
                 }
+
                 Group.Barrier();
 
                 if (Group.IdxX == Group.DimX - 1)
@@ -611,15 +612,17 @@ namespace ILGPU.Algorithms
                         counter[j * numGroups + gridIdx] = newOffset;
                     }
                 }
+
                 Group.Barrier();
 
                 var gridSize = gridIdx * Group.DimX;
                 Index1D pos = gridSize + scanMemory[Group.IdxX + groupSize * bits] -
-                    Utilities.Select(inRange & Group.IdxX == Group.DimX - 1, 1, 0);
+                              Utilities.Select(inRange & Group.IdxX == Group.DimX - 1, 1,
+                                  0);
                 for (int j = 1; j <= bits; ++j)
                 {
                     pos += scanMemory[groupSize * j - 1] +
-                        Utilities.Select(j - 1 == bits, 1, 0);
+                           Utilities.Select(j - 1 == bits, 1, 0);
                 }
 
                 // Pre-sort the current value into the corresponding segment
@@ -693,6 +696,7 @@ namespace ILGPU.Algorithms
                 previous = scanMemory[j];
                 scanMemory[j] = scanned;
             }
+
             scanMemory[0] = 0;
 
             // Pre-sort the current value into the corresponding segment
@@ -769,7 +773,7 @@ namespace ILGPU.Algorithms
 
                 int offset = 0;
                 int pos = GetExclusiveCount(bits * numGroups + gridIdx, counter) +
-                    Group.IdxX;
+                          Group.IdxX;
 
                 for (int w = 0; w < bits; ++w)
                 {
@@ -1084,7 +1088,7 @@ namespace ILGPU.Algorithms
                         out int numIterationsPerGroup);
                     int numVirtualGroups = gridDim * numIterationsPerGroup;
                     int lengthInformation = XMath.DivRoundUp(input.IntLength, groupDim) *
-                        groupDim;
+                                            groupDim;
 
                     VerifyArguments<T, TRadixSortOperation>(
                         accelerator,
@@ -1133,7 +1137,6 @@ namespace ILGPU.Algorithms
                     }
                 };
             }
-
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1178,8 +1181,8 @@ namespace ILGPU.Algorithms
             this Accelerator accelerator,
             Index1D tempStorageSize) =>
             tempStorageSize < 1
-            ? throw new ArgumentOutOfRangeException(nameof(tempStorageSize))
-            : new RadixSortProvider(accelerator, tempStorageSize);
+                ? throw new ArgumentOutOfRangeException(nameof(tempStorageSize))
+                : new RadixSortProvider(accelerator, tempStorageSize);
 
         /// <summary>
         /// Allocates a temporary memory view.

@@ -275,6 +275,7 @@ namespace ILGPU.IR
                             directTarget.Replace(CreateUndefined());
                         continue;
                     }
+
                     targetCollection.Add(valueRef);
                 }
 
@@ -395,6 +396,7 @@ namespace ILGPU.IR
                     valueToMove.BasicBlock = tempBlock.BasicBlock;
                     tempBlock.Add(valueToMove);
                 }
+
                 while (Count > valueIndex)
                     Values.RemoveAt(Count - 1);
 
@@ -434,6 +436,7 @@ namespace ILGPU.IR
                     Value movedValue = values[offset];
                     movedValue.BasicBlock = BasicBlock;
                 }
+
                 otherBuilder.ClearLists();
 
                 // Wire terminators
@@ -551,6 +554,7 @@ namespace ILGPU.IR
                     PerformRemoval();
                     BasicBlock.ReleaseBuilder(this);
                 }
+
                 base.Dispose(disposing);
             }
 

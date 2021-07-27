@@ -103,8 +103,7 @@ namespace ILGPU.IR.Analyses
                         changed = true;
                     }
                 }
-            }
-            while (changed);
+            } while (changed);
         }
 
         /// <summary>
@@ -121,6 +120,7 @@ namespace ILGPU.IR.Analyses
                 while (right < left)
                     left = idomsInRPO[left];
             }
+
             return left;
         }
 

@@ -60,8 +60,8 @@ namespace ILGPU.IR.Rewriting
     public abstract class Rewriter<TContext, TContextProvider, TContextData, T>
         where TContext : struct, IRewriterContext
         where TContextProvider :
-            struct,
-            IRewriterContextProvider<TContext, TContextData>
+        struct,
+        IRewriterContextProvider<TContext, TContextData>
     {
         #region Nested Types
 
@@ -121,7 +121,9 @@ namespace ILGPU.IR.Rewriting
                 TContextProvider,
                 TContextData,
                 T> Rewriter
-            { get; }
+            {
+                get;
+            }
 
             /// <summary>
             /// Returns the current context data.
@@ -186,7 +188,9 @@ namespace ILGPU.IR.Rewriting
                 TContextProvider,
                 TContextData,
                 T> Rewriter
-            { get; }
+            {
+                get;
+            }
 
             /// <summary>
             /// Returns the current context data.
@@ -258,7 +262,9 @@ namespace ILGPU.IR.Rewriting
                 TContextProvider,
                 TContextData,
                 T> Rewriter
-            { get; }
+            {
+                get;
+            }
 
             /// <summary>
             /// Returns the block collection.
@@ -504,6 +510,7 @@ namespace ILGPU.IR.Rewriting
                 if (CanRewrite(data, value))
                     toConvert.Add(value);
             }
+
             return toConvert;
         }
 

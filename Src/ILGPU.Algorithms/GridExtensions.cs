@@ -131,6 +131,7 @@ namespace ILGPU.Algorithms
             {
                 input = loopBody.Execute(idx, input);
             }
+
             return input;
         }
 
@@ -255,7 +256,7 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded grid-stride kernel.</returns>
         public static Action<AcceleratorStream, LongIndex1D, TBody>
             LoadGridStrideKernel<TBody>(
-            this Accelerator accelerator)
+                this Accelerator accelerator)
             where TBody : struct, IGridStrideKernelBody
         {
             var kernel = accelerator.LoadKernel<LongIndex1D, TBody>(GridStrideLoopKernel);

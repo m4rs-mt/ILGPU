@@ -45,7 +45,8 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents the base interface for all address spaces.
     /// </summary>
-    public interface IAddressSpace { }
+    public interface IAddressSpace
+    { }
 
     /// <summary>
     /// Represents an address-space annotation.
@@ -89,25 +90,29 @@ namespace ILGPU.IR
         /// Represents the generic address space.
         /// </summary>
         [AddressSpace(MemoryAddressSpace.Generic)]
-        internal struct Generic : IAddressSpace { }
+        internal struct Generic : IAddressSpace
+        { }
 
         /// <summary>
         /// Represents the global address space.
         /// </summary>
         [AddressSpace(MemoryAddressSpace.Global)]
-        internal struct Global : IAddressSpace { }
+        internal struct Global : IAddressSpace
+        { }
 
         /// <summary>
         /// Represents the shared address space.
         /// </summary>
         [AddressSpace(MemoryAddressSpace.Shared)]
-        internal struct Shared : IAddressSpace { }
+        internal struct Shared : IAddressSpace
+        { }
 
         /// <summary>
         /// Represents the local address space.
         /// </summary>
         [AddressSpace(MemoryAddressSpace.Local)]
-        internal struct Local : IAddressSpace { }
+        internal struct Local : IAddressSpace
+        { }
 
         /// <summary>
         /// Resolves the managed type for the given address space.

@@ -48,7 +48,7 @@ namespace ILGPU.Algorithms.Tests
                     return true;
                 }
                 else if ((Half.IsPositiveInfinity(x) && Half.IsNegativeInfinity(y)) ||
-                    (Half.IsNegativeInfinity(x) && Half.IsPositiveInfinity(y)))
+                         (Half.IsNegativeInfinity(x) && Half.IsPositiveInfinity(y)))
                 {
                     return false;
                 }
@@ -84,7 +84,7 @@ namespace ILGPU.Algorithms.Tests
                     return true;
                 }
                 else if ((float.IsPositiveInfinity(x) && float.IsNegativeInfinity(y)) ||
-                    (float.IsNegativeInfinity(x) && float.IsPositiveInfinity(y)))
+                         (float.IsNegativeInfinity(x) && float.IsPositiveInfinity(y)))
                 {
                     return false;
                 }
@@ -116,7 +116,7 @@ namespace ILGPU.Algorithms.Tests
                     return true;
                 }
                 else if ((double.IsPositiveInfinity(x) && double.IsNegativeInfinity(y)) ||
-                    (double.IsNegativeInfinity(x) && double.IsPositiveInfinity(y)))
+                         (double.IsNegativeInfinity(x) && double.IsPositiveInfinity(y)))
                 {
                     return false;
                 }
@@ -148,7 +148,7 @@ namespace ILGPU.Algorithms.Tests
                     return true;
                 }
                 else if ((Half.IsPositiveInfinity(x) && Half.IsNegativeInfinity(y)) ||
-                    (Half.IsNegativeInfinity(x) && Half.IsPositiveInfinity(y)))
+                         (Half.IsNegativeInfinity(x) && Half.IsPositiveInfinity(y)))
                 {
                     return false;
                 }
@@ -188,7 +188,7 @@ namespace ILGPU.Algorithms.Tests
                     return true;
                 }
                 else if ((float.IsPositiveInfinity(x) && float.IsNegativeInfinity(y)) ||
-                    (float.IsNegativeInfinity(x) && float.IsPositiveInfinity(y)))
+                         (float.IsNegativeInfinity(x) && float.IsPositiveInfinity(y)))
                 {
                     return false;
                 }
@@ -228,7 +228,7 @@ namespace ILGPU.Algorithms.Tests
                     return true;
                 }
                 else if ((double.IsPositiveInfinity(x) && double.IsNegativeInfinity(y)) ||
-                    (double.IsNegativeInfinity(x) && double.IsPositiveInfinity(y)))
+                         (double.IsNegativeInfinity(x) && double.IsPositiveInfinity(y)))
                 {
                     return false;
                 }

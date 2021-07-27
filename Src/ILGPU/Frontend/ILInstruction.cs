@@ -36,10 +36,12 @@ namespace ILGPU.Frontend
         /// <summary>Ldarg</summary>
         ///
         Ldarg,
+
         ///
         /// <summary>Ldarga</summary>
         ///
         Ldarga,
+
         ///
         /// <summary>Starg</summary>
         ///
@@ -49,10 +51,12 @@ namespace ILGPU.Frontend
         /// <summary>Ldloc</summary>
         ///
         Ldloc,
+
         ///
         /// <summary>Ldloca</summary>
         ///
         Ldloca,
+
         ///
         /// <summary>Stloc</summary>
         ///
@@ -62,22 +66,27 @@ namespace ILGPU.Frontend
         /// <summary>Ldnull</summary>
         ///
         Ldnull,
+
         ///
         /// <summary>LdI4</summary>
         ///
         LdI4,
+
         ///
         /// <summary>LdI8</summary>
         ///
         LdI8,
+
         ///
         /// <summary>LdR4</summary>
         ///
         LdR4,
+
         ///
         /// <summary>LdR8</summary>
         ///
         LdR8,
+
         ///
         /// <summary>Ldstr</summary>
         ///
@@ -87,6 +96,7 @@ namespace ILGPU.Frontend
         /// <summary>Dup</summary>
         ///
         Dup,
+
         ///
         /// <summary>Pop</summary>
         ///
@@ -96,14 +106,17 @@ namespace ILGPU.Frontend
         /// <summary>Jmp</summary>
         ///
         Jmp,
+
         ///
         /// <summary>Call</summary>
         ///
         Call,
+
         ///
         /// <summary>Calli</summary>
         ///
         Calli,
+
         ///
         /// <summary>Callvirt</summary>
         ///
@@ -118,10 +131,12 @@ namespace ILGPU.Frontend
         /// <summary>Br</summary>
         ///
         Br,
+
         ///
         /// <summary>Brfalse</summary>
         ///
         Brfalse,
+
         ///
         /// <summary>Brtrue</summary>
         ///
@@ -131,22 +146,27 @@ namespace ILGPU.Frontend
         /// <summary></summary>
         ///
         Beq,
+
         ///
         /// <summary>Bne</summary>
         ///
         Bne,
+
         ///
         /// <summary>Bge</summary>
         ///
         Bge,
+
         ///
         /// <summary>Bgt</summary>
         ///
         Bgt,
+
         ///
         /// <summary>Ble</summary>
         ///
         Ble,
+
         ///
         /// <summary>Blt</summary>
         ///
@@ -161,18 +181,22 @@ namespace ILGPU.Frontend
         /// <summary>Add</summary>
         ///
         Add,
+
         ///
         /// <summary>Sub</summary>
         ///
         Sub,
+
         ///
         /// <summary>Mul</summary>
         ///
         Mul,
+
         ///
         /// <summary>Div</summary>
         ///
         Div,
+
         ///
         /// <summary>Rem</summary>
         ///
@@ -182,26 +206,32 @@ namespace ILGPU.Frontend
         /// <summary>And</summary>
         ///
         And,
+
         ///
         /// <summary>Or</summary>
         ///
         Or,
+
         ///
         /// <summary>Xor</summary>
         ///
         Xor,
+
         ///
         /// <summary>Shl</summary>
         ///
         Shl,
+
         ///
         /// <summary>Shr</summary>
         ///
         Shr,
+
         ///
         /// <summary>Neg</summary>
         ///
         Neg,
+
         ///
         /// <summary>Not</summary>
         ///
@@ -216,10 +246,12 @@ namespace ILGPU.Frontend
         /// <summary>Initobj</summary>
         ///
         Initobj,
+
         ///
         /// <summary>Newobj</summary>
         ///
         Newobj,
+
         ///
         /// <summary>Newarr</summary>
         ///
@@ -229,6 +261,7 @@ namespace ILGPU.Frontend
         /// <summary>Castclass</summary>
         ///
         Castclass,
+
         ///
         /// <summary>Isinst</summary>
         ///
@@ -238,6 +271,7 @@ namespace ILGPU.Frontend
         /// <summary>Box</summary>
         ///
         Box,
+
         ///
         /// <summary>Unbox</summary>
         ///
@@ -247,22 +281,27 @@ namespace ILGPU.Frontend
         /// <summary>Ldfld</summary>
         ///
         Ldfld,
+
         ///
         /// <summary>Ldflda</summary>
         ///
         Ldflda,
+
         ///
         /// <summary>Stfld</summary>
         ///
         Stfld,
+
         ///
         /// <summary>Ldsfld</summary>
         ///
         Ldsfld,
+
         ///
         /// <summary>Ldsflda</summary>
         ///
         Ldsflda,
+
         ///
         /// <summary>Stsfld</summary>
         ///
@@ -272,10 +311,12 @@ namespace ILGPU.Frontend
         /// <summary>Ldobj</summary>
         ///
         Ldobj,
+
         ///
         /// <summary>Stobj</summary>
         ///
         Stobj,
+
         ///
         /// <summary>Cpobj</summary>
         ///
@@ -285,14 +326,17 @@ namespace ILGPU.Frontend
         /// <summary>Ldlen</summary>
         ///
         Ldlen,
+
         ///
         /// <summary>Ldelem</summary>
         ///
         Ldelem,
+
         ///
         /// <summary>Ldelema</summary>
         ///
         Ldelema,
+
         ///
         /// <summary>Stelem</summary>
         ///
@@ -302,10 +346,12 @@ namespace ILGPU.Frontend
         /// <summary>Ceq</summary>
         ///
         Ceq,
+
         ///
         /// <summary>Cgt</summary>
         ///
         Cgt,
+
         ///
         /// <summary>Clt</summary>
         ///
@@ -315,10 +361,12 @@ namespace ILGPU.Frontend
         /// <summary>Ldind</summary>
         ///
         Ldind,
+
         ///
         /// <summary>Stind</summary>
         ///
         Stind,
+
         ///
         /// <summary>Localloc</summary>
         ///
@@ -328,6 +376,7 @@ namespace ILGPU.Frontend
         /// <summary>Cpblk</summary>
         ///
         Cpblk,
+
         ///
         /// <summary>Initblk</summary>
         ///
@@ -337,6 +386,7 @@ namespace ILGPU.Frontend
         /// <summary>SizeOf</summary>
         ///
         SizeOf,
+
         ///
         /// <summary>LoadToken</summary>
         ///
@@ -426,6 +476,7 @@ namespace ILGPU.Frontend
                 if (i + 1 < e)
                     builder.Append(", ");
             }
+
             return builder.ToString();
         }
 
@@ -571,8 +622,8 @@ namespace ILGPU.Frontend
         /// <returns>The string representation.</returns>
         public override string ToString() =>
             Argument == null
-            ? $"{Flags}"
-            : $"{Flags} [{Argument}]";
+                ? $"{Flags}"
+                : $"{Flags} [{Argument}]";
 
         #endregion
 
@@ -601,6 +652,7 @@ namespace ILGPU.Frontend
             {
                 return false;
             }
+
             return
                 first.Argument == null && second.Argument == null ||
                 first.Argument.Equals(second.Argument);
@@ -797,6 +849,7 @@ namespace ILGPU.Frontend
                     operation.Apply(this, offset);
                 }
             }
+
             if (Flags.HasFlags(ILInstructionFlags.Constrained))
             {
                 // Subtract two bytes (OpCode) + the size of a metadata token
@@ -860,8 +913,8 @@ namespace ILGPU.Frontend
         {
             string baseArg =
                 Argument == null
-                ? $"{Offset:X4}: {InstructionType}"
-                : $"{Offset:X4}: {InstructionType} [{Argument}]";
+                    ? $"{Offset:X4}: {InstructionType}"
+                    : $"{Offset:X4}: {InstructionType} [{Argument}]";
             return Flags != ILInstructionFlags.None
                 ? $"{FlagsContext}.{baseArg}"
                 : baseArg;

@@ -29,7 +29,7 @@ namespace ILGPU.Tests
             data[index] = value;
             return;
 
-        exit:
+            exit:
             data[index] = 23;
         }
 
@@ -62,7 +62,7 @@ namespace ILGPU.Tests
             data[index] = value;
             return;
 
-        exit:
+            exit:
             data[index] = 23;
         }
 
@@ -100,7 +100,7 @@ namespace ILGPU.Tests
             data[index] = 42;
             return;
 
-        exit:
+            exit:
             data[index] = 23;
         }
 
@@ -129,7 +129,7 @@ namespace ILGPU.Tests
             int c)
         {
             int k = 0;
-        entry:
+            entry:
             for (int i = 0; i < source.Length; ++i)
             {
                 if (source[i] == 23)
@@ -143,10 +143,10 @@ namespace ILGPU.Tests
             data[index] = 42;
             return;
 
-        nested:
+            nested:
             k = 43;
 
-        exit:
+            exit:
             if (k++ < 1)
                 goto entry;
             data[index] = 23 + k;

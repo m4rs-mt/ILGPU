@@ -85,7 +85,7 @@ namespace ILGPU.IR.Transformations
             TValue value)
             where TValue : ThreadValue
             where TLoweringImplementation :
-                struct, LowerThreadIntrinsics.ILoweringImplementation<TValue>
+            struct, LowerThreadIntrinsics.ILoweringImplementation<TValue>
         {
             // We require a single input
             var variable = AssembleStructure(
@@ -106,7 +106,6 @@ namespace ILGPU.IR.Transformations
             // Replace old value with new value
             context.ReplaceAndRemove(value, newValue);
         }
-
 
         #endregion
 
@@ -227,6 +226,7 @@ namespace ILGPU.IR.Transformations
                     loweredLoad);
                 context.MarkConverted(loweredLoad);
             }
+
             context.Remove(load);
         }
 
@@ -276,6 +276,7 @@ namespace ILGPU.IR.Transformations
                     value);
                 context.MarkConverted(loweredStore);
             }
+
             context.Remove(store);
         }
 
@@ -350,6 +351,7 @@ namespace ILGPU.IR.Transformations
                         new FieldRef(getField, fieldAccess),
                         value);
                 }
+
                 context.Remove(getField);
             }
             else
@@ -399,6 +401,7 @@ namespace ILGPU.IR.Transformations
                     new FieldRef(setField, fieldAccess),
                     value);
             }
+
             context.Remove(setField);
         }
 
@@ -429,6 +432,7 @@ namespace ILGPU.IR.Transformations
                     new FieldRef(phi, fieldAccess),
                     phiBuilder.PhiValue);
             }
+
             context.Remove(phi);
         }
 
@@ -480,6 +484,7 @@ namespace ILGPU.IR.Transformations
                         argumentType,
                         argument);
                 }
+
                 callBuilder.Add(newArgument);
             }
 

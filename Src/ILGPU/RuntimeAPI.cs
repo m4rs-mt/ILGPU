@@ -49,10 +49,10 @@ namespace ILGPU
             {
                 T instance =
                     RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                    ? new TLinux()
-                    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                    ? new TMacOS() as T
-                    : new TWindows();
+                        ? new TLinux()
+                        : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                            ? new TMacOS() as T
+                            : new TWindows();
                 // Try to initialize the new interface
                 if (!instance.Init())
                     instance = new TNotSupported();
@@ -193,10 +193,7 @@ namespace ILGPU
                 DllImportFields,
                 new object[]
                 {
-                    GetEntryPoint(method),
-                    CharSet,
-                    CallingConvention,
-                    BestFitMapping,
+                    GetEntryPoint(method), CharSet, CallingConvention, BestFitMapping,
                     ThrowOnUnmappableChar
                 });
 

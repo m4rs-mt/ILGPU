@@ -248,7 +248,7 @@ namespace ILGPU.Runtime
             {
                 kernel = null;
                 return kernelReference.TryGetTarget(out var temp) &&
-                    (kernel = temp as T) != null;
+                       (kernel = temp as T) != null;
             }
 
             /// <summary>
@@ -361,7 +361,7 @@ namespace ILGPU.Runtime
         private bool RequestKernelCacheGC_SyncRoot =>
             KernelCacheEnabled &&
             ((compiledKernelCache.Count + 1) % NumberNewKernelsUntilGC == 0 ||
-            (kernelCache.Count + 1) % NumberNewKernelsUntilGC == 0);
+             (kernelCache.Count + 1) % NumberNewKernelsUntilGC == 0);
 
         #endregion
 
@@ -410,6 +410,7 @@ namespace ILGPU.Runtime
                     {
                         kernelInfo = cached.KernelInfo;
                     }
+
                     RequestGC_SyncRoot();
                     return result;
                 }
@@ -568,8 +569,8 @@ namespace ILGPU.Runtime
                 lock (syncRoot)
                 {
                     if (!compiledKernelCache.TryGetValue(
-                        cachedKey,
-                        out WeakReference<CompiledKernel> cached) ||
+                            cachedKey,
+                            out WeakReference<CompiledKernel> cached) ||
                         !cached.TryGetTarget(out CompiledKernel result))
                     {
                         result = Backend.Compile(entry, specialization);
@@ -584,6 +585,7 @@ namespace ILGPU.Runtime
                             cached.SetTarget(result);
                         }
                     }
+
                     RequestGC_SyncRoot();
                     return result;
                 }

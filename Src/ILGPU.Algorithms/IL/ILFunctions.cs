@@ -184,6 +184,7 @@ namespace ILGPU.Algorithms.IL
                         sharedMemory[i]);
                 }
             }
+
             impl.Barrier();
 
             return sharedMemory;

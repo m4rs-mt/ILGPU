@@ -66,17 +66,17 @@ namespace ILGPU.Frontend.Intrinsic
             ref InvocationContext context,
             AtomicIntrinsicAttribute attribute) =>
             attribute.IntrinsicKind == AtomicIntrinsicKind.CompareExchange
-            ? context.Builder.CreateAtomicCAS(
-                context.Location,
-                context[0],
-                context[1],
-                context[2],
-                attribute.IntrinsicFlags)
-            : (ValueReference)context.Builder.CreateAtomic(
-                context.Location,
-                context[0],
-                context[1],
-                (AtomicKind)attribute.IntrinsicKind,
-                attribute.IntrinsicFlags);
+                ? context.Builder.CreateAtomicCAS(
+                    context.Location,
+                    context[0],
+                    context[1],
+                    context[2],
+                    attribute.IntrinsicFlags)
+                : (ValueReference)context.Builder.CreateAtomic(
+                    context.Location,
+                    context[0],
+                    context[1],
+                    (AtomicKind)attribute.IntrinsicKind,
+                    attribute.IntrinsicFlags);
     }
 }

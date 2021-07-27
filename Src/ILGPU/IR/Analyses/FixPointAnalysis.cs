@@ -308,6 +308,7 @@ namespace ILGPU.IR.Analyses
                         value = Parent.CreateData(method);
                         returnMapping[method] = value;
                     }
+
                     return value;
                 }
             }
@@ -363,8 +364,8 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         protected override AnalysisValue<T> CreateData(Method method) =>
             method.IsVoid
-            ? default
-            : CreateValue(DefaultValue, method.ReturnType);
+                ? default
+                : CreateValue(DefaultValue, method.ReturnType);
 
         /// <summary>
         /// Executes a fix point analysis working on values on the given method.
@@ -377,8 +378,8 @@ namespace ILGPU.IR.Analyses
         /// <returns>The created analysis mapping from values to data elements.</returns>
         public (AnalysisValue<T> ReturnValue, AnalysisValueMapping<T> Values)
             AnalyzeMethod<TContext>(
-            Method method,
-            TContext context)
+                Method method,
+                TContext context)
             where TContext : IAnalysisValueSourceContext<T>
         {
             // Init the value mapping for each parameter.
@@ -445,6 +446,7 @@ namespace ILGPU.IR.Analyses
                     if (!valueMapping.ContainsKey(value))
                         valueMapping[value] = CreateData(value);
                 }
+
                 // Register return terminators
                 if (block.Terminator is ReturnTerminator terminator &&
                     !valueMapping.ContainsKey(terminator))
@@ -562,6 +564,7 @@ namespace ILGPU.IR.Analyses
                     data = Merge(data, childData[i]);
                 return new AnalysisValue<T>(data, childData);
             }
+
             return TryProvide(type) ?? CreateValue(DefaultValue, type);
         }
 
@@ -588,7 +591,7 @@ namespace ILGPU.IR.Analyses
                 Predicate pred => PhiLikeValue(source, pred, pred.Values, context),
                 MethodCall call => MethodCall(source, call, context),
                 _ => TryMerge(value, context) ??
-                    GenericValue(source, value, context),
+                     GenericValue(source, value, context),
             };
 
         /// <summary>
@@ -675,6 +678,7 @@ namespace ILGPU.IR.Analyses
                 newData = Merge(newData, childDataEntry);
                 newChildData[i] = childDataEntry;
             }
+
             return new AnalysisValue<T>(newData, newChildData);
         }
 
@@ -711,6 +715,7 @@ namespace ILGPU.IR.Analyses
                     newChildData[i] = Merge(newChildData[i], childDataEntry[i]);
                 }
             }
+
             return new AnalysisValue<T>(newData, newChildData);
         }
 
@@ -937,6 +942,7 @@ namespace ILGPU.IR.Analyses
                     if (!Arguments[i].Equals(other.Arguments[i]))
                         return false;
                 }
+
                 return true;
             }
 
@@ -1133,8 +1139,8 @@ namespace ILGPU.IR.Analyses
             AnalysisReturnValueMapping<T> returnValueMapping,
             TContext context)
             where TContext :
-                class,
-                IGlobalFixPointAnalysisContext<TMethodData, T>;
+            class,
+            IGlobalFixPointAnalysisContext<TMethodData, T>;
 
         /// <summary>
         /// Executes a fix point analysis working on values.
@@ -1202,8 +1208,7 @@ namespace ILGPU.IR.Analyses
                             callArguments.MoveToImmutable()));
                     }
                 }
-            }
-            while (context.TryPop(out current));
+            } while (context.TryPop(out current));
 
             return new GlobalAnalysisResult<T, TMethodData>(result, returnMap);
         }
@@ -1294,7 +1299,7 @@ namespace ILGPU.IR.Analyses
         {
             data = default;
             return TryGetData(value.Method, out var result) &&
-                result.TryGetValue(value, out data);
+                   result.TryGetValue(value, out data);
         }
 
         #endregion
@@ -1432,4 +1437,3 @@ namespace ILGPU.IR.Analyses
         #endregion
     }
 }
-

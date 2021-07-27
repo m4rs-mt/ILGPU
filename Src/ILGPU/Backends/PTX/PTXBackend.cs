@@ -85,10 +85,10 @@ namespace ILGPU.Backends.PTX
             CudaArchitecture architecture,
             CudaInstructionSet instructionSet)
             : base(
-                  context,
-                  capabilities,
-                  BackendType.PTX,
-                  new PTXArgumentMapper(context))
+                context,
+                capabilities,
+                BackendType.PTX,
+                new PTXArgumentMapper(context))
         {
             Architecture = architecture;
             InstructionSet = instructionSet;
@@ -167,8 +167,8 @@ namespace ILGPU.Backends.PTX
             {
                 debugInfoGenerator =
                     debugSymbolsMode >= DebugSymbolsMode.KernelSourceAnnotations
-                    ? new PTXDebugSourceLineInfoGenerator()
-                    : new PTXDebugLineInfoGenerator();
+                        ? new PTXDebugSourceLineInfoGenerator()
+                        : new PTXDebugLineInfoGenerator();
             }
 
             var builder = new StringBuilder();
@@ -280,7 +280,7 @@ namespace ILGPU.Backends.PTX
             properties.GetExtensionProperty(
                 nameof(PTXBackendMode),
                 properties.OptimizationLevel > OptimizationLevel.O1
-                ? PTXBackendMode.Enhanced
-                : PTXBackendMode.Default);
+                    ? PTXBackendMode.Enhanced
+                    : PTXBackendMode.Default);
     }
 }

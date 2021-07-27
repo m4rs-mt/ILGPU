@@ -60,7 +60,8 @@ namespace SharedMemory
             // Note that an allocation of an array view (currently) requires a compile-time known
             // constant array size.
             var sharedAllocationSize = new TSharedAllocationSize();
-            var sharedArray = ILGPU.SharedMemory.Allocate<int>(sharedAllocationSize.ArraySize);
+            var sharedArray =
+                ILGPU.SharedMemory.Allocate<int>(sharedAllocationSize.ArraySize);
 
             outputView[globalIndex] = sharedArray.IntLength;
         }
@@ -76,7 +77,8 @@ namespace SharedMemory
                 {
                     Console.WriteLine($"Performing operations on {accelerator}");
 
-                    using (var dataTarget = accelerator.Allocate<int>(accelerator.MaxNumThreadsPerGroup))
+                    using (var dataTarget =
+                        accelerator.Allocate<int>(accelerator.MaxNumThreadsPerGroup))
                     {
                         // Load a specialized shared-memory kernel
                         var sharedMemoryKernel = accelerator.LoadStreamKernel<

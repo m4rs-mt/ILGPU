@@ -54,7 +54,7 @@ namespace ILGPU
         {
             long offset =
                 IntrinsicMath.Min(length,
-                ComputeAlignmentOffset(ptr, alignmentInBytes));
+                    ComputeAlignmentOffset(ptr, alignmentInBytes));
             return ptr + offset;
         }
 

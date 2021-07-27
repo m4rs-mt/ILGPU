@@ -31,9 +31,7 @@ namespace ILGPU.IR.Transformations
         private static readonly Action<Transformer.Builder, InliningMode>[]
             OptimizationHandlers =
             {
-                AddO0Optimizations,
-                AddO1Optimizations,
-                AddO2Optimizations,
+                AddO0Optimizations, AddO1Optimizations, AddO2Optimizations,
             };
 
         /// <summary>

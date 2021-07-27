@@ -102,8 +102,8 @@ namespace ILGPU.IR.Types
         /// <param name="type">The parent type.</param>
         public int GetNumFields(TypeNode type) =>
             type is TType ttype
-            ? GetNumFields(ttype)
-            : 1;
+                ? GetNumFields(ttype)
+                : 1;
     }
 
     /// <summary>
@@ -194,6 +194,7 @@ namespace ILGPU.IR.Types
                 // Check whether we need new offset information
                 index += GetNumFields(sourceType[i]);
             }
+
             // Check whether we have to adapt the field span
             int span = 0;
             for (int i = 0, e = fieldSpan.Span; i < e; ++i)

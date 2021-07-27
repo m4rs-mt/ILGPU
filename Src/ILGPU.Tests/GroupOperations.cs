@@ -42,9 +42,7 @@ namespace ILGPU.Tests
 
                 var expected = new int[]
                 {
-                    extent.GroupDim.X,
-                    extent.GroupDim.Y,
-                    extent.GroupDim.Z,
+                    extent.GroupDim.X, extent.GroupDim.Y, extent.GroupDim.Z,
                 };
                 Verify(buffer.View, expected);
             }
@@ -71,9 +69,7 @@ namespace ILGPU.Tests
 
                 var expected = new int[]
                 {
-                    extent.GroupDim.X,
-                    extent.GroupDim.Y,
-                    extent.GroupDim.Z,
+                    extent.GroupDim.X, extent.GroupDim.Y, extent.GroupDim.Z,
                 };
                 Verify(buffer.View, expected);
             }
@@ -94,9 +90,7 @@ namespace ILGPU.Tests
 
                 var expected = new int[]
                 {
-                    extent.GroupDim.X,
-                    extent.GroupDim.Y,
-                    extent.GroupDim.Z,
+                    extent.GroupDim.X, extent.GroupDim.Y, extent.GroupDim.Z,
                 };
                 Verify(buffer.View, expected);
             }

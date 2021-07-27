@@ -346,8 +346,8 @@ namespace ILGPU.IR
         /// </summary>
         public ReadOnlySpan<BasicBlock> CurrentSuccessors =>
             Terminator is null
-            ? ReadOnlySpan<BasicBlock>.Empty
-            : Terminator.Targets;
+                ? ReadOnlySpan<BasicBlock>.Empty
+                : Terminator.Targets;
 
         /// <summary>
         /// Returns the number of values.
@@ -456,6 +456,7 @@ namespace ILGPU.IR
                 if (value is MemoryValue || value is MethodCall)
                     return true;
             }
+
             return false;
         }
 
@@ -527,6 +528,7 @@ namespace ILGPU.IR
                 textWriter.Write("\t");
                 textWriter.WriteLine(value.ToString());
             }
+
             textWriter.Write("\t");
             textWriter.WriteLine(Terminator.ToString());
         }
@@ -546,6 +548,7 @@ namespace ILGPU.IR
                 value.GC();
                 newValues.Add(value);
             }
+
             values = newValues;
         }
 

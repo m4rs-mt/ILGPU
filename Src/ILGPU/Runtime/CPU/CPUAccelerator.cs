@@ -431,8 +431,9 @@ namespace ILGPU.Runtime.CPU
             int groupSize,
             int dynamicSharedMemorySizeInBytes) =>
             kernel is CPUKernel
-            ? NumThreads / groupSize
-            : throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
+                ? NumThreads / groupSize
+                : throw new NotSupportedException(RuntimeErrorMessages
+                    .NotSupportedKernel);
 
         /// <summary cref="Accelerator.EstimateGroupSizeInternal(
         /// Kernel, Func{int, int}, int, out int)"/>

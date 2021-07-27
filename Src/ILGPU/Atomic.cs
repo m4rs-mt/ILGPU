@@ -269,7 +269,7 @@ namespace ILGPU
             where T : unmanaged, IEquatable<T>
             where TOperation : struct, AtomicOperations.IAtomicOperation<T>
             where TCompareExchangeOperation :
-                struct,
+            struct,
             AtomicOperations.ICompareExchangeOperation<T>
         {
             T current = target;
@@ -283,8 +283,7 @@ namespace ILGPU
                     ref target,
                     expected,
                     newValue);
-            }
-            while (!expected.Equals(current));
+            } while (!expected.Equals(current));
 
             return current;
         }

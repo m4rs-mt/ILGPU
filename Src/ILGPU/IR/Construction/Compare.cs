@@ -112,6 +112,5 @@ namespace ILGPU.IR.Construction
                 kind,
                 flags));
         }
-
     }
 }

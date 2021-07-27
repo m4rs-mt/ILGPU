@@ -93,7 +93,7 @@ namespace ILGPU.Frontend
             CompilationStackLocation compilationStackLocation = null)
         {
             MethodBase = methodBase
-                ?? throw new ArgumentNullException(nameof(methodBase));
+                         ?? throw new ArgumentNullException(nameof(methodBase));
             MethodGenericArguments = MethodBase is MethodInfo
                 ? MethodBase.GetGenericArguments()
                 : Array.Empty<Type>();
@@ -105,6 +105,7 @@ namespace ILGPU.Frontend
                     ErrorMessages.NativeMethodNotSupported,
                     MethodBase.Name));
             }
+
             il = MethodBody.GetILAsByteArray();
             instructions = ImmutableArray.CreateBuilder<ILInstruction>(il.Length);
             debugInformationEnumerator = sequencePointEnumerator;
@@ -249,6 +250,7 @@ namespace ILGPU.Frontend
                     popCount += 1;
                 }
             }
+
             AppendInstruction(type, (ushort)popCount, (ushort)pushCount, method);
         }
 
@@ -373,6 +375,7 @@ namespace ILGPU.Frontend
             {
                 // This is a single-byte command
             }
+
             ++ilOffset;
             return (ILOpCode)instructionCode;
         }

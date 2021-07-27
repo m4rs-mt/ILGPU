@@ -88,9 +88,9 @@ namespace ILGPU
         where TIndex : struct, IIntIndex<TIndex, TLongIndex>
         where TLongIndex : struct, ILongIndex<TLongIndex, TIndex>
         where TStride :
-            struct,
-            IStride<TIndex, TLongIndex>,
-            ICastableStride<TIndex, TLongIndex, TStride>
+        struct,
+        IStride<TIndex, TLongIndex>,
+        ICastableStride<TIndex, TLongIndex, TStride>
     {
         /// <summary>
         /// Computes a new extent and stride based on the given cast context. The context
@@ -157,6 +157,7 @@ namespace ILGPU
                 throw new ArgumentOutOfRangeException(
                     nameof(alignmentInBytes));
             }
+
             int elementSize = ArrayView<T>.ElementSize;
             if (elementSize > alignmentInBytes || alignmentInBytes % elementSize != 0)
             {
@@ -242,10 +243,10 @@ namespace ILGPU
                 in TContext context,
                 in LongIndex1D extent)
                 where TContext : struct, IStrideCastContext =>
-                (
-                    new LongIndex1D(context.ComputeNewExtent(extent)),
-                    new Dense()
-                );
+            (
+                new LongIndex1D(context.ComputeNewExtent(extent)),
+                new Dense()
+            );
         }
     }
 
@@ -344,12 +345,12 @@ namespace ILGPU
                 in TContext context,
                 in LongIndex2D extent)
                 where TContext : struct, IStrideCastContext =>
-                (
-                    new LongIndex2D(
-                        context.ComputeNewExtent(extent.X),
-                        extent.Y),
-                    new DenseX(context.ComputeNewExtent(YStride))
-                );
+            (
+                new LongIndex2D(
+                    context.ComputeNewExtent(extent.X),
+                    extent.Y),
+                new DenseX(context.ComputeNewExtent(YStride))
+            );
 
             /// <summary>
             /// Returns this stride as general 2D stride.
@@ -472,12 +473,12 @@ namespace ILGPU
                 in TContext context,
                 in LongIndex2D extent)
                 where TContext : struct, IStrideCastContext =>
-                (
-                    new LongIndex2D(
-                        extent.X,
-                        context.ComputeNewExtent(extent.Y)),
-                    new DenseY(context.ComputeNewExtent(XStride))
-                );
+            (
+                new LongIndex2D(
+                    extent.X,
+                    context.ComputeNewExtent(extent.Y)),
+                new DenseY(context.ComputeNewExtent(XStride))
+            );
 
             /// <summary>
             /// Returns this stride as general 2D stride.
@@ -613,13 +614,13 @@ namespace ILGPU
                 in TContext context,
                 in LongIndex3D extent)
                 where TContext : struct, IStrideCastContext =>
-                (
-                    new LongIndex3D(
-                        context.ComputeNewExtent(extent.X),
-                        extent.Y,
-                        extent.Z),
-                    new DenseXY(context.ComputeNewExtent(YStride), ZStride)
-                );
+            (
+                new LongIndex3D(
+                    context.ComputeNewExtent(extent.X),
+                    extent.Y,
+                    extent.Z),
+                new DenseXY(context.ComputeNewExtent(YStride), ZStride)
+            );
 
             /// <summary>
             /// Returns this stride as general 3D stride.
@@ -752,13 +753,13 @@ namespace ILGPU
                 in TContext context,
                 in LongIndex3D extent)
                 where TContext : struct, IStrideCastContext =>
-                (
-                    new LongIndex3D(
-                        extent.X,
-                        extent.Y,
-                        context.ComputeNewExtent(extent.Z)),
-                    new DenseZY(XStride, context.ComputeNewExtent(YStride))
-                );
+            (
+                new LongIndex3D(
+                    extent.X,
+                    extent.Y,
+                    context.ComputeNewExtent(extent.Z)),
+                new DenseZY(XStride, context.ComputeNewExtent(YStride))
+            );
 
             /// <summary>
             /// Returns this stride as general 3D stride.

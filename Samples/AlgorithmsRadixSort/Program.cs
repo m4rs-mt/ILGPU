@@ -38,7 +38,8 @@ namespace AlgorithmsRadixSort
         public int MaxValue { get; }
 
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)"/>
-        public int ComputeSequenceElement(Index1 sequenceIndex) => MaxValue - sequenceIndex;
+        public int ComputeSequenceElement(Index1 sequenceIndex) =>
+            MaxValue - sequenceIndex;
     }
 
     class Program
@@ -70,10 +71,14 @@ namespace AlgorithmsRadixSort
                         // for operations that require a temporary cache.
 
                         // Create a new radix sort instance using a descending int sorting.
-                        var radixSort = accelerator.CreateRadixSort<int, AscendingInt32>();
+                        var radixSort =
+                            accelerator.CreateRadixSort<int, AscendingInt32>();
 
                         // Compute the required amount of temporary memory
-                        var tempMemSize = accelerator.ComputeRadixSortTempStorageSize<int, AscendingInt32>(sourceBuffer.Length);
+                        var tempMemSize =
+                            accelerator
+                                .ComputeRadixSortTempStorageSize<int, AscendingInt32>(
+                                    sourceBuffer.Length);
                         using (var tempBuffer = accelerator.Allocate<int>(tempMemSize))
                         {
                             // Performs a descending radix-sort operation
@@ -93,10 +98,12 @@ namespace AlgorithmsRadixSort
                         // Creates a RadixSortProvider that hosts its own memory-buffer cache to allow
                         // for parallel invocations of different operations that require
                         // an extra cache.
-                        using (var radixSortProvider = accelerator.CreateRadixSortProvider())
+                        using (var radixSortProvider =
+                            accelerator.CreateRadixSortProvider())
                         {
                             // Create a new radix sort instance using an ascending int sorting.
-                            var radixSortUsingSortProvider = radixSortProvider.CreateRadixSort<int, DescendingInt32>();
+                            var radixSortUsingSortProvider = radixSortProvider
+                                .CreateRadixSort<int, DescendingInt32>();
 
                             // Performs an ascending radix-sort operation
                             radixSortUsingSortProvider(

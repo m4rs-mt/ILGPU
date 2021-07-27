@@ -147,13 +147,9 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         public static readonly ImmutableArray<CPUDevice> All =
             ImmutableArray.Create(new CPUDevice[]
-        {
-            Default,
-            Nvidia,
-            AMD,
-            LegacyAMD,
-            Intel,
-        });
+            {
+                Default, Nvidia, AMD, LegacyAMD, Intel,
+            });
 
         /// <summary>
         /// Gets a specific CPU device.
@@ -163,8 +159,8 @@ namespace ILGPU.Runtime.CPU
         public static CPUDevice GetDevice(
             CPUDeviceKind kind) =>
             kind < CPUDeviceKind.Default || kind > CPUDeviceKind.Intel
-            ? throw new ArgumentOutOfRangeException(nameof(kind))
-            : All[(int)kind];
+                ? throw new ArgumentOutOfRangeException(nameof(kind))
+                : All[(int)kind];
 
         /// <summary>
         /// Returns CPU devices.
@@ -224,10 +220,11 @@ namespace ILGPU.Runtime.CPU
             bool skipChecks)
         {
             if (!skipChecks && (numThreadsPerWarp < 2 ||
-                !Utilities.IsPowerOf2(numWarpsPerMultiprocessor)))
+                                !Utilities.IsPowerOf2(numWarpsPerMultiprocessor)))
             {
                 throw new ArgumentOutOfRangeException(nameof(numThreadsPerWarp));
             }
+
             if (!skipChecks && numWarpsPerMultiprocessor < 1)
                 throw new ArgumentOutOfRangeException(nameof(numWarpsPerMultiprocessor));
             if (!skipChecks && numMultiprocessors < 1)
@@ -273,10 +270,10 @@ namespace ILGPU.Runtime.CPU
             int numWarpsPerMultiprocessor,
             int numMultiprocessors)
             : this(
-                  numThreadsPerWarp,
-                  numWarpsPerMultiprocessor,
-                  numMultiprocessors,
-                  skipChecks: false)
+                numThreadsPerWarp,
+                numWarpsPerMultiprocessor,
+                numMultiprocessors,
+                skipChecks: false)
         { }
 
         #endregion

@@ -24,7 +24,8 @@ namespace DynamicSharedMemory
         // NoInlining -> simulates a larger helper method that could not be inline for some reason
         // but leverages dynamically shared memory.
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void DynamicSharedMemoryHelper(int globalIndex, ArrayView<short> view)
+        private static void DynamicSharedMemoryHelper(int globalIndex,
+            ArrayView<short> view)
         {
             // Get a dynamically allocated shared memory view with a custom element type.
             var dynamicMemory = SharedMemory.GetDynamic<short>();
@@ -65,7 +66,7 @@ namespace DynamicSharedMemory
             {
                 var accelerators =
                     CudaAccelerator.CudaAccelerators.Cast<AcceleratorId>().Concat(
-                    CPUAccelerator.CPUAccelerators.Cast<AcceleratorId>());
+                        CPUAccelerator.CPUAccelerators.Cast<AcceleratorId>());
                 // For each available accelerator...
                 foreach (var acceleratorId in accelerators)
                 {
@@ -75,14 +76,22 @@ namespace DynamicSharedMemory
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         // Use LoadStreamKernel or LoadKernel to load explicitly grouped kernels
-                        var kernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<short>>(SharedMemKernel);
-                        var buffer = accelerator.Allocate<int>(accelerator.MaxNumThreadsPerGroup);
-                        var buffer2 = accelerator.Allocate<short>(accelerator.MaxNumThreadsPerGroup);
+                        var kernel =
+                            accelerator
+                                .LoadStreamKernel<ArrayView<int>, ArrayView<short>>(
+                                    SharedMemKernel);
+                        var buffer =
+                            accelerator.Allocate<int>(accelerator.MaxNumThreadsPerGroup);
+                        var buffer2 =
+                            accelerator.Allocate<short>(accelerator
+                                .MaxNumThreadsPerGroup);
 
                         // Use 'new KernelConfig(..., ..., ...)' to construct a new launch configuration
                         // Hint: use the C# tuple features to convert a triple into a kernel config
                         int groupSize = accelerator.MaxNumThreadsPerGroup;
-                        var config = SharedMemoryConfig.RequestDynamic<byte>(groupSize * sizeof(int));
+                        var config =
+                            SharedMemoryConfig.RequestDynamic<byte>(groupSize *
+                                sizeof(int));
                         // alternatively:
                         // var config = SharedMemoryConfig.RequestDynamic<int>(groupSize);
                         // var config = SharedMemoryConfig.RequestDynamic<short>(groupSize * 2);

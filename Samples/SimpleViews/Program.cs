@@ -42,13 +42,15 @@ namespace SimpleViews
 
             // Write value to sub view and output value
             subView[0] = 42;
-            Console.WriteLine($"Value of sub view at index 0: {subView[0]} = value of view at index 10: {view[10]}");
+            Console.WriteLine(
+                $"Value of sub view at index 0: {subView[0]} = value of view at index 10: {view[10]}");
 
             // Creates a sub view that represents a view from index 10 with length 20
             // (up to index 10 + 20)
             var subView2 = view.GetSubView(10, 20);
             Debug.Assert(subView2.Length == 20);
-            Console.WriteLine($"Value of sub view 2 at index 0: {subView2[0]} = value of view at index 10: {view[10]}");
+            Console.WriteLine(
+                $"Value of sub view 2 at index 0: {subView2[0]} = value of view at index 10: {view[10]}");
 
             // Creates a sub view that represents a view from index 20 with length 2
             var subView3 = subView2.GetSubView(10, 2);
@@ -56,7 +58,8 @@ namespace SimpleViews
 
             // An access of the form subView3[2] will trigger an OutOfBounds assertion
             Debug.Assert(subView3.Length == 2);
-            Console.WriteLine($"Value of sub view 3 at index 1: {subView3[1]} = value of view at index 21: {view[21]}");
+            Console.WriteLine(
+                $"Value of sub view 3 at index 1: {subView3[1]} = value of view at index 21: {view[21]}");
         }
 
         static void VariableViewAccess(ArrayView<int> view)

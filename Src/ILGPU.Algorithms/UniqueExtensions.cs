@@ -95,6 +95,7 @@ namespace ILGPU.Algorithms
                         comparison.Compare(input[currIdx], input[prevIdx]) != 0;
                 }
             }
+
             Group.Barrier();
 
             if (Group.IsFirstThread)
@@ -108,6 +109,7 @@ namespace ILGPU.Algorithms
                     if (temp[i])
                         input[offset++] = input[startIdx + i];
                 }
+
                 output[0] = offset;
             }
 
@@ -170,6 +172,7 @@ namespace ILGPU.Algorithms
                 {
                     throw new ArgumentOutOfRangeException(nameof(temp));
                 }
+
                 if (input.Length > int.MaxValue)
                 {
                     throw new NotSupportedException(
@@ -181,8 +184,8 @@ namespace ILGPU.Algorithms
                 initializer(stream, temp.SubView(0, viewManager.NumInts), default);
 
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
-                       input.IntLength,
-                       out int numIterationsPerGroup);
+                    input.IntLength,
+                    out int numIterationsPerGroup);
                 kernel(
                     stream,
                     (gridDim, groupDim),

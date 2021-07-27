@@ -61,10 +61,13 @@ namespace ILGPU.IR.Types
 
         private readonly ReaderWriterLockSlim typeLock = new ReaderWriterLockSlim(
             LockRecursionPolicy.SupportsRecursion);
+
         private readonly Dictionary<TypeNode, TypeNode> unifiedTypes =
             new Dictionary<TypeNode, TypeNode>();
+
         private readonly Dictionary<(Type, MemoryAddressSpace), TypeNode> typeMapping =
             new Dictionary<(Type, MemoryAddressSpace), TypeNode>();
+
         private readonly PrimitiveType[] basicValueTypes;
 
         /// <summary>
@@ -95,7 +98,7 @@ namespace ILGPU.IR.Types
             {
                 basicValueTypes[
                     (int)BasicValueType.Float64] = basicValueTypes[
-                        (int)BasicValueType.Float32];
+                    (int)BasicValueType.Float32];
             }
 
             Padding8Type = new PaddingType(this, GetPrimitiveType(BasicValueType.Int8));
@@ -279,14 +282,14 @@ namespace ILGPU.IR.Types
         /// <returns>The created array type.</returns>
         public ArrayType CreateArrayType(TypeNode elementType, int dimensions) =>
             dimensions < 1
-            ? throw new NotSupportedException(
-                string.Format(
-                    ErrorMessages.NotSupportedArrayDimension,
-                    dimensions.ToString()))
-            : UnifyType(new ArrayType(
-                this,
-                elementType,
-                dimensions));
+                ? throw new NotSupportedException(
+                    string.Format(
+                        ErrorMessages.NotSupportedArrayDimension,
+                        dimensions.ToString()))
+                : UnifyType(new ArrayType(
+                    this,
+                    elementType,
+                    dimensions));
 
         /// <summary>
         /// Creates a new type based on a type from the .Net world.

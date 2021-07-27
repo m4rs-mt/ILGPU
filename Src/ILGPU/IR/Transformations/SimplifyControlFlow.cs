@@ -64,8 +64,7 @@ namespace ILGPU.IR.Transformations
 
                 // Return true as we have changed the IR
                 result = true;
-            }
-            while (successors.Length == 1);
+            } while (successors.Length == 1);
 
             // Return the success status
             return result;

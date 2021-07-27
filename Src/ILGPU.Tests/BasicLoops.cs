@@ -107,6 +107,7 @@ namespace ILGPU.Tests
                 --value2;
                 value3 += 2;
             }
+
             data[index] = value + value2 + value3;
         }
 
@@ -133,6 +134,7 @@ namespace ILGPU.Tests
                 for (int j = 0; j < counter2; ++j)
                     value += 2;
             }
+
             data[index] = value;
         }
 
@@ -162,6 +164,7 @@ namespace ILGPU.Tests
                 for (int j = 0; j < 20; ++j)
                     value += 2;
             }
+
             data[index] = value;
         }
 
@@ -185,8 +188,8 @@ namespace ILGPU.Tests
             do
             {
                 ++value;
-            }
-            while (counter-- > 0);
+            } while (counter-- > 0);
+
             data[index] = value;
         }
 
@@ -210,8 +213,8 @@ namespace ILGPU.Tests
             do
             {
                 ++value;
-            }
-            while (counter-- > 0);
+            } while (counter-- > 0);
+
             data[index] = value;
         }
 
@@ -244,6 +247,7 @@ namespace ILGPU.Tests
                     continue;
                 ++accumulate;
             }
+
             data[index] = accumulate;
         }
 
@@ -280,6 +284,7 @@ namespace ILGPU.Tests
                     break;
                 ++accumulate;
             }
+
             data[index] = accumulate;
         }
 
@@ -322,6 +327,7 @@ namespace ILGPU.Tests
                     continue;
                 ++accumulate;
             }
+
             data[index] = accumulate;
         }
 
@@ -365,6 +371,7 @@ namespace ILGPU.Tests
                     continue;
                 ++accumulate;
             }
+
             data[index] = accumulate;
         }
 
@@ -390,6 +397,7 @@ namespace ILGPU.Tests
                 if (i == 2) break;
                 ++j;
             }
+
             data[index] = j;
         }
 
@@ -415,6 +423,7 @@ namespace ILGPU.Tests
                 if (i == 2) continue;
                 ++j;
             }
+
             data[index] = j;
         }
 
@@ -513,6 +522,7 @@ namespace ILGPU.Tests
                 if (b == 13)
                     break;
             }
+
             return b;
         }
 
@@ -527,6 +537,7 @@ namespace ILGPU.Tests
                 if (b >= 13)
                     break;
             }
+
             return b;
         }
 
@@ -569,6 +580,7 @@ namespace ILGPU.Tests
                 view1 = view2;
                 view2 = t;
             }
+
             target2[index] = (view1[0], view2[0]);
         }
 

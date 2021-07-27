@@ -54,6 +54,7 @@ namespace ILGPU.IR.Rewriting
             // Create new structure instance
             return instance.Seal();
         }
+
         /// <summary>
         /// Disassembled a structure value using the lowering provided.
         /// </summary>
@@ -135,6 +136,5 @@ namespace ILGPU.IR.Rewriting
                     });
             }
         }
-
     }
 }

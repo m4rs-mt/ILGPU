@@ -159,50 +159,37 @@ namespace ILGPU.Backends.OpenCL
 
         private static readonly string[] MemoryFenceFlags =
         {
-            "CLK_GLOBAL_MEM_FENCE",
-            "CLK_LOCAL_MEM_FENCE",
+            "CLK_GLOBAL_MEM_FENCE", "CLK_LOCAL_MEM_FENCE",
         };
 
         private static readonly string[] AddressSpacePrefixes =
         {
-            "__generic",
-            "global",
-            "local",
-            "private",
+            "__generic", "global", "local", "private",
         };
 
         private static readonly string[] AddressSpaceCastOperations =
         {
-            null,
-            "to_global",
-            "to_local",
-            "to_private",
+            null, "to_global", "to_local", "to_private",
         };
 
         private static readonly string[] BarrierOperations =
         {
-            "sub_group_barrier",
-            "work_group_barrier",
+            "sub_group_barrier", "work_group_barrier",
         };
 
         private static readonly string[] PredicateBarrierOperations =
         {
-            null,
-            "work_group_all",
-            "work_group_any",
+            null, "work_group_all", "work_group_any",
         };
 
         private static readonly string[] MemoryScopes =
         {
-            "memory_scope_work_group",
-            "memory_scope_device",
-            "memory_scope_device"
+            "memory_scope_work_group", "memory_scope_device", "memory_scope_device"
         };
 
         private static readonly string[] BroadcastOperations =
         {
-            "sub_group_broadcast",
-            "work_group_broadcast",
+            "sub_group_broadcast", "work_group_broadcast",
         };
 
         private static readonly Dictionary<
@@ -211,31 +198,21 @@ namespace ILGPU.Backends.OpenCL
             new Dictionary<(CLDeviceVendor, ShuffleKind), string>()
             {
                 {
-                    (CLDeviceVendor.Intel, ShuffleKind.Generic),
-                    "intel_sub_group_shuffle"
+                    (CLDeviceVendor.Intel, ShuffleKind.Generic), "intel_sub_group_shuffle"
                 },
                 {
                     (CLDeviceVendor.Intel, ShuffleKind.Down),
                     "intel_sub_group_shuffle_down"
                 },
+                { (CLDeviceVendor.Intel, ShuffleKind.Up), "intel_sub_group_shuffle_up" },
                 {
-                    (CLDeviceVendor.Intel, ShuffleKind.Up),
-                    "intel_sub_group_shuffle_up"
-                },
-                {
-                    (CLDeviceVendor.Intel, ShuffleKind.Xor),
-                    "intel_sub_group_shuffle_xor"
+                    (CLDeviceVendor.Intel, ShuffleKind.Xor), "intel_sub_group_shuffle_xor"
                 },
             };
 
         private static readonly string[] CompareOperations =
         {
-            "==",
-            "!=",
-            "<",
-            "<=",
-            ">",
-            ">="
+            "==", "!=", "<", "<=", ">", ">="
         };
 
         /// <summary>
@@ -265,17 +242,14 @@ namespace ILGPU.Backends.OpenCL
             new Dictionary<ArithmeticBasicValueType, CLUnaryCategory>()
             {
                 { ArithmeticBasicValueType.UInt1, CLUnaryCategory.Boolean },
-
                 { ArithmeticBasicValueType.Int8, CLUnaryCategory.Int },
                 { ArithmeticBasicValueType.Int16, CLUnaryCategory.Int },
                 { ArithmeticBasicValueType.Int32, CLUnaryCategory.Int },
                 { ArithmeticBasicValueType.Int64, CLUnaryCategory.Int },
-
                 { ArithmeticBasicValueType.UInt8, CLUnaryCategory.Int },
                 { ArithmeticBasicValueType.UInt16, CLUnaryCategory.Int },
                 { ArithmeticBasicValueType.UInt32, CLUnaryCategory.Int },
                 { ArithmeticBasicValueType.UInt64, CLUnaryCategory.Int },
-
                 { ArithmeticBasicValueType.Float16, CLUnaryCategory.Float },
                 { ArithmeticBasicValueType.Float32, CLUnaryCategory.Float },
                 { ArithmeticBasicValueType.Float64, CLUnaryCategory.Float },
@@ -287,10 +261,9 @@ namespace ILGPU.Backends.OpenCL
             new Dictionary<(UnaryArithmeticKind, CLUnaryCategory), (string, bool)>()
             {
                 // Basic arithmetic
-                
+
                 { (UnaryArithmeticKind.Neg, CLUnaryCategory.Int), ("-", false) },
                 { (UnaryArithmeticKind.Neg, CLUnaryCategory.Float), ("-", false) },
-
                 { (UnaryArithmeticKind.Not, CLUnaryCategory.Boolean), ("!", false) },
                 { (UnaryArithmeticKind.Not, CLUnaryCategory.Int), ("~", false) },
                 { (UnaryArithmeticKind.Not, CLUnaryCategory.Float), ("~", false) },
@@ -299,36 +272,27 @@ namespace ILGPU.Backends.OpenCL
 
                 { (UnaryArithmeticKind.Abs, CLUnaryCategory.Int), ("abs", true) },
                 { (UnaryArithmeticKind.Abs, CLUnaryCategory.Float), ("fabs", true) },
-
                 { (UnaryArithmeticKind.PopC, CLUnaryCategory.Int), ("popcount", true) },
                 { (UnaryArithmeticKind.CLZ, CLUnaryCategory.Int), ("clz", true) },
                 { (UnaryArithmeticKind.CTZ, CLUnaryCategory.Int), ("ctz", true) },
-
                 { (UnaryArithmeticKind.IsNaNF, CLUnaryCategory.Float), ("isnan", true) },
                 { (UnaryArithmeticKind.IsInfF, CLUnaryCategory.Float), ("isinf", true) },
-
                 { (UnaryArithmeticKind.SqrtF, CLUnaryCategory.Float), ("sqrt", true) },
                 { (UnaryArithmeticKind.RsqrtF, CLUnaryCategory.Float), ("rsqrt", true) },
-
                 { (UnaryArithmeticKind.SinF, CLUnaryCategory.Float), ("sin", true) },
                 { (UnaryArithmeticKind.AsinF, CLUnaryCategory.Float), ("asin", true) },
                 { (UnaryArithmeticKind.SinhF, CLUnaryCategory.Float), ("sinh", true) },
-
                 { (UnaryArithmeticKind.CosF, CLUnaryCategory.Float), ("cos", true) },
                 { (UnaryArithmeticKind.AcosF, CLUnaryCategory.Float), ("acos", true) },
                 { (UnaryArithmeticKind.CoshF, CLUnaryCategory.Float), ("cosh", true) },
-
                 { (UnaryArithmeticKind.TanF, CLUnaryCategory.Float), ("tan", true) },
                 { (UnaryArithmeticKind.AtanF, CLUnaryCategory.Float), ("atan", true) },
                 { (UnaryArithmeticKind.TanhF, CLUnaryCategory.Float), ("tanh", true) },
-
                 { (UnaryArithmeticKind.ExpF, CLUnaryCategory.Float), ("exp", true) },
                 { (UnaryArithmeticKind.Exp2F, CLUnaryCategory.Float), ("exp2", true) },
-
                 { (UnaryArithmeticKind.Log2F, CLUnaryCategory.Float), ("log2", true) },
                 { (UnaryArithmeticKind.LogF, CLUnaryCategory.Float), ("log", true) },
                 { (UnaryArithmeticKind.Log10F, CLUnaryCategory.Float), ("log10", true) },
-
                 { (UnaryArithmeticKind.FloorF, CLUnaryCategory.Float), ("floor", true) },
                 { (UnaryArithmeticKind.CeilingF, CLUnaryCategory.Float), ("ceil", true) },
             };
@@ -338,38 +302,27 @@ namespace ILGPU.Backends.OpenCL
             (string, bool)> BinaryArithmeticOperations =
             new Dictionary<(BinaryArithmeticKind, bool), (string, bool)>()
             {
-
                 { (BinaryArithmeticKind.Add, false), ("+", false) },
                 { (BinaryArithmeticKind.Add, true), ("+", false) },
-
                 { (BinaryArithmeticKind.Sub, false), ("-", false) },
                 { (BinaryArithmeticKind.Sub, true), ("-", false) },
-
                 { (BinaryArithmeticKind.Mul, false), ("*", false) },
                 { (BinaryArithmeticKind.Mul, true), ("*", false) },
-
                 { (BinaryArithmeticKind.Div, false), ("/", false) },
                 { (BinaryArithmeticKind.Div, true), ("/", false) },
-
                 { (BinaryArithmeticKind.Rem, false), ("%", false) },
                 { (BinaryArithmeticKind.Rem, true), ("fmod", true) },
-
                 { (BinaryArithmeticKind.And, false), ("&", false) },
                 { (BinaryArithmeticKind.Or, false), ("|", false) },
                 { (BinaryArithmeticKind.Xor, false), ("^", false) },
-
                 { (BinaryArithmeticKind.Shl, false), ("<<", false) },
                 { (BinaryArithmeticKind.Shr, false), (">>", false) },
-
                 { (BinaryArithmeticKind.Min, false), ("min", true) },
                 { (BinaryArithmeticKind.Min, true), ("fmin", true) },
-
                 { (BinaryArithmeticKind.Max, false), ("max", true) },
                 { (BinaryArithmeticKind.Max, true), ("fmax", true) },
-
                 { (BinaryArithmeticKind.Atan2F, true), ("atan2", true) },
                 { (BinaryArithmeticKind.PowF, true), ("pow", true) },
-
                 { (BinaryArithmeticKind.CopySignF, true), ("copysign", true) },
             };
 

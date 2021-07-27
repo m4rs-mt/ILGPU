@@ -181,12 +181,12 @@ namespace ILGPU.IR.Construction
                     leftBinary.Kind == kind &&
                     leftBinary.Right.Resolve() is PrimitiveValue nestedRightValue &&
                     (simplified = BinaryArithmeticSimplify_RHS(
-                    location,
-                    leftBinary,
-                    nestedRightValue,
-                    rightValue,
-                    kind,
-                    flags)) != null)
+                        location,
+                        leftBinary,
+                        nestedRightValue,
+                        rightValue,
+                        kind,
+                        flags)) != null)
                 {
                     return simplified;
                 }
@@ -220,12 +220,12 @@ namespace ILGPU.IR.Construction
                     rightBinary.Kind == kind &&
                     rightBinary.Left.Resolve() is PrimitiveValue nestedLeftValue &&
                     (simplified = BinaryArithmeticSimplify_LHS(
-                    location,
-                    rightBinary,
-                    nestedLeftValue,
-                    leftValue,
-                    kind,
-                    flags)) != null)
+                        location,
+                        rightBinary,
+                        nestedLeftValue,
+                        leftValue,
+                        kind,
+                        flags)) != null)
                 {
                     return simplified;
                 }

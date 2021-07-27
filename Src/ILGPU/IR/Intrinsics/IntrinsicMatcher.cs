@@ -157,7 +157,7 @@ namespace ILGPU.IR.Intrinsics
             if (value.IsGenericMethod)
                 value = value.GetGenericMethodDefinition();
             entries[value] = implementation ??
-                throw new ArgumentNullException(nameof(implementation));
+                             throw new ArgumentNullException(nameof(implementation));
         }
 
         /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(
@@ -253,7 +253,7 @@ namespace ILGPU.IR.Intrinsics
             if (Implementation != null)
                 throw new InvalidOperationException();
             Implementation = implementation
-                ?? throw new ArgumentNullException(nameof(implementation));
+                             ?? throw new ArgumentNullException(nameof(implementation));
         }
 
         /// <summary cref="IntrinsicMatcher{T}.TransformTo{TOther, TTransformer}(

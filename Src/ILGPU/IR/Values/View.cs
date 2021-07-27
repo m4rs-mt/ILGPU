@@ -289,8 +289,8 @@ namespace ILGPU.IR.Values
         /// </summary>
         public int GetAlignmentConstant() =>
             AlignmentInBytes.Resolve() is PrimitiveValue primitive
-            ? primitive.Int32Value
-            : 1;
+                ? primitive.Int32Value
+                : 1;
 
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer)

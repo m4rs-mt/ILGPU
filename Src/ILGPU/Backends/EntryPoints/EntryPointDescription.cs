@@ -61,6 +61,7 @@ namespace ILGPU.Backends.EntryPoints
                 throw new NotSupportedException(
                     ErrorMessages.InvalidEntryPointIndexParameterOfWrongType);
             }
+
             return new EntryPointDescription(methodSource, parameters, indexType);
         }
 
@@ -82,7 +83,7 @@ namespace ILGPU.Backends.EntryPoints
             if (indexType == IndexType.None)
                 throw new ArgumentOutOfRangeException(nameof(indexType));
             MethodSource = methodSource ??
-                throw new ArgumentNullException(nameof(methodSource));
+                           throw new ArgumentNullException(nameof(methodSource));
             IndexType = indexType;
 
             parameters ??= methodSource.GetParameters();
@@ -99,8 +100,10 @@ namespace ILGPU.Backends.EntryPoints
                         ErrorMessages.NotSupportedKernelParameterType,
                         type));
                 }
+
                 parameterTypes.Add(type);
             }
+
             Parameters = new ParameterCollection(parameterTypes.MoveToImmutable());
 
             Validate();
@@ -157,11 +160,13 @@ namespace ILGPU.Backends.EntryPoints
                 throw new NotSupportedException(
                     ErrorMessages.InvalidEntryPointWithoutDotNetMethod);
             }
+
             if (!MethodSource.IsStatic && !MethodSource.IsNotCapturingLambda())
             {
                 throw new NotSupportedException(
                     ErrorMessages.InvalidEntryPointInstanceKernelMethod);
             }
+
             if (IndexType == IndexType.None)
             {
                 throw new NotSupportedException(

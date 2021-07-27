@@ -17,7 +17,7 @@ namespace ILGPU.Tests
         public KernelMethodAttribute(string methodName)
         {
             MethodName = methodName
-                ?? throw new ArgumentNullException(nameof(methodName));
+                         ?? throw new ArgumentNullException(nameof(methodName));
         }
 
         /// <summary>
@@ -66,6 +66,7 @@ namespace ILGPU.Tests
                     attribute.MethodName,
                     typeArguments);
             }
+
             throw new NotSupportedException(
                 "Not supported kernel attribute. Missing attribute?");
         }

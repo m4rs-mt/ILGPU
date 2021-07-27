@@ -15,23 +15,25 @@ namespace ILGPU.Tests
 
         public static TheoryData<object> SpecializedValueTestData =>
             new TheoryData<object>
-        {
-            { default(sbyte) },
-            { default(byte) },
-            { default(short) },
-            { default(ushort) },
-            { default(int) },
-            { default(uint) },
-            { default(long) },
-            { default(ulong) },
-            { default(float) },
-            { default(double) },
-            { default(EmptyStruct) },
-            { default(TestStruct) },
-            { default(TestStructEquatable<TestStructEquatable<byte>>) },
-            { default(
-                TestStructEquatable<int, TestStructEquatable<short, EmptyStruct>>) },
-        };
+            {
+                { default(sbyte) },
+                { default(byte) },
+                { default(short) },
+                { default(ushort) },
+                { default(int) },
+                { default(uint) },
+                { default(long) },
+                { default(ulong) },
+                { default(float) },
+                { default(double) },
+                { default(EmptyStruct) },
+                { default(TestStruct) },
+                { default(TestStructEquatable<TestStructEquatable<byte>>) },
+                {
+                    default(
+                        TestStructEquatable<int, TestStructEquatable<short, EmptyStruct>>)
+                },
+            };
 
         internal static void SpecializedImplicitValueKernel<T>(
             Index1D _,

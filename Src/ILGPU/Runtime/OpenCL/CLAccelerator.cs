@@ -129,6 +129,7 @@ namespace ILGPU.Runtime.OpenCL
             {
                 return;
             }
+
             // Compile dummy kernel to resolve additional information
             CLException.ThrowIfFailed(CLKernel.LoadKernel(
                 this,
@@ -468,8 +469,8 @@ namespace ILGPU.Runtime.OpenCL
             // Dispatch kernel
             var launchMethod = GenericLaunchKernelMethod.MakeGenericMethod(
                 entryPoint.SharedMemory.HasDynamicMemory
-                ? typeof(DynamicSharedMemoryHandler)
-                : typeof(DefaultLaunchHandler));
+                    ? typeof(DynamicSharedMemoryHandler)
+                    : typeof(DefaultLaunchHandler));
             emitter.EmitCall(launchMethod);
 
             // Emit ThrowIfFailed

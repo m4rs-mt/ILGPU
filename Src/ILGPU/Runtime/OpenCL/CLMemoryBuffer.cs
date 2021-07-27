@@ -125,6 +125,7 @@ namespace ILGPU.Runtime.OpenCL
                         return;
                 }
             }
+
             throw new NotSupportedException(
                 RuntimeErrorMessages.NotSupportedTargetAccelerator);
         }

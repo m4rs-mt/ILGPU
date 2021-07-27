@@ -98,7 +98,8 @@ namespace MatrixMultiply
 
             if (ma != mb || na != nb)
             {
-                Debug.WriteLine($"Matrix dimensions do not match: [{ma}x{na}] vs [{mb}x{nb}]");
+                Debug.WriteLine(
+                    $"Matrix dimensions do not match: [{ma}x{na}] vs [{mb}x{nb}]");
                 return false;
             }
 
@@ -110,7 +111,8 @@ namespace MatrixMultiply
                     var expected = b[i, j];
                     if (actual != expected)
                     {
-                        Debug.WriteLine($"Error at element location [{i}, {j}]: {actual} found, {expected} expected");
+                        Debug.WriteLine(
+                            $"Error at element location [{i}, {j}]: {actual} found, {expected} expected");
                         return false;
                     }
                 }
@@ -129,7 +131,8 @@ namespace MatrixMultiply
             var kb = b.GetLength(0);
             var n = b.GetLength(1);
 
-            Console.WriteLine($"Running matrix multiplication on [{m}x{ka}] * [{kb}x{n}]");
+            Console.WriteLine(
+                $"Running matrix multiplication on [{m}x{ka}] * [{kb}x{n}]");
             var sw = new Stopwatch();
 
             // Naive implementation
@@ -147,16 +150,20 @@ namespace MatrixMultiply
                     using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
                         sw.Restart();
-                        var acceleratedResult = MatrixMultiplyAccelerated(accelerator, a, b);
+                        var acceleratedResult =
+                            MatrixMultiplyAccelerated(accelerator, a, b);
                         sw.Stop();
                         Debug.Assert(MatrixEqual(acceleratedResult, expectedResult));
-                        Console.WriteLine($"- Accelerated implementation on {accelerator}: {sw.ElapsedMilliseconds}ms");
+                        Console.WriteLine(
+                            $"- Accelerated implementation on {accelerator}: {sw.ElapsedMilliseconds}ms");
 
                         sw.Restart();
-                        var acceleratedTiledResult = MatrixMultiplyTiled(accelerator, a, b);
+                        var acceleratedTiledResult =
+                            MatrixMultiplyTiled(accelerator, a, b);
                         sw.Stop();
                         Debug.Assert(MatrixEqual(acceleratedTiledResult, expectedResult));
-                        Console.WriteLine($"- Tiled implementation on {accelerator}: {sw.ElapsedMilliseconds}ms");
+                        Console.WriteLine(
+                            $"- Tiled implementation on {accelerator}: {sw.ElapsedMilliseconds}ms");
                     }
                 }
             }
@@ -181,7 +188,8 @@ namespace MatrixMultiply
             var n = b.GetLength(1);
 
             if (ka != kb)
-                throw new ArgumentException($"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
+                throw new ArgumentException(
+                    $"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
 
             var c = new float[m, n];
 
@@ -210,7 +218,8 @@ namespace MatrixMultiply
         /// <param name="a">A dense MxK matrix</param>
         /// <param name="b">A dense KxN matrix</param>
         /// <returns>A dense MxN matrix</returns>
-        static float[,] MatrixMultiplyAccelerated(Accelerator accelerator, float[,] a, float[,] b)
+        static float[,] MatrixMultiplyAccelerated(Accelerator accelerator, float[,] a,
+            float[,] b)
         {
             var m = a.GetLength(0);
             var ka = a.GetLength(1);
@@ -218,9 +227,14 @@ namespace MatrixMultiply
             var n = b.GetLength(1);
 
             if (ka != kb)
-                throw new ArgumentException($"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
+                throw new ArgumentException(
+                    $"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
 
-            var kernel = accelerator.LoadAutoGroupedStreamKernel<Index2, ArrayView2D<float>, ArrayView2D<float>, ArrayView2D<float>>(MatrixMultiplyAcceleratedKernel);
+            var kernel =
+                accelerator
+                    .LoadAutoGroupedStreamKernel<Index2, ArrayView2D<float>,
+                        ArrayView2D<float>, ArrayView2D<float>>(
+                        MatrixMultiplyAcceleratedKernel);
 
             using (var aBuffer = accelerator.Allocate<float>(m, ka))
             using (var bBuffer = accelerator.Allocate<float>(ka, n))
@@ -243,7 +257,8 @@ namespace MatrixMultiply
         /// <param name="aView">An input matrix of size MxK</param>
         /// <param name="bView">An input matrix of size KxN</param>
         /// <param name="cView">An output matrix of size MxN</param>
-        static void MatrixMultiplyAcceleratedKernel(Index2 index, ArrayView2D<float> aView, ArrayView2D<float> bView, ArrayView2D<float> cView)
+        static void MatrixMultiplyAcceleratedKernel(Index2 index,
+            ArrayView2D<float> aView, ArrayView2D<float> bView, ArrayView2D<float> cView)
         {
             var x = index.X;
             var y = index.Y;
@@ -271,7 +286,8 @@ namespace MatrixMultiply
         /// <param name="a">A dense MxK matrix</param>
         /// <param name="b">A dense KxN matrix</param>
         /// <returns>A dense MxN matrix</returns>
-        static float[,] MatrixMultiplyTiled(Accelerator accelerator, float[,] a, float[,] b)
+        static float[,] MatrixMultiplyTiled(Accelerator accelerator, float[,] a,
+            float[,] b)
         {
             var m = a.GetLength(0);
             var ka = a.GetLength(1);
@@ -279,11 +295,16 @@ namespace MatrixMultiply
             var n = b.GetLength(1);
 
             if (ka != kb)
-                throw new ArgumentException($"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
+                throw new ArgumentException(
+                    $"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
 
-            var kernel = accelerator.LoadStreamKernel<ArrayView2D<float>, ArrayView2D<float>, ArrayView2D<float>>(MatrixMultiplyTiledKernel);
+            var kernel =
+                accelerator
+                    .LoadStreamKernel<ArrayView2D<float>, ArrayView2D<float>,
+                        ArrayView2D<float>>(MatrixMultiplyTiledKernel);
             var groupSize = new Index2(TILE_SIZE, TILE_SIZE);
-            var numGroups = new Index2((m + TILE_SIZE - 1) / TILE_SIZE, (n + TILE_SIZE - 1) / TILE_SIZE);
+            var numGroups = new Index2((m + TILE_SIZE - 1) / TILE_SIZE,
+                (n + TILE_SIZE - 1) / TILE_SIZE);
 
             using (var aBuffer = accelerator.Allocate<float>(m, ka))
             using (var bBuffer = accelerator.Allocate<float>(ka, n))
@@ -305,7 +326,8 @@ namespace MatrixMultiply
         /// <param name="aView">An input matrix of size MxK</param>
         /// <param name="bView">An input matrix of size KxN</param>
         /// <param name="cView">An output matrix of size MxN</param>
-        static void MatrixMultiplyTiledKernel(ArrayView2D<float> aView, ArrayView2D<float> bView, ArrayView2D<float> cView)
+        static void MatrixMultiplyTiledKernel(ArrayView2D<float> aView,
+            ArrayView2D<float> bView, ArrayView2D<float> cView)
         {
             var global = Grid.GlobalIndex.XY;
             var x = Group.IdxX;

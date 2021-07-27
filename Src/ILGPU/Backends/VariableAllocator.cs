@@ -92,9 +92,9 @@ namespace ILGPU.Backends
             /// <param name="value">The primitive value.</param>
             public ConstantVariable(int id, PrimitiveValue value)
                 : base(
-                      id,
-                      value.BasicValueType.GetArithmeticBasicValueType(
-                          isUnsigned: false))
+                    id,
+                    value.BasicValueType.GetArithmeticBasicValueType(
+                        isUnsigned: false))
             {
                 Value = value;
             }
@@ -195,6 +195,7 @@ namespace ILGPU.Backends
 
         private readonly Dictionary<Value, Variable> variableLookup =
             new Dictionary<Value, Variable>();
+
         private int idCounter;
 
         /// <summary>

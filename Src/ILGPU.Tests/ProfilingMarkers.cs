@@ -52,7 +52,7 @@ namespace ILGPU.Tests
             Accelerator.LaunchAutoGrouped<Index1D, ArrayView1D<int, Stride1D.Dense>>(
                 ProfilingMarkerKernel,
                 Accelerator.DefaultStream,
-               (int)buffer.Length,
+                (int)buffer.Length,
                 buffer.View);
             using var end = Accelerator.DefaultStream.AddProfilingMarker();
 

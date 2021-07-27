@@ -105,16 +105,16 @@ namespace ILGPU.IR.Construction
             Value width,
             ShuffleKind kind) =>
             width is WarpSizeValue
-            ? CreateShuffle(
-                location,
-                variable,
-                origin,
-                kind)
-            : Append(new SubWarpShuffle(
-                GetInitializer(location),
-                variable,
-                origin,
-                width,
-                kind));
+                ? CreateShuffle(
+                    location,
+                    variable,
+                    origin,
+                    kind)
+                : Append(new SubWarpShuffle(
+                    GetInitializer(location),
+                    variable,
+                    origin,
+                    width,
+                    kind));
     }
 }

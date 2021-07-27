@@ -104,10 +104,13 @@ namespace WarpShuffle
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         KernelConfig dimension = (1, accelerator.WarpSize);
-                        using (var dataTarget = accelerator.Allocate<int>(accelerator.WarpSize))
+                        using (var dataTarget =
+                            accelerator.Allocate<int>(accelerator.WarpSize))
                         {
                             // Load the explicitly grouped kernel
-                            var shuffleDownKernel = accelerator.LoadStreamKernel<ArrayView<int>>(ShuffleDownKernel);
+                            var shuffleDownKernel =
+                                accelerator.LoadStreamKernel<ArrayView<int>>(
+                                    ShuffleDownKernel);
                             dataTarget.MemSetToZero();
 
                             shuffleDownKernel(dimension, dataTarget.View);
@@ -119,14 +122,19 @@ namespace WarpShuffle
                                 Console.WriteLine($"Data[{i}] = {target[i]}");
                         }
 
-                        using (var dataTarget = accelerator.Allocate<ComplexStruct>(accelerator.WarpSize))
+                        using (var dataTarget =
+                            accelerator.Allocate<ComplexStruct>(accelerator.WarpSize))
                         {
                             // Load the explicitly grouped kernel
-                            var reduceKernel = accelerator.LoadStreamKernel<ArrayView<ComplexStruct>, ComplexStruct>(
-                                ShuffleGeneric);
+                            var reduceKernel =
+                                accelerator
+                                    .LoadStreamKernel<ArrayView<ComplexStruct>,
+                                        ComplexStruct>(
+                                        ShuffleGeneric);
                             dataTarget.MemSetToZero();
 
-                            reduceKernel(dimension, dataTarget.View, new ComplexStruct(2, 40.0f, 16.0));
+                            reduceKernel(dimension, dataTarget.View,
+                                new ComplexStruct(2, 40.0f, 16.0));
                             accelerator.Synchronize();
 
                             Console.WriteLine("Generic shuffle kernel");

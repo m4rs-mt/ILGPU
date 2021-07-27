@@ -38,7 +38,8 @@ namespace ILGPU
     /// <summary>
     /// Represents an abstract context extensions that can store additional data.
     /// </summary>
-    public abstract class ContextExtension : CachedExtension { }
+    public abstract class ContextExtension : CachedExtension
+    { }
 
     /// <summary>
     /// Represents the main ILGPU context.
@@ -175,8 +176,8 @@ namespace ILGPU
         /// </summary>
         static Context()
         {
-            var versionString = Assembly.GetExecutingAssembly().
-                GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+            var versionString = Assembly.GetExecutingAssembly()
+                .GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             int offset = 0;
             for (int i = 0; i < 3; ++i)
                 offset = versionString.IndexOf('.', offset + 1);
@@ -243,8 +244,8 @@ namespace ILGPU
             // Create frontend
             DebugInformationManager frontendDebugInformationManager =
                 Properties.DebugSymbolsMode > DebugSymbolsMode.Disabled
-                ? DebugInformationManager
-                : null;
+                    ? DebugInformationManager
+                    : null;
 
             ILFrontend = builder.EnableParallelCodeGenerationInFrontend
                 ? new ILFrontend(this, frontendDebugInformationManager)
@@ -283,6 +284,7 @@ namespace ILGPU
                     devs = new List<Device>(8);
                     deviceMapping.Add(device.AcceleratorType, devs);
                 }
+
                 devs.Add(device);
             }
         }
@@ -420,7 +422,7 @@ namespace ILGPU
                 return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
                     ? devices
                     : throw new NotSupportedException(
-                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
 
             var sorted = Devices
@@ -434,8 +436,8 @@ namespace ILGPU
                     Device toMatch = sorted.First();
                     return sorted.Where(
                         d =>
-                        d.AcceleratorType == toMatch.AcceleratorType &&
-                        d.MemorySize == toMatch.MemorySize);
+                            d.AcceleratorType == toMatch.AcceleratorType &&
+                            d.MemorySize == toMatch.MemorySize);
                 }
                 else
                 {
@@ -447,7 +449,7 @@ namespace ILGPU
                 return deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
                     ? devices
                     : throw new NotSupportedException(
-                            RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
         }
 
@@ -498,8 +500,8 @@ namespace ILGPU
         public Task<ContextCodeGenerationPhase> BeginCodeGenerationAsync(
             IRContext irContext) =>
             irContext == null
-            ? throw new ArgumentNullException(nameof(irContext))
-            : Task.Run(() => BeginCodeGeneration(irContext));
+                ? throw new ArgumentNullException(nameof(irContext))
+                : Task.Run(() => BeginCodeGeneration(irContext));
 
         /// <summary>
         /// Clears internal caches. However, this does not affect individual accelerator
@@ -557,6 +559,7 @@ namespace ILGPU
                 DebugInformationManager.Dispose();
                 TypeContext.Dispose();
             }
+
             base.Dispose(disposing);
         }
 

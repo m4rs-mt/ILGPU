@@ -47,9 +47,7 @@ namespace ILGPU.Tests
 
                 var expected = new int[]
                 {
-                    extent.GridDim.X,
-                    extent.GridDim.Y,
-                    extent.GridDim.Z,
+                    extent.GridDim.X, extent.GridDim.Y, extent.GridDim.Z,
                 };
                 Verify(buffer.View, expected);
             }

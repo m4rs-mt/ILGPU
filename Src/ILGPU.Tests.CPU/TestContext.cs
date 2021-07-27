@@ -46,9 +46,9 @@ namespace ILGPU.Tests.CPU
             OptimizationLevel optimizationLevel,
             Action<Context.Builder> prepareContext)
             : base(
-                  optimizationLevel,
-                  builder => prepareContext(builder.CPU(GetCPUDeviceKind())),
-                  context => context.CreateCPUAccelerator(0))
+                optimizationLevel,
+                builder => prepareContext(builder.CPU(GetCPUDeviceKind())),
+                context => context.CreateCPUAccelerator(0))
         { }
 
         /// <summary>

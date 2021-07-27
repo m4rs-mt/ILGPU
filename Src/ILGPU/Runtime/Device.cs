@@ -374,7 +374,7 @@ namespace ILGPU.Runtime
         private readonly
             ImmutableArray<Device>.Builder
             devices =
-            ImmutableArray.CreateBuilder<Device>(8);
+                ImmutableArray.CreateBuilder<Device>(8);
 
         #endregion
 

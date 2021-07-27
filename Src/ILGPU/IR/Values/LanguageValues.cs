@@ -130,7 +130,7 @@ namespace ILGPU.IR.Values
             "Globalization",
             "CA1307:Specify StringComparison",
             Justification = "string.Replace(string, string, StringComparison) not " +
-            "available in net47")]
+                            "available in net47")]
         protected override string ToArgString() =>
             ToStringExpression().Replace(
                 Environment.NewLine,
@@ -161,6 +161,7 @@ namespace ILGPU.IR.Values
                     result.Append(expression.String);
                 }
             }
+
             return result.ToString();
         }
 

@@ -31,8 +31,8 @@ namespace ILGPU.Backends.SeparateViews
         /// <summary>
         /// A handle to the <see cref="Create{T}(ArrayView{T})"/> method.
         /// </summary>
-        private static readonly MethodInfo CreateMethod = typeof(ViewImplementation).
-            GetMethod(nameof(Create));
+        private static readonly MethodInfo CreateMethod =
+            typeof(ViewImplementation).GetMethod(nameof(Create));
 
         /// <summary>
         /// Returns a specialized create method.

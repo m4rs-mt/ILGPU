@@ -46,6 +46,7 @@ namespace ILGPU.IR.Transformations
                     imported = targetContext.Import(intrinsic);
                     importedFunctions.Add(intrinsic, imported);
                 }
+
                 dependencies[i] = (node, imported);
             }
         }

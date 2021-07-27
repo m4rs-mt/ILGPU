@@ -130,6 +130,7 @@ namespace ILGPU.IR.Construction
             {
                 throw location.GetArgumentException(nameof(dimension));
             }
+
             return Append(new GridIndexValue(
                 GetInitializer(location),
                 dimension));
@@ -150,6 +151,7 @@ namespace ILGPU.IR.Construction
             {
                 throw location.GetArgumentException(nameof(dimension));
             }
+
             return Append(new GroupIndexValue(
                 GetInitializer(location),
                 dimension));
@@ -170,6 +172,7 @@ namespace ILGPU.IR.Construction
             {
                 throw location.GetArgumentException(nameof(dimension));
             }
+
             return Append(new GridDimensionValue(
                 GetInitializer(location),
                 dimension));
@@ -190,6 +193,7 @@ namespace ILGPU.IR.Construction
             {
                 throw location.GetArgumentException(nameof(dimension));
             }
+
             return Append(new GroupDimensionValue(
                 GetInitializer(location),
                 dimension));
@@ -236,8 +240,8 @@ namespace ILGPU.IR.Construction
             return CreatePrimitiveValue(
                 location,
                 type is StructureType structureType
-                ? structureType.GetOffset(fieldIndex)
-                : 0);
+                    ? structureType.GetOffset(fieldIndex)
+                    : 0);
         }
 
         /// <summary>

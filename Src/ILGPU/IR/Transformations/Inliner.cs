@@ -50,14 +50,14 @@ namespace ILGPU.IR.Transformations
             {
                 var source = method.Source;
                 if ((source.MethodImplementationFlags &
-                    MethodImplAttributes.NoInlining) ==
+                     MethodImplAttributes.NoInlining) ==
                     MethodImplAttributes.NoInlining)
                 {
                     return;
                 }
 
                 if ((source.MethodImplementationFlags &
-                    MethodImplAttributes.AggressiveInlining) ==
+                     MethodImplAttributes.AggressiveInlining) ==
                     MethodImplAttributes.AggressiveInlining ||
                     source.Module.Name == Context.FullAssemblyModuleName)
                 {
@@ -161,6 +161,5 @@ namespace ILGPU.IR.Transformations
         }
 
         #endregion
-
     }
 }

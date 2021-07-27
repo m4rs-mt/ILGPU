@@ -62,7 +62,8 @@ namespace AdvancedViews
             if (element == comparisonValue)
             {
                 var baseView = view.GetVariableView(0);
-                var counterView = baseView.GetSubView<int>(ComposedStructure.ElementCounterOffset);
+                var counterView =
+                    baseView.GetSubView<int>(ComposedStructure.ElementCounterOffset);
                 Atomic.Add(ref counterView.Value, 1);
             }
         }
@@ -83,24 +84,30 @@ namespace AdvancedViews
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
                         var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1, ArrayView<int>, ArrayView<ComposedStructure>, int>(MyKernel);
+                            Index1, ArrayView<int>, ArrayView<ComposedStructure>, int>(
+                            MyKernel);
 
                         using (var elementsBuffer = accelerator.Allocate<int>(1024))
                         {
-                            using (var composedStructBuffer = accelerator.Allocate<ComposedStructure>(1))
+                            using (var composedStructBuffer =
+                                accelerator.Allocate<ComposedStructure>(1))
                             {
                                 elementsBuffer.MemSetToZero();
                                 composedStructBuffer.MemSetToZero();
 
-                                kernel(elementsBuffer.Length, elementsBuffer.View, composedStructBuffer.View, 0);
+                                kernel(elementsBuffer.Length, elementsBuffer.View,
+                                    composedStructBuffer.View, 0);
 
                                 accelerator.Synchronize();
 
                                 var results = composedStructBuffer.GetAsArray();
                                 ComposedStructure composedResult = results[0];
-                                Console.WriteLine("Composed.SomeElement = " + composedResult.SomeElement);
-                                Console.WriteLine("Composed.SomeOtherElement = " + composedResult.SomeOtherElement);
-                                Console.WriteLine("Composed.ElementCounter = " + composedResult.ElementCounter);
+                                Console.WriteLine("Composed.SomeElement = " +
+                                                  composedResult.SomeElement);
+                                Console.WriteLine("Composed.SomeOtherElement = " +
+                                                  composedResult.SomeOtherElement);
+                                Console.WriteLine("Composed.ElementCounter = " +
+                                                  composedResult.ElementCounter);
                             }
                         }
                     }

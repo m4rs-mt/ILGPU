@@ -269,9 +269,9 @@ namespace ILGPU.IR.Types
         public override string FormatErrorMessage(string message) =>
             string.Format(
                 ErrorMessages.LocationTypeMessage,
-                    message,
-                    ToString(),
-                    LoadManagedType().ToString());
+                message,
+                ToString(),
+                LoadManagedType().ToString());
 
         #endregion
 

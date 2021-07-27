@@ -501,6 +501,7 @@ namespace ILGPU.Backends.IL
                     Writer.Write("stloc ");
                     break;
             }
+
             Writer.WriteLine(local.Index);
         }
 
@@ -517,6 +518,7 @@ namespace ILGPU.Backends.IL
                     Writer.Write("ldarga ");
                     break;
             }
+
             Writer.WriteLine(argumentIndex);
         }
 

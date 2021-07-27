@@ -234,22 +234,22 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private static readonly ImmutableArray<BasicValueType>
             RegisterMovementTypeRemapping =
-            ImmutableArray.Create(
-                default, BasicValueType.Int1,
-                BasicValueType.Int16, BasicValueType.Int16,
-                BasicValueType.Int32, BasicValueType.Int64,
-                BasicValueType.Int16, BasicValueType.Float32, BasicValueType.Float64);
+                ImmutableArray.Create(
+                    default, BasicValueType.Int1,
+                    BasicValueType.Int16, BasicValueType.Int16,
+                    BasicValueType.Int32, BasicValueType.Int64,
+                    BasicValueType.Int16, BasicValueType.Float32, BasicValueType.Float64);
 
         /// <summary>
         /// Maps basic types to constant-loading target basic types.
         /// </summary>
         private static readonly ImmutableArray<BasicValueType>
             RegisterIOTypeRemapping =
-            ImmutableArray.Create(
-                default, BasicValueType.Int8,
-                BasicValueType.Int8, BasicValueType.Int16,
-                BasicValueType.Int32, BasicValueType.Int64,
-                BasicValueType.Int16, BasicValueType.Float32, BasicValueType.Float64);
+                ImmutableArray.Create(
+                    default, BasicValueType.Int8,
+                    BasicValueType.Int8, BasicValueType.Int16,
+                    BasicValueType.Int32, BasicValueType.Int64,
+                    BasicValueType.Int16, BasicValueType.Float32, BasicValueType.Float64);
 
         /// <summary>
         /// Resolves the PTX suffix for the given basic value type.
@@ -312,10 +312,13 @@ namespace ILGPU.Backends.PTX
         #region Instance
 
         private int labelCounter;
+
         private readonly Dictionary<BasicBlock, string> blockLookup =
             new Dictionary<BasicBlock, string>();
+
         private readonly Dictionary<(Encoding, string), string> stringConstants =
             new Dictionary<(Encoding, string), string>();
+
         private readonly string labelPrefix;
 
         /// <summary>
@@ -345,8 +348,8 @@ namespace ILGPU.Backends.PTX
             // Use the defined PTX backend block schedule to avoid unnecessary branches
             Schedule =
                 args.Properties.GetPTXBackendMode() == PTXBackendMode.Enhanced
-                ? Method.Blocks.CreateOptimizedPTXSchedule()
-                : Method.Blocks.CreateDefaultPTXSchedule();
+                    ? Method.Blocks.CreateOptimizedPTXSchedule()
+                    : Method.Blocks.CreateDefaultPTXSchedule();
         }
 
         #endregion
@@ -383,7 +386,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public IntrinsicImplementationProvider<PTXIntrinsic.Handler>
             ImplementationProvider
-        { get; }
+        {
+            get;
+        }
 
         /// <summary>
         /// Returns true if fast math is active.
@@ -638,6 +643,7 @@ namespace ILGPU.Backends.PTX
 
                 result.Add((allocaInfo.Alloca, name));
             }
+
             Builder.AppendLine();
         }
 
@@ -1053,8 +1059,10 @@ namespace ILGPU.Backends.PTX
                     declBuilder.Append(value);
                     declBuilder.Append(", ");
                 }
+
                 declBuilder.AppendLine("0};");
             }
+
             return declBuilder.ToString();
         }
 

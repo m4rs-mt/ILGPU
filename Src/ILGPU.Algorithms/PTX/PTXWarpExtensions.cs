@@ -34,6 +34,7 @@ namespace ILGPU.Algorithms.PTX
                 var shuffled = Warp.ShuffleDown(value, laneOffset);
                 value = reduction.Apply(value, shuffled);
             }
+
             return value;
         }
 
@@ -49,6 +50,7 @@ namespace ILGPU.Algorithms.PTX
                 var shuffled = Warp.ShuffleXor(value, laneMask);
                 value = reduction.Apply(value, shuffled);
             }
+
             return value;
         }
 
@@ -83,6 +85,7 @@ namespace ILGPU.Algorithms.PTX
                 if (laneIdx >= delta)
                     value = warpScan.Apply(value, otherValue);
             }
+
             return value;
         }
 

@@ -23,7 +23,8 @@ namespace PinnedMemoryCopy
         /// </summary>
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="dataSize">The number of elements to copy.</param>
-        static void PerformPinnedCopyToCPUAccelerator(Accelerator accelerator, int dataSize)
+        static void PerformPinnedCopyToCPUAccelerator(Accelerator accelerator,
+            int dataSize)
         {
             using (var cpuAccl = new CPUAccelerator(accelerator.Context))
             {
@@ -34,7 +35,8 @@ namespace PinnedMemoryCopy
                     var stream = accelerator.DefaultStream;
 
                     // Allocate buffer on this device
-                    using (var bufferOnGPU = accelerator.Allocate<int>(pinnedCPUBuffer.Length))
+                    using (var bufferOnGPU =
+                        accelerator.Allocate<int>(pinnedCPUBuffer.Length))
                     {
                         // Use an accelerator stream to perform an async copy operation.
                         // Note that you should use the CopyTo function from the associated GPU
@@ -57,7 +59,8 @@ namespace PinnedMemoryCopy
         /// </summary>
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="dataSize">The number of elements to copy.</param>
-        static void PerformPinnedCopyToExchangeBuffer(Accelerator accelerator, int dataSize)
+        static void PerformPinnedCopyToExchangeBuffer(Accelerator accelerator,
+            int dataSize)
         {
             // Allocate an exchange buffer that stores a buffer on the associated parent
             // device and a buffer of the same size in pinned CPU host memory

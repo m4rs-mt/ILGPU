@@ -66,14 +66,20 @@ namespace AlgorithmsMath
                             }
 
                             Console.WriteLine(nameof(KernelWithXMath));
-                            var xmathKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<float>, float>(
-                                KernelWithXMath);
+                            var xmathKernel =
+                                accelerator
+                                    .LoadAutoGroupedStreamKernel<Index1, ArrayView<float>,
+                                        float>(
+                                        KernelWithXMath);
                             xmathKernel(buffer.Length, buffer, 0.1f);
                             WriteData();
 
                             Console.WriteLine(nameof(KernelWithMath));
-                            var mathKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<float>, float>(
-                                KernelWithMath);
+                            var mathKernel =
+                                accelerator
+                                    .LoadAutoGroupedStreamKernel<Index1, ArrayView<float>,
+                                        float>(
+                                        KernelWithMath);
                             mathKernel(buffer.Length, buffer, 0.1f);
                             WriteData();
                         }

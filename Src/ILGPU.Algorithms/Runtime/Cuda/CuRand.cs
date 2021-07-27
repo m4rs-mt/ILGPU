@@ -574,7 +574,6 @@ namespace ILGPU.Runtime.Cuda
 
                 for (int i = 0, e = span.Length; i < e; ++i)
                     ptr[i] = ToInt((uint)ptr[i]);
-
             }
         }
 

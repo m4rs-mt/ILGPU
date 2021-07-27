@@ -205,6 +205,7 @@ namespace ILGPU.Tests
                 var shuffled = Warp.ShuffleXor(value, laneMask);
                 value += shuffled;
             }
+
             data[index] = value;
         }
 

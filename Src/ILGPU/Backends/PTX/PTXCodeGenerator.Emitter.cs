@@ -139,6 +139,7 @@ namespace ILGPU.Backends.PTX
                     stringBuilder.Append('\t');
                     argMode = true;
                 }
+
                 if (argumentCount > 0)
                     stringBuilder.Append(argumentSeparator);
                 ++argumentCount;
@@ -383,6 +384,7 @@ namespace ILGPU.Backends.PTX
                     stringBuilder.Append('+');
                     stringBuilder.Append(offset);
                 }
+
                 stringBuilder.Append(']');
             }
 
@@ -640,8 +642,10 @@ namespace ILGPU.Backends.PTX
                             elementRegisters[j] =
                                 (registers[j] as CompoundRegister).Children[i];
                         }
+
                         EmitComplexCommand(command, emitter, elementRegisters);
                     }
+
                     break;
                 default:
                     throw new NotSupportedException();
@@ -683,6 +687,7 @@ namespace ILGPU.Backends.PTX
                                 as PrimitiveRegister,
                             offset + fieldOffset);
                     }
+
                     break;
                 default:
                     throw new NotSupportedException();
@@ -955,6 +960,7 @@ namespace ILGPU.Backends.PTX
                     GetStringRepresentation(predicateValue.PredicateRegister));
                 Builder.Append(' ');
             }
+
             Builder.Append(commandString);
             return new CommandEmitter(Builder);
         }
@@ -1077,6 +1083,7 @@ namespace ILGPU.Backends.PTX
                 command.AppendArgument(hardwareRegister);
                 command.AppendArgument(register as ConstantRegister);
             }
+
             return hardwareRegister;
         }
 

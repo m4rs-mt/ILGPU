@@ -175,6 +175,7 @@ namespace ILGPU.Runtime
                     ErrorMessages.NotSupportedType,
                     nameof(T)));
             }
+
             if (offset >= Length)
                 throw new ArgumentOutOfRangeException(nameof(offset));
             if (offset + length > Length)

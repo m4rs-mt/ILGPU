@@ -63,6 +63,7 @@ namespace ILGPU.IR.Construction
                             condition,
                             UnaryArithmeticKind.Not);
                     }
+
                     return CreateArithmetic(
                         location,
                         condition,
@@ -88,7 +89,7 @@ namespace ILGPU.IR.Construction
 
             // Match negated predicates
             return condition is UnaryArithmeticValue unary &&
-                unary.Kind == UnaryArithmeticKind.Not
+                   unary.Kind == UnaryArithmeticKind.Not
                 ? CreatePredicate(
                     location,
                     unary.Value,

@@ -36,7 +36,7 @@ namespace ILGPU.Frontend
         {
             switch (opCode)
             {
-                    // Misc
+                // Misc
                 case ILOpCode.Nop:
                     AppendInstruction(ILInstructionType.Nop, 0, 0);
                     return true;
@@ -44,7 +44,7 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Break, 0, 0);
                     return true;
 
-                    // Arguments
+                // Arguments
                 case ILOpCode.Ldarg_0:
                     AppendInstruction(ILInstructionType.Ldarg, 0, 1, 0);
                     return true;
@@ -170,7 +170,8 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.LdR8, 0, 1, ReadDoubleArg());
                     return true;
                 case ILOpCode.Ldstr:
-                    AppendInstruction(ILInstructionType.Ldstr, 0, 1, AssociatedModule.ResolveString(ReadIntArg()));
+                    AppendInstruction(ILInstructionType.Ldstr, 0, 1,
+                        AssociatedModule.ResolveString(ReadIntArg()));
                     return true;
 
                 // Stack
@@ -181,10 +182,11 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Pop, 1, 0);
                     return true;
                 case ILOpCode.Jmp:
-                    AppendInstruction(ILInstructionType.Jmp, 0, 0, ResolveMethod(ReadIntArg()));
+                    AppendInstruction(ILInstructionType.Jmp, 0, 0,
+                        ResolveMethod(ReadIntArg()));
                     return true;
 
-                    // Call
+                // Call
                 case ILOpCode.Call:
                     DisassembleCall(ILInstructionType.Call, ReadIntArg());
                     return true;
@@ -192,266 +194,381 @@ namespace ILGPU.Frontend
                     DisassembleCall(ILInstructionType.Callvirt, ReadIntArg());
                     return true;
                 case ILOpCode.Ret:
-                    AppendInstruction(ILInstructionType.Ret, (ushort)MethodBase.GetParameterOffset(), 0, OpCodes.Ret);
+                    AppendInstruction(ILInstructionType.Ret,
+                        (ushort)MethodBase.GetParameterOffset(), 0, OpCodes.Ret);
                     return true;
 
-                    // Branch
+                // Branch
                 case ILOpCode.Br_S:
-                    AppendInstruction(ILInstructionType.Br, 0, 0, new ILInstructionBranchTargets(ReadShortBranchTarget()));
+                    AppendInstruction(ILInstructionType.Br, 0, 0,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget()));
                     return true;
                 case ILOpCode.Br:
-                    AppendInstruction(ILInstructionType.Br, 0, 0, new ILInstructionBranchTargets(ReadBranchTarget()));
+                    AppendInstruction(ILInstructionType.Br, 0, 0,
+                        new ILInstructionBranchTargets(ReadBranchTarget()));
                     return true;
                 case ILOpCode.Brfalse_S:
-                    AppendInstruction(ILInstructionType.Brfalse, 1, 0, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Brfalse, 1, 0,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Brfalse:
-                    AppendInstruction(ILInstructionType.Brfalse, 1, 0, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Brfalse, 1, 0,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Brtrue_S:
-                    AppendInstruction(ILInstructionType.Brtrue, 1, 0, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Brtrue, 1, 0,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Brtrue:
-                    AppendInstruction(ILInstructionType.Brtrue, 1, 0, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Brtrue, 1, 0,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Beq_S:
-                    AppendInstruction(ILInstructionType.Beq, 2, 0, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Beq, 2, 0,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Beq:
-                    AppendInstruction(ILInstructionType.Beq, 2, 0, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Beq, 2, 0,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Bge_S:
-                    AppendInstruction(ILInstructionType.Bge, 2, 0, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Bge, 2, 0,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Bge:
-                    AppendInstruction(ILInstructionType.Bge, 2, 0, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Bge, 2, 0,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Bgt_S:
-                    AppendInstruction(ILInstructionType.Bgt, 2, 0, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Bgt, 2, 0,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Bgt:
-                    AppendInstruction(ILInstructionType.Bgt, 2, 0, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Bgt, 2, 0,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Ble_S:
-                    AppendInstruction(ILInstructionType.Ble, 2, 0, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Ble, 2, 0,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Ble:
-                    AppendInstruction(ILInstructionType.Ble, 2, 0, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Ble, 2, 0,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Blt_S:
-                    AppendInstruction(ILInstructionType.Blt, 2, 0, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Blt, 2, 0,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Blt:
-                    AppendInstruction(ILInstructionType.Blt, 2, 0, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstruction(ILInstructionType.Blt, 2, 0,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Bne_Un_S:
-                    AppendInstructionWithFlags(ILInstructionType.Bne, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Bne, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Bne_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Bne, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Bne, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Bge_Un_S:
-                    AppendInstructionWithFlags(ILInstructionType.Bge, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Bge, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Bge_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Bge, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Bge, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Bgt_Un_S:
-                    AppendInstructionWithFlags(ILInstructionType.Bgt, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Bgt, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Bgt_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Bgt, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Bgt, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Ble_Un_S:
-                    AppendInstructionWithFlags(ILInstructionType.Ble, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Ble, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Ble_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Ble, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Ble, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Blt_Un_S:
-                    AppendInstructionWithFlags(ILInstructionType.Blt, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadShortBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Blt, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadShortBranchTarget(),
+                            ilOffset));
                     return true;
                 case ILOpCode.Blt_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Blt, 2, 0, ILInstructionFlags.Unsigned, new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
+                    AppendInstructionWithFlags(ILInstructionType.Blt, 2, 0,
+                        ILInstructionFlags.Unsigned,
+                        new ILInstructionBranchTargets(ReadBranchTarget(), ilOffset));
                     return true;
                 case ILOpCode.Switch:
                     {
                         uint numSwitchTargets = ReadUIntArg();
                         int[] switchTargets = new int[numSwitchTargets + 1];
-                        var switchBaseOffset = switchTargets[0] = ilOffset + sizeof(int) * (int)numSwitchTargets;
+                        var switchBaseOffset = switchTargets[0] =
+                            ilOffset + sizeof(int) * (int)numSwitchTargets;
                         for (int i = 0, e = (int)numSwitchTargets; i < e; ++i)
                             switchTargets[i + 1] = switchBaseOffset + ReadIntArg();
-                        AppendInstruction(ILInstructionType.Switch, 1, 0, new ILInstructionBranchTargets(switchTargets));
+                        AppendInstruction(ILInstructionType.Switch, 1, 0,
+                            new ILInstructionBranchTargets(switchTargets));
                     }
                     return true;
 
-                    // Arithmetic
+                // Arithmetic
                 case ILOpCode.Add:
-                    AppendInstructionWithFlags(ILInstructionType.Add, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Add, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Add_Ovf:
-                    AppendInstructionWithFlags(ILInstructionType.Add, 2, 1, ILInstructionFlags.Overflow);
+                    AppendInstructionWithFlags(ILInstructionType.Add, 2, 1,
+                        ILInstructionFlags.Overflow);
                     return true;
                 case ILOpCode.Add_Ovf_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Add, 2, 1, ILInstructionFlags.Unsigned | ILInstructionFlags.Overflow);
+                    AppendInstructionWithFlags(ILInstructionType.Add, 2, 1,
+                        ILInstructionFlags.Unsigned | ILInstructionFlags.Overflow);
                     return true;
                 case ILOpCode.Sub:
-                    AppendInstructionWithFlags(ILInstructionType.Sub, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Sub, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Sub_Ovf:
-                    AppendInstructionWithFlags(ILInstructionType.Sub, 2, 1, ILInstructionFlags.Overflow);
+                    AppendInstructionWithFlags(ILInstructionType.Sub, 2, 1,
+                        ILInstructionFlags.Overflow);
                     return true;
                 case ILOpCode.Sub_Ovf_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Sub, 2, 1, ILInstructionFlags.Unsigned | ILInstructionFlags.Overflow);
+                    AppendInstructionWithFlags(ILInstructionType.Sub, 2, 1,
+                        ILInstructionFlags.Unsigned | ILInstructionFlags.Overflow);
                     return true;
                 case ILOpCode.Mul:
-                    AppendInstructionWithFlags(ILInstructionType.Mul, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Mul, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Mul_Ovf:
-                    AppendInstructionWithFlags(ILInstructionType.Mul, 2, 1, ILInstructionFlags.Overflow);
+                    AppendInstructionWithFlags(ILInstructionType.Mul, 2, 1,
+                        ILInstructionFlags.Overflow);
                     return true;
                 case ILOpCode.Mul_Ovf_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Mul, 2, 1, ILInstructionFlags.Unsigned | ILInstructionFlags.Overflow);
+                    AppendInstructionWithFlags(ILInstructionType.Mul, 2, 1,
+                        ILInstructionFlags.Unsigned | ILInstructionFlags.Overflow);
                     return true;
                 case ILOpCode.Div:
-                    AppendInstructionWithFlags(ILInstructionType.Div, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Div, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Div_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Div, 2, 1, ILInstructionFlags.Unsigned);
+                    AppendInstructionWithFlags(ILInstructionType.Div, 2, 1,
+                        ILInstructionFlags.Unsigned);
                     return true;
                 case ILOpCode.Rem:
-                    AppendInstructionWithFlags(ILInstructionType.Rem, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Rem, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Rem_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Rem, 2, 1, ILInstructionFlags.Unsigned);
+                    AppendInstructionWithFlags(ILInstructionType.Rem, 2, 1,
+                        ILInstructionFlags.Unsigned);
                     return true;
                 case ILOpCode.And:
-                    AppendInstructionWithFlags(ILInstructionType.And, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.And, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Or:
-                    AppendInstructionWithFlags(ILInstructionType.Or, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Or, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Xor:
-                    AppendInstructionWithFlags(ILInstructionType.Xor, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Xor, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Shl:
-                    AppendInstructionWithFlags(ILInstructionType.Shl, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Shl, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Shr:
-                    AppendInstructionWithFlags(ILInstructionType.Shr, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Shr, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Shr_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Shr, 2, 1, ILInstructionFlags.Unsigned);
+                    AppendInstructionWithFlags(ILInstructionType.Shr, 2, 1,
+                        ILInstructionFlags.Unsigned);
                     return true;
                 case ILOpCode.Neg:
-                    AppendInstructionWithFlags(ILInstructionType.Neg, 1, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Neg, 1, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Not:
-                    AppendInstructionWithFlags(ILInstructionType.Not, 1, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Not, 1, 1,
+                        ILInstructionFlags.None);
                     return true;
 
-                    // Conversion
+                // Conversion
                 case ILOpCode.Conv_I1:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(sbyte));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(sbyte));
                     return true;
                 case ILOpCode.Conv_I2:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(short));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(short));
                     return true;
                 case ILOpCode.Conv_I4:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(int));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(int));
                     return true;
                 case ILOpCode.Conv_I8:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(long));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(long));
                     return true;
                 case ILOpCode.Conv_I:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, NativePtrType);
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, NativePtrType);
                     return true;
                 case ILOpCode.Conv_Ovf_I1:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, typeof(sbyte));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, typeof(sbyte));
                     return true;
                 case ILOpCode.Conv_Ovf_I2:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, typeof(short));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, typeof(short));
                     return true;
                 case ILOpCode.Conv_Ovf_I4:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, typeof(int));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, typeof(int));
                     return true;
                 case ILOpCode.Conv_Ovf_I8:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, typeof(long));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, typeof(long));
                     return true;
                 case ILOpCode.Conv_Ovf_I:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, NativePtrType);
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, NativePtrType);
                     return true;
                 case ILOpCode.Conv_Ovf_I1_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, typeof(sbyte));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        typeof(sbyte));
                     return true;
                 case ILOpCode.Conv_Ovf_I2_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, typeof(short));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        typeof(short));
                     return true;
                 case ILOpCode.Conv_Ovf_I4_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, typeof(int));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        typeof(int));
                     return true;
                 case ILOpCode.Conv_Ovf_I8_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, typeof(long));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        typeof(long));
                     return true;
                 case ILOpCode.Conv_Ovf_I_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, NativePtrType);
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        NativePtrType);
                     return true;
                 case ILOpCode.Conv_R4:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(float));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(float));
                     return true;
                 case ILOpCode.Conv_R8:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(double));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(double));
                     return true;
                 case ILOpCode.Conv_R_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Unsigned, typeof(double));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Unsigned, typeof(double));
                     return true;
                 case ILOpCode.Conv_U1:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(byte));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(byte));
                     return true;
                 case ILOpCode.Conv_U2:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(ushort));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(ushort));
                     return true;
                 case ILOpCode.Conv_U4:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(uint));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(uint));
                     return true;
                 case ILOpCode.Conv_U8:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(ulong));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, typeof(ulong));
                     return true;
                 case ILOpCode.Conv_U:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, NativePtrType);
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.None, NativePtrType);
                     return true;
                 case ILOpCode.Conv_Ovf_U1:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, typeof(byte));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, typeof(byte));
                     return true;
                 case ILOpCode.Conv_Ovf_U2:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, typeof(ushort));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, typeof(ushort));
                     return true;
                 case ILOpCode.Conv_Ovf_U4:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, typeof(uint));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, typeof(uint));
                     return true;
                 case ILOpCode.Conv_Ovf_U8:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, typeof(ulong));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, typeof(ulong));
                     return true;
                 case ILOpCode.Conv_Ovf_U:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow, NativePtrType);
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow, NativePtrType);
                     return true;
                 case ILOpCode.Conv_Ovf_U1_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, typeof(byte));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        typeof(byte));
                     return true;
                 case ILOpCode.Conv_Ovf_U2_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, typeof(ushort));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        typeof(ushort));
                     return true;
                 case ILOpCode.Conv_Ovf_U4_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, typeof(uint));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        typeof(uint));
                     return true;
                 case ILOpCode.Conv_Ovf_U8_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, typeof(ulong));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        typeof(ulong));
                     return true;
                 case ILOpCode.Conv_Ovf_U_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned, NativePtrType);
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1,
+                        ILInstructionFlags.Overflow | ILInstructionFlags.Unsigned,
+                        NativePtrType);
                     return true;
 
-                    // General Objects
+                // General Objects
                 case ILOpCode.Initobj:
                     AppendInstruction(ILInstructionType.Initobj, 1, 0, ReadTypeArg());
                     return true;
@@ -462,7 +579,7 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Newarr, 1, 1, ReadTypeArg());
                     return true;
 
-                    // Boxing
+                // Boxing
                 case ILOpCode.Box:
                     AppendInstruction(ILInstructionType.Box, 1, 1, ReadTypeArg());
                     return true;
@@ -484,7 +601,7 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Isinst, 1, 1, ReadTypeArg());
                     return true;
 
-                    // Fields
+                // Fields
                 case ILOpCode.Ldfld:
                     AppendInstruction(ILInstructionType.Ldfld, 1, 1, ReadFieldArg());
                     return true;
@@ -504,7 +621,7 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Stsfld, 1, 0, ReadFieldArg());
                     return true;
 
-                    // Indirect Objects
+                // Indirect Objects
                 case ILOpCode.Ldobj:
                     AppendInstruction(ILInstructionType.Ldobj, 1, 1, ReadTypeArg());
                     return true;
@@ -515,7 +632,7 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Cpobj, 2, 0, ReadTypeArg());
                     return true;
 
-                    // Arrays
+                // Arrays
                 case ILOpCode.Ldlen:
                     AppendInstruction(ILInstructionType.Ldlen, 1, 1);
                     return true;
@@ -586,24 +703,29 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Stelem, 3, 0, ReadTypeArg());
                     return true;
 
-                    // Compare
+                // Compare
                 case ILOpCode.Ceq:
-                    AppendInstructionWithFlags(ILInstructionType.Ceq, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Ceq, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Cgt:
-                    AppendInstructionWithFlags(ILInstructionType.Cgt, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Cgt, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Cgt_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Cgt, 2, 1, ILInstructionFlags.Unsigned);
+                    AppendInstructionWithFlags(ILInstructionType.Cgt, 2, 1,
+                        ILInstructionFlags.Unsigned);
                     return true;
                 case ILOpCode.Clt:
-                    AppendInstructionWithFlags(ILInstructionType.Clt, 2, 1, ILInstructionFlags.None);
+                    AppendInstructionWithFlags(ILInstructionType.Clt, 2, 1,
+                        ILInstructionFlags.None);
                     return true;
                 case ILOpCode.Clt_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Clt, 2, 1, ILInstructionFlags.Unsigned);
+                    AppendInstructionWithFlags(ILInstructionType.Clt, 2, 1,
+                        ILInstructionFlags.Unsigned);
                     return true;
 
-                    // Indirect
+                // Indirect
                 case ILOpCode.Ldind_I1:
                     AppendInstruction(ILInstructionType.Ldind, 1, 1, typeof(sbyte));
                     return true;
@@ -665,7 +787,7 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Localloc, 1, 1, ReadTypeArg());
                     return true;
 
-                    // Blk
+                // Blk
                 case ILOpCode.Cpblk:
                     AppendInstruction(ILInstructionType.Cpblk, 3, 0);
                     return true;
@@ -673,14 +795,16 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Initblk, 3, 0);
                     return true;
 
-                    // SizeOf
+                // SizeOf
                 case ILOpCode.Sizeof:
                     AppendInstruction(ILInstructionType.SizeOf, 0, 1, ReadTypeArg());
                     return true;
 
                 // Token
                 case ILOpCode.Ldtoken:
-                    AppendInstruction(ILInstructionType.LdToken, 0, 1, AssociatedModule.ResolveMember(ReadIntArg(), TypeGenericArguments, MethodGenericArguments));
+                    AppendInstruction(ILInstructionType.LdToken, 0, 1,
+                        AssociatedModule.ResolveMember(ReadIntArg(), TypeGenericArguments,
+                            MethodGenericArguments));
                     return true;
 
                 default:
@@ -708,7 +832,7 @@ namespace ILGPU.Frontend
                 case ILOpCode.Tail:
                     AddFlags(ILInstructionFlags.Tail);
                     return true;
-                case ILOpCode.Constrained: 
+                case ILOpCode.Constrained:
                     AddFlags(ILInstructionFlags.Constrained);
                     flagsArgument = ReadTypeArg();
                     return true;

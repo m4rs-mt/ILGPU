@@ -59,6 +59,7 @@ namespace ILGPU.Runtime.Cuda
                 driverVersion = default;
                 return error;
             }
+
             driverVersion = CudaDriverVersion.FromValue(driverVersionValue);
             return CudaError.CUDA_SUCCESS;
         }
@@ -70,8 +71,8 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The resolved error string.</returns>
         public string GetErrorString(CudaError error) =>
             cuGetErrorString(error, out IntPtr ptr) != CudaError.CUDA_SUCCESS
-            ? RuntimeErrorMessages.CannotResolveErrorString
-            : Marshal.PtrToStringAnsi(ptr);
+                ? RuntimeErrorMessages.CannotResolveErrorString
+                : Marshal.PtrToStringAnsi(ptr);
 
         #endregion
 
@@ -174,6 +175,7 @@ namespace ILGPU.Runtime.Cuda
                 minor = default;
                 return error;
             }
+
             return cuDeviceGetAttribute(
                 out minor,
                 DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,

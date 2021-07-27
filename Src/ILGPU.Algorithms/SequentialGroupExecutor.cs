@@ -59,10 +59,10 @@ namespace ILGPU.Algorithms
         {
             if (Group.IsFirstThread)
             {
-                do { }
-                while (Atomic.CompareExchange(ref address.Value, int.MaxValue, 0) <
-                    Grid.IdxX);
+                do { } while (Atomic.CompareExchange(ref address.Value, int.MaxValue, 0) <
+                              Grid.IdxX);
             }
+
             Group.Barrier();
         }
 
@@ -144,6 +144,7 @@ namespace ILGPU.Algorithms
                 address.Value = value;
                 MemoryFence.DeviceLevel();
             }
+
             executor.Release();
         }
 

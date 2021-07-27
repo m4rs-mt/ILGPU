@@ -209,21 +209,21 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
         private static Action<
-            AcceleratorStream,
-            LongIndex1D,
-            TransformImplementation<
-                TSource,
-                TSourceStride,
-                TTarget,
-                TTargetStride,
-                TTransformer>>
+                AcceleratorStream,
+                LongIndex1D,
+                TransformImplementation<
+                    TSource,
+                    TSourceStride,
+                    TTarget,
+                    TTargetStride,
+                    TTransformer>>
             CreateRawTransformer<
                 TSource,
                 TSourceStride,
                 TTarget,
                 TTargetStride,
                 TTransformer>(
-            this Accelerator accelerator)
+                this Accelerator accelerator)
             where TSource : unmanaged
             where TSourceStride : struct, IStride1D
             where TTarget : unmanaged
@@ -255,7 +255,7 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded transformer.</returns>
         public static Transformer<TSource, TTarget, TTransformer>
             CreateTransformer<TSource, TTarget, TTransformer>(
-            this Accelerator accelerator)
+                this Accelerator accelerator)
             where TSource : unmanaged
             where TTarget : unmanaged
             where TTransformer : struct, ITransformer<TSource, TTarget>
@@ -288,18 +288,18 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
         public static Transformer<
-            TSource,
-            TSourceStride,
-            TTarget,
-            TTargetStride,
-            TTransformer>
+                TSource,
+                TSourceStride,
+                TTarget,
+                TTargetStride,
+                TTransformer>
             CreateTransformer<
                 TSource,
                 TSourceStride,
                 TTarget,
                 TTargetStride,
                 TTransformer>(
-            this Accelerator accelerator)
+                this Accelerator accelerator)
             where TSource : unmanaged
             where TSourceStride : struct, IStride1D
             where TTarget : unmanaged
@@ -329,6 +329,7 @@ namespace ILGPU.Algorithms
                             nameof(source),
                             nameof(target)));
                 }
+
                 rawTransformer(
                     stream,
                     source.Length,

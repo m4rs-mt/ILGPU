@@ -162,10 +162,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TraversalEnumerationState ForwardsInit() =>
-            new TraversalEnumerationState()
-            {
-                Index = -1,
-            };
+            new TraversalEnumerationState() { Index = -1, };
 
         /// <summary>
         /// Tries to move a forwards state to the next block.
@@ -188,10 +185,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         public static TraversalEnumerationState BackwardsInit<TCollection>(
             TCollection blocks)
             where TCollection : IReadOnlyList<BasicBlock> =>
-            new TraversalEnumerationState()
-            {
-                Index = blocks.Count
-            };
+            new TraversalEnumerationState() { Index = blocks.Count };
 
         /// <summary>
         /// Tries to move a backwards state to the next block.
@@ -216,10 +210,10 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static BasicBlockCollection<TOrder, TDirection>
             TraverseToCollection<TOrder, TSuccessorProvider, TDirection>(
-            this TOrder order,
-            int count,
-            BasicBlock entryBlock,
-            in TSuccessorProvider successorProvider)
+                this TOrder order,
+                int count,
+                BasicBlock entryBlock,
+                in TSuccessorProvider successorProvider)
             where TOrder : struct, ITraversalOrder
             where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
@@ -455,7 +449,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
                 }
 
                 continue;
-            next:
+                next:
                 if (stack.Count < 1)
                     break;
                 current = stack.Pop();

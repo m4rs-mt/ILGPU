@@ -64,6 +64,7 @@ namespace ILGPU.Backends.PTX
                 AppendParamDeclaration(targetBuilder, returnType, ReturnParamName);
                 targetBuilder.Append(") ");
             }
+
             targetBuilder.Append(GetMethodName(Method));
             targetBuilder.AppendLine("(");
 

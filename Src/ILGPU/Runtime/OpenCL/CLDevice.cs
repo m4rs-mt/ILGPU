@@ -315,7 +315,7 @@ namespace ILGPU.Runtime.OpenCL
             "Globalization",
             "CA1307:Specify StringComparison",
             Justification = "string.GetHashCode(StringComparison) not " +
-            "available in net47")]
+                            "available in net47")]
         private void InitVendorAndWarpSizeInfo()
         {
             VendorName = CurrentAPI.GetPlatformInfo(
@@ -352,9 +352,9 @@ namespace ILGPU.Runtime.OpenCL
             }
             else
             {
-                Vendor = VendorName.Contains(CLDeviceVendor.Intel.ToString()) ?
-                    CLDeviceVendor.Intel :
-                    CLDeviceVendor.Other;
+                Vendor = VendorName.Contains(CLDeviceVendor.Intel.ToString())
+                    ? CLDeviceVendor.Intel
+                    : CLDeviceVendor.Other;
 
                 // Warp size cannot be resolve at this point
                 WarpSize = 0;
@@ -498,10 +498,10 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         public CLCVersion CLStdVersion =>
             DeviceVersion >= CLDeviceVersion.CL30
-            ? CLCVersion.CL30
-            : DeviceVersion >= CLDeviceVersion.CL20
-                ? CLCVersion.CL20
-                : CVersion;
+                ? CLCVersion.CL30
+                : DeviceVersion >= CLDeviceVersion.CL20
+                    ? CLCVersion.CL20
+                    : CVersion;
 
         /// <summary>
         /// Returns all extensions.
@@ -575,6 +575,7 @@ namespace ILGPU.Runtime.OpenCL
                 if (!HasExtension(extension))
                     return false;
             }
+
             return true;
         }
 
@@ -591,6 +592,7 @@ namespace ILGPU.Runtime.OpenCL
                 if (HasExtension(extension))
                     return true;
             }
+
             return false;
         }
 

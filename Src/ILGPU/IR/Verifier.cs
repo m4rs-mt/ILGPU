@@ -182,10 +182,13 @@ namespace ILGPU.IR
 
             private readonly List<BasicBlock> blocksInRpo =
                 new List<BasicBlock>();
+
             private readonly HashSet<BasicBlock> containedBlocks =
                 new HashSet<BasicBlock>();
+
             private readonly Dictionary<BasicBlock, HashSet<BasicBlock>> predecessors =
                 new Dictionary<BasicBlock, HashSet<BasicBlock>>();
+
             private readonly Dictionary<BasicBlock, HashSet<BasicBlock>> successors =
                 new Dictionary<BasicBlock, HashSet<BasicBlock>>();
 
@@ -323,6 +326,7 @@ namespace ILGPU.IR
             #region Instance
 
             private readonly HashSet<Value> values = new HashSet<Value>();
+
             private readonly Dictionary<BasicBlock, HashSet<Value>> mapping =
                 new Dictionary<BasicBlock, HashSet<Value>>();
 
@@ -419,6 +423,7 @@ namespace ILGPU.IR
                     if (FindValueRecursive(visited, predecessor, toFind))
                         return true;
                 }
+
                 return false;
             }
 
@@ -582,5 +587,4 @@ namespace ILGPU.IR
 
         #endregion
     }
-
 }

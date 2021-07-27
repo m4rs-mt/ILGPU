@@ -223,7 +223,8 @@ namespace ILGPU.Backends
             {
 #if NET5_0 || NETSTANDARD2_1_OR_GREATER
                 LHSPhis = new HashSet<PhiValue>(capacity);
-                IntermediatePhis = new HashSet<PhiValue>(capacity);
+                IntermediatePhis
+ = new HashSet<PhiValue>(capacity);
 #else
                 LHSPhis = new HashSet<PhiValue>();
                 IntermediatePhis = new HashSet<PhiValue>();

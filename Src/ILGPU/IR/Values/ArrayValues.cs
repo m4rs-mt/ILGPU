@@ -195,8 +195,8 @@ namespace ILGPU.IR.Values
             ValueReference arrayValue,
             ValueReference dimension)
             : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+                initializer,
+                initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         {
             Seal(arrayValue, dimension);
         }
@@ -246,14 +246,14 @@ namespace ILGPU.IR.Values
         /// <inheritdoc/>
         protected override string ToPrefixString() =>
             IsFullLength
-            ? "array.dim"
-            : "array.len";
+                ? "array.dim"
+                : "array.len";
 
         /// <inheritdoc/>
         protected override string ToArgString() =>
             IsFullLength
-            ? Dimension.ToString()
-            : string.Empty;
+                ? Dimension.ToString()
+                : string.Empty;
 
         #endregion
     }

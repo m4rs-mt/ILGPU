@@ -26,6 +26,7 @@ namespace ILGPU.Algorithms.Random
         /// 1.0 / int.MaxValue
         /// </summary>
         internal const double InverseIntDoubleRange = 1.0 / int.MaxValue;
+
         /// <summary>
         /// 1.0 / int.MaxValue
         /// </summary>

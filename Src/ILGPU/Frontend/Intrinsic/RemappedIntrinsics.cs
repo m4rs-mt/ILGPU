@@ -43,7 +43,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         private static readonly Dictionary<MethodBase, DeviceFunctionRemapper>
             FunctionRemappers =
-            new Dictionary<MethodBase, DeviceFunctionRemapper>();
+                new Dictionary<MethodBase, DeviceFunctionRemapper>();
 
         static RemappedIntrinsics()
         {
@@ -165,7 +165,8 @@ namespace ILGPU.Frontend.Intrinsic
             if (methodInfo == null)
                 throw new ArgumentNullException(nameof(methodInfo));
             FunctionRemappers[methodInfo] = remapper
-                ?? throw new ArgumentNullException(nameof(remapper));
+                                            ?? throw new ArgumentNullException(
+                                                nameof(remapper));
         }
 
         /// <summary>

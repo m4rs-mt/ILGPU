@@ -69,7 +69,7 @@ namespace ILGPU.Frontend.Intrinsic
                         attribute.IntrinsicFlags);
                 case 2:
                     var kindIndex = attribute.IntrinsicKind -
-                        MathIntrinsicKind._BinaryFunctions - 1;
+                                    MathIntrinsicKind._BinaryFunctions - 1;
                     return context.Builder.CreateArithmetic(
                         context.Location,
                         context[0],
@@ -82,6 +82,5 @@ namespace ILGPU.Frontend.Intrinsic
                         context.NumArguments.ToString());
             }
         }
-
     }
 }

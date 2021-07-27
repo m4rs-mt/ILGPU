@@ -215,6 +215,7 @@ namespace ILGPU.IR.Analyses
 
         private readonly Dictionary<Method, Entry> entries =
             new Dictionary<Method, Entry>();
+
         private readonly List<Entry> sinks = new List<Entry>();
         private readonly List<Entry> postOrder = new List<Entry>();
 
@@ -234,8 +235,8 @@ namespace ILGPU.IR.Analyses
         /// <returns>The resolved landscape entry.</returns>
         public Entry this[Method method] =>
             TryGetEntry(method, out Entry entry)
-            ? entry
-            : throw new KeyNotFoundException();
+                ? entry
+                : throw new KeyNotFoundException();
 
         /// <summary>
         /// Returns the number of function entries.
@@ -279,6 +280,7 @@ namespace ILGPU.IR.Analyses
                 if (!entry.HasReferences)
                     sinks.Add(entry);
             }
+
             foreach (var entry in entries.Values)
             {
                 foreach (var reference in entry.References)
@@ -334,7 +336,7 @@ namespace ILGPU.IR.Analyses
                 }
 
                 continue;
-            next:
+                next:
                 if (toProcess.Count < 1)
                 {
                     if (++currentSink >= sinks.Count)

@@ -80,7 +80,8 @@ namespace SimpleKernel
                             for (int i = 0, e = data.Length; i < e; ++i)
                             {
                                 if (data[i] != 42 + i)
-                                    Console.WriteLine($"Error at element location {i}: {data[i]} found");
+                                    Console.WriteLine(
+                                        $"Error at element location {i}: {data[i]} found");
                             }
                         }
                     }

@@ -52,6 +52,7 @@ namespace ILGPU.Frontend.DebugInformation
                     sequencePoint.StartLine,
                     sequencePoint.EndLine));
             }
+
             return result.ToImmutable();
         }
 
@@ -78,6 +79,7 @@ namespace ILGPU.Frontend.DebugInformation
                 var localScope = reader.GetLocalScope(enumerator.Current);
                 result.Add(new MethodScope(localScope, reader));
             }
+
             return result.MoveToImmutable();
         }
 

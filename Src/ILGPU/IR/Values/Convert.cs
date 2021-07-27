@@ -61,8 +61,8 @@ namespace ILGPU.IR.Values
         /// <returns>The converted flags.</returns>
         internal static ConvertFlags ToSourceUnsignedFlags(this ConvertFlags flags) =>
             (flags & ConvertFlags.TargetUnsigned) != ConvertFlags.TargetUnsigned
-            ? flags
-            : (flags & ~ConvertFlags.TargetUnsigned) | ConvertFlags.SourceUnsigned;
+                ? flags
+                : (flags & ~ConvertFlags.TargetUnsigned) | ConvertFlags.SourceUnsigned;
     }
 
     /// <summary>
@@ -125,19 +125,19 @@ namespace ILGPU.IR.Values
         /// Returns true if the operation has enabled overflow semantics.
         /// </summary>
         public bool CanOverflow => (Flags & ConvertFlags.Overflow) ==
-            ConvertFlags.Overflow;
+                                   ConvertFlags.Overflow;
 
         /// <summary>
         /// Returns true if the operation has enabled unsigned semantics.
         /// </summary>
         public bool IsSourceUnsigned => (Flags & ConvertFlags.SourceUnsigned) ==
-            ConvertFlags.SourceUnsigned;
+                                        ConvertFlags.SourceUnsigned;
 
         /// <summary>
         /// Returns true if the operation has enabled unsigned semantics.
         /// </summary>
         public bool IsResultUnsigned => (Flags & ConvertFlags.TargetUnsigned) ==
-            ConvertFlags.TargetUnsigned;
+                                        ConvertFlags.TargetUnsigned;
 
         #endregion
 

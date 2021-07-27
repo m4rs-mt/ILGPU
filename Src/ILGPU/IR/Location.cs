@@ -87,7 +87,7 @@ namespace ILGPU.IR
                 return start;
 
             return start is FileLocation startFile &&
-                end is FileLocation endFile
+                   end is FileLocation endFile
                 ? startFile.Merge(endFile)
                 : start;
         }
@@ -193,28 +193,28 @@ namespace ILGPU.IR
         /// </summary>
         public override string FormatErrorMessage(string message) =>
             StartLine == EndLine
-            ? StartColumn == EndColumn
-                ? string.Format(
-                    ErrorMessages.LocationFileMessageL1C1,
+                ? StartColumn == EndColumn
+                    ? string.Format(
+                        ErrorMessages.LocationFileMessageL1C1,
                         message,
                         FileName,
                         StartLine,
                         StartColumn)
-                : string.Format(
-                    ErrorMessages.LocationFileMessageL1C2,
+                    : string.Format(
+                        ErrorMessages.LocationFileMessageL1C2,
                         message,
                         FileName,
                         StartLine,
                         StartColumn,
                         EndColumn)
-            : string.Format(
-                ErrorMessages.LocationFileMessageL2C2,
-                message,
-                FileName,
-                StartLine,
-                StartColumn,
-                EndLine,
-                EndColumn);
+                : string.Format(
+                    ErrorMessages.LocationFileMessageL2C2,
+                    message,
+                    FileName,
+                    StartLine,
+                    StartColumn,
+                    EndLine,
+                    EndColumn);
 
         /// <summary>
         /// Merges this location with the other one.

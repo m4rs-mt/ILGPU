@@ -1,4 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
+
 <Capabilities>
     <Capability Name="Float16">
         <Summary>Supports Float16 (Half) data type.</Summary>
@@ -29,7 +30,7 @@
         <FeatureName>Intrinsic 'TanH' for Float32</FeatureName>
         <Cuda minPTX="SM_75" />
     </Capability>
-    
+
     <Capability Name="Float64">
         <Summary>Supports Float64 (double) data type.</Summary>
         <FeatureName>Float64 (double) type</FeatureName>

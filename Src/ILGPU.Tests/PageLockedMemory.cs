@@ -16,10 +16,7 @@ namespace ILGPU.Tests
 
         public static TheoryData<object> Numbers => new TheoryData<object>
         {
-            { 10 },
-            { -10 },
-            { int.MaxValue },
-            { int.MinValue },
+            { 10 }, { -10 }, { int.MaxValue }, { int.MinValue },
         };
 
         internal static void PinnedMemoryKernel(
@@ -66,10 +63,14 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(PinnedMemoryKernel))]
         public void PinnedUsingGCAllocateArray()
         {
-            var expected = Enumerable.Repeat(42, Length).ToArray();
-            var array = System.GC.AllocateArray<int>(Length, pinned: true);
-            using var buffer = Accelerator.Allocate1D<int>(array.Length);
-            using var scope = Accelerator.CreatePageLockFromPinned(array);
+            var expected
+ = Enumerable.Repeat(42, Length).ToArray();
+            var array
+ = System.GC.AllocateArray<int>(Length, pinned: true);
+            using var buffer
+ = Accelerator.Allocate1D<int>(array.Length);
+            using var scope
+ = Accelerator.CreatePageLockFromPinned(array);
 
             buffer.View.CopyFromPageLockedAsync(scope);
             Execute(buffer.Length, buffer.View);

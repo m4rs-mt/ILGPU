@@ -61,7 +61,8 @@ namespace SimpleMath
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
                         var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1, ArrayView<float>, ArrayView<double>, ArrayView<double>>(MathKernel);
+                            Index1, ArrayView<float>, ArrayView<double>,
+                            ArrayView<double>>(MathKernel);
 
                         var buffer = accelerator.Allocate<float>(128);
                         var buffer2 = accelerator.Allocate<double>(128);
@@ -78,7 +79,8 @@ namespace SimpleMath
                         var data2 = buffer2.GetAsArray();
                         var data3 = buffer3.GetAsArray();
                         for (int i = 0, e = data.Length; i < e; ++i)
-                            Console.WriteLine($"Math results: {data[i]} (float) {data2[i]} (double [GPUMath]) {data3[i]} (double [.Net Math])");
+                            Console.WriteLine(
+                                $"Math results: {data[i]} (float) {data2[i]} (double [GPUMath]) {data3[i]} (double [.Net Math])");
 
                         buffer.Dispose();
                         buffer2.Dispose();

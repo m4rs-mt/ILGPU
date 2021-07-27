@@ -128,6 +128,7 @@ namespace ILGPU.IR
                     if (entry != 0UL)
                         return true;
                 }
+
                 return false;
             }
         }
@@ -185,7 +186,7 @@ namespace ILGPU.IR
             block.Assert(block.Method == Method && block.BlockIndex >= 0);
             int bucketIndex = ComputeBucketIndex(block.BlockIndex, out ulong bitMask);
             bool contained = bucketIndex < visited.Length &&
-                (visited[bucketIndex] & bitMask) != 0;
+                             (visited[bucketIndex] & bitMask) != 0;
             AssertContained(block, contained);
             return contained;
         }
@@ -433,6 +434,7 @@ namespace ILGPU.IR
                     if (values[index].Item1 != null)
                         return true;
                 }
+
                 return false;
             }
 
@@ -531,6 +533,7 @@ namespace ILGPU.IR
                 {
                     AssertAdd(block, value, false);
                 }
+
                 values[index] = (block, value);
             }
         }
@@ -679,6 +682,7 @@ namespace ILGPU.IR
                     continue;
                 result.values[i] = (block, valueProvider(value));
             }
+
             return result;
         }
 
@@ -740,7 +744,8 @@ namespace ILGPU.IR
         private HashSet<BasicBlock> blockSet;
 
         /// <summary cref="InitBlockSet"/>
-        partial void InitBlockSet() => blockSet = new HashSet<BasicBlock>();
+        partial void InitBlockSet() => blockSet
+ = new HashSet<BasicBlock>();
 
         #endregion
 
@@ -778,7 +783,8 @@ namespace ILGPU.IR
         private Dictionary<BasicBlock, T> blockMap;
 
         /// <summary cref="InitBlockMap"/>
-        partial void InitBlockMap() => blockMap = new Dictionary<BasicBlock, T>();
+        partial void InitBlockMap() => blockMap
+ = new Dictionary<BasicBlock, T>();
 
         #endregion
 
@@ -791,7 +797,8 @@ namespace ILGPU.IR
             bool added)
         {
             EntryBlock.Assert(blockMap.ContainsKey(block) == !added);
-            blockMap[block] = value;
+            blockMap[block]
+ = value;
         }
 
         /// <summary cref="AssertContained(BasicBlock, in T, bool)"/>
@@ -800,7 +807,8 @@ namespace ILGPU.IR
             in T value,
             bool contained)
         {
-            bool found = blockMap.TryGetValue(block, out var storedValue);
+            bool found
+ = blockMap.TryGetValue(block, out var storedValue);
             EntryBlock.Assert(contained == found);
             if (contained)
                 EntryBlock.Assert(value.Equals(storedValue));

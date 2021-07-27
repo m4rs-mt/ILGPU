@@ -88,11 +88,7 @@ namespace ILGPU.IR
                         block.Assert(exitBlock != block);
                         if (ExitBlocks == null)
                         {
-                            ExitBlocks = new List<BasicBlock>(4)
-                            {
-                                exitBlock,
-                                block,
-                            };
+                            ExitBlocks = new List<BasicBlock>(4) { exitBlock, block, };
                         }
                         else
                         {
@@ -139,6 +135,7 @@ namespace ILGPU.IR
                     if (oldSuccessors[i] != newSuccessors[i])
                         return true;
                 }
+
                 return false;
             }
 
@@ -248,6 +245,7 @@ namespace ILGPU.IR
                     {
                         basicBlockBuilders.Add(basicBlockBuilder);
                     }
+
                     return basicBlockBuilder;
                 }
             }
@@ -567,6 +565,7 @@ namespace ILGPU.IR
                     else
                         ++i;
                 }
+
                 var @params = parameters.ToImmutable();
                 for (int i = 0, e = @params.Length; i < e; ++i)
                     @params[i].Index = i;

@@ -99,6 +99,7 @@ namespace ILGPU.Backends.PointerViews
                     value.Location,
                     length);
             }
+
             context.ReplaceAndRemove(value, length);
         }
 
@@ -128,6 +129,7 @@ namespace ILGPU.Backends.PointerViews
                     value.Location,
                     length);
             }
+
             var subView = builder.CreateDynamicStructure(
                 location,
                 newPointer,

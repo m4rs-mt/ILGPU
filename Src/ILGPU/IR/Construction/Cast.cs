@@ -155,8 +155,8 @@ namespace ILGPU.IR.Construction
         /// <returns>A node that represents the cast operation.</returns>
         public ValueReference CreateArrayToViewCast(Location location, Value value) =>
             value.Type is ViewType
-            ? value
-            : Append(new ArrayToViewCast(GetInitializer(location), value));
+                ? value
+                : Append(new ArrayToViewCast(GetInitializer(location), value));
 
         /// <summary>
         /// Creates a float as int reinterpret bit cast.
