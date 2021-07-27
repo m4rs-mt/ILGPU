@@ -1,7 +1,7 @@
 [*.*]
 indent_style = space
-indent_size = 2
-tab_width = 2
+indent_size = 4
+tab_width = 4
 end_of_line = crlf
 trim_trailing_whitespace = true
 
@@ -9,7 +9,20 @@ trim_trailing_whitespace = true
 indent_size = 2
 tab_width = 2
 
+[*.tt]
+
+###############################
+# General Code Formatting     #
+###############################
+
+insert_final_newline = false
+
 [*.cs]
 
+###############################
+# .NET Coding Conventions     #
+###############################
+
+insert_final_newline = true
 # CA1707: Identifiers should not contain underscores
 dotnet_diagnostic.CA1707.severity = none

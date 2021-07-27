@@ -1,7 +1,7 @@
 ﻿[*.*]
 indent_style = space
-indent_size = 2
-tab_width = 2
+indent_size = 4
+tab_width = 4
 end_of_line = crlf
 trim_trailing_whitespace = true
 
@@ -9,11 +9,21 @@ trim_trailing_whitespace = true
 indent_size = 2
 tab_width = 2
 
+[*.tt]
+
+###############################
+# General Code Formatting     #
+###############################
+
+insert_final_newline = false
+
 [*.cs]
 
 ###############################
 # .NET Coding Conventions     #
 ###############################
+
+insert_final_newline = true
 
 # Organize usings
 dotnet_separate_import_directive_groups = false
@@ -51,14 +61,14 @@ dotnet_naming_rule.private_or_internal_field_should_be_camel_case.style = camel_
 
 # Naming styles
 
-dotnet_naming_style.pascal_case.required_prefix = 
-dotnet_naming_style.pascal_case.required_suffix = 
-dotnet_naming_style.pascal_case.word_separator = 
+dotnet_naming_style.pascal_case.required_prefix =
+dotnet_naming_style.pascal_case.required_suffix =
+dotnet_naming_style.pascal_case.word_separator =
 dotnet_naming_style.pascal_case.capitalization = pascal_case
 
-dotnet_naming_style.camel_case.required_prefix = 
-dotnet_naming_style.camel_case.required_suffix = 
-dotnet_naming_style.camel_case.word_separator = 
+dotnet_naming_style.camel_case.required_prefix =
+dotnet_naming_style.camel_case.required_suffix =
+dotnet_naming_style.camel_case.word_separator =
 dotnet_naming_style.camel_case.capitalization = camel_case
 
 ###############################

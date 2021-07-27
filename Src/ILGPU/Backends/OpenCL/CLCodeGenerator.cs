@@ -305,8 +305,7 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the current intrinsic provider for code-generation purposes.
         /// </summary>
         public IntrinsicImplementationProvider<CLIntrinsic.Handler>
-            ImplementationProvider
-        { get; }
+            ImplementationProvider { get; }
 
         /// <summary>
         /// Returns the associated string builder.
