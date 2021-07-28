@@ -319,7 +319,7 @@ namespace ILGPU
             /// <returns>The 32-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly int ComputeBufferLength(Index2D extent) =>
-                ComputeElementIndex(extent - Index2D.One) + 1;
+                Stride2D.ComputeBufferLength(this, extent);
 
             /// <summary>
             /// Computes the 64-bit length of a required allocation.
@@ -328,7 +328,7 @@ namespace ILGPU
             /// <returns>The 64-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly long ComputeBufferLength(LongIndex2D extent) =>
-                ComputeElementIndex(extent - LongIndex2D.One) + 1L;
+                Stride2D.ComputeBufferLength(this, extent);
 
             /// <summary>
             /// Computes a new extent and stride based on the given cast context.
