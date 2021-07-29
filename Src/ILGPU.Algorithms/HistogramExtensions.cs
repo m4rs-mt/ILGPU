@@ -307,12 +307,12 @@ namespace ILGPU.Algorithms
                     TBinType,
                     TIncrementor,
                     TLocator>>(
-                    HistogramKernelMethod.MakeGenericMethod(
-                        typeof(T),
-                        typeof(TStride),
-                        typeof(TBinType),
-                        typeof(TIncrementor),
-                        typeof(TLocator)));
+                HistogramKernelMethod.MakeGenericMethod(
+                    typeof(T),
+                    typeof(TStride),
+                    typeof(TBinType),
+                    typeof(TIncrementor),
+                    typeof(TLocator)));
 
             return (stream, view, histogram, histogramOverflow) =>
             {
@@ -333,10 +333,11 @@ namespace ILGPU.Algorithms
                     throw new NotSupportedException(
                         ErrorMessages.NotSupportedArrayView64);
                 }
+
                 int numElements = view.IntExtent;
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
-                       numElements,
-                       out int numIterationsPerGroup);
+                    numElements,
+                    out int numIterationsPerGroup);
                 int numVirtualGroups = gridDim * numIterationsPerGroup;
                 int lengthInformation =
                     XMath.DivRoundUp(numElements, groupDim) * groupDim;
@@ -386,12 +387,12 @@ namespace ILGPU.Algorithms
                     TBinType,
                     TIncrementor,
                     TLocator>>(
-                    HistogramUncheckedKernelMethod.MakeGenericMethod(
-                        typeof(T),
-                        typeof(TStride),
-                        typeof(TBinType),
-                        typeof(TIncrementor),
-                        typeof(TLocator)));
+                HistogramUncheckedKernelMethod.MakeGenericMethod(
+                    typeof(T),
+                    typeof(TStride),
+                    typeof(TBinType),
+                    typeof(TIncrementor),
+                    typeof(TLocator)));
 
             return (stream, view, histogram) =>
             {
@@ -408,10 +409,11 @@ namespace ILGPU.Algorithms
                     throw new NotSupportedException(
                         ErrorMessages.NotSupportedArrayView64);
                 }
+
                 int numElements = view.IntExtent;
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
-                       numElements,
-                       out int numIterationsPerGroup);
+                    numElements,
+                    out int numIterationsPerGroup);
                 int numVirtualGroups = gridDim * numIterationsPerGroup;
                 int lengthInformation =
                     XMath.DivRoundUp(numElements, groupDim) * groupDim;
@@ -501,9 +503,9 @@ namespace ILGPU.Algorithms
                 TBinType,
                 TIncrementor,
                 TLocator>()(
-                    stream,
-                    view,
-                    histogram);
+                stream,
+                view,
+                histogram);
         }
 
         #endregion

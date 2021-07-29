@@ -58,6 +58,7 @@ namespace ILGPU.Tests
                 throw new InvalidOperationException(
                     $"Could not find kernel method '{name}' of type '{type}'");
             }
+
             if (method.IsGenericMethod)
             {
                 if (typeArguments == null)
@@ -188,10 +189,8 @@ namespace ILGPU.Tests
             where TIndex : struct, IIndex
             where T : unmanaged
         {
-            var kernelMethod = KernelMethodAttribute.GetKernelMethod(new Type[]
-            {
-                typeof(T)
-            });
+            var kernelMethod =
+                KernelMethodAttribute.GetKernelMethod(new Type[] { typeof(T) });
             Execute(kernelMethod, dimension, arguments);
         }
 
@@ -208,8 +207,7 @@ namespace ILGPU.Tests
         {
             var kernelMethod = KernelMethodAttribute.GetKernelMethod(new Type[]
             {
-                typeof(T1),
-                typeof(T2)
+                typeof(T1), typeof(T2)
             });
             Execute(kernelMethod, dimension, arguments);
         }
@@ -270,8 +268,8 @@ namespace ILGPU.Tests
             var data = view.AsContiguous().GetAsArray();
             Assert.Equal(data.Length, expected.Length);
             for (int i = 0; i < expected.GetLength(0); ++i)
-                for (int j = 0; j < expected.GetLength(1); ++j)
-                    Assert.Equal(expected[i, j], data[view.ComputeLinearIndex((i, j))]);
+            for (int j = 0; j < expected.GetLength(1); ++j)
+                Assert.Equal(expected[i, j], data[view.ComputeLinearIndex((i, j))]);
         }
 
         /// <summary>
@@ -289,8 +287,8 @@ namespace ILGPU.Tests
         {
             Assert.Equal(source.Length, expected.Length);
             for (int i = 0; i < expected.GetLength(0); ++i)
-                for (int j = 0; j < expected.GetLength(1); ++j)
-                    Assert.Equal(expected[i, j], source[i, j]);
+            for (int j = 0; j < expected.GetLength(1); ++j)
+                Assert.Equal(expected[i, j], source[i, j]);
         }
 
         /// <summary>
@@ -312,13 +310,13 @@ namespace ILGPU.Tests
             var data = view.AsContiguous().GetAsArray();
             Assert.Equal(data.Length, expected.Length);
             for (int i = 0; i < expected.GetLength(0); ++i)
-                for (int j = 0; j < expected.GetLength(1); ++j)
-                    for (int k = 0; k < expected.GetLength(2); ++k)
-                    {
-                        Assert.Equal(
-                            expected[i, j, k],
-                            data[view.ComputeLinearIndex((i, j, k))]);
-                    }
+            for (int j = 0; j < expected.GetLength(1); ++j)
+            for (int k = 0; k < expected.GetLength(2); ++k)
+            {
+                Assert.Equal(
+                    expected[i, j, k],
+                    data[view.ComputeLinearIndex((i, j, k))]);
+            }
         }
 
         /// <summary>
@@ -336,9 +334,9 @@ namespace ILGPU.Tests
         {
             Assert.Equal(source.Length, expected.Length);
             for (int i = 0; i < expected.GetLength(0); ++i)
-                for (int j = 0; j < expected.GetLength(1); ++j)
-                    for (int k = 0; k < expected.GetLength(2); ++k)
-                        Assert.Equal(expected[i, j, k], source[i, j, k]);
+            for (int j = 0; j < expected.GetLength(1); ++j)
+            for (int k = 0; k < expected.GetLength(2); ++k)
+                Assert.Equal(expected[i, j, k], source[i, j, k]);
         }
 
         /// <summary>

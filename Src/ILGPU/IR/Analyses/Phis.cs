@@ -251,6 +251,7 @@ namespace ILGPU.IR.Analyses
                     }
                 }
             }
+
             return result;
         }
     }

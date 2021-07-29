@@ -93,13 +93,13 @@ namespace ILGPU.Frontend.DebugInformation
                 "Reliability",
                 "CA2000:Dispose objects before losing scope",
                 Justification = "The PDB FileStream instance ownership will be " +
-                "transfered to the AssemblyDebugInformation")]
+                                "transfered to the AssemblyDebugInformation")]
             [SuppressMessage(
                 "Design",
                 "CA1031:Do not catch general exception types",
                 Justification = "This method catches all exceptions and redirects them " +
-                "to the debug out stream since this method can easily fail in the case " +
-                "of an invalid/incompatible/broken PDB file.")]
+                                "to the debug out stream since this method can easily fail in the case " +
+                                "of an invalid/incompatible/broken PDB file.")]
             public bool Load(
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)
@@ -204,8 +204,8 @@ namespace ILGPU.Frontend.DebugInformation
                 "Design",
                 "CA1031:Do not catch general exception types",
                 Justification = "This method catches all exceptions and redirects them " +
-                "to the debug out stream since this method can easily fail in the case " +
-                "of an invalid/incompatible/broken PDB file.")]
+                                "to the debug out stream since this method can easily fail in the case " +
+                                "of an invalid/incompatible/broken PDB file.")]
             public bool Load(
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)
@@ -224,7 +224,7 @@ namespace ILGPU.Frontend.DebugInformation
                 {
                     assemblyDebugInformation = null;
                     Debug.WriteLine($"Error reading from PDB stream for assembly " +
-                        $"'{assembly}'");
+                                    $"'{assembly}'");
                     Debug.WriteLine(ex.ToString());
                     return false;
                 }
@@ -237,9 +237,12 @@ namespace ILGPU.Frontend.DebugInformation
 
         private readonly ReaderWriterLockSlim cacheLock =
             new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+
         private readonly Dictionary<string, string> pdbFiles =
             new Dictionary<string, string>();
+
         private readonly HashSet<string> lookupDirectories = new HashSet<string>();
+
         private readonly Dictionary<Assembly, AssemblyDebugInformation> assemblies =
             new Dictionary<Assembly, AssemblyDebugInformation>();
 
@@ -437,11 +440,11 @@ namespace ILGPU.Frontend.DebugInformation
             Debug.Assert(methodBase != null, "Invalid method");
             methodDebugInformation = null;
             return TryLoadSymbols(
-                methodBase.Module.Assembly,
-                out var assemblyDebugInformation) &&
-                assemblyDebugInformation.TryLoadDebugInformation(
-                    methodBase,
-                    out methodDebugInformation);
+                       methodBase.Module.Assembly,
+                       out var assemblyDebugInformation) &&
+                   assemblyDebugInformation.TryLoadDebugInformation(
+                       methodBase,
+                       out methodDebugInformation);
         }
 
         /// <summary>
@@ -459,8 +462,8 @@ namespace ILGPU.Frontend.DebugInformation
             TryLoadDebugInformation(
                 methodBase,
                 out MethodDebugInformation methodDebugInformation)
-            ? methodDebugInformation.CreateSequencePointEnumerator()
-            : SequencePointEnumerator.Empty;
+                ? methodDebugInformation.CreateSequencePointEnumerator()
+                : SequencePointEnumerator.Empty;
 
         /// <summary>
         /// Clears cached debug information.
@@ -487,8 +490,10 @@ namespace ILGPU.Frontend.DebugInformation
                         {
                             continue;
                         }
+
                         assembliesToRemove.Add(assembly);
                     }
+
                     foreach (var assemblyToRemove in assembliesToRemove)
                         assemblies.Remove(assemblyToRemove);
                 }

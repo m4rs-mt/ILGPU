@@ -44,23 +44,25 @@ namespace ILGPU.Tests
             { BasicEnum2.Val2 },
             { BasicEnum3.Val0 },
             { BasicEnum4.Val2 },
-            { new TestStruct<BasicEnum2>()
             {
-                Val0 = 1,
-                Val1 = BasicEnum2.Val2,
-                Val2 = short.MinValue
-            } },
-            { new TestStruct<BasicEnum2, TestStruct<BasicEnum3, BasicEnum1>>()
-            {
-                Val0 = BasicEnum2.Val1,
-                Val1 = ushort.MaxValue,
-                Val2 = new TestStruct<BasicEnum3, BasicEnum1>()
+                new TestStruct<BasicEnum2>()
                 {
-                    Val0 = BasicEnum3.Val0,
-                    Val1 = 23,
-                    Val2 = BasicEnum1.Val1,
+                    Val0 = 1, Val1 = BasicEnum2.Val2, Val2 = short.MinValue
                 }
-            } }
+            },
+            {
+                new TestStruct<BasicEnum2, TestStruct<BasicEnum3, BasicEnum1>>()
+                {
+                    Val0 = BasicEnum2.Val1,
+                    Val1 = ushort.MaxValue,
+                    Val2 = new TestStruct<BasicEnum3, BasicEnum1>()
+                    {
+                        Val0 = BasicEnum3.Val0,
+                        Val1 = 23,
+                        Val2 = BasicEnum1.Val1,
+                    }
+                }
+            }
         };
 
         internal static void EnumInteropKernel<T>(

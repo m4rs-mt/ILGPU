@@ -40,7 +40,8 @@ namespace AlgorithmsWarps
             data[globalIndex, 2] = WarpExtensions.InclusiveScan<int, AddInt32>(1);
 
             // Perform a all reduction using a different reduction logic.
-            data[globalIndex, 3] = WarpExtensions.AllReduce<int, MinInt32>(Group.IdxX + 1);
+            data[globalIndex, 3] =
+                WarpExtensions.AllReduce<int, MinInt32>(Group.IdxX + 1);
         }
 
         static void Main()
@@ -58,8 +59,11 @@ namespace AlgorithmsWarps
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var kernel = accelerator.LoadStreamKernel<ArrayView2D<int>>(KernelWithWarpExtensions);
-                        using (var buffer = accelerator.Allocate<int>(accelerator.WarpSize, 4))
+                        var kernel =
+                            accelerator.LoadStreamKernel<ArrayView2D<int>>(
+                                KernelWithWarpExtensions);
+                        using (var buffer =
+                            accelerator.Allocate<int>(accelerator.WarpSize, 4))
                         {
                             kernel((1, buffer.Width), buffer.View);
                             accelerator.Synchronize();

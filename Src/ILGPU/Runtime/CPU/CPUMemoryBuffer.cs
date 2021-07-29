@@ -95,6 +95,7 @@ namespace ILGPU.Runtime.CPU
                 throw new NotSupportedException(
                     RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
+
             if (sourceView.Length > targetView.Length)
                 throw new ArgumentOutOfRangeException(nameof(sourceView));
 
@@ -119,6 +120,7 @@ namespace ILGPU.Runtime.CPU
                         throw new NotSupportedException(
                             RuntimeErrorMessages.NotSupportedAcceleratorStream);
                     }
+
                     CudaMemoryBuffer.CudaCopy(
                         cudaStream,
                         sourceView,
@@ -131,6 +133,7 @@ namespace ILGPU.Runtime.CPU
                         throw new NotSupportedException(
                             RuntimeErrorMessages.NotSupportedAcceleratorStream);
                     }
+
                     CLMemoryBuffer.CLCopy(
                         clStream,
                         sourceView,
@@ -160,6 +163,7 @@ namespace ILGPU.Runtime.CPU
                 throw new NotSupportedException(
                     RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
+
             if (targetView.Length > sourceView.Length)
                 throw new ArgumentOutOfRangeException(nameof(sourceView));
 
@@ -184,6 +188,7 @@ namespace ILGPU.Runtime.CPU
                         throw new NotSupportedException(
                             RuntimeErrorMessages.NotSupportedAcceleratorStream);
                     }
+
                     CudaMemoryBuffer.CudaCopy(
                         cudaStream,
                         sourceView,
@@ -196,6 +201,7 @@ namespace ILGPU.Runtime.CPU
                         throw new NotSupportedException(
                             RuntimeErrorMessages.NotSupportedAcceleratorStream);
                     }
+
                     CLMemoryBuffer.CLCopy(
                         clStream,
                         sourceView,
@@ -362,10 +368,10 @@ namespace ILGPU.Runtime.CPU
                 long length,
                 int elementSize)
                 : base(
-                      GetCPUAccelerator(accelerator),
-                      Marshal.AllocHGlobal(new IntPtr(length * elementSize)),
-                      length,
-                      elementSize)
+                    GetCPUAccelerator(accelerator),
+                    Marshal.AllocHGlobal(new IntPtr(length * elementSize)),
+                    length,
+                    elementSize)
             { }
 
             #endregion
@@ -482,8 +488,8 @@ namespace ILGPU.Runtime.CPU
         /// <returns>A valid parent CPU accelerator.</returns>
         private static CPUAccelerator GetCPUAccelerator(Accelerator accelerator) =>
             accelerator is CPUAccelerator cpuAccelerator
-            ? cpuAccelerator
-            : accelerator.Context.GetImplicitCPUAccelerator();
+                ? cpuAccelerator
+                : accelerator.Context.GetImplicitCPUAccelerator();
 
         /// <summary>
         /// Creates a wrapped pointer memory buffer.
@@ -569,8 +575,8 @@ namespace ILGPU.Runtime.CPU
             long length,
             int elementSize) =>
             accelerator is null
-            ? throw new ArgumentNullException(nameof(accelerator))
-            : new PageLockedMemoryBuffer(accelerator, length, elementSize);
+                ? throw new ArgumentNullException(nameof(accelerator))
+                : new PageLockedMemoryBuffer(accelerator, length, elementSize);
 
         /// <summary>
         /// Creates a new memory buffer wrapper around the given .Net array.
@@ -584,7 +590,6 @@ namespace ILGPU.Runtime.CPU
                 throw new ArgumentNullException(nameof(array));
             int elementSize = Interop.SizeOf(array.GetType().GetElementType());
             return FromArray(array, elementSize);
-
         }
 
         /// <summary>

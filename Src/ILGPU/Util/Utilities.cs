@@ -101,6 +101,7 @@ namespace ILGPU.Util
                 a = b;
                 b = remainder;
             }
+
             return a;
         }
 

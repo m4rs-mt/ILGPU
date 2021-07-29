@@ -210,11 +210,11 @@ namespace ILGPU.Frontend
             TypeNode targetType,
             ConvertFlags flags) =>
             value.Type == targetType || targetType.IsRootType
-            ? value
-            : CodeGenerator.CreateConversion(
-                value,
-                targetType,
-                flags);
+                ? value
+                : CodeGenerator.CreateConversion(
+                    value,
+                    targetType,
+                    flags);
 
         /// <summary>
         /// Pops an element as integer from the stack.
@@ -269,8 +269,9 @@ namespace ILGPU.Frontend
                 var param = parameters[i];
                 var argument = Pop(
                     Builder.CreateType(param.ParameterType),
-                    param.ParameterType.IsUnsignedInt() ?
-                        ConvertFlags.TargetUnsigned : ConvertFlags.None);
+                    param.ParameterType.IsUnsignedInt()
+                        ? ConvertFlags.TargetUnsigned
+                        : ConvertFlags.None);
                 result.Add(argument);
             }
 
@@ -286,6 +287,7 @@ namespace ILGPU.Frontend
                             declaringType,
                             MemoryAddressSpace.Generic);
                     }
+
                     instanceValue = Pop(
                         declaringType,
                         ConvertFlags.None);
@@ -317,8 +319,8 @@ namespace ILGPU.Frontend
         /// context of compare and arithmetic operations.</returns>
         public Value PopCompareValue(Location location, ConvertFlags flags) =>
             PeekBasicValueType(location) == BasicValueType.Int1
-            ? Pop()
-            : PopCompareOrArithmeticValue(location, flags);
+                ? Pop()
+                : PopCompareOrArithmeticValue(location, flags);
 
         /// <summary>
         /// Pops a value from the stack that can be used in the context of
@@ -398,6 +400,7 @@ namespace ILGPU.Frontend
                         left.BasicValueType,
                         right.BasicValueType);
             }
+
             Debug.Assert(result != null);
             right = result;
 

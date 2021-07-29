@@ -72,6 +72,7 @@ namespace ILGPU.Backends.OpenCL
                     CLInstructions.GotoStatement,
                     branch.GetCaseTarget(i));
             }
+
             statement.AppendOperation("{0}default:\n{0}\t{1} {2};\n{0}}}",
                 indentStr,
                 CLInstructions.GotoStatement,

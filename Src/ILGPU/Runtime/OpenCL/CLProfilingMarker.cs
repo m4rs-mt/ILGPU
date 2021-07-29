@@ -88,6 +88,7 @@ namespace ILGPU.Runtime.OpenCL
                 Utilities.Swap(ref startNanoseconds, ref endNanoseconds);
                 swapped = true;
             }
+
             var elapsedNanoseconds = endNanoseconds - startNanoseconds;
             var ticks = (long)(elapsedNanoseconds / 100UL);
             if (swapped)

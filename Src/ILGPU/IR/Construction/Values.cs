@@ -29,13 +29,13 @@ namespace ILGPU.IR.Construction
         /// <returns>The null reference.</returns>
         public ValueReference CreateNull(Location location, TypeNode type) =>
             type is PrimitiveType primitiveType
-            ? CreatePrimitiveValue(
-                location,
-                primitiveType.BasicValueType,
-                0)
-            : (ValueReference)Append(new NullValue(
-                GetInitializer(location),
-                type));
+                ? CreatePrimitiveValue(
+                    location,
+                    primitiveType.BasicValueType,
+                    0)
+                : (ValueReference)Append(new NullValue(
+                    GetInitializer(location),
+                    type));
 
         /// <summary>
         /// Creates a new primitive <see cref="Enum"/> constant.
@@ -126,11 +126,11 @@ namespace ILGPU.IR.Construction
             string @string,
             Encoding encoding) =>
             @string == null
-            ? throw location.GetArgumentNullException(nameof(@string))
-            : Append(new StringValue(
-                GetInitializer(location),
-                @string,
-                encoding));
+                ? throw location.GetArgumentNullException(nameof(@string))
+                : Append(new StringValue(
+                    GetInitializer(location),
+                    @string,
+                    encoding));
 
         /// <summary>
         /// Creates a primitive <see cref="bool"/> value.
@@ -264,11 +264,11 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(Location location, double value) =>
             BaseContext.Properties.MathMode == MathMode.Fast32BitOnly
-            ? CreatePrimitiveValue(location, (float)value)
-            : Append(new PrimitiveValue(
-                GetInitializer(location),
-                BasicValueType.Float64,
-                Unsafe.As<double, long>(ref value)));
+                ? CreatePrimitiveValue(location, (float)value)
+                : Append(new PrimitiveValue(
+                    GetInitializer(location),
+                    BasicValueType.Float64,
+                    Unsafe.As<double, long>(ref value)));
 
         /// <summary>
         /// Creates a primitive value.

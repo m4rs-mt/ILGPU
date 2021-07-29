@@ -145,6 +145,7 @@ namespace ILGPU.IR.Types
                             fieldType.Alignment);
                         currentOffset = nextOffset;
                     }
+
                     int lastFieldSize = structureType[
                         structureType.NumFields - 1].Size;
                     Offset = Align(Offset + lastFieldSize, type.Alignment);
@@ -216,6 +217,7 @@ namespace ILGPU.IR.Types
                     for (int i = AlignedSize, e = Size; i < e; ++i)
                         Add(TypeContext.Padding8Type);
                 }
+
                 return TypeContext.FinishStructureType(this);
             }
 
@@ -602,6 +604,7 @@ namespace ILGPU.IR.Types
                         // Everything seems to be compatible -> continue processing
                         current.AddField();
                     }
+
                     currentOffset = nextOffset;
                 }
 
@@ -642,6 +645,7 @@ namespace ILGPU.IR.Types
                             // The entry is properly aligned
                             ranges.Add(newEntry);
                         }
+
                         offset += entry.Type.Size * stepSize;
                     }
                 }
@@ -677,8 +681,8 @@ namespace ILGPU.IR.Types
         /// <returns>The number of nested fields (or 1).</returns>
         public static int GetNumFields(TypeNode typeNode) =>
             typeNode is StructureType structureType
-            ? structureType.NumFields
-            : 1;
+                ? structureType.NumFields
+                : 1;
 
         #endregion
 
@@ -795,10 +799,10 @@ namespace ILGPU.IR.Types
         public TypeNode Get<TTypeContext>(TTypeContext typeContext, FieldSpan span)
             where TTypeContext : IIRTypeContext =>
             !span.HasSpan
-            ? this[span.Access]
-            : span.Index == 0 && span.Span == NumFields
-                ? this
-                : Slice(typeContext, span);
+                ? this[span.Access]
+                : span.Index == 0 && span.Span == NumFields
+                    ? this
+                    : Slice(typeContext, span);
 
         /// <summary>
         /// Converts all field types using the type converter provided.
@@ -909,8 +913,8 @@ namespace ILGPU.IR.Types
                     "Field" + index++,
                     type.LoadManagedType(),
                     FieldAttributes.Public);
-
             }
+
             return typeBuilder.CreateType();
         }
 
@@ -964,6 +968,7 @@ namespace ILGPU.IR.Types
                     return false;
                 }
             }
+
             return true;
         }
 
@@ -985,6 +990,7 @@ namespace ILGPU.IR.Types
                         result.Append(", ");
                 }
             }
+
             result.Append('>');
             return result.ToString();
         }

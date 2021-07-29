@@ -175,6 +175,7 @@ namespace ILGPU.IR.Types
                 Size = Alignment = 8;
                 BasicValueType = BasicValueType.Int64;
             }
+
             AddFlags(TypeFlags.PointerDependent);
         }
 

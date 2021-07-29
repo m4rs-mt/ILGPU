@@ -37,6 +37,5 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Sign(float value) =>
             Utilities.Select(value < 0.0f, -1, Utilities.Select(value > 0.0f, 1, 0));
-
     }
 }

@@ -27,9 +27,9 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         internal static readonly MethodInfo GetKernelExecutionDelegate =
             typeof(CPUKernel).GetProperty(
-                nameof(KernelExecutionDelegate),
-                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-            .GetGetMethod(true);
+                    nameof(KernelExecutionDelegate),
+                    BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .GetGetMethod(true);
 
         #endregion
 
@@ -50,7 +50,8 @@ namespace ILGPU.Runtime.CPU
             : base(accelerator, kernel, launcher)
         {
             KernelExecutionDelegate = kernelExecutionDelegate
-                ?? throw new ArgumentNullException(nameof(kernelExecutionDelegate));
+                                      ?? throw new ArgumentNullException(
+                                          nameof(kernelExecutionDelegate));
         }
 
         #endregion

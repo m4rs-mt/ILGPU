@@ -38,13 +38,12 @@ namespace ILGPU.Frontend.DebugInformation
             int startLine,
             int endLine)
             : base(
-                  fileName,
-                  startColumn,
-                  endColumn,
-                  startLine,
-                  endLine)
+                fileName,
+                startColumn,
+                endColumn,
+                startLine,
+                endLine)
         {
-
             Offset = offset;
         }
 
@@ -66,14 +65,14 @@ namespace ILGPU.Frontend.DebugInformation
         /// </summary>
         protected internal override FileLocation Merge(FileLocation other) =>
             other is SequencePoint sequencePoint
-            ? new SequencePoint(
-                FileName,
-                Math.Min(Offset, sequencePoint.Offset),
-                Math.Min(StartColumn, sequencePoint.StartColumn),
-                Math.Max(EndColumn, sequencePoint.EndColumn),
-                Math.Min(StartLine, sequencePoint.StartLine),
-                Math.Max(EndLine, sequencePoint.EndLine))
-            : base.Merge(other);
+                ? new SequencePoint(
+                    FileName,
+                    Math.Min(Offset, sequencePoint.Offset),
+                    Math.Min(StartColumn, sequencePoint.StartColumn),
+                    Math.Max(EndColumn, sequencePoint.EndColumn),
+                    Math.Min(StartLine, sequencePoint.StartLine),
+                    Math.Max(EndLine, sequencePoint.EndLine))
+                : base.Merge(other);
 
         #endregion
 

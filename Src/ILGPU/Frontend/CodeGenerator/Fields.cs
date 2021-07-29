@@ -36,6 +36,7 @@ namespace ILGPU.Frontend
                 var structureType = type.As<StructureType>(Location);
                 fieldIndex = structureType.RemapFieldIndex(fieldIndex);
             }
+
             return new FieldSpan(fieldIndex, typeInfo.NumFlattendedFields);
         }
 
@@ -119,9 +120,9 @@ namespace ILGPU.Frontend
             VerifyStaticFieldLoad(field);
 
             var fieldValue = field.GetValue(null);
-            return fieldValue == null ?
-                Builder.CreateObjectValue(Location, field.FieldType) :
-                Builder.CreateObjectValue(Location, fieldValue);
+            return fieldValue == null
+                ? Builder.CreateObjectValue(Location, field.FieldType)
+                : Builder.CreateObjectValue(Location, fieldValue);
         }
 
         /// <summary>

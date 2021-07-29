@@ -272,6 +272,7 @@ namespace ILGPU.Util
                 if (comparer.Equals(items[i], item))
                     return i;
             }
+
             return -1;
         }
 
@@ -408,6 +409,7 @@ namespace ILGPU.Util
                 if (!comparer.Equals(items[i], other.items[i]))
                     return false;
             }
+
             return true;
         }
 
@@ -584,6 +586,7 @@ namespace ILGPU.Util
                 if (comparer.Equals(item, element))
                     return true;
             }
+
             return false;
         }
 
@@ -604,6 +607,7 @@ namespace ILGPU.Util
                 if (predicate.Apply(item))
                     return true;
             }
+
             return false;
         }
 
@@ -648,6 +652,7 @@ namespace ILGPU.Util
                 if (predicate.Apply(item))
                     result.Add(item);
             }
+
             return result;
         }
 
@@ -697,6 +702,7 @@ namespace ILGPU.Util
                     if (i + 1 < e)
                         result.Append(", ");
                 }
+
                 return result.ToString();
             }
         }

@@ -75,7 +75,8 @@ namespace ILGPU.Runtime
         /// </remarks>
         public Kernel LoadKernel(CompiledKernel kernel)
         {
-            Bind(); return LoadKernelInternal(kernel);
+            Bind();
+            return LoadKernelInternal(kernel);
         }
 
         /// <summary>
@@ -694,4 +695,3 @@ namespace ILGPU.Runtime
         #endregion
     }
 }
-

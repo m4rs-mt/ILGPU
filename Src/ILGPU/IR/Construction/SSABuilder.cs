@@ -240,6 +240,7 @@ namespace ILGPU.IR.Construction
                             return false;
                         }
                     }
+
                     return true;
                 }
             }
@@ -280,8 +281,8 @@ namespace ILGPU.IR.Construction
             /// <returns>The value of the given variable.</returns>
             public Value GetValue(TVariable var, ref MarkerProvider markerProvider) =>
                 values.TryGetValue(var, out Value value)
-                ? value
-                : GetValueRecursive(var, ref markerProvider);
+                    ? value
+                    : GetValueRecursive(var, ref markerProvider);
 
             /// <summary>
             /// Removes the value of the given variable.
@@ -309,6 +310,7 @@ namespace ILGPU.IR.Construction
                     if ((result = valueContainer.PeekValue(var, marker)) != null)
                         return result;
                 }
+
                 return null;
             }
 
@@ -356,6 +358,7 @@ namespace ILGPU.IR.Construction
                         incompletePhis[var] = incompletePhi;
                     }
                 }
+
                 SetValue(var, value);
                 return value;
             }
@@ -394,6 +397,7 @@ namespace ILGPU.IR.Construction
                     // Set argument value
                     phiBuilder.AddArgument(predecessor, value);
                 }
+
                 incompletePhi.Location.Assert(
                     phiBuilder.Count == Block.Predecessors.Length);
                 var phiValue = phiBuilder.Seal();
@@ -624,6 +628,7 @@ namespace ILGPU.IR.Construction
                 Seal(valueContainer);
                 return true;
             }
+
             return false;
         }
 
@@ -638,7 +643,7 @@ namespace ILGPU.IR.Construction
             if (valueContainer.CanSeal)
                 Seal(valueContainer);
             return !valueContainer.IsProcessed &&
-                (valueContainer.IsProcessed = true);
+                   (valueContainer.IsProcessed = true);
         }
 
         /// <summary>
@@ -667,6 +672,7 @@ namespace ILGPU.IR.Construction
                 else
                     block.Assert(container.IsSealed);
             }
+
             markerProvider.Apply(ref markerValue);
         }
 

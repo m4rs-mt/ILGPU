@@ -1,4 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
+
 <Operations>
     <Operation Name="Add" IsCommutative="true">
         <Summary>The + operation.</Summary>
@@ -21,10 +22,10 @@
             <Source>{Value0}.IsZero</Source>
             <Target>
                 CreateArithmetic(
-                    {Location},
-                    {Value1},
-                    UnaryArithmeticKind.Neg,
-                    {Flags})
+                {Location},
+                {Value1},
+                UnaryArithmeticKind.Neg,
+                {Flags})
             </Target>
         </Rewriter>
         <Rewriter>
@@ -58,10 +59,10 @@
             </Source>
             <Target>
                 CreateArithmetic(
-                    {Location},
-                    {Value0},
-                    GetDivMulShiftAmount({Location}, {Value1}),
-                    BinaryArithmeticKind.Shl)
+                {Location},
+                {Value0},
+                GetDivMulShiftAmount({Location}, {Value1}),
+                BinaryArithmeticKind.Shl)
             </Target>
         </Rewriter>
         <Rewriter Mode="CombineNestedRightConstant">
@@ -81,10 +82,10 @@
             <Source>{Value0}.HasFloatValue(1.0f, 1.0)</Source>
             <Target>
                 CreateArithmetic(
-                    {Location},
-                    {Value1},
-                    UnaryArithmeticKind.RcpF,
-                    {Flags})
+                {Location},
+                {Value1},
+                UnaryArithmeticKind.RcpF,
+                {Flags})
             </Target>
         </Rewriter>
         <Rewriter>
@@ -98,10 +99,10 @@
             </Source>
             <Target>
                 CreateArithmetic(
-                    {Location},
-                    {Value0},
-                    GetDivMulShiftAmount({Location}, {Value1}),
-                    BinaryArithmeticKind.Shr)
+                {Location},
+                {Value0},
+                GetDivMulShiftAmount({Location}, {Value1}),
+                BinaryArithmeticKind.Shr)
             </Target>
         </Rewriter>
     </Operation>

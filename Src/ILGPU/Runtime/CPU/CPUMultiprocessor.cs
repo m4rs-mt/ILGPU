@@ -43,8 +43,9 @@ namespace ILGPU.Runtime.CPU
             int processorIndex,
             bool usesSequentialProcessing) =>
             usesSequentialProcessing
-            ? new SequentialProcessor(accelerator, processorIndex) as CPUMultiprocessor
-            : new ParallelProcessor(accelerator, processorIndex);
+                ? new SequentialProcessor(accelerator, processorIndex) as
+                    CPUMultiprocessor
+                : new ParallelProcessor(accelerator, processorIndex);
 
         #endregion
 
@@ -84,8 +85,7 @@ namespace ILGPU.Runtime.CPU
             {
                 var thread = threads[i] = new Thread(ExecuteThread)
                 {
-                    IsBackground = true,
-                    Priority = Accelerator.ThreadPriority,
+                    IsBackground = true, Priority = Accelerator.ThreadPriority,
                 };
                 thread.Name = $"ILGPU_{Accelerator.InstanceId}_CPU_{ProcessorIndex}_{i}";
             });
@@ -149,7 +149,7 @@ namespace ILGPU.Runtime.CPU
             Parallel.For(maxNumLaunchedThreadsPerGroup, groupSize, threadIdx =>
             {
                 int globalThreadIdx = ProcessorIndex * MaxNumThreadsPerMultiprocessor
-                    + threadIdx;
+                                      + threadIdx;
                 threads[globalThreadIdx].Start(globalThreadIdx);
             });
             maxNumLaunchedThreadsPerGroup = groupSize;
@@ -245,7 +245,7 @@ namespace ILGPU.Runtime.CPU
             groupContext.MakeCurrent();
 
             CPUAcceleratorTask task = null;
-            for (; ; )
+            for (;;)
             {
                 // Get a new task to execute (if any)
                 if (!Accelerator.WaitForTask(ref task))
@@ -376,11 +376,13 @@ namespace ILGPU.Runtime.CPU
                         thread.Join();
                     }
                 }
+
                 groupContext.Dispose();
                 foreach (var warp in warpContexts)
                     warp.Dispose();
                 processorBarrier.Dispose();
             }
+
             base.Dispose(disposing);
         }
 
@@ -705,6 +707,7 @@ namespace ILGPU.Runtime.CPU
                     foreach (var warpBarrier in warpBarriers)
                         warpBarrier.Dispose();
                 }
+
                 base.Dispose(disposing);
             }
 

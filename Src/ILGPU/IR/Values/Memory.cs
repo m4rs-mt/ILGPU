@@ -150,8 +150,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
             ArrayLength.Resolve() is PrimitiveValue value
-            ? $"{Type} [{value}]"
-            : Type.ToString();
+                ? $"{Type} [{value}]"
+                : Type.ToString();
 
         #endregion
     }

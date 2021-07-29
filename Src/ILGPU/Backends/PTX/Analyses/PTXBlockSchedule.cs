@@ -140,5 +140,6 @@ namespace ILGPU.Backends.PTX.Analyses
     /// <summary>
     /// Extensions methods for the <see cref="PTXBlockSchedule"/> class.
     /// </summary>
-    public static partial class PTXBlockScheduleExtensions { }
+    public static partial class PTXBlockScheduleExtensions
+    { }
 }

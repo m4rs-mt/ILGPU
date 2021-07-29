@@ -121,9 +121,9 @@ namespace ILGPU
         /// Returns true if the current thread is the last in the group.
         /// </summary>
         public static bool IsLastThread =>
-           (IdxX == DimX - 1) &
-           (IdxY == DimY - 1) &
-           (IdxZ == DimZ - 1);
+            (IdxX == DimX - 1) &
+            (IdxY == DimY - 1) &
+            (IdxZ == DimZ - 1);
 
         #endregion
 

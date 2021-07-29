@@ -59,8 +59,8 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             public readonly MemoryAddressSpace this[Value value] =>
                 value.Type is AddressSpaceType type
-                ? type.AddressSpace
-                : MemoryAddressSpace.Generic;
+                    ? type.AddressSpace
+                    : MemoryAddressSpace.Generic;
         }
 
         /// <summary>
@@ -209,6 +209,7 @@ namespace ILGPU.IR.Transformations
                     {
                         return false;
                     }
+
                     break;
                 case PhiValue _:
                 case Predicate _:
@@ -237,6 +238,7 @@ namespace ILGPU.IR.Transformations
                     data.Push(value);
                     break;
             }
+
             return true;
         }
 
@@ -296,6 +298,7 @@ namespace ILGPU.IR.Transformations
                     targetAddressSpace);
                 phiBuilder.AddArgument(phiValue.Sources[i], argument);
             }
+
             context.ReplaceAndRemove(phiValue, phiBuilder.Seal());
         }
 
@@ -438,8 +441,8 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             public readonly MemoryAddressSpace this[Value value] =>
                 Mapping.TryGetValue(value, out var data)
-                ? data.Data.UnifiedAddressSpace
-                : new DataProvider()[value];
+                    ? data.Data.UnifiedAddressSpace
+                    : new DataProvider()[value];
         }
 
         #endregion
@@ -569,16 +572,16 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             public MemoryAddressSpace this[Method method] =>
                 Result.TryGetReturnData(method, out var data)
-                ? data.Data.UnifiedAddressSpace
-                : MemoryAddressSpace.Generic;
+                    ? data.Data.UnifiedAddressSpace
+                    : MemoryAddressSpace.Generic;
 
             /// <summary>
             /// Returns the unified address space of the given value.
             /// </summary>
             public MemoryAddressSpace this[Value value] =>
                 Result.TryGetData(value, out var data)
-                ? data.Data.UnifiedAddressSpace
-                : new DataProvider()[value];
+                    ? data.Data.UnifiedAddressSpace
+                    : new DataProvider()[value];
 
             #endregion
 
@@ -688,8 +691,8 @@ namespace ILGPU.IR.Transformations
         {
             // Determine the target address space
             var targetAddressSpace = provider[parameter];
-            var converted = GetAddressSpaceConverter(targetAddressSpace).
-                ConvertType(builder, parameter.Type);
+            var converted = GetAddressSpaceConverter(targetAddressSpace)
+                .ConvertType(builder, parameter.Type);
 
             // Append a new parameter using the converted target type
             var targetParam = methodBuilder.AddParameter(converted, parameter.Name);
@@ -733,6 +736,7 @@ namespace ILGPU.IR.Transformations
                 if (argument.Type.HasFlags(TypeFlags.AddressSpaceDependent))
                     return true;
             }
+
             var returnType = call.Target.ReturnType;
             return returnType.HasFlags(TypeFlags.AddressSpaceDependent);
         }

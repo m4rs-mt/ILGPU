@@ -17,9 +17,9 @@ namespace ILGPU.Tests.Cuda
             OptimizationLevel optimizationLevel,
             Action<Context.Builder> prepareContext)
             : base(
-                  optimizationLevel,
-                  builder => prepareContext(builder.Cuda()),
-                  context => context.CreateCudaAccelerator(0))
+                optimizationLevel,
+                builder => prepareContext(builder.Cuda()),
+                context => context.CreateCudaAccelerator(0))
         { }
 
         /// <summary>

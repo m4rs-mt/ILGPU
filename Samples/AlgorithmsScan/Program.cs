@@ -34,7 +34,8 @@ namespace AlgorithmsScan
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         var sourceBuffer = accelerator.Allocate<int>(32);
-                        accelerator.Initialize(accelerator.DefaultStream, sourceBuffer.View, 2);
+                        accelerator.Initialize(accelerator.DefaultStream,
+                            sourceBuffer.View, 2);
 
                         // The parallel scan implementation needs temporary storage.
                         // By default, every accelerator hosts a memory-buffer cache
@@ -48,8 +49,11 @@ namespace AlgorithmsScan
                             var scan = accelerator.CreateInclusiveScan<int, AddInt32>();
 
                             // Compute the required amount of temporary memory
-                            var tempMemSize = accelerator.ComputeScanTempStorageSize<int>(targetBuffer.Length);
-                            using (var tempBuffer = accelerator.Allocate<int>(tempMemSize))
+                            var tempMemSize =
+                                accelerator.ComputeScanTempStorageSize<int>(targetBuffer
+                                    .Length);
+                            using (var tempBuffer =
+                                accelerator.Allocate<int>(tempMemSize))
                             {
                                 scan(
                                     accelerator.DefaultStream,
@@ -74,8 +78,11 @@ namespace AlgorithmsScan
                             var scan = accelerator.CreateExclusiveScan<int, AddInt32>();
 
                             // Compute the required amount of temporary memory
-                            var tempMemSize = accelerator.ComputeScanTempStorageSize<int>(targetBuffer.Length);
-                            using (var tempBuffer = accelerator.Allocate<int>(tempMemSize))
+                            var tempMemSize =
+                                accelerator.ComputeScanTempStorageSize<int>(targetBuffer
+                                    .Length);
+                            using (var tempBuffer =
+                                accelerator.Allocate<int>(tempMemSize))
                             {
                                 scan(
                                     accelerator.DefaultStream,
@@ -97,7 +104,8 @@ namespace AlgorithmsScan
                         // an extra cache.
                         using (var scanProvider = accelerator.CreateScanProvider())
                         {
-                            var scanUsingScanProvider = scanProvider.CreateInclusiveScan<int, AddInt32>();
+                            var scanUsingScanProvider =
+                                scanProvider.CreateInclusiveScan<int, AddInt32>();
 
                             // Please note that the create scan does not need additional temporary memory
                             // allocations as they will be automatically managed by the ScanProvider instance.

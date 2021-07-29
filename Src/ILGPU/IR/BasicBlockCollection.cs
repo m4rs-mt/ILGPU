@@ -100,6 +100,7 @@ namespace ILGPU.IR
             {
                 private BasicBlockCollection<TOrder, TDirection>.Enumerator
                     blockEnumerator;
+
                 private BasicBlock.Enumerator valueEnumerator;
 
                 /// <summary>
@@ -259,6 +260,7 @@ namespace ILGPU.IR
                     exitBlock = block;
                 }
             }
+
             EntryBlock.Assert(exitBlock != null);
         }
 
@@ -345,6 +347,7 @@ namespace ILGPU.IR
                 if (predicate.Apply(block))
                     result.Add(block);
             }
+
             return result;
         }
 
@@ -356,9 +359,9 @@ namespace ILGPU.IR
         public readonly BasicBlockCollection<TOtherOrder, TDirection>
             AsOrder<TOtherOrder>()
             where TOtherOrder :
-                struct,
-                ITraversalOrder,
-                ICompatibleTraversalOrder<TOrder> =>
+            struct,
+            ITraversalOrder,
+            ICompatibleTraversalOrder<TOrder> =>
             new BasicBlockCollection<TOtherOrder, TDirection>(EntryBlock, blocks);
 
         /// <summary>
@@ -384,8 +387,8 @@ namespace ILGPU.IR
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly BasicBlockCollection<TOtherOrder, TOtherDirection>
             ChangeOrder<
-            TOtherOrder,
-            TOtherDirection>()
+                TOtherOrder,
+                TOtherDirection>()
             where TOtherOrder : struct, ITraversalOrder
             where TOtherDirection : struct, IControlFlowDirection =>
             Traverse<
@@ -405,9 +408,9 @@ namespace ILGPU.IR
         /// <returns>The newly ordered collection.</returns>
         public readonly BasicBlockCollection<TOtherOrder, TOtherDirection>
             Traverse<
-            TOtherOrder,
-            TOtherDirection,
-            TSuccessorProvider>(TSuccessorProvider successorProvider)
+                TOtherOrder,
+                TOtherDirection,
+                TSuccessorProvider>(TSuccessorProvider successorProvider)
             where TOtherOrder : struct, ITraversalOrder
             where TOtherDirection : struct, IControlFlowDirection
             where TSuccessorProvider : ITraversalSuccessorsProvider<TOtherDirection>

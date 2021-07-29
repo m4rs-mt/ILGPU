@@ -21,69 +21,65 @@ namespace ILGPU.Tests
 
         public static TheoryData<object, object> ArraySimpleTestData =>
             new TheoryData<object, object>
-        {
-            { sbyte.MinValue, default(Length1) },
-            { byte.MaxValue, default(Length1) },
-            { short.MinValue, default(Length1) },
-            { ushort.MaxValue, default(Length1) },
-            { int.MinValue, default(Length1) },
-            { uint.MaxValue, default(Length1) },
-            { long.MinValue, default(Length1) },
-            { ulong.MaxValue, default(Length1) },
-            { float.Epsilon, default(Length1) },
-            { double.Epsilon, default(Length1) },
-            { default(BasicEnum1), default(Length1) },
-            { default(EmptyStruct), default(Length1) },
-            { default(TestStruct), default(Length1) },
-            { default(TestStruct<TestStruct<byte>>), default(Length1) },
-            { default(
-                TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>),
-              default(Length1) },
-
-            { byte.MaxValue, default(Length2) },
-            { short.MinValue, default(Length2) },
-            { int.MinValue, default(Length2) },
-            { long.MinValue, default(Length2) },
-            { default(BasicEnum1), default(Length2) },
-            { default(EmptyStruct), default(Length2) },
-            { default(TestStruct), default(Length2) },
-            { default(TestStruct<TestStruct<byte>>), default(Length2) },
-
-            { byte.MaxValue, default(Length31) },
-            { short.MinValue, default(Length31) },
-            { int.MinValue, default(Length31) },
-            { long.MinValue, default(Length31) },
-            { default(EmptyStruct), default(Length31) },
-            { default(TestStruct<TestStruct<ushort>>), default(Length31) },
-
-            { byte.MaxValue, default(Length32) },
-            { short.MinValue, default(Length32) },
-            { int.MinValue, default(Length32) },
-            { long.MinValue, default(Length32) },
-            { default(EmptyStruct), default(Length32) },
-            { default(TestStruct<TestStruct<float>>), default(Length32) },
-
-            { byte.MaxValue, default(Length33) },
-            { short.MinValue, default(Length33) },
-            { int.MinValue, default(Length33) },
-            { long.MinValue, default(Length33) },
-            { default(EmptyStruct), default(Length33) },
-            { default(TestStruct<TestStruct<int>>), default(Length33) },
-
-            { byte.MaxValue, default(Length65) },
-            { short.MinValue, default(Length65) },
-            { int.MinValue, default(Length65) },
-            { long.MinValue, default(Length65) },
-            { default(EmptyStruct), default(Length65) },
-            { default(TestStruct<TestStruct<short>>), default(Length65) },
-
-            { byte.MaxValue, default(Length127) },
-            { short.MinValue, default(Length127) },
-            { int.MinValue, default(Length127) },
-            { long.MinValue, default(Length127) },
-            { default(EmptyStruct), default(Length127) },
-            { default(TestStruct<TestStruct<long>>), default(Length127) },
-        };
+            {
+                { sbyte.MinValue, default(Length1) },
+                { byte.MaxValue, default(Length1) },
+                { short.MinValue, default(Length1) },
+                { ushort.MaxValue, default(Length1) },
+                { int.MinValue, default(Length1) },
+                { uint.MaxValue, default(Length1) },
+                { long.MinValue, default(Length1) },
+                { ulong.MaxValue, default(Length1) },
+                { float.Epsilon, default(Length1) },
+                { double.Epsilon, default(Length1) },
+                { default(BasicEnum1), default(Length1) },
+                { default(EmptyStruct), default(Length1) },
+                { default(TestStruct), default(Length1) },
+                { default(TestStruct<TestStruct<byte>>), default(Length1) },
+                {
+                    default(
+                        TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>),
+                    default(Length1)
+                },
+                { byte.MaxValue, default(Length2) },
+                { short.MinValue, default(Length2) },
+                { int.MinValue, default(Length2) },
+                { long.MinValue, default(Length2) },
+                { default(BasicEnum1), default(Length2) },
+                { default(EmptyStruct), default(Length2) },
+                { default(TestStruct), default(Length2) },
+                { default(TestStruct<TestStruct<byte>>), default(Length2) },
+                { byte.MaxValue, default(Length31) },
+                { short.MinValue, default(Length31) },
+                { int.MinValue, default(Length31) },
+                { long.MinValue, default(Length31) },
+                { default(EmptyStruct), default(Length31) },
+                { default(TestStruct<TestStruct<ushort>>), default(Length31) },
+                { byte.MaxValue, default(Length32) },
+                { short.MinValue, default(Length32) },
+                { int.MinValue, default(Length32) },
+                { long.MinValue, default(Length32) },
+                { default(EmptyStruct), default(Length32) },
+                { default(TestStruct<TestStruct<float>>), default(Length32) },
+                { byte.MaxValue, default(Length33) },
+                { short.MinValue, default(Length33) },
+                { int.MinValue, default(Length33) },
+                { long.MinValue, default(Length33) },
+                { default(EmptyStruct), default(Length33) },
+                { default(TestStruct<TestStruct<int>>), default(Length33) },
+                { byte.MaxValue, default(Length65) },
+                { short.MinValue, default(Length65) },
+                { int.MinValue, default(Length65) },
+                { long.MinValue, default(Length65) },
+                { default(EmptyStruct), default(Length65) },
+                { default(TestStruct<TestStruct<short>>), default(Length65) },
+                { byte.MaxValue, default(Length127) },
+                { short.MinValue, default(Length127) },
+                { int.MinValue, default(Length127) },
+                { long.MinValue, default(Length127) },
+                { default(EmptyStruct), default(Length127) },
+                { default(TestStruct<TestStruct<long>>), default(Length127) },
+            };
 
         internal static void ArraySimpleKernel<T, TArraySize>(
             Index1D index,
@@ -298,8 +294,9 @@ namespace ILGPU.Tests
             { default(EmptyStruct) },
             { default(TestStruct) },
             { default(TestStruct<TestStruct<byte>>) },
-            { default(
-                TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>)
+            {
+                default(
+                    TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>)
             },
         };
 
@@ -465,34 +462,35 @@ namespace ILGPU.Tests
 
         public static TheoryData<object, object> MultiDimArraySimpleTestData =>
             new TheoryData<object, object>
-        {
-            { sbyte.MinValue, default(Length1) },
-            { byte.MaxValue, default(Length1) },
-            { short.MinValue, default(Length1) },
-            { ushort.MaxValue, default(Length1) },
-            { int.MinValue, default(Length1) },
-            { uint.MaxValue, default(Length1) },
-            { long.MinValue, default(Length1) },
-            { ulong.MaxValue, default(Length1) },
-            { float.Epsilon, default(Length1) },
-            { double.Epsilon, default(Length1) },
-            { default(BasicEnum1), default(Length1) },
-            { default(EmptyStruct), default(Length1) },
-            { default(TestStruct), default(Length1) },
-            { default(TestStruct<TestStruct<byte>>), default(Length1) },
-            { default(
-                TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>),
-              default(Length1) },
-
-            { byte.MaxValue, default(Length2) },
-            { short.MinValue, default(Length2) },
-            { int.MinValue, default(Length2) },
-            { long.MinValue, default(Length2) },
-            { default(BasicEnum1), default(Length2) },
-            { default(EmptyStruct), default(Length2) },
-            { default(TestStruct), default(Length2) },
-            { default(TestStruct<TestStruct<byte>>), default(Length2) },
-        };
+            {
+                { sbyte.MinValue, default(Length1) },
+                { byte.MaxValue, default(Length1) },
+                { short.MinValue, default(Length1) },
+                { ushort.MaxValue, default(Length1) },
+                { int.MinValue, default(Length1) },
+                { uint.MaxValue, default(Length1) },
+                { long.MinValue, default(Length1) },
+                { ulong.MaxValue, default(Length1) },
+                { float.Epsilon, default(Length1) },
+                { double.Epsilon, default(Length1) },
+                { default(BasicEnum1), default(Length1) },
+                { default(EmptyStruct), default(Length1) },
+                { default(TestStruct), default(Length1) },
+                { default(TestStruct<TestStruct<byte>>), default(Length1) },
+                {
+                    default(
+                        TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>),
+                    default(Length1)
+                },
+                { byte.MaxValue, default(Length2) },
+                { short.MinValue, default(Length2) },
+                { int.MinValue, default(Length2) },
+                { long.MinValue, default(Length2) },
+                { default(BasicEnum1), default(Length2) },
+                { default(EmptyStruct), default(Length2) },
+                { default(TestStruct), default(Length2) },
+                { default(TestStruct<TestStruct<byte>>), default(Length2) },
+            };
 
         internal static void MultiDimArraySimpleKernel<T, TArraySize>(
             Index1D index,
@@ -588,8 +586,7 @@ namespace ILGPU.Tests
 
             var expected = new int[]
             {
-                size.Length * size.Length * size.Length * size.Length,
-                size.Length
+                size.Length * size.Length * size.Length * size.Length, size.Length
             };
             Verify(buffer.View, expected);
             Verify(buffer2.View, expected.Select(t => (long)t).ToArray());
@@ -631,29 +628,28 @@ namespace ILGPU.Tests
 
         public static TheoryData<object, object> ArrayViewConversionTestData =>
             new TheoryData<object, object>
-        {
-            { sbyte.MinValue, default(Length1) },
-            { byte.MaxValue, default(Length1) },
-            { short.MinValue, default(Length1) },
-            { ushort.MaxValue, default(Length1) },
-            { int.MinValue, default(Length1) },
-            { uint.MaxValue, default(Length1) },
-            { long.MinValue, default(Length1) },
-            { ulong.MaxValue, default(Length1) },
-            { float.Epsilon, default(Length1) },
-            { double.Epsilon, default(Length1) },
-            { default(EmptyStruct), default(Length1) },
-            { default(TestStruct), default(Length1) },
-            { default(TestStruct<TestStruct<byte>>), default(Length1) },
-
-            { byte.MaxValue, default(Length2) },
-            { short.MinValue, default(Length2) },
-            { int.MinValue, default(Length2) },
-            { long.MinValue, default(Length2) },
-            { default(EmptyStruct), default(Length2) },
-            { default(TestStruct), default(Length2) },
-            { default(TestStruct<TestStruct<byte>>), default(Length2) },
-        };
+            {
+                { sbyte.MinValue, default(Length1) },
+                { byte.MaxValue, default(Length1) },
+                { short.MinValue, default(Length1) },
+                { ushort.MaxValue, default(Length1) },
+                { int.MinValue, default(Length1) },
+                { uint.MaxValue, default(Length1) },
+                { long.MinValue, default(Length1) },
+                { ulong.MaxValue, default(Length1) },
+                { float.Epsilon, default(Length1) },
+                { double.Epsilon, default(Length1) },
+                { default(EmptyStruct), default(Length1) },
+                { default(TestStruct), default(Length1) },
+                { default(TestStruct<TestStruct<byte>>), default(Length1) },
+                { byte.MaxValue, default(Length2) },
+                { short.MinValue, default(Length2) },
+                { int.MinValue, default(Length2) },
+                { long.MinValue, default(Length2) },
+                { default(EmptyStruct), default(Length2) },
+                { default(TestStruct), default(Length2) },
+                { default(TestStruct<TestStruct<byte>>), default(Length2) },
+            };
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void SetViewValues<T>(ArrayView<T> view, T value)
@@ -759,9 +755,7 @@ namespace ILGPU.Tests
 
         private static readonly int[,,,] StaticData = new int[,,,]
         {
-            { { { 0, 1, 2, 3 } } },
-            { { { 3, 4, 5, 6 } } },
-            { { { 7, 8, 9, 10 } } },
+            { { { 0, 1, 2, 3 } } }, { { { 3, 4, 5, 6 } } }, { { { 7, 8, 9, 10 } } },
         };
 
         private static readonly ImmutableArray<int> StaticImmutableData =

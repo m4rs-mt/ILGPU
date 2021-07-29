@@ -31,18 +31,28 @@ namespace ILGPU.Tests
             { default(EmptyStruct) },
             { default(TestStruct) },
             { default(TestStruct<TestStruct<byte>>) },
-            { default(
-                TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>) },
-            { default(
-                TestStruct<int, ulong>) },
-            { default(
-                TestStruct<byte, TestStruct<int, ulong>>) },
-            { default(
-                TestStruct<double, TestStruct<byte, TestStruct<int, ulong>>>) },
+            {
+                default(
+                    TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>)
+            },
+            {
+                default(
+                    TestStruct<int, ulong>)
+            },
+            {
+                default(
+                    TestStruct<byte, TestStruct<int, ulong>>)
+            },
+            {
+                default(
+                    TestStruct<double, TestStruct<byte, TestStruct<int, ulong>>>)
+            },
             { default(TestStruct<float, TestStruct<EmptyStruct, sbyte>>) },
             { default(DeepStructure<TestStruct<int>>) },
-            { default(
-                TestStruct<int, TestStruct<float, TestStruct<EmptyStruct, sbyte>>>) },
+            {
+                default(
+                    TestStruct<int, TestStruct<float, TestStruct<EmptyStruct, sbyte>>>)
+            },
             { default(ShortFixedBufferStruct) },
             { default(LongFixedBufferStruct) },
             { default(TestStruct<EmptyStruct, ShortFixedBufferStruct>) },
@@ -76,17 +86,27 @@ namespace ILGPU.Tests
         public static TheoryData<object> OffsetOfData => new TheoryData<object>
         {
             { default(TestStruct<TestStruct<byte>>) },
-            { default(
-                TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>) },
-            { default(
-                TestStruct<int, ulong>) },
-            { default(
-                TestStruct<byte, TestStruct<int, ulong>>) },
-            { default(
-                TestStruct<double, TestStruct<byte, TestStruct<int, ulong>>>) },
+            {
+                default(
+                    TestStruct<BasicEnum4, TestStruct<short, EmptyStruct>>)
+            },
+            {
+                default(
+                    TestStruct<int, ulong>)
+            },
+            {
+                default(
+                    TestStruct<byte, TestStruct<int, ulong>>)
+            },
+            {
+                default(
+                    TestStruct<double, TestStruct<byte, TestStruct<int, ulong>>>)
+            },
             { default(TestStruct<float, TestStruct<EmptyStruct, sbyte>>) },
-            { default(
-                TestStruct<int, TestStruct<float, TestStruct<EmptyStruct, sbyte>>>) }
+            {
+                default(
+                    TestStruct<int, TestStruct<float, TestStruct<EmptyStruct, sbyte>>>)
+            }
         };
 
         internal static void OffsetOfKernel<T>(

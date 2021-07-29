@@ -47,7 +47,7 @@ namespace ILGPU.Frontend
                 case ILInstructionType.Ldarg:
                     {
                         var index = instruction.GetArgumentAs<int>() -
-                            LambdaArgumentOffset;
+                                    LambdaArgumentOffset;
                         if (index >= 0)
                         {
                             LoadVariable(
@@ -60,7 +60,7 @@ namespace ILGPU.Frontend
                 case ILInstructionType.Ldarga:
                     {
                         var index = instruction.GetArgumentAs<int>() -
-                            LambdaArgumentOffset;
+                                    LambdaArgumentOffset;
                         if (index >= 0)
                         {
                             LoadVariableAddress(
@@ -73,7 +73,7 @@ namespace ILGPU.Frontend
                 case ILInstructionType.Starg:
                     {
                         var index = instruction.GetArgumentAs<int>() -
-                            LambdaArgumentOffset;
+                                    LambdaArgumentOffset;
                         if (index >= 0)
                         {
                             StoreVariable(

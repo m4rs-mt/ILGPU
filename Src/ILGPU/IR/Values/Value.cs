@@ -342,8 +342,8 @@ namespace ILGPU.IR
         /// </summary>
         public Method Method =>
             parent is BasicBlock basicBlock
-            ? basicBlock.Method
-            : parent as Method;
+                ? basicBlock.Method
+                : parent as Method;
 
         /// <summary>
         /// Returns the parent basic block.
@@ -373,6 +373,7 @@ namespace ILGPU.IR
                         parent,
                         Location));
                 }
+
                 return type;
             }
         }
@@ -393,6 +394,7 @@ namespace ILGPU.IR
         /// </summary>
         public bool CanBeReplaced =>
             (ValueFlags & ValueFlags.NotReplacable) != ValueFlags.NotReplacable;
+
         /// <summary>
         /// Returns true if the current value can have uses.
         /// </summary>
@@ -474,6 +476,7 @@ namespace ILGPU.IR
                 if (!use.Target.IsReplaced)
                     newUses.Add(use);
             }
+
             newUses.MoveTo(ref uses);
         }
 

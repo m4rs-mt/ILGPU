@@ -1,4 +1,5 @@
 ﻿// Enforce DEBUG mode in all cases to preserve Debug calls
+
 #define DEBUG
 
 using ILGPU.Runtime;

@@ -105,6 +105,7 @@ namespace ILGPU.Runtime
                 MemoryBuffer?.Dispose();
                 Scope?.Dispose();
             }
+
             base.Dispose(disposing);
         }
 
@@ -161,7 +162,8 @@ namespace ILGPU.Runtime
             array = uninitialized
                 ? GC.AllocateUninitializedArray<T>(extent.ToIntIndex(), pinned: true)
                 : GC.AllocateArray<T>(extent.ToIntIndex(), pinned: true);
-            fixed (T* ptr = array)
+            fixed (T* ptr
+ = array)
                 Initialize(accelerator, new IntPtr(ptr), extent);
 #else
             Trace.WriteLineIf(
@@ -211,6 +213,7 @@ namespace ILGPU.Runtime
         #endregion
 
 #if !NET5_0
+
         #region IDisposable
 
         /// <inheritdoc/>
@@ -221,6 +224,7 @@ namespace ILGPU.Runtime
         }
 
         #endregion
+
 #endif
     }
 

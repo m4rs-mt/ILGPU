@@ -145,6 +145,7 @@ namespace ILGPU.Backends.OpenCL
                     continue;
                 globallySharedAllocations.Add(allocaInfo);
             }
+
             globallySharedAllocations.AddRange(
                 args.DynamicSharedAllocations.Allocas);
         }
@@ -308,6 +309,7 @@ namespace ILGPU.Backends.OpenCL
                     statement.AppendCast(dynamicAllocaInfo.Alloca.Type);
                     statement.AppendCommand(DynamicSharedMemoryParamName);
                 }
+
                 using (var statement = new StatementEmitter(this))
                 {
                     statement.AppendTarget(
@@ -353,6 +355,7 @@ namespace ILGPU.Backends.OpenCL
                 {
                     continue;
                 }
+
                 Debug.Assert(
                     viewMapping.Count > 0,
                     "There must be at least one view entry");
@@ -466,6 +469,7 @@ namespace ILGPU.Backends.OpenCL
             Builder.AppendLine(")");
             PushIndent();
             using (var statement = BeginStatement(CLInstructions.ReturnStatement)) { }
+
             PopIndent();
         }
 

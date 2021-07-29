@@ -90,6 +90,7 @@ namespace ILGPU.IR.Transformations
                             if (Loop.Contains(source))
                                 return ReturnNotInvariant(phiValue);
                         }
+
                         break;
                     case MemoryValue _:
                         // Values with side effects cannot be moved out of loops
@@ -102,8 +103,10 @@ namespace ILGPU.IR.Transformations
                             if (!IsLoopInvariant(node))
                                 return ReturnNotInvariant(value);
                         }
+
                         break;
                 }
+
                 mapping.Add(value, true);
                 return true;
             }

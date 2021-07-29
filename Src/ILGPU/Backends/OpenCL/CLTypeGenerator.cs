@@ -120,10 +120,10 @@ namespace ILGPU.Backends.OpenCL
         /// <returns>The resolved OpenCL type name.</returns>
         public string GetBasicValueType(BasicValueType basicValueType) =>
             basicValueType == BasicValueType.Float16 && !Capabilities.Float16
-            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
-            : basicValueType == BasicValueType.Float64 && !Capabilities.Float64
-                ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
-                : BasicTypeMapping[(int)basicValueType];
+                ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
+                : basicValueType == BasicValueType.Float64 && !Capabilities.Float64
+                    ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
+                    : BasicTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves the given basic-value type to an OpenCL type name.
@@ -132,10 +132,11 @@ namespace ILGPU.Backends.OpenCL
         /// <returns>The resolved OpenCL type name.</returns>
         public string GetBasicValueType(ArithmeticBasicValueType basicValueType) =>
             basicValueType == ArithmeticBasicValueType.Float16 && !Capabilities.Float16
-            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
-            : basicValueType == ArithmeticBasicValueType.Float64 && !Capabilities.Float64
-                ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
-                : ArtihmeticTypeMapping[(int)basicValueType];
+                ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
+                : basicValueType == ArithmeticBasicValueType.Float64 &&
+                  !Capabilities.Float64
+                    ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
+                    : ArtihmeticTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves the given basic-value type to an atomic OpenCL type name.
@@ -144,10 +145,11 @@ namespace ILGPU.Backends.OpenCL
         /// <returns>The resolved atomic OpenCL type name.</returns>
         public string GetAtomicType(ArithmeticBasicValueType basicValueType) =>
             basicValueType == ArithmeticBasicValueType.Float16 && !Capabilities.Float16
-            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
-            : basicValueType == ArithmeticBasicValueType.Float64 && !Capabilities.Float64
-                ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
-                : AtomicTypeMapping[(int)basicValueType];
+                ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
+                : basicValueType == ArithmeticBasicValueType.Float64 &&
+                  !Capabilities.Float64
+                    ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
+                    : AtomicTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves a unique type name for the given node.
@@ -171,6 +173,7 @@ namespace ILGPU.Backends.OpenCL
 
         private readonly ReaderWriterLockSlim readerWriterLock =
             new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+
         private readonly Dictionary<TypeNode, string> mapping =
             new Dictionary<TypeNode, string>();
 
@@ -199,7 +202,7 @@ namespace ILGPU.Backends.OpenCL
                     continue;
                 }
                 else if (basicValueType == BasicValueType.Float16
-                    && !capabilities.Float16)
+                         && !capabilities.Float16)
                 {
                     continue;
                 }
@@ -286,14 +289,14 @@ namespace ILGPU.Backends.OpenCL
                 clName = GetOrCreateType(paddingType.PrimitiveType);
             }
             else if (typeNode is PrimitiveType primitiveType16
-                && primitiveType16.BasicValueType == BasicValueType.Float16
-                && !Capabilities.Float16)
+                     && primitiveType16.BasicValueType == BasicValueType.Float16
+                     && !Capabilities.Float16)
             {
                 throw CLCapabilityContext.GetNotSupportedFloat16Exception();
             }
             else if (typeNode is PrimitiveType primitiveType64
-                && primitiveType64.BasicValueType == BasicValueType.Float64
-                && !Capabilities.Float64)
+                     && primitiveType64.BasicValueType == BasicValueType.Float64
+                     && !Capabilities.Float64)
             {
                 throw CLCapabilityContext.GetNotSupportedFloat64Exception();
             }
@@ -338,6 +341,7 @@ namespace ILGPU.Backends.OpenCL
                         break;
                 }
             }
+
             builder.AppendLine();
         }
 
@@ -396,8 +400,8 @@ namespace ILGPU.Backends.OpenCL
                 builder.Append(' ');
                 builder.Append(GetFieldName(access.Index));
                 builder.AppendLine(";");
-
             }
+
             builder.AppendLine("};");
         }
 

@@ -94,6 +94,7 @@ namespace ILGPU.IR
 
         private readonly ReaderWriterLockSlim irLock = new ReaderWriterLockSlim(
             LockRecursionPolicy.SupportsRecursion);
+
         private readonly Action<Method> gcDelegate;
 
         private readonly MethodMapping<Method> methods = new MethodMapping<Method>();
@@ -156,11 +157,12 @@ namespace ILGPU.IR
                 if (predicate.Match(function))
                     builder.Add(function);
             }
+
             return new MethodCollection(
                 this,
                 builder.Count == methods.Count
-                ? builder.MoveToImmutable()
-                : builder.ToImmutable());
+                    ? builder.MoveToImmutable()
+                    : builder.ToImmutable());
         }
 
         /// <summary>
@@ -216,7 +218,7 @@ namespace ILGPU.IR
 
             function = null;
             return methods.TryGetHandle(method, out MethodHandle handle)
-                && methods.TryGetData(handle, out function);
+                   && methods.TryGetData(handle, out function);
         }
 
         /// <summary>
@@ -226,10 +228,10 @@ namespace ILGPU.IR
         /// <returns>The resolved function.</returns>
         public Method GetMethod(MethodHandle method) =>
             TryGetMethod(method, out Method function)
-            ? function
-            : throw new InvalidOperationException(string.Format(
-                ErrorMessages.CouldNotFindCorrespondingIRMethod,
-                method.Name));
+                ? function
+                : throw new InvalidOperationException(string.Format(
+                    ErrorMessages.CouldNotFindCorrespondingIRMethod,
+                    method.Name));
 
         /// <summary>
         /// Declares a method.
@@ -315,7 +317,7 @@ namespace ILGPU.IR
         {
             var methodId = Context.CreateMethodHandle();
             var methodName = declaration.Handle.Name ??
-                (declaration.HasSource ? declaration.Source.Name : "Func");
+                             (declaration.HasSource ? declaration.Source.Name : "Func");
             handle = new MethodHandle(methodId, methodName);
             var specializedDeclaration = declaration.Specialize(handle);
 
@@ -433,6 +435,7 @@ namespace ILGPU.IR
                         var newParam = builder.AddParameter(param.Type, param.Name);
                         parameterArguments.Add(newParam);
                     }
+
                     var parameterMapping = sourceMethod.CreateParameterMapping(
                         parameterArguments);
 
@@ -446,6 +449,7 @@ namespace ILGPU.IR
                     var (exitBlock, exitValue) = rebuilder.Rebuild();
                     exitBlock.CreateReturn(exitValue.Location, exitValue);
                 }
+
                 Verifier.Verify(targetMethod);
             }
 

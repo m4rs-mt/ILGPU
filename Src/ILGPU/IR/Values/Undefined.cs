@@ -27,9 +27,9 @@ namespace ILGPU.IR.Values
         /// <param name="initializer">The value initializer.</param>
         internal UndefinedValue(in ValueInitializer initializer)
             : base(
-                  initializer,
-                  ValueFlags.NotReplacable | ValueFlags.NoUses,
-                  initializer.Context.VoidType)
+                initializer,
+                ValueFlags.NotReplacable | ValueFlags.NoUses,
+                initializer.Context.VoidType)
         { }
 
         #endregion

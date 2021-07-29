@@ -106,18 +106,18 @@ namespace IndexImplementation
         public bool InBounds(MyIndex4 dimension)
         {
             return x >= 0 && x < dimension.x &&
-                y >= 0 && y < dimension.y &&
-                z >= 0 && z < dimension.z &&
-                z >= 0 && w < dimension.w;
+                   y >= 0 && y < dimension.y &&
+                   z >= 0 && z < dimension.z &&
+                   z >= 0 && w < dimension.w;
         }
 
         /// <summary cref="IGenericIndex{TIndex}.InBoundsInclusive(TIndex)"/>
         public bool InBoundsInclusive(MyIndex4 dimension)
         {
             return x >= 0 && x <= dimension.x &&
-                y >= 0 && y <= dimension.y &&
-                z >= 0 && z <= dimension.z &&
-                w >= 0 && w <= dimension.w;
+                   y >= 0 && y <= dimension.y &&
+                   z >= 0 && z <= dimension.z &&
+                   w >= 0 && w <= dimension.w;
         }
 
         /// <summary>
@@ -180,7 +180,8 @@ namespace IndexImplementation
         }
 
         /// <summary cref="IGenericIndex{TIndex}.ComputedCastedExtent(TIndex, int, int)"/>
-        public MyIndex4 ComputedCastedExtent(MyIndex4 extent, int elementSize, int newElementSize)
+        public MyIndex4 ComputedCastedExtent(MyIndex4 extent, int elementSize,
+            int newElementSize)
         {
             var wExtent = (extent.W * elementSize) / newElementSize;
             Debug.Assert(wExtent > 0, "OutOfBounds cast");
@@ -261,7 +262,8 @@ namespace IndexImplementation
         /// <returns>True, iff the first and second index are the same.</returns>
         public static bool operator ==(MyIndex4 first, MyIndex4 second)
         {
-            return first.X == second.X && first.Y == second.Y && first.Z == second.Z && first.W == second.W;
+            return first.X == second.X && first.Y == second.Y && first.Z == second.Z &&
+                   first.W == second.W;
         }
 
         /// <summary>
@@ -272,7 +274,8 @@ namespace IndexImplementation
         /// <returns>True, iff the first and second index are not the same.</returns>
         public static bool operator !=(MyIndex4 first, MyIndex4 second)
         {
-            return first.X != second.X || first.Y != second.Y || first.Z != second.Z || first.W != second.W;
+            return first.X != second.X || first.Y != second.Y || first.Z != second.Z ||
+                   first.W != second.W;
         }
 
         /// <summary>
@@ -283,7 +286,8 @@ namespace IndexImplementation
         /// <returns>True, iff the first index is smaller than the second index.</returns>
         public static bool operator <(MyIndex4 first, MyIndex4 second)
         {
-            return first.X < second.X && first.Y < second.Y && first.Z < second.Z && first.W < second.W;
+            return first.X < second.X && first.Y < second.Y && first.Z < second.Z &&
+                   first.W < second.W;
         }
 
         /// <summary>
@@ -294,7 +298,8 @@ namespace IndexImplementation
         /// <returns>True, iff the first index is greater than the second index.</returns>
         public static bool operator >(MyIndex4 first, MyIndex4 second)
         {
-            return first.X > second.X && first.Y > second.Y && first.Z > second.Z && first.W > second.W;
+            return first.X > second.X && first.Y > second.Y && first.Z > second.Z &&
+                   first.W > second.W;
         }
 
         #endregion
@@ -307,7 +312,8 @@ namespace IndexImplementation
         const int AllocationSize3D = 16;
         const int AllocationSize4D = 8;
 
-        private static readonly MyIndex4 Dimension = new MyIndex4(AllocationSize1D, AllocationSize2D, AllocationSize3D, AllocationSize4D);
+        private static readonly MyIndex4 Dimension = new MyIndex4(AllocationSize1D,
+            AllocationSize2D, AllocationSize3D, AllocationSize4D);
 
         /// <summary>
         /// Allocates an nD buffer on the given accelerator and transfers memory
@@ -315,7 +321,8 @@ namespace IndexImplementation
         /// </summary>
         /// <param name="accelerator">The target accelerator.</param>
         /// <param name="valueConverter">A value converter to convert values of type MyIndex4 to type T.</param>
-        static void AllocND<T>(Accelerator accelerator, Func<MyIndex4, MyIndex4, T> valueConverter)
+        static void AllocND<T>(Accelerator accelerator,
+            Func<MyIndex4, MyIndex4, T> valueConverter)
             where T : unmanaged, IEquatable<T>
         {
             Console.WriteLine($"Performing nD allocation on {accelerator.Name}");
@@ -329,13 +336,17 @@ namespace IndexImplementation
                         for (int l = 0; l < AllocationSize4D; ++l)
                         {
                             var index = new MyIndex4(i, j, k, l);
-                            data[index.ComputeLinearIndex(Dimension)] = valueConverter(index, Dimension);
+                            data[index.ComputeLinearIndex(Dimension)] =
+                                valueConverter(index, Dimension);
                         }
                     }
                 }
             }
+
             var targetData = new T[Dimension.Size];
-            using (var buffer = accelerator.Allocate<T, MyIndex4>(new MyIndex4(AllocationSize1D + 2, Dimension.X, Dimension.Y, Dimension.Z)))
+            using (var buffer = accelerator.Allocate<T, MyIndex4>(
+                new MyIndex4(AllocationSize1D + 2, Dimension.X, Dimension.Y,
+                    Dimension.Z)))
             {
                 // Copy to accelerator
                 buffer.CopyFrom(
@@ -361,9 +372,11 @@ namespace IndexImplementation
                     {
                         for (int l = 0; l < AllocationSize4D; ++l)
                         {
-                            var index = new MyIndex4(i, j, k, l).ComputeLinearIndex(Dimension);
+                            var index =
+                                new MyIndex4(i, j, k, l).ComputeLinearIndex(Dimension);
                             if (!data[index].Equals(targetData[index]))
-                                Console.WriteLine($"Error comparing data and target data at {index}: {targetData[index]} found, but {data[index]} expected");
+                                Console.WriteLine(
+                                    $"Error comparing data and target data at {index}: {targetData[index]} found, but {data[index]} expected");
                         }
                     }
                 }
@@ -409,11 +422,17 @@ namespace IndexImplementation
                         // - You have to keep a reference to the allocated buffer  for as long as you want to access it.
                         //   Otherwise, the GC might dispose it.
 
-                        AllocND(accelerator, (idx, dimension) => idx.ComputeLinearIndex(dimension));
-                        AllocND(accelerator, (idx, dimension) => (long)idx.ComputeLinearIndex(dimension));
+                        AllocND(accelerator,
+                            (idx, dimension) => idx.ComputeLinearIndex(dimension));
+                        AllocND(accelerator,
+                            (idx, dimension) => (long)idx.ComputeLinearIndex(dimension));
 
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<int, MyIndex4>>(MyKernelND);
-                        using (var buffer = accelerator.Allocate<int, MyIndex4>(Dimension))
+                        var kernel =
+                            accelerator
+                                .LoadAutoGroupedStreamKernel<Index1,
+                                    ArrayView<int, MyIndex4>>(MyKernelND);
+                        using (var buffer =
+                            accelerator.Allocate<int, MyIndex4>(Dimension))
                         {
                             kernel(Dimension.Size, buffer.View);
 

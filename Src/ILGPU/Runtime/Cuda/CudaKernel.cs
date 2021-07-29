@@ -60,6 +60,7 @@ namespace ILGPU.Runtime.Cuda
                 else
                     Trace.WriteLine(errorLog);
             }
+
             CudaException.ThrowIfFailed(kernelLoaded);
 
             CudaException.ThrowIfFailed(

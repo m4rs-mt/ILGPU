@@ -391,8 +391,8 @@ namespace ILGPU
         public T GetExtensionProperty<T>(string key, T defaultValue)
             where T : struct =>
             extensionProperties.TryGetValue(key, out var result)
-            ? (T)result
-            : defaultValue;
+                ? (T)result
+                : defaultValue;
 
         /// <summary>
         /// Sets an extension property.
@@ -412,10 +412,10 @@ namespace ILGPU
             new ContextProperties(extensionProperties)
             {
                 DebugSymbolsMode = DebugSymbolsMode == DebugSymbolsMode.Auto
-                        ? Debugger.IsAttached
-                            ? DebugSymbolsMode.Basic
-                            : DebugSymbolsMode.Disabled
-                        : DebugSymbolsMode,
+                    ? Debugger.IsAttached
+                        ? DebugSymbolsMode.Basic
+                        : DebugSymbolsMode.Disabled
+                    : DebugSymbolsMode,
                 EnableAssertions = EnableAssertions,
                 EnableKernelInformation = EnableKernelInformation,
                 EnableVerifier = EnableVerifier,

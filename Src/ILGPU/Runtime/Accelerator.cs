@@ -62,7 +62,8 @@ namespace ILGPU.Runtime
     /// <summary>
     /// Represents an abstract accelerator extension that can store additional data.
     /// </summary>
-    public abstract class AcceleratorExtension : CachedExtension { }
+    public abstract class AcceleratorExtension : CachedExtension
+    { }
 
     /// <summary>
     /// Represents a general abstract accelerator.
@@ -119,9 +120,9 @@ namespace ILGPU.Runtime
         protected Accelerator(Context context, Device device)
         {
             Context = context
-                ?? throw new ArgumentNullException(nameof(context));
+                      ?? throw new ArgumentNullException(nameof(context));
             Device = device
-                ?? throw new ArgumentNullException(nameof(device));
+                     ?? throw new ArgumentNullException(nameof(device));
             WarpSize = device.WarpSize;
             InstanceId = InstanceId.CreateNew();
 
@@ -170,8 +171,8 @@ namespace ILGPU.Runtime
         /// </summary>
         public (Index1D, Index1D) MaxNumGroupsExtent =>
             (NumMultiprocessors *
-                (MaxNumThreadsPerMultiprocessor / MaxNumThreadsPerGroup),
-            MaxNumThreadsPerGroup);
+             (MaxNumThreadsPerMultiprocessor / MaxNumThreadsPerGroup),
+                MaxNumThreadsPerGroup);
 
         /// <summary>
         /// Returns the primary backend of this accelerator.
@@ -218,7 +219,8 @@ namespace ILGPU.Runtime
         /// <returns>The created accelerator stream.</returns>
         public AcceleratorStream CreateStream()
         {
-            Bind(); return CreateStreamInternal();
+            Bind();
+            return CreateStreamInternal();
         }
 
         /// <summary>
@@ -232,7 +234,8 @@ namespace ILGPU.Runtime
         /// </summary>
         public void Synchronize()
         {
-            Bind(); SynchronizeInternal();
+            Bind();
+            SynchronizeInternal();
         }
 
         /// <summary>
@@ -451,6 +454,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentOutOfRangeException(
                     nameof(dynamicSharedMemorySizeInBytes));
             }
+
             Bind();
             return EstimateMaxActiveGroupsPerMultiprocessorInternal(
                 kernel,
@@ -645,6 +649,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentOutOfRangeException(
                     nameof(dynamicSharedMemorySizeInBytes));
             }
+
             Bind();
             return EstimateGroupSizeInternal(
                 kernel,

@@ -59,10 +59,10 @@ namespace ILGPU.Backends.OpenCL
             CLDeviceVendor vendor,
             CLCVersion clStdVersion)
             : base(
-                  context,
-                  capabilities,
-                  BackendType.OpenCL,
-                  new CLArgumentMapper(context))
+                context,
+                capabilities,
+                BackendType.OpenCL,
+                new CLArgumentMapper(context))
         {
             Vendor = vendor;
             CLStdVersion = clStdVersion;
@@ -88,6 +88,7 @@ namespace ILGPU.Backends.OpenCL
                 extensionBuilder.Append(extensionName);
                 extensionBuilder.AppendLine(" : enable");
             }
+
             extensions = extensionBuilder.ToString();
         }
 

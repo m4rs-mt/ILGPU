@@ -85,7 +85,9 @@ namespace GroupGridIndices
 
                         using (var buffer = accelerator.Allocate<int>(kernelConfig.Size))
                         {
-                            var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, int>(GroupedKernel);
+                            var groupedKernel =
+                                accelerator.LoadStreamKernel<ArrayView<int>, int>(
+                                    GroupedKernel);
                             groupedKernel(kernelConfig, buffer.View, 64);
 
                             accelerator.Synchronize();

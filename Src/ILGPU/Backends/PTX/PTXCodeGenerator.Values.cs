@@ -63,6 +63,7 @@ namespace ILGPU.Backends.PTX
             {
                 Builder.Append("\tcall ");
             }
+
             Builder.Append(GetMethodName(target));
             Builder.AppendLine(", (");
             for (int i = 0, e = methodCall.Count; i < e; ++i)
@@ -75,6 +76,7 @@ namespace ILGPU.Backends.PTX
                 else
                     Builder.AppendLine();
             }
+
             Builder.AppendLine("\t);");
 
             if (!returnType.IsVoidType)
@@ -83,6 +85,7 @@ namespace ILGPU.Backends.PTX
                 var returnRegister = Allocate(methodCall);
                 EmitLoadParam(ReturnValueName, returnRegister);
             }
+
             Builder.AppendLine("\t}");
             Builder.AppendLine();
         }
@@ -777,6 +780,7 @@ namespace ILGPU.Backends.PTX
                         structureValue.Children[i];
                 }
             }
+
             Bind(
                 value,
                 new CompoundRegister(
@@ -861,6 +865,7 @@ namespace ILGPU.Backends.PTX
                         command.AppendConstant(0);
                         command.AppendArgument(sourcePredicate);
                     }
+
                     break;
                 case PredicateBarrierKind.PopCount:
                     using (var command = BeginCommand(
@@ -870,6 +875,7 @@ namespace ILGPU.Backends.PTX
                         command.AppendConstant(0);
                         command.AppendArgument(sourcePredicate);
                     }
+
                     break;
                 default:
                     throw new InvalidCodeGenerationException();
@@ -1046,6 +1052,7 @@ namespace ILGPU.Backends.PTX
                 command.AppendArgument(baseRegister);
                 command.AppendConstant(WarpShuffleEmitter.BaseMaskShiftAmount);
             }
+
             FreeRegister(baseRegister);
 
             // Adjust mask register
@@ -1083,7 +1090,7 @@ namespace ILGPU.Backends.PTX
             "Globalization",
             "CA1307:Specify StringComparison",
             Justification = "string.Replace(string, string, StringComparison) not " +
-            "available in net47")]
+                            "available in net47")]
         public void GenerateCode(LanguageEmitValue emit)
         {
             // Ignore non-PTX instructions.
@@ -1099,9 +1106,9 @@ namespace ILGPU.Backends.PTX
                 var argument = emit.Nodes[argumentIdx];
                 registers.Add(
                     argumentIdx == 0 && emit.HasOutput
-                    ? AllocateRegister(ResolveRegisterDescription(
-                        (argument.Type as PointerType).ElementType))
-                    : LoadPrimitive(argument));
+                        ? AllocateRegister(ResolveRegisterDescription(
+                            (argument.Type as PointerType).ElementType))
+                        : LoadPrimitive(argument));
             }
 
             // Emit the PTX assembly string

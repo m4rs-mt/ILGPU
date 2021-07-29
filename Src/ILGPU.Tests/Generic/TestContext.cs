@@ -26,11 +26,11 @@ namespace ILGPU.Tests
             Context = Context.Create(builder =>
                 prepareContext(
                     builder
-                    .Assertions()
-                    .Arrays(ArrayMode.InlineMutableStaticArrays)
-                    .Verify()
-                    .Optimize(level)
-                    .Profiling()));
+                        .Assertions()
+                        .Arrays(ArrayMode.InlineMutableStaticArrays)
+                        .Verify()
+                        .Optimize(level)
+                        .Profiling()));
             Accelerator = createAccelerator(Context);
         }
 
@@ -69,6 +69,7 @@ namespace ILGPU.Tests
                 Accelerator.Dispose();
                 Context.Dispose();
             }
+
             base.Dispose(disposing);
         }
     }

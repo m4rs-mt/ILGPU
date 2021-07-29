@@ -71,8 +71,10 @@ namespace ILGPU.IR.Intrinsics
                         mapping = mainImplementation.ResolveMapping<TDelegate>();
                         mappings.Add(mainImplementation, mapping);
                     }
+
                     return mapping;
                 }
+
                 return null;
             }
 
@@ -104,6 +106,7 @@ namespace ILGPU.IR.Intrinsics
                         return true;
                     }
                 }
+
                 return false;
             }
         }
@@ -224,6 +227,7 @@ namespace ILGPU.IR.Intrinsics
                             new MappingEntry(mapping, genericMapping, result));
                     }
                 }
+
                 return true;
             }
 
@@ -338,8 +342,10 @@ namespace ILGPU.IR.Intrinsics
 
         private readonly IntrinsicMethodMatcher<
             IntrinsicMapping<TDelegate>> methodMatcher;
+
         private readonly BaseIntrinsicValueMatcher<
             IntrinsicMapping<TDelegate>>[] valueMatchers;
+
         private readonly IRContext intrinsicContext;
 
         /// <summary>
@@ -424,8 +430,8 @@ namespace ILGPU.IR.Intrinsics
         {
             mapping = default;
             return (methodInfo = method.Source as MethodInfo) != null &&
-                method.HasFlags(MethodFlags.Intrinsic) &&
-                TryGetMapping(methodInfo, out mapping);
+                   method.HasFlags(MethodFlags.Intrinsic) &&
+                   TryGetMapping(methodInfo, out mapping);
         }
 
         /// <summary>

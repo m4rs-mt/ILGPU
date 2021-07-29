@@ -120,10 +120,10 @@ namespace ILGPU.Backends.PTX.Transformations
             PrimitiveType pointerType,
             bool enableAssertions)
             : base(
-                  AcceleratorType.Cuda,
-                  PTXBackend.WarpSize,
-                  pointerType,
-                  enableAssertions)
+                AcceleratorType.Cuda,
+                PTXBackend.WarpSize,
+                pointerType,
+                enableAssertions)
         { }
 
         #endregion
@@ -202,6 +202,7 @@ namespace ILGPU.Backends.PTX.Transformations
                     argument);
                 argumentBuilder.Add(converted);
             }
+
             var argumentStructure = argumentBuilder.Seal();
 
             // Create local alloca to store all data

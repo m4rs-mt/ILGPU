@@ -397,8 +397,8 @@ namespace ILGPU.IR.Construction
         /// <returns>The mapped block builder representing the new block.</returns>
         public BasicBlock.Builder this[BasicBlock block] =>
             blockMapping.TryGetValue(block, out var builder)
-            ? builder
-            : Builder[block];
+                ? builder
+                : Builder[block];
 
         /// <summary>
         /// Lookups the given value in the internal rebuilder remapping.
@@ -407,8 +407,8 @@ namespace ILGPU.IR.Construction
         /// <returns>The mapped block builder representing the new block.</returns>
         public Value this[Value value] =>
             valueMapping.TryGetValue(value, out var newValue)
-            ? newValue
-            : value;
+                ? newValue
+                : value;
 
         #endregion
 
@@ -459,6 +459,7 @@ namespace ILGPU.IR.Construction
                     var newBlock = this[sourcePhi.Sources[i]];
                     targetPhiBuilder.AddArgument(newBlock, this[argument]);
                 }
+
                 targetPhiBuilder.Seal();
             }
 

@@ -75,6 +75,7 @@ namespace ILGPU.Backends.PTX
                     LengthRegister = Parent.AllocateType(parameter.ParameterType);
                     parameter.AssertNotNull(LengthRegister);
                 }
+
                 return LengthRegister;
             }
         }
@@ -128,6 +129,7 @@ namespace ILGPU.Backends.PTX
                     sharedAlignmentInBytes,
                     PointerAlignments.GetAllocaAlignment(alloca.Alloca));
             }
+
             sharedAlignmentInBytes = Math.Min(
                 sharedAlignmentInBytes,
                 PTXBackend.DefaultGlobalMemoryAlignment);
@@ -230,9 +232,9 @@ namespace ILGPU.Backends.PTX
             using var predicateScope = new PredicateScope(this);
             using (var command = BeginCommand(
                 PTXInstructions.GetCompareOperation(
-                CompareKind.GreaterEqual,
-                CompareFlags.None,
-                ArithmeticBasicValueType.Int32)))
+                    CompareKind.GreaterEqual,
+                    CompareFlags.None,
+                    ArithmeticBasicValueType.Int32)))
             {
                 command.AppendArgument(predicateScope.PredicateRegister);
                 command.AppendArgument(targetRegister);

@@ -136,7 +136,7 @@ namespace ILGPU.Runtime.CPU
         protected CPURuntimeContext(CPUMultiprocessor multiprocessor)
         {
             Multiprocessor = multiprocessor
-                ?? throw new ArgumentNullException(nameof(multiprocessor));
+                             ?? throw new ArgumentNullException(nameof(multiprocessor));
 
             broadcastBuffer = new CPUMemoryBufferCache(multiprocessor.Accelerator);
             broadcastBuffer.Allocate<int>(16);

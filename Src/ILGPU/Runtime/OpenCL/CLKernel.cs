@@ -109,6 +109,7 @@ namespace ILGPU.Runtime.OpenCL
                         &binPtr,
                         out var _));
             }
+
             return programBinary;
         }
 
@@ -156,6 +157,7 @@ namespace ILGPU.Runtime.OpenCL
                 else
                     Trace.WriteLine(errorLog);
             }
+
             CLException.ThrowIfFailed(errorCode);
         }
 

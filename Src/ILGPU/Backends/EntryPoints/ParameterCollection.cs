@@ -139,6 +139,7 @@ namespace ILGPU.Backends.EntryPoints
                         paramType));
                 }
             }
+
             SpecializedParameters = specializedParameters.ToImmutable();
         }
 

@@ -114,9 +114,9 @@ namespace ILGPU
             /// <returns>The current builder instance.</returns>
             public Builder DebugSymbols(DebugSymbolsMode debugSymbolsMode) =>
                 debugSymbolsMode < DebugSymbolsMode
-                ? throw new InvalidOperationException(
-                    RuntimeErrorMessages.InvalidDowngradeOfDebugSymbols)
-                : this;
+                    ? throw new InvalidOperationException(
+                        RuntimeErrorMessages.InvalidDowngradeOfDebugSymbols)
+                    : this;
 
             /// <summary>
             /// Turns on all assertion checks (including out-of-bounds checks) for view
@@ -206,9 +206,8 @@ namespace ILGPU
             /// </summary>
             /// <returns>The current builder instance.</returns>
             public Builder Debug() =>
-                Optimize(OptimizationLevel.Debug).
-                Assertions().
-                DebugSymbols(DebugSymbolsMode.Kernel);
+                Optimize(OptimizationLevel.Debug).Assertions()
+                    .DebugSymbols(DebugSymbolsMode.Kernel);
 
             /// <summary>
             /// Sets the optimization level to <see cref="OptimizationLevel.Release"/>.

@@ -279,6 +279,7 @@ namespace ILGPU.Runtime
                     obj.DisposeAcceleratorObject_Accelerator(disposing);
                 }
             }
+
             childObjects.Clear();
         }
 

@@ -36,11 +36,7 @@ namespace ILGPU.Backends.OpenCL
             /// Indicates char tokens in a formatted floating-point literal that
             /// do not require a ".0f" suffix.
             /// </summary>
-            private static readonly char[] FormattedFloatLiteralTokens =
-            {
-                '.',
-                'E'
-            };
+            private static readonly char[] FormattedFloatLiteralTokens = { '.', 'E' };
 
             #endregion
 
@@ -90,6 +86,7 @@ namespace ILGPU.Backends.OpenCL
                     stringBuilder.Append(variableType);
                     stringBuilder.Append(' ');
                 }
+
                 stringBuilder.Append(target.ToString());
             }
 
@@ -555,6 +552,7 @@ namespace ILGPU.Backends.OpenCL
                                     AppendConstant((Half)argument);
                                     break;
                                 }
+
                                 throw new NotSupportedException(string.Format(
                                     ErrorMessages.NotSupportedWriteFormatArgumentType,
                                     formatExpression,
@@ -762,8 +760,8 @@ namespace ILGPU.Backends.OpenCL
             Variable target,
             FieldAccess? fieldAccess) =>
             !fieldAccess.HasValue
-            ? BeginStatement(target)
-            : BeginStatement(target, fieldAccess.Value);
+                ? BeginStatement(target)
+                : BeginStatement(target, fieldAccess.Value);
 
         /// <summary>
         /// Begins a new statement.

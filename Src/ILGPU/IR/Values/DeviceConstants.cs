@@ -50,8 +50,8 @@ namespace ILGPU.IR.Values
         /// <param name="initializer">The value initializer.</param>
         internal AcceleratorTypeValue(in ValueInitializer initializer)
             : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+                initializer,
+                initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         { }
 
         #endregion
@@ -121,8 +121,8 @@ namespace ILGPU.IR.Values
             in ValueInitializer initializer,
             DeviceConstantDimension3D dimension)
             : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+                initializer,
+                initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         {
             Dimension = dimension;
         }
@@ -356,8 +356,8 @@ namespace ILGPU.IR.Values
         /// <param name="initializer">The value initializer.</param>
         internal WarpSizeValue(in ValueInitializer initializer)
             : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+                initializer,
+                initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         { }
 
         #endregion
@@ -404,8 +404,8 @@ namespace ILGPU.IR.Values
         /// <param name="initializer">The value initializer.</param>
         internal LaneIdxValue(in ValueInitializer initializer)
             : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+                initializer,
+                initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         { }
 
         #endregion
@@ -458,8 +458,8 @@ namespace ILGPU.IR.Values
             TypeNode elementType,
             MemoryAddressSpace addressSpace)
             : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+                initializer,
+                initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         {
             ElementType = elementType;
             AddressSpace = addressSpace;

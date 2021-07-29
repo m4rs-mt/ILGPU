@@ -20,18 +20,22 @@ namespace ILGPU.Runtime.Cuda
         /// Represents no known memory type.
         /// </summary>
         None = 0,
+
         /// <summary>
         /// Represents a host pointer.
         /// </summary>
         Host = 1,
+
         /// <summary>
         /// Represents a device pointer.
         /// </summary>
         Device = 2,
+
         /// <summary>
         /// Represents a pointer to a Cuda array.
         /// </summary>
         Array = 3,
+
         /// <summary>
         /// Represents a unified-memory pointer.
         /// </summary>

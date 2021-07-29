@@ -77,9 +77,9 @@ namespace ILGPU.Runtime
         /// <returns>The profiling marker.</returns>
         public ProfilingMarker AddProfilingMarker() =>
             Accelerator.Context.Properties.EnableProfiling
-            ? AddProfilingMarkerInternal()
-            : throw new NotSupportedException(
-                RuntimeErrorMessages.NotSupportedProfilingMarker);
+                ? AddProfilingMarkerInternal()
+                : throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedProfilingMarker);
 
         /// <summary>
         /// Adds a profiling marker into the stream.

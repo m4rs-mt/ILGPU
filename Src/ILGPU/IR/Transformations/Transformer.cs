@@ -129,7 +129,7 @@ namespace ILGPU.IR.Transformations
             /// <param name="transformation">The transformation to add.</param>
             public void Add(Transformation transformation) =>
                 builder.Add(transformation
-                    ?? throw new ArgumentNullException(nameof(transformation)));
+                            ?? throw new ArgumentNullException(nameof(transformation)));
 
             /// <summary>
             /// Converts this builder to an immutable array.

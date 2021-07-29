@@ -20,7 +20,6 @@ namespace ILGPU.Algorithms.Random
     /// </summary>
     public interface IRandomProvider
     {
-
         /// <summary>
         /// Generates a random int in [0..int.MaxValue].
         /// </summary>

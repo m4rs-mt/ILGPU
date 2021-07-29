@@ -50,6 +50,7 @@ namespace ILGPU.Algorithms.PTX
                     bankIdx += Warp.WarpSize)
                     sharedMemory[bankIdx] = reduction.Identity;
             }
+
             Group.Barrier();
 
             value = PTXWarpExtensions.Reduce<T, TReduction>(value);
@@ -213,6 +214,7 @@ namespace ILGPU.Algorithms.PTX
                 sharedBoundary = PTXWarpExtensions.InclusiveScan<T, TScanOperation>(
                     sharedBoundary);
             }
+
             Group.Barrier();
 
             T leftBoundary = warpIdx < 1
@@ -282,7 +284,7 @@ namespace ILGPU.Algorithms.PTX
                 T,
                 TScanOperation,
                 ExclusiveScanImplementation<T, TScanOperation>>(
-                    value);
+                value);
 
         /// <summary cref="GroupExtensions.InclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -293,7 +295,7 @@ namespace ILGPU.Algorithms.PTX
                 T,
                 TScanOperation,
                 InclusiveScanImplementation<T, TScanOperation>>(
-                    value);
+                value);
 
         /// <summary cref="GroupExtensions.ExclusiveScanWithBoundaries{T, TScanOperation}(
         /// T, out ScanBoundaries{T})"/>
@@ -307,8 +309,8 @@ namespace ILGPU.Algorithms.PTX
                 T,
                 TScanOperation,
                 ExclusiveScanImplementation<T, TScanOperation>>(
-                    value,
-                    out boundaries);
+                value,
+                out boundaries);
 
         /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(
         /// T, out ScanBoundaries{T})"/>
@@ -322,8 +324,8 @@ namespace ILGPU.Algorithms.PTX
                 T,
                 TScanOperation,
                 InclusiveScanImplementation<T, TScanOperation>>(
-                    value,
-                    out boundaries);
+                value,
+                out boundaries);
 
         /// <summary>
         /// Prepares for the next iteration of a group-wide exclusive scan within the

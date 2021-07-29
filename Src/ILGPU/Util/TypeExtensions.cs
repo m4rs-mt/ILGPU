@@ -40,6 +40,7 @@ namespace ILGPU.Util
             {
                 return false;
             }
+
             var args = type.GetGenericArguments();
             elementType = args[0];
             return true;
@@ -68,6 +69,7 @@ namespace ILGPU.Util
                     genericType == typeof(ValueTuple<,,,,,,>) ||
                     genericType == typeof(ValueTuple<,,,,,,,>);
             }
+
             return false;
         }
 
@@ -87,6 +89,7 @@ namespace ILGPU.Util
             {
                 return false;
             }
+
             var args = type.GetGenericArguments();
             nestedType = args[0];
             return true;
@@ -148,8 +151,8 @@ namespace ILGPU.Util
         /// <returns>The resolved return type.</returns>
         public static Type GetReturnType(this MethodBase method) =>
             method is MethodInfo methodInfo
-            ? methodInfo.ReturnType
-            : typeof(void);
+                ? methodInfo.ReturnType
+                : typeof(void);
 
         /// <summary>
         /// Returns true if the given type is a void pointer.
@@ -465,7 +468,7 @@ namespace ILGPU.Util
             "Globalization",
             "CA1307:Specify StringComparison",
             Justification = "string.IndexOf(char, StringComparison) not " +
-            "available in net47")]
+                            "available in net47")]
         public static string GetStringRepresentation(this Type type)
         {
             var result = new StringBuilder();
@@ -488,6 +491,7 @@ namespace ILGPU.Util
                         result.Append(", ");
                         result.Append(GetStringRepresentation(args[i]));
                     }
+
                     result.Append('>');
                 }
             }
@@ -495,6 +499,7 @@ namespace ILGPU.Util
             {
                 result.Append(type.Name);
             }
+
             return result.ToString();
         }
     }

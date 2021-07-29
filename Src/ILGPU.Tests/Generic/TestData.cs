@@ -370,12 +370,7 @@ namespace ILGPU.Tests
                         float,
                         TestStruct<T, T>>()
                     {
-
-                        Val2 = new TestStruct<T, T>()
-                        {
-                            Val0 = val1,
-                            Val2 = val2,
-                        }
+                        Val2 = new TestStruct<T, T>() { Val0 = val1, Val2 = val2, }
                     }
                 }
             };

@@ -195,6 +195,7 @@ namespace ILGPU.IR.Values
                         continue;
                     return true;
                 }
+
                 return false;
             }
         }

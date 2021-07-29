@@ -180,8 +180,8 @@ namespace ILGPU.IR.Intrinsics
                 IntrinsicMatcher<TOther>[] otherMatchers)
                 where TOther : class, IIntrinsicImplementation
                 where TTransformer :
-                    struct,
-                    IIntrinsicImplementationTransformer<ImplementationEntry, TOther>
+                struct,
+                IIntrinsicImplementationTransformer<ImplementationEntry, TOther>
             {
                 if (otherMatchers == null)
                     throw new ArgumentNullException(nameof(otherMatchers));
@@ -267,6 +267,7 @@ namespace ILGPU.IR.Intrinsics
                 entry = new ImplementationEntry();
                 matcher.Register(method, entry);
             }
+
             entry.Register(implementation);
         }
 
@@ -280,10 +281,10 @@ namespace ILGPU.IR.Intrinsics
             Backend backend)
             where TDelegate : Delegate =>
             backend != null
-            ? new IntrinsicImplementationProvider<TDelegate>(
-                this[backend.BackendType],
-                backend)
-            : throw new ArgumentNullException(nameof(backend));
+                ? new IntrinsicImplementationProvider<TDelegate>(
+                    this[backend.BackendType],
+                    backend)
+                : throw new ArgumentNullException(nameof(backend));
 
         #endregion
     }

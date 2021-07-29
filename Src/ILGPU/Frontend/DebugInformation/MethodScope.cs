@@ -48,10 +48,12 @@ namespace ILGPU.Frontend.DebugInformation
             while (enumerator.MoveNext())
             {
                 var variable = reader.GetLocalVariable(enumerator.Current);
-                var variableName = variable.Name.IsNil ? string.Empty :
-                    reader.GetString(variable.Name);
+                var variableName = variable.Name.IsNil
+                    ? string.Empty
+                    : reader.GetString(variable.Name);
                 result.Add(new LocalVariable(variable.Index, variableName));
             }
+
             return result.MoveToImmutable();
         }
 

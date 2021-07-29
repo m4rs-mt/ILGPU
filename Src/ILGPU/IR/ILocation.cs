@@ -51,8 +51,8 @@ namespace ILGPU.IR
             Exception exception)
         {
             var message = (location?.FormatErrorMessage(
-                ErrorMessages.InternalCompilerError))
-                ?? ErrorMessages.InternalCompilerError;
+                              ErrorMessages.InternalCompilerError))
+                          ?? ErrorMessages.InternalCompilerError;
             return new InternalCompilerException(message, exception);
         }
 

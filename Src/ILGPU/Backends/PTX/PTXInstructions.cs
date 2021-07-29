@@ -49,7 +49,8 @@ namespace ILGPU.Backends.PTX
             ArithmeticBasicValueType type)
         {
             var unorderedFloatComparison = type.IsFloat()
-                && flags.HasFlag(CompareFlags.UnsignedOrUnordered);
+                                           && flags.HasFlag(CompareFlags
+                                               .UnsignedOrUnordered);
             if (unorderedFloatComparison)
             {
                 if (CompareUnorderedFloatOperations.TryGetValue(
@@ -64,6 +65,7 @@ namespace ILGPU.Backends.PTX
                 if (CompareOperations.TryGetValue((kind, type), out string operation))
                     return operation;
             }
+
             throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
@@ -77,8 +79,8 @@ namespace ILGPU.Backends.PTX
             ArithmeticBasicValueType source,
             ArithmeticBasicValueType target) =>
             ConvertOperations.TryGetValue((source, target), out string operation)
-            ? operation
-            : throw new NotSupportedIntrinsicException($"{source} -> {target}");
+                ? operation
+                : throw new NotSupportedIntrinsicException($"{source} -> {target}");
 
         /// <summary>
         /// Resolves an unary arithmetic operation.
@@ -101,18 +103,18 @@ namespace ILGPU.Backends.PTX
                 throw CudaCapabilityContext.GetNotSupportedFloat32_TanHException();
             }
             else if (kind == UnaryArithmeticKind.TanhF &&
-                type == ArithmeticBasicValueType.Float16 &&
-                !capabilities.Float16_TanH)
+                     type == ArithmeticBasicValueType.Float16 &&
+                     !capabilities.Float16_TanH)
             {
                 throw CudaCapabilityContext.GetNotSupportedFloat16_TanHException();
             }
 
             var key = (kind, type);
             return fastMath &&
-                UnaryArithmeticOperationsFastMath.TryGetValue(
-                    key,
-                    out string operation) ||
-                UnaryArithmeticOperations.TryGetValue(key, out operation)
+                   UnaryArithmeticOperationsFastMath.TryGetValue(
+                       key,
+                       out string operation) ||
+                   UnaryArithmeticOperations.TryGetValue(key, out operation)
                 ? operation
                 : throw new NotSupportedIntrinsicException(kind.ToString());
         }
@@ -132,24 +134,24 @@ namespace ILGPU.Backends.PTX
             bool fastMath)
         {
             if (kind == BinaryArithmeticKind.Min &&
-               type == ArithmeticBasicValueType.Float16 &&
-               !capabilities.Float16_Min)
+                type == ArithmeticBasicValueType.Float16 &&
+                !capabilities.Float16_Min)
             {
                 throw CudaCapabilityContext.GetNotSupportedFloat16_MinException();
             }
             else if (kind == BinaryArithmeticKind.Max &&
-                type == ArithmeticBasicValueType.Float16 &&
-                !capabilities.Float16_Max)
+                     type == ArithmeticBasicValueType.Float16 &&
+                     !capabilities.Float16_Max)
             {
                 throw CudaCapabilityContext.GetNotSupportedFloat16_MaxException();
             }
 
             var key = (kind, type);
             return fastMath &&
-                BinaryArithmeticOperationsFastMath.TryGetValue(
-                    key,
-                    out string operation) ||
-                BinaryArithmeticOperations.TryGetValue(key, out operation)
+                   BinaryArithmeticOperationsFastMath.TryGetValue(
+                       key,
+                       out string operation) ||
+                   BinaryArithmeticOperations.TryGetValue(key, out operation)
                 ? operation
                 : throw new NotSupportedIntrinsicException(kind.ToString());
         }
@@ -164,8 +166,8 @@ namespace ILGPU.Backends.PTX
             TernaryArithmeticKind kind,
             ArithmeticBasicValueType type) =>
             TernaryArithmeticOperations.TryGetValue((kind, type), out string operation)
-            ? operation
-            : throw new NotSupportedIntrinsicException(kind.ToString());
+                ? operation
+                : throw new NotSupportedIntrinsicException(kind.ToString());
 
         /// <summary>
         /// Resolves an atomic operation.
@@ -175,8 +177,8 @@ namespace ILGPU.Backends.PTX
         /// <returns>The resolved atomic operation.</returns>
         public static string GetAtomicOperation(AtomicKind kind, bool requireResult) =>
             AtomicOperations.TryGetValue((kind, requireResult), out string operation)
-            ? operation
-            : throw new NotSupportedIntrinsicException(kind.ToString());
+                ? operation
+                : throw new NotSupportedIntrinsicException(kind.ToString());
 
         /// <summary>
         /// Resolves an atomic-operation suffix.
@@ -188,8 +190,8 @@ namespace ILGPU.Backends.PTX
             AtomicKind kind,
             ArithmeticBasicValueType type) =>
             AtomicOperationsTypes.TryGetValue((kind, type), out string operation)
-            ? operation
-            : throw new NotSupportedIntrinsicException(kind.ToString());
+                ? operation
+                : throw new NotSupportedIntrinsicException(kind.ToString());
 
         /// <summary>
         /// Resolves an address-space-cast operation.
@@ -249,7 +251,7 @@ namespace ILGPU.Backends.PTX
         /// <returns>The vector operation suffix.</returns>
         public static string GetVectorOperationSuffix(int numElements) =>
             VectorSuffixes.TryGetValue(numElements, out string operation)
-            ? operation
-            : throw new NotSupportedIntrinsicException("v" + numElements.ToString());
+                ? operation
+                : throw new NotSupportedIntrinsicException("v" + numElements.ToString());
     }
 }

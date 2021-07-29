@@ -111,9 +111,9 @@ namespace ILGPU.IR.Construction
             }
 
             bool isSourceUnsigned = (flags & ConvertFlags.SourceUnsigned) ==
-                ConvertFlags.SourceUnsigned;
+                                    ConvertFlags.SourceUnsigned;
             bool isTargetUnsigned = (flags & ConvertFlags.TargetUnsigned) ==
-                ConvertFlags.TargetUnsigned;
+                                    ConvertFlags.TargetUnsigned;
 
             // Match nested conversions
             if (node is ConvertValue convert)
@@ -128,7 +128,8 @@ namespace ILGPU.IR.Construction
                     // conversion. This indicates a sign change, because we have
                     // already handled identity conversions.
                     location.Assert(convert.TargetType !=
-                        targetBasicType.GetArithmeticBasicValueType(isTargetUnsigned));
+                                    targetBasicType.GetArithmeticBasicValueType(
+                                        isTargetUnsigned));
                     canSimplify = true;
                 }
                 else if (targetBasicType.IsInt() && sourceBasicType.IsInt())
@@ -148,8 +149,8 @@ namespace ILGPU.IR.Construction
                     // are truncating in one hit.
                     var innerBasicType = convert.Value.BasicValueType;
                     canSimplify = innerBasicType < sourceBasicType ||
-                        innerBasicType > sourceBasicType &&
-                        targetBasicType < sourceBasicType;
+                                  innerBasicType > sourceBasicType &&
+                                  targetBasicType < sourceBasicType;
                 }
 
                 if (canSimplify)
@@ -157,7 +158,7 @@ namespace ILGPU.IR.Construction
                     ConvertFlags newFlags =
                         (convert.Flags & ~ConvertFlags.TargetUnsigned) |
                         flags & ~(ConvertFlags.SourceUnsigned |
-                            ConvertFlags.OverflowSourceUnsigned);
+                                  ConvertFlags.OverflowSourceUnsigned);
                     return CreateConvert(
                         location,
                         convert.Value,
@@ -304,6 +305,7 @@ namespace ILGPU.IR.Construction
                                     location,
                                     (double)value.Float16Value);
                         }
+
                         throw location.GetNotSupportedException(
                             ErrorMessages.NotSupportedConversion,
                             value.BasicValueType,
@@ -338,6 +340,7 @@ namespace ILGPU.IR.Construction
                                     location,
                                     (double)value.Float32Value);
                         }
+
                         throw location.GetNotSupportedException(
                             ErrorMessages.NotSupportedConversion,
                             value.BasicValueType,
@@ -368,6 +371,7 @@ namespace ILGPU.IR.Construction
                                     location,
                                     (float)value.Float64Value);
                         }
+
                         throw location.GetNotSupportedException(
                             ErrorMessages.NotSupportedConversion,
                             value.BasicValueType,

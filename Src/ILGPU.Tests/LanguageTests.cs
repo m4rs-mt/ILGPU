@@ -21,6 +21,7 @@ namespace ILGPU.Tests
             {
                 CudaAsm.Emit("membar.gl;");
             }
+
             buffer[index] = index;
         }
 

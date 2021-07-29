@@ -322,7 +322,6 @@ namespace ILGPU.Runtime.OpenCL
         {
             fixed (T* ptr = &elements[0])
             {
-
                 CLException.ThrowIfFailed(clGetDeviceInfo(
                     device,
                     type,
@@ -416,8 +415,7 @@ namespace ILGPU.Runtime.OpenCL
                 var properties = stackalloc IntPtr[]
                 {
                     (IntPtr)CLCommandQueueInfo.CL_QUEUE_PROPERTIES,
-                    (IntPtr)commandQueueProperties,
-                    IntPtr.Zero
+                    (IntPtr)commandQueueProperties, IntPtr.Zero
                 };
                 queue = clCreateCommandQueueWithProperties(
                     context,
@@ -425,6 +423,7 @@ namespace ILGPU.Runtime.OpenCL
                     new IntPtr(properties),
                     out errorStatus);
             }
+
             return errorStatus;
         }
 
@@ -841,7 +840,6 @@ namespace ILGPU.Runtime.OpenCL
                     globalWorkSizesPtr,
                     localWorkSizesPtr);
             }
-
         }
 
         /// <summary>

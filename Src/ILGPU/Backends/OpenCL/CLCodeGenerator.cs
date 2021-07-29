@@ -216,6 +216,7 @@ namespace ILGPU.Backends.OpenCL
                     phiVariables = new List<Variable>();
                     phiMapping.Add(targetBlock, phiVariables);
                 }
+
                 phiVariables.Add(variable);
             }
 
@@ -259,8 +260,10 @@ namespace ILGPU.Backends.OpenCL
         #region Instance
 
         private int labelCounter;
+
         private readonly Dictionary<BasicBlock, string> blockLookup =
             new Dictionary<BasicBlock, string>();
+
         private readonly string labelPrefix;
 
         /// <summary>
@@ -305,8 +308,7 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the current intrinsic provider for code-generation purposes.
         /// </summary>
         public IntrinsicImplementationProvider<CLIntrinsic.Handler>
-            ImplementationProvider
-        { get; }
+            ImplementationProvider { get; }
 
         /// <summary>
         /// Returns the associated string builder.
@@ -461,6 +463,7 @@ namespace ILGPU.Backends.OpenCL
                 if (allocaInfo.IsArray)
                     statement.AppendIndexer("0");
             }
+
             Builder.AppendLine();
         }
 

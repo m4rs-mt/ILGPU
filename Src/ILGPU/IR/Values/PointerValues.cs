@@ -229,8 +229,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
             IsPointerAccess
-            ? $"{Source} + {Offset}"
-            : $"{Source}[{Offset}]";
+                ? $"{Source} + {Offset}"
+                : $"{Source}[{Offset}]";
 
         #endregion
     }

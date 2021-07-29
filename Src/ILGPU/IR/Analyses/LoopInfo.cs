@@ -144,8 +144,8 @@ namespace ILGPU.IR.Analyses
         public static LoopInfo<TOrder, TDirection> Create(
             Loops<TOrder, TDirection>.Node loop) =>
             TryCreate(loop, out var loopInfo)
-            ? loopInfo
-            : throw new InvalidKernelOperationException();
+                ? loopInfo
+                : throw new InvalidKernelOperationException();
 
         /// <summary>
         /// Tries to create a new loop info instance from the given SCC while checking
@@ -302,8 +302,8 @@ namespace ILGPU.IR.Analyses
             outsideOperand = firstContained ? secondOperand : firstOperand;
 
             return loop.Contains(insideOperand.BasicBlock) &&
-                (outsideOperand is PrimitiveValue ||
-                !loop.Contains(outsideOperand.BasicBlock));
+                   (outsideOperand is PrimitiveValue ||
+                    !loop.Contains(outsideOperand.BasicBlock));
         }
 
         /// <summary>
@@ -590,8 +590,8 @@ namespace ILGPU.IR.Analyses
         /// <returns>The mapped integer (if any).</returns>
         private static int? TryGetIntegerBound(Value value) =>
             value is PrimitiveValue primitive && value.BasicValueType.IsInt()
-            ? primitive.Int32Value
-            : default(int?);
+                ? primitive.Int32Value
+                : default(int?);
 
         #endregion
 
@@ -651,11 +651,11 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <returns>The determined integer-based loop bounds.</returns>
         public readonly (int? init, int? update, int? @break) GetIntegerBounds() =>
-            (
-                TryGetIntegerBound(Init),
-                TryGetIntegerBound(UpdateValue),
-                TryGetIntegerBound(BreakValue)
-            );
+        (
+            TryGetIntegerBound(Init),
+            TryGetIntegerBound(UpdateValue),
+            TryGetIntegerBound(BreakValue)
+        );
 
         /// <summary>
         /// Tries to compute the trip count of the loop.

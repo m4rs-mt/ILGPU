@@ -51,6 +51,7 @@ namespace ILGPU.IR.Construction
                     managedType.GetElementType(),
                     force: false);
             }
+
             // Check whether this type is an immutable array which might require special
             if (managedType.IsImmutableArray(out var arrayElementType))
             {
@@ -82,6 +83,7 @@ namespace ILGPU.IR.Construction
                         typeInfo.Fields[0].GetValue(instance))
                     : CreateNull(location, type);
             }
+
             var instanceBuilder = CreateStructure(location, structureType);
             for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
             {
@@ -123,6 +125,7 @@ namespace ILGPU.IR.Construction
                     }
                 }
             }
+
             return instanceBuilder.Seal();
         }
 
@@ -282,11 +285,14 @@ namespace ILGPU.IR.Construction
 
                         default:
                             throw new NotImplementedException();
-                    };
+                    }
+
+                    ;
 
                     instanceBuilder.Add(paddingValue);
                     i += paddingValue.PrimitiveType.Size;
                 }
+
                 Debug.Assert(i == numBytes);
             }
             finally
@@ -631,6 +637,5 @@ namespace ILGPU.IR.Construction
             Append(new LoadArrayElementAddress(
                 GetInitializer(location),
                 ref values));
-
     }
 }

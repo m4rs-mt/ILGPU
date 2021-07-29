@@ -89,53 +89,53 @@ namespace ILGPU.Frontend.Intrinsic
 
         private static readonly DeviceFunctionHandler<IntrinsicAttribute>[]
             IntrinsicHandlers =
-        {
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleAcceleratorOperation(
-                    ref context, attribute as AcceleratorIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleAtomicOperation(
-                    ref context, attribute as AtomicIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleCompareOperation(
-                    ref context, attribute as CompareIntriniscAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleConvertOperation(
-                    ref context, attribute as ConvertIntriniscAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleGridOperation(
-                    ref context, attribute as GridIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleGroupOperation(
-                    ref context, attribute as GroupIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleInterop(
-                    ref context, attribute as InteropIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleMathOperation(
-                    ref context, attribute as MathIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleMemoryBarrierOperation(
-                    ref context, attribute as MemoryBarrierIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleSharedMemoryOperation(
-                    ref context, attribute as SharedMemoryIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleLocalMemoryOperation(
-                    ref context, attribute as LocalMemoryIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleViewOperation(
-                    ref context, attribute as ViewIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleWarpOperation(
-                    ref context, attribute as WarpIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleUtilityOperation(
-                    ref context, attribute as UtilityIntrinsicAttribute),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleLanguageOperation(
-                    ref context, attribute as LanguageIntrinsicAttribute),
-        };
+            {
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleAcceleratorOperation(
+                        ref context, attribute as AcceleratorIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleAtomicOperation(
+                        ref context, attribute as AtomicIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleCompareOperation(
+                        ref context, attribute as CompareIntriniscAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleConvertOperation(
+                        ref context, attribute as ConvertIntriniscAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleGridOperation(
+                        ref context, attribute as GridIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleGroupOperation(
+                        ref context, attribute as GroupIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleInterop(
+                        ref context, attribute as InteropIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleMathOperation(
+                        ref context, attribute as MathIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleMemoryBarrierOperation(
+                        ref context, attribute as MemoryBarrierIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleSharedMemoryOperation(
+                        ref context, attribute as SharedMemoryIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleLocalMemoryOperation(
+                        ref context, attribute as LocalMemoryIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleViewOperation(
+                        ref context, attribute as ViewIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleWarpOperation(
+                        ref context, attribute as WarpIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleUtilityOperation(
+                        ref context, attribute as UtilityIntrinsicAttribute),
+                (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                    HandleLanguageOperation(
+                        ref context, attribute as LanguageIntrinsicAttribute),
+            };
 
         #endregion
 
@@ -249,6 +249,7 @@ namespace ILGPU.Frontend.Intrinsic
                     InitializeArray(ref context);
                     return context.Builder.CreateUndefined();
             }
+
             throw context.Location.GetNotSupportedException(
                 ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
         }

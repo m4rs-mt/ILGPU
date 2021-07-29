@@ -172,13 +172,13 @@ namespace ILGPU.Backends.PTX
                 PTXRegisterKind.Float32 => "f" + register.RegisterValue,
                 PTXRegisterKind.Float64 => "fd" + register.RegisterValue,
                 PTXRegisterKind.Ctaid => "ctaid." +
-                    ResolveDeviceConstantValue(register),
+                                         ResolveDeviceConstantValue(register),
                 PTXRegisterKind.Tid => "tid." +
-                    ResolveDeviceConstantValue(register),
+                                       ResolveDeviceConstantValue(register),
                 PTXRegisterKind.NctaId => "nctaid." +
-                    ResolveDeviceConstantValue(register),
+                                          ResolveDeviceConstantValue(register),
                 PTXRegisterKind.NtId => "ntid." +
-                    ResolveDeviceConstantValue(register),
+                                        ResolveDeviceConstantValue(register),
                 PTXRegisterKind.LaneId => "laneid",
                 PTXRegisterKind.DynamicSharedMemorySize => "dynamic_smem_size",
                 _ => throw new InvalidCodeGenerationException(),
@@ -244,6 +244,7 @@ namespace ILGPU.Backends.PTX
                     Backend.PointerBasicValueType,
                     GetRegisterKind(Backend.PointerBasicValueType));
             }
+
             // A return call cannot handle some types -> we have to
             // perform a PTX-specific type remapping
             var remapped = ResolveParameterBasicValueType(type.BasicValueType);
@@ -256,11 +257,11 @@ namespace ILGPU.Backends.PTX
         protected sealed override RegisterDescription ResolveRegisterDescription(
             TypeNode type) =>
             type.IsPointerType || type.IsStringType
-            ? RegisterDescription.Create(
-                type,
-                Backend.PointerBasicValueType,
-                GetRegisterKind(Backend.PointerBasicValueType))
-            : ResolveRegisterDescription(type.BasicValueType);
+                ? RegisterDescription.Create(
+                    type,
+                    Backend.PointerBasicValueType,
+                    GetRegisterKind(Backend.PointerBasicValueType))
+                : ResolveRegisterDescription(type.BasicValueType);
 
         /// <summary>
         /// Frees the given hardware register.
@@ -287,9 +288,9 @@ namespace ILGPU.Backends.PTX
             RegisterDescription description)
         {
             var freeRegs = freeRegisters[(int)description.Kind];
-            var registerValue = freeRegs.Count > 0 ?
-                freeRegs.Pop() :
-                ++registerCounters[(int)description.Kind];
+            var registerValue = freeRegs.Count > 0
+                ? freeRegs.Pop()
+                : ++registerCounters[(int)description.Kind];
             return new HardwareRegister(description, registerValue);
         }
 
@@ -341,6 +342,7 @@ namespace ILGPU.Backends.PTX
                     name,
                     kind);
             }
+
             builder.AppendLine();
             return builder.ToString();
         }

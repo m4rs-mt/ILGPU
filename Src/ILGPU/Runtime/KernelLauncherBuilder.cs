@@ -91,9 +91,9 @@ namespace ILGPU.Runtime
         {
             emitter.EmitConstant(entryPoint.SharedMemory.StaticSize);
             emitter.Emit(
-                entryPoint.SharedMemory.HasDynamicMemory ?
-                OpCodes.Ldc_I4_1 :
-                OpCodes.Ldc_I4_0);
+                entryPoint.SharedMemory.HasDynamicMemory
+                    ? OpCodes.Ldc_I4_1
+                    : OpCodes.Ldc_I4_0);
             emitter.EmitNewObject(SharedMemorySpecification.Constructor);
         }
 
@@ -184,17 +184,17 @@ namespace ILGPU.Runtime
                 emitter.Emit(LocalOperation.LoadAddress, kernelCfgLocal);
                 emitter.EmitCall(
                     typeof(KernelConfig)
-                    .GetProperty(
-                        nameof(KernelConfig.GridDim),
-                        BindingFlags.Public | BindingFlags.Instance)
-                    .GetGetMethod());
+                        .GetProperty(
+                            nameof(KernelConfig.GridDim),
+                            BindingFlags.Public | BindingFlags.Instance)
+                        .GetGetMethod());
                 emitter.Emit(LocalOperation.LoadAddress, kernelCfgLocal);
                 emitter.EmitCall(
                     typeof(KernelConfig)
-                    .GetProperty(
-                        nameof(KernelConfig.GroupDim),
-                        BindingFlags.Public | BindingFlags.Instance)
-                    .GetGetMethod());
+                        .GetProperty(
+                            nameof(KernelConfig.GroupDim),
+                            BindingFlags.Public | BindingFlags.Instance)
+                        .GetGetMethod());
                 EmitVerifyKernelLaunchBounds(emitter, maxGridSize, maxGroupSize);
             }
         }
@@ -251,6 +251,7 @@ namespace ILGPU.Runtime
                         gridDim,
                         maxGridSize));
             }
+
             if (!groupDim.InBoundsInclusive(maxGroupSize))
             {
                 throw new ArgumentOutOfRangeException(

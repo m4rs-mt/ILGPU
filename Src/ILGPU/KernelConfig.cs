@@ -33,10 +33,9 @@ namespace ILGPU
         /// </summary>
         internal static readonly ConstructorInfo ImplicitlyGroupedKernelConstructor =
             typeof(KernelConfig).GetConstructor(new Type[]
-                {
-                    typeof(Index3D),
-                    typeof(Index3D)
-                });
+            {
+                typeof(Index3D), typeof(Index3D)
+            });
 
         #endregion
 
@@ -67,9 +66,9 @@ namespace ILGPU
             Index1D groupDim,
             SharedMemoryConfig sharedMemoryConfig)
             : this(
-                  new Index3D(gridDim.X, 1, 1),
-                  new Index3D(groupDim.X, 1, 1),
-                  sharedMemoryConfig)
+                new Index3D(gridDim.X, 1, 1),
+                new Index3D(groupDim.X, 1, 1),
+                sharedMemoryConfig)
         { }
 
         /// <summary>
@@ -97,9 +96,9 @@ namespace ILGPU
             Index2D groupDim,
             SharedMemoryConfig sharedMemoryConfig)
             : this(
-                  new Index3D(gridDim.X, gridDim.Y, 1),
-                  new Index3D(groupDim.X, groupDim.Y, 1),
-                  sharedMemoryConfig)
+                new Index3D(gridDim.X, gridDim.Y, 1),
+                new Index3D(groupDim.X, groupDim.Y, 1),
+                sharedMemoryConfig)
         { }
 
         /// <summary>
@@ -128,9 +127,9 @@ namespace ILGPU
             int gridDimX, int gridDimY, int gridDimZ,
             int groupDimX, int groupDimY, int groupDimZ)
             : this(
-                  new Index3D(gridDimX, gridDimY, gridDimZ),
-                  new Index3D(groupDimX, groupDimY, groupDimZ),
-                  default)
+                new Index3D(gridDimX, gridDimY, gridDimZ),
+                new Index3D(groupDimX, groupDimY, groupDimZ),
+                default)
         { }
 
         /// <summary>
@@ -494,11 +493,10 @@ namespace ILGPU
         /// <summary>
         /// Represents the associated constructor.
         /// </summary>
-        internal static ConstructorInfo Constructor = typeof(RuntimeKernelConfig).
-            GetConstructor(new Type[]
+        internal static ConstructorInfo Constructor =
+            typeof(RuntimeKernelConfig).GetConstructor(new Type[]
             {
-                typeof(KernelConfig),
-                typeof(SharedMemorySpecification)
+                typeof(KernelConfig), typeof(SharedMemorySpecification)
             });
 
         #endregion

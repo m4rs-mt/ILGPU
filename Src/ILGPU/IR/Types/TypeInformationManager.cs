@@ -158,6 +158,7 @@ namespace ILGPU.IR.Types
                     if (Fields[i] == info)
                         return FieldOffsets[i];
                 }
+
                 return -1;
             }
 
@@ -179,6 +180,7 @@ namespace ILGPU.IR.Types
         #region Instance
 
         private readonly ReaderWriterLockSlim cachingLock = new ReaderWriterLockSlim();
+
         private readonly Dictionary<Type, TypeInformation> typeInfoMapping =
             new Dictionary<Type, TypeInformation>();
 
@@ -238,6 +240,7 @@ namespace ILGPU.IR.Types
 
                 typeInfo = CreateTypeInfo(type);
             }
+
             return typeInfo;
         }
 

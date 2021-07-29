@@ -24,6 +24,7 @@ namespace ILGPU.Backends.PTX
                 var resultRegister = Load(returnTerminator.ReturnValue);
                 EmitStoreParam(ReturnParamName, resultRegister);
             }
+
             Command(PTXInstructions.ReturnOperation);
         }
 
@@ -109,6 +110,7 @@ namespace ILGPU.Backends.PTX
                     command.AppendConstant(branch.NumCasesWithoutDefault);
                     command.AppendArgument(lowerBoundsScope.PredicateRegister);
                 }
+
                 using (var command = BeginCommand(
                     PTXInstructions.BranchOperation,
                     new PredicateConfiguration(
@@ -133,6 +135,7 @@ namespace ILGPU.Backends.PTX
                 if (i + 1 < e)
                     Builder.Append(", ");
             }
+
             Builder.AppendLine(";");
 
             using (var command = BeginCommand(

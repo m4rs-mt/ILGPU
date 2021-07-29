@@ -114,8 +114,8 @@ namespace ILGPU.IR.Values
             BasicValueType basicValueType,
             long value)
             : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(basicValueType))
+                initializer,
+                initializer.Context.GetPrimitiveType(basicValueType))
         {
             BasicValueType = basicValueType;
             rawValue = value;

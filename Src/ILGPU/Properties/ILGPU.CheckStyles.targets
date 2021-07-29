@@ -9,7 +9,7 @@
             <CheckStyles_TemplateFiles Include="@(None)"
                                        Condition=" '%(None.Generator)' == 'TextTemplatingFileGenerator' " />
             <CheckStyles_TemplateFiles Include="@(None)"
-                                       Condition="'%(Extension)' == '.ttinclude'"/>
+                                       Condition="'%(Extension)' == '.ttinclude'" />
 
             <CheckStyles_CSharpFiles Include="@(Compile)"
                                      Condition="'%(Extension)' == '.cs'" />
@@ -27,9 +27,9 @@
     <!--
         Check line length.
     -->
-        <UsingTask TaskName="CheckLineLengths"
-                   TaskFactory="RoslynCodeTaskFactory"
-                   AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <UsingTask TaskName="CheckLineLengths"
+               TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
         <ParameterGroup>
             <BasePath ParameterType="System.String" Required="true" />
             <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]"
@@ -37,9 +37,9 @@
             <MaxLineLength ParameterType="System.Int32" Required="true" />
         </ParameterGroup>
         <Task>
-            <Using Namespace="System"/>
-            <Using Namespace="System.IO"/>
-            <Using Namespace="System.Linq"/>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Linq" />
             <Code Type="Fragment" Language="cs">
                 <![CDATA[
 foreach (var file in Files)
@@ -107,9 +107,9 @@ foreach (var file in Files)
                    Required="true" />
         </ParameterGroup>
         <Task>
-            <Using Namespace="System"/>
-            <Using Namespace="System.IO"/>
-            <Using Namespace="System.Linq"/>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Linq" />
             <Code Type="Fragment" Language="cs">
                 <![CDATA[
 foreach (var file in Files)

@@ -39,8 +39,7 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         internal static readonly Type[] ConstructorParameterTypes =
         {
-            typeof(CPUKernelExecutionHandler),
-            typeof(KernelConfig),
+            typeof(CPUKernelExecutionHandler), typeof(KernelConfig),
             typeof(RuntimeKernelConfig)
         };
 
@@ -73,9 +72,9 @@ namespace ILGPU.Runtime.CPU
         /// <returns>The getter method.</returns>
         public static MethodInfo GetTotalUserDimGetter(Type taskType) =>
             taskType.GetProperty(
-                nameof(TotalUserDim),
-                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-            .GetGetMethod(true);
+                    nameof(TotalUserDim),
+                    BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .GetGetMethod(true);
 
         /// <summary>
         /// Returns the getter for the <see cref="TotalUserDimXY"/> of a specific task
@@ -85,9 +84,9 @@ namespace ILGPU.Runtime.CPU
         /// <returns>The getter method.</returns>
         public static MethodInfo GetTotalUserDimXYGetter(Type taskType) =>
             taskType.GetProperty(
-                nameof(TotalUserDimXY),
-                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-            .GetGetMethod(true);
+                    nameof(TotalUserDimXY),
+                    BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .GetGetMethod(true);
 
         #endregion
 

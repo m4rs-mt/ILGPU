@@ -74,9 +74,7 @@ namespace SharedMemory
             ArrayView<int> sharedArray = ILGPU.SharedMemory.Allocate<int>(128);
 
             // Load the element into shared memory
-            var value = globalIndex < dataView.Length ?
-                dataView[globalIndex] :
-                0;
+            var value = globalIndex < dataView.Length ? dataView[globalIndex] : 0;
             sharedArray[Group.IdxX] = value;
 
             // Wait for all threads to complete the loading process
@@ -120,18 +118,22 @@ namespace SharedMemory
                             dataSource.CopyFrom(data, 0, 0, data.Length);
 
                             KernelConfig dimension = (
-                                (dataSource.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
+                                (dataSource.Length + groupSize - 1) /
+                                groupSize, // Compute the number of groups (round up)
                                 groupSize);                                      // Use the given group size
 
-                            using (var dataTarget = accelerator.Allocate<int>(data.Length))
+                            using (var dataTarget =
+                                accelerator.Allocate<int>(data.Length))
                             {
                                 var sharedMemVarKernel = accelerator.LoadStreamKernel<
-                                    ArrayView<int>, ArrayView<int>>(SharedMemoryVariableKernel);
+                                    ArrayView<int>, ArrayView<int>>(
+                                    SharedMemoryVariableKernel);
                                 dataTarget.MemSetToZero();
 
                                 // Note that shared memory cannot be accessed from the outside
                                 // and must be initialized by the kernel
-                                sharedMemVarKernel(dimension, dataSource.View, dataTarget.View);
+                                sharedMemVarKernel(dimension, dataSource.View,
+                                    dataTarget.View);
 
                                 accelerator.Synchronize();
 
@@ -141,12 +143,14 @@ namespace SharedMemory
                                     Console.WriteLine($"Data[{i}] = {target[i]}");
 
                                 var sharedMemArrKernel = accelerator.LoadStreamKernel<
-                                    ArrayView<int>, ArrayView<int>>(SharedMemoryArrayKernel);
+                                    ArrayView<int>, ArrayView<int>>(
+                                    SharedMemoryArrayKernel);
                                 dataTarget.MemSetToZero();
 
                                 // Note that shared memory cannot be accessed from the outside
                                 // and must be initialized by the kernel
-                                sharedMemArrKernel(dimension, dataSource.View, dataTarget.View);
+                                sharedMemArrKernel(dimension, dataSource.View,
+                                    dataTarget.View);
 
                                 accelerator.Synchronize();
 

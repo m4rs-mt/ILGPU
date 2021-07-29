@@ -112,8 +112,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
             Kind == PredicateBarrierKind.PopCount
-            ? initializer.Context.GetPrimitiveType(BasicValueType.Int32)
-            : initializer.Context.GetPrimitiveType(BasicValueType.Int1);
+                ? initializer.Context.GetPrimitiveType(BasicValueType.Int32)
+                : initializer.Context.GetPrimitiveType(BasicValueType.Int1);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

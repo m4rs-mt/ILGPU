@@ -25,7 +25,8 @@
 
     <ItemGroup>
         <None Include="..\..\LICENSE.txt" Link="Properties\LICENSE.txt" Pack="true" PackagePath="$(PackageLicenseFile)" />
-        <None Include="..\..\LICENSE-3RD-PARTY.txt" Link="Properties\LICENSE-3RD-PARTY.txt" Pack="true" PackagePath="%(Filename)%(Extension)" />
+        <None Include="..\..\LICENSE-3RD-PARTY.txt" Link="Properties\LICENSE-3RD-PARTY.txt" Pack="true"
+              PackagePath="%(Filename)%(Extension)" />
     </ItemGroup>
 
     <!-- Source Link -->
@@ -42,6 +43,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
     </ItemGroup>
 </Project>

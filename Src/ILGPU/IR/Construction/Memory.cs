@@ -237,7 +237,7 @@ namespace ILGPU.IR.Construction
                 return source;
             }
             else if (pointerType.ElementType is StructureType structureType &&
-                fieldSpan.Index == 0 && structureType.NumFields == fieldSpan.Span)
+                     fieldSpan.Index == 0 && structureType.NumFields == fieldSpan.Span)
             {
                 return source;
             }

@@ -1,4 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
+
 <Imports Namespace="ILGPU.Runtime.Cuda"
          ClassName="CudaAPI"
          DefaultReturnType="CudaError"
@@ -122,7 +123,7 @@
         <Parameter Name="hostPtr" Type="IntPtr" />
     </Import>
     <Import Name="cuMemHostGetDevicePointer_v2">
-        <Parameter Name="devicePtr" Type="IntPtr" Flags="Out"/>
+        <Parameter Name="devicePtr" Type="IntPtr" Flags="Out" />
         <Parameter Name="hostPtr" Type="IntPtr" />
         <Parameter Name="flags" Type="int" />
     </Import>

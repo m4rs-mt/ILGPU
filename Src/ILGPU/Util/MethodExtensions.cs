@@ -62,14 +62,14 @@ namespace ILGPU.Util
             //
             var declaringType = method.DeclaringType;
             return declaringType.IsClass
-                && declaringType.GetFields(
-                    BindingFlags.Instance |
-                    BindingFlags.NonPublic |
-                    BindingFlags.Public).Length == 0
-                && declaringType.GetProperties(
-                    BindingFlags.Instance |
-                    BindingFlags.NonPublic |
-                    BindingFlags.Public).Length == 0;
+                   && declaringType.GetFields(
+                       BindingFlags.Instance |
+                       BindingFlags.NonPublic |
+                       BindingFlags.Public).Length == 0
+                   && declaringType.GetProperties(
+                       BindingFlags.Instance |
+                       BindingFlags.NonPublic |
+                       BindingFlags.Public).Length == 0;
         }
     }
 }

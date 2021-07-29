@@ -329,8 +329,8 @@ namespace ILGPU.Runtime
                 new LongIndex3D(view.Extent.Z, view.Extent.Y, view.Extent.X),
                 new Stride3D.General(
                     (view.Stride.ZStride,
-                    view.Stride.YStride,
-                    view.Stride.XStride)));
+                        view.Stride.YStride,
+                        view.Stride.XStride)));
 
         #endregion
 
@@ -789,6 +789,7 @@ namespace ILGPU.Runtime
                     tempBuffer[targetElementIndex] = span[x];
                 }
             }
+
             fixed (T* ptr = tempBuffer)
             {
                 view.BaseView.CopyFromCPU(
@@ -860,6 +861,7 @@ namespace ILGPU.Runtime
                     }
                 }
             }
+
             fixed (T* ptr = tempBuffer)
             {
                 view.BaseView.CopyFromCPU(
@@ -940,6 +942,7 @@ namespace ILGPU.Runtime
                     }
                 }
             }
+
             fixed (T* ptr = tempBuffer)
             {
                 view.BaseView.CopyFromCPU(
@@ -1141,7 +1144,6 @@ namespace ILGPU.Runtime
                 }
             }
         }
-
 
         #endregion
 

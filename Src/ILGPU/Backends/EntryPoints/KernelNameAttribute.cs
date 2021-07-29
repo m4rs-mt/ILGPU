@@ -63,6 +63,7 @@ namespace ILGPU.Backends.EntryPoints
                 if (charValue >= 128 || !char.IsLetterOrDigit(charValue))
                     charValue = '_';
             }
+
             return new string(chars);
         }
 

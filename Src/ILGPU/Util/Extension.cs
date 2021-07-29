@@ -18,7 +18,8 @@ namespace ILGPU.Util
     /// <summary>
     /// An abstract runtime-object extension instance.
     /// </summary>
-    public abstract class Extension : DisposeBase { }
+    public abstract class Extension : DisposeBase
+    { }
 
     /// <summary>
     /// An abstract runtime-object extension instance.

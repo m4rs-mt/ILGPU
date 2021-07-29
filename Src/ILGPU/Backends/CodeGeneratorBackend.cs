@@ -52,10 +52,10 @@ namespace ILGPU.Backends
             BackendType backendType,
             ArgumentMapper argumentMapper)
             : base(
-                  context,
-                  capabilities,
-                  backendType,
-                  argumentMapper)
+                context,
+                capabilities,
+                backendType,
+                argumentMapper)
         { }
 
         #endregion

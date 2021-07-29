@@ -168,6 +168,7 @@ namespace ILGPU.IR.Analyses
                 if (!childData[i].Equals(other.childData[i]))
                     return false;
             }
+
             return true;
         }
 
@@ -195,8 +196,8 @@ namespace ILGPU.IR.Analyses
         /// <returns>The string representation of this value.</returns>
         public readonly override string ToString() =>
             childData.Length > 0
-            ? $"{Data} [{string.Join(", ", childData)}]"
-            : Data.ToString();
+                ? $"{Data} [{string.Join(", ", childData)}]"
+                : Data.ToString();
 
         #endregion
 
@@ -249,6 +250,7 @@ namespace ILGPU.IR.Analyses
                     childData[i] = data;
                 return new AnalysisValue<T>(data, childData);
             }
+
             return new AnalysisValue<T>(data);
         }
     }

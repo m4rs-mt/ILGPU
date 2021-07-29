@@ -34,9 +34,9 @@ namespace ILGPU.Backends
         /// <param name="message">The detailed error message.</param>
         public InvalidCodeGenerationException(string message)
             : base(
-                  string.Format(
-                      RuntimeErrorMessages.InvalidCodeGenerationOperation1,
-                      message))
+                string.Format(
+                    RuntimeErrorMessages.InvalidCodeGenerationOperation1,
+                    message))
         { }
 
         /// <summary>

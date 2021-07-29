@@ -135,6 +135,7 @@ namespace ILGPU.IR.Intrinsics
                     if (genericArguments[i] != other.genericArguments[i])
                         return false;
                 }
+
                 return true;
             }
 
@@ -164,6 +165,7 @@ namespace ILGPU.IR.Intrinsics
                     foreach (var type in genericArguments)
                         result ^= type.GetHashCode();
                 }
+
                 return result;
             }
 
@@ -320,6 +322,7 @@ namespace ILGPU.IR.Intrinsics
                     {
                         delegateMapping = new Dictionary<MappingKey, TDelegate>();
                     }
+
                     break;
                 default:
                     throw new NotSupportedException();
@@ -399,6 +402,7 @@ namespace ILGPU.IR.Intrinsics
                         as TDelegate;
                     delegateMapping.Add(key, codeGenerator);
                 }
+
                 return codeGenerator;
             }
         }

@@ -594,6 +594,7 @@ namespace ILGPU.Backends.EntryPoints
                 requireCustomType |= fieldType != sourceFieldType;
                 nestedTypes.Add(fieldType);
             }
+
             if (!requireCustomType)
                 return structType;
 
@@ -607,6 +608,7 @@ namespace ILGPU.Backends.EntryPoints
                     nestedTypes[i],
                     FieldAttributes.Public);
             }
+
             // Build wrapper type and return it
             return typeBuilder.CreateType();
         }

@@ -43,8 +43,8 @@ namespace ILGPU.Runtime.OpenCL
         {
             CLCommandQueueProperties properties =
                 Accelerator.Context.Properties.EnableProfiling
-                ? CLCommandQueueProperties.CL_QUEUE_PROFILING_ENABLE
-                : default;
+                    ? CLCommandQueueProperties.CL_QUEUE_PROFILING_ENABLE
+                    : default;
             CLException.ThrowIfFailed(
                 CurrentAPI.CreateCommandQueue(
                     accelerator.PlatformVersion,

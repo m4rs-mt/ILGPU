@@ -52,7 +52,7 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="typeContext">The parent type context.</param>
             protected ViewTypeLowering(IRTypeContext typeContext)
-                    : base(typeContext)
+                : base(typeContext)
             { }
 
             /// <summary cref="TypeLowering{TType}.IsTypeDependent(TypeNode)"/>

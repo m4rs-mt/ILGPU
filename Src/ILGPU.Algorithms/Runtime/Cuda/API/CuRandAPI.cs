@@ -27,8 +27,8 @@ namespace ILGPU.Runtime.Cuda.API
         /// <returns>The created API wrapper.</returns>
         public static CuRandAPI Create(CuRandAPIVersion? version) =>
             version.HasValue
-            ? CreateInternal(version.Value)
-            : CreateLatest();
+                ? CreateInternal(version.Value)
+                : CreateLatest();
 
         /// <summary>
         /// Creates a new API wrapper using the latest installed version.

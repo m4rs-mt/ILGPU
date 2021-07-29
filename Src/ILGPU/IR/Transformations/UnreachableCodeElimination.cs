@@ -67,10 +67,10 @@ namespace ILGPU.IR.Transformations
             private readonly bool IsReachableAndPredecessor(
                 BasicBlock sourceBlock,
                 BasicBlock block) =>
-                    IsReachable(block) &&
-                    sourceBlock.Predecessors.Contains(
-                        block,
-                        new BasicBlock.Comparer());
+                IsReachable(block) &&
+                sourceBlock.Predecessors.Contains(
+                    block,
+                    new BasicBlock.Comparer());
 
             /// <summary>
             /// Returns true if any of the given blocks is no longer in the current
@@ -85,6 +85,7 @@ namespace ILGPU.IR.Transformations
                     if (!IsReachableAndPredecessor(sourceBlock, block))
                         return true;
                 }
+
                 return false;
             }
 

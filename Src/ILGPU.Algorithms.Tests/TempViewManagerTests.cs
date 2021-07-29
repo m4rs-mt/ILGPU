@@ -16,18 +16,18 @@ namespace ILGPU.Algorithms.Tests
 
         public static TheoryData<object> PrimitiveTypes =>
             new TheoryData<object>
-        {
-            { default(sbyte) },
-            { default(byte) },
-            { default(short) },
-            { default(ushort) },
-            { default(int) },
-            { default(uint) },
-            { default(long) },
-            { default(ulong) },
-            { default(float) },
-            { default(double) }
-        };
+            {
+                { default(sbyte) },
+                { default(byte) },
+                { default(short) },
+                { default(ushort) },
+                { default(int) },
+                { default(uint) },
+                { default(long) },
+                { default(ulong) },
+                { default(float) },
+                { default(double) }
+            };
 
         #endregion
 

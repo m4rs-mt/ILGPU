@@ -114,7 +114,8 @@ namespace SpecializedKernel
                         {
                             var kernel = accelerator.LoadStreamKernel<
                                 ArrayView<int>,
-                                SpecializedValue<CustomStruct>>(SpecializedCustomStructKernel);
+                                SpecializedValue<CustomStruct>>(
+                                SpecializedCustomStructKernel);
                             kernel(
                                 (1, groupSize),
                                 buffer.View,
@@ -133,8 +134,10 @@ namespace SpecializedKernel
                             var kernel = accelerator.LoadStreamKernel<
                                 ArrayView<long>,
                                 SpecializedValue<long>>(SpecializedGenericKernel);
-                            kernel((1, groupSize), buffer.View, SpecializedValue.New(23L));
-                            kernel((1, groupSize), buffer.View, SpecializedValue.New(42L));
+                            kernel((1, groupSize), buffer.View,
+                                SpecializedValue.New(23L));
+                            kernel((1, groupSize), buffer.View,
+                                SpecializedValue.New(42L));
                         }
                     }
                 }

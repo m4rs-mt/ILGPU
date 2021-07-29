@@ -128,9 +128,9 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The resolved Cuda version.</returns>
         public static CudaArchitecture GetArchitecture(int major, int minor) =>
             TryGetArchitecture(major, minor, out var arch)
-            ? arch
-            : throw new NotSupportedException(
-                RuntimeErrorMessages.NotSupportedPTXArchitecture);
+                ? arch
+                : throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedPTXArchitecture);
 
         #endregion
 
@@ -206,7 +206,7 @@ namespace ILGPU.Runtime.Cuda
                 CurrentAPI.GetDeviceComputeCapability(
                     out int major,
                     out int minor,
-                DeviceId));
+                    DeviceId));
             Architecture = GetArchitecture(major, minor);
 
             if (Architecture.HasValue && CudaAccelerator.TryGetInstructionSet(
@@ -264,8 +264,8 @@ namespace ILGPU.Runtime.Cuda
 
             // Resolve the maximum amount of shared memory per multiprocessor
             MaxSharedMemoryPerMultiprocessor = CurrentAPI.GetDeviceAttribute(
-                DeviceAttributeKind.
-                    CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_MULTIPROCESSOR,
+                DeviceAttributeKind
+                    .CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_MULTIPROCESSOR,
                 DeviceId);
 
             // Resolve total constant memory
@@ -274,8 +274,9 @@ namespace ILGPU.Runtime.Cuda
 
             // Resolve memory clock rate
             MemoryClockRate = CurrentAPI.GetDeviceAttribute(
-                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE, DeviceId)
-                / 1000;
+                                  DeviceAttributeKind
+                                      .CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE, DeviceId)
+                              / 1000;
 
             // Resolve the bus width
             MemoryBusWidth = CurrentAPI.GetDeviceAttribute(
@@ -328,8 +329,8 @@ namespace ILGPU.Runtime.Cuda
                 DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_CAN_MAP_HOST_MEMORY,
                 DeviceId) != 0;
             SupportsUsingHostPointerForRegisteredMemory = CurrentAPI.GetDeviceAttribute(
-                DeviceAttributeKind.
-                    CU_DEVICE_ATTRIBUTE_CAN_USE_HOST_POINTER_FOR_REGISTERED_MEM,
+                DeviceAttributeKind
+                    .CU_DEVICE_ATTRIBUTE_CAN_USE_HOST_POINTER_FOR_REGISTERED_MEM,
                 DeviceId) != 0;
         }
 

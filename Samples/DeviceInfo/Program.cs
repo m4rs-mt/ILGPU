@@ -28,7 +28,8 @@ namespace DeviceInfo
             Console.WriteLine($"Name: {accelerator.Name}");
             Console.WriteLine($"MemorySize: {accelerator.MemorySize}");
             Console.WriteLine($"MaxThreadsPerGroup: {accelerator.MaxNumThreadsPerGroup}");
-            Console.WriteLine($"MaxSharedMemoryPerGroup: {accelerator.MaxSharedMemoryPerGroup}");
+            Console.WriteLine(
+                $"MaxSharedMemoryPerGroup: {accelerator.MaxSharedMemoryPerGroup}");
             Console.WriteLine($"MaxGridSize: {accelerator.MaxGridSize}");
             Console.WriteLine($"MaxConstantMemory: {accelerator.MaxConstantMemory}");
             Console.WriteLine($"WarpSize: {accelerator.WarpSize}");
@@ -51,7 +52,8 @@ namespace DeviceInfo
                     // Note that all accelerators have to be disposed before the global context is disposed
                     using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
-                        Console.WriteLine($"AcceleratorId: {acceleratorId.AcceleratorType}, {accelerator.Name}");
+                        Console.WriteLine(
+                            $"AcceleratorId: {acceleratorId.AcceleratorType}, {accelerator.Name}");
                         PrintAcceleratorInfo(accelerator);
                         Console.WriteLine();
                     }
@@ -60,7 +62,8 @@ namespace DeviceInfo
                 // Accelerators can also be created manually with custom settings.
                 // The following code snippet creates a CPU accelerator with 4 threads
                 // and highest thread priority.
-                using (var accelerator = new CPUAccelerator(context, 4, ThreadPriority.Highest))
+                using (var accelerator =
+                    new CPUAccelerator(context, 4, ThreadPriority.Highest))
                 {
                     PrintAcceleratorInfo(accelerator);
                 }

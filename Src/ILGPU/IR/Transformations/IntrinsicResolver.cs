@@ -38,7 +38,7 @@ namespace ILGPU.IR.Transformations
             IntrinsicImplementationProvider<TDelegate> implementationProvider)
         {
             provider = implementationProvider
-                ?? throw new ArgumentNullException(nameof(implementationProvider));
+                       ?? throw new ArgumentNullException(nameof(implementationProvider));
         }
 
         #endregion

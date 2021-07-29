@@ -77,10 +77,10 @@ namespace ILGPU.Backends.IL
             int warpSize,
             ArgumentMapper argumentMapper)
             : base(
-                  context,
-                  capabilities,
-                  BackendType.IL,
-                  argumentMapper)
+                context,
+                capabilities,
+                BackendType.IL,
+                argumentMapper)
         {
             WarpSize = warpSize;
         }
@@ -269,6 +269,7 @@ namespace ILGPU.Backends.IL
                     {
                         constructorILGenerator.Emit(OpCodes.Ldarg, i + 1);
                     }
+
                     constructorILGenerator.Emit(
                         OpCodes.Call,
                         CPUAcceleratorTask.GetTaskConstructor(acceleratorTaskType));
@@ -364,8 +365,8 @@ namespace ILGPU.Backends.IL
                 default:
                     throw new NotSupportedException(
                         RuntimeErrorMessages.NotSupportedIndexType);
-
             }
+
             // Store the index operation
             emitter.Emit(LocalOperation.Store, index);
         }

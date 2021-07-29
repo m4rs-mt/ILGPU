@@ -328,6 +328,7 @@ namespace ILGPU.Backends
 
         private readonly Dictionary<Value, RegisterEntry> registerLookup =
             new Dictionary<Value, RegisterEntry>();
+
         private readonly Dictionary<Value, Value> aliases =
             new Dictionary<Value, Value>();
 
@@ -414,6 +415,7 @@ namespace ILGPU.Backends
                 entry = new RegisterEntry(targetRegister, node);
                 registerLookup.Add(node, entry);
             }
+
             var result = entry.Register as HardwareRegister;
             node.AssertNotNull(result);
             return result;
@@ -446,6 +448,7 @@ namespace ILGPU.Backends
                 entry = new RegisterEntry(targetRegister, node);
                 registerLookup.Add(node, entry);
             }
+
             return entry.Register;
         }
 

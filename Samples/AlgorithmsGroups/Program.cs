@@ -40,7 +40,8 @@ namespace AlgorithmsGroups
             data[globalIndex, 2] = GroupExtensions.InclusiveScan<int, AddInt32>(1);
 
             // Perform a all reduction using a different reduction logic.
-            data[globalIndex, 3] = GroupExtensions.AllReduce<int, MinInt32>(Group.IdxX + 1);
+            data[globalIndex, 3] =
+                GroupExtensions.AllReduce<int, MinInt32>(Group.IdxX + 1);
         }
 
         static void Main()
@@ -58,8 +59,12 @@ namespace AlgorithmsGroups
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var kernel = accelerator.LoadStreamKernel<ArrayView2D<int>>(KernelWithGroupExtensions);
-                        using (var buffer = accelerator.Allocate<int>(accelerator.MaxNumThreadsPerGroup, 4))
+                        var kernel =
+                            accelerator.LoadStreamKernel<ArrayView2D<int>>(
+                                KernelWithGroupExtensions);
+                        using (var buffer =
+                            accelerator.Allocate<int>(accelerator.MaxNumThreadsPerGroup,
+                                4))
                         {
                             kernel((1, buffer.Width), buffer.View);
                             accelerator.Synchronize();

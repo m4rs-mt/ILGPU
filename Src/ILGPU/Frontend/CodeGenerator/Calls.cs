@@ -91,7 +91,8 @@ namespace ILGPU.Frontend
             Type constrainedType)
         {
             const BindingFlags ConstraintMethodFlags = BindingFlags.Instance |
-                BindingFlags.Public | BindingFlags.NonPublic;
+                                                       BindingFlags.Public |
+                                                       BindingFlags.NonPublic;
 
             if (!target.IsVirtual)
                 return target;
@@ -101,6 +102,7 @@ namespace ILGPU.Frontend
                     ErrorMessages.NotSupportedVirtualMethodCallToUnconstrainedInstance,
                     target.Name);
             }
+
             var sourceGenerics = target.GetGenericArguments();
             // This can only happen in constrained generic cases like:
             // Val GetVal<T>(T instance) where T : IValProvider
@@ -152,12 +154,14 @@ namespace ILGPU.Frontend
                     break;
                 }
             }
+
             if (actualTarget == null)
             {
                 throw Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedVirtualMethodCall,
                     target.Name);
             }
+
             return sourceGenerics.Length > 0
                 ? actualTarget.MakeGenericMethod(sourceGenerics)
                 : actualTarget;

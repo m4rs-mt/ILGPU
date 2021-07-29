@@ -17,9 +17,9 @@ namespace ILGPU.Tests.OpenCL
             OptimizationLevel optimizationLevel,
             Action<Context.Builder> prepareContext)
             : base(
-                  optimizationLevel,
-                  builder => prepareContext(builder.OpenCL()),
-                  context => context.CreateCLAccelerator(0))
+                optimizationLevel,
+                builder => prepareContext(builder.OpenCL()),
+                context => context.CreateCLAccelerator(0))
         { }
 
         /// <summary>

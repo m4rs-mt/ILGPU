@@ -38,11 +38,11 @@ namespace ILGPU.Frontend
             valueType =
                 value is PrimitiveValue size &&
                 size.BasicValueType.IsInt()
-                ? PrimitiveType.GetBasicValueTypeBySize(
-                    shiftValue is null
-                    ? size.Int32Value
-                    : shiftValue.Value << size.Int32Value)
-                : BasicValueType.None;
+                    ? PrimitiveType.GetBasicValueTypeBySize(
+                        shiftValue is null
+                            ? size.Int32Value
+                            : shiftValue.Value << size.Int32Value)
+                    : BasicValueType.None;
             return valueType != BasicValueType.None;
         }
 
@@ -85,6 +85,7 @@ namespace ILGPU.Frontend
                     baseAddress.Left);
                 return true;
             }
+
             result = null;
             return false;
         }
@@ -167,6 +168,7 @@ namespace ILGPU.Frontend
                             convertFlags);
                         break;
                 }
+
                 result = Builder.CreateArithmetic(
                     Location,
                     left,
@@ -174,6 +176,7 @@ namespace ILGPU.Frontend
                     kind,
                     arithmeticFlags);
             }
+
             Block.Push(result);
         }
 

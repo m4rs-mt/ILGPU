@@ -64,10 +64,10 @@ namespace ILGPU.Backends.PointerViews
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ViewImplementation(ArrayView<T> source)
             : this(
-                  source.IsValid
-                  ? Unsafe.AsPointer(ref source.LoadEffectiveAddress())
-                  : null,
-                  source.Length)
+                source.IsValid
+                    ? Unsafe.AsPointer(ref source.LoadEffectiveAddress())
+                    : null,
+                source.Length)
         { }
 
         #endregion

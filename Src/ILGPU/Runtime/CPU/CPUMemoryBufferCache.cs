@@ -97,6 +97,7 @@ namespace ILGPU.Runtime
                 cache?.Dispose();
                 cache = Accelerator.Allocate1D<byte>(numElements * Interop.SizeOf<T>());
             }
+
             Debug.Assert(numElements <= GetCacheSize<T>());
             return Cache.Cast<T>().SubView(0, numElements);
         }

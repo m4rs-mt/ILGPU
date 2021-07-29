@@ -71,6 +71,7 @@ namespace ILGPU.IR.Transformations
                     if (block == PostDominator)
                         return true;
                 }
+
                 return false;
             }
 
@@ -140,6 +141,7 @@ namespace ILGPU.IR.Transformations
                     if (regions[i].Contains(block))
                         return i;
                 }
+
                 return null;
             }
 
@@ -161,6 +163,7 @@ namespace ILGPU.IR.Transformations
                     region.Add(Root);
                     regionSize = Root.Count;
                 }
+
                 regions[index] = region;
             }
 
@@ -194,6 +197,7 @@ namespace ILGPU.IR.Transformations
                             return false;
                     }
                 }
+
                 return true;
             }
 
@@ -224,6 +228,7 @@ namespace ILGPU.IR.Transformations
 
                     foundRegions.Clear();
                 }
+
                 return true;
             }
 
@@ -294,7 +299,7 @@ namespace ILGPU.IR.Transformations
 
                 // Compute the common dominator of all successors
                 var postDominator = PostDominators.GetImmediateCommonDominator(
-                   successors);
+                    successors);
 
                 // Gather region information about nodes from all successors. Furthermore,
                 // we can check whether the regions are distinct or share nodes.
@@ -398,6 +403,7 @@ namespace ILGPU.IR.Transformations
                         return false;
                     }
                 }
+
                 return true;
             }
 
@@ -501,7 +507,8 @@ namespace ILGPU.IR.Transformations
                         // Determine the conditional case to which the associated value
                         // belongs to
                         int conditionalCase = Regions.FindRegion(phiValue.Sources[i]) ??
-                            throw PostDominator.GetInvalidOperationException();
+                                              throw PostDominator
+                                                  .GetInvalidOperationException();
 
                         // Get the actual condition value based on the associated phi ref
                         conditionalValues[conditionalCase] = phiValue[i].Resolve();
@@ -732,8 +739,8 @@ namespace ILGPU.IR.Transformations
                 in BasicBlockMap<BlockKind> kinds,
                 BasicBlock current) =>
                 kinds[current] == BlockKind.Exit
-                ? current
-                : GetTrueExit(kinds, GetIfBranch(current).TrueTarget);
+                    ? current
+                    : GetTrueExit(kinds, GetIfBranch(current).TrueTarget);
 
             /// <summary>
             /// Gets the primary false leaf that is used to created the merged branch.
@@ -923,8 +930,8 @@ namespace ILGPU.IR.Transformations
             public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
                 BasicBlock basicBlock) =>
                 IsCompatibleBlock(basicBlock, out var terminator)
-                ? terminator.Targets
-                : new ReadOnlySpan<BasicBlock>();
+                    ? terminator.Targets
+                    : new ReadOnlySpan<BasicBlock>();
 
             #endregion
         }
@@ -1172,6 +1179,7 @@ namespace ILGPU.IR.Transformations
                     if (kinds[block] == blockKind)
                         builder.Add(block);
                 }
+
                 return builder.Seal();
             }
 
@@ -1232,6 +1240,7 @@ namespace ILGPU.IR.Transformations
                     // If we reach this point, the current phi value has to be adapted
                     phis.Add(phi);
                 }
+
                 return true;
             }
 
@@ -1388,12 +1397,12 @@ namespace ILGPU.IR.Transformations
                 Value newCondition,
                 BinaryArithmeticKind kind) =>
                 condition is null
-                ? newCondition
-                : (Value)BlockBuilder.CreateArithmetic(
-                    condition.Location,
-                    condition,
-                    newCondition,
-                    kind);
+                    ? newCondition
+                    : (Value)BlockBuilder.CreateArithmetic(
+                        condition.Location,
+                        condition,
+                        newCondition,
+                        kind);
 
             /// <summary>
             /// Creates a merge intermediate condition that will be passed to the

@@ -59,10 +59,10 @@ namespace ImplicitlyGroupedKernels
                 for (int i = 0, e = data.Length; i < e; ++i)
                 {
                     if (data[i] != 42 + i)
-                        Console.WriteLine($"Error at element location {i}: {data[i]} found");
+                        Console.WriteLine(
+                            $"Error at element location {i}: {data[i]} found");
                 }
             }
-
         }
 
         /// <summary>
@@ -103,8 +103,10 @@ namespace ImplicitlyGroupedKernels
                         // that implicitly uses the default accelerator stream.
                         // In order to create a launcher that receives a custom accelerator stream
                         // use: accelerator.LoadImplicitlyGroupedKernel<Index, ArrayView<int>, int>(...)
-                        var myImplicitlyGroupedKernel = accelerator.LoadImplicitlyGroupedStreamKernel<
-                            Index1, ArrayView<int>, int>(MyKernel, accelerator.WarpSize);
+                        var myImplicitlyGroupedKernel = accelerator
+                            .LoadImplicitlyGroupedStreamKernel<
+                                Index1, ArrayView<int>, int>(MyKernel,
+                                accelerator.WarpSize);
 
                         LaunchKernel(accelerator, myImplicitlyGroupedKernel);
                     }

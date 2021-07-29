@@ -162,8 +162,8 @@ namespace ILGPU.Frontend
         /// <returns>The declared method reference.</returns>
         public Method DeclareMethod(MethodBase methodBase) =>
             methodBase != null
-            ? CodeGenerator.DeclareMethod(methodBase)
-            : throw Location.GetArgumentNullException(nameof(methodBase));
+                ? CodeGenerator.DeclareMethod(methodBase)
+                : throw Location.GetArgumentNullException(nameof(methodBase));
 
         #endregion
 
@@ -187,6 +187,7 @@ namespace ILGPU.Frontend
                         builder.Append(", ");
                 }
             }
+
             builder.Append(')');
             return builder.ToString();
         }

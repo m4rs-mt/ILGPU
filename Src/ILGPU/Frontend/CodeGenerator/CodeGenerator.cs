@@ -33,9 +33,10 @@ namespace ILGPU.Frontend
 
         private readonly Block.CFGBuilder cfgBuilder;
         private readonly HashSet<VariableRef> variables = new HashSet<VariableRef>();
+
         private readonly Dictionary<VariableRef, (TypeNode, ConvertFlags)>
             variableTypes =
-            new Dictionary<VariableRef, (TypeNode, ConvertFlags)>();
+                new Dictionary<VariableRef, (TypeNode, ConvertFlags)>();
 
         /// <summary>
         /// Constructs a new code generator.
@@ -135,6 +136,7 @@ namespace ILGPU.Frontend
                         ssaValue);
                     ssaValue = alloca;
                 }
+
                 EntryBlock.SetValue(argRef, ssaValue);
                 variableTypes[argRef] = (
                     paramType,
@@ -276,6 +278,7 @@ namespace ILGPU.Frontend
                     methodBase,
                     CompilationStackLocation.Append(Location));
             }
+
             return result;
         }
 
@@ -346,6 +349,7 @@ namespace ILGPU.Frontend
                     // Wrap generic exceptions with location information.
                     throw CompilationStackLocation.Append(Location).GetException(e);
                 }
+
                 if (!generated)
                 {
                     throw CompilationStackLocation.Append(Location)
@@ -393,10 +397,11 @@ namespace ILGPU.Frontend
             {
                 return;
             }
+
             if (NotInsideKernelAttribute.IsDefined(method) ||
                 @namespace.StartsWith(
-                "System.Runtime",
-                StringComparison.OrdinalIgnoreCase) ||
+                    "System.Runtime",
+                    StringComparison.OrdinalIgnoreCase) ||
                 @namespace.StartsWith(
                     "System.Reflection",
                     StringComparison.OrdinalIgnoreCase))
@@ -420,7 +425,7 @@ namespace ILGPU.Frontend
             Debug.Assert(field != null || !field.IsStatic, "Invalid field");
 
             bool isInitOnly = (field.Attributes & FieldAttributes.InitOnly) !=
-                FieldAttributes.InitOnly;
+                              FieldAttributes.InitOnly;
             if (isInitOnly &&
                 Context.Properties.StaticFieldMode < StaticFieldMode.MutableStaticFields)
             {

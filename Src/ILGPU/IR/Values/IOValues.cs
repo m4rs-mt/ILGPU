@@ -98,6 +98,7 @@ namespace ILGPU.IR.Values
                         Current = WriteToOutput[enumerator.Current.Argument];
                         return true;
                     }
+
                     return false;
                 }
             }
@@ -137,16 +138,13 @@ namespace ILGPU.IR.Values
             ImmutableArray.Create(
                 "%n",
                 "%u",
-
                 "%d",
                 "%d",
                 "%d",
                 "%lld",
-
                 "%n",
                 "%f",
                 "%lf",
-
                 "%u",
                 "%u",
                 "%u",
@@ -303,6 +301,7 @@ namespace ILGPU.IR.Values
                             PrintFPercentFormat));
                 }
             }
+
             return result.ToString();
         }
 
@@ -311,11 +310,11 @@ namespace ILGPU.IR.Values
         /// </summary>
         public string ToEscapedPrintFExpression() =>
             ToPrintFExpression()
-            .Replace("\t", @"\t")
-            .Replace("\r", @"\r")
-            .Replace("\n", @"\n")
-            .Replace("\"", "\\\"")
-            .Replace("\\", @"\\");
+                .Replace("\t", @"\t")
+                .Replace("\r", @"\r")
+                .Replace("\n", @"\n")
+                .Replace("\"", "\\\"")
+                .Replace("\\", @"\\");
 
         #endregion
 

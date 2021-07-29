@@ -77,9 +77,9 @@ namespace ExplicitlyGroupedKernels
             var globalIndex = Grid.GlobalIndex.X;
 
             // Load value if the index is in range
-            var value = globalIndex < dataView.Length ?
-                dataView[globalIndex] :
-                constant + 1;
+            var value = globalIndex < dataView.Length
+                ? dataView[globalIndex]
+                : constant + 1;
 
             // Wait until all threads in the group reach this point. Moreover, BarrierAnd
             // evaluates the given predicate and returns true if the predicate evaluates
@@ -102,9 +102,7 @@ namespace ExplicitlyGroupedKernels
             var globalIndex = Grid.GlobalIndex.X;
 
             // Load value if the index is in range
-            var value = globalIndex < dataView.Length ?
-                dataView[globalIndex] :
-                constant;
+            var value = globalIndex < dataView.Length ? dataView[globalIndex] : constant;
 
             // Wait until all threads in the group reach this point. Moreover, BarrierOr
             // evaluates the given predicate and returns true if the predicate evaluates
@@ -127,9 +125,7 @@ namespace ExplicitlyGroupedKernels
             var globalIndex = Grid.GlobalIndex.X;
 
             // Load value if the index is in range
-            var value = globalIndex < dataView.Length ?
-                dataView[globalIndex] :
-                constant;
+            var value = globalIndex < dataView.Length ? dataView[globalIndex] : constant;
 
             // Wait until all threads in the group reach this point. Moreover, BarrierPopCount
             // evaluates the given predicate and returns the number of threads in the group
@@ -160,7 +156,8 @@ namespace ExplicitlyGroupedKernels
 
                         int groupSize = accelerator.MaxNumThreadsPerGroup;
                         KernelConfig launchDimension = (
-                            (data.Length + groupSize - 1) / groupSize,  // Compute the number of groups (round up)
+                            (data.Length + groupSize - 1) /
+                            groupSize,  // Compute the number of groups (round up)
                             groupSize);                                 // Use the given group size
 
                         using (var dataSource = accelerator.Allocate<int>(data.Length))
@@ -168,14 +165,16 @@ namespace ExplicitlyGroupedKernels
                             // Initialize data source
                             dataSource.CopyFrom(data, 0, 0, data.Length);
 
-                            using (var dataTarget = accelerator.Allocate<int>(data.Length))
+                            using (var dataTarget =
+                                accelerator.Allocate<int>(data.Length))
                             {
-
                                 // Launch default grouped kernel
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, int>(GroupedKernel);
+                                    var groupedKernel =
+                                        accelerator.LoadStreamKernel<ArrayView<int>, int>(
+                                            GroupedKernel);
                                     groupedKernel(launchDimension, dataTarget.View, 64);
 
                                     accelerator.Synchronize();
@@ -190,8 +189,13 @@ namespace ExplicitlyGroupedKernels
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelBarrier);
-                                    groupedKernel(launchDimension, dataSource, dataTarget.View, 64);
+                                    var groupedKernel =
+                                        accelerator
+                                            .LoadStreamKernel<ArrayView<int>,
+                                                ArrayView<int>, int>(
+                                                GroupedKernelBarrier);
+                                    groupedKernel(launchDimension, dataSource,
+                                        dataTarget.View, 64);
 
                                     accelerator.Synchronize();
 
@@ -205,8 +209,13 @@ namespace ExplicitlyGroupedKernels
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelAndBarrier);
-                                    groupedKernel(launchDimension, dataSource, dataTarget.View, 0);
+                                    var groupedKernel =
+                                        accelerator
+                                            .LoadStreamKernel<ArrayView<int>,
+                                                ArrayView<int>, int>(
+                                                GroupedKernelAndBarrier);
+                                    groupedKernel(launchDimension, dataSource,
+                                        dataTarget.View, 0);
 
                                     accelerator.Synchronize();
 
@@ -220,8 +229,13 @@ namespace ExplicitlyGroupedKernels
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelOrBarrier);
-                                    groupedKernel(launchDimension, dataSource, dataTarget.View, 64);
+                                    var groupedKernel =
+                                        accelerator
+                                            .LoadStreamKernel<ArrayView<int>,
+                                                ArrayView<int>, int>(
+                                                GroupedKernelOrBarrier);
+                                    groupedKernel(launchDimension, dataSource,
+                                        dataTarget.View, 64);
 
                                     accelerator.Synchronize();
 
@@ -235,8 +249,13 @@ namespace ExplicitlyGroupedKernels
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelPopCountBarrier);
-                                    groupedKernel(launchDimension, dataSource, dataTarget.View, 0);
+                                    var groupedKernel =
+                                        accelerator
+                                            .LoadStreamKernel<ArrayView<int>,
+                                                ArrayView<int>, int>(
+                                                GroupedKernelPopCountBarrier);
+                                    groupedKernel(launchDimension, dataSource,
+                                        dataTarget.View, 0);
 
                                     accelerator.Synchronize();
 

@@ -53,7 +53,7 @@ namespace ILGPU.IR.Values
 
                     usesPerType[type] =
                         (IntrinsicMath.Max(value.AllNumUses, entry.Item1),
-                        entry.Item2 + 1);
+                            entry.Item2 + 1);
                 }
             }
 
@@ -69,6 +69,7 @@ namespace ILGPU.IR.Values
                 groupedUsesPerTypeList.Add(
                     (entry.Value.Item1, entry.Key, entry.Value.Item2));
             }
+
             groupedUsesPerTypeList.Sort((x, y) => y.Item1.CompareTo(x.Item1));
 
             Uses = groupedUsesList.ToImmutableArray();

@@ -72,7 +72,8 @@ namespace AlgorithmsSequence
             using (var buffer = accelerator.Allocate<int>(64))
             {
                 // Creates a sequence (from 0 to buffer.Length - 1).
-                accelerator.Sequence(accelerator.DefaultStream, buffer.View, new Int32Sequencer());
+                accelerator.Sequence(accelerator.DefaultStream, buffer.View,
+                    new Int32Sequencer());
 
                 accelerator.Synchronize();
 
@@ -84,7 +85,8 @@ namespace AlgorithmsSequence
             // Custom sequencer
             using (var buffer = accelerator.Allocate<CustomStruct>(64))
             {
-                accelerator.Sequence(accelerator.DefaultStream, buffer.View, new CustomSequencer(32));
+                accelerator.Sequence(accelerator.DefaultStream, buffer.View,
+                    new CustomSequencer(32));
 
                 accelerator.Synchronize();
 

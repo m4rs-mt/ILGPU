@@ -23,6 +23,7 @@ namespace ILGPU.Backends.IL
         private static readonly MethodInfo GetHashCodeInfo = typeof(object).GetMethod(
             nameof(object.GetHashCode),
             BindingFlags.Public | BindingFlags.Instance);
+
         private static readonly MethodInfo EqualsInfo = typeof(object).GetMethod(
             nameof(object.Equals),
             BindingFlags.Public | BindingFlags.Instance);

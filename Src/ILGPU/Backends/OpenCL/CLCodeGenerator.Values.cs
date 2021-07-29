@@ -45,6 +45,7 @@ namespace ILGPU.Backends.OpenCL
                 var variable = Load(argument);
                 statementEmitter.AppendArgument(variable);
             }
+
             statementEmitter.EndArguments();
 
             // End call
@@ -223,9 +224,9 @@ namespace ILGPU.Backends.OpenCL
 
             using var statement = BeginStatement(target);
             statement.AppendCommand(
-                value.BasicValueType == BasicValueType.Int64 ?
-                CLInstructions.DoubleAsLong :
-                CLInstructions.FloatAsInt);
+                value.BasicValueType == BasicValueType.Int64
+                    ? CLInstructions.DoubleAsLong
+                    : CLInstructions.FloatAsInt);
             statement.BeginArguments();
             statement.AppendArgument(source);
             statement.EndArguments();
@@ -239,9 +240,9 @@ namespace ILGPU.Backends.OpenCL
 
             using var statement = BeginStatement(target);
             statement.AppendCommand(
-                value.BasicValueType == BasicValueType.Float64 ?
-                CLInstructions.LongAsDouble :
-                CLInstructions.IntAsFloat);
+                value.BasicValueType == BasicValueType.Float64
+                    ? CLInstructions.LongAsDouble
+                    : CLInstructions.IntAsFloat);
             statement.BeginArguments();
             statement.AppendArgument(source);
             statement.EndArguments();
@@ -272,8 +273,8 @@ namespace ILGPU.Backends.OpenCL
         private void ThrowIfUnsupportedAtomicOperation(AtomicValue atomic)
         {
             if ((atomic.ArithmeticBasicValueType == ArithmeticBasicValueType.Int64 ||
-                atomic.ArithmeticBasicValueType == ArithmeticBasicValueType.UInt64 ||
-                atomic.ArithmeticBasicValueType == ArithmeticBasicValueType.Float64) &&
+                 atomic.ArithmeticBasicValueType == ArithmeticBasicValueType.UInt64 ||
+                 atomic.ArithmeticBasicValueType == ArithmeticBasicValueType.Float64) &&
                 !TypeGenerator.Capabilities.Int64_Atomics)
             {
                 throw CLCapabilityContext.GetNotSupportedInt64_AtomicsException();
@@ -658,7 +659,7 @@ namespace ILGPU.Backends.OpenCL
             using var statement = BeginStatement(target);
             statement.AppendCommand(
                 CLInstructions.GetBroadcastOperation(
-                broadcast.Kind));
+                    broadcast.Kind));
             statement.BeginArguments();
             statement.AppendArgument(source);
             statement.AppendArgument(origin);
@@ -693,6 +694,7 @@ namespace ILGPU.Backends.OpenCL
                     statement.AppendArgument(source);
                     break;
             }
+
             statement.AppendArgument(origin);
 
             statement.EndArguments();

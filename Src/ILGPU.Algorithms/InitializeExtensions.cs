@@ -97,11 +97,11 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded initializer.</returns>
         private static Action<
-            AcceleratorStream,
-            LongIndex1D,
-            InitializerImplementation<T, TStride>>
+                AcceleratorStream,
+                LongIndex1D,
+                InitializerImplementation<T, TStride>>
             CreateRawInitializer<T, TStride>(
-            this Accelerator accelerator)
+                this Accelerator accelerator)
             where T : unmanaged
             where TStride : struct, IStride1D =>
             accelerator.LoadGridStrideKernel<

@@ -114,6 +114,7 @@ namespace ILGPU.Runtime
                     launcher = loader.Load(this, action);
                     launchCache.Add(action, launcher);
                 }
+
                 return launcher as TTarget;
             }
         }

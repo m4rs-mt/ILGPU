@@ -67,7 +67,8 @@ namespace ILGPU.Backends
     /// <summary>
     /// Represents an abstract backend extensions that can store additional data.
     /// </summary>
-    public abstract class BackendExtension : CachedExtension { }
+    public abstract class BackendExtension : CachedExtension
+    { }
 
     /// <summary>
     /// Represents a general ILGPU backend.
@@ -175,6 +176,7 @@ namespace ILGPU.Backends
                             continue;
                         return true;
                     }
+
                     return false;
                 }
 
@@ -206,10 +208,10 @@ namespace ILGPU.Backends
                 allocaMapping = new Dictionary<Method, Allocas>();
                 notImplementedIntrinsics = new List<Method>();
 
-                var sharedAllocations = ImmutableArray.
-                    CreateBuilder<AllocaInformation>(20);
-                var dynamicSharedAllocations = ImmutableArray.
-                    CreateBuilder<AllocaInformation>(1);
+                var sharedAllocations =
+                    ImmutableArray.CreateBuilder<AllocaInformation>(20);
+                var dynamicSharedAllocations =
+                    ImmutableArray.CreateBuilder<AllocaInformation>(1);
                 int sharedMemorySize = 0;
 
                 foreach (var method in Methods)
@@ -263,6 +265,7 @@ namespace ILGPU.Backends
                         method.Source,
                         allocas.LocalMemorySize));
                 }
+
                 return new CompiledKernel.KernelInfo(
                     SharedAllocations,
                     functionInfo.MoveToImmutable());
@@ -452,8 +455,8 @@ namespace ILGPU.Backends
             // Setup custom pointer types
             PointerArithmeticType =
                 Context.TargetPlatform == TargetPlatform.X64
-                ? ArithmeticBasicValueType.UInt64
-                : ArithmeticBasicValueType.UInt32;
+                    ? ArithmeticBasicValueType.UInt64
+                    : ArithmeticBasicValueType.UInt32;
             PointerType = context.TypeContext.GetPrimitiveType(
                 PointerArithmeticType.GetBasicValueType());
         }
@@ -563,8 +566,8 @@ namespace ILGPU.Backends
                 var mainContext = codeGenerationPhase.IRContext;
 
                 Frontend.CodeGenerationResult generationResult;
-                using (var frontendPhase = codeGenerationPhase.
-                    BeginFrontendCodeGeneration())
+                using (var frontendPhase =
+                    codeGenerationPhase.BeginFrontendCodeGeneration())
                 {
                     generationResult = frontendPhase.GenerateCode(entry.MethodSource);
                 }
@@ -576,6 +579,7 @@ namespace ILGPU.Backends
 
                 backendHook.FinishedCodeGeneration(mainContext, generatedKernelMethod);
             }
+
             return generatedKernelMethod;
         }
 
@@ -816,8 +820,8 @@ namespace ILGPU.Backends
                 for (int i = 0; i < NumPasses; ++i)
                 {
                     builder.Add(Transformer.Create(
-                            TransformerConfiguration.Transformed,
-                            lowerThreadIntrinsics, resolver, specializer));
+                        TransformerConfiguration.Transformed,
+                        lowerThreadIntrinsics, resolver, specializer));
                 }
 
                 createTransformers(builder);

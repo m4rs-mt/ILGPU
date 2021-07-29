@@ -312,12 +312,12 @@ namespace ILGPU.IR
             /// </summary>
             public override string FormatErrorMessage(string message) =>
                 Method != null
-                ? string.Format(
-                    ErrorMessages.LocationMethodMessage,
-                    message,
-                    Method,
-                    Method.DeclaringType)
-                : message;
+                    ? string.Format(
+                        ErrorMessages.LocationMethodMessage,
+                        message,
+                        Method,
+                        Method.DeclaringType)
+                    : message;
         }
 
         #endregion
@@ -343,7 +343,7 @@ namespace ILGPU.IR
 
             // Check general method flags
             if ((methodBase.MethodImplementationFlags &
-                MethodImplAttributes.InternalCall) ==
+                 MethodImplAttributes.InternalCall) ==
                 MethodImplAttributes.InternalCall)
             {
                 return MethodFlags.External;
@@ -397,9 +397,9 @@ namespace ILGPU.IR
             in MethodDeclaration declaration,
             Location location)
             : base(
-                  location.IsKnown
-                  ? location
-                  : new MethodLocation(declaration.Source))
+                location.IsKnown
+                    ? location
+                    : new MethodLocation(declaration.Source))
         {
             Location.Assert(
                 declaration.HasHandle && declaration.ReturnType != null);
@@ -570,6 +570,7 @@ namespace ILGPU.IR
                 if (i + 1 < e)
                     textWriter.Write(", ");
             }
+
             textWriter.WriteLine(')');
             Blocks.Dump(textWriter);
         }

@@ -76,10 +76,7 @@ namespace ILGPU.Runtime
                 // Wrap in a specialized instance
                 var fieldReturnType = specializedType.MakeGenericType(field.FieldType);
                 var instanceConstructor = fieldReturnType.GetConstructor(
-                    new Type[]
-                    {
-                        field.FieldType
-                    });
+                    new Type[] { field.FieldType });
                 emitter.EmitNewObject(instanceConstructor);
 
                 emitter.Emit(OpCodes.Box, fieldReturnType);
@@ -249,6 +246,7 @@ namespace ILGPU.Runtime
                     param.ParameterType,
                     FieldAttributes.Public));
             }
+
             var sourceFields = fieldBuilders.ToArray();
 
             // Define equals and hash code functions
@@ -352,7 +350,8 @@ namespace ILGPU.Runtime
             var reflectionArgs = new object[KernelParameterOffset + args.Length];
             reflectionArgs[KernelInstanceParamIdx] = this;
             reflectionArgs[KernelStreamParamIdx] = stream
-                ?? throw new ArgumentNullException(nameof(stream));
+                                                   ?? throw new ArgumentNullException(
+                                                       nameof(stream));
             reflectionArgs[KernelParamDimensionIdx] = dimension;
             args.CopyTo(reflectionArgs, KernelParameterOffset);
             Launcher.Invoke(null, reflectionArgs);
@@ -422,8 +421,8 @@ namespace ILGPU.Runtime
         public static Kernel GetKernel<TDelegate>(this TDelegate kernelDelegate)
             where TDelegate : Delegate =>
             kernelDelegate.TryGetKernel(out var kernel)
-            ? kernel
-            : throw new InvalidOperationException();
+                ? kernel
+                : throw new InvalidOperationException();
 
         /// <summary>
         /// Returns the compiled kernel object that is associated with the given kernel

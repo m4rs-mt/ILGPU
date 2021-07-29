@@ -88,13 +88,13 @@ namespace ILGPU.IR.Values
         /// Returns true if the operation has enabled overflow semantics.
         /// </summary>
         public bool CanOverflow => (Flags & ArithmeticFlags.Overflow) ==
-            ArithmeticFlags.Overflow;
+                                   ArithmeticFlags.Overflow;
 
         /// <summary>
         /// Returns true if the operation has enabled unsigned semantics.
         /// </summary>
         public bool IsUnsigned => (Flags & ArithmeticFlags.Unsigned) ==
-            ArithmeticFlags.Unsigned;
+                                  ArithmeticFlags.Unsigned;
 
         /// <summary>
         /// Returns true if the operation works on integers.
@@ -175,6 +175,7 @@ namespace ILGPU.IR.Values
                         BasicValueType.Int32);
                     break;
             }
+
             return type;
         }
 
@@ -272,7 +273,7 @@ namespace ILGPU.IR.Values
 
                 // Check for shift operations
                 (kind == BinaryArithmeticKind.Shl ||
-                    kind == BinaryArithmeticKind.Shr) &&
+                 kind == BinaryArithmeticKind.Shr) &&
                 right.BasicValueType == BasicValueType.Int32);
 
             Kind = kind;

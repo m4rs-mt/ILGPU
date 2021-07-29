@@ -125,8 +125,10 @@ namespace ILGPU.Util
                             result.Add(new FormatExpression(
                                 expression.Slice(0, foundIndex)));
                         }
+
                         expression = expression.Slice(foundIndex + 1);
                     }
+
                     continue;
                 }
 
@@ -145,6 +147,7 @@ namespace ILGPU.Util
                         // Cannot have singular } without opening {
                         return false;
                     }
+
                     continue;
                 }
 

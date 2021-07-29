@@ -65,8 +65,8 @@ namespace ILGPU.IR.Analyses
             /// <returns>Pointer alignment in bytes (can be 1 byte).</returns>
             public readonly int this[Value value] =>
                 AnalysisResult.TryGetData(value, out var data)
-                ? data.Data
-                : 1;
+                    ? data.Data
+                    : 1;
 
             /// <summary>
             /// Returns true if this alignment information object is empty.
@@ -236,8 +236,8 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         protected override AnalysisValue<int>? TryProvide(TypeNode typeNode) =>
             typeNode is AddressSpaceType
-            ? CreateValue(GlobalAlignment, typeNode)
-            : default(AnalysisValue<int>?);
+                ? CreateValue(GlobalAlignment, typeNode)
+                : default(AnalysisValue<int>?);
 
         #endregion
 

@@ -307,6 +307,7 @@ namespace ILGPU.Tests
                 data[index] = 24;
                 return;
             }
+
             data[index] = d;
         }
 

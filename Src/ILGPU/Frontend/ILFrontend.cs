@@ -85,6 +85,7 @@ namespace ILGPU.Frontend
         private readonly ManualResetEventSlim driverNotifier;
         private volatile int activeThreads;
         private readonly object processingSyncObject = new object();
+
         private readonly Stack<ProcessingEntry> processing =
             new Stack<ProcessingEntry>(1 << 6);
 
@@ -167,7 +168,7 @@ namespace ILGPU.Frontend
         private void DoWork()
         {
             var detectedMethods = new Dictionary<MethodBase, CompilationStackLocation>();
-            for (; ; )
+            for (;;)
             {
                 ProcessingEntry current;
                 lock (processingSyncObject)
@@ -255,6 +256,7 @@ namespace ILGPU.Frontend
                     result));
                 Monitor.Pulse(processingSyncObject);
             }
+
             return result;
         }
 
@@ -275,6 +277,7 @@ namespace ILGPU.Frontend
             {
                 throw new InvalidOperationException();
             }
+
             driverNotifier.Reset();
             return newPhase;
         }
@@ -318,6 +321,7 @@ namespace ILGPU.Frontend
                     thread.Join();
                 driverNotifier.Dispose();
             }
+
             base.Dispose(disposing);
         }
 
@@ -363,7 +367,6 @@ namespace ILGPU.Frontend
         /// The first exception during code generation, if any.
         /// </summary>
         public Exception FirstException { get; internal set; }
-
     }
 
     /// <summary>
@@ -483,6 +486,7 @@ namespace ILGPU.Frontend
                         detectedMethods);
                     codeGenerator.GenerateCode();
                 }
+
                 Verifier.Verify(generatedMethod);
 
                 // Evaluate inlining heuristic to adjust method declaration
@@ -539,6 +543,7 @@ namespace ILGPU.Frontend
                 isFinished = true;
                 Frontend.FinishCodeGeneration(this);
             }
+
             base.Dispose(disposing);
         }
 

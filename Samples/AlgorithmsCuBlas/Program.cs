@@ -38,7 +38,8 @@ namespace AlgorithmsReduce
                         var buf2 = accelerator.Allocate<float>(DataSize);
 
                         accelerator.Initialize(accelerator.DefaultStream, buf, 1.0f);
-                        accelerator.Initialize(accelerator.DefaultStream, buf2.View, 1.0f);
+                        accelerator.Initialize(accelerator.DefaultStream, buf2.View,
+                            1.0f);
 
                         // Initialize the CuBlas library using manual pointer mode handling
                         // (default behavior)
@@ -53,14 +54,17 @@ namespace AlgorithmsReduce
                             blas.Nrm2(buf, buf2);
 
                             // Use pointer mode scopes to recover the previous pointer mode
-                            using (var scope = blas.BeginPointerScope(CuBlasPointerMode.Host))
+                            using (var scope =
+                                blas.BeginPointerScope(CuBlasPointerMode.Host))
                             {
                                 float output2 = blas.Nrm2(buf);
                             }
                         }
 
                         // Initialize the CuBlas<T> library using custom pointer mode handlers
-                        using (var blas = new CuBlas<CuBlasPointerModeHandlers.AutomaticMode>(accelerator, CuBlasVersion))
+                        using (var blas =
+                            new CuBlas<CuBlasPointerModeHandlers.AutomaticMode>(
+                                accelerator, CuBlasVersion))
                         {
                             // Automatic transfer to host
                             float output = blas.Nrm2(buf);

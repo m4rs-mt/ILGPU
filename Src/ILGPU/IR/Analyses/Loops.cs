@@ -122,6 +122,7 @@ namespace ILGPU.IR.Analyses
                     if (Node.Headers.Contains(successor, new BasicBlock.Comparer()))
                         successors.Add(successor);
                 }
+
                 return successors;
             }
 
@@ -284,6 +285,7 @@ namespace ILGPU.IR.Analyses
                     if (child.Contains(block))
                         return false;
                 }
+
                 return true;
             }
 
@@ -300,6 +302,7 @@ namespace ILGPU.IR.Analyses
                     if (ContainsExclusively(block))
                         builder.Add(block);
                 }
+
                 return builder.Seal();
             }
 
@@ -317,6 +320,7 @@ namespace ILGPU.IR.Analyses
                     if (BackEdges.Contains(block, new BasicBlock.Comparer()))
                         return true;
                 }
+
                 return false;
             }
 
@@ -334,6 +338,7 @@ namespace ILGPU.IR.Analyses
                     if (!ContainsExclusively(block))
                         return false;
                 }
+
                 return true;
             }
 
@@ -364,7 +369,7 @@ namespace ILGPU.IR.Analyses
             /// <returns>The computed block ordering.</returns>
             public BasicBlockCollection<TOtherOrder, TOtherDirection>
                 ComputeOrderedBlocks<TOtherOrder, TOtherDirection>(
-                int entryIndex)
+                    int entryIndex)
                 where TOtherOrder : struct, ITraversalOrder
                 where TOtherDirection : struct, IControlFlowDirection =>
                 new TOtherOrder().TraverseToCollection<
@@ -801,6 +806,7 @@ namespace ILGPU.IR.Analyses
                     breakers.Add(member);
                 }
             }
+
             v.Node.Assert(headers.Count > 0);
 
             // Compute all back edges
@@ -816,6 +822,7 @@ namespace ILGPU.IR.Analyses
                     }
                 }
             }
+
             v.Node.Assert(backEdges.Count > 0);
 
             // Create a new loop

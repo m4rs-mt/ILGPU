@@ -54,13 +54,16 @@ namespace Mandelbrot
                 x = xtemp;
                 iteration += 1;
             }
+
             output[index] = iteration;
         }
 
 
         private static Context context;
         private static Accelerator accelerator;
-        private static System.Action<Index1, int, int, int, ArrayView<int>> mandelbrot_kernel;
+
+        private static System.Action<Index1, int, int, int, ArrayView<int>>
+            mandelbrot_kernel;
 
         /// <summary>
         /// Compile the mandelbrot kernel in ILGPU-CPU or ILGPU-CUDA mode.
@@ -94,7 +97,8 @@ namespace Mandelbrot
         /// <param name="width"></param>
         /// <param name="height"></param>
         /// <param name="max_iterations"></param>
-        public static void CalcGPU(int[] buffer, int width, int height, int max_iterations)
+        public static void CalcGPU(int[] buffer, int width, int height,
+            int max_iterations)
         {
             int num_values = buffer.Length;
             var dev_out = accelerator.Allocate<int>(num_values);
@@ -116,7 +120,8 @@ namespace Mandelbrot
         /// <param name="width"></param>
         /// <param name="height"></param>
         /// <param name="max_iterations"></param>
-        public static void CalcCPU(int[] buffer, int width, int height, int max_iterations)
+        public static void CalcCPU(int[] buffer, int width, int height,
+            int max_iterations)
         {
             float h_a = -2.0f;
             float h_b = 1.0f;
@@ -143,11 +148,10 @@ namespace Mandelbrot
                         x = xtemp;
                         iteration += 1;
                     }
+
                     buffer[index] = iteration;
                 }
             }
         }
-
-
     }
 }

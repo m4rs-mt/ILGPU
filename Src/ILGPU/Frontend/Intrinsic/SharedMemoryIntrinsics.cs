@@ -85,6 +85,7 @@ namespace ILGPU.Frontend.Intrinsic
                         alloca,
                         alloca.ArrayLength);
             }
+
             throw context.Location.GetNotSupportedException(
                 ErrorMessages.NotSupportedSharedMemoryIntrinsic,
                 attribute.IntrinsicKind.ToString());

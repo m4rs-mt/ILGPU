@@ -290,14 +290,14 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TGroupScanImplementation
-                : struct, IScanImplementation<T, TScanOperation>
+            : struct, IScanImplementation<T, TScanOperation>
         {
             TScanOperation scanOperation = default;
             TGroupScanImplementation groupScan = default;
 
-            T rightBoundary = tileInfo.StartIndex < tileInfo.MaxLength ?
-                input[tileInfo.StartIndex] :
-                scanOperation.Identity;
+            T rightBoundary = tileInfo.StartIndex < tileInfo.MaxLength
+                ? input[tileInfo.StartIndex]
+                : scanOperation.Identity;
 
             // Perform a scan of all items in this group
             rightBoundary = groupScan.AllReduce(rightBoundary);
@@ -315,6 +315,7 @@ namespace ILGPU.Algorithms
                 var reduced = groupScan.AllReduce(inputValue);
                 rightBoundary = scanOperation.Apply(rightBoundary, reduced);
             }
+
             return rightBoundary;
         }
 
@@ -347,9 +348,9 @@ namespace ILGPU.Algorithms
             TGroupScanImplementation groupScan = default;
 
             // Fetch initial current value
-            T inputValue = tileInfo.StartIndex < tileInfo.MaxLength ?
-                input[tileInfo.StartIndex] :
-                scanOperation.Identity;
+            T inputValue = tileInfo.StartIndex < tileInfo.MaxLength
+                ? input[tileInfo.StartIndex]
+                : scanOperation.Identity;
 
             // Perform a scan of all items in this group
             var current = groupScan.Scan(inputValue, out var localBoundaries);
@@ -400,8 +401,8 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TGroupScanImplementation :
-                struct,
-                IScanImplementation<T, TScanOperation>
+            struct,
+            IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(
                 input,
@@ -447,6 +448,7 @@ namespace ILGPU.Algorithms
                         TScanOperation,
                         ExclusiveScanImplementation<T, TScanOperation>>);
             }
+
             return (stream, input, output, temp) =>
             {
                 if (!input.IsValid)
@@ -460,6 +462,7 @@ namespace ILGPU.Algorithms
                     throw new NotSupportedException(
                         ErrorMessages.NotSupportedArrayView64);
                 }
+
                 kernel(stream, (1, accelerator.MaxNumThreadsPerGroup), input, output);
             };
         }
@@ -500,8 +503,8 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TGroupScanImplementation :
-                struct,
-                IScanImplementation<T, TScanOperation>
+            struct,
+            IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
@@ -594,7 +597,7 @@ namespace ILGPU.Algorithms
                         T,
                         TScanOperation,
                         InclusiveScanImplementation<T,
-                        TScanOperation>>);
+                            TScanOperation>>);
             }
             else
             {
@@ -608,7 +611,7 @@ namespace ILGPU.Algorithms
                         T,
                         TScanOperation,
                         ExclusiveScanImplementation<T,
-                        TScanOperation>>);
+                            TScanOperation>>);
             }
 
             long numIntTElementsLong = ComputeNumIntElementsForSinglePassScan<T>();
@@ -678,8 +681,8 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TGroupScanImplementation :
-                struct,
-                IScanImplementation<T, TScanOperation>
+            struct,
+            IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
@@ -720,8 +723,8 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TGroupScanImplementation :
-                struct,
-                IScanImplementation<T, TScanOperation>
+            struct,
+            IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
@@ -901,8 +904,8 @@ namespace ILGPU.Algorithms
             this Accelerator accelerator,
             LongIndex1D dataLength) =>
             dataLength < 1
-            ? throw new ArgumentOutOfRangeException(nameof(dataLength))
-            : new ScanProvider(accelerator, dataLength);
+                ? throw new ArgumentOutOfRangeException(nameof(dataLength))
+                : new ScanProvider(accelerator, dataLength);
 
         /// <summary>
         /// Creates a new specialized scan provider that has its own cache.

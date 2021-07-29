@@ -67,14 +67,14 @@ namespace ILGPU.IR.Values
             const string KernelName = "Kernel";
             if (Location.IsKnown &&
                 (Location is FileLocation fileLocation ||
-                Location is CompilationStackLocation compilationStackLocation &&
-                compilationStackLocation.TryGetLocation(out fileLocation)))
+                 Location is CompilationStackLocation compilationStackLocation &&
+                 compilationStackLocation.TryGetLocation(out fileLocation)))
             {
                 // Return information based on the current file location
                 return (
                     string.IsNullOrWhiteSpace(fileLocation.FileName)
-                    ? KernelName
-                    : fileLocation.FileName,
+                        ? KernelName
+                        : fileLocation.FileName,
                     fileLocation.StartLine,
                     string.Empty);
             }

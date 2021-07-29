@@ -466,6 +466,7 @@ namespace ILGPU.IR.Transformations
                     ExecuteTransform(builder, executor);
                 }
             }
+
             FinishProcessing(intermediate);
         }
 
