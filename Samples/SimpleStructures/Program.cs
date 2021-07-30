@@ -47,7 +47,7 @@ namespace SimpleStructures
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void MyKernel(
-            Index1 index,
+            Index1D index,
             ArrayView<CustomDataType> dataView)
         {
             dataView[index] = new CustomDataType(index);
@@ -58,20 +58,20 @@ namespace SimpleStructures
         /// </summary>
         static void Main()
         {
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<CustomDataType>>(MyKernel);
-                        using (var buffer = accelerator.Allocate<CustomDataType>(1024))
+                        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<CustomDataType>>(MyKernel);
+                        using (var buffer = accelerator.Allocate1D<CustomDataType>(1024))
                         {
                             // Launch buffer.Length many threads and pass a view to buffer
-                            kernel(buffer.Length, buffer.View);
+                            kernel((int)buffer.Length, buffer.View);
 
                             // Wait for the kernel to finish...
                             accelerator.Synchronize();

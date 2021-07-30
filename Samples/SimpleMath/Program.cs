@@ -31,7 +31,7 @@ namespace SimpleMath
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A uniform constant.</param>
         static void MathKernel(
-            Index1 index,                    // The global thread index (1D in this case)
+            Index1D index,                  // The global thread index (1D in this case)
             ArrayView<float> singleView,    // A view of floats to store float results from GPUMath
             ArrayView<double> doubleView,   // A view of doubles to store double results from GPUMath
             ArrayView<double> doubleView2)  // A view of doubles to store double results from .Net Math
@@ -51,32 +51,32 @@ namespace SimpleMath
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
                         var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1, ArrayView<float>, ArrayView<double>, ArrayView<double>>(MathKernel);
+                            Index1D, ArrayView<float>, ArrayView<double>, ArrayView<double>>(MathKernel);
 
-                        var buffer = accelerator.Allocate<float>(128);
-                        var buffer2 = accelerator.Allocate<double>(128);
-                        var buffer3 = accelerator.Allocate<double>(128);
+                        var buffer = accelerator.Allocate1D<float>(128);
+                        var buffer2 = accelerator.Allocate1D<double>(128);
+                        var buffer3 = accelerator.Allocate1D<double>(128);
 
                         // Launch buffer.Length many threads
-                        kernel(buffer.Length, buffer.View, buffer2.View, buffer3.View);
+                        kernel((int)buffer.Length, buffer.View, buffer2.View, buffer3.View);
 
                         // Wait for the kernel to finish...
                         accelerator.Synchronize();
 
                         // Resolve and verify data
-                        var data = buffer.GetAsArray();
-                        var data2 = buffer2.GetAsArray();
-                        var data3 = buffer3.GetAsArray();
+                        var data = buffer.GetAsArray1D();
+                        var data2 = buffer2.GetAsArray1D();
+                        var data3 = buffer3.GetAsArray1D();
                         for (int i = 0, e = data.Length; i < e; ++i)
                             Console.WriteLine($"Math results: {data[i]} (float) {data2[i]} (double [GPUMath]) {data3[i]} (double [.Net Math])");
 

@@ -42,25 +42,28 @@ namespace DeviceInfo
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id.
+                    // Create accelerator for the given device.
                     // Note that all accelerators have to be disposed before the global context is disposed
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
-                        Console.WriteLine($"AcceleratorId: {acceleratorId.AcceleratorType}, {accelerator.Name}");
+                        Console.WriteLine($"Accelerator: {device.AcceleratorType}, {accelerator.Name}");
                         PrintAcceleratorInfo(accelerator);
                         Console.WriteLine();
                     }
                 }
+            }
 
-                // Accelerators can also be created manually with custom settings.
-                // The following code snippet creates a CPU accelerator with 4 threads
-                // and highest thread priority.
-                using (var accelerator = new CPUAccelerator(context, 4, ThreadPriority.Highest))
+            // CPU accelerators can also be created manually with custom settings.
+            // The following code snippet creates a CPU accelerator with 4 threads
+            // and highest thread priority.
+            using (var context = Context.Create(builder => builder.CPU(new CPUDevice(4, 1, 1))))
+            {
+                using (var accelerator = context.CreateCPUAccelerator(0, CPUAcceleratorMode.Auto, ThreadPriority.Highest))
                 {
                     PrintAcceleratorInfo(accelerator);
                 }
