@@ -38,28 +38,26 @@ namespace AlgorithmsRadixSort
         public int MaxValue { get; }
 
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)"/>
-        public int ComputeSequenceElement(Index1 sequenceIndex) => MaxValue - sequenceIndex;
+        public int ComputeSequenceElement(LongIndex1D sequenceIndex) => MaxValue - sequenceIndex.ToIntIndex();
     }
 
     class Program
     {
         static void Main()
         {
-            using (var context = new Context())
+            // Create default context and enable algorithms library
+            using (var context = Context.Create(builder => builder.Default().EnableAlgorithms()))
             {
-                // Enable algorithms library
-                context.EnableAlgorithms();
-
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
                     // Create the associated accelerator
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         // Allocate the source buffer that will be sorted later on.
-                        var sourceBuffer = accelerator.Allocate<int>(32);
+                        var sourceBuffer = accelerator.Allocate1D<int>(32);
                         accelerator.Sequence(
                             accelerator.DefaultStream,
                             sourceBuffer.View,
@@ -73,8 +71,8 @@ namespace AlgorithmsRadixSort
                         var radixSort = accelerator.CreateRadixSort<int, AscendingInt32>();
 
                         // Compute the required amount of temporary memory
-                        var tempMemSize = accelerator.ComputeRadixSortTempStorageSize<int, AscendingInt32>(sourceBuffer.Length);
-                        using (var tempBuffer = accelerator.Allocate<int>(tempMemSize))
+                        var tempMemSize = accelerator.ComputeRadixSortTempStorageSize<int, AscendingInt32>((Index1D)sourceBuffer.Length);
+                        using (var tempBuffer = accelerator.Allocate1D<int>(tempMemSize))
                         {
                             // Performs a descending radix-sort operation
                             radixSort(
@@ -86,14 +84,14 @@ namespace AlgorithmsRadixSort
                         Console.WriteLine("Ascending RadixSort:");
                         accelerator.Synchronize();
 
-                        var data = sourceBuffer.GetAsArray();
+                        var data = sourceBuffer.GetAsArray1D();
                         for (int i = 0, e = data.Length; i < e; ++i)
                             Console.WriteLine($"Data[{i}] = {data[i]}");
 
                         // Creates a RadixSortProvider that hosts its own memory-buffer cache to allow
                         // for parallel invocations of different operations that require
                         // an extra cache.
-                        using (var radixSortProvider = accelerator.CreateRadixSortProvider())
+                        using (var radixSortProvider = accelerator.CreateRadixSortProvider<int, DescendingInt32>((Index1D)sourceBuffer.Length))
                         {
                             // Create a new radix sort instance using an ascending int sorting.
                             var radixSortUsingSortProvider = radixSortProvider.CreateRadixSort<int, DescendingInt32>();
@@ -106,7 +104,7 @@ namespace AlgorithmsRadixSort
                             Console.WriteLine("Descending RadixSort:");
                             accelerator.Synchronize();
 
-                            data = sourceBuffer.GetAsArray();
+                            data = sourceBuffer.GetAsArray1D();
                             for (int i = 0, e = data.Length; i < e; ++i)
                                 Console.WriteLine($"Data[{i}] = {data[i]}");
                         }

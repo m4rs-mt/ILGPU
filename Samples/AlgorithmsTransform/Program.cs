@@ -53,22 +53,20 @@ namespace AlgorithmsTransform
     {
         static void Main()
         {
-            using (var context = new Context())
+            // Create default context and enable algorithms library
+            using (var context = Context.Create(builder => builder.Default().EnableAlgorithms()))
             {
-                // Enable algorithms library
-                context.EnableAlgorithms();
-
                 // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                foreach (var device in context)
                 {
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var sourceBuffer = accelerator.Allocate<int>(64);
+                        var sourceBuffer = accelerator.Allocate1D<int>(64);
                         accelerator.Initialize(accelerator.DefaultStream, sourceBuffer.View, 2);
 
-                        using (var targetBuffer = accelerator.Allocate<CustomStruct>(64))
+                        using (var targetBuffer = accelerator.Allocate1D<CustomStruct>(64))
                         {
                             // Transforms all elements.
                             accelerator.Transform(
@@ -79,12 +77,12 @@ namespace AlgorithmsTransform
 
                             accelerator.Synchronize();
 
-                            var data = targetBuffer.GetAsArray();
+                            var data = targetBuffer.GetAsArray1D();
                             for (int i = 0, e = data.Length; i < e; ++i)
                                 Console.WriteLine($"Data[{i}] = {data[i]}");
                         }
 
-                        using (var targetBuffer = accelerator.Allocate<CustomStruct>(64))
+                        using (var targetBuffer = accelerator.Allocate1D<CustomStruct>(64))
                         {
                             // Calling the convenient Transform function on the accelerator
                             // involves internal heap allocations. This can be avoided by constructing
@@ -102,7 +100,7 @@ namespace AlgorithmsTransform
 
                             accelerator.Synchronize();
 
-                            var data = targetBuffer.GetAsArray();
+                            var data = targetBuffer.GetAsArray1D();
                             for (int i = 0, e = data.Length; i < e; ++i)
                                 Console.WriteLine($"Data[{i}] = {data[i]}");
                         }
