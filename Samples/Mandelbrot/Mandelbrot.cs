@@ -27,7 +27,7 @@ namespace Mandelbrot
         /// <param name="max_iterations"></param>
         /// <param name="output"></param>
         static void MandelbrotKernel(
-            Index1 index,
+            Index1D index,
             int width, int height, int max_iterations,
             ArrayView<int> output)
         {
@@ -60,7 +60,7 @@ namespace Mandelbrot
 
         private static Context context;
         private static Accelerator accelerator;
-        private static System.Action<Index1, int, int, int, ArrayView<int>> mandelbrot_kernel;
+        private static System.Action<Index1D, int, int, int, ArrayView<int>> mandelbrot_kernel;
 
         /// <summary>
         /// Compile the mandelbrot kernel in ILGPU-CPU or ILGPU-CUDA mode.
@@ -68,14 +68,14 @@ namespace Mandelbrot
         /// <param name="withCUDA"></param>
         public static void CompileKernel(bool withCUDA)
         {
-            context = new Context();
+            context = Context.CreateDefault();
             if (withCUDA)
-                accelerator = new CudaAccelerator(context);
+                accelerator = context.CreateCudaAccelerator(0);
             else
-                accelerator = new CPUAccelerator(context);
+                accelerator = context.CreateCPUAccelerator(0);
 
             mandelbrot_kernel = accelerator.LoadAutoGroupedStreamKernel<
-                Index1, int, int, int, ArrayView<int>>(MandelbrotKernel);
+                Index1D, int, int, int, ArrayView<int>>(MandelbrotKernel);
         }
 
         /// <summary>
@@ -97,12 +97,12 @@ namespace Mandelbrot
         public static void CalcGPU(int[] buffer, int width, int height, int max_iterations)
         {
             int num_values = buffer.Length;
-            var dev_out = accelerator.Allocate<int>(num_values);
+            var dev_out = accelerator.Allocate1D<int>(num_values);
 
             // Launch kernel
             mandelbrot_kernel(num_values, width, height, max_iterations, dev_out.View);
             accelerator.Synchronize();
-            dev_out.CopyTo(buffer, 0, 0, num_values);
+            dev_out.CopyToCPU(buffer);
 
             dev_out.Dispose();
             return;
