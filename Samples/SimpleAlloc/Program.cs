@@ -29,7 +29,7 @@ namespace SimpleAlloc
         /// <param name="accelerator">The target accelerator.</param>
         static void SampleInitialization(Accelerator accelerator)
         {
-            using (var data = accelerator.Allocate<int>(1024))
+            using (var data = accelerator.Allocate1D<int>(1024))
             {
                 // Note that allocated memory is not initialized in general and
                 // may contain random information.
@@ -49,21 +49,13 @@ namespace SimpleAlloc
             Console.WriteLine($"Performing 1D allocation on {accelerator.Name}");
             var data = Enumerable.Range(0, AllocationSize1D).ToArray();
             var targetData = new int[AllocationSize1D];
-            using (var buffer = accelerator.Allocate<int>(data.Length + 32))
+            using (var buffer = accelerator.Allocate1D<int>(data.Length))
             {
                 // Copy to accelerator
-                buffer.CopyFrom(
-                    data,         // data source
-                    0,            // source index in the scope of the data source
-                    32,           // target index in the scope of the buffer
-                    data.Length); // the number of elements to copy
+                buffer.CopyFromCPU(data);
 
                 // Copy from accelerator
-                buffer.CopyTo(
-                    targetData,   // data target
-                    32,           // source index in the scope of the buffer
-                    0,            // target index in the scope of the data target
-                    data.Length); // the number of elements to copy
+                buffer.CopyToCPU(targetData);
             }
 
             // Verify data
@@ -89,23 +81,15 @@ namespace SimpleAlloc
                     data[i, j] = j * AllocationSize1D + i;
             }
             var targetData = new int[AllocationSize1D, AllocationSize2D];
-            using (var buffer = accelerator.Allocate<int>(AllocationSize1D + 32, AllocationSize2D))
+            using (var buffer = accelerator.Allocate2DDenseY<int>(new LongIndex2D(AllocationSize1D, AllocationSize2D)))
             // You can also use:
-            // using (var buffer = accl.Allocate<int>(new Index2(AllocationSize1D + 32, AllocationSize2D)))
+            // using (var buffer = accelerator.Allocate2DDenseX<int>(new LongIndex2D(AllocationSize1D, AllocationSize2D)))
             {
                 // Copy to accelerator
-                buffer.CopyFrom(
-                    data,                                             // data source
-                    new Index2(),                                     // source index in the scope of the data source
-                    new Index2(32, 0),                                // target index in the scope of the buffer
-                    new Index2(AllocationSize1D, AllocationSize2D));  // the number of elements to copy
+                buffer.CopyFromCPU(data);
 
                 // Copy from accelerator
-                buffer.CopyTo(
-                    targetData,                                       // data target
-                    new Index2(32, 0),                                // source index in the scope of the data source
-                    new Index2(),                                     // target index in the scope of the buffer
-                    new Index2(AllocationSize1D, AllocationSize2D));  // the number of elements to copy
+                buffer.CopyToCPU(targetData);
             }
 
             // Verify data
@@ -135,23 +119,13 @@ namespace SimpleAlloc
                         data[i, j, k] = ((k * AllocationSize2D) + j) * AllocationSize1D + i;
             }
             var targetData = new int[AllocationSize1D, AllocationSize2D, AllocationSize3D];
-            using (var buffer = accelerator.Allocate<int>(AllocationSize1D + 32, AllocationSize2D, AllocationSize3D))
-            // You can also use:
-            // using (var buffer = accl.Allocate<int>(new Index3(AllocationSize1D + 32, AllocationSize2D, AllocationSize3D)))
+            using (var buffer = accelerator.Allocate3DDenseXY<int>(new LongIndex3D(AllocationSize1D, AllocationSize2D, AllocationSize3D)))
             {
                 // Copy to accelerator
-                buffer.CopyFrom(
-                    data,                                                               // data source
-                    new Index3(),                                                       // source index in the scope of the data source
-                    new Index3(32, 0, 0),                                               // target index in the scope of the buffer
-                    new Index3(AllocationSize1D, AllocationSize2D, AllocationSize3D));  // the number of elements to copy
+                buffer.CopyFromCPU(data);
 
                 // Copy from accelerator
-                buffer.CopyTo(
-                    targetData,                                                         // data target
-                    new Index3(32, 0, 0),                                               // target index in the scope of the buffer
-                    new Index3(),                                                       // source index in the scope of the data source
-                    new Index3(AllocationSize1D, AllocationSize2D, AllocationSize3D));  // the number of elements to copy
+                buffer.CopyToCPU(targetData);
             }
 
             // Verify data
@@ -178,12 +152,12 @@ namespace SimpleAlloc
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
                 // Perform memory allocations and operations on all available accelerators
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                foreach (var device in context)
                 {
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         // Note:
                         // - You can only transfer contiguous chunks of memory to and from memory buffers.
