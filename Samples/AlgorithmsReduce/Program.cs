@@ -26,9 +26,9 @@ namespace AlgorithmsReduce
         /// <param name="accl">The target accelerator.</param>
         static void Reduce(Accelerator accl)
         {
-            using (var buffer = accl.Allocate<int>(64))
+            using (var buffer = accl.Allocate1D<int>(64))
             {
-                using (var target = accl.Allocate<int>(1))
+                using (var target = accl.Allocate1D<int>(1))
                 {
                     accl.Sequence(accl.DefaultStream, buffer.View, new Int32Sequencer());
 
@@ -42,7 +42,7 @@ namespace AlgorithmsReduce
 
                     accl.Synchronize();
 
-                    var data = target.GetAsArray();
+                    var data = target.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Reduced[{i}] = {data[i]}");
                 }
@@ -51,15 +51,13 @@ namespace AlgorithmsReduce
 
         static void Main()
         {
-            using (var context = new Context())
+            // Create default context and enable algorithms library
+            using (var context = Context.Create(builder => builder.Default().EnableAlgorithms()))
             {
-                // Enable algorithms library
-                context.EnableAlgorithms();
-
                 // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                foreach (var device in context)
                 {
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
