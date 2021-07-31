@@ -824,6 +824,56 @@ namespace ILGPU.Tests
             var expected = new int[] { 4 };
             Verify(buffer.View, expected);
         }
+
+        internal static void ConditionalArrayFoldingKernel(
+            Index1D index,
+            ArrayView<int> buffer)
+        {
+            int[] values = new[] { 0, 1 };
+
+            if (index == values[0])
+                buffer[index] = 42;
+            else
+                buffer[index] = 24;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(ConditionalArrayFoldingKernel))]
+        public void ConditionalArrayFolding()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(4);
+            Execute(buffer.IntExtent, buffer.AsContiguous());
+
+            var expected = new int[] { 42, 24, 24, 24 };
+            Verify(buffer.View, expected);
+        }
+
+        internal static void ConditionalArrayPartialFoldingKernel(
+            Index1D index,
+            ArrayView<int> buffer,
+            int constant)
+        {
+            int[] values = new[] { 0, 1 };
+
+            if (index == values[1] & constant == values[0])
+                buffer[index] = 42;
+            else
+                buffer[index] = 24;
+        }
+
+        [InlineData(0)]
+        [InlineData(1)]
+        [Theory]
+        [KernelMethod(nameof(ConditionalArrayPartialFoldingKernel))]
+        public void ConditionalArrayPartialFolding(int constantValue)
+        {
+            using var buffer = Accelerator.Allocate1D<int>(4);
+            Execute(4, buffer.AsContiguous(), constantValue);
+
+            var expected = new int[] { 24, 42, 24, 24 };
+            expected[constantValue] = 24;
+            Verify(buffer.View, expected);
+        }
     }
 }
 
