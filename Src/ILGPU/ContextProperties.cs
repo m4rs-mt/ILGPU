@@ -168,7 +168,7 @@ namespace ILGPU
         /// Adding this flag causes stores to static fields
         /// to be silently ignored instead of rejected.
         /// </summary>
-        Aggressive
+        IgnoreStaticFieldStores
     }
 
     /// <summary>

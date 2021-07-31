@@ -439,7 +439,8 @@ namespace ILGPU.Frontend
         {
             Debug.Assert(field != null || !field.IsStatic, "Invalid field");
 
-            if (Context.Properties.StaticFieldMode < StaticFieldMode.Aggressive)
+            if (Context.Properties.StaticFieldMode
+                < StaticFieldMode.IgnoreStaticFieldStores)
             {
                 throw CompilationStackLocation.Append(Location).GetNotSupportedException(
                     ErrorMessages.NotSupportedStoreToStaticField,
