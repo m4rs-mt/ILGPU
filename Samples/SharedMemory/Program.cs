@@ -98,13 +98,13 @@ namespace SharedMemory
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
@@ -114,16 +114,16 @@ namespace SharedMemory
 
                         var data = Enumerable.Range(1, 128).ToArray();
 
-                        using (var dataSource = accelerator.Allocate<int>(data.Length))
+                        using (var dataSource = accelerator.Allocate1D<int>(data.Length))
                         {
                             // Initialize data source
-                            dataSource.CopyFrom(data, 0, 0, data.Length);
+                            dataSource.CopyFromCPU(data);
 
                             KernelConfig dimension = (
-                                (dataSource.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
-                                groupSize);                                      // Use the given group size
+                                ((int)dataSource.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
+                                groupSize);                                           // Use the given group size
 
-                            using (var dataTarget = accelerator.Allocate<int>(data.Length))
+                            using (var dataTarget = accelerator.Allocate1D<int>(data.Length))
                             {
                                 var sharedMemVarKernel = accelerator.LoadStreamKernel<
                                     ArrayView<int>, ArrayView<int>>(SharedMemoryVariableKernel);
@@ -136,7 +136,7 @@ namespace SharedMemory
                                 accelerator.Synchronize();
 
                                 Console.WriteLine("Shared-memory kernel");
-                                var target = dataTarget.GetAsArray();
+                                var target = dataTarget.GetAsArray1D();
                                 for (int i = 0, e = target.Length; i < e; ++i)
                                     Console.WriteLine($"Data[{i}] = {target[i]}");
 
@@ -151,7 +151,7 @@ namespace SharedMemory
                                 accelerator.Synchronize();
 
                                 Console.WriteLine("Shared-memory-array kernel");
-                                target = dataTarget.GetAsArray();
+                                target = dataTarget.GetAsArray1D();
                                 for (int i = 0, e = target.Length; i < e; ++i)
                                     Console.WriteLine($"Data[{i}] = {target[i]}");
                             }

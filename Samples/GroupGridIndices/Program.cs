@@ -70,20 +70,20 @@ namespace GroupGridIndices
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         var groupSize = accelerator.MaxNumThreadsPerGroup;
                         KernelConfig kernelConfig = (2, groupSize);
 
-                        using (var buffer = accelerator.Allocate<int>(kernelConfig.Size))
+                        using (var buffer = accelerator.Allocate1D<int>(kernelConfig.Size))
                         {
                             var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, int>(GroupedKernel);
                             groupedKernel(kernelConfig, buffer.View, 64);
@@ -91,7 +91,7 @@ namespace GroupGridIndices
                             accelerator.Synchronize();
 
                             Console.WriteLine("Default grouped kernel");
-                            var data = buffer.GetAsArray();
+                            var data = buffer.GetAsArray1D();
                             for (int i = 0, e = data.Length; i < e; ++i)
                                 Console.WriteLine($"Data[{i}] = {data[i]}");
                         }

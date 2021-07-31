@@ -16,10 +16,10 @@ using System;
 namespace GenericKernel
 {
     /// <summary>
-    /// An interface constraint for the <see cref="Kernel{TKernelFunction, T}(Index1, ArrayView{T}, int, TKernelFunction)"/> function.
+    /// An interface constraint for the <see cref="Kernel{TKernelFunction, T}(Index1D, ArrayView{T}, int, TKernelFunction)"/> function.
     /// This helps to emulate a lambda-function delegate that is passed to a kernel in a type safe way.
     /// </summary>
-    /// <typeparam name="T">The element type that is returned by the <see cref="ComputeValue(Index1, int)"/> function.</typeparam>
+    /// <typeparam name="T">The element type that is returned by the <see cref="ComputeValue(Index1D, int)"/> function.</typeparam>
     interface IKernelFunction<T>
         where T : struct
     {
@@ -29,7 +29,7 @@ namespace GenericKernel
         /// <param name="index">The element index.</param>
         /// <param name="value">The kernel-context specific value.</param>
         /// <returns>The computed value.</returns>
-        T ComputeValue(Index1 index, int value);
+        T ComputeValue(Index1D index, int value);
     }
 
     /// <summary>
@@ -51,8 +51,8 @@ namespace GenericKernel
         /// </summary>
         public long Offset { get; }
 
-        /// <summary cref="IKernelFunction{T}.ComputeValue(Index1, int)"/>
-        public long ComputeValue(Index1 index, int value) =>
+        /// <summary cref="IKernelFunction{T}.ComputeValue(Index1D, int)"/>
+        public long ComputeValue(Index1D index, int value) =>
             Offset + value * index;
     }
 
@@ -68,7 +68,7 @@ namespace GenericKernel
         /// <param name="value">The constant input value.</param>
         /// <param name="function">The domain and context-specific kernel lambda function.</param>
         static void Kernel<TKernelFunction, T>(
-            Index1 index,
+            Index1D index,
             ArrayView<T> data,
             int value,
             TKernelFunction function)
@@ -86,22 +86,22 @@ namespace GenericKernel
         {
             const int DataSize = 1024;
 
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
                         var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1, ArrayView<long>, int, LambdaClosure>(Kernel);
-                        using (var buffer = accelerator.Allocate<long>(DataSize))
+                            Index1D, ArrayView<long>, int, LambdaClosure>(Kernel);
+                        using (var buffer = accelerator.Allocate1D<long>(DataSize))
                         {
-                            kernel(buffer.Length, buffer.View, 1, new LambdaClosure(20));
+                            kernel((int)buffer.Length, buffer.View, 1, new LambdaClosure(20));
 
-                            var data = buffer.GetAsArray();
+                            var data = buffer.GetAsArray1D();
                         }
                     }
                 }

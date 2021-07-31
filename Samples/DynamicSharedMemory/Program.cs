@@ -61,23 +61,20 @@ namespace DynamicSharedMemory
 
         static void Main()
         {
-            using (var context = new Context())
+            using (var context = Context.Create(builder => builder.DefaultCPU().Cuda()))
             {
-                var accelerators =
-                    CudaAccelerator.CudaAccelerators.Cast<AcceleratorId>().Concat(
-                    CPUAccelerator.CPUAccelerators.Cast<AcceleratorId>());
-                // For each available accelerator...
-                foreach (var acceleratorId in accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         // Use LoadStreamKernel or LoadKernel to load explicitly grouped kernels
                         var kernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<short>>(SharedMemKernel);
-                        var buffer = accelerator.Allocate<int>(accelerator.MaxNumThreadsPerGroup);
-                        var buffer2 = accelerator.Allocate<short>(accelerator.MaxNumThreadsPerGroup);
+                        var buffer = accelerator.Allocate1D<int>(accelerator.MaxNumThreadsPerGroup);
+                        var buffer2 = accelerator.Allocate1D<short>(accelerator.MaxNumThreadsPerGroup);
 
                         // Use 'new KernelConfig(..., ..., ...)' to construct a new launch configuration
                         // Hint: use the C# tuple features to convert a triple into a kernel config
@@ -92,8 +89,8 @@ namespace DynamicSharedMemory
                             buffer.View,
                             buffer2.View);
 
-                        var data = buffer.GetAsArray();
-                        var data2 = buffer2.GetAsArray();
+                        var data = buffer.GetAsArray1D();
+                        var data2 = buffer2.GetAsArray1D();
                         // Use data objects...
                     }
                 }

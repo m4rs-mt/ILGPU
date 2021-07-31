@@ -93,18 +93,18 @@ namespace WarpShuffle
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         KernelConfig dimension = (1, accelerator.WarpSize);
-                        using (var dataTarget = accelerator.Allocate<int>(accelerator.WarpSize))
+                        using (var dataTarget = accelerator.Allocate1D<int>(accelerator.WarpSize))
                         {
                             // Load the explicitly grouped kernel
                             var shuffleDownKernel = accelerator.LoadStreamKernel<ArrayView<int>>(ShuffleDownKernel);
@@ -114,12 +114,12 @@ namespace WarpShuffle
                             accelerator.Synchronize();
 
                             Console.WriteLine("Shuffle-down kernel");
-                            var target = dataTarget.GetAsArray();
+                            var target = dataTarget.GetAsArray1D();
                             for (int i = 0, e = target.Length; i < e; ++i)
                                 Console.WriteLine($"Data[{i}] = {target[i]}");
                         }
 
-                        using (var dataTarget = accelerator.Allocate<ComplexStruct>(accelerator.WarpSize))
+                        using (var dataTarget = accelerator.Allocate1D<ComplexStruct>(accelerator.WarpSize))
                         {
                             // Load the explicitly grouped kernel
                             var reduceKernel = accelerator.LoadStreamKernel<ArrayView<ComplexStruct>, ComplexStruct>(
@@ -130,7 +130,7 @@ namespace WarpShuffle
                             accelerator.Synchronize();
 
                             Console.WriteLine("Generic shuffle kernel");
-                            var target = dataTarget.GetAsArray();
+                            var target = dataTarget.GetAsArray1D();
                             for (int i = 0, e = target.Length; i < e; ++i)
                                 Console.WriteLine($"Data[{i}] = {target[i]}");
                         }

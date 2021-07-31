@@ -140,11 +140,11 @@ namespace MatrixMultiply
             Console.WriteLine($"- Naive implementation: {sw.ElapsedMilliseconds}ms");
 
             // Accelerated implementations
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                foreach (var device in context)
                 {
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         sw.Restart();
                         var acceleratedResult = MatrixMultiplyAccelerated(accelerator, a, b);
@@ -220,19 +220,24 @@ namespace MatrixMultiply
             if (ka != kb)
                 throw new ArgumentException($"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
 
-            var kernel = accelerator.LoadAutoGroupedStreamKernel<Index2, ArrayView2D<float>, ArrayView2D<float>, ArrayView2D<float>>(MatrixMultiplyAcceleratedKernel);
+            var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                Index2D, 
+                ArrayView2D<float, Stride2D.DenseX>,
+                ArrayView2D<float, Stride2D.DenseX>,
+                ArrayView2D<float, Stride2D.DenseX>>(
+                MatrixMultiplyAcceleratedKernel);
 
-            using (var aBuffer = accelerator.Allocate<float>(m, ka))
-            using (var bBuffer = accelerator.Allocate<float>(ka, n))
-            using (var cBuffer = accelerator.Allocate<float>(m, n))
+            using (var aBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, ka)))
+            using (var bBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(ka, n)))
+            using (var cBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, n)))
             {
-                aBuffer.CopyFrom(a, Index2.Zero, Index2.Zero, aBuffer.Extent);
-                bBuffer.CopyFrom(b, Index2.Zero, Index2.Zero, bBuffer.Extent);
+                aBuffer.CopyFromCPU(a);
+                bBuffer.CopyFromCPU(b);
 
-                kernel(cBuffer.Extent, aBuffer, bBuffer, cBuffer);
+                kernel(cBuffer.Extent.ToIntIndex(), aBuffer.View, bBuffer.View, cBuffer.View);
                 accelerator.Synchronize();
 
-                return cBuffer.GetAs2DArray();
+                return cBuffer.GetAsArray2D();
             }
         }
 
@@ -243,14 +248,18 @@ namespace MatrixMultiply
         /// <param name="aView">An input matrix of size MxK</param>
         /// <param name="bView">An input matrix of size KxN</param>
         /// <param name="cView">An output matrix of size MxN</param>
-        static void MatrixMultiplyAcceleratedKernel(Index2 index, ArrayView2D<float> aView, ArrayView2D<float> bView, ArrayView2D<float> cView)
+        static void MatrixMultiplyAcceleratedKernel(
+            Index2D index, 
+            ArrayView2D<float, Stride2D.DenseX> aView, 
+            ArrayView2D<float, Stride2D.DenseX> bView, 
+            ArrayView2D<float, Stride2D.DenseX> cView)
         {
             var x = index.X;
             var y = index.Y;
             var sum = 0.0f;
 
-            for (var i = 0; i < aView.Height; i++)
-                sum += aView[new Index2(x, i)] * bView[new Index2(i, y)];
+            for (var i = 0; i < aView.IntExtent.Y; i++)
+                sum += aView[new Index2D(x, i)] * bView[new Index2D(i, y)];
 
             cView[index] = sum;
         }
@@ -281,21 +290,25 @@ namespace MatrixMultiply
             if (ka != kb)
                 throw new ArgumentException($"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
 
-            var kernel = accelerator.LoadStreamKernel<ArrayView2D<float>, ArrayView2D<float>, ArrayView2D<float>>(MatrixMultiplyTiledKernel);
-            var groupSize = new Index2(TILE_SIZE, TILE_SIZE);
-            var numGroups = new Index2((m + TILE_SIZE - 1) / TILE_SIZE, (n + TILE_SIZE - 1) / TILE_SIZE);
+            var kernel = accelerator.LoadStreamKernel<
+                ArrayView2D<float, Stride2D.DenseX>, 
+                ArrayView2D<float, Stride2D.DenseX>, 
+                ArrayView2D<float, Stride2D.DenseX>>(
+                MatrixMultiplyTiledKernel);
+            var groupSize = new Index2D(TILE_SIZE, TILE_SIZE);
+            var numGroups = new Index2D((m + TILE_SIZE - 1) / TILE_SIZE, (n + TILE_SIZE - 1) / TILE_SIZE);
 
-            using (var aBuffer = accelerator.Allocate<float>(m, ka))
-            using (var bBuffer = accelerator.Allocate<float>(ka, n))
-            using (var cBuffer = accelerator.Allocate<float>(m, n))
+            using (var aBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, ka)))
+            using (var bBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(ka, n)))
+            using (var cBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, n)))
             {
-                aBuffer.CopyFrom(a, Index2.Zero, Index2.Zero, aBuffer.Extent);
-                bBuffer.CopyFrom(b, Index2.Zero, Index2.Zero, bBuffer.Extent);
+                aBuffer.CopyFromCPU(a);
+                bBuffer.CopyFromCPU(b);
 
                 kernel((numGroups, groupSize), aBuffer, bBuffer, cBuffer);
                 accelerator.Synchronize();
 
-                return cBuffer.GetAs2DArray();
+                return cBuffer.GetAsArray2D();
             }
         }
 
@@ -305,35 +318,38 @@ namespace MatrixMultiply
         /// <param name="aView">An input matrix of size MxK</param>
         /// <param name="bView">An input matrix of size KxN</param>
         /// <param name="cView">An output matrix of size MxN</param>
-        static void MatrixMultiplyTiledKernel(ArrayView2D<float> aView, ArrayView2D<float> bView, ArrayView2D<float> cView)
+        static void MatrixMultiplyTiledKernel(
+            ArrayView2D<float, Stride2D.DenseX> aView, 
+            ArrayView2D<float, Stride2D.DenseX> bView, 
+            ArrayView2D<float, Stride2D.DenseX> cView)
         {
             var global = Grid.GlobalIndex.XY;
             var x = Group.IdxX;
             var y = Group.IdxY;
 
-            var aTile = SharedMemory.Allocate2D<float>(TILE_SIZE, TILE_SIZE);
-            var bTile = SharedMemory.Allocate2D<float>(TILE_SIZE, TILE_SIZE);
+            var aTile = SharedMemory.Allocate2D<float, Stride2D.DenseX>(new Index2D(TILE_SIZE, TILE_SIZE), new Stride2D.DenseX(TILE_SIZE));
+            var bTile = SharedMemory.Allocate2D<float, Stride2D.DenseX>(new Index2D(TILE_SIZE, TILE_SIZE), new Stride2D.DenseX(TILE_SIZE));
             var sum = 0.0f;
 
-            for (var i = 0; i < aView.Width; i += TILE_SIZE)
+            for (var i = 0; i < aView.IntExtent.X; i += TILE_SIZE)
             {
-                if (global.X < aView.Width && y + i < aView.Height)
+                if (global.X < aView.IntExtent.X && y + i < aView.IntExtent.Y)
                     aTile[x, y] = aView[global.X, y + i];
                 else
                     aTile[x, y] = 0;
 
-                if (x + i < bView.Width && global.Y < bView.Height)
+                if (x + i < bView.IntExtent.X && global.Y < bView.IntExtent.Y)
                     bTile[x, y] = bView[x + i, global.Y];
                 else
                     bTile[x, y] = 0;
                 Group.Barrier();
 
                 for (var k = 0; k < TILE_SIZE; k++)
-                    sum += aTile[new Index2(x, k)] * bTile[new Index2(k, y)];
+                    sum += aTile[new Index2D(x, k)] * bTile[new Index2D(k, y)];
                 Group.Barrier();
             }
 
-            if (global.X < cView.Width && global.Y < cView.Height)
+            if (global.X < cView.IntExtent.X && global.Y < cView.IntExtent.Y)
                 cView[global] = sum;
         }
 

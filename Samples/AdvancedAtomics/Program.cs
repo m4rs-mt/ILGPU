@@ -58,7 +58,7 @@ namespace AdvancedAtomics
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="value">The value to add.</param>
         static void AddDoubleAtomicKernel(
-            Index1 index,
+            Index1D index,
             ArrayView<double> dataView,
             double value)
         {
@@ -78,7 +78,7 @@ namespace AdvancedAtomics
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="value">The value to add.</param>
         static void AddDoubleAtomicILGPUFunctionsKernel(
-            Index1 index,
+            Index1D index,
             ArrayView<double> dataView,
             double value)
         {
@@ -97,7 +97,7 @@ namespace AdvancedAtomics
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="value">The value to add.</param>
         static void AddDoubleBuiltInKernel(
-            Index1 index,
+            Index1D index,
             ArrayView<double> dataView,
             double value)
         {
@@ -107,12 +107,12 @@ namespace AdvancedAtomics
 
         static void LaunchKernel(
             Accelerator accelerator,
-            Action<Index1, ArrayView<double>, double> method)
+            Action<Index1D, ArrayView<double>, double> method)
         {
             Console.WriteLine("Launching: " + method.Method.Name);
 
             var kernel = accelerator.LoadAutoGroupedStreamKernel(method);
-            using (var buffer = accelerator.Allocate<double>(1))
+            using (var buffer = accelerator.Allocate1D<double>(1))
             {
                 buffer.MemSetToZero();
 
@@ -121,7 +121,7 @@ namespace AdvancedAtomics
                 // Wait for the kernel to finish...
                 accelerator.Synchronize();
 
-                var data = buffer.GetAsArray();
+                var data = buffer.GetAsArray1D();
                 for (int i = 0, e = data.Length; i < e; ++i)
                     Console.WriteLine($"Data[{i}] = {data[i]}");
             }
@@ -134,13 +134,13 @@ namespace AdvancedAtomics
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
