@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net47;netcoreapp3.1;net5.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />>
-    <ProjectReference Include="..\Src\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
+    <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
+    <ProjectReference Include="..\..\Src\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
   </ItemGroup>
 </Project>
