@@ -32,7 +32,7 @@ namespace SimpleKernel
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A uniform constant.</param>
         static void MyKernel(
-            Index1 index,              // The global thread index (1D in this case)
+            Index1D index,             // The global thread index (1D in this case)
             ArrayView<int> dataView,   // A view to a chunk of memory (1D in this case)
             int constant)              // A sample uniform constant
         {
@@ -45,13 +45,13 @@ namespace SimpleKernel
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
@@ -64,19 +64,19 @@ namespace SimpleKernel
                         // var kernel = accelerator.LoadautoGroupedKernel<Index, ArrayView<int>, int>(MyKernel);
                         // For more detail refer to the ImplicitlyGroupedKernels or ExplicitlyGroupedKernels sample.
                         var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1, ArrayView<int>, int>(MyKernel);
+                            Index1D, ArrayView<int>, int>(MyKernel);
 
-                        using (var buffer = accelerator.Allocate<int>(1024))
+                        using (var buffer = accelerator.Allocate1D<int>(1024))
                         {
                             // Launch buffer.Length many threads and pass a view to buffer
                             // Note that the kernel launch does not involve any boxing
-                            kernel(buffer.Length, buffer.View, 42);
+                            kernel((int)buffer.Length, buffer.View, 42);
 
                             // Wait for the kernel to finish...
                             accelerator.Synchronize();
 
                             // Resolve and verify data
-                            var data = buffer.GetAsArray();
+                            var data = buffer.GetAsArray1D();
                             for (int i = 0, e = data.Length; i < e; ++i)
                             {
                                 if (data[i] != 42 + i)

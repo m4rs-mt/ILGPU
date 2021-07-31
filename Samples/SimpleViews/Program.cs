@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU;
+using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using System;
 using System.Diagnostics;
@@ -37,7 +38,7 @@ namespace SimpleViews
         static void SubViewAccess(ArrayView<int> view)
         {
             // Creates a sub view that represents a view from index 10 to view.Length - 1
-            var subView = view.GetSubView(10);
+            var subView = view.SubView(10);
             Debug.Assert(subView.Length == view.Length - 10);
 
             // Write value to sub view and output value
@@ -46,12 +47,12 @@ namespace SimpleViews
 
             // Creates a sub view that represents a view from index 10 with length 20
             // (up to index 10 + 20)
-            var subView2 = view.GetSubView(10, 20);
+            var subView2 = view.SubView(10, 20);
             Debug.Assert(subView2.Length == 20);
             Console.WriteLine($"Value of sub view 2 at index 0: {subView2[0]} = value of view at index 10: {view[10]}");
 
             // Creates a sub view that represents a view from index 20 with length 2
-            var subView3 = subView2.GetSubView(10, 2);
+            var subView3 = subView2.SubView(10, 2);
             subView3[1] = 23;
 
             // An access of the form subView3[2] will trigger an OutOfBounds assertion
@@ -63,7 +64,7 @@ namespace SimpleViews
         {
             // Creates a variable view that points to the last accessible element
             // of the provided view
-            var variableView = view.GetVariableView(view.Length - 1);
+            var variableView = view.VariableView(view.Length - 1);
             variableView.Value = 13;
 
             Debug.Assert(variableView.Value == view[view.Length - 1]);
@@ -72,13 +73,13 @@ namespace SimpleViews
         static void UnsafeVariableViewAccess(ArrayView<int> view)
         {
             // Creates a variable view that points to the first element
-            var variableView = view.GetVariableView(0);
+            var variableView = view.VariableView(0);
 
             // Cast variable view to an accessible sub element in range.
             // The passed offset is the relative offset of the sub view in bytes.
             // The primary use case for this functionality are direct accesses
             // to structure members.
-            var subView = variableView.GetSubView<short>(sizeof(short));
+            var subView = variableView.SubView<short>(sizeof(short));
             subView.Value = short.MaxValue;
 
             Debug.Assert(variableView.Value == short.MaxValue << 16);
@@ -91,12 +92,12 @@ namespace SimpleViews
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.Create(builder => builder.DefaultCPU()))
             {
                 // We perform all operations in CPU memory here
-                using (var accelerator = new CPUAccelerator(context))
+                using (var accelerator = context.CreateCPUAccelerator(0))
                 {
-                    using (var buffer = accelerator.Allocate<int>(1024))
+                    using (var buffer = accelerator.Allocate1D<int>(1024))
                     {
                         // Retrieve a view to the whole buffer.
                         ArrayView<int> bufferView = buffer.View;

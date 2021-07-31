@@ -21,7 +21,7 @@ namespace Empty
         static void Main()
         {
             // Every application needs an instantiated global ILGPU context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
                 // Note that every other instantiated ILGPU object needs to be disposed before
                 // disposing the global context.

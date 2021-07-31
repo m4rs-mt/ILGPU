@@ -49,7 +49,7 @@ namespace SimpleConstants
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void ConstantKernel(
-            Index1 index,
+            Index1D index,
             ArrayView<int> dataView)
         {
             dataView[index] = ConstantValue;
@@ -61,7 +61,7 @@ namespace SimpleConstants
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void StaticFieldAccessKernel(
-            Index1 index,
+            Index1D index,
             ArrayView<int> dataView)
         {
             dataView[index] = ReadOnlyValue;
@@ -78,7 +78,7 @@ namespace SimpleConstants
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void StaticNonReadOnlyFieldAccessKernel(
-            Index1 index,
+            Index1D index,
             ArrayView<int> dataView)
         {
             dataView[index] = WriteEnabledValue;
@@ -95,7 +95,7 @@ namespace SimpleConstants
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void StaticFieldWriteAccessKernel(
-            Index1 index,
+            Index1D index,
             ArrayView<int> dataView)
         {
             WriteEnabledValue = index;
@@ -103,20 +103,20 @@ namespace SimpleConstants
 
         static void LaunchKernel(
             Accelerator accelerator,
-            Action<Index1, ArrayView<int>> method,
+            Action<Index1D, ArrayView<int>> method,
             int? expectedValue)
         {
             var kernel = accelerator.LoadAutoGroupedStreamKernel(method);
-            using (var buffer = accelerator.Allocate<int>(1024))
+            using (var buffer = accelerator.Allocate1D<int>(1024))
             {
-                kernel(buffer.Length, buffer.View);
+                kernel((int)buffer.Length, buffer.View);
 
                 // Wait for the kernel to finish...
                 accelerator.Synchronize();
 
                 if (expectedValue.HasValue)
                 {
-                    var data = buffer.GetAsArray();
+                    var data = buffer.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Debug.Assert(data[i] == expectedValue);
                 }
@@ -130,22 +130,22 @@ namespace SimpleConstants
         {
             // All kernels reject read accesses to write-enabled static fields by default.
             // However, you can disable this restriction via:
-            // ContextFlags.InlineMutableStaticFieldValues.
+            // StaticFields(StaticFieldMode.MutableStaticFields).
 
             // All kernels reject write accesses to static fields by default.
             // However, you can skip such assignments by via:
-            // ContextFlags.IgnoreStaticFieldStores.
+            // StaticFields(StaticFieldMode.IgnoreStaticFieldStores).
 
             // Create main context
-            using (var context = new Context(
-                ContextFlags.InlineMutableStaticFieldValues |
-                ContextFlags.IgnoreStaticFieldStores))
+            using (var context = Context.Create(builder =>
+                builder.Default()
+                .StaticFields(StaticFieldMode.MutableStaticFields | StaticFieldMode.IgnoreStaticFieldStores)))
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
