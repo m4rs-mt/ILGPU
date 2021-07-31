@@ -64,7 +64,7 @@ namespace CustomIntrinsics
                 BindingFlags.Public | BindingFlags.Static);
 
             // Register the Cuda version (optional)
-            context.IntrinsicManager.RegisterMethod(
+            context.GetIntrinsicManager().RegisterMethod(
                 methodInfo,
                 new PTXIntrinsic(
                     remappingType,
@@ -72,7 +72,7 @@ namespace CustomIntrinsics
                     IntrinsicImplementationMode.Redirect));
 
             // Register the CL version (optional)
-            context.IntrinsicManager.RegisterMethod(
+            context.GetIntrinsicManager().RegisterMethod(
                 methodInfo,
                 new CLIntrinsic(
                     remappingType,
@@ -176,7 +176,7 @@ namespace CustomIntrinsics
                 BindingFlags.Public | BindingFlags.Static);
 
             // Register the Cuda version (optional)
-            context.IntrinsicManager.RegisterMethod(
+            context.GetIntrinsicManager().RegisterMethod(
                 methodInfo,
                 new PTXIntrinsic(
                     remappingType,
@@ -184,7 +184,7 @@ namespace CustomIntrinsics
                     IntrinsicImplementationMode.GenerateCode));
 
             // Register the CL version (optional)
-            context.IntrinsicManager.RegisterMethod(
+            context.GetIntrinsicManager().RegisterMethod(
                 methodInfo,
                 new CLIntrinsic(
                     remappingType,
@@ -198,7 +198,7 @@ namespace CustomIntrinsics
         /// <summary>
         /// Demo kernel demonstrating intrinsic remapping.
         /// </summary>
-        public static void KernelUsingCustomIntrinsic(Index1 index, ArrayView<int> view)
+        public static void KernelUsingCustomIntrinsic(Index1D index, ArrayView<int> view)
         {
             // Invoke the intrinsic like a default function
             view[index] = CustomRemappedIntrinsic.ComputeBackendDependent(index);
@@ -207,7 +207,7 @@ namespace CustomIntrinsics
         /// <summary>
         /// Demo kernel demonstrating intrinsic code generation.
         /// </summary>
-        public static void KernelUsingCustomCodeGeneratorIntrinsic(Index1 index, ArrayView<int> view)
+        public static void KernelUsingCustomCodeGeneratorIntrinsic(Index1D index, ArrayView<int> view)
         {
             // Invoke the intrinsic like a default function
             view[index] = CustomCodeGeneratorIntrinsic.ComputeBackendDependentUsingCodeGenerator(index);
@@ -219,35 +219,35 @@ namespace CustomIntrinsics
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
                 // Enable our custom intrinsics
                 context.EnableDemoRemappingIntrinsic();
                 context.EnableDemoCodeGeneratorIntrinsic();
 
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         // Compile and load kernels using our custom intrinsic implementation
-                        var remappingKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<int>>(
+                        var remappingKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<int>>(
                             KernelUsingCustomIntrinsic);
-                        var codeGeneratorKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<int>>(
+                        var codeGeneratorKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<int>>(
                             KernelUsingCustomCodeGeneratorIntrinsic);
 
-                        using (var buffer = accelerator.Allocate<int>(32))
+                        using (var buffer = accelerator.Allocate1D<int>(32))
                         {
-                            remappingKernel(buffer.Length, buffer.View);
-                            var data = buffer.GetAsArray();
+                            remappingKernel((int)buffer.Length, buffer.View);
+                            var data = buffer.GetAsArray1D();
                             Console.Write("Remapping: ");
                             Console.WriteLine(string.Join(", ", data));
 
-                            codeGeneratorKernel(buffer.Length, buffer.View);
-                            data = buffer.GetAsArray();
+                            codeGeneratorKernel((int)buffer.Length, buffer.View);
+                            data = buffer.GetAsArray1D();
                             Console.Write("CodeGeneration: ");
                             Console.WriteLine(string.Join(", ", data));
                         }

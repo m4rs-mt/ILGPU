@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU;
+using ILGPU.Backends;
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime;
 using System;
@@ -35,7 +36,7 @@ namespace LowLevelKernelCompilation
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A nice uniform constant.</param>
         static void MyKernel(
-            Index1 index,              // The global thread index (1D in this case)
+            Index1D index,             // The global thread index (1D in this case)
             ArrayView<int> dataView,   // A view to a chunk of memory (1D in this case)
             int constant)              // A uniform constant
         {
@@ -75,7 +76,7 @@ namespace LowLevelKernelCompilation
         static void CompileAndLaunchKernel(Accelerator accelerator, int groupSize)
         {
             // Access the current backend for this device
-            var backend = accelerator.Backend;
+            var backend = accelerator.GetBackend();
 
             // Resolve and compile method into a kernel
             var method = typeof(Program).GetMethod(nameof(GroupedKernel), BindingFlags.NonPublic | BindingFlags.Static);
@@ -92,20 +93,20 @@ namespace LowLevelKernelCompilation
                 var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, KernelConfig, ArrayView<int>, int>>();
                 // -------------------------------------------------------------------------------
 
-                using (var buffer = accelerator.Allocate<int>(1024))
+                using (var buffer = accelerator.Allocate1D<int>(1024))
                 {
                     // You can also use kernel.Launch; however, the generic launch method involves boxing.
                     launcher(
                         accelerator.DefaultStream,
-                        ((buffer.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
-                         groupSize),                                  // Use the given group size
+                        (((int)buffer.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
+                         groupSize),                                       // Use the given group size
                         buffer.View,
                         42);
 
                     accelerator.Synchronize();
 
                     // Resolve and verify data
-                    var data = buffer.GetAsArray();
+                    var data = buffer.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                     {
                         if (data[i] != 42 + i)
@@ -121,7 +122,7 @@ namespace LowLevelKernelCompilation
         static void CompileAndLaunchImplicitlyGroupedKernel(Accelerator accelerator, int groupSize)
         {
             // Access the current backend for this device
-            var backend = accelerator.Backend;
+            var backend = accelerator.GetBackend();
 
             // Resolve and compile method into a kernel
             var method = typeof(Program).GetMethod(nameof(MyKernel), BindingFlags.NonPublic | BindingFlags.Static);
@@ -135,16 +136,16 @@ namespace LowLevelKernelCompilation
             // Note that the kernel has to be disposed manually.
             using (var kernel = accelerator.LoadImplicitlyGroupedKernel(compiledKernel, groupSize))
             {
-                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index1, ArrayView<int>, int>>();
+                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index1D, ArrayView<int>, int>>();
                 // -------------------------------------------------------------------------------
 
-                using (var buffer = accelerator.Allocate<int>(1024))
+                using (var buffer = accelerator.Allocate1D<int>(1024))
                 {
                     // Launch buffer.Length many threads and pass a view to buffer.
                     // You can also use kernel.Launch; however, the generic launch method involves boxing.
                     launcher(
                         accelerator.DefaultStream,
-                        buffer.Length,
+                        (int)buffer.Length,
                         buffer.View,
                         42);
 
@@ -152,7 +153,7 @@ namespace LowLevelKernelCompilation
                     accelerator.Synchronize();
 
                     // Resolve and verify data
-                    var data = buffer.GetAsArray();
+                    var data = buffer.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                     {
                         if (data[i] != 42 + i)
@@ -170,7 +171,7 @@ namespace LowLevelKernelCompilation
         static void CompileAndLaunchAutoGroupedKernel(Accelerator accelerator)
         {
             // Access the current backend for this device
-            var backend = accelerator.Backend;
+            var backend = accelerator.GetBackend();
 
             // Resolve and compile method into a kernel
             var method = typeof(Program).GetMethod(nameof(MyKernel), BindingFlags.NonPublic | BindingFlags.Static);
@@ -184,16 +185,16 @@ namespace LowLevelKernelCompilation
             // Note that the kernel has to be disposed manually.
             using (var kernel = accelerator.LoadAutoGroupedKernel(compiledKernel))
             {
-                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index1, ArrayView<int>, int>>();
+                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index1D, ArrayView<int>, int>>();
                 // -------------------------------------------------------------------------------
 
-                using (var buffer = accelerator.Allocate<int>(1024))
+                using (var buffer = accelerator.Allocate1D<int>(1024))
                 {
                     // Launch buffer.Length many threads and pass a view to buffer.
                     // You can also use kernel.Launch; however, the generic launch method involves boxing.
                     launcher(
                         accelerator.DefaultStream,
-                        buffer.Length,
+                        (int)buffer.Length,
                         buffer.View,
                         42);
 
@@ -201,7 +202,7 @@ namespace LowLevelKernelCompilation
                     accelerator.Synchronize();
 
                     // Resolve and verify data
-                    var data = buffer.GetAsArray();
+                    var data = buffer.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                     {
                         if (data[i] != 42 + i)
@@ -221,13 +222,13 @@ namespace LowLevelKernelCompilation
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 

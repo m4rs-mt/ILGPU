@@ -87,19 +87,19 @@ namespace SpecializedKernel
 
         static void Main()
         {
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
                         int groupSize = accelerator.MaxNumThreadsPerGroup;
 
                         // Scenario 1: simple version
-                        using (var buffer = accelerator.Allocate<int>(groupSize))
+                        using (var buffer = accelerator.Allocate1D<int>(groupSize))
                         {
                             var kernel = accelerator.LoadStreamKernel<
                                 ArrayView<int>,
@@ -110,7 +110,7 @@ namespace SpecializedKernel
                         }
 
                         // Scenario 2: custom structure
-                        using (var buffer = accelerator.Allocate<int>(groupSize))
+                        using (var buffer = accelerator.Allocate1D<int>(groupSize))
                         {
                             var kernel = accelerator.LoadStreamKernel<
                                 ArrayView<int>,
@@ -128,7 +128,7 @@ namespace SpecializedKernel
                         }
 
                         // Scenario 3: generic kernel
-                        using (var buffer = accelerator.Allocate<long>(groupSize))
+                        using (var buffer = accelerator.Allocate1D<long>(groupSize))
                         {
                             var kernel = accelerator.LoadStreamKernel<
                                 ArrayView<long>,

@@ -35,7 +35,7 @@ namespace ImplicitlyGroupedKernels
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A nice uniform constant.</param>
         static void MyKernel(
-            Index1 index,              // The global thread index (1D in this case)
+            Index1D index,             // The global thread index (1D in this case)
             ArrayView<int> dataView,   // A view to a chunk of memory (1D in this case)
             int constant)              // A sample uniform constant
         {
@@ -44,18 +44,18 @@ namespace ImplicitlyGroupedKernels
 
         static void LaunchKernel(
             Accelerator accelerator,
-            Action<Index1, ArrayView<int>, int> launcher)
+            Action<Index1D, ArrayView<int>, int> launcher)
         {
-            using (var buffer = accelerator.Allocate<int>(1024))
+            using (var buffer = accelerator.Allocate1D<int>(1024))
             {
                 // Launch buffer.Length many threads and pass a view to buffer
-                launcher(buffer.Length, buffer.View, 42);
+                launcher((int)buffer.Length, buffer.View, 42);
 
                 // Wait for the kernel to finish...
                 accelerator.Synchronize();
 
                 // Resolve and verify data
-                var data = buffer.GetAsArray();
+                var data = buffer.GetAsArray1D();
                 for (int i = 0, e = data.Length; i < e; ++i)
                 {
                     if (data[i] != 42 + i)
@@ -71,13 +71,13 @@ namespace ImplicitlyGroupedKernels
         static void Main()
         {
             // Create main context
-            using (var context = new Context())
+            using (var context = Context.CreateDefault())
             {
-                // For each available accelerator...
-                foreach (var acceleratorId in Accelerator.Accelerators)
+                // For each available device...
+                foreach (var device in context)
                 {
-                    // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    // Create accelerator for the given device
+                    using (var accelerator = device.CreateAccelerator(context))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
@@ -90,7 +90,7 @@ namespace ImplicitlyGroupedKernels
                         // In order to create a launcher that receives a custom accelerator stream
                         // use: accelerator.LoadAutoGroupedKernel<Index, ArrayView<int>, int>(...)
                         var myAutoGroupedKernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1, ArrayView<int>, int>(MyKernel);
+                            Index1D, ArrayView<int>, int>(MyKernel);
 
                         LaunchKernel(accelerator, myAutoGroupedKernel);
 
@@ -104,7 +104,7 @@ namespace ImplicitlyGroupedKernels
                         // In order to create a launcher that receives a custom accelerator stream
                         // use: accelerator.LoadImplicitlyGroupedKernel<Index, ArrayView<int>, int>(...)
                         var myImplicitlyGroupedKernel = accelerator.LoadImplicitlyGroupedStreamKernel<
-                            Index1, ArrayView<int>, int>(MyKernel, accelerator.WarpSize);
+                            Index1D, ArrayView<int>, int>(MyKernel, accelerator.WarpSize);
 
                         LaunchKernel(accelerator, myImplicitlyGroupedKernel);
                     }
