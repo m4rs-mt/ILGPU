@@ -11,6 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Src\ILGPU\ILGPU.csproj" />
+    <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
   </ItemGroup>
 </Project>

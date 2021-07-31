@@ -41,7 +41,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleConstants", "SimpleCo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WarpShuffle", "WarpShuffle\WarpShuffle.csproj", "{B43A6385-0030-4ED6-B1E5-74303D65DEA5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mandelbrot", "Mandelbrot\Mandelbrot.csproj", "{88BDFE37-9C45-406C-9E05-3F190A6EAD57}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mandelbrot", "Mandelbrot\Mandelbrot.csproj", "{88BDFE37-9C45-406C-9E05-3F190A6EAD57}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LowLevelKernelCompilation", "LowLevelKernelCompilation\LowLevelKernelCompilation.csproj", "{2F9FC475-C45F-4192-9081-A971731E8717}"
 EndProject
@@ -86,6 +86,12 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicSharedMemory", "DynamicSharedMemory\DynamicSharedMemory.csproj", "{DFAFCD16-A9CE-4CB5-963D-399CB1F04B47}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpecializedKernel", "SpecializedKernel\SpecializedKernel.csproj", "{7C451CAA-F8EE-47DF-A35D-B0918B5968EA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{03FCC663-945D-4982-90D8-B14BE52D8FCD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU", "..\Src\ILGPU\ILGPU.csproj", "{AB8D0C89-A736-43B2-9590-31A5F07C479C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms", "..\Src\ILGPU.Algorithms\ILGPU.Algorithms.csproj", "{97C5FB2D-D327-4657-91DA-7119EC1F86A1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -299,6 +305,18 @@ Global
 		{7C451CAA-F8EE-47DF-A35D-B0918B5968EA}.DebugVerification|Any CPU.Build.0 = Debug|Any CPU
 		{7C451CAA-F8EE-47DF-A35D-B0918B5968EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C451CAA-F8EE-47DF-A35D-B0918B5968EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB8D0C89-A736-43B2-9590-31A5F07C479C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB8D0C89-A736-43B2-9590-31A5F07C479C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB8D0C89-A736-43B2-9590-31A5F07C479C}.DebugVerification|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB8D0C89-A736-43B2-9590-31A5F07C479C}.DebugVerification|Any CPU.Build.0 = Debug|Any CPU
+		{AB8D0C89-A736-43B2-9590-31A5F07C479C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB8D0C89-A736-43B2-9590-31A5F07C479C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97C5FB2D-D327-4657-91DA-7119EC1F86A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97C5FB2D-D327-4657-91DA-7119EC1F86A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97C5FB2D-D327-4657-91DA-7119EC1F86A1}.DebugVerification|Any CPU.ActiveCfg = Debug|Any CPU
+		{97C5FB2D-D327-4657-91DA-7119EC1F86A1}.DebugVerification|Any CPU.Build.0 = Debug|Any CPU
+		{97C5FB2D-D327-4657-91DA-7119EC1F86A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97C5FB2D-D327-4657-91DA-7119EC1F86A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -344,6 +362,8 @@ Global
 		{B0EC7CF4-DDD8-493C-BAD3-22D944AD9994} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 		{DFAFCD16-A9CE-4CB5-963D-399CB1F04B47} = {C1D99632-ED4A-4B08-A14D-4C8DB375934F}
 		{7C451CAA-F8EE-47DF-A35D-B0918B5968EA} = {C1D99632-ED4A-4B08-A14D-4C8DB375934F}
+		{AB8D0C89-A736-43B2-9590-31A5F07C479C} = {03FCC663-945D-4982-90D8-B14BE52D8FCD}
+		{97C5FB2D-D327-4657-91DA-7119EC1F86A1} = {03FCC663-945D-4982-90D8-B14BE52D8FCD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {30E502BD-3826-417F-888F-1CE19CF5C6DA}
