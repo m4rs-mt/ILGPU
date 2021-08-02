@@ -896,9 +896,7 @@ namespace ILGPU.Tests
             Assert.Equal(linearLength * 2 - 1, oneDView3.Length);
 
             // Verify 2D views
-            var twoDView = oneDView.As2DView(
-                new LongIndex2D(length1, length2),
-                new Stride2D.DenseX(length1));
+            var twoDView = oneDView.As2DDenseXView(new LongIndex2D(length1, length2));
             Assert.Equal(length1 * length2, twoDView.Length);
             Assert.Equal(length1, twoDView.Extent.X);
             Assert.Equal(length2, twoDView.Extent.Y);
@@ -923,9 +921,7 @@ namespace ILGPU.Tests
             Assert.Equal(length1 * length2, oneD2DView.Extent.Size);
             Assert.Equal(length1 * length2, oneD2DView.Length);
 
-            var twoDViewY = oneD2DView.As2DView(
-                new LongIndex2D(length1, length2),
-                new Stride2D.DenseY(length2));
+            var twoDViewY = oneD2DView.As2DDenseYView(new LongIndex2D(length1, length2));
             Assert.Equal(length1 * length2, twoDViewY.Length);
             Assert.Equal(length1, twoDViewY.Extent.X);
             Assert.Equal(length2, twoDViewY.Extent.Y);
@@ -944,9 +940,8 @@ namespace ILGPU.Tests
                 twoDView.Extent);
 
             // Verify 3D views
-            var threeDView = oneDView.As3DView(
-                new LongIndex3D(length1, length2, length3),
-                new Stride3D.DenseXY(length1, length1 * length2));
+            var threeDView = oneDView.As3DDenseXYView(
+                new LongIndex3D(length1, length2, length3));
             Assert.Equal(length1 * length2 * length3, threeDView.Length);
             Assert.Equal(length1, threeDView.Extent.X);
             Assert.Equal(length2, threeDView.Extent.Y);
@@ -973,9 +968,8 @@ namespace ILGPU.Tests
             Assert.Equal(length1 * length2 * length3, oneD3DView.Extent.Size);
             Assert.Equal(1, oneD3DView.Stride.XStride);
 
-            var threeDViewZ = oneD3DView.As3DView(
-                new LongIndex3D(length3, length2, length1),
-                new Stride3D.DenseZY(length2 * length1, length2));
+            var threeDViewZ = oneD3DView.As3DDenseZYView(
+                new LongIndex3D(length3, length2, length1));
             Assert.Equal(length1 * length2 * length3, threeDViewZ.Length);
             Assert.Equal(length3, threeDViewZ.Extent.X);
             Assert.Equal(length2, threeDViewZ.Extent.Y);
