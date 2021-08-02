@@ -151,6 +151,11 @@ namespace ILGPU.IR.Transformations
             if (inliningMode != InliningMode.Disabled)
                 builder.Add(new Inliner());
 
+            // Apply UCE and DCE passes to avoid dead branches and fold conditionals that
+            // do not affect the actual code being executed
+            builder.Add(new UnreachableCodeElimination());
+            builder.Add(new DeadCodeElimination());
+
             // Skip further optimizations in debug mode
             if (level < OptimizationLevel.O1)
                 return;
@@ -168,8 +173,9 @@ namespace ILGPU.IR.Transformations
             // AddressSpaceSpecializer
             builder.Add(new LowerStructures());
 
-            // Apply DCE phase in release mode to remove all dead values that
-            // could be created in prior passes
+            // Apply UCE and DCE phases in release mode to remove all dead values and
+            // branches that could be have been created in prior passes
+            builder.Add(new UnreachableCodeElimination());
             builder.Add(new DeadCodeElimination());
 
             // Converts local memory arrays into compile-time known structures
