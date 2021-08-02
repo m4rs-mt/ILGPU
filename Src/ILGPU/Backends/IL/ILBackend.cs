@@ -10,6 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.IL.Transformations;
+using ILGPU.IR;
+using ILGPU.IR.Transformations;
 using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
@@ -24,8 +27,23 @@ namespace ILGPU.Backends.IL
     /// <summary>
     /// The basic MSIL backend for the CPU runtime.
     /// </summary>
-    public abstract class ILBackend : Backend
+    public abstract class ILBackend : Backend<ILBackend.Handler>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents the handler delegate type of custom code-generation handlers.
+        /// </summary>
+        /// <param name="backend">The current backend.</param>
+        /// <param name="emitter">The current emitter.</param>
+        /// <param name="value">The value to generate code for.</param>
+        public delegate void Handler(
+            ILBackend backend,
+            in ILEmitter emitter,
+            Value value);
+
+        #endregion
+
         #region Static
 
         /// <summary>
@@ -83,6 +101,21 @@ namespace ILGPU.Backends.IL
                   argumentMapper)
         {
             WarpSize = warpSize;
+
+            InitIntrinsicProvider();
+            InitializeKernelTransformers(builder =>
+            {
+                var transformerBuilder = Transformer.CreateBuilder(
+                    TransformerConfiguration.Empty);
+                transformerBuilder.AddBackendOptimizations(
+                    new ILAcceleratorSpecializer(
+                        PointerType,
+                        warpSize,
+                        Context.Properties.EnableAssertions),
+                    context.Properties.InliningMode,
+                    context.Properties.OptimizationLevel);
+                builder.Add(transformerBuilder.ToTransformer());
+            });
         }
 
         #endregion
