@@ -48,6 +48,8 @@ namespace ILGPU.Backends.OpenCL.Transformations
 
         #endregion
 
+        #region Instance
+
         /// <summary>
         /// Constructs a new OpenCL accelerator specializer.
         /// </summary>
@@ -59,6 +61,8 @@ namespace ILGPU.Backends.OpenCL.Transformations
                   pointerType,
                   false)
         { }
+
+        #endregion
 
         #region Methods
 
