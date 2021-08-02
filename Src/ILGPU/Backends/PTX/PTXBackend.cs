@@ -94,27 +94,26 @@ namespace ILGPU.Backends.PTX
             InstructionSet = instructionSet;
 
             InitIntrinsicProvider();
-            InitializeKernelTransformers(
-                builder =>
+            InitializeKernelTransformers(builder =>
+            {
+                var transformerBuilder = Transformer.CreateBuilder(
+                    TransformerConfiguration.Empty);
+                transformerBuilder.AddBackendOptimizations(
+                    new PTXAcceleratorSpecializer(
+                        PointerType,
+                        Context.Properties.EnableAssertions),
+                    context.Properties.InliningMode,
+                    context.Properties.OptimizationLevel);
+
+                if (Context.Properties.GetPTXBackendMode() == PTXBackendMode.Enhanced)
                 {
-                    var transformerBuilder = Transformer.CreateBuilder(
-                        TransformerConfiguration.Empty);
-                    transformerBuilder.AddBackendOptimizations(
-                        new PTXAcceleratorSpecializer(
-                            PointerType,
-                            Context.Properties.EnableAssertions),
-                        context.Properties.InliningMode,
-                        context.Properties.OptimizationLevel);
+                    // Create an optimized PTX assembler block schedule
+                    transformerBuilder.Add(new PTXBlockScheduling());
+                    transformerBuilder.Add(new DeadCodeElimination());
+                }
 
-                    if (Context.Properties.GetPTXBackendMode() == PTXBackendMode.Enhanced)
-                    {
-                        // Create an optimized PTX assembler block schedule
-                        transformerBuilder.Add(new PTXBlockScheduling());
-                        transformerBuilder.Add(new DeadCodeElimination());
-                    }
-
-                    builder.Add(transformerBuilder.ToTransformer());
-                });
+                builder.Add(transformerBuilder.ToTransformer());
+            });
         }
 
         #endregion
