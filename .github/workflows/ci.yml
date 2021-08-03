@@ -253,7 +253,7 @@ jobs:
           path: ./Bin/Release/ILGPU*.${{ steps.package.outputs.version }}.*nupkg
 
     outputs:
-      tag: ${{ steps.version.outputs.version }}
+      version: ${{ steps.version.outputs.version }}
 
   # Virtual job that can be configured as a required check before a PR can be
   # merged.
@@ -282,7 +282,8 @@ jobs:
   # a tag is pushed.
   publish-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !github.event.repository.fork
-    needs: [all-required-checks-done]
+    # Depends explictly on the 'package' job so we can access its output
+    needs: [all-required-checks-done, package]
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
