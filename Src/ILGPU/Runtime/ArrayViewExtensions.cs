@@ -1827,6 +1827,78 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
+        /// Converts this array view into a 2D view with X being the leading dimension.
+        /// </summary>
+        /// <param name="extent">The target extent to use.</param>
+        /// <returns>The converted 2D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView2D<T, Stride2D.DenseX> As2DDenseXView(LongIndex2D extent)
+        {
+            IndexTypeExtensions.AssertIntIndexRange(extent.X);
+            return As2DView(extent, new Stride2D.DenseX((int)extent.X));
+        }
+
+        /// <summary>
+        /// Converts this array view into a 2D view with Y being the leading dimension.
+        /// </summary>
+        /// <param name="extent">The target extent to use.</param>
+        /// <returns>The converted 2D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView2D<T, Stride2D.DenseY> As2DDenseYView(LongIndex2D extent)
+        {
+            IndexTypeExtensions.AssertIntIndexRange(extent.Y);
+            return As2DView(extent, new Stride2D.DenseY((int)extent.Y));
+        }
+
+        /// <summary>
+        /// Converts this array view into a pitched 2D view with X being the leading
+        /// dimension.
+        /// </summary>
+        /// <param name="extent">The target extent to use.</param>
+        /// <param name="xAlignmentInBytes">
+        /// The alignment in bytes of the leading dimension.
+        /// </param>
+        /// <returns>The converted 2D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView2D<T, Stride2D.DenseX> As2DPitchedXView(
+            LongIndex2D extent,
+            int xAlignmentInBytes)
+        {
+            IndexTypeExtensions.AssertIntIndexRange(extent.X);
+
+            var yStride = StrideExtensions.GetPitchedLeadingDimension<T>(
+                extent.X,
+                xAlignmentInBytes);
+            IndexTypeExtensions.AssertIntIndexRange(yStride);
+
+            return As2DView(extent, new Stride2D.DenseX((int)yStride));
+        }
+
+        /// <summary>
+        /// Converts this array view into a pitched2D view with Y being the leading
+        /// dimension.
+        /// </summary>
+        /// <param name="extent">The target extent to use.</param>
+        /// <param name="yAlignmentInBytes">
+        /// The alignment in bytes of the leading dimension.
+        /// </param>
+        /// <returns>The converted 2D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView2D<T, Stride2D.DenseY> As2DPitchedYView(
+            LongIndex2D extent,
+            int yAlignmentInBytes)
+        {
+            IndexTypeExtensions.AssertIntIndexRange(extent.Y);
+
+            var xStride = StrideExtensions.GetPitchedLeadingDimension<T>(
+                extent.Y,
+                yAlignmentInBytes);
+            IndexTypeExtensions.AssertIntIndexRange(xStride);
+
+            return As2DView(extent, new Stride2D.DenseY((int)xStride));
+        }
+
+        /// <summary>
         /// Converts the given view into a 3D view.
         /// </summary>
         /// <typeparam name="TOtherStride">The stride type.</typeparam>
@@ -1846,6 +1918,94 @@ namespace ILGPU.Runtime
                 baseView,
                 extent,
                 stride);
+        }
+
+        /// <summary>
+        /// Converts this array view into a 3D view with XY being the leading dimensions.
+        /// </summary>
+        /// <param name="extent">The target extent to use.</param>
+        /// <returns>The converted 3D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView3D<T, Stride3D.DenseXY> As3DDenseXYView(LongIndex3D extent)
+        {
+            IndexTypeExtensions.AssertIntIndexRange(extent.X);
+            IndexTypeExtensions.AssertIntIndexRange(extent.Y);
+            IndexTypeExtensions.AssertIntIndexRange(extent.X * extent.Y);
+            return As3DView(
+                extent,
+                new Stride3D.DenseXY((int)extent.X, (int)(extent.X * extent.Y)));
+        }
+
+        /// <summary>
+        /// Converts this array view into a 3D view with ZY being the leading dimensions.
+        /// </summary>
+        /// <param name="extent">The target extent to use.</param>
+        /// <returns>The converted 3D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView3D<T, Stride3D.DenseZY> As3DDenseZYView(LongIndex3D extent)
+        {
+            IndexTypeExtensions.AssertIntIndexRange(extent.Y);
+            IndexTypeExtensions.AssertIntIndexRange(extent.Z);
+            IndexTypeExtensions.AssertIntIndexRange(extent.Y * extent.Z);
+            return As3DView(
+                extent,
+                new Stride3D.DenseZY((int)(extent.Y * extent.Z), (int)extent.Z));
+        }
+
+        /// <summary>
+        /// Converts this array view into a pitched 3D view with XY being the leading
+        /// dimensions.
+        /// </summary>
+        /// <param name="extent">The target extent to use.</param>
+        /// <param name="xyAlignmentInBytes">
+        /// The alignment in bytes of the leading dimension.
+        /// </param>
+        /// <returns>The converted 3D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView3D<T, Stride3D.DenseXY> As3DPitchedXYView(
+            LongIndex3D extent,
+            int xyAlignmentInBytes)
+        {
+            IndexTypeExtensions.AssertIntIndexRange(extent.X);
+            IndexTypeExtensions.AssertIntIndexRange(extent.Y);
+            IndexTypeExtensions.AssertIntIndexRange(extent.X * extent.Y);
+
+            var zStride = StrideExtensions.GetPitchedLeadingDimension<T>(
+                extent.X * extent.Y,
+                xyAlignmentInBytes);
+            IndexTypeExtensions.AssertIntIndexRange(zStride);
+
+            return As3DView(
+                extent,
+                new Stride3D.DenseXY((int)extent.X, (int)zStride));
+        }
+
+        /// <summary>
+        /// Converts this array view into a pitched 3D view with ZY being the leading
+        /// dimensions.
+        /// </summary>
+        /// <param name="extent">The target extent to use.</param>
+        /// <param name="zyAlignmentInBytes">
+        /// The alignment in bytes of the leading dimension.
+        /// </param>
+        /// <returns>The converted 3D view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView3D<T, Stride3D.DenseZY> As3DPitchedZYView(
+            LongIndex3D extent,
+            int zyAlignmentInBytes)
+        {
+            IndexTypeExtensions.AssertIntIndexRange(extent.Y);
+            IndexTypeExtensions.AssertIntIndexRange(extent.Z);
+            IndexTypeExtensions.AssertIntIndexRange(extent.Y * extent.Z);
+
+            var xStride = StrideExtensions.GetPitchedLeadingDimension<T>(
+                extent.Y * extent.Z,
+                zyAlignmentInBytes);
+            IndexTypeExtensions.AssertIntIndexRange(xStride);
+
+            return As3DView(
+                extent,
+                new Stride3D.DenseZY((int)xStride, (int)extent.Z));
         }
     }
 

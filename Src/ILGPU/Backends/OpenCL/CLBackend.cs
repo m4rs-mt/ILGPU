@@ -68,17 +68,16 @@ namespace ILGPU.Backends.OpenCL
             CLStdVersion = clStdVersion;
 
             InitIntrinsicProvider();
-            InitializeKernelTransformers(
-                builder =>
-                {
-                    var transformerBuilder = Transformer.CreateBuilder(
-                        TransformerConfiguration.Empty);
-                    transformerBuilder.AddBackendOptimizations(
-                        new CLAcceleratorSpecializer(PointerType),
-                        context.Properties.InliningMode,
-                        context.Properties.OptimizationLevel);
-                    builder.Add(transformerBuilder.ToTransformer());
-                });
+            InitializeKernelTransformers( builder =>
+            {
+                var transformerBuilder = Transformer.CreateBuilder(
+                    TransformerConfiguration.Empty);
+                transformerBuilder.AddBackendOptimizations(
+                    new CLAcceleratorSpecializer(PointerType),
+                    context.Properties.InliningMode,
+                    context.Properties.OptimizationLevel);
+                builder.Add(transformerBuilder.ToTransformer());
+            });
 
             // Build a list of extensions to enable for each OpenCL kernel.
             var extensionBuilder = new StringBuilder();

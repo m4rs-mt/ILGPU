@@ -210,5 +210,53 @@ namespace ILGPU.Tests
             Assert.Throws<InternalCompilerException>(() =>
                 Execute(buffer.Length, buffer.View));
         }
+
+        internal static void MultiDimensionalSharedMemoryKernel2D(
+            ArrayView1D<int, Stride1D.Dense> output)
+        {
+            var sharedMemory = ILGPU.SharedMemory.Allocate2D<int, Stride2D.DenseX>(
+                new Index2D(5, 7),
+                new Stride2D.DenseX(7));
+            if (Group.IsFirstThread)
+                sharedMemory[2, 6] = 42;
+            Group.Barrier();
+            output[Grid.GlobalIndex.X] = sharedMemory[2, 6];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(MultiDimensionalSharedMemoryKernel2D))]
+        public void MultiDimensionalSharedMemory2D()
+        {
+            int groupSize = Accelerator.MaxNumThreadsPerGroup;
+            using var buffer = Accelerator.Allocate1D<int>(groupSize);
+            Execute(new KernelConfig(1, groupSize), buffer.View);
+
+            var expected = Enumerable.Repeat(42, groupSize).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void MultiDimensionalSharedMemoryKernel3D(
+            ArrayView1D<int, Stride1D.Dense> output)
+        {
+            var sharedMemory = ILGPU.SharedMemory.Allocate3D<int, Stride3D.DenseZY>(
+                new Index3D(5, 7, 3),
+                new Stride3D.DenseZY(5 * 7, 7));
+            if (Group.IsFirstThread)
+                sharedMemory[2, 6, 1] = 42;
+            Group.Barrier();
+            output[Grid.GlobalIndex.X] = sharedMemory[2, 6, 1];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(MultiDimensionalSharedMemoryKernel3D))]
+        public void MultiDimensionalSharedMemory3D()
+        {
+            int groupSize = Accelerator.MaxNumThreadsPerGroup;
+            using var buffer = Accelerator.Allocate1D<int>(groupSize);
+            Execute(new KernelConfig(1, groupSize), buffer.View);
+
+            var expected = Enumerable.Repeat(42, groupSize).ToArray();
+            Verify(buffer.View, expected);
+        }
     }
 }
