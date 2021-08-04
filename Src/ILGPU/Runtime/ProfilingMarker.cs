@@ -50,7 +50,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Adds a profiling marker to the accelerator default stream.
         /// </summary>
-        public static void AddProfilingMarker(this Accelerator accelerator) =>
+        public static ProfilingMarker AddProfilingMarker(this Accelerator accelerator) =>
             accelerator.DefaultStream.AddProfilingMarker();
     }
 }
