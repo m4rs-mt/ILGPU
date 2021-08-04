@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFrameworks>net47;netcoreapp3.1;net5.0-windows</TargetFrameworks>
+    <LangVersion>8.0</LangVersion>
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>Mandelbrot</RootNamespace>
     <AssemblyName>Mandelbrot</AssemblyName>
