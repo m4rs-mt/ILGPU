@@ -110,11 +110,11 @@ namespace SimpleConstants
             using var buffer = accelerator.Allocate1D<int>(1024);
             kernel((int)buffer.Length, buffer.View);
 
-            // Wait for the kernel to finish...
-            accelerator.Synchronize();
-
             if (expectedValue.HasValue)
             {
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 var data = buffer.GetAsArray1D();
                 for (int i = 0, e = data.Length; i < e; ++i)
                     Debug.Assert(data[i] == expectedValue);
@@ -173,6 +173,10 @@ namespace SimpleConstants
                     accelerator,
                     StaticFieldWriteAccessKernel,
                     null);
+
+                // Wait for the kernels to finish before the accelerator is disposed
+                // at the end of this block.
+                accelerator.Synchronize();
             }
         }
     }

@@ -117,9 +117,9 @@ namespace AdvancedAtomics
 
             kernel(1024, buffer.View, 2.0);
 
-            // Wait for the kernel to finish...
-            accelerator.Synchronize();
-
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             var data = buffer.GetAsArray1D();
             for (int i = 0, e = data.Length; i < e; ++i)
                 Console.WriteLine($"Data[{i}] = {data[i]}");

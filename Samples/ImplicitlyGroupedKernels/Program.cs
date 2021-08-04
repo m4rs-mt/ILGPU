@@ -51,10 +51,9 @@ namespace ImplicitlyGroupedKernels
             // Launch buffer.Length many threads and pass a view to buffer
             launcher((int)buffer.Length, buffer.View, 42);
 
-            // Wait for the kernel to finish...
-            accelerator.Synchronize();
-
-            // Resolve and verify data
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             var data = buffer.GetAsArray1D();
             for (int i = 0, e = data.Length; i < e; ++i)
             {

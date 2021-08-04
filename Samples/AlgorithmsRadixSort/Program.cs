@@ -81,8 +81,10 @@ namespace AlgorithmsRadixSort
                 }
 
                 Console.WriteLine("Ascending RadixSort:");
-                accelerator.Synchronize();
 
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 var data = sourceBuffer.GetAsArray1D();
                 for (int i = 0, e = data.Length; i < e; ++i)
                     Console.WriteLine($"Data[{i}] = {data[i]}");
@@ -101,8 +103,10 @@ namespace AlgorithmsRadixSort
                         sourceBuffer.View);
 
                     Console.WriteLine("Descending RadixSort:");
-                    accelerator.Synchronize();
 
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     data = sourceBuffer.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");

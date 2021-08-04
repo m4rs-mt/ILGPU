@@ -174,8 +174,9 @@ namespace ExplicitlyGroupedKernels
                     var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, int>(GroupedKernel);
                     groupedKernel(launchDimension, dataTarget.View, 64);
 
-                    accelerator.Synchronize();
-
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     Console.WriteLine("Default grouped kernel");
                     var target = dataTarget.GetAsArray1D();
                     for (int i = 0, e = target.Length; i < e; ++i)
@@ -189,8 +190,9 @@ namespace ExplicitlyGroupedKernels
                     var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelBarrier);
                     groupedKernel(launchDimension, dataSource.View, dataTarget.View, 64);
 
-                    accelerator.Synchronize();
-
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     Console.WriteLine("Grouped-barrier kernel");
                     var target = dataTarget.GetAsArray1D();
                     for (int i = 0, e = target.Length; i < e; ++i)
@@ -204,8 +206,9 @@ namespace ExplicitlyGroupedKernels
                     var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelAndBarrier);
                     groupedKernel(launchDimension, dataSource.View, dataTarget.View, 0);
 
-                    accelerator.Synchronize();
-
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     Console.WriteLine("Grouped-and-barrier kernel");
                     var target = dataTarget.GetAsArray1D();
                     for (int i = 0, e = target.Length; i < e; ++i)
@@ -219,8 +222,9 @@ namespace ExplicitlyGroupedKernels
                     var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelOrBarrier);
                     groupedKernel(launchDimension, dataSource.View, dataTarget.View, 64);
 
-                    accelerator.Synchronize();
-
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     Console.WriteLine("Grouped-or-barrier kernel");
                     var target = dataTarget.GetAsArray1D();
                     for (int i = 0, e = target.Length; i < e; ++i)
@@ -234,8 +238,9 @@ namespace ExplicitlyGroupedKernels
                     var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelPopCountBarrier);
                     groupedKernel(launchDimension, dataSource.View, dataTarget.View, 0);
 
-                    accelerator.Synchronize();
-
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     Console.WriteLine("Grouped-popcount-barrier kernel");
                     var target = dataTarget.GetAsArray1D();
                     for (int i = 0, e = target.Length; i < e; ++i)

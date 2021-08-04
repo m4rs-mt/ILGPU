@@ -70,10 +70,9 @@ namespace SimpleMath
                 // Launch buffer.Length many threads
                 kernel((int)buffer.Length, buffer.View, buffer2.View, buffer3.View);
 
-                // Wait for the kernel to finish...
-                accelerator.Synchronize();
-
-                // Resolve and verify data
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 var data = buffer.GetAsArray1D();
                 var data2 = buffer2.GetAsArray1D();
                 var data3 = buffer3.GetAsArray1D();

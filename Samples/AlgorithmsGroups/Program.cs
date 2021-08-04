@@ -58,8 +58,10 @@ namespace AlgorithmsGroups
                 var kernel = accelerator.LoadStreamKernel<ArrayView2D<int, Stride2D.DenseX>>(KernelWithGroupExtensions);
                 using var buffer = accelerator.Allocate2DDenseX<int>(new Index2D(accelerator.MaxNumThreadsPerGroup, 4));
                 kernel((1, buffer.IntExtent.X), buffer.View);
-                accelerator.Synchronize();
 
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 var data = buffer.GetAsArray2D();
                 for (int i = 0, e = data.GetLength(0); i < e; ++i)
                 {

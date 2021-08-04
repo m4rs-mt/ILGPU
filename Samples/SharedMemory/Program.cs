@@ -130,8 +130,9 @@ namespace SharedMemory
                 // and must be initialized by the kernel
                 sharedMemVarKernel(dimension, dataSource.View, dataTarget.View);
 
-                accelerator.Synchronize();
-
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 Console.WriteLine("Shared-memory kernel");
                 var target = dataTarget.GetAsArray1D();
                 for (int i = 0, e = target.Length; i < e; ++i)
@@ -145,8 +146,9 @@ namespace SharedMemory
                 // and must be initialized by the kernel
                 sharedMemArrKernel(dimension, dataSource.View, dataTarget.View);
 
-                accelerator.Synchronize();
-
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 Console.WriteLine("Shared-memory-array kernel");
                 target = dataTarget.GetAsArray1D();
                 for (int i = 0, e = target.Length; i < e; ++i)

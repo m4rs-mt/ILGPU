@@ -38,8 +38,9 @@ namespace AlgorithmsReduce
                 buffer.View,
                 target.View);
 
-            accl.Synchronize();
-
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accl.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             var data = target.GetAsArray1D();
             for (int i = 0, e = data.Length; i < e; ++i)
                 Console.WriteLine($"Reduced[{i}] = {data[i]}");

@@ -110,8 +110,10 @@ namespace WarpShuffle
                     dataTarget.MemSetToZero();
 
                     shuffleDownKernel(dimension, dataTarget.View);
-                    accelerator.Synchronize();
 
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     Console.WriteLine("Shuffle-down kernel");
                     var target = dataTarget.GetAsArray1D();
                     for (int i = 0, e = target.Length; i < e; ++i)
@@ -126,8 +128,10 @@ namespace WarpShuffle
                     dataTarget.MemSetToZero();
 
                     reduceKernel(dimension, dataTarget.View, new ComplexStruct(2, 40.0f, 16.0));
-                    accelerator.Synchronize();
 
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     Console.WriteLine("Generic shuffle kernel");
                     var target = dataTarget.GetAsArray1D();
                     for (int i = 0, e = target.Length; i < e; ++i)

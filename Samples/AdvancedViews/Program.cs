@@ -92,8 +92,9 @@ namespace AdvancedViews
 
                 kernel((int)elementsBuffer.Length, elementsBuffer.View, composedStructBuffer.View, 0);
 
-                accelerator.Synchronize();
-
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 var results = composedStructBuffer.GetAsArray1D();
                 ComposedStructure composedResult = results[0];
                 Console.WriteLine("Composed.SomeElement = " + composedResult.SomeElement);
