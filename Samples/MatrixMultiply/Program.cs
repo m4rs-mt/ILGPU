@@ -13,6 +13,7 @@ using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MatrixMultiply
 {
@@ -69,6 +70,10 @@ namespace MatrixMultiply
         /// <param name="rows">The number of rows in the matrix</param>
         /// <param name="columns">The number of columns in the matrix</param>
         /// <returns>A matrix populated with random values</returns>
+        [SuppressMessage(
+            "Security", 
+            "CA5394:Do not use insecure randomness", 
+            Justification = "Only used for testing")]
         static float[,] CreateRandomMatrix(int rows, int columns)
         {
             var rnd = new Random();
