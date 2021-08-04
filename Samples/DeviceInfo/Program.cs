@@ -49,12 +49,10 @@ namespace DeviceInfo
                 {
                     // Create accelerator for the given device.
                     // Note that all accelerators have to be disposed before the global context is disposed
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Accelerator: {device.AcceleratorType}, {accelerator.Name}");
-                        PrintAcceleratorInfo(accelerator);
-                        Console.WriteLine();
-                    }
+                    using var accelerator = device.CreateAccelerator(context);
+                    Console.WriteLine($"Accelerator: {device.AcceleratorType}, {accelerator.Name}");
+                    PrintAcceleratorInfo(accelerator);
+                    Console.WriteLine();
                 }
             }
 
@@ -63,10 +61,8 @@ namespace DeviceInfo
             // and highest thread priority.
             using (var context = Context.Create(builder => builder.CPU(new CPUDevice(4, 1, 1))))
             {
-                using (var accelerator = context.CreateCPUAccelerator(0, CPUAcceleratorMode.Auto, ThreadPriority.Highest))
-                {
-                    PrintAcceleratorInfo(accelerator);
-                }
+                using var accelerator = context.CreateCPUAccelerator(0, CPUAcceleratorMode.Auto, ThreadPriority.Highest);
+                PrintAcceleratorInfo(accelerator);
             }
         }
     }

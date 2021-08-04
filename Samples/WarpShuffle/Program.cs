@@ -93,48 +93,45 @@ namespace WarpShuffle
         static void Main()
         {
             // Create main context
-            using (var context = Context.CreateDefault())
+            using var context = Context.CreateDefault();
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
+
+                KernelConfig dimension = (1, accelerator.WarpSize);
+                using (var dataTarget = accelerator.Allocate1D<int>(accelerator.WarpSize))
                 {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
+                    // Load the explicitly grouped kernel
+                    var shuffleDownKernel = accelerator.LoadStreamKernel<ArrayView<int>>(ShuffleDownKernel);
+                    dataTarget.MemSetToZero();
 
-                        KernelConfig dimension = (1, accelerator.WarpSize);
-                        using (var dataTarget = accelerator.Allocate1D<int>(accelerator.WarpSize))
-                        {
-                            // Load the explicitly grouped kernel
-                            var shuffleDownKernel = accelerator.LoadStreamKernel<ArrayView<int>>(ShuffleDownKernel);
-                            dataTarget.MemSetToZero();
+                    shuffleDownKernel(dimension, dataTarget.View);
+                    accelerator.Synchronize();
 
-                            shuffleDownKernel(dimension, dataTarget.View);
-                            accelerator.Synchronize();
+                    Console.WriteLine("Shuffle-down kernel");
+                    var target = dataTarget.GetAsArray1D();
+                    for (int i = 0, e = target.Length; i < e; ++i)
+                        Console.WriteLine($"Data[{i}] = {target[i]}");
+                }
 
-                            Console.WriteLine("Shuffle-down kernel");
-                            var target = dataTarget.GetAsArray1D();
-                            for (int i = 0, e = target.Length; i < e; ++i)
-                                Console.WriteLine($"Data[{i}] = {target[i]}");
-                        }
+                using (var dataTarget = accelerator.Allocate1D<ComplexStruct>(accelerator.WarpSize))
+                {
+                    // Load the explicitly grouped kernel
+                    var reduceKernel = accelerator.LoadStreamKernel<ArrayView<ComplexStruct>, ComplexStruct>(
+                        ShuffleGeneric);
+                    dataTarget.MemSetToZero();
 
-                        using (var dataTarget = accelerator.Allocate1D<ComplexStruct>(accelerator.WarpSize))
-                        {
-                            // Load the explicitly grouped kernel
-                            var reduceKernel = accelerator.LoadStreamKernel<ArrayView<ComplexStruct>, ComplexStruct>(
-                                ShuffleGeneric);
-                            dataTarget.MemSetToZero();
+                    reduceKernel(dimension, dataTarget.View, new ComplexStruct(2, 40.0f, 16.0));
+                    accelerator.Synchronize();
 
-                            reduceKernel(dimension, dataTarget.View, new ComplexStruct(2, 40.0f, 16.0));
-                            accelerator.Synchronize();
-
-                            Console.WriteLine("Generic shuffle kernel");
-                            var target = dataTarget.GetAsArray1D();
-                            for (int i = 0, e = target.Length; i < e; ++i)
-                                Console.WriteLine($"Data[{i}] = {target[i]}");
-                        }
-                    }
+                    Console.WriteLine("Generic shuffle kernel");
+                    var target = dataTarget.GetAsArray1D();
+                    for (int i = 0, e = target.Length; i < e; ++i)
+                        Console.WriteLine($"Data[{i}] = {target[i]}");
                 }
             }
         }

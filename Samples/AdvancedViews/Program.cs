@@ -73,38 +73,32 @@ namespace AdvancedViews
         static void Main()
         {
             // Create main context
-            using (var context = Context.CreateDefault())
+            using var context = Context.CreateDefault();
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1D, ArrayView<int>, ArrayView<ComposedStructure>, int>(MyKernel);
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
 
-                        using (var elementsBuffer = accelerator.Allocate1D<int>(1024))
-                        {
-                            using (var composedStructBuffer = accelerator.Allocate1D<ComposedStructure>(1))
-                            {
-                                elementsBuffer.MemSetToZero();
-                                composedStructBuffer.MemSetToZero();
+                var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                    Index1D, ArrayView<int>, ArrayView<ComposedStructure>, int>(MyKernel);
 
-                                kernel((int)elementsBuffer.Length, elementsBuffer.View, composedStructBuffer.View, 0);
+                using var elementsBuffer = accelerator.Allocate1D<int>(1024);
+                using var composedStructBuffer = accelerator.Allocate1D<ComposedStructure>(1);
+                elementsBuffer.MemSetToZero();
+                composedStructBuffer.MemSetToZero();
 
-                                accelerator.Synchronize();
+                kernel((int)elementsBuffer.Length, elementsBuffer.View, composedStructBuffer.View, 0);
 
-                                var results = composedStructBuffer.GetAsArray1D();
-                                ComposedStructure composedResult = results[0];
-                                Console.WriteLine("Composed.SomeElement = " + composedResult.SomeElement);
-                                Console.WriteLine("Composed.SomeOtherElement = " + composedResult.SomeOtherElement);
-                                Console.WriteLine("Composed.ElementCounter = " + composedResult.ElementCounter);
-                            }
-                        }
-                    }
-                }
+                accelerator.Synchronize();
+
+                var results = composedStructBuffer.GetAsArray1D();
+                ComposedStructure composedResult = results[0];
+                Console.WriteLine("Composed.SomeElement = " + composedResult.SomeElement);
+                Console.WriteLine("Composed.SomeOtherElement = " + composedResult.SomeOtherElement);
+                Console.WriteLine("Composed.ElementCounter = " + composedResult.ElementCounter);
             }
         }
     }

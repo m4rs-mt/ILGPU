@@ -87,56 +87,53 @@ namespace SpecializedKernel
 
         static void Main()
         {
-            using (var context = Context.CreateDefault())
+            using var context = Context.CreateDefault();
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
+                int groupSize = accelerator.MaxNumThreadsPerGroup;
+
+                // Scenario 1: simple version
+                using (var buffer = accelerator.Allocate1D<int>(groupSize))
                 {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
-                        int groupSize = accelerator.MaxNumThreadsPerGroup;
+                    var kernel = accelerator.LoadStreamKernel<
+                        ArrayView<int>,
+                        SpecializedValue<int>>(SpecializedKernel);
+                    kernel((1, groupSize), buffer.View, SpecializedValue.New(2));
+                    kernel((1, groupSize), buffer.View, SpecializedValue.New(23));
+                    kernel((1, groupSize), buffer.View, SpecializedValue.New(42));
+                }
 
-                        // Scenario 1: simple version
-                        using (var buffer = accelerator.Allocate1D<int>(groupSize))
-                        {
-                            var kernel = accelerator.LoadStreamKernel<
-                                ArrayView<int>,
-                                SpecializedValue<int>>(SpecializedKernel);
-                            kernel((1, groupSize), buffer.View, SpecializedValue.New(2));
-                            kernel((1, groupSize), buffer.View, SpecializedValue.New(23));
-                            kernel((1, groupSize), buffer.View, SpecializedValue.New(42));
-                        }
+                // Scenario 2: custom structure
+                using (var buffer = accelerator.Allocate1D<int>(groupSize))
+                {
+                    var kernel = accelerator.LoadStreamKernel<
+                        ArrayView<int>,
+                        SpecializedValue<CustomStruct>>(SpecializedCustomStructKernel);
+                    kernel(
+                        (1, groupSize),
+                        buffer.View,
+                        SpecializedValue.New(
+                            new CustomStruct(1, 7)));
+                    kernel(
+                        (1, groupSize),
+                        buffer.View,
+                        SpecializedValue.New(
+                            new CustomStruct(23, 42)));
+                }
 
-                        // Scenario 2: custom structure
-                        using (var buffer = accelerator.Allocate1D<int>(groupSize))
-                        {
-                            var kernel = accelerator.LoadStreamKernel<
-                                ArrayView<int>,
-                                SpecializedValue<CustomStruct>>(SpecializedCustomStructKernel);
-                            kernel(
-                                (1, groupSize),
-                                buffer.View,
-                                SpecializedValue.New(
-                                    new CustomStruct(1, 7)));
-                            kernel(
-                                (1, groupSize),
-                                buffer.View,
-                                SpecializedValue.New(
-                                    new CustomStruct(23, 42)));
-                        }
-
-                        // Scenario 3: generic kernel
-                        using (var buffer = accelerator.Allocate1D<long>(groupSize))
-                        {
-                            var kernel = accelerator.LoadStreamKernel<
-                                ArrayView<long>,
-                                SpecializedValue<long>>(SpecializedGenericKernel);
-                            kernel((1, groupSize), buffer.View, SpecializedValue.New(23L));
-                            kernel((1, groupSize), buffer.View, SpecializedValue.New(42L));
-                        }
-                    }
+                // Scenario 3: generic kernel
+                using (var buffer = accelerator.Allocate1D<long>(groupSize))
+                {
+                    var kernel = accelerator.LoadStreamKernel<
+                        ArrayView<long>,
+                        SpecializedValue<long>>(SpecializedGenericKernel);
+                    kernel((1, groupSize), buffer.View, SpecializedValue.New(23L));
+                    kernel((1, groupSize), buffer.View, SpecializedValue.New(42L));
                 }
             }
         }

@@ -46,30 +46,25 @@ namespace AlgorithmsWarps
         static void Main()
         {
             // Create default context and enable algorithms library
-            using (var context = Context.Create(builder => builder.Default().EnableAlgorithms()))
+            using var context = Context.Create(builder => builder.Default().EnableAlgorithms());
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
+                // Create the associated accelerator
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
+
+                var kernel = accelerator.LoadStreamKernel<ArrayView2D<int, Stride2D.DenseX>>(KernelWithWarpExtensions);
+                using var buffer = accelerator.Allocate2DDenseX<int>(new LongIndex2D(accelerator.WarpSize, 4));
+                kernel((1, buffer.IntExtent.X), buffer.View);
+                accelerator.Synchronize();
+
+                var data = buffer.GetAsArray2D();
+                for (int i = 0, e = data.GetLength(0); i < e; ++i)
                 {
-                    // Create the associated accelerator
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
-
-                        var kernel = accelerator.LoadStreamKernel<ArrayView2D<int, Stride2D.DenseX>>(KernelWithWarpExtensions);
-                        using (var buffer = accelerator.Allocate2DDenseX<int>(new LongIndex2D(accelerator.WarpSize, 4)))
-                        {
-                            kernel((1, buffer.IntExtent.X), buffer.View);
-                            accelerator.Synchronize();
-
-                            var data = buffer.GetAsArray2D();
-                            for (int i = 0, e = data.GetLength(0); i < e; ++i)
-                            {
-                                for (int j = 0, e2 = data.GetLength(1); j < e2; ++j)
-                                    Console.WriteLine($"Data[{i}, {j}] = {data[i, j]}");
-                            }
-                        }
-                    }
+                    for (int j = 0, e2 = data.GetLength(1); j < e2; ++j)
+                        Console.WriteLine($"Data[{i}, {j}] = {data[i, j]}");
                 }
             }
         }

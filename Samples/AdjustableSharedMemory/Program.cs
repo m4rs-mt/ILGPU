@@ -72,31 +72,27 @@ namespace SharedMemory
             foreach (var device in context)
             {
                 // Create accelerator for the given device
-                using (var accelerator = device.CreateAccelerator(context))
-                {
-                    Console.WriteLine($"Performing operations on {accelerator}");
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
 
-                    using (var dataTarget = accelerator.Allocate1D<int>(accelerator.MaxNumThreadsPerGroup))
-                    {
-                        // Load a specialized shared-memory kernel
-                        var sharedMemoryKernel = accelerator.LoadStreamKernel<
-                            ArrayView<int>>(SharedMemoryKernel<TSharedAllocationSize>);
-                        dataTarget.MemSetToZero();
+                using var dataTarget = accelerator.Allocate1D<int>(accelerator.MaxNumThreadsPerGroup);
+                // Load a specialized shared-memory kernel
+                var sharedMemoryKernel = accelerator.LoadStreamKernel<
+                    ArrayView<int>>(SharedMemoryKernel<TSharedAllocationSize>);
+                dataTarget.MemSetToZero();
 
-                        // Note that shared memory cannot be accessed from the outside
-                        // and must be initialized by the kernel
-                        sharedMemoryKernel(
-                            (1, accelerator.MaxNumThreadsPerGroup),
-                            dataTarget.View);
+                // Note that shared memory cannot be accessed from the outside
+                // and must be initialized by the kernel
+                sharedMemoryKernel(
+                    (1, accelerator.MaxNumThreadsPerGroup),
+                    dataTarget.View);
 
-                        accelerator.Synchronize();
+                accelerator.Synchronize();
 
-                        Console.WriteLine("Shared-memory kernel");
-                        var target = dataTarget.GetAsArray1D();
-                        for (int i = 0, e = target.Length; i < e; ++i)
-                            Console.WriteLine($"Data[{i}] = {target[i]}");
-                    }
-                }
+                Console.WriteLine("Shared-memory kernel");
+                var target = dataTarget.GetAsArray1D();
+                for (int i = 0, e = target.Length; i < e; ++i)
+                    Console.WriteLine($"Data[{i}] = {target[i]}");
             }
         }
 
@@ -106,11 +102,9 @@ namespace SharedMemory
         static void Main()
         {
             // Create main context
-            using (var context = Context.CreateDefault())
-            {
-                ExecuteSample<SharedArray32>(context);
-                ExecuteSample<SharedArray64>(context);
-            }
+            using var context = Context.CreateDefault();
+            ExecuteSample<SharedArray32>(context);
+            ExecuteSample<SharedArray64>(context);
         }
     }
 }

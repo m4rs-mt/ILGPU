@@ -58,35 +58,32 @@ namespace SimpleAtomics
         static void Main()
         {
             // Create main context
-            using (var context = Context.CreateDefault())
+            using var context = Context.CreateDefault();
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1D, ArrayView<int>, int>(AtomicOperationKernel);
-                        using (var buffer = accelerator.Allocate1D<int>(7))
-                        {
-                            // Initialize buffer to zero
-                            buffer.MemSetToZero();
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
 
-                            // Launch buffer.Length many threads and pass a view to buffer
-                            kernel(1024, buffer.View, 4);
+                var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                    Index1D, ArrayView<int>, int>(AtomicOperationKernel);
 
-                            // Wait for the kernel to finish...
-                            accelerator.Synchronize();
+                // Initialize buffer to zero
+                using var buffer = accelerator.Allocate1D<int>(7);
+                buffer.MemSetToZero();
 
-                            // Resolve data
-                            var data = buffer.GetAsArray1D();
-                            for (int i = 0, e = data.Length; i < e; ++i)
-                                Console.WriteLine($"Data[{i}] = {data[i]}");
-                        }
-                    }
-                }
+                // Launch buffer.Length many threads and pass a view to buffer
+                kernel(1024, buffer.View, 4);
+
+                // Wait for the kernel to finish...
+                accelerator.Synchronize();
+
+                // Resolve data
+                var data = buffer.GetAsArray1D();
+                for (int i = 0, e = data.Length; i < e; ++i)
+                    Console.WriteLine($"Data[{i}] = {data[i]}");
             }
         }
     }

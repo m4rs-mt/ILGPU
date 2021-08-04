@@ -29,14 +29,12 @@ namespace SimpleAlloc
         /// <param name="accelerator">The target accelerator.</param>
         static void SampleInitialization(Accelerator accelerator)
         {
-            using (var data = accelerator.Allocate1D<int>(1024))
-            {
-                // Note that allocated memory is not initialized in general and
-                // may contain random information.
+            using var data = accelerator.Allocate1D<int>(1024);
+            // Note that allocated memory is not initialized in general and
+            // may contain random information.
 
-                // Initialize the whole memory buffer to 0.
-                data.MemSetToZero();
-            }
+            // Initialize the whole memory buffer to 0.
+            data.MemSetToZero();
         }
 
         /// <summary>
@@ -152,29 +150,27 @@ namespace SimpleAlloc
         static void Main()
         {
             // Create main context
-            using (var context = Context.CreateDefault())
-            {
-                // Perform memory allocations and operations on all available accelerators
-                foreach (var device in context)
-                {
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        // Note:
-                        // - You can only transfer contiguous chunks of memory to and from memory buffers.
-                        //   A transfer of non-contiguous chunks of memory results in undefined buffer contents.
-                        // - The memory layout of multi-dimensional arrays is different to the default memory layout of
-                        //   a multi-dimensional array in the .Net framework. Addressing a 2D buffer, for example,
-                        //   works as follows: y * width + x, where the buffer has dimensions (width, height).
-                        // - All allocated buffers have to be disposed before their associated accelerator is disposed.
-                        // - You have to keep a reference to the allocated buffer for as long as you want to access it.
-                        //   Otherwise, the GC might dispose it.
+            using var context = Context.CreateDefault();
 
-                        SampleInitialization(accelerator);
-                        Alloc1D(accelerator);
-                        Alloc2D(accelerator);
-                        Alloc3D(accelerator);
-                    }
-                }
+            // Perform memory allocations and operations on all available accelerators
+            foreach (var device in context)
+            {
+                using var accelerator = device.CreateAccelerator(context);
+
+                // Note:
+                // - You can only transfer contiguous chunks of memory to and from memory buffers.
+                //   A transfer of non-contiguous chunks of memory results in undefined buffer contents.
+                // - The memory layout of multi-dimensional arrays is different to the default memory layout of
+                //   a multi-dimensional array in the .Net framework. Addressing a 2D buffer, for example,
+                //   works as follows: y * width + x, where the buffer has dimensions (width, height).
+                // - All allocated buffers have to be disposed before their associated accelerator is disposed.
+                // - You have to keep a reference to the allocated buffer for as long as you want to access it.
+                //   Otherwise, the GC might dispose it.
+
+                SampleInitialization(accelerator);
+                Alloc1D(accelerator);
+                Alloc2D(accelerator);
+                Alloc3D(accelerator);
             }
 
         }

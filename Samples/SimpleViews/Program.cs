@@ -92,38 +92,34 @@ namespace SimpleViews
         static void Main()
         {
             // Create main context
-            using (var context = Context.Create(builder => builder.DefaultCPU()))
-            {
-                // We perform all operations in CPU memory here
-                using (var accelerator = context.CreateCPUAccelerator(0))
-                {
-                    using (var buffer = accelerator.Allocate1D<int>(1024))
-                    {
-                        // Retrieve a view to the whole buffer.
-                        ArrayView<int> bufferView = buffer.View;
+            using var context = Context.Create(builder => builder.DefaultCPU());
 
-                        // Note that accessing an array view which points to memory
-                        // that is not accessible in the current context triggers
-                        // an invalid access exception.
-                        // For instance, array views that point to CUDA memory are 
-                        // inaccessible from the CPU by default (and vice-versa).
-                        // We can ignore this restriction in the current context since we
-                        // perform all operations in CPU memory.
+            // We perform all operations in CPU memory here
+            using var accelerator = context.CreateCPUAccelerator(0);
+            using var buffer = accelerator.Allocate1D<int>(1024);
 
-                        // Perform some unsafe operations on array views.
-                        UnsafeAccess(bufferView);
+            // Retrieve a view to the whole buffer.
+            ArrayView<int> bufferView = buffer.View;
 
-                        // SubView access
-                        SubViewAccess(bufferView);
+            // Note that accessing an array view which points to memory
+            // that is not accessible in the current context triggers
+            // an invalid access exception.
+            // For instance, array views that point to CUDA memory are 
+            // inaccessible from the CPU by default (and vice-versa).
+            // We can ignore this restriction in the current context since we
+            // perform all operations in CPU memory.
 
-                        // VariableView access
-                        VariableViewAccess(bufferView);
+            // Perform some unsafe operations on array views.
+            UnsafeAccess(bufferView);
 
-                        // Perform some unsafe operations on variable views.
-                        UnsafeVariableViewAccess(bufferView);
-                    }
-                }
-            }
+            // SubView access
+            SubViewAccess(bufferView);
+
+            // VariableView access
+            VariableViewAccess(bufferView);
+
+            // Perform some unsafe operations on variable views.
+            UnsafeVariableViewAccess(bufferView);
         }
     }
 }

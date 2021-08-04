@@ -14,7 +14,6 @@ using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
 using System;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace DynamicSharedMemory
@@ -61,39 +60,36 @@ namespace DynamicSharedMemory
 
         static void Main()
         {
-            using (var context = Context.Create(builder => builder.DefaultCPU().Cuda()))
+            using var context = Context.Create(builder => builder.DefaultCPU().Cuda());
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
 
-                        // Use LoadStreamKernel or LoadKernel to load explicitly grouped kernels
-                        var kernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<short>>(SharedMemKernel);
-                        var buffer = accelerator.Allocate1D<int>(accelerator.MaxNumThreadsPerGroup);
-                        var buffer2 = accelerator.Allocate1D<short>(accelerator.MaxNumThreadsPerGroup);
+                // Use LoadStreamKernel or LoadKernel to load explicitly grouped kernels
+                var kernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<short>>(SharedMemKernel);
+                var buffer = accelerator.Allocate1D<int>(accelerator.MaxNumThreadsPerGroup);
+                var buffer2 = accelerator.Allocate1D<short>(accelerator.MaxNumThreadsPerGroup);
 
-                        // Use 'new KernelConfig(..., ..., ...)' to construct a new launch configuration
-                        // Hint: use the C# tuple features to convert a triple into a kernel config
-                        int groupSize = accelerator.MaxNumThreadsPerGroup;
-                        var config = SharedMemoryConfig.RequestDynamic<byte>(groupSize * sizeof(int));
-                        // alternatively:
-                        // var config = SharedMemoryConfig.RequestDynamic<int>(groupSize);
-                        // var config = SharedMemoryConfig.RequestDynamic<short>(groupSize * 2);
-                        kernel(
-                            // GridSize, GroupSize, shared memory config
-                            (1, groupSize, config),
-                            buffer.View,
-                            buffer2.View);
+                // Use 'new KernelConfig(..., ..., ...)' to construct a new launch configuration
+                // Hint: use the C# tuple features to convert a triple into a kernel config
+                int groupSize = accelerator.MaxNumThreadsPerGroup;
+                var config = SharedMemoryConfig.RequestDynamic<byte>(groupSize * sizeof(int));
+                // alternatively:
+                // var config = SharedMemoryConfig.RequestDynamic<int>(groupSize);
+                // var config = SharedMemoryConfig.RequestDynamic<short>(groupSize * 2);
+                kernel(
+                    // GridSize, GroupSize, shared memory config
+                    (1, groupSize, config),
+                    buffer.View,
+                    buffer2.View);
 
-                        var data = buffer.GetAsArray1D();
-                        var data2 = buffer2.GetAsArray1D();
-                        // Use data objects...
-                    }
-                }
+                var data = buffer.GetAsArray1D();
+                var data2 = buffer2.GetAsArray1D();
+                // Use data objects...
             }
         }
     }

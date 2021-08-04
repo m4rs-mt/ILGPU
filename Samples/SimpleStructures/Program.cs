@@ -58,26 +58,23 @@ namespace SimpleStructures
         /// </summary>
         static void Main()
         {
-            using (var context = Context.CreateDefault())
-            {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<CustomDataType>>(MyKernel);
-                        using (var buffer = accelerator.Allocate1D<CustomDataType>(1024))
-                        {
-                            // Launch buffer.Length many threads and pass a view to buffer
-                            kernel((int)buffer.Length, buffer.View);
+            using var context = Context.CreateDefault();
 
-                            // Wait for the kernel to finish...
-                            accelerator.Synchronize();
-                        }
-                    }
-                }
+            // For each available device...
+            foreach (var device in context)
+            {
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
+
+                var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<CustomDataType>>(MyKernel);
+                using var buffer = accelerator.Allocate1D<CustomDataType>(1024);
+
+                // Launch buffer.Length many threads and pass a view to buffer
+                kernel((int)buffer.Length, buffer.View);
+
+                // Wait for the kernel to finish...
+                accelerator.Synchronize();
             }
         }
     }
