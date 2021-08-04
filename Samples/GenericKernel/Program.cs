@@ -86,25 +86,21 @@ namespace GenericKernel
         {
             const int DataSize = 1024;
 
-            using (var context = Context.CreateDefault())
-            {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1D, ArrayView<long>, int, LambdaClosure>(Kernel);
-                        using (var buffer = accelerator.Allocate1D<long>(DataSize))
-                        {
-                            kernel((int)buffer.Length, buffer.View, 1, new LambdaClosure(20));
+            using var context = Context.CreateDefault();
+            // For each available device...
 
-                            var data = buffer.GetAsArray1D();
-                        }
-                    }
-                }
+            foreach (var device in context)
+            {
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
+
+                var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                    Index1D, ArrayView<long>, int, LambdaClosure>(Kernel);
+                using var buffer = accelerator.Allocate1D<long>(DataSize);
+                kernel((int)buffer.Length, buffer.View, 1, new LambdaClosure(20));
+
+                var data = buffer.GetAsArray1D();
             }
         }
     }

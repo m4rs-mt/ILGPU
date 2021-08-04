@@ -118,23 +118,22 @@ namespace AlgorithmsSequence
         /// <param name="accl">The target accelerator.</param>
         static void RepeatedSequence(Accelerator accl)
         {
-            using (var buffer = accl.Allocate1D<int>(64))
-            {
-                // Creates a sequence (from 0 to buffer.Length - 1):
-                // - [0, sequenceLength - 1] = [0, sequenceLength]
-                // - [sequenceLength, sequenceLength * 2 -1] = [0, sequenceLength]
-                accl.RepeatedSequence(
-                    accl.DefaultStream,
-                    buffer.View.SubView(0, buffer.Length),
-                    2,
-                    new Int32Sequencer());
+            using var buffer = accl.Allocate1D<int>(64);
 
-                accl.Synchronize();
+            // Creates a sequence (from 0 to buffer.Length - 1):
+            // - [0, sequenceLength - 1] = [0, sequenceLength]
+            // - [sequenceLength, sequenceLength * 2 -1] = [0, sequenceLength]
+            accl.RepeatedSequence(
+                accl.DefaultStream,
+                buffer.View.SubView(0, buffer.Length),
+                2,
+                new Int32Sequencer());
 
-                var data = buffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                    Console.WriteLine($"RepeatedData[{i}] = {data[i]}");
-            }
+            accl.Synchronize();
+
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"RepeatedData[{i}] = {data[i]}");
 
             // There is also a CreateRepeatedSequencer function that avoids
             // unnecessary heap allocations.
@@ -146,26 +145,25 @@ namespace AlgorithmsSequence
         /// <param name="accl">The target accelerator.</param>
         static void BatchedSequence(Accelerator accl)
         {
-            using (var buffer = accl.Allocate1D<int>(64))
-            {
-                // Creates a sequence (from 0 to buffer.Length):
-                // - [0, sequenceBatchLength - 1] = 0,
-                // - [sequenceBatchLength, sequenceBatchLength * 2 -1] = 1,
-                accl.BatchedSequence(
-                    accl.DefaultStream,
-                    buffer.View,
-                    2,
-                    new Int32Sequencer());
+            using var buffer = accl.Allocate1D<int>(64);
 
-                accl.Synchronize();
+            // Creates a sequence (from 0 to buffer.Length):
+            // - [0, sequenceBatchLength - 1] = 0,
+            // - [sequenceBatchLength, sequenceBatchLength * 2 -1] = 1,
+            accl.BatchedSequence(
+                accl.DefaultStream,
+                buffer.View,
+                2,
+                new Int32Sequencer());
 
-                var data = buffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                    Console.WriteLine($"BatchedData[{i}] = {data[i]}");
+            accl.Synchronize();
 
-                // There is also a CreateBatchedSequencer function that avoids
-                // unnecessary heap allocations.
-            }
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"BatchedData[{i}] = {data[i]}");
+
+            // There is also a CreateBatchedSequencer function that avoids
+            // unnecessary heap allocations.
         }
 
         /// <summary>
@@ -174,52 +172,48 @@ namespace AlgorithmsSequence
         /// <param name="accl">The target accelerator.</param>
         static void RepeatedBatchedSequence(Accelerator accl)
         {
-            using (var buffer = accl.Allocate1D<int>(64))
-            {
-                // Creates a sequence (from 0 to buffer.Length):
-                // - [0, sequenceLength - 1] = 
-                //       - [0, sequenceBatchLength - 1] = sequencer(0),
-                //       - [sequenceBatchLength, sequenceBatchLength * 2 - 1] = sequencer(1),
-                //       - ...
-                // - [sequenceLength, sequenceLength * 2 - 1]
-                //       - [sequenceLength, sequenceLength + sequenceBatchLength - 1] = sequencer(0),
-                //       - [sequenceLength + sequenceBatchLength, sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
-                //       - ...
-                accl.RepeatedBatchedSequence(
-                    accl.DefaultStream,
-                    buffer.View,
-                    2,
-                    4,
-                    new Int32Sequencer());
+            using var buffer = accl.Allocate1D<int>(64);
 
-                accl.Synchronize();
+            // Creates a sequence (from 0 to buffer.Length):
+            // - [0, sequenceLength - 1] = 
+            //       - [0, sequenceBatchLength - 1] = sequencer(0),
+            //       - [sequenceBatchLength, sequenceBatchLength * 2 - 1] = sequencer(1),
+            //       - ...
+            // - [sequenceLength, sequenceLength * 2 - 1]
+            //       - [sequenceLength, sequenceLength + sequenceBatchLength - 1] = sequencer(0),
+            //       - [sequenceLength + sequenceBatchLength, sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
+            //       - ...
+            accl.RepeatedBatchedSequence(
+                accl.DefaultStream,
+                buffer.View,
+                2,
+                4,
+                new Int32Sequencer());
 
-                var data = buffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                    Console.WriteLine($"RepeatedBatchedData[{i}] = {data[i]}");
+            accl.Synchronize();
 
-                // There is also a CreateRepeatedBatchedSequencer function that avoids
-                // unnecessary heap allocations.
-            }
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"RepeatedBatchedData[{i}] = {data[i]}");
+
+            // There is also a CreateRepeatedBatchedSequencer function that avoids
+            // unnecessary heap allocations.
         }
 
         static void Main()
         {
-            using (var context = Context.CreateDefault())
-            {
-                // For each available accelerator...
-                foreach (var device in context)
-                {
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
+            using var context = Context.CreateDefault();
 
-                        Sequence(accelerator);
-                        RepeatedSequence(accelerator);
-                        BatchedSequence(accelerator);
-                        RepeatedBatchedSequence(accelerator);
-                    }
-                }
+            // For each available accelerator...
+            foreach (var device in context)
+            {
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
+
+                Sequence(accelerator);
+                RepeatedSequence(accelerator);
+                BatchedSequence(accelerator);
+                RepeatedBatchedSequence(accelerator);
             }
         }
     }

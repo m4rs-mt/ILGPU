@@ -98,66 +98,59 @@ namespace SharedMemory
         static void Main()
         {
             // Create main context
-            using (var context = Context.CreateDefault())
+            using var context = Context.CreateDefault();
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
 
-                        // The maximum group size in this example is 128 since the second
-                        // kernel has a shared-memory array of 128 elements.
-                        var groupSize = Math.Min(accelerator.MaxNumThreadsPerGroup, 128);
+                // The maximum group size in this example is 128 since the second
+                // kernel has a shared-memory array of 128 elements.
+                var groupSize = Math.Min(accelerator.MaxNumThreadsPerGroup, 128);
 
-                        var data = Enumerable.Range(1, 128).ToArray();
+                var data = Enumerable.Range(1, 128).ToArray();
 
-                        using (var dataSource = accelerator.Allocate1D<int>(data.Length))
-                        {
-                            // Initialize data source
-                            dataSource.CopyFromCPU(data);
+                // Initialize data source
+                using var dataSource = accelerator.Allocate1D<int>(data.Length);
+                dataSource.CopyFromCPU(data);
 
-                            KernelConfig dimension = (
-                                ((int)dataSource.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
-                                groupSize);                                           // Use the given group size
+                KernelConfig dimension = (
+                    ((int)dataSource.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
+                    groupSize);                                           // Use the given group size
 
-                            using (var dataTarget = accelerator.Allocate1D<int>(data.Length))
-                            {
-                                var sharedMemVarKernel = accelerator.LoadStreamKernel<
-                                    ArrayView<int>, ArrayView<int>>(SharedMemoryVariableKernel);
-                                dataTarget.MemSetToZero();
+                using var dataTarget = accelerator.Allocate1D<int>(data.Length);
+                var sharedMemVarKernel = accelerator.LoadStreamKernel<
+                    ArrayView<int>, ArrayView<int>>(SharedMemoryVariableKernel);
+                dataTarget.MemSetToZero();
 
-                                // Note that shared memory cannot be accessed from the outside
-                                // and must be initialized by the kernel
-                                sharedMemVarKernel(dimension, dataSource.View, dataTarget.View);
+                // Note that shared memory cannot be accessed from the outside
+                // and must be initialized by the kernel
+                sharedMemVarKernel(dimension, dataSource.View, dataTarget.View);
 
-                                accelerator.Synchronize();
+                accelerator.Synchronize();
 
-                                Console.WriteLine("Shared-memory kernel");
-                                var target = dataTarget.GetAsArray1D();
-                                for (int i = 0, e = target.Length; i < e; ++i)
-                                    Console.WriteLine($"Data[{i}] = {target[i]}");
+                Console.WriteLine("Shared-memory kernel");
+                var target = dataTarget.GetAsArray1D();
+                for (int i = 0, e = target.Length; i < e; ++i)
+                    Console.WriteLine($"Data[{i}] = {target[i]}");
 
-                                var sharedMemArrKernel = accelerator.LoadStreamKernel<
-                                    ArrayView<int>, ArrayView<int>>(SharedMemoryArrayKernel);
-                                dataTarget.MemSetToZero();
+                var sharedMemArrKernel = accelerator.LoadStreamKernel<
+                    ArrayView<int>, ArrayView<int>>(SharedMemoryArrayKernel);
+                dataTarget.MemSetToZero();
 
-                                // Note that shared memory cannot be accessed from the outside
-                                // and must be initialized by the kernel
-                                sharedMemArrKernel(dimension, dataSource.View, dataTarget.View);
+                // Note that shared memory cannot be accessed from the outside
+                // and must be initialized by the kernel
+                sharedMemArrKernel(dimension, dataSource.View, dataTarget.View);
 
-                                accelerator.Synchronize();
+                accelerator.Synchronize();
 
-                                Console.WriteLine("Shared-memory-array kernel");
-                                target = dataTarget.GetAsArray1D();
-                                for (int i = 0, e = target.Length; i < e; ++i)
-                                    Console.WriteLine($"Data[{i}] = {target[i]}");
-                            }
-                        }
-                    }
-                }
+                Console.WriteLine("Shared-memory-array kernel");
+                target = dataTarget.GetAsArray1D();
+                for (int i = 0, e = target.Length; i < e; ++i)
+                    Console.WriteLine($"Data[{i}] = {target[i]}");
             }
         }
     }

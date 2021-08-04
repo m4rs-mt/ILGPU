@@ -45,45 +45,41 @@ namespace SimpleKernel
         static void Main()
         {
             // Create main context
-            using (var context = Context.CreateDefault())
+            using var context = Context.CreateDefault();
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
+
+                // Compiles and loads the implicitly grouped kernel with an automatically determined
+                // group size and an associated default stream.
+                // This function automatically compiles the kernel (or loads the kernel from cache)
+                // and returns a specialized high-performance kernel launcher.
+                // Use LoadAutoGroupedKernel to create a launcher that requires an additional accelerator-stream
+                // parameter. In this case the corresponding call will look like this:
+                // var kernel = accelerator.LoadautoGroupedKernel<Index, ArrayView<int>, int>(MyKernel);
+                // For more detail refer to the ImplicitlyGroupedKernels or ExplicitlyGroupedKernels sample.
+                var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                    Index1D, ArrayView<int>, int>(MyKernel);
+
+                using var buffer = accelerator.Allocate1D<int>(1024);
+
+                // Launch buffer.Length many threads and pass a view to buffer
+                // Note that the kernel launch does not involve any boxing
+                kernel((int)buffer.Length, buffer.View, 42);
+
+                // Wait for the kernel to finish...
+                accelerator.Synchronize();
+
+                // Resolve and verify data
+                var data = buffer.GetAsArray1D();
+                for (int i = 0, e = data.Length; i < e; ++i)
                 {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
-
-                        // Compiles and loads the implicitly grouped kernel with an automatically determined
-                        // group size and an associated default stream.
-                        // This function automatically compiles the kernel (or loads the kernel from cache)
-                        // and returns a specialized high-performance kernel launcher.
-                        // Use LoadAutoGroupedKernel to create a launcher that requires an additional accelerator-stream
-                        // parameter. In this case the corresponding call will look like this:
-                        // var kernel = accelerator.LoadautoGroupedKernel<Index, ArrayView<int>, int>(MyKernel);
-                        // For more detail refer to the ImplicitlyGroupedKernels or ExplicitlyGroupedKernels sample.
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1D, ArrayView<int>, int>(MyKernel);
-
-                        using (var buffer = accelerator.Allocate1D<int>(1024))
-                        {
-                            // Launch buffer.Length many threads and pass a view to buffer
-                            // Note that the kernel launch does not involve any boxing
-                            kernel((int)buffer.Length, buffer.View, 42);
-
-                            // Wait for the kernel to finish...
-                            accelerator.Synchronize();
-
-                            // Resolve and verify data
-                            var data = buffer.GetAsArray1D();
-                            for (int i = 0, e = data.Length; i < e; ++i)
-                            {
-                                if (data[i] != 42 + i)
-                                    Console.WriteLine($"Error at element location {i}: {data[i]} found");
-                            }
-                        }
-                    }
+                    if (data[i] != 42 + i)
+                        Console.WriteLine($"Error at element location {i}: {data[i]} found");
                 }
             }
         }

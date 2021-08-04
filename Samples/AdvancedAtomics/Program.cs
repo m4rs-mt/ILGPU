@@ -112,19 +112,17 @@ namespace AdvancedAtomics
             Console.WriteLine("Launching: " + method.Method.Name);
 
             var kernel = accelerator.LoadAutoGroupedStreamKernel(method);
-            using (var buffer = accelerator.Allocate1D<double>(1))
-            {
-                buffer.MemSetToZero();
+            using var buffer = accelerator.Allocate1D<double>(1);
+            buffer.MemSetToZero();
 
-                kernel(1024, buffer.View, 2.0);
+            kernel(1024, buffer.View, 2.0);
 
-                // Wait for the kernel to finish...
-                accelerator.Synchronize();
+            // Wait for the kernel to finish...
+            accelerator.Synchronize();
 
-                var data = buffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                    Console.WriteLine($"Data[{i}] = {data[i]}");
-            }
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"Data[{i}] = {data[i]}");
         }
 
         /// <summary>
@@ -134,21 +132,18 @@ namespace AdvancedAtomics
         static void Main()
         {
             // Create main context
-            using (var context = Context.CreateDefault())
-            {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
+            using var context = Context.CreateDefault();
 
-                        LaunchKernel(accelerator, AddDoubleAtomicKernel);
-                        LaunchKernel(accelerator, AddDoubleAtomicILGPUFunctionsKernel);
-                        LaunchKernel(accelerator, AddDoubleBuiltInKernel);
-                    }
-                }
+            // For each available device...
+            foreach (var device in context)
+            {
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
+
+                LaunchKernel(accelerator, AddDoubleAtomicKernel);
+                LaunchKernel(accelerator, AddDoubleAtomicILGPUFunctionsKernel);
+                LaunchKernel(accelerator, AddDoubleBuiltInKernel);
             }
         }
     }

@@ -22,9 +22,7 @@ namespace Empty
         {
             // Every application needs an instantiated global ILGPU context
             // The context builder can be configured to enable the algorithms library
-            using (var context = Context.Create(builder => builder.Default().EnableAlgorithms()))
-            {
-            }
+            using var context = Context.Create(builder => builder.Default().EnableAlgorithms());
         }
     }
 }

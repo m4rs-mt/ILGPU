@@ -38,7 +38,7 @@ namespace SimpleMath
         {
             // Note the different returns type of GPUMath.Sqrt and Math.Sqrt.
             singleView[index] = IntrinsicMath.Abs(index);
-            doubleView[index] = IntrinsicMath.Clamp((double)(int)index, 0.0, 12.0);
+            doubleView[index] = IntrinsicMath.Clamp(index, 0.0, 12.0);
 
             // Note that use can safely use functions from the Math class as long as they have a counterpart
             // in the IntrinsicMath class.
@@ -51,40 +51,38 @@ namespace SimpleMath
         static void Main()
         {
             // Create main context
-            using (var context = Context.CreateDefault())
+            using var context = Context.CreateDefault();
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index1D, ArrayView<float>, ArrayView<double>, ArrayView<double>>(MathKernel);
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var buffer = accelerator.Allocate1D<float>(128);
-                        var buffer2 = accelerator.Allocate1D<double>(128);
-                        var buffer3 = accelerator.Allocate1D<double>(128);
+                var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                    Index1D, ArrayView<float>, ArrayView<double>, ArrayView<double>>(MathKernel);
 
-                        // Launch buffer.Length many threads
-                        kernel((int)buffer.Length, buffer.View, buffer2.View, buffer3.View);
+                var buffer = accelerator.Allocate1D<float>(128);
+                var buffer2 = accelerator.Allocate1D<double>(128);
+                var buffer3 = accelerator.Allocate1D<double>(128);
 
-                        // Wait for the kernel to finish...
-                        accelerator.Synchronize();
+                // Launch buffer.Length many threads
+                kernel((int)buffer.Length, buffer.View, buffer2.View, buffer3.View);
 
-                        // Resolve and verify data
-                        var data = buffer.GetAsArray1D();
-                        var data2 = buffer2.GetAsArray1D();
-                        var data3 = buffer3.GetAsArray1D();
-                        for (int i = 0, e = data.Length; i < e; ++i)
-                            Console.WriteLine($"Math results: {data[i]} (float) {data2[i]} (double [GPUMath]) {data3[i]} (double [.Net Math])");
+                // Wait for the kernel to finish...
+                accelerator.Synchronize();
 
-                        buffer.Dispose();
-                        buffer2.Dispose();
-                        buffer3.Dispose();
-                    }
-                }
+                // Resolve and verify data
+                var data = buffer.GetAsArray1D();
+                var data2 = buffer2.GetAsArray1D();
+                var data3 = buffer3.GetAsArray1D();
+                for (int i = 0, e = data.Length; i < e; ++i)
+                    Console.WriteLine($"Math results: {data[i]} (float) {data2[i]} (double [GPUMath]) {data3[i]} (double [.Net Math])");
+
+                buffer.Dispose();
+                buffer2.Dispose();
+                buffer3.Dispose();
             }
         }
     }

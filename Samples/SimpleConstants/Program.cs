@@ -107,19 +107,17 @@ namespace SimpleConstants
             int? expectedValue)
         {
             var kernel = accelerator.LoadAutoGroupedStreamKernel(method);
-            using (var buffer = accelerator.Allocate1D<int>(1024))
+            using var buffer = accelerator.Allocate1D<int>(1024);
+            kernel((int)buffer.Length, buffer.View);
+
+            // Wait for the kernel to finish...
+            accelerator.Synchronize();
+
+            if (expectedValue.HasValue)
             {
-                kernel((int)buffer.Length, buffer.View);
-
-                // Wait for the kernel to finish...
-                accelerator.Synchronize();
-
-                if (expectedValue.HasValue)
-                {
-                    var data = buffer.GetAsArray1D();
-                    for (int i = 0, e = data.Length; i < e; ++i)
-                        Debug.Assert(data[i] == expectedValue);
-                }
+                var data = buffer.GetAsArray1D();
+                for (int i = 0, e = data.Length; i < e; ++i)
+                    Debug.Assert(data[i] == expectedValue);
             }
         }
 
@@ -137,47 +135,44 @@ namespace SimpleConstants
             // StaticFields(StaticFieldMode.IgnoreStaticFieldStores).
 
             // Create main context
-            using (var context = Context.Create(builder =>
+            using var context = Context.Create(builder =>
                 builder.Default()
-                .StaticFields(StaticFieldMode.MutableStaticFields | StaticFieldMode.IgnoreStaticFieldStores)))
+                .StaticFields(StaticFieldMode.MutableStaticFields | StaticFieldMode.IgnoreStaticFieldStores));
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
+                // Create accelerator for the given device
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
 
-                        // Launch ConstantKernel:
-                        LaunchKernel(
-                            accelerator,
-                            ConstantKernel,
-                            ConstantValue);
+                // Launch ConstantKernel:
+                LaunchKernel(
+                    accelerator,
+                    ConstantKernel,
+                    ConstantValue);
 
-                        // Launch StaticFieldAccessKernel:
-                        LaunchKernel(
-                            accelerator,
-                            StaticFieldAccessKernel,
-                            ReadOnlyValue);
+                // Launch StaticFieldAccessKernel:
+                LaunchKernel(
+                    accelerator,
+                    StaticFieldAccessKernel,
+                    ReadOnlyValue);
 
-                        // Launch StaticNonReadOnlyFieldAccessKernel while inlining static field values:
-                        WriteEnabledValue = DefaultWriteEnabledValue;
-                        LaunchKernel(
-                            accelerator,
-                            StaticNonReadOnlyFieldAccessKernel,
-                            DefaultWriteEnabledValue);
-                        // Note that a change of the field WriteEnabledValue will not change the result
-                        // of a previously compiled kernel that accessed the field WriteEnabledValue.
+                // Launch StaticNonReadOnlyFieldAccessKernel while inlining static field values:
+                WriteEnabledValue = DefaultWriteEnabledValue;
+                LaunchKernel(
+                    accelerator,
+                    StaticNonReadOnlyFieldAccessKernel,
+                    DefaultWriteEnabledValue);
+                // Note that a change of the field WriteEnabledValue will not change the result
+                // of a previously compiled kernel that accessed the field WriteEnabledValue.
 
-                        // Launch StaticFieldWriteAccessKernel while ignoring static stores:
-                        // Note that the CPU accelerator will write to static field during execution!
-                        LaunchKernel(
-                            accelerator,
-                            StaticFieldWriteAccessKernel,
-                            null);
-                    }
-                }
+                // Launch StaticFieldWriteAccessKernel while ignoring static stores:
+                // Note that the CPU accelerator will write to static field during execution!
+                LaunchKernel(
+                    accelerator,
+                    StaticFieldWriteAccessKernel,
+                    null);
             }
         }
     }

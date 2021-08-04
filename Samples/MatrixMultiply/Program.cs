@@ -71,8 +71,8 @@ namespace MatrixMultiply
         /// <param name="columns">The number of columns in the matrix</param>
         /// <returns>A matrix populated with random values</returns>
         [SuppressMessage(
-            "Security", 
-            "CA5394:Do not use insecure randomness", 
+            "Security",
+            "CA5394:Do not use insecure randomness",
             Justification = "Only used for testing")]
         static float[,] CreateRandomMatrix(int rows, int columns)
         {
@@ -145,25 +145,23 @@ namespace MatrixMultiply
             Console.WriteLine($"- Naive implementation: {sw.ElapsedMilliseconds}ms");
 
             // Accelerated implementations
-            using (var context = Context.CreateDefault())
-            {
-                foreach (var device in context)
-                {
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        sw.Restart();
-                        var acceleratedResult = MatrixMultiplyAccelerated(accelerator, a, b);
-                        sw.Stop();
-                        Debug.Assert(MatrixEqual(acceleratedResult, expectedResult));
-                        Console.WriteLine($"- Accelerated implementation on {accelerator}: {sw.ElapsedMilliseconds}ms");
+            using var context = Context.CreateDefault();
 
-                        sw.Restart();
-                        var acceleratedTiledResult = MatrixMultiplyTiled(accelerator, a, b);
-                        sw.Stop();
-                        Debug.Assert(MatrixEqual(acceleratedTiledResult, expectedResult));
-                        Console.WriteLine($"- Tiled implementation on {accelerator}: {sw.ElapsedMilliseconds}ms");
-                    }
-                }
+            foreach (var device in context)
+            {
+                using var accelerator = device.CreateAccelerator(context);
+
+                sw.Restart();
+                var acceleratedResult = MatrixMultiplyAccelerated(accelerator, a, b);
+                sw.Stop();
+                Debug.Assert(MatrixEqual(acceleratedResult, expectedResult));
+                Console.WriteLine($"- Accelerated implementation on {accelerator}: {sw.ElapsedMilliseconds}ms");
+
+                sw.Restart();
+                var acceleratedTiledResult = MatrixMultiplyTiled(accelerator, a, b);
+                sw.Stop();
+                Debug.Assert(MatrixEqual(acceleratedTiledResult, expectedResult));
+                Console.WriteLine($"- Tiled implementation on {accelerator}: {sw.ElapsedMilliseconds}ms");
             }
         }
 
@@ -226,24 +224,22 @@ namespace MatrixMultiply
                 throw new ArgumentException($"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
 
             var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                Index2D, 
+                Index2D,
                 ArrayView2D<float, Stride2D.DenseX>,
                 ArrayView2D<float, Stride2D.DenseX>,
                 ArrayView2D<float, Stride2D.DenseX>>(
                 MatrixMultiplyAcceleratedKernel);
 
-            using (var aBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, ka)))
-            using (var bBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(ka, n)))
-            using (var cBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, n)))
-            {
-                aBuffer.CopyFromCPU(a);
-                bBuffer.CopyFromCPU(b);
+            using var aBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, ka));
+            using var bBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(ka, n));
+            using var cBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, n));
+            aBuffer.CopyFromCPU(a);
+            bBuffer.CopyFromCPU(b);
 
-                kernel(cBuffer.Extent.ToIntIndex(), aBuffer.View, bBuffer.View, cBuffer.View);
-                accelerator.Synchronize();
+            kernel(cBuffer.Extent.ToIntIndex(), aBuffer.View, bBuffer.View, cBuffer.View);
+            accelerator.Synchronize();
 
-                return cBuffer.GetAsArray2D();
-            }
+            return cBuffer.GetAsArray2D();
         }
 
         /// <summary>
@@ -254,9 +250,9 @@ namespace MatrixMultiply
         /// <param name="bView">An input matrix of size KxN</param>
         /// <param name="cView">An output matrix of size MxN</param>
         static void MatrixMultiplyAcceleratedKernel(
-            Index2D index, 
-            ArrayView2D<float, Stride2D.DenseX> aView, 
-            ArrayView2D<float, Stride2D.DenseX> bView, 
+            Index2D index,
+            ArrayView2D<float, Stride2D.DenseX> aView,
+            ArrayView2D<float, Stride2D.DenseX> bView,
             ArrayView2D<float, Stride2D.DenseX> cView)
         {
             var x = index.X;
@@ -296,25 +292,23 @@ namespace MatrixMultiply
                 throw new ArgumentException($"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
 
             var kernel = accelerator.LoadStreamKernel<
-                ArrayView2D<float, Stride2D.DenseX>, 
-                ArrayView2D<float, Stride2D.DenseX>, 
+                ArrayView2D<float, Stride2D.DenseX>,
+                ArrayView2D<float, Stride2D.DenseX>,
                 ArrayView2D<float, Stride2D.DenseX>>(
                 MatrixMultiplyTiledKernel);
             var groupSize = new Index2D(TILE_SIZE, TILE_SIZE);
             var numGroups = new Index2D((m + TILE_SIZE - 1) / TILE_SIZE, (n + TILE_SIZE - 1) / TILE_SIZE);
 
-            using (var aBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, ka)))
-            using (var bBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(ka, n)))
-            using (var cBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, n)))
-            {
-                aBuffer.CopyFromCPU(a);
-                bBuffer.CopyFromCPU(b);
+            using var aBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, ka));
+            using var bBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(ka, n));
+            using var cBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(m, n));
+            aBuffer.CopyFromCPU(a);
+            bBuffer.CopyFromCPU(b);
 
-                kernel((numGroups, groupSize), aBuffer, bBuffer, cBuffer);
-                accelerator.Synchronize();
+            kernel((numGroups, groupSize), aBuffer, bBuffer, cBuffer);
+            accelerator.Synchronize();
 
-                return cBuffer.GetAsArray2D();
-            }
+            return cBuffer.GetAsArray2D();
         }
 
         /// <summary>
@@ -324,8 +318,8 @@ namespace MatrixMultiply
         /// <param name="bView">An input matrix of size KxN</param>
         /// <param name="cView">An output matrix of size MxN</param>
         static void MatrixMultiplyTiledKernel(
-            ArrayView2D<float, Stride2D.DenseX> aView, 
-            ArrayView2D<float, Stride2D.DenseX> bView, 
+            ArrayView2D<float, Stride2D.DenseX> aView,
+            ArrayView2D<float, Stride2D.DenseX> bView,
             ArrayView2D<float, Stride2D.DenseX> cView)
         {
             var global = Grid.GlobalIndex.XY;

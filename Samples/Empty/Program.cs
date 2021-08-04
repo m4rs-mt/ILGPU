@@ -21,16 +21,15 @@ namespace Empty
         static void Main()
         {
             // Every application needs an instantiated global ILGPU context
-            using (var context = Context.CreateDefault())
-            {
-                // Note that every other instantiated ILGPU object needs to be disposed before
-                // disposing the global context.
+            using var context = Context.CreateDefault();
+
+            // Note that every other instantiated ILGPU object needs to be disposed before
+            // disposing the global context.
 
 
-                // Note that access to non-public internal user-defined types and methods
-                // requires all internals to be visible to the ILGPU runtime.
-                // Refer to AssemblyAttributes.cs for further information.
-            }
+            // Note that access to non-public internal user-defined types and methods
+            // requires all internals to be visible to the ILGPU runtime.
+            // Refer to AssemblyAttributes.cs for further information.
         }
     }
 }

@@ -46,72 +46,69 @@ namespace AlgorithmsRadixSort
         static void Main()
         {
             // Create default context and enable algorithms library
-            using (var context = Context.Create(builder => builder.Default().EnableAlgorithms()))
+            using var context = Context.Create(builder => builder.Default().EnableAlgorithms());
+
+            // For each available device...
+            foreach (var device in context)
             {
-                // For each available device...
-                foreach (var device in context)
+                // Create the associated accelerator
+                using var accelerator = device.CreateAccelerator(context);
+                Console.WriteLine($"Performing operations on {accelerator}");
+
+                // Allocate the source buffer that will be sorted later on.
+                var sourceBuffer = accelerator.Allocate1D<int>(32);
+                accelerator.Sequence(
+                    accelerator.DefaultStream,
+                    sourceBuffer.View,
+                    new InverseInt32Sequencer((int)sourceBuffer.Length));
+
+                // The parallel scan implementation needs temporary storage.
+                // By default, every accelerator hosts a memory-buffer cache
+                // for operations that require a temporary cache.
+
+                // Create a new radix sort instance using a descending int sorting.
+                var radixSort = accelerator.CreateRadixSort<int, AscendingInt32>();
+
+                // Compute the required amount of temporary memory
+                var tempMemSize = accelerator.ComputeRadixSortTempStorageSize<int, AscendingInt32>((Index1D)sourceBuffer.Length);
+                using (var tempBuffer = accelerator.Allocate1D<int>(tempMemSize))
                 {
-                    // Create the associated accelerator
-                    using (var accelerator = device.CreateAccelerator(context))
-                    {
-                        Console.WriteLine($"Performing operations on {accelerator}");
-
-                        // Allocate the source buffer that will be sorted later on.
-                        var sourceBuffer = accelerator.Allocate1D<int>(32);
-                        accelerator.Sequence(
-                            accelerator.DefaultStream,
-                            sourceBuffer.View,
-                            new InverseInt32Sequencer((int)sourceBuffer.Length));
-
-                        // The parallel scan implementation needs temporary storage.
-                        // By default, every accelerator hosts a memory-buffer cache
-                        // for operations that require a temporary cache.
-
-                        // Create a new radix sort instance using a descending int sorting.
-                        var radixSort = accelerator.CreateRadixSort<int, AscendingInt32>();
-
-                        // Compute the required amount of temporary memory
-                        var tempMemSize = accelerator.ComputeRadixSortTempStorageSize<int, AscendingInt32>((Index1D)sourceBuffer.Length);
-                        using (var tempBuffer = accelerator.Allocate1D<int>(tempMemSize))
-                        {
-                            // Performs a descending radix-sort operation
-                            radixSort(
-                                accelerator.DefaultStream,
-                                sourceBuffer.View,
-                                tempBuffer.View);
-                        }
-
-                        Console.WriteLine("Ascending RadixSort:");
-                        accelerator.Synchronize();
-
-                        var data = sourceBuffer.GetAsArray1D();
-                        for (int i = 0, e = data.Length; i < e; ++i)
-                            Console.WriteLine($"Data[{i}] = {data[i]}");
-
-                        // Creates a RadixSortProvider that hosts its own memory-buffer cache to allow
-                        // for parallel invocations of different operations that require
-                        // an extra cache.
-                        using (var radixSortProvider = accelerator.CreateRadixSortProvider<int, DescendingInt32>((Index1D)sourceBuffer.Length))
-                        {
-                            // Create a new radix sort instance using an ascending int sorting.
-                            var radixSortUsingSortProvider = radixSortProvider.CreateRadixSort<int, DescendingInt32>();
-
-                            // Performs an ascending radix-sort operation
-                            radixSortUsingSortProvider(
-                                accelerator.DefaultStream,
-                                sourceBuffer.View);
-
-                            Console.WriteLine("Descending RadixSort:");
-                            accelerator.Synchronize();
-
-                            data = sourceBuffer.GetAsArray1D();
-                            for (int i = 0, e = data.Length; i < e; ++i)
-                                Console.WriteLine($"Data[{i}] = {data[i]}");
-                        }
-
-                        sourceBuffer.Dispose();
-                    }
+                    // Performs a descending radix-sort operation
+                    radixSort(
+                        accelerator.DefaultStream,
+                        sourceBuffer.View,
+                        tempBuffer.View);
                 }
+
+                Console.WriteLine("Ascending RadixSort:");
+                accelerator.Synchronize();
+
+                var data = sourceBuffer.GetAsArray1D();
+                for (int i = 0, e = data.Length; i < e; ++i)
+                    Console.WriteLine($"Data[{i}] = {data[i]}");
+
+                // Creates a RadixSortProvider that hosts its own memory-buffer cache to allow
+                // for parallel invocations of different operations that require
+                // an extra cache.
+                using (var radixSortProvider = accelerator.CreateRadixSortProvider<int, DescendingInt32>((Index1D)sourceBuffer.Length))
+                {
+                    // Create a new radix sort instance using an ascending int sorting.
+                    var radixSortUsingSortProvider = radixSortProvider.CreateRadixSort<int, DescendingInt32>();
+
+                    // Performs an ascending radix-sort operation
+                    radixSortUsingSortProvider(
+                        accelerator.DefaultStream,
+                        sourceBuffer.View);
+
+                    Console.WriteLine("Descending RadixSort:");
+                    accelerator.Synchronize();
+
+                    data = sourceBuffer.GetAsArray1D();
+                    for (int i = 0, e = data.Length; i < e; ++i)
+                        Console.WriteLine($"Data[{i}] = {data[i]}");
+                }
+
+                sourceBuffer.Dispose();
             }
         }
     }
