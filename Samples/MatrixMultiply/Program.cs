@@ -237,8 +237,10 @@ namespace MatrixMultiply
             bBuffer.CopyFromCPU(b);
 
             kernel(cBuffer.Extent.ToIntIndex(), aBuffer.View, bBuffer.View, cBuffer.View);
-            accelerator.Synchronize();
 
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             return cBuffer.GetAsArray2D();
         }
 
@@ -306,8 +308,10 @@ namespace MatrixMultiply
             bBuffer.CopyFromCPU(b);
 
             kernel((numGroups, groupSize), aBuffer, bBuffer, cBuffer);
-            accelerator.Synchronize();
 
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             return cBuffer.GetAsArray2D();
         }
 

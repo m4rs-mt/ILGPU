@@ -102,9 +102,9 @@ namespace LowLevelKernelCompilation
                 buffer.View,
                 42);
 
-            accelerator.Synchronize();
-
-            // Resolve and verify data
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             var data = buffer.GetAsArray1D();
             for (int i = 0, e = data.Length; i < e; ++i)
             {
@@ -135,29 +135,24 @@ namespace LowLevelKernelCompilation
             var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index1D, ArrayView<int>, int>>();
             // -------------------------------------------------------------------------------
 
-            using (var buffer = accelerator.Allocate1D<int>(1024))
+            using var buffer = accelerator.Allocate1D<int>(1024);
+            // Launch buffer.Length many threads and pass a view to buffer.
+            // You can also use kernel.Launch; however, the generic launch method involves boxing.
+            launcher(
+                accelerator.DefaultStream,
+                (int)buffer.Length,
+                buffer.View,
+                42);
+
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
             {
-                // Launch buffer.Length many threads and pass a view to buffer.
-                // You can also use kernel.Launch; however, the generic launch method involves boxing.
-                launcher(
-                    accelerator.DefaultStream,
-                    (int)buffer.Length,
-                    buffer.View,
-                    42);
-
-                // Wait for the kernel to finish...
-                accelerator.Synchronize();
-
-                // Resolve and verify data
-                var data = buffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                {
-                    if (data[i] != 42 + i)
-                        Console.WriteLine($"Error at element location {i}: {data[i]} found");
-                }
+                if (data[i] != 42 + i)
+                    Console.WriteLine($"Error at element location {i}: {data[i]} found");
             }
-
-            accelerator.Synchronize();
         }
 
         /// <summary>
@@ -182,29 +177,24 @@ namespace LowLevelKernelCompilation
             var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index1D, ArrayView<int>, int>>();
             // -------------------------------------------------------------------------------
 
-            using (var buffer = accelerator.Allocate1D<int>(1024))
+            using var buffer = accelerator.Allocate1D<int>(1024);
+            // Launch buffer.Length many threads and pass a view to buffer.
+            // You can also use kernel.Launch; however, the generic launch method involves boxing.
+            launcher(
+                accelerator.DefaultStream,
+                (int)buffer.Length,
+                buffer.View,
+                42);
+
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
             {
-                // Launch buffer.Length many threads and pass a view to buffer.
-                // You can also use kernel.Launch; however, the generic launch method involves boxing.
-                launcher(
-                    accelerator.DefaultStream,
-                    (int)buffer.Length,
-                    buffer.View,
-                    42);
-
-                // Wait for the kernel to finish...
-                accelerator.Synchronize();
-
-                // Resolve and verify data
-                var data = buffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                {
-                    if (data[i] != 42 + i)
-                        Console.WriteLine($"Error at element location {i}: {data[i]} found");
-                }
+                if (data[i] != 42 + i)
+                    Console.WriteLine($"Error at element location {i}: {data[i]} found");
             }
-
-            accelerator.Synchronize();
         }
 
         /// <summary>

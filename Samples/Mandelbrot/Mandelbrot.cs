@@ -101,7 +101,10 @@ namespace Mandelbrot
 
             // Launch kernel
             mandelbrot_kernel(num_values, width, height, max_iterations, dev_out.View);
-            accelerator.Synchronize();
+
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             dev_out.CopyToCPU(buffer);
 
             dev_out.Dispose();

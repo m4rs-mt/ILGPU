@@ -73,7 +73,8 @@ namespace SimpleStructures
                 // Launch buffer.Length many threads and pass a view to buffer
                 kernel((int)buffer.Length, buffer.View);
 
-                // Wait for the kernel to finish...
+                // Wait for the kernel to finish before the accelerator is disposed
+                // at the end of this block.
                 accelerator.Synchronize();
             }
         }

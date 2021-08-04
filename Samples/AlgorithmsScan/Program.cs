@@ -55,8 +55,10 @@ namespace AlgorithmsScan
                     }
 
                     Console.WriteLine("Inclusive Scan:");
-                    accelerator.Synchronize();
 
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     var data = targetBuffer.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");
@@ -81,8 +83,10 @@ namespace AlgorithmsScan
                     }
 
                     Console.WriteLine("Exclusive Scan:");
-                    accelerator.Synchronize();
 
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     var data = targetBuffer.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");
@@ -103,7 +107,9 @@ namespace AlgorithmsScan
                         sourceBuffer.View,
                         targetBuffer.View);
 
-                    accelerator.Synchronize();
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     var data = targetBuffer.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");

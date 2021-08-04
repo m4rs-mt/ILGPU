@@ -46,8 +46,10 @@ namespace AlgorithmsInitialize
                 {
                     // Initializes all values by setting the value to 23.
                     accelerator.Initialize(accelerator.DefaultStream, buffer.View, 23);
-                    accelerator.Synchronize();
 
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     var data = buffer.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");
@@ -69,8 +71,9 @@ namespace AlgorithmsInitialize
                         Second = 42
                     });
 
-                    accelerator.Synchronize();
-
+                    // Reads data from the GPU buffer into a new CPU array.
+                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                    // that the kernel and memory copy are completed first.
                     var data = buffer2.GetAsArray1D();
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data2[{i}] = {data[i]}");

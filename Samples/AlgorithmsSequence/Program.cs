@@ -74,8 +74,9 @@ namespace AlgorithmsSequence
                 // Creates a sequence (from 0 to buffer.Length - 1).
                 accelerator.Sequence(accelerator.DefaultStream, buffer.View, new Int32Sequencer());
 
-                accelerator.Synchronize();
-
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 var data = buffer.GetAsArray1D();
                 for (int i = 0, e = data.Length; i < e; ++i)
                     Console.WriteLine($"Data[{i}] = {data[i]}");
@@ -86,8 +87,9 @@ namespace AlgorithmsSequence
             {
                 accelerator.Sequence(accelerator.DefaultStream, buffer.View, new CustomSequencer(32));
 
-                accelerator.Synchronize();
-
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 var data = buffer.GetAsArray1D();
                 for (int i = 0, e = data.Length; i < e; ++i)
                     Console.WriteLine($"CustomData[{i}] = {data[i]}");
@@ -104,8 +106,9 @@ namespace AlgorithmsSequence
                     buffer.View,
                     new CustomSequencer(64));
 
-                accelerator.Synchronize();
-
+                // Reads data from the GPU buffer into a new CPU array.
+                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+                // that the kernel and memory copy are completed first.
                 var data = buffer.GetAsArray1D();
                 for (int i = 0, e = data.Length; i < e; ++i)
                     Console.WriteLine($"CustomDataSpecialized[{i}] = {data[i]}");
@@ -129,8 +132,9 @@ namespace AlgorithmsSequence
                 2,
                 new Int32Sequencer());
 
-            accl.Synchronize();
-
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accl.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             var data = buffer.GetAsArray1D();
             for (int i = 0, e = data.Length; i < e; ++i)
                 Console.WriteLine($"RepeatedData[{i}] = {data[i]}");
@@ -156,8 +160,9 @@ namespace AlgorithmsSequence
                 2,
                 new Int32Sequencer());
 
-            accl.Synchronize();
-
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accl.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             var data = buffer.GetAsArray1D();
             for (int i = 0, e = data.Length; i < e; ++i)
                 Console.WriteLine($"BatchedData[{i}] = {data[i]}");
@@ -190,8 +195,9 @@ namespace AlgorithmsSequence
                 4,
                 new Int32Sequencer());
 
-            accl.Synchronize();
-
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accl.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
             var data = buffer.GetAsArray1D();
             for (int i = 0, e = data.Length; i < e; ++i)
                 Console.WriteLine($"RepeatedBatchedData[{i}] = {data[i]}");
