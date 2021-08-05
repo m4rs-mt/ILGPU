@@ -248,7 +248,9 @@ namespace ILGPU.Runtime
 <#      for (int i = 0; i < dim.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
             Trace.Assert(
-                index.<#= iName #> >= 0 & index.<#= iName #> < Extent.<#= iName #>,
+                index.<#= iName #> >= 0 & (
+                    index.<#= iName #> < Extent.<#= iName #>
+                    || index.<#= iName #> == 0),
                 "Index <#= iName #> out of bounds");
 <#      } #>
             return Stride.ComputeElementIndex(index);
@@ -268,10 +270,11 @@ namespace ILGPU.Runtime
         {
 <#      for (int i = 0; i < dim.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
+<#          var thisExtent = $"({baseType})Extent.{iName}"; #>
             Trace.Assert(
-                index.<#= iName #> >= 0 &
-                index.<#= iName #> + extent.<#= iName #> <=
-                    (<#= baseType #>)Extent.<#= iName #>,
+                index.<#= iName #> >= 0 &&
+                (index.<#= iName #> + extent.<#= iName #> <= <#= thisExtent #>
+                 || (index.<#= iName #> == 0 && extent.<#= iName #> == 0)),
                 "Index/Extent <#= iName #> out of bounds");
 <#      } #>
             <#= baseType #> offset = ComputeLinearIndex(index);
