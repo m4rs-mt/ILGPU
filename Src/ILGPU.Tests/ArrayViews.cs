@@ -235,6 +235,7 @@ namespace ILGPU.Tests
         {
             using var buffer = Accelerator.Allocate1D<int>(128);
 
+            // Take a zero-length subview of a non-zero length view
             var subView1 = buffer.View.SubView(64, 0);
             Assert.Equal(0, subView1.Length);
             Assert.Equal(0, subView1.LengthInBytes);
@@ -244,6 +245,18 @@ namespace ILGPU.Tests
             Assert.Equal(0, subView2.Length);
             Assert.Equal(0, subView2.LengthInBytes);
             Assert.Equal(0, subView2.Extent.X);
+
+            // Take a zero-length subview of a zero length view
+            var subView3 = subView1.SubView(0, 0);
+            Assert.Equal(0, subView3.Length);
+            Assert.Equal(0, subView3.LengthInBytes);
+            Assert.Equal(0, subView3.Extent.X);
+
+            var subView4 = subView2.SubView(0, 0);
+            Assert.Equal(0, subView4.Length);
+            Assert.Equal(0, subView4.LengthInBytes);
+            Assert.Equal(0, subView4.Extent.X);
+
         }
 
         [Fact]
@@ -260,11 +273,21 @@ namespace ILGPU.Tests
 
                 foreach (var extent in extents)
                 {
+                    // A subview with a zero in one extent dimension, of a view
+                    // with non-zero extent in every dimension.
                     var subView = view.SubView((4, 4), extent);
                     Assert.Equal(0, subView.Length);
                     Assert.Equal(0, subView.LengthInBytes);
                     Assert.Equal(extent.X, subView.Extent.X);
                     Assert.Equal(extent.Y, subView.Extent.Y);
+
+                    // A subview with a zero in one extent dimension, of a view
+                    // with zero extent in the same dimension.
+                    var subView2 = subView.SubView((0, 0), extent);
+                    Assert.Equal(0, subView2.Length);
+                    Assert.Equal(0, subView2.LengthInBytes);
+                    Assert.Equal(extent.X, subView2.Extent.X);
+                    Assert.Equal(extent.Y, subView2.Extent.Y);
                 }
             }
 
@@ -291,12 +314,23 @@ namespace ILGPU.Tests
 
                 foreach (var extent in extents)
                 {
+                    // A subview with a zero in one extent dimension, of a view
+                    // with non-zero extent in every dimension.
                     var subView = view.SubView((4, 4, 4), extent);
                     Assert.Equal(0, subView.Length);
                     Assert.Equal(0, subView.LengthInBytes);
                     Assert.Equal(extent.X, subView.Extent.X);
                     Assert.Equal(extent.Y, subView.Extent.Y);
                     Assert.Equal(extent.Z, subView.Extent.Z);
+
+                    // A subview with a zero in one extent dimension, of a view
+                    // with zero extent in the same dimension.
+                    var subView2 = subView.SubView((0, 0, 0), extent);
+                    Assert.Equal(0, subView2.Length);
+                    Assert.Equal(0, subView2.LengthInBytes);
+                    Assert.Equal(extent.X, subView2.Extent.X);
+                    Assert.Equal(extent.Y, subView2.Extent.Y);
+                    Assert.Equal(extent.Z, subView2.Extent.Z);
                 }
             }
 
