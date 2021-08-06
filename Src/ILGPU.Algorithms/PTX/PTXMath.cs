@@ -368,7 +368,7 @@ namespace ILGPU.Algorithms.PTX
         //
         // IMPORTANT: There are implementation differences between .NET Framework and .NET Core.
         // For example, calling Math.Pow(NaN, 0.0) :
-        //  net47 returns NaN, following rule #1
+        //  net471 returns NaN, following rule #1
         //  netcoreapp2.1 returns 1.0, following rule #2
         //
         // IMPORTANT: Our unit tests currently run using netcoreapp2.1, so we are matching that implementation.
@@ -393,7 +393,7 @@ namespace ILGPU.Algorithms.PTX
         //          PositiveInfinity.
         //
         // (7)      x = -1; y = NegativeInfinity or             NaN                     * netcoreapp2.1 returns 1
-        //          PositiveInfinity.                                                   * net47 returns NaN
+        //          PositiveInfinity.                                                   * net471 returns NaN
         //
         // (8)      -1 < x < 1; y = NegativeInfinity.           PositiveInfinity
         //

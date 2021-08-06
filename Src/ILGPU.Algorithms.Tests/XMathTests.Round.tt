@@ -153,7 +153,7 @@ namespace ILGPU.Algorithms.Tests
 <#
     foreach (var function in roundFunctions)
     {
-        // net47 and netstandard2.1 only support MidpointRounding.ToEven (0)
+        // net471 and netstandard2.1 only support MidpointRounding.ToEven (0)
         // and MidpointRounding.AwayFromZero (1).
         bool restrictedRoundingMode =
             function.RoundingMode.HasValue &&

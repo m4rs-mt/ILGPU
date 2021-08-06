@@ -84,7 +84,7 @@ namespace ILGPU.Frontend.DebugInformation
             "Globalization",
             "CA1307:Specify StringComparison",
             Justification = "string.GetHashCode(StringComparison) not " +
-            "available in net47")]
+            "available in net471")]
         public override int GetHashCode() => Index.GetHashCode() ^ Name.GetHashCode();
 
         /// <summary>
