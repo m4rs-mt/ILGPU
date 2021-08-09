@@ -42,7 +42,7 @@ jobs:
               }
             }
           }
-          
+
           If ($found) {
             Exit 1
           }
@@ -58,7 +58,7 @@ jobs:
               }
             }
           }
-          
+
           If ($found) {
             Exit 1
           }
@@ -78,8 +78,8 @@ jobs:
         run: |
           os=("ubuntu-latest" "windows-latest")
 
-          # runs on macOS only if there is a push to master, or a tag is 
-          # pushed, we do this since macOS builds last too long and ILGPU 
+          # runs on macOS only if there is a push to master, or a tag is
+          # pushed, we do this since macOS builds last too long and ILGPU
           # is rarely used on a macOS
           (
             [ "${{ github.event_name }}" == "schedule" ] ||
@@ -87,7 +87,7 @@ jobs:
               [ "${{ github.event_name }}" == "push" ] &&
               (
                 [ "${{ github.ref }}" == "refs/heads/master" ] ||
-                [[ "${{ github.ref }}" =~ "refs/tags/v" ]]  
+                [[ "${{ github.ref }}" =~ "refs/tags/v" ]]
               )
             )
           ) && os+=("macos-latest")
@@ -143,7 +143,7 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 5.0.x
-      
+
       - name: Setup the latest .NET Core 3.1 SDK
         if: matrix.framework == 'netcoreapp3.1'
         uses: actions/setup-dotnet@v1
@@ -195,7 +195,7 @@ jobs:
               exit 1
             }
           }
-          
+
           echo "::set-output name=version::$main_version"
 
       - name: Create NuGet packages
