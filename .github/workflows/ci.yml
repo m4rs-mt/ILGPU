@@ -119,7 +119,7 @@ jobs:
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
 
   # Run tests for all supported combinations of OS/library/framework.
-  test:
+  test-library:
     needs: setup-os-matrix
     strategy:
       matrix:
@@ -197,7 +197,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
 
   # Create the NuGet packages, with fixes for portable symbols.
-  package:
+  package-library:
     needs: check-version
     runs-on: windows-latest
     steps:
@@ -266,7 +266,7 @@ jobs:
   # Virtual job that can be configured as a required check before a PR can be
   # merged.
   all-required-checks-done:
-    needs: [check-style, build, test, package]
+    needs: [check-style, build, test-library, package-library]
     runs-on: ubuntu-latest
     steps:
       - run: echo "All required checks done"
