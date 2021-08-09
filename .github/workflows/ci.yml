@@ -160,8 +160,8 @@ jobs:
         env:
           ILGPU_CLEAN_TESTS: ${{ github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }}
 
-  # Create the NuGet packages, with fixes for portable symbols.
-  package:
+  # Ensure that ILGPU libraries are built using the same version tag.
+  check-version:
     # Do not run this job for pull requests where both branches are from the same repo.
     # Jobs that depend on this one will be skipped too.
     # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
@@ -171,11 +171,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      - name: Setup the latest .NET 5 SDK
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: 5.0.x
 
       - name: Check version
         id: version
@@ -198,10 +193,26 @@ jobs:
 
           echo "::set-output name=version::$main_version"
 
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+  # Create the NuGet packages, with fixes for portable symbols.
+  package:
+    needs: check-version
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup the latest .NET 5 SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.x
+
       - name: Create NuGet packages
         id: package
         run: |
-          $version = "${{ steps.version.outputs.version }}"
+          $version = "${{ needs.check-version.outputs.version }}"
 
           if (-not ("${{ github.ref }}" -like "refs/tags/v*")) {
             $suffix = "preview-$(Get-Date -Format yyyyMMddHHmmss -AsUTC)-$(git rev-parse --short HEAD)"
@@ -252,9 +263,6 @@ jobs:
           name: nuget-packages
           path: ./Bin/Release/ILGPU*.${{ steps.package.outputs.version }}.*nupkg
 
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-
   # Virtual job that can be configured as a required check before a PR can be
   # merged.
   all-required-checks-done:
@@ -282,8 +290,8 @@ jobs:
   # a tag is pushed.
   publish-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !github.event.repository.fork
-    # Depends explictly on the 'package' job so we can access its output
-    needs: [all-required-checks-done, package]
+    # Depends explictly on the 'check-version' job so we can access its output
+    needs: [all-required-checks-done, check-version]
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
@@ -296,9 +304,9 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          name: Release v${{ needs.package.outputs.version }}
+          name: Release v${{ needs.check-version.outputs.version }}
           draft: true
-          prerelease: ${{ contains(needs.package.outputs.version, '-') }}
+          prerelease: ${{ contains(needs.check-version.outputs.version, '-') }}
           files: "*.nupkg"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
