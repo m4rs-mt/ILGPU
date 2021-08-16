@@ -221,7 +221,7 @@ namespace ILGPU.Backends
             /// </param>
             public BlockInfo(int capacity)
             {
-#if NET5_0 || NETSTANDARD2_1_OR_GREATER
+#if NET5_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
                 LHSPhis = new HashSet<PhiValue>(capacity);
                 IntermediatePhis = new HashSet<PhiValue>(capacity);
 #else

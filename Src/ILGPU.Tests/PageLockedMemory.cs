@@ -61,7 +61,7 @@ namespace ILGPU.Tests
             }
         }
 
-#if NET5_0
+#if NET5_0_OR_GREATER
         [Fact]
         [KernelMethod(nameof(PinnedMemoryKernel))]
         public void PinnedUsingGCAllocateArray()

@@ -57,7 +57,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static float IEEERemainder(float x, float y) =>
-#if NETCORE
+#if !NETFRAMEWORK
             MathF.IEEERemainder(x, y);
 #else
             (float)Math.IEEERemainder(x, y);
