@@ -106,6 +106,10 @@ jobs:
     # run the CI for each branch push to a fork, and for each pull request originating from a fork.
     if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: windows-latest
+    strategy:
+      matrix:
+        path: [Src, Samples]
+      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -116,7 +120,7 @@ jobs:
           dotnet-version: 5.0.x
 
       - name: Build
-        run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
+        run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true ${{ matrix.path }}
 
   # Run tests for all supported combinations of OS/library/framework.
   test-library:
@@ -263,10 +267,77 @@ jobs:
           name: nuget-packages
           path: ./Bin/Release/ILGPU*.${{ steps.package.outputs.version }}.*nupkg
 
+  # Create the Samples zip file, replacing ILGPU project references with equivalent NuGet package references.
+  package-samples:
+    needs: check-version
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup the latest .NET 5 SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.x
+
+      # Change the ILGPU project references to NuGet package references
+      - name: Update Sample References
+        id: package
+        run: |
+          $version = "${{ needs.check-version.outputs.version }}"
+
+          if (-not ("${{ github.ref }}" -like "refs/tags/v*")) {
+            $suffix = "preview-$(Get-Date -Format yyyyMMddHHmmss -AsUTC)-$(git rev-parse --short HEAD)"
+            $params = "--version-suffix", $suffix
+            $version = "$version-$suffix"
+          }
+
+          # NB: Perform operations in the Samples folder, so that the relative paths returned by
+          # the dotnet CLI are correct.
+          pushd Samples
+
+          # Remove ILGPU libraries from Samples solution.
+          $projectPaths = dotnet sln list | Select-String -Pattern "\.\.\\Src\\"
+          dotnet sln remove $projectPaths
+
+          # Update each sample project individually.
+          $projectPaths = dotnet sln list | Select-String -Pattern "\.csproj$"
+
+          ForEach ($projectPath in $projectPaths) {
+            # Replace existing ILGPU libaries with NuGet package reference.
+            $referencePaths = dotnet list $projectPath reference | Select-String -Pattern "\.\.\\Src\\"
+            ForEach ($referencePath in $referencePaths) {
+              dotnet remove $projectPath reference $referencePath
+
+              $found = $referencePath -match '\\([^\\]*).csproj$'
+              if ($found) {
+                $libraryName = $matches[1]
+                dotnet add $projectPath package $libraryName -v $version --no-restore
+              }
+            }
+          }
+
+          popd
+
+          # Compress the Samples folder
+          $artifactPath = "Samples-$version.zip"
+          Compress-Archive .\Samples\* -DestinationPath $artifactPath
+
+      - name: Upload Samples artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: samples
+          path: ./Samples-*.zip
+
   # Virtual job that can be configured as a required check before a PR can be
   # merged.
   all-required-checks-done:
-    needs: [check-style, build, test-library, package-library]
+    needs:
+      - check-style
+      - build
+      - test-library
+      - package-library
+      - package-samples
     runs-on: ubuntu-latest
     steps:
       - run: echo "All required checks done"
@@ -275,7 +346,7 @@ jobs:
   # a push to master.
   publish-preview:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && !github.event.repository.fork
-    needs: [all-required-checks-done]
+    needs: all-required-checks-done
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
@@ -291,13 +362,19 @@ jobs:
   publish-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !github.event.repository.fork
     # Depends explictly on the 'check-version' job so we can access its output
-    needs: [all-required-checks-done, check-version]
+    needs:
+      - all-required-checks-done
+      - check-version
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
         uses: actions/download-artifact@v2
         with:
           name: nuget-packages
+      - name: Download Samples artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: samples
 
       # if tag contains "-" treat it as pre-release
       # example: 1.0.0-beta1
@@ -307,7 +384,9 @@ jobs:
           name: Release v${{ needs.check-version.outputs.version }}
           draft: true
           prerelease: ${{ contains(needs.check-version.outputs.version, '-') }}
-          files: "*.nupkg"
+          files: |
+            *.nupkg
+            Samples-*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
