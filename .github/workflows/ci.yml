@@ -171,13 +171,14 @@ jobs:
     # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
     # run the CI for each branch push to a fork, and for each pull request originating from a fork.
     if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Check version
         id: version
+        shell: pwsh
         run: |
           $xpath = "/Project/PropertyGroup/VersionPrefix/text()"
           $main_version = (Select-Xml -path Src/ILGPU/ILGPU.csproj -XPath $xpath).Node.Value
