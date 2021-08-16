@@ -89,7 +89,7 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <summary cref="Exception.GetObjectData(SerializationInfo, StreamingContext)"/>
-#if !NET5_0
+#if !NET5_0_OR_GREATER
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
 #endif
         public override void GetObjectData(

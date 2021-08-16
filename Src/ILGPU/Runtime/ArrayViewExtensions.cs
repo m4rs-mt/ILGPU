@@ -1554,7 +1554,7 @@ namespace ILGPU.Runtime
             if (view.HasNoData())
                 return PageLockedArray1D<T>.Empty;
             var accelerator = view.GetAccelerator();
-#if NET5_0
+#if NET5_0_OR_GREATER
             var result = accelerator.AllocatePageLockedArray1D<T>(
                 view.Length,
                 uninitialized: true);
