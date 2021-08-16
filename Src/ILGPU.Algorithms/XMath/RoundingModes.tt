@@ -296,14 +296,14 @@ namespace ILGPU.Algorithms
                             _ => 1e<#= maxDigits #><#= function.FloatValueSuffix #>
                         };
 
-                    // NOTE: net47 and netstandard2.1 only support the first two modes:
+                    // NOTE: net471 and netstandard2.1 only support the first two modes:
                     // In order to fully support netcoreapp3.1 and net5.0, we convert
                     // the mode to an integer.
                     //
                     // This is also a workaround for the T4 template not supporting the
                     // newer rounding modes.
                     //
-                    // This has the side effect of adding extra functionality to net47
+                    // This has the side effect of adding extra functionality to net471
                     // and netstandard2.1.
                     //
                     // 0 - MidpointRounding.ToEven

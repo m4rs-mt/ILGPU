@@ -465,7 +465,7 @@ namespace ILGPU.Util
             "Globalization",
             "CA1307:Specify StringComparison",
             Justification = "string.IndexOf(char, StringComparison) not " +
-            "available in net47")]
+            "available in net471")]
         public static string GetStringRepresentation(this Type type)
         {
             var result = new StringBuilder();

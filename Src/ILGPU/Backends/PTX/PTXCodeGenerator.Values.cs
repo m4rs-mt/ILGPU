@@ -1083,7 +1083,7 @@ namespace ILGPU.Backends.PTX
             "Globalization",
             "CA1307:Specify StringComparison",
             Justification = "string.Replace(string, string, StringComparison) not " +
-            "available in net47")]
+            "available in net471")]
         public void GenerateCode(LanguageEmitValue emit)
         {
             // Ignore non-PTX instructions.

@@ -129,10 +129,10 @@ jobs:
         include:
           - os: windows-latest
             library: ILGPU
-            framework: net47
+            framework: net471
           - os: windows-latest
             library: ILGPU.Algorithms
-            framework: net47
+            framework: net471
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -216,9 +216,9 @@ jobs:
       - name: Fix NuGet Symbols Packages
         run: |
           # WORKAROUND: The Symbols packages should only contain Portable
-          # PDBs (no Windows PDBs allowed). Transfer net47 pdb from Symbols
+          # PDBs (no Windows PDBs allowed). Transfer net471 pdb from Symbols
           # packages to Main NuGet packages. Can be removed after updating
-          # ILGPU from net47 to net472.
+          # ILGPU from net471 to net472.
 
           ForEach ($library in "ILGPU", "ILGPU.Algorithms") {
             # Get path to the Main and Symbols NuGet packages
@@ -226,16 +226,16 @@ jobs:
             $mainPkgPath = Join-Path $releaseDir "$library.${{ steps.package.outputs.version }}.nupkg"
             $symbolsPkgPath = Join-Path $releaseDir "$library.${{ steps.package.outputs.version }}.snupkg"
 
-            # Transfer net47 pdb from the Symbols to Main NuGet package
+            # Transfer net471 pdb from the Symbols to Main NuGet package
             Add-Type -AssemblyName System.IO.Compression.FileSystem
-            $pdbEntryPath = "lib/net47/$library.pdb"
+            $pdbEntryPath = "lib/net471/$library.pdb"
 
             $mainPkgZip = [System.IO.Compression.ZipFile]::Open(
               $mainPkgPath,
               'Update')
             [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
               $mainPkgZip,
-              "$releaseDir/net47/$library.pdb",
+              "$releaseDir/net471/$library.pdb",
               $pdbEntryPath);
             $mainPkgZip.Dispose()
 
