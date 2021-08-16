@@ -298,7 +298,7 @@ jobs:
           dotnet sln remove $projectPaths
 
           # Update each sample project individually.
-          $projectPaths = dotnet sln list | Select-String -Pattern "\.csproj$"
+          $projectPaths = dotnet sln list | Select-String -Pattern "\.[cf]sproj$"
 
           ForEach ($projectPath in $projectPaths) {
             # Replace existing ILGPU libaries with NuGet package reference.
