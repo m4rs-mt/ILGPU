@@ -57,6 +57,18 @@ Preview/Daily builds are distributed using https://feedz.io/. To pull preview ve
 </configuration>
 ~~~
 
+# Symbols
+
+Symbols for ILGPU can be [loaded in VS2019](https://docs.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger).
+For official releases, ensure that the built-in `NuGet.org Symbol Server` is enabled. For preview release symbols, add the link:
+```
+https://f.feedz.io/ilgpu/preview/symbols
+```
+
+# Source Link
+
+ILGPU also provides Source Link support for a better debugging experience. Make sure `Enable Source Link support` is activated in [VS2019 options](https://docs.microsoft.com/en-us/visualstudio/debugger/general-debugging-options-dialog-box).
+
 # General Contribution Guidelines
 
 * Make sure that you agree with the general coding style (in terms of braces, whitespaces etc.).
