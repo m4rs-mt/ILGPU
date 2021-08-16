@@ -1,8 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net471;netcoreapp3.1;net5.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <LangVersion>8.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -12,6 +13,5 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
-    <ProjectReference Include="..\..\Src\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
   </ItemGroup>
 </Project>

@@ -131,7 +131,7 @@ namespace ILGPU.Runtime
         #region Instance
 
         private readonly T[] array;
-#if !NET5_0
+#if !NET5_0_OR_GREATER
         private readonly GCHandle handle;
 #endif
 
@@ -157,7 +157,7 @@ namespace ILGPU.Runtime
         {
             if (extent < 0L)
                 throw new ArgumentOutOfRangeException(nameof(extent));
-#if NET5_0
+#if NET5_0_OR_GREATER
             array = uninitialized
                 ? GC.AllocateUninitializedArray<T>(extent.ToIntIndex(), pinned: true)
                 : GC.AllocateArray<T>(extent.ToIntIndex(), pinned: true);
@@ -210,7 +210,7 @@ namespace ILGPU.Runtime
 
         #endregion
 
-#if !NET5_0
+#if !NET5_0_OR_GREATER
         #region IDisposable
 
         /// <inheritdoc/>

@@ -315,7 +315,7 @@ namespace ILGPU.Runtime.OpenCL
             "Globalization",
             "CA1307:Specify StringComparison",
             Justification = "string.GetHashCode(StringComparison) not " +
-            "available in net47")]
+            "available in net471")]
         private void InitVendorAndWarpSizeInfo()
         {
             VendorName = CurrentAPI.GetPlatformInfo(
