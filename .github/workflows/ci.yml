@@ -196,10 +196,17 @@ jobs:
             }
           }
 
+          if (-not ("${{ github.ref }}" -like "refs/tags/v*")) {
+            $suffix = "preview-$(Get-Date -Format yyyyMMddHHmmss -AsUTC)-$(git rev-parse --short HEAD)"
+            $main_version = "$main_version-$suffix"
+          }
+
           echo "::set-output name=version::$main_version"
+          echo "::set-output name=suffix::$suffix"
 
     outputs:
       version: ${{ steps.version.outputs.version }}
+      suffix: ${{ steps.version.outputs.suffix }}
 
   # Create the NuGet packages, with fixes for portable symbols.
   package-library:
@@ -215,19 +222,14 @@ jobs:
           dotnet-version: 5.0.x
 
       - name: Create NuGet packages
-        id: package
         run: |
-          $version = "${{ needs.check-version.outputs.version }}"
+          $suffix = "${{ needs.check-version.outputs.suffix }}"
 
-          if (-not ("${{ github.ref }}" -like "refs/tags/v*")) {
-            $suffix = "preview-$(Get-Date -Format yyyyMMddHHmmss -AsUTC)-$(git rev-parse --short HEAD)"
+          if ([bool]$suffix) {
             $params = "--version-suffix", $suffix
-            $version = "$version-$suffix"
           }
 
           dotnet pack --configuration=Release @params Src
-
-          echo "::set-output name=version::$version"
 
       - name: Fix NuGet Symbols Packages
         run: |
@@ -239,8 +241,8 @@ jobs:
           ForEach ($library in "ILGPU", "ILGPU.Algorithms") {
             # Get path to the Main and Symbols NuGet packages
             $releaseDir = './Bin/Release'
-            $mainPkgPath = Join-Path $releaseDir "$library.${{ steps.package.outputs.version }}.nupkg"
-            $symbolsPkgPath = Join-Path $releaseDir "$library.${{ steps.package.outputs.version }}.snupkg"
+            $mainPkgPath = Join-Path $releaseDir "$library.${{ needs.check-version.outputs.version }}.nupkg"
+            $symbolsPkgPath = Join-Path $releaseDir "$library.${{ needs.check-version.outputs.version }}.snupkg"
 
             # Transfer net471 pdb from the Symbols to Main NuGet package
             Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -266,7 +268,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: nuget-packages
-          path: ./Bin/Release/ILGPU*.${{ steps.package.outputs.version }}.*nupkg
+          path: ./Bin/Release/ILGPU*.${{ needs.check-version.outputs.version }}.*nupkg
 
   # Create the Samples zip file, replacing ILGPU project references with equivalent NuGet package references.
   package-samples:
@@ -286,12 +288,6 @@ jobs:
         id: package
         run: |
           $version = "${{ needs.check-version.outputs.version }}"
-
-          if (-not ("${{ github.ref }}" -like "refs/tags/v*")) {
-            $suffix = "preview-$(Get-Date -Format yyyyMMddHHmmss -AsUTC)-$(git rev-parse --short HEAD)"
-            $params = "--version-suffix", $suffix
-            $version = "$version-$suffix"
-          }
 
           # NB: Perform operations in the Samples folder, so that the relative paths returned by
           # the dotnet CLI are correct.
