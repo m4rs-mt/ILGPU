@@ -105,6 +105,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleDebugAssert", "Simple
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AlgorithmsUnique", "AlgorithmsUnique\AlgorithmsUnique.csproj", "{BDEDAB04-0F59-4ECC-840B-AA3A0ED1A3E2}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AlgorithmsHistogram", "AlgorithmsHistogram\AlgorithmsHistogram.csproj", "{FCBFA0FD-91DF-4C9E-8715-32A0EABD5E08}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -291,6 +293,10 @@ Global
 		{BDEDAB04-0F59-4ECC-840B-AA3A0ED1A3E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BDEDAB04-0F59-4ECC-840B-AA3A0ED1A3E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BDEDAB04-0F59-4ECC-840B-AA3A0ED1A3E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCBFA0FD-91DF-4C9E-8715-32A0EABD5E08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCBFA0FD-91DF-4C9E-8715-32A0EABD5E08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCBFA0FD-91DF-4C9E-8715-32A0EABD5E08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCBFA0FD-91DF-4C9E-8715-32A0EABD5E08}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -344,6 +350,7 @@ Global
 		{4A463E66-95E4-4180-ABA7-DCD7BBCDDA87} = {A0D83DD0-4DFE-4350-A652-8AB0B0F62F02}
 		{EFED82FE-8455-4F48-91CA-24D069412FDE} = {A0D83DD0-4DFE-4350-A652-8AB0B0F62F02}
 		{BDEDAB04-0F59-4ECC-840B-AA3A0ED1A3E2} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
+		{FCBFA0FD-91DF-4C9E-8715-32A0EABD5E08} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {30E502BD-3826-417F-888F-1CE19CF5C6DA}
