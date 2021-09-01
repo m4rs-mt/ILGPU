@@ -15,7 +15,6 @@ This is mostly due to the fact that ILGPU is turning C# code into lower level la
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
-using ILGPU.Runtime.CPU;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -25,11 +24,9 @@ public static class Program
 {
     public static void Main()
     {
-        // This is probably SUPER slow on the CPU
-        // You probably want to change this to a GPU if you have one.
-        using Context context = new Context();
-        context.EnableAlgorithms();
-        using Accelerator device = new CPUAccelerator(context);
+        Context context = Context.Create(builder => builder.Default().EnableAlgorithms());
+        Accelerator device = context.GetPreferredDevice(preferCPU: false)
+                                  .CreateAccelerator(context);
 
         int width = 500;
         int height = 500;
@@ -37,15 +34,15 @@ public static class Program
 
         byte[] h_bitmapData = new byte[width * height * 3];
 
-        using MemoryBuffer2D<Vec3> canvasData = device.Allocate<Vec3>(width, height);
-        using MemoryBuffer<byte> d_bitmapData = device.Allocate<byte>(width * height * 3);
+        using MemoryBuffer2D<Vec3, Stride2D.DenseY> canvasData = device.Allocate2DDenseY<Vec3>(new Index2D(width, height));
+        using MemoryBuffer1D<byte, Stride1D.Dense> d_bitmapData = device.Allocate1D<byte>(width * height * 3);
 
         CanvasData c = new CanvasData(canvasData, d_bitmapData, width, height);
 
         using HostParticleSystem h_particleSystem = new HostParticleSystem(device, particleCount, width, height);
 
-        var frameBufferToBitmap = device.LoadAutoGroupedStreamKernel<Index2, CanvasData>(CanvasData.CanvasToBitmap);
-        var particleProcessingKernel = device.LoadAutoGroupedStreamKernel<Index1, CanvasData, ParticleSystem>(ParticleSystem.particleKernel);
+        var frameBufferToBitmap = device.LoadAutoGroupedStreamKernel<Index2D, CanvasData>(CanvasData.CanvasToBitmap);
+        var particleProcessingKernel = device.LoadAutoGroupedStreamKernel<Index1D, CanvasData, ParticleSystem>(ParticleSystem.particleKernel);
 
         //process 100 N-body ticks
         for (int i = 0; i < 100; i++)
@@ -54,12 +51,12 @@ public static class Program
             device.Synchronize();
         }
 
-        frameBufferToBitmap(canvasData.Extent, c);
+        frameBufferToBitmap(canvasData.Extent.ToIntIndex(), c);
         device.Synchronize();
 
-        d_bitmapData.CopyTo(h_bitmapData, 0, 0, d_bitmapData.Extent);
+        d_bitmapData.CopyToCPU(h_bitmapData);
 
-        //bitmap magic that ignores striding be careful with some 
+        //bitmap magic that ignores bitmap striding, be careful some sizes will mess up the striding
         using Bitmap b = new Bitmap(width, height, width * 3, PixelFormat.Format24bppRgb, Marshal.UnsafeAddrOfPinnedArrayElement(h_bitmapData, 0));
         b.Save("out.bmp");
         Console.WriteLine("Wrote 100 iterations of N-body simulation to out.bmp");
@@ -67,12 +64,12 @@ public static class Program
 
     public struct CanvasData
     {
-        public ArrayView2D<Vec3> canvas;
-        public ArrayView<byte> bitmapData;
+        public ArrayView2D<Vec3, Stride2D.DenseY> canvas;
+        public ArrayView1D<byte, Stride1D.Dense> bitmapData;
         public int width;
         public int height;
 
-        public CanvasData(ArrayView2D<Vec3> canvas, ArrayView<byte> bitmapData, int width, int height)
+        public CanvasData(ArrayView2D<Vec3, Stride2D.DenseY> canvas, ArrayView1D<byte, Stride1D.Dense> bitmapData, int width, int height)
         {
             this.canvas = canvas;
             this.bitmapData = bitmapData;
@@ -80,15 +77,15 @@ public static class Program
             this.height = height;
         }
 
-        public void setColor(Index2 index, Vec3 c)
+        public void setColor(Index2D index, Vec3 c)
         {
-            if ((index.X >= 0) && (index.X < canvas.Width) && (index.Y >= 0) && (index.Y < canvas.Height))
+            if ((index.X >= 0) && (index.X < canvas.IntExtent.X) && (index.Y >= 0) && (index.Y < canvas.IntExtent.Y))
             {
                 canvas[index] = c;
             }
         }
 
-        public static void CanvasToBitmap(Index2 index, CanvasData c)
+        public static void CanvasToBitmap(Index2D index, CanvasData c)
         {
             Vec3 color = c.canvas[index];
 
@@ -104,7 +101,7 @@ public static class Program
 
     public class HostParticleSystem : IDisposable
     {
-        public MemoryBuffer<Particle> particleData;
+        public MemoryBuffer1D<Particle, Stride1D.Dense> particleData;
         public ParticleSystem deviceParticleSystem;
 
         public HostParticleSystem(Accelerator device, int particleCount, int width, int height)
@@ -118,7 +115,7 @@ public static class Program
                 particles[i] = new Particle(pos);
             }
 
-            particleData = device.Allocate(particles);
+            particleData = device.Allocate1D(particles);
             deviceParticleSystem = new ParticleSystem(particleData, width, height);
         }
 
@@ -130,12 +127,12 @@ public static class Program
 
     public struct ParticleSystem
     {
-        public ArrayView<Particle> particles;
+        public ArrayView1D<Particle, Stride1D.Dense> particles;
         public float gc;
         public Vec3 centerPos;
         public float centerMass;
 
-        public ParticleSystem(ArrayView<Particle> particles, int width, int height)
+        public ParticleSystem(ArrayView1D<Particle, Stride1D.Dense> particles, int width, int height)
         {
             this.particles = particles;
 
@@ -151,10 +148,10 @@ public static class Program
             return particles[ID].position;
         }
 
-        public static void particleKernel(Index1 index, CanvasData c, ParticleSystem p)
+        public static void particleKernel(Index1D index, CanvasData c, ParticleSystem p)
         {
             Vec3 pos = p.update(index);
-            Index2 position = new Index2((int)pos.x, (int)pos.y);
+            Index2D position = new Index2D((int)pos.x, (int)pos.y);
             c.setColor(position, new Vec3(1, 1, 1));
         }
     }
@@ -261,7 +258,7 @@ I will however explain each struct. Lets start with the easy ones.
 ### Vec3 && Particle
 
 These are just simple data structures. C# is super nice lets you create member functions and 
-constructors.
+constructors for structs.
 
 ### CanvasData
 
@@ -315,24 +312,25 @@ As you can see from the example it is much more complex to deal with, but at a p
 public class HostParticleSystemStructOfArrays : IDisposable
 {
     public int particleCount;
-    public MemoryBuffer<Vec3> positions;
-    public MemoryBuffer<Vec3> velocities;
-    public MemoryBuffer<Vec3> accelerations;
+    public MemoryBuffer1D<Vec3, Stride1D.Dense> positions;
+    public MemoryBuffer1D<Vec3, Stride1D.Dense> velocities;
+    public MemoryBuffer1D<Vec3, Stride1D.Dense> accelerations;
     public ParticleSystemStructOfArrays deviceParticleSystem;
 
-    public HostParticleSystemStructOfArrays(int particleCount, Accelerator device, int width, int height)
+    public HostParticleSystemStructOfArrays(Accelerator device, int particleCount, int width, int height)
     {
         this.particleCount = particleCount;
         Vec3[] poses = new Vec3[particleCount];
         Random rng = new Random();
+
         for (int i = 0; i < particleCount; i++)
         {
             poses[i] = new Vec3((float)rng.NextDouble() * width, (float)rng.NextDouble() * height, 1);
         }
 
-        positions = device.Allocate(poses);
-        velocities = device.Allocate<Vec3>(particleCount);
-        accelerations = device.Allocate<Vec3>(particleCount);
+        positions = device.Allocate1D(poses);
+        velocities = device.Allocate1D<Vec3>(particleCount);
+        accelerations = device.Allocate1D<Vec3>(particleCount);
 
         velocities.MemSetToZero();
         accelerations.MemSetToZero();
@@ -350,14 +348,14 @@ public class HostParticleSystemStructOfArrays : IDisposable
 
 public struct ParticleSystemStructOfArrays
 {
-    public ArrayView<Vec3> positions;
-    public ArrayView<Vec3> velocities;
-    public ArrayView<Vec3> accelerations;
+    public ArrayView1D<Vec3, Stride1D.Dense> positions;
+    public ArrayView1D<Vec3, Stride1D.Dense> velocities;
+    public ArrayView1D<Vec3, Stride1D.Dense> accelerations;
     public float gc;
     public Vec3 centerPos;
     public float centerMass;
 
-    public ParticleSystemStructOfArrays(ArrayView<Vec3> positions, ArrayView<Vec3> velocities, ArrayView<Vec3> accelerations, int width, int height)
+    public ParticleSystemStructOfArrays(ArrayView1D<Vec3, Stride1D.Dense> positions, ArrayView1D<Vec3, Stride1D.Dense> velocities, ArrayView1D<Vec3, Stride1D.Dense> accelerations, int width, int height)
     {
         this.positions = positions;
         this.velocities = velocities;
@@ -392,6 +390,13 @@ public struct ParticleSystemStructOfArrays
             float temp = (gc * mass) / XMath.Pow(deltaPosLength, 3f);
             accelerations[ID] += (otherPos - positions[ID]) * temp;
         }
+    }
+
+    public static void particleKernel(Index1D index, CanvasData c, ParticleSystemStructOfArrays p)
+    {
+        Vec3 pos = p.update(index);
+        Index2D position = new Index2D((int)pos.x, (int)pos.y);
+        c.setColor(position, new Vec3(1, 1, 1));
     }
 
     private void updatePosition(int ID)
