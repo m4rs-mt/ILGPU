@@ -152,7 +152,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The number of elements.</param>
         /// <returns>The allocated array.</returns>
         public static PageLockedArray<#= dimension #>D<T>
-            AllocatePageLockedArray<#= dimension #>D<T>(
+            AllocatePageLocked<#= dimension #>D<T>(
             this Accelerator accelerator,
             <#= dimension > 1 ? "in " : string.Empty #>LongIndex<#= dimension #>D extent)
             where T : unmanaged =>
