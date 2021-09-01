@@ -92,7 +92,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(CopyKernel))]
         public void Copy(long constant)
         {
-            using var array = Accelerator.AllocatePageLockedArray1D<long>(Length);
+            using var array = Accelerator.AllocatePageLocked1D<long>(Length);
             for (int i = 0; i < Length; i++)
                 array[i] = constant;
             using var buff = Accelerator.Allocate1D<long>(Length);
@@ -118,7 +118,7 @@ namespace ILGPU.Tests
         [Fact]
         public void GetAsArrayPageLocked()
         {
-            using var array = Accelerator.AllocatePageLockedArray1D<long>(Length);
+            using var array = Accelerator.AllocatePageLocked1D<long>(Length);
             for (int i = 0; i < Length; i++)
                 array[i] = 10;
 
@@ -130,7 +130,7 @@ namespace ILGPU.Tests
                 expected[i] = 10;
             Accelerator.Synchronize();
 
-            var data = buff.View.GetAsPageLockedArray1D();
+            var data = buff.View.GetAsPageLocked1D();
             Accelerator.Synchronize();
 
             Assert.Equal(expected.Length, data.Length);
