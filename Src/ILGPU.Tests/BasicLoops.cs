@@ -611,6 +611,63 @@ namespace ILGPU.Tests
                 (expected2[0], expected2[1]), Length).ToArray();
             Verify(target2.View, expectedData2);
         }
+
+        /// <summary>
+        /// Wrapper view required by <see cref="DoLoopWithoutEntryBlockKernel(Index1D,
+        /// ArrayView{int}, ArrayView{int})"/>.
+        /// </summary>
+        private readonly struct WrapperView
+        {
+            public WrapperView(ArrayView<int> source)
+            {
+                Source = source;
+            }
+
+            public ArrayView<int> Source { get; }
+
+            public readonly void GetNonZero(int offset, ref int result)
+            {
+                do
+                {
+                    result = Source[offset++];
+                }
+                while (offset < Source.IntLength & result == 0);
+            }
+        }
+
+        /// <summary>
+        /// Note that this function needs to be compiled with OptimizeCode = true in the
+        /// compiler settings. Depending on the SDK being used, this can either occur
+        /// in Debug builds with code optimization or release builds.
+        /// </summary>
+        static void DoLoopWithoutEntryBlockKernel(
+            Index1D index,
+            ArrayView<int> data,
+            ArrayView<int> source)
+        {
+            var view = new WrapperView(source);
+            int result = 32;
+            view.GetNonZero(index, ref result);
+            data[index] = result;
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(7)]
+        [InlineData(31)]
+        [KernelMethod(nameof(DoLoopWithoutEntryBlockKernel))]
+        public void DoLoopWithoutEntryBlock(int length)
+        {
+            using var target = Accelerator.Allocate1D<int>(length);
+            using var source = Accelerator.Allocate1D<int>(length);
+            source.MemSetToZero();
+            Accelerator.Synchronize();
+
+            Execute(length, target.View.AsContiguous(), source.View.AsContiguous());
+            var expected = Enumerable.Repeat(0, length).ToArray();
+            Verify(target.View, expected);
+        }
     }
 }
 
