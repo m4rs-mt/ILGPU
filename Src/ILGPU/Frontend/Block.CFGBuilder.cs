@@ -88,16 +88,34 @@ namespace ILGPU.Frontend
                 CodeGenerator = codeGenerator;
                 Builder = methodBuilder;
 
+                var mainEntry = methodBuilder.EntryBlockBuilder;
                 EntryBlock = new Block(
                     codeGenerator,
-                    methodBuilder.EntryBlockBuilder);
-                blockMapping.Add(0, EntryBlock);
+                    mainEntry)
+                {
+                    InstructionCount = 0
+                };
                 basicBlockMapping.Add(EntryBlock.BasicBlock, EntryBlock);
+
+                // Create a temporary entry block to ensure that we have a single entry
+                // block without any predecessors in all cases
+                var internalEntryBlock = new Block(
+                    codeGenerator,
+                    methodBuilder.CreateBasicBlock(
+                        mainEntry.BasicBlock.Location,
+                        mainEntry.BasicBlock.Name));
+                blockMapping.Add(0, internalEntryBlock);
+                basicBlockMapping.Add(internalEntryBlock.BasicBlock, internalEntryBlock);
                 BuildBasicBlocks();
 
                 var visited = new HashSet<Block>();
-                SetupBasicBlocks(visited, EntryBlock, 0);
+                SetupBasicBlocks(visited, internalEntryBlock, 0);
                 WireBlocks();
+
+                // Wire the main entry block with the actual entry block
+                mainEntry.CreateBranch(
+                    mainEntry.BasicBlock.Location,
+                    internalEntryBlock.BasicBlock);
 
                 // Update control-flow structure to refresh all successor/predecessor
                 // edge relations
