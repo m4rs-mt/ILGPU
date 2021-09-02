@@ -825,6 +825,31 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
+        internal static void StaticInlineStructureArrayKernel(
+            Index1D index,
+            ArrayView<int> data)
+        {
+            var staticInlineArray = new PairStruct<int, int>[]
+            {
+                new PairStruct<int, int>(1, 2),
+                new PairStruct<int, int>(3, 4),
+            };
+            data[index] =
+                staticInlineArray[0].Val0 +
+                staticInlineArray[1].Val1;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StaticInlineStructureArrayKernel))]
+        public void StaticInlineStructureArray()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(1);
+            Execute(1, buffer.AsContiguous());
+
+            var expected = new int[] { 5 };
+            Verify(buffer.View, expected);
+        }
+
         internal static void ConditionalArrayFoldingKernel(
             Index1D index,
             ArrayView<int> buffer)
