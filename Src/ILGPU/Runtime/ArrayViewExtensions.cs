@@ -1209,6 +1209,40 @@ namespace ILGPU.Runtime
             }
         }
 
+        /// <summary>
+        /// Copies from the source view into the given CPU data array using the default
+        /// stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="span">The CPU data target.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyToCPU<T, TView>(
+            this TView source,
+            in Span<T> span)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            source.CopyToCPU(source.GetDefaultStream(), span);
+
+        /// <summary>
+        /// Copies from the CPU source span into the given target view using the default
+        /// stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="span">The CPU data source.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyFromCPU<T, TView>(
+            this TView target,
+            in ReadOnlySpan<T> span)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            target.CopyFromCPU(target.GetDefaultStream(), span);
+
         #endregion
 
         #region Copy to/from arrays
