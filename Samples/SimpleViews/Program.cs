@@ -14,6 +14,7 @@ using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using System;
 using System.Diagnostics;
+using System.Linq;
 
 namespace SimpleViews
 {
@@ -70,6 +71,23 @@ namespace SimpleViews
             Debug.Assert(variableView.Value == view[view.Length - 1]);
         }
 
+        static void OffsetCopyAccess(ArrayView<int> view)
+        {
+            // Replace the first 256 items on the accelerator with the value 42.
+            var replacementValues = Enumerable.Repeat(42, 256).ToArray();
+            view.SubView(0, replacementValues.Length).CopyFromCPU(replacementValues);
+
+            // Replace the next 256 items on the accelerator with the value 97.
+            var nextReplacementValues = Enumerable.Repeat(97, 256).ToArray();
+            view.SubView(256, nextReplacementValues.Length).CopyFromCPU(nextReplacementValues);
+
+            // Copy a range of values from the accelerator to the CPU into a new array.
+            var fromGPU = view.SubView(128, 256).GetAsArray();
+
+            // Copy a range of values from the accelerator to the CPU into an existing array.
+            view.SubView(0, 128).CopyToCPU(fromGPU.AsSpan().Slice(128));
+        }
+
         static void UnsafeVariableViewAccess(ArrayView<int> view)
         {
             // Creates a variable view that points to the first element
@@ -120,6 +138,9 @@ namespace SimpleViews
 
             // Perform some unsafe operations on variable views.
             UnsafeVariableViewAccess(bufferView);
+
+            // Perform offset copy operations.
+            OffsetCopyAccess(bufferView);
         }
     }
 }
