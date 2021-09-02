@@ -85,7 +85,7 @@ namespace PinnedMemoryCopy
         /// <param name="dataSize">The number of elements to copy.</param>
         static void PerformPinnedCopyUsingAllocatePageLockedArray(Accelerator accelerator, int dataSize)
         {
-            using var array = accelerator.AllocatePageLockedArray1D<int>(dataSize);
+            using var array = accelerator.AllocatePageLocked1D<int>(dataSize);
 
             // Allocate buffer on this device
             using var bufferOnGPU = accelerator.Allocate1D<int>(array.Length);
@@ -108,7 +108,7 @@ namespace PinnedMemoryCopy
             var result1 = bufferOnGPU.GetAsArray1D();
 
             // Explicitly retrieve the results into a new page locked array
-            var result2 = bufferOnGPU.View.GetAsPageLockedArray1D();
+            var result2 = bufferOnGPU.View.GetAsPageLocked1D();
         }
 
         /// <summary>
