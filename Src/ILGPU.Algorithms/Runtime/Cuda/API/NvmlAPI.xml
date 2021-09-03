@@ -371,9 +371,16 @@
             <Parameter Name="addresses" Type="ulong*" />
             <Parameter Name="timestamps" Type="ulong*" />
         </Import>
-        <!-- TODO: Import nvmlDeviceGetSamples(nvmlDevice_t device, nvmlSamplingType_t type, unsigned long long lastSeenTimeStamp,
-                nvmlValueType_t *sampleValType, unsigned int *sampleCount, nvmlSample_t *samples);
-        -->
+        <Import Name="nvmlDeviceGetSamples"
+                DisplayName="DeviceGetSamples_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="type" Type="NvmlSamplingType" />
+            <Parameter Name="lastSeenTimeStamp" Type="ulong" />
+            <Parameter Name="sampleValType" Type="NvmlValueType" Flags="Out" />
+            <Parameter Name="sampleCount" Type="uint" Flags="Ref" />
+            <Parameter Name="samples" Type="NvmlSample*" />
+        </Import>
         <Import Name="nvmlDeviceGetSerial"
                 DisplayName="DeviceGetSerial_Interop"
                 Unsafe="true">
