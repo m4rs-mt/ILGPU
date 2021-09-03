@@ -78,7 +78,13 @@
             <Parameter Name="device" Type="IntPtr" />
             <Parameter Name="mode" Type="NvmlComputeMode" Flags="Out" />
         </Import>
-        <!-- TODO: Import nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device, unsigned int *infoCount, nvmlProcessInfo_t *infos); -->
+        <Import Name="nvmlDeviceGetComputeRunningProcesses_v2"
+                DisplayName="DeviceGetComputeRunningProcesses_v2_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="infoCount" Type="uint" Flags="Ref" />
+            <Parameter Name="infos" Type="NvmlProcessInfo*" />
+        </Import>
         <Import Name="nvmlDeviceGetCount_v2">
             <Parameter Name="deviceCount" Type="uint" Flags="Out" />
         </Import>
@@ -138,7 +144,13 @@
             <Parameter Name="encoderQueryType" Type="NvmlEncoderType" />
             <Parameter Name="encoderCapacity" Type="uint" Flags="Out" />
         </Import>
-        <!-- TODO: Import nvmlDeviceGetEncoderSessions(nvmlDevice_t device, unsigned int *sessionCount, nvmlEncoderSessionInfo_t *sessionInfos); -->
+        <Import Name="nvmlDeviceGetEncoderSessions"
+                DisplayName="DeviceGetEncoderSessions_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="sessionCount" Type="uint" Flags="Ref" />
+            <Parameter Name="sessionInfos" Type="NvmlEncoderSessionInfo*" />
+        </Import>
         <Import Name="nvmlDeviceGetEncoderStats">
             <Parameter Name="device" Type="IntPtr" />
             <Parameter Name="sessionCount" Type="uint" Flags="Out" />
@@ -154,7 +166,13 @@
             <Parameter Name="device" Type="IntPtr" />
             <Parameter Name="limit" Type="uint" Flags="Out" />
         </Import>
-        <!-- TODO: Import nvmlDeviceGetFBCSessions(nvmlDevice_t device, unsigned int *sessionCount, nvmlFBCSessionInfo_t *sessionInfo); -->
+        <Import Name="nvmlDeviceGetFBCSessions"
+                DisplayName="DeviceGetFBCSessions_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="sessionCount" Type="uint" Flags="Ref" />
+            <Parameter Name="sessionInfos" Type="NvmlFBCSessionInfo*" />
+        </Import>
         <Import Name="nvmlDeviceGetFBCStats">
             <Parameter Name="device" Type="IntPtr" />
             <Parameter Name="fbcStats" Type="NvmlFBCStats" Flags="Out" />
@@ -173,7 +191,13 @@
             <Parameter Name="current" Type="NvmlGpuOperationMode" Flags="Out" />
             <Parameter Name="pending" Type="NvmlGpuOperationMode" Flags="Out" />
         </Import>
-        <!-- TODO: Import nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t device, unsigned int *infoCount, nvmlProcessInfo_t *infos); -->
+        <Import Name="nvmlDeviceGetGraphicsRunningProcesses_v2"
+                DisplayName="DeviceGetGraphicsRunningProcesses_v2_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="infoCount" Type="uint" Flags="Ref" />
+            <Parameter Name="infos" Type="NvmlProcessInfo*" />
+        </Import>
         <Import Name="nvmlDeviceGetHandleByIndex_v2">
             <Parameter Name="index" Type="uint" />
             <Parameter Name="device" Type="IntPtr" Flags="Out" />
@@ -326,16 +350,27 @@
             <Parameter Name="isPending" Type="uint" Flags="Out" />
             <Parameter Name="failureOccurred" Type="uint" Flags="Out" />
         </Import>
-        <!-- TODO: Import nvmlDeviceGetRetiredPages(nvmlDevice_t device, nvmlPageRetirementCause_t cause,
-                unsigned int *pageCount, unsigned long long *addresses);
-        -->
+        <Import Name="nvmlDeviceGetRetiredPages"
+                DisplayName="DeviceGetRetiredPages_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="cause" Type="NvmlPageRetirementCause" />
+            <Parameter Name="pageCount" Type="uint" Flags="Ref" />
+            <Parameter Name="addresses" Type="ulong*" />
+        </Import>
         <Import Name="nvmlDeviceGetRetiredPagesPendingStatus">
             <Parameter Name="device" Type="IntPtr" />
             <Parameter Name="isPending" Type="NvmlEnableState" Flags="Out" />
         </Import>
-        <!-- TODO: Import nvmlDeviceGetRetiredPages_v2(nvmlDevice_t device, nvmlPageRetirementCause_t cause,
-                unsigned int *pageCount, unsigned long long *addresses, unsigned long long *timestamps);
-        -->
+        <Import Name="nvmlDeviceGetRetiredPages_v2"
+                DisplayName="DeviceGetRetiredPages_v2_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="cause" Type="NvmlPageRetirementCause" />
+            <Parameter Name="pageCount" Type="uint" Flags="Ref" />
+            <Parameter Name="addresses" Type="ulong*" />
+            <Parameter Name="timestamps" Type="ulong*" />
+        </Import>
         <!-- TODO: Import nvmlDeviceGetSamples(nvmlDevice_t device, nvmlSamplingType_t type, unsigned long long lastSeenTimeStamp,
                 nvmlValueType_t *sampleValType, unsigned int *sampleCount, nvmlSample_t *samples);
         -->
@@ -350,8 +385,21 @@
             <Parameter Name="device" Type="IntPtr" />
             <Parameter Name="supportedClocksThrottleReasons" Type="NvmlClocksThrottleReasons" Flags="Out" />
         </Import>
-        <!-- TODO: Import nvmlDeviceGetSupportedGraphicsClocks(nvmlDevice_t device, unsigned int memoryClockMHz, unsigned int *count, unsigned int *clocksMHz); -->
-        <!-- TODO: Import nvmlDeviceGetSupportedMemoryClocks(nvmlDevice_t device, unsigned int *count, unsigned int *clocksMHz); -->
+        <Import Name="nvmlDeviceGetSupportedGraphicsClocks"
+                DisplayName="DeviceGetSupportedGraphicsClocks_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="memoryClockMHz" Type="uint" />
+            <Parameter Name="count" Type="uint" Flags="Ref" />
+            <Parameter Name="clocksMHz" Type="uint*" />
+        </Import>
+        <Import Name="nvmlDeviceGetSupportedMemoryClocks"
+                DisplayName="DeviceGetSupportedMemoryClocks_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="count" Type="uint" Flags="Ref" />
+            <Parameter Name="clocksMHz" Type="uint*" />
+        </Import>
         <Import Name="nvmlDeviceGetTemperature">
             <Parameter Name="device" Type="IntPtr" />
             <Parameter Name="sensorType" Type="NvmlTemperatureSensors" />
@@ -367,7 +415,14 @@
             <Parameter Name="device2" Type="IntPtr" />
             <Parameter Name="pathInfo" Type="NvmlGpuTopologyLevel" Flags="Out" />
         </Import>
-        <!-- TODO: Import nvmlDeviceGetTopologyNearestGpus(nvmlDevice_t device, nvmlGpuTopologyLevel_t level, unsigned int *count, nvmlDevice_t *deviceArray); -->
+        <Import Name="nvmlDeviceGetTopologyNearestGpus"
+                DisplayName="DeviceGetTopologyNearestGpus_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="level" Type="NvmlGpuTopologyLevel" />
+            <Parameter Name="count" Type="uint" Flags="Ref" />
+            <Parameter Name="deviceArray" Type="IntPtr*" />
+        </Import>
         <Import Name="nvmlDeviceGetTotalEccErrors">
             <Parameter Name="device" Type="IntPtr" />
             <Parameter Name="errorType" Type="NvmlMemoryErrorType" />
@@ -421,7 +476,13 @@
         <Import Name="nvmlDeviceValidateInforom">
             <Parameter Name="device" Type="IntPtr" />
         </Import>
-        <!-- TODO: Import nvmlSystemGetTopologyGpuSet(unsigned int cpuNumber, unsigned int *count, nvmlDevice_t *deviceArray); -->
+        <Import Name="nvmlSystemGetTopologyGpuSet"
+                DisplayName="SystemGetTopologyGpuSet_Interop"
+                Unsafe="true">
+            <Parameter Name="cpuNumber" Type="uint" />
+            <Parameter Name="count" Type="uint" Flags="Ref" />
+            <Parameter Name="deviceArray" Type="IntPtr*" />
+        </Import>
         <Import Name="nvmlVgpuInstanceGetMdevUUID"
                 DisplayName="VgpuInstanceGetMdevUUID_Interop"
                 Unsafe="true">
