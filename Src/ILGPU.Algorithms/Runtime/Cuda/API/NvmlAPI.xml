@@ -498,4 +498,36 @@
             <Parameter Name="size" Type="uint" />
         </Import>
     </Region>
+
+    <Region Name="Device Queries - CPU and Memory Affinity">
+        <Import Name="nvmlDeviceClearCpuAffinity">
+            <Parameter Name="device" Type="IntPtr" />
+        </Import>
+        <Import Name="nvmlDeviceGetCpuAffinity"
+                DisplayName="DeviceGetCpuAffinity_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="cpuSetSize" Type="uint" />
+            <Parameter Name="cpuSet" Type="ulong*" />
+        </Import>
+        <Import Name="nvmlDeviceGetCpuAffinityWithinScope"
+                DisplayName="DeviceGetCpuAffinityWithinScope_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="cpuSetSize" Type="uint" />
+            <Parameter Name="cpuSet" Type="ulong*" />
+            <Parameter Name="scope" Type="NvmlAffinityScope" />
+        </Import>
+        <Import Name="nvmlDeviceGetMemoryAffinity"
+                DisplayName="DeviceGetMemoryAffinity_Interop"
+                Unsafe="true">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="nodeSetSize" Type="uint" />
+            <Parameter Name="nodeSet" Type="ulong*" />
+            <Parameter Name="scope" Type="NvmlAffinityScope" />
+        </Import>
+        <Import Name="nvmlDeviceSetCpuAffinity">
+            <Parameter Name="device" Type="IntPtr" />
+        </Import>
+    </Region>
 </ImportLibrary>
