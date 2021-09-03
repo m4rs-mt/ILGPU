@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Text;
 
 namespace ILGPU.Runtime.Cuda.API
 {
@@ -65,6 +66,86 @@ namespace ILGPU.Runtime.Cuda.API
             }
 
             throw firstException ?? new DllNotFoundException(nameof(NvmlAPI));
+        }
+
+        #endregion
+
+        #region Device Queries
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetBridgeChipInfo_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        [CLSCompliant(false)]
+        public unsafe NvmlReturn DeviceGetBridgeChipInfo(
+            IntPtr device,
+            out NvmlBridgeChipHierarchy bridgeHierarchy)
+        {
+            var result = DeviceGetBridgeChipInfo_Interop(device, out var interopResult);
+            if (result == NvmlReturn.NVML_SUCCESS)
+            {
+                bridgeHierarchy =
+                    new NvmlBridgeChipHierarchy()
+                    {
+                        BridgeCount = interopResult.BridgeCount,
+                        BridgeChipInfo = new NvmlBridgeChipInfo[interopResult.BridgeCount]
+                    };
+                for (int i = 0; i < interopResult.BridgeCount; i++)
+                    bridgeHierarchy.BridgeChipInfo[i] = interopResult.BridgeChipInfo[i];
+            }
+            else
+            {
+                bridgeHierarchy = default;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetPciInfo_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetPciInfo(
+            IntPtr device,
+            out NvmlPciInfo pci)
+        {
+            var result = DeviceGetPciInfo_Interop(device, out var interopResult);
+            if (result == NvmlReturn.NVML_SUCCESS)
+            {
+                var busIdLegacySpan = new Span<byte>(
+                    interopResult.BusIdLegacy,
+                    (int)NvmlConstants.NVML_DEVICE_PCI_BUS_ID_BUFFER_V2_SIZE);
+                var busIdLegacyStrLen = busIdLegacySpan.IndexOf<byte>(0);
+                var busIdLegacy = Encoding.UTF8.GetString(
+                    interopResult.BusIdLegacy,
+                    busIdLegacyStrLen);
+
+                var busIdSpan = new Span<byte>(
+                    interopResult.BusId,
+                    (int)NvmlConstants.NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE);
+                var busIdStrLen = busIdSpan.IndexOf<byte>(0);
+                var busId = Encoding.UTF8.GetString(
+                    interopResult.BusId,
+                    busIdStrLen);
+
+                pci =
+                    new NvmlPciInfo()
+                    {
+                        BusIdLegacy = busIdLegacy,
+                        Domain = interopResult.Domain,
+                        Bus = interopResult.Bus,
+                        Device = interopResult.Device,
+                        PciDeviceId = interopResult.PciDeviceId,
+                        PciSubSystemId = interopResult.PciSubSystemId,
+                        BusId = busId,
+                    };
+            }
+            else
+            {
+                pci = default;
+            }
+
+            return result;
         }
 
         #endregion
