@@ -120,6 +120,37 @@ namespace ILGPU.Runtime.Cuda
     }
 
     [CLSCompliant(false)]
+    public unsafe struct NvmlHwbcEntry_Interop
+    {
+        public const int NVML_MAX_FIRMWAREVERSION = 32;
+
+        public uint HwbcId;
+        public fixed byte FirmwareVersion[NVML_MAX_FIRMWAREVERSION];
+    }
+
+    [CLSCompliant(false)]
+    public struct NvmlHwbcEntry
+    {
+        public uint HwbcId;
+        public string FirmwareVersion;
+    }
+
+    [CLSCompliant(false)]
+    public unsafe struct NvmlLedState_Interop
+    {
+        public const int NVML_MAX_CAUSE = 256;
+
+        public fixed byte Cause[NVML_MAX_CAUSE];
+        public NvmlLedColor Color;
+    }
+
+    public struct NvmlLedState
+    {
+        public string Cause;
+        public NvmlLedColor Color;
+    }
+
+    [CLSCompliant(false)]
     public struct NvmlMemory
     {
         public ulong Total;
@@ -162,6 +193,25 @@ namespace ILGPU.Runtime.Cuda
     }
 
     [CLSCompliant(false)]
+    public unsafe struct NvmlPSUInfo_Interop
+    {
+        public const int NVML_MAX_STATE = 80;
+        public uint Current;
+        public uint Power;
+        public fixed byte State[NVML_MAX_STATE];
+        public uint Voltage;
+    }
+
+    [CLSCompliant(false)]
+    public unsafe struct NvmlPSUInfo
+    {
+        public uint Current;
+        public uint Power;
+        public string State;
+        public uint Voltage;
+    }
+
+    [CLSCompliant(false)]
     [StructLayout(LayoutKind.Explicit)]
     public struct NvmlSample
     {
@@ -184,6 +234,57 @@ namespace ILGPU.Runtime.Cuda
         public long SllVal;
     }
 
+    [CLSCompliant(false)]
+    public struct NvmlUnitFanInfo
+    {
+        internal const int INTEROP_SIZE = sizeof(uint) + sizeof(NvmlFanState);
+
+        public uint Speed;
+        public NvmlFanState State;
+    }
+
+    [CLSCompliant(false)]
+    [StructLayout(LayoutKind.Explicit, Size = INTEROP_SIZE)]
+    public unsafe struct NvmlUnitFanSpeeds_Interop
+    {
+        public const int NVML_MAX_FANS = 24;
+
+        internal const int INTEROP_SIZE =
+            sizeof(uint) + (NVML_MAX_FANS * NvmlUnitFanInfo.INTEROP_SIZE);
+
+        [FieldOffset(0)]
+        public uint Count;
+
+        [FieldOffset(4)]
+        public NvmlUnitFanInfo* Fans;
+    }
+
+    [CLSCompliant(false)]
+    public unsafe struct NvmlUnitFanSpeeds
+    {
+        public uint Count;
+        public NvmlUnitFanInfo[] Fans;
+    }
+
+    [CLSCompliant(false)]
+    public unsafe struct NvmlUnitInfo_Interop
+    {
+        public const int NVML_MAX_STRLEN = 96;
+
+        public fixed byte FirmwareVersion[NVML_MAX_STRLEN];
+        public fixed byte Id[NVML_MAX_STRLEN];
+        public fixed byte Name[NVML_MAX_STRLEN];
+        public fixed byte Serial[NVML_MAX_STRLEN];
+    }
+
+    [CLSCompliant(false)]
+    public struct NvmlUnitInfo
+    {
+        public string FirmwareVersion;
+        public string Id;
+        public string Name;
+        public string Serial;
+    }
 
     [CLSCompliant(false)]
     public struct NvmlUtilization
