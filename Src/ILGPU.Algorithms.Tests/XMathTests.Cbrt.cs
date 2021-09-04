@@ -43,7 +43,7 @@ namespace ILGPU.Algorithms.Tests
             buffer.CopyFromCPU(values);
             Execute(buffer.IntExtent, buffer.View);
 
-            var expected = new double[] { 2 };
+            var expected = new double[] { 2.1 };
             Verify(buffer.View, expected);
         }
 
