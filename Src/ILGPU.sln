@@ -25,6 +25,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms.Tests.Open
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms.Tests", "ILGPU.Algorithms.Tests\ILGPU.Algorithms.Tests.csproj", "{18F2225C-82FD-4B01-8AF9-CF746D16EDA1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmarking", "..\..\Benchmarking\Benchmarking\Benchmarking.csproj", "{D973758E-29FD-476A-92DE-B87EC472EAA1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{18F2225C-82FD-4B01-8AF9-CF746D16EDA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18F2225C-82FD-4B01-8AF9-CF746D16EDA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18F2225C-82FD-4B01-8AF9-CF746D16EDA1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D973758E-29FD-476A-92DE-B87EC472EAA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D973758E-29FD-476A-92DE-B87EC472EAA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D973758E-29FD-476A-92DE-B87EC472EAA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D973758E-29FD-476A-92DE-B87EC472EAA1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
