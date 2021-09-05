@@ -1,10 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU.Algorithms
-//                      Copyright (c) 2019 ILGPU Algorithms Project
+//                      Copyright (c) 2021 ILGPU Algorithms Project
 //                                    www.ilgpu.net
 //
 // File: Cbrt.cs
 //
+// This file was made by Marcel Pawelczyk, to be used freely without restriction by
+// the ILGPU project. 
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
@@ -30,7 +32,7 @@ namespace ILGPU.Algorithms
             if (checksafety)
             {
                 if (n < 0) { return -Cbrt(-n); }
-                if ( n==0 || double.IsNaN(n) || double.IsInfinity(n)) { return n; }
+                if (n == 0 || double.IsNaN(n) || double.IsInfinity(n)) { return n; }
             }
 
             // Initial approximation

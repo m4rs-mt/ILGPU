@@ -5,15 +5,15 @@
 //
 // File: XMathTests.Cbrt.cs
 //
+// This file was made by Marcel Pawelczyk, to be used freely without restriction by
+// the ILGPU project. 
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
 using ILGPU.Tests;
-using System.Collections.Generic;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace ILGPU.Algorithms.Tests
 {
@@ -22,9 +22,7 @@ namespace ILGPU.Algorithms.Tests
     {
 
 
-        internal static void CbrtDoubleKernel(
-        Index1D index,
-        ArrayView1D<double, Stride1D.Dense> IO)
+        internal static void CbrtDoubleKernel(Index1D index, ArrayView1D<double, Stride1D.Dense> IO)
         {
             IO[index] = XMath.Cbrt(IO[index]);
         }
@@ -33,7 +31,6 @@ namespace ILGPU.Algorithms.Tests
         {
             { new double[] {-27,-8,-2, 0, 2, 8, 27, double.NaN, double.PositiveInfinity, double.NegativeInfinity, 1000, 87621863} },
         };
-
 
         [Theory]
         [MemberData(nameof(DoubleDataSet))]
@@ -53,10 +50,7 @@ namespace ILGPU.Algorithms.Tests
 
 
 
-        internal static void CbrtFloatKernel(
-        Index1D index,
-        ArrayView1D<float, Stride1D.Dense> Input,
-        ArrayView1D<double, Stride1D.Dense> Output)
+        internal static void CbrtFloatKernel(Index1D index, ArrayView1D<float, Stride1D.Dense> Input, ArrayView1D<double, Stride1D.Dense> Output)
         {
             Output[index] = XMath.Cbrt(Input[index]);
         }
@@ -65,7 +59,6 @@ namespace ILGPU.Algorithms.Tests
         {
             { new float[] {-27f,-8f,-2f, 0f, 2f, 8f, 27f, float.NaN, float.PositiveInfinity, float.NegativeInfinity, 1000f, 87621863f} },
         };
-
 
         [Theory]
         [MemberData(nameof(FloatDataSet))]
@@ -85,13 +78,7 @@ namespace ILGPU.Algorithms.Tests
 
 
 
-
-
-
-        internal static void CbrtFastDoubletKernel(
-        Index1D index,
-        ArrayView1D<double, Stride1D.Dense> Input,
-        ArrayView1D<float, Stride1D.Dense> Output)
+        internal static void CbrtFastDoubletKernel(Index1D index, ArrayView1D<double, Stride1D.Dense> Input,ArrayView1D<float, Stride1D.Dense> Output)
         {
             Output[index] = XMath.CbrtFast(Input[index]);
         }
@@ -114,12 +101,7 @@ namespace ILGPU.Algorithms.Tests
 
 
 
-
-
-
-        internal static void CbrtFastFloatKernel(
-        Index1D index,
-        ArrayView1D<float, Stride1D.Dense> IO)
+        internal static void CbrtFastFloatKernel(Index1D index, ArrayView1D<float, Stride1D.Dense> IO)
         {
             IO[index] = XMath.CbrtFast(IO[index]);
         }
@@ -139,18 +121,6 @@ namespace ILGPU.Algorithms.Tests
             VerifyWithinRelativeError(buffer.View, expected, 1e-5);
         }
 
-
-
-
-
-
-
-
-
-
     }
-
-
-
 
 }
