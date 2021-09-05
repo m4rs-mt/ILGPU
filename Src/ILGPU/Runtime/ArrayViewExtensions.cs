@@ -1209,6 +1209,40 @@ namespace ILGPU.Runtime
             }
         }
 
+        /// <summary>
+        /// Copies from the source view into the given CPU data array using the default
+        /// stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="source">The source view instance.</param>
+        /// <param name="span">The CPU data target.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyToCPU<T, TView>(
+            this TView source,
+            in Span<T> span)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            source.CopyToCPU(source.GetDefaultStream(), span);
+
+        /// <summary>
+        /// Copies from the CPU source span into the given target view using the default
+        /// stream.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TView">The view type.</typeparam>
+        /// <param name="target">The target view instance.</param>
+        /// <param name="span">The CPU data source.</param>
+        /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
+        public static unsafe void CopyFromCPU<T, TView>(
+            this TView target,
+            in ReadOnlySpan<T> span)
+            where TView : IContiguousArrayView<T>
+            where T : unmanaged =>
+            target.CopyFromCPU(target.GetDefaultStream(), span);
+
         #endregion
 
         #region Copy to/from arrays
@@ -1516,7 +1550,7 @@ namespace ILGPU.Runtime
             {
                 // Extract the managed .Net array from the locked array, as this instance
                 // will not be disposed by the using statement.
-                using var lockedArray = view.GetAsPageLockedArray(stream);
+                using var lockedArray = view.GetAsPageLocked(stream);
                 return lockedArray.GetArray();
             }
 
@@ -1534,9 +1568,9 @@ namespace ILGPU.Runtime
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PageLockedArray1D<T> GetAsPageLockedArray<T>(this ArrayView<T> view)
+        public static PageLockedArray1D<T> GetAsPageLocked<T>(this ArrayView<T> view)
             where T : unmanaged =>
-            view.GetAsPageLockedArray(view.GetDefaultStream());
+            view.GetAsPageLocked(view.GetDefaultStream());
 
         /// <summary>
         /// Copies the current contents into a new array.
@@ -1546,7 +1580,7 @@ namespace ILGPU.Runtime
         /// <returns>A new array holding the requested contents.</returns>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
-        public static PageLockedArray1D<T> GetAsPageLockedArray<T>(
+        public static PageLockedArray1D<T> GetAsPageLocked<T>(
             this ArrayView<T> view,
             AcceleratorStream stream)
             where T : unmanaged
@@ -1555,11 +1589,11 @@ namespace ILGPU.Runtime
                 return PageLockedArray1D<T>.Empty;
             var accelerator = view.GetAccelerator();
 #if NET5_0_OR_GREATER
-            var result = accelerator.AllocatePageLockedArray1D<T>(
+            var result = accelerator.AllocatePageLocked1D<T>(
                 view.Length,
                 uninitialized: true);
 #else
-            var result = accelerator.AllocatePageLockedArray1D<T>(view.Length);
+            var result = accelerator.AllocatePageLocked1D<T>(view.Length);
 #endif
             view.CopyToPageLockedAsync(stream, result);
             stream.Synchronize();

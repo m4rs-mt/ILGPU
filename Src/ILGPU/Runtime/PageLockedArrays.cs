@@ -44,7 +44,7 @@ namespace ILGPU.Runtime
         protected internal PageLockScope<T> Scope { get; private set; }
 
         /// <summary>
-        /// Returns the array view of the underyling .Net array.
+        /// Returns the array view of the underlying .Net array.
         /// </summary>
         public ArrayView<T> ArrayView { get; private set; } = ArrayView<T>.Empty;
 
@@ -237,7 +237,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The number of elements.</param>
         /// <param name="uninitialized">True, to skip data initialization.</param>
         /// <returns>The allocated array.</returns>
-        public static PageLockedArray1D<T> AllocatePageLockedArray1D<T>(
+        public static PageLockedArray1D<T> AllocatePageLocked1D<T>(
             this Accelerator accelerator,
             LongIndex1D extent,
             bool uninitialized)

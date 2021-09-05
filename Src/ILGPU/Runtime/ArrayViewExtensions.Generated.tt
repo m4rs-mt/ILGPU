@@ -866,7 +866,7 @@ namespace ILGPU.Runtime
 <# } #>
         #endregion
 
-        #region GetAsPageLockedArray
+        #region GetAsPageLocked
 
 <# foreach (var (dimension, strideName, needsTranspose) in generalDimensionStrides) { #>
 <#      if (needsTranspose) continue; #>
@@ -884,10 +884,10 @@ namespace ILGPU.Runtime
         [NotInsideKernel]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PageLockedArray<#= dimension #>D<T>
-            GetAsPageLockedArray<#= dimension #>D<T>(
+            GetAsPageLocked<#= dimension #>D<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view)
             where T : unmanaged =>
-            view.GetAsPageLockedArray<#= dimension #>D(view.GetDefaultStream());
+            view.GetAsPageLocked<#= dimension #>D(view.GetDefaultStream());
 
         /// <summary>
         /// Copies the contents of the <#= dimension #>D view into a new
@@ -901,7 +901,7 @@ namespace ILGPU.Runtime
         /// </remarks>
         [NotInsideKernel]
         public static PageLockedArray<#= dimension #>D<T>
-            GetAsPageLockedArray<#= dimension #>D<T>(
+            GetAsPageLocked<#= dimension #>D<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> view,
             AcceleratorStream stream)
             where T : unmanaged
@@ -912,7 +912,7 @@ namespace ILGPU.Runtime
             // Allocate the return array
             var result = view
                 .GetAccelerator()
-                .AllocatePageLockedArray<#= dimension #>D<T>(view.Extent);
+                .AllocatePageLocked<#= dimension #>D<T>(view.Extent);
 
             // Copy the data
             view.CopyToPageLockedAsync(stream, result);
