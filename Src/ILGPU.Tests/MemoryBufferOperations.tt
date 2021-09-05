@@ -95,6 +95,39 @@ namespace ILGPU.Tests
             output[index] = input[index];
         }
 
+        internal static void ZeroLength_Kernel<T>(
+            Index1D index,
+            ArrayView1D<T, Stride1D.Dense> input,
+            ArrayView1D<T, Stride1D.Dense> output)
+            where T : unmanaged
+        {
+            if (index < input.Length & index < output.Length)
+                output[index] = input[index];
+        }
+
+<#  foreach (var type in copyTypes) { #>
+        [Theory]
+<#      foreach (var length in lengths) { #>
+        [InlineData(<#= length #>)]
+<#      } #>
+        [KernelMethod(nameof(ZeroLength_Kernel))]
+        public void ZeroLength_<#= type.Name #>(int length)
+        {
+            using var source = Accelerator.Allocate1D<<#= type.Type #>>(0);
+            using var target = Accelerator.Allocate1D<<#= type.Type #>>(0);
+            var emptyData = Array.Empty<<#= type.Type #>>();
+
+            source.CopyTo(Accelerator.DefaultStream, target);
+            target.CopyFromCPU(Accelerator.DefaultStream, emptyData);
+
+            Execute<Index1D, <#= type.Type #>>(
+                length,
+                source.View,
+                target.View);
+        }
+
+<#  } #>
+
 <#  foreach (var type in copyTypes) { #>
         [Theory]
 <#      foreach (var stride in strides) { #>
