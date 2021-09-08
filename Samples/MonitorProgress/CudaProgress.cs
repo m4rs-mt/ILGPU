@@ -50,23 +50,22 @@ namespace MonitorProgress
                 NativePtr = IntPtr.Zero;
             }
 
-            public override void CopyFrom(
+            protected override void CopyFrom(
                 AcceleratorStream stream,
                 in ArrayView<byte> sourceView,
-                long targetOffsetInBytes) =>
-                throw new NotSupportedException();
+                in ArrayView<byte> targetView) =>
+                throw new NotImplementedException();
 
-            public override void CopyTo(
+            protected override void CopyTo(
                 AcceleratorStream stream,
-                long sourceOffsetInBytes,
+                in ArrayView<byte> sourceView,
                 in ArrayView<byte> targetView) =>
                 throw new NotSupportedException();
 
-            public override void MemSet(
+            protected override void MemSet(
                 AcceleratorStream stream,
                 byte value,
-                long targetOffsetInBytes,
-                long length) =>
+                in ArrayView<byte> targetView) =>
                 throw new NotSupportedException();
         }
 
