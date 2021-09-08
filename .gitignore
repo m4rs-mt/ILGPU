@@ -28,6 +28,9 @@ bld/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
+# Rider Cache
+.idea/
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
@@ -272,6 +275,10 @@ Src/ILGPU/StrideTypes.cs
 Src/ILGPU/TypeInformation.cs
 Src/ILGPU/Util/DataBlocks.cs
 Src/ILGPU/Util/PrimitiveDataBlocks.cs
+Src/ILGPU/Backends/SPIRV/ISPIRVBuilder.cs
+Src/ILGPU/Backends/SPIRV/BinarySPIRVBuilder.cs
+Src/ILGPU/Backends/SPIRV/StringSPIRVBuilder.cs
+Src/ILGPU/Backends/SPIRV/SPIRVComplexTypes.cs
 
 # Ignore specific template outputs (Algorithms)
 Src/ILGPU.Algorithms/AlgorithmContextMappings.cs
