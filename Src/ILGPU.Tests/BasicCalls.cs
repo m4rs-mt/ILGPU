@@ -1,4 +1,5 @@
 ﻿using ILGPU.Runtime;
+using ILGPU.Util;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Xunit;
@@ -247,6 +248,56 @@ namespace ILGPU.Tests
             Execute(buffer.Length, buffer.View, c, d);
 
             var expected = Enumerable.Repeat(res, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static VariableView<Int2> GetVariableViewNested(
+            Index1D index,
+            ArrayView1D<Int2, Stride1D.Dense> source) =>
+            source.VariableView(index);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static VariableView<int> GetVariableSubViewNested(
+            VariableView<Int2> source) =>
+            source.SubView<int>(sizeof(int));
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static VariableView<int> GetVariableSubViewRoot(
+            Index1D index,
+            ArrayView1D<Int2, Stride1D.Dense> source)
+        {
+            var variableView = GetVariableViewNested(index, source);
+            return GetVariableSubViewNested(variableView);
+        }
+
+        internal static void GetSubVariableViewKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<Int2, Stride1D.Dense> source)
+        {
+            var view = GetVariableSubViewRoot(index, source);
+            data[index] = view.Value;
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(17)]
+        [InlineData(1025)]
+        [InlineData(8197)]
+        [KernelMethod(nameof(GetSubVariableViewKernel))]
+        public void GetSubVariableView(int length)
+        {
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            var sourceData = Enumerable.Range(0, length).Select(t =>
+                new Int2(t, t + 1 )).ToArray();
+            var expected = Enumerable.Range(1, length).ToArray();
+            using (var source = Accelerator.Allocate1D<Int2>(length))
+            {
+                source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
+                Execute(length, buffer.View, source.View);
+            }
+
             Verify(buffer.View, expected);
         }
     }
