@@ -902,6 +902,7 @@ namespace ILGPU.IR.Transformations
                 var targetAddressSpace = intermediate[builder.Method];
                 builder.UpdateReturnType(
                     GetAddressSpaceConverter(targetAddressSpace));
+                applied = true;
             }
 
             // Adjust all method calls
