@@ -38,9 +38,14 @@ namespace ILGPU.IR.Types
         ViewDependent = 1 << 1,
 
         /// <summary>
+        /// The type is either a structure or contains a structure.
+        /// </summary>
+        StructureDependent = 1 << 2,
+
+        /// <summary>
         /// The type is either an array or contains an array.
         /// </summary>
-        ArrayDependent = 1 << 2,
+        ArrayDependent = 1 << 3,
 
         /// <summary>
         /// The type depends on an address space.

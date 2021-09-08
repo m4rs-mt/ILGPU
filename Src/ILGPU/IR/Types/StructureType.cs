@@ -725,6 +725,7 @@ namespace ILGPU.IR.Types
                 hashCode ^= type.GetHashCode() ^ offsets[i];
                 AddFlags(type.Flags);
             }
+            AddFlags(TypeFlags.StructureDependent);
         }
 
         #endregion
