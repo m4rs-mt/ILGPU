@@ -162,6 +162,94 @@ namespace ILGPU.IR.Transformations
     /// Represents a generic transformation that can be applied in an unordered manner.
     /// </summary>
     /// <remarks>
+    /// Note that this transformation is applied in parallel to all methods.
+    /// </remarks>
+    public abstract class UnorderedTransformationWithPrePass : UnorderedTransformation
+    {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents an unordered executor.
+        /// </summary>
+        private readonly struct Executor : ITransformExecutor
+        {
+            /// <summary>
+            /// Constructs a new executor.
+            /// </summary>
+            /// <param name="parent">The parent transformation.</param>
+            public Executor(UnorderedTransformationWithPrePass parent)
+            {
+                Parent = parent;
+            }
+
+            /// <summary>
+            /// The associated parent transformation.
+            /// </summary>
+            public UnorderedTransformationWithPrePass Parent { get; }
+
+            /// <summary>
+            /// Applies the parent transformation.
+            /// </summary>
+            /// <param name="builder">The current builder.</param>
+            public bool Execute(Method.Builder builder)
+            {
+                Parent.PrePerformTransformation(builder);
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region Instance
+
+        private readonly Action<Method> transformerDelegate;
+
+        /// <summary>
+        /// Constructs a new transformation.
+        /// </summary>
+        protected UnorderedTransformationWithPrePass()
+        {
+            transformerDelegate = (Method method) =>
+            {
+                var executor = new Executor(this);
+                {
+                    using var builder = method.CreateBuilder();
+                    ExecuteTransform(builder, executor);
+                }
+            };
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Transforms all methods in the given context.
+        /// </summary>
+        /// <param name="methods">The methods to transform.</param>
+        public override void Transform(in MethodCollection methods)
+        {
+            Parallel.ForEach(methods, transformerDelegate);
+            base.Transform(methods);
+        }
+
+        /// <summary>
+        /// Transforms the given method using the provided builder.
+        /// </summary>
+        /// <param name="builder">The current method builder.</param>
+        /// <remarks>
+        /// Note that this method is executed on all methods prior to executing the
+        /// <see cref="PrePerformTransformation(Method.Builder)"/> method.
+        /// </remarks>
+        protected abstract void PrePerformTransformation(Method.Builder builder);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a generic transformation that can be applied in an unordered manner.
+    /// </summary>
+    /// <remarks>
     /// Note that this transformation is applied sequentially to all methods.
     /// </remarks>
     public abstract class SequentialUnorderedTransformation : Transformation
