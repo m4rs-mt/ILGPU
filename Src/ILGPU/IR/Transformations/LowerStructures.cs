@@ -644,7 +644,16 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new structure conversion pass.
         /// </summary>
-        public LowerStructures() { }
+        public LowerStructures() : this(LowerStructureFlags.None) { }
+
+        /// <summary>
+        /// Constructs a new structure conversion pass.
+        /// </summary>
+        /// <param name="flags">The transformation flags.</param>
+        public LowerStructures(LowerStructureFlags flags)
+        {
+            Flags = flags;
+        }
 
         #endregion
 
