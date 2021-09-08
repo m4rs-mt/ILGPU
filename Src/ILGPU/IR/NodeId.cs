@@ -52,6 +52,17 @@ namespace ILGPU.IR
 
         #endregion
 
+        #region Methods
+
+        /// <summary>
+        /// Returns true if the given id is equal to this node id.
+        /// </summary>
+        /// <param name="id">The id to test.</param>
+        /// <returns>True if the given id is equal to this node id.</returns>
+        public readonly bool Is(long id) => Id.Value == id;
+
+        #endregion
+
         #region IEquatable
 
         /// <summary>
