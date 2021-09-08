@@ -167,39 +167,25 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <inheritdoc/>
-        public override unsafe void MemSet(
+        protected internal override void MemSet(
             AcceleratorStream stream,
             byte value,
-            long targetOffsetInBytes,
-            long length)
-        {
-            var targetView = AsRawArrayView(targetOffsetInBytes, length);
+            in ArrayView<byte> targetView) =>
             CLMemSet(stream as CLStream, value, targetView);
-        }
 
         /// <inheritdoc/>
-        public override void CopyFrom(
+        protected internal override void CopyFrom(
             AcceleratorStream stream,
             in ArrayView<byte> sourceView,
-            long targetOffsetInBytes)
-        {
-            var targetView = AsRawArrayView(
-                targetOffsetInBytes,
-                sourceView.LengthInBytes);
+            in ArrayView<byte> targetView) =>
             CLCopy(stream as CLStream, sourceView, targetView);
-        }
 
         /// <inheritdoc/>
-        public override unsafe void CopyTo(
+        protected internal override void CopyTo(
             AcceleratorStream stream,
-            long sourceOffsetInBytes,
-            in ArrayView<byte> targetView)
-        {
-            var sourceView = AsRawArrayView(
-                sourceOffsetInBytes,
-                targetView.LengthInBytes);
+            in ArrayView<byte> sourceView,
+            in ArrayView<byte> targetView) =>
             CLCopy(stream as CLStream, sourceView, targetView);
-        }
 
         #endregion
 
