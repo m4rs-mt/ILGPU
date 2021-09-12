@@ -7,10 +7,10 @@ This is mostly due to the fact that ILGPU is turning C# code into lower level la
 ## How do we deal with this?
 *Data is data is data.*
 
-> Note: this sample is a console version of the N-body template of my ILGPUView project.
+> Note: this example is a console version of the N-body template of my ILGPUView project.
 > When this is more ready I will include a link, but ILGPUView will allow you to see the result in realtime.
 
-### N-Body Sample
+### N-Body Example
 ```c#
 using ILGPU;
 using ILGPU.Algorithms;
@@ -30,7 +30,9 @@ public static class Program
 
         int width = 500;
         int height = 500;
-        int particleCount = 100; // my GPU can handle around 10,000
+        
+        // my GPU can handle around 10,000 when using the struct of arrays
+        int particleCount = 100; 
 
         byte[] h_bitmapData = new byte[width * height * 3];
 

@@ -65,7 +65,7 @@ API that the kernels / GPU will interact with.
 Inside the kernel the ArrayView works exactly like you would expect a normal array to. Again, more on that in the 
 Kernel tutorial.
 
-### Memory Sample
+### Memory Example [See Also Simple Allocation Sample](https://github.com/m4rs-mt/ILGPU/tree/master/Samples/SimpleAlloc)
 All device side memory management happens in the host code through the MemoryBuffer.
 The sample goes over the basics of managing memory via MemoryBuffers. There will be far more
 in depth memory management in the later tutorials.
