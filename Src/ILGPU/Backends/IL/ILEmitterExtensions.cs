@@ -67,10 +67,26 @@ namespace ILGPU.Backends.IL
                 emitter.Emit(LocalOperation.Load, result);
 
                 emitter.Emit(OpCodes.Ldarg_0);
-                emitter.Emit(OpCodes.Ldflda, field);
-                emitter.EmitCall(field.FieldType.GetMethod(
+
+                var fieldHashCode = field.FieldType.GetMethod(
                     GetHashCodeInfo.Name,
-                    BindingFlags.Public | BindingFlags.Instance));
+                    BindingFlags.Public | BindingFlags.Instance);
+                if (!field.FieldType.IsValueType)
+                {
+                    emitter.Emit(OpCodes.Ldfld, field);
+                }
+                else if (fieldHashCode.DeclaringType != field.FieldType)
+                {
+                    // to call GetHashCode inherited from ValueType, struct must be boxed
+                    emitter.Emit(OpCodes.Ldfld, field);
+                    emitter.Emit(OpCodes.Box, field.FieldType);
+                }
+                else
+                {
+                    emitter.Emit(OpCodes.Ldflda, field);
+                }
+
+                emitter.EmitCall(fieldHashCode);
 
                 emitter.Emit(OpCodes.Xor);
                 emitter.Emit(LocalOperation.Store, result);

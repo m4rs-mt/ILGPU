@@ -83,6 +83,22 @@ namespace ILGPU.Tests
         public override int GetHashCode() => 0;
     }
 
+    [Serializable]
+    // warning disabled intentionally for testing this scenario
+    #pragma warning disable CS0659 // Type does not override Object.GetHashCode()
+    public struct NoHashCodeStruct : IXunitSerializable, IEquatable<NoHashCodeStruct>
+    #pragma warning restore CS0659 // Type does not override Object.GetHashCode()
+    {
+        public void Deserialize(IXunitSerializationInfo info) { }
+
+        public void Serialize(IXunitSerializationInfo info) { }
+
+        public bool Equals(NoHashCodeStruct other) => true;
+
+        public override bool Equals(object obj) =>
+            obj is NoHashCodeStruct other && Equals(other);
+    }
+
     public static class PairStruct
     {
         public static PairStruct<float, float> MaxFloats =>
