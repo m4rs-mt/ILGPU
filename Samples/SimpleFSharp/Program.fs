@@ -1,4 +1,15 @@
-﻿open ILGPU
+﻿// -----------------------------------------------------------------------------
+//                                ILGPU Samples
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
+//                                www.ilgpu.net
+//
+// File: Program.fs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+open ILGPU
 open ILGPU.Runtime
 
 type Program =

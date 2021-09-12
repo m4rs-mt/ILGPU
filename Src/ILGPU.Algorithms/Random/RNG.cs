@@ -157,12 +157,19 @@ namespace ILGPU.Algorithms.Random
         private readonly ArrayView<TRandomProvider> randomProviders;
 
         /// <summary>
+        /// The maximum number of parallel groups.
+        /// </summary>
+        private readonly int groupSize;
+
+        /// <summary>
         /// Initializes the RNG view.
         /// </summary>
-        /// <param name="providers"></param>
-        internal RNGView(ArrayView<TRandomProvider> providers)
+        /// <param name="providers">The random providers.</param>
+        /// <param name="numParallelGroups">The maximum number of parallel groups.</param>
+        internal RNGView(ArrayView<TRandomProvider> providers, int numParallelGroups)
         {
             randomProviders = providers;
+            groupSize = numParallelGroups;
         }
 
         #endregion
@@ -177,7 +184,7 @@ namespace ILGPU.Algorithms.Random
         private readonly ref TRandomProvider GetRandomProvider()
         {
             // Compute the global warp index
-            int groupOffset = Grid.Index.ComputeLinearIndex(Grid.Dimension);
+            int groupOffset = Grid.Index.ComputeLinearIndex(Grid.Dimension) % groupSize;
             int warpOffset = Group.LinearIndex;
             int warpIdx = groupOffset * Warp.WarpSize + warpOffset / Warp.WarpSize;
 
@@ -395,11 +402,14 @@ namespace ILGPU.Algorithms.Random
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public RNGView<TRandomProvider> GetView(int numWarps)
         {
+            // Ensure that the number of warps is a multiple of the warp size.
+            int numGroups = XMath.DivRoundUp(numWarps, Accelerator.WarpSize);
+            numWarps = numGroups * Accelerator.WarpSize;
             Trace.Assert(
                 numWarps > 0 && numWarps <= randomProvidersPerWarp.Length,
                 "Invalid number of warps");
             var subView = randomProvidersPerWarp.View.SubView(0, numWarps);
-            return new RNGView<TRandomProvider>(subView);
+            return new RNGView<TRandomProvider>(subView, numGroups);
         }
 
         /// <summary>

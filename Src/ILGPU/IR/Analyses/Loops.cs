@@ -634,6 +634,10 @@ namespace ILGPU.IR.Analyses
             {
                 var loop = loops[loopIndex];
 
+                // Skip loop consisting of a single block
+                if (loop.AllMembers.Count == 1)
+                    continue;
+
                 foreach (var member in loop.AllMembers)
                     mapping[member].Clear();
 
@@ -801,7 +805,12 @@ namespace ILGPU.IR.Analyses
                     breakers.Add(member);
                 }
             }
-            v.Node.Assert(headers.Count > 0);
+
+            // Note that we do not have to worry about loops without a header block since
+            // our IL frontend normalizes all blocks to have a unique header block
+            // without any predecessors. Therefore, each loop will have at least one
+            // header and at least one entry block.
+            v.Node.Assert(headers.Count > 0 && entryBlocks.Count > 0);
 
             // Compute all back edges
             var backEdges = InlineList<BasicBlock>.Create(2);
@@ -818,7 +827,6 @@ namespace ILGPU.IR.Analyses
             }
             v.Node.Assert(backEdges.Count > 0);
 
-            // Create a new loop
             var loop = new Node(
                 parent,
                 ref headers,

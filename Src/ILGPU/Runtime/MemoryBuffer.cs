@@ -13,6 +13,7 @@ using ILGPU.Resources;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
 {
@@ -101,11 +102,29 @@ namespace ILGPU.Runtime
         /// <param name="value">The value to write into the memory buffer.</param>
         /// <param name="targetOffsetInBytes">The target offset in bytes.</param>
         /// <param name="length">The number of bytes to set.</param>
-        public abstract void MemSet(
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void MemSet(
             AcceleratorStream stream,
             byte value,
             long targetOffsetInBytes,
-            long length);
+            long length)
+        {
+            if (length == 0)
+                return;
+            var targetView = AsRawArrayView(targetOffsetInBytes, length);
+            MemSet(stream, value, targetView);
+        }
+
+        /// <summary>
+        /// Sets the contents of the current buffer to the given byte value.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="value">The value to write into the memory buffer.</param>
+        /// <param name="targetView">The raw target view of this buffer.</param>
+        protected internal abstract void MemSet(
+            AcceleratorStream stream,
+            byte value,
+            in ArrayView<byte> targetView);
 
         /// <summary>
         /// Copies elements from the current buffer to the target view.
@@ -113,9 +132,29 @@ namespace ILGPU.Runtime
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="sourceOffsetInBytes">The source offset in bytes.</param>
         /// <param name="targetView">The target view.</param>
-        public abstract void CopyTo(
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(
             AcceleratorStream stream,
             long sourceOffsetInBytes,
+            in ArrayView<byte> targetView)
+        {
+            if (!targetView.IsValid)
+                return;
+            var sourceView = AsRawArrayView(
+                sourceOffsetInBytes,
+                targetView.LengthInBytes);
+            CopyTo(stream, sourceView, targetView);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target view.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="sourceView">The source view of this buffer.</param>
+        /// <param name="targetView">The target view.</param>
+        protected internal abstract void CopyTo(
+            AcceleratorStream stream,
+            in ArrayView<byte> sourceView,
             in ArrayView<byte> targetView);
 
         /// <summary>
@@ -124,15 +163,36 @@ namespace ILGPU.Runtime
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="sourceView">The source view.</param>
         /// <param name="targetOffsetInBytes">The target offset in bytes.</param>
-        public abstract void CopyFrom(
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
             AcceleratorStream stream,
             in ArrayView<byte> sourceView,
-            long targetOffsetInBytes);
+            long targetOffsetInBytes)
+        {
+            if (!sourceView.IsValid)
+                return;
+            var targetView = AsRawArrayView(
+                targetOffsetInBytes,
+                sourceView.LengthInBytes);
+            CopyFrom(stream, sourceView, targetView);
+        }
+
+        /// <summary>
+        /// Copies elements from the source view to the current buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="sourceView">The source view.</param>
+        /// <param name="targetView">The target view of this buffer.</param>
+        protected internal abstract void CopyFrom(
+            AcceleratorStream stream,
+            in ArrayView<byte> sourceView,
+            in ArrayView<byte> targetView);
 
         /// <summary>
         /// Returns a raw array view of the whole buffer.
         /// </summary>
         /// <returns>The raw array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<byte> AsRawArrayView() =>
             AsRawArrayView(0L, LengthInBytes);
 
@@ -141,6 +201,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="offsetInBytes">The raw offset in bytes.</param>
         /// <returns>The raw array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<byte> AsRawArrayView(long offsetInBytes) =>
             AsRawArrayView(offsetInBytes, LengthInBytes - offsetInBytes);
 
@@ -152,7 +213,9 @@ namespace ILGPU.Runtime
         /// <returns></returns>
         public ArrayView<byte> AsRawArrayView(long offsetInBytes, long lengthInBytes)
         {
-            if (offsetInBytes < 0 || offsetInBytes >= LengthInBytes)
+            if (offsetInBytes < 0)
+                throw new ArgumentOutOfRangeException(nameof(offsetInBytes));
+            if (LengthInBytes > 0 && offsetInBytes >= LengthInBytes)
                 throw new ArgumentOutOfRangeException(nameof(offsetInBytes));
             if (lengthInBytes < 0 || offsetInBytes + lengthInBytes > LengthInBytes)
                 throw new ArgumentOutOfRangeException(nameof(lengthInBytes));
@@ -175,7 +238,7 @@ namespace ILGPU.Runtime
                     ErrorMessages.NotSupportedType,
                     nameof(T)));
             }
-            if (offset >= Length)
+            if (Length > 0 && offset >= Length)
                 throw new ArgumentOutOfRangeException(nameof(offset));
             if (offset + length > Length)
                 throw new ArgumentOutOfRangeException(nameof(length));
@@ -299,30 +362,25 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <inheritdoc/>
-        public override void MemSet(
+        protected internal override void MemSet(
             AcceleratorStream stream,
             byte value,
-            long targetOffsetInBytes,
-            long length) =>
-            Buffer.MemSet(
-                stream,
-                value,
-                targetOffsetInBytes,
-                length);
-
-        /// <inheritdoc/>
-        public override void CopyTo(
-            AcceleratorStream stream,
-            long sourceOffsetInBytes,
             in ArrayView<byte> targetView) =>
-            Buffer.CopyTo(stream, sourceOffsetInBytes, targetView);
+            Buffer.MemSet(stream, value, targetView);
 
         /// <inheritdoc/>
-        public override void CopyFrom(
+        protected internal override void CopyTo(
             AcceleratorStream stream,
             in ArrayView<byte> sourceView,
-            long targetOffsetInBytes) =>
-            Buffer.CopyFrom(stream, sourceView, targetOffsetInBytes);
+            in ArrayView<byte> targetView) =>
+            Buffer.CopyTo(stream, sourceView, targetView);
+
+        /// <inheritdoc/>
+        protected internal override void CopyFrom(
+            AcceleratorStream stream,
+            in ArrayView<byte> sourceView,
+            in ArrayView<byte> targetView) =>
+            Buffer.CopyFrom(stream, sourceView, targetView);
 
         /// <summary>
         /// Returns an array view that can access this array.

@@ -145,14 +145,21 @@ namespace ILGPU.Runtime.OpenCL
             int elementSize)
             : base(accelerator, length, elementSize)
         {
-            CLException.ThrowIfFailed(
-                CurrentAPI.CreateBuffer(
-                    accelerator.NativePtr,
-                    CLBufferFlags.CL_MEM_READ_WRITE,
-                    new IntPtr(LengthInBytes),
-                    IntPtr.Zero,
-                    out IntPtr resultPtr));
-            NativePtr = resultPtr;
+            if (LengthInBytes == 0)
+            {
+                NativePtr = IntPtr.Zero;
+            }
+            else
+            {
+                CLException.ThrowIfFailed(
+                    CurrentAPI.CreateBuffer(
+                        accelerator.NativePtr,
+                        CLBufferFlags.CL_MEM_READ_WRITE,
+                        new IntPtr(LengthInBytes),
+                        IntPtr.Zero,
+                        out IntPtr resultPtr));
+                NativePtr = resultPtr;
+            }
         }
 
         #endregion
@@ -160,39 +167,25 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <inheritdoc/>
-        public override unsafe void MemSet(
+        protected internal override void MemSet(
             AcceleratorStream stream,
             byte value,
-            long targetOffsetInBytes,
-            long length)
-        {
-            var targetView = AsRawArrayView(targetOffsetInBytes, length);
+            in ArrayView<byte> targetView) =>
             CLMemSet(stream as CLStream, value, targetView);
-        }
 
         /// <inheritdoc/>
-        public override void CopyFrom(
+        protected internal override void CopyFrom(
             AcceleratorStream stream,
             in ArrayView<byte> sourceView,
-            long targetOffsetInBytes)
-        {
-            var targetView = AsRawArrayView(
-                targetOffsetInBytes,
-                sourceView.LengthInBytes);
+            in ArrayView<byte> targetView) =>
             CLCopy(stream as CLStream, sourceView, targetView);
-        }
 
         /// <inheritdoc/>
-        public override unsafe void CopyTo(
+        protected internal override void CopyTo(
             AcceleratorStream stream,
-            long sourceOffsetInBytes,
-            in ArrayView<byte> targetView)
-        {
-            var sourceView = AsRawArrayView(
-                sourceOffsetInBytes,
-                targetView.LengthInBytes);
+            in ArrayView<byte> sourceView,
+            in ArrayView<byte> targetView) =>
             CLCopy(stream as CLStream, sourceView, targetView);
-        }
 
         #endregion
 
@@ -203,6 +196,10 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         protected override void DisposeAcceleratorObject(bool disposing)
         {
+            // Skip buffers with Length = 0
+            if (NativePtr == IntPtr.Zero)
+                return;
+
             CLException.VerifyDisposed(
                 disposing,
                 CurrentAPI.ReleaseBuffer(NativePtr));

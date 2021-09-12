@@ -116,11 +116,18 @@ namespace ILGPU.Runtime.Cuda
             int elementSize)
             : base(accelerator, length, elementSize)
         {
-            CudaException.ThrowIfFailed(
-                CurrentAPI.AllocateMemory(
-                    out IntPtr resultPtr,
-                    new IntPtr(LengthInBytes)));
-            NativePtr = resultPtr;
+            if (LengthInBytes == 0)
+            {
+                NativePtr = IntPtr.Zero;
+            }
+            else
+            {
+                CudaException.ThrowIfFailed(
+                    CurrentAPI.AllocateMemory(
+                        out IntPtr resultPtr,
+                        new IntPtr(LengthInBytes)));
+                NativePtr = resultPtr;
+            }
         }
 
         #endregion
@@ -128,39 +135,25 @@ namespace ILGPU.Runtime.Cuda
         #region Methods
 
         /// <inheritdoc/>
-        public override unsafe void MemSet(
+        protected internal override unsafe void MemSet(
             AcceleratorStream stream,
             byte value,
-            long targetOffsetInBytes,
-            long length)
-        {
-            var targetView = AsRawArrayView(targetOffsetInBytes, length);
+            in ArrayView<byte> targetView) =>
             CudaMemSet(stream as CudaStream, value, targetView);
-        }
 
         /// <inheritdoc/>
-        public override void CopyFrom(
+        protected internal override void CopyFrom(
             AcceleratorStream stream,
             in ArrayView<byte> sourceView,
-            long targetOffsetInBytes)
-        {
-            var targetView = AsRawArrayView(
-                targetOffsetInBytes,
-                sourceView.LengthInBytes);
+            in ArrayView<byte> targetView) =>
             CudaCopy(stream as CudaStream, sourceView, targetView);
-        }
 
         /// <inheritdoc/>
-        public override unsafe void CopyTo(
+        protected internal override unsafe void CopyTo(
             AcceleratorStream stream,
-            long sourceOffsetInBytes,
-            in ArrayView<byte> targetView)
-        {
-            var sourceView = AsRawArrayView(
-                sourceOffsetInBytes,
-                targetView.LengthInBytes);
+            in ArrayView<byte> sourceView,
+            in ArrayView<byte> targetView) =>
             CudaCopy(stream as CudaStream, sourceView, targetView);
-        }
 
         #endregion
 

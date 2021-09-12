@@ -177,6 +177,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Converts a load node into an SSA value.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static void ConvertLoad(
             SSARewriterContext<Value> context,
             Load load,
@@ -186,20 +187,19 @@ namespace ILGPU.IR.Transformations
             {
                 // Remove dead value loads
                 context.Remove(load);
+                return;
             }
-            else
-            {
-                var ssaValue = context.GetValue(context.Block, loadRef.Source);
-                if (!loadRef.IsDirect)
-                {
-                    ssaValue = context.Builder.CreateGetField(
-                        load.Location,
-                         ssaValue,
-                         loadRef.FieldSpan);
-                }
 
-                context.ReplaceAndRemove(load, ssaValue);
+            var ssaValue = context.GetValue(context.Block, loadRef.Source);
+            if (!loadRef.IsDirect)
+            {
+                ssaValue = context.Builder.CreateGetField(
+                    load.Location,
+                     ssaValue,
+                     loadRef.FieldSpan);
             }
+
+            context.ReplaceAndRemove(load, ssaValue);
         }
 
         #endregion
@@ -209,7 +209,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Converts a field-address operation into an SSA binding.
         /// </summary>
-        protected static void Convert<TConstructionData, TData>(
+        private static void Convert<TConstructionData, TData>(
             SSARewriterContext<Value> context,
             TConstructionData data,
             LoadFieldAddress loadFieldAddress)
@@ -228,7 +228,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Converts an address-space cast into an SSA binding.
         /// </summary>
-        protected static void Convert<TConstructionData, TData>(
+        private static void Convert<TConstructionData, TData>(
             SSARewriterContext<Value> context,
             TConstructionData data,
             AddressSpaceCast addressSpaceCast)
@@ -297,7 +297,7 @@ namespace ILGPU.IR.Transformations
                 new ConstructionFieldRef(fieldRef);
 
             /// <summary>
-            /// Returns the string representation of the underyling field reference.
+            /// Returns the string representation of the underlying field reference.
             /// </summary>
             public readonly override string ToString() => FieldRef.ToString();
         }
@@ -388,7 +388,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Performs the internal SSA construction transformation.
         /// </summary>
-        /// <param name="builder">The parent meethod builder.</param>
+        /// <param name="builder">The parent method builder.</param>
         /// <param name="rewriter">The SSA rewriter to use.</param>
         /// <param name="getConstructionData">
         /// A builder function to convert the internal construction data instance
@@ -454,6 +454,28 @@ namespace ILGPU.IR.Transformations
         }
 
         /// <summary>
+        /// Converts a load node into an SSA value.
+        /// </summary>
+        private static void Convert(
+            SSARewriterContext<Value> context,
+            ConstructionData data,
+            Load load)
+        {
+            // Remove trivially dead loads
+            if (!load.Uses.HasAny)
+            {
+                context.Remove(load);
+                return;
+            }
+
+            // Convert the load if possible
+            if (!data.TryGetConverted(load.Source, out var loadData))
+                return;
+
+            ConvertLoad(context, load, loadData.FieldRef);
+        }
+
+        /// <summary>
         /// Converts a store node to its associated value.
         /// </summary>
         private static void Convert(
@@ -465,20 +487,6 @@ namespace ILGPU.IR.Transformations
                 return;
 
             ConvertStore(context, store, storeData.FieldRef);
-        }
-
-        /// <summary>
-        /// Converts a load node to its associated value.
-        /// </summary>
-        private static void Convert(
-            SSARewriterContext<Value> context,
-            ConstructionData data,
-            Load load)
-        {
-            if (!data.TryGetConverted(load.Source, out var loadData))
-                return;
-
-            ConvertLoad(context, load, loadData.FieldRef);
         }
 
         #endregion
@@ -499,8 +507,8 @@ namespace ILGPU.IR.Transformations
             RegisterRewriters<ConstructionData, ConstructionFieldRef>(Rewriter);
 
             Rewriter.Add<Alloca>(Convert);
-            Rewriter.Add<Store>(Convert);
             Rewriter.Add<Load>(Convert);
+            Rewriter.Add<Store>(Convert);
         }
 
         #endregion
@@ -773,15 +781,40 @@ namespace ILGPU.IR.Transformations
                 arrayData);
         }
 
+        /// <summary>
+        /// Remaps the given array data to a single field reference.
+        /// </summary>
+        /// <param name="data">The input array data to use.</param>
+        /// <returns>The field reference.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static FieldRef RemapToStructureElementAccess(in ArrayData data)
         {
+            // Compute the minimum span to distinguish between explicit sub-structure
+            // accesses and accesses to expanded element structures
+            int span = Math.Min(
+                data.NumElementFields,
+                data.FieldRef.FieldSpan.Span);
+
             // Convert the field reference to an explicit access to the first structure
             // element fields (if any)
-            var fieldSpan = new FieldSpan(
-                new FieldAccess(0),
-                data.NumElementFields);
+            var fieldSpan = new FieldSpan(new FieldAccess(0), span);
             return data.FieldRef.Access(fieldSpan);
+        }
+
+        /// <summary>
+        /// Converts a load node into an SSA value.
+        /// </summary>
+        private static void Convert(
+            SSARewriterContext<Value> context,
+            ArrayConstructionData data,
+            Load load)
+        {
+            if (!data.TryGetConverted(load.Source, out var loadData))
+                return;
+
+            // Convert the load
+            var fieldRef = RemapToStructureElementAccess(loadData);
+            ConvertLoad(context, load, fieldRef);
         }
 
         /// <summary>
@@ -798,22 +831,6 @@ namespace ILGPU.IR.Transformations
             // Convert the store
             var fieldRef = RemapToStructureElementAccess(storeData);
             ConvertStore(context, store, fieldRef);
-        }
-
-        /// <summary>
-        /// Converts a load node to its associated value.
-        /// </summary>
-        private static void Convert(
-            SSARewriterContext<Value> context,
-            ArrayConstructionData data,
-            Load load)
-        {
-            if (!data.TryGetConverted(load.Source, out var loadData))
-                return;
-
-            // Convert the load
-            var fieldRef = RemapToStructureElementAccess(loadData);
-            ConvertLoad(context, load, fieldRef);
         }
 
         /// <summary>
@@ -893,8 +910,8 @@ namespace ILGPU.IR.Transformations
             RegisterRewriters<ArrayConstructionData, ArrayData>(Rewriter);
 
             Rewriter.Add<Alloca>(Convert);
-            Rewriter.Add<Store>(Convert);
             Rewriter.Add<Load>(Convert);
+            Rewriter.Add<Store>(Convert);
             Rewriter.Add<LoadElementAddress>(Convert);
 
             Rewriter.Add<NewView>(Convert);
