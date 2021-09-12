@@ -26,7 +26,7 @@ ILGPU v 1.0.0 added in the Device class to fix this issue.
 In ILGPU the Device represents the hardware in your computer.
 * requires: using ILGPU; and using ILGPU.Runtime;
 
-### Sample 01|01
+### List Devices Sample
 Lists all devices that ILGPU can use.
 ```c#
 using ILGPU;
@@ -52,7 +52,7 @@ Every ILGPU program will require at least 1 Accelerator.
 Currently there are 3 Accelerator types CPU, Cuda, and OpenCL, 
 as well as an abstract Accelerator.
 
-### Sample 01|02
+### Device Info Example [See Also Devce Info Sample](https://github.com/m4rs-mt/ILGPU/tree/master/Samples/DeviceInfo)
 ```c#
 using ILGPU;
 using ILGPU.Runtime;

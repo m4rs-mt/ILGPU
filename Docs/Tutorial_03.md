@@ -1,7 +1,7 @@
 ﻿# Tutorial 03 Kernels and Simple Programs.
 In this tutorial we actually do work on the GPU! 
 
-## Lets start with a sample.
+## Lets start with an example.
 I think the easiest way to explain this is taking the simplest example I can think of and decomposing it. 
 
 This is a modified version of the sample from Primer 01.
@@ -154,6 +154,12 @@ from the same stream.
 
 Then when you call accelerator.Synchronize(); or stream.Synchronize(); your current thread will wait until
 the accelerator (all the steams), or the stream in the case of stream.Synchronize(); is finished executing your kernels.
+
+See Also:
+
+[Simple Kernel Sample](https://github.com/m4rs-mt/ILGPU/tree/master/Samples/SimpleKernel) 
+
+[Simple Math Sample](https://github.com/m4rs-mt/ILGPU/tree/master/Samples/SimpleMath)
 
 > <sup>0</sup>
 > While it is easiest to group kernels based on the extent of the output buffer
