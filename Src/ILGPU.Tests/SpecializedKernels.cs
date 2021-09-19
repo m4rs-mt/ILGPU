@@ -27,6 +27,7 @@ namespace ILGPU.Tests
             { default(float) },
             { default(double) },
             { default(EmptyStruct) },
+            { default(NoHashCodeStruct) },
             { default(TestStruct) },
             { default(TestStructEquatable<TestStructEquatable<byte>>) },
             { default(
