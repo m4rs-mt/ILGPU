@@ -281,28 +281,30 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         private void InitGridInfo()
         {
-            // Max grid size
             int workItemDimensions = IntrinsicMath.Max(CurrentAPI.GetDeviceInfo<int>(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS), 3);
-            var workItemSizes = new IntPtr[workItemDimensions];
-            CurrentAPI.GetDeviceInfo(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_SIZES,
-                workItemSizes);
-            MaxGridSize = new Index3D(
-                workItemSizes[0].ToInt32(),
-                workItemSizes[1].ToInt32(),
-                workItemSizes[2].ToInt32());
+              DeviceId, CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS), 3);
+
+            //OpenCL does not report maximium grid sizes, MaxGridSize value is consistent the CPU accelators and values returned by CUDA accelerators
+            //MaxGridSize is ultimately contrained by system and device memory and how each kernel manages memory.
+            MaxGridSize = new Index3D(int.MaxValue, ushort.MaxValue, ushort.MaxValue);
 
             // Resolve max threads per group
             MaxNumThreadsPerGroup = CurrentAPI.GetDeviceInfo<IntPtr>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_WORK_GROUP_SIZE).ToInt32();
+
+            // max work item thread dimensions
+            var workItemSizes = new IntPtr[workItemDimensions];
+
+            CurrentAPI.GetDeviceInfo(
+              DeviceId,
+              CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_SIZES,
+              workItemSizes);
+
             MaxGroupSize = new Index3D(
-                MaxNumThreadsPerGroup,
-                MaxNumThreadsPerGroup,
-                MaxNumThreadsPerGroup);
+                workItemSizes[0].ToInt32(),
+                workItemSizes[1].ToInt32(),
+                workItemSizes[2].ToInt32());
 
             // Result max number of threads per multiprocessor
             MaxNumThreadsPerMultiprocessor = MaxNumThreadsPerGroup;
