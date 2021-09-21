@@ -282,10 +282,11 @@ namespace ILGPU.Runtime.OpenCL
         private void InitGridInfo()
         {
             int workItemDimensions = IntrinsicMath.Max(CurrentAPI.GetDeviceInfo<int>(
-              DeviceId, CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS), 3);
+                DeviceId,
+                CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS), 3);
 
             //OpenCL does not report maximium grid sizes, MaxGridSize value is consistent
-            //the CPU accelator and values returned by CUDA accelerators.
+            //with the CPU accelator and values returned by CUDA accelerators.
             //MaxGridSize is ultimately contrained by system and device memory
             //and how each kernel manages memory.
             MaxGridSize = new Index3D(int.MaxValue, ushort.MaxValue, ushort.MaxValue);
@@ -299,9 +300,9 @@ namespace ILGPU.Runtime.OpenCL
             var workItemSizes = new IntPtr[workItemDimensions];
 
             CurrentAPI.GetDeviceInfo(
-              DeviceId,
-              CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_SIZES,
-              workItemSizes);
+                DeviceId,
+                CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_SIZES,
+                workItemSizes);
 
             MaxGroupSize = new Index3D(
                 workItemSizes[0].ToInt32(),
