@@ -101,6 +101,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
     </None>
+    <None Update="Runtime\Cuda\API\NvmlNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>NvmlNativeMethods.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Cuda\CuBlasMethodsLevel1.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuBlasMethodsLevel1.cs</LastGenOutput>
@@ -203,6 +207,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ErrorMessages.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\NvmlNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>NvmlNativeMethods.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\Cuda\CuBlasMethodsLevel1.cs">
       <DesignTime>True</DesignTime>
