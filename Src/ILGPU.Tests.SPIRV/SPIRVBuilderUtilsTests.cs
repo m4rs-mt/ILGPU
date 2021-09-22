@@ -10,7 +10,7 @@ namespace ILGPU.Tests.SPIRV
         public void ToUintListUint()
         {
             var result = SPIRVBuilderUtils.ToUintList((uint)0);
-            Assert.Equal(new List<uint>() {0}, result);
+            Assert.Equal(new List<uint> {0}, result);
         }
 
         [Fact]
@@ -18,14 +18,14 @@ namespace ILGPU.Tests.SPIRV
         {
             var result = SPIRVBuilderUtils.ToUintList("GLSL");
             // This is what the SPIRV Compiler produces for this string
-            Assert.Equal(new List<uint>() {1280527431, 0}, result);
+            Assert.Equal(new List<uint> {1280527431, 0}, result);
         }
 
         [Fact]
         public void ToUintListUintArray()
         {
             var result = SPIRVBuilderUtils.ToUintList(new uint[] {0, 1, 2, 3});
-            Assert.Equal(new List<uint>() {0, 1, 2, 3}, result);
+            Assert.Equal(new List<uint> {0, 1, 2, 3}, result);
         }
 
         struct SampleStruct
@@ -39,7 +39,7 @@ namespace ILGPU.Tests.SPIRV
         {
             var result = SPIRVBuilderUtils.ToUintList(
                 new SampleStruct() {a=1, b=2});
-            Assert.Equal(new List<uint>() {1, 2}, result);
+            Assert.Equal(new List<uint> {1, 2}, result);
         }
 
         enum SampleEnum
@@ -51,7 +51,7 @@ namespace ILGPU.Tests.SPIRV
         public void ToUintListEnum()
         {
             var result = SPIRVBuilderUtils.ToUintList(SampleEnum.SampleValue);
-            Assert.Equal(new List<uint>() {10}, result);
+            Assert.Equal(new List<uint> {10}, result);
         }
 
         [Fact]

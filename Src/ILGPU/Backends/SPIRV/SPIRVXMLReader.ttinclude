@@ -13,30 +13,46 @@
         }
 
         var xml = new XmlSerializer(typeof(SPIRVGrammar));
-        using var file = File.Open(Path.Combine(Host.ResolvePath("."), "spirv.grammar.xml"), FileMode.Open);
+        using var file = File.OpenRead(Path.Combine(Host.ResolvePath("."), "spirv.grammar.xml"));
 
         var grammar = (SPIRVGrammar) xml.Deserialize(file);
 
-        //Sanitize operand names
-        grammar.Instructions.Instructions.ForEach(op =>
-            op.Operands?.Operands?.ForEach(operand => operand.Name = operand.Name?.
-                Replace(" ", "").
-                Replace("'", "").
-                Replace(".", "").
-                Replace(",", "").
-                Replace("+", "").
-                Replace(">", "").
-                Replace("<", "").
-                Replace("\n", "").
-                Replace("~", "").
-                Replace("...", "").
-                Replace("ref", "")
-                ));
+        // Sanitize operand names
+        foreach (var inst in grammar.Instructions.Instructions)
+        {
+            if (inst.Operands?.Operands == null)
+                continue;
 
-        //Sanitize names starting with numbers
-        grammar.Types.Types.ForEach(kind =>
-            kind.Enumerants?.Enumerants?.ForEach(e =>
-                e.Name = char.IsDigit(e.Name[0]) ? "Num" + e.Name : e.Name));
+            foreach (var operand in inst.Operands.Operands)
+            {
+                operand.Name = operand.Name?.
+                    Replace(" ", "").
+                    Replace("'", "").
+                    Replace(".", "").
+                    Replace(",", "").
+                    Replace("+", "").
+                    Replace(">", "").
+                    Replace("<", "").
+                    Replace("\n", "").
+                    Replace("~", "").
+                    Replace("...", "").
+                    Replace("ref", "");
+            }
+        }
+
+        // Sanitize names starting with numbers
+        foreach (var kind in grammar.Types.Types)
+        {
+            if(kind.Enumerants?.Enumerants == null)
+                continue;
+
+            foreach (var enumerant in kind.Enumerants.Enumerants)
+            {
+                enumerant.Name = char.IsDigit(enumerant.Name[0])
+                    ? "Num" + enumerant.Name
+                    : enumerant.Name;
+            }
+        }
 
         _grammarCache = grammar;
 

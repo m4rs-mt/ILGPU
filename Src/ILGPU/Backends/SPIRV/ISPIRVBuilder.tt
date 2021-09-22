@@ -10,7 +10,8 @@ using System.Collections.Generic;
 #nullable enable
 #pragma warning disable 1591
 
-namespace ILGPU.Backends.SPIRV {
+namespace ILGPU.Backends.SPIRV
+{
 
 <#
     PushIndent(standardIndent);
@@ -21,7 +22,6 @@ namespace ILGPU.Backends.SPIRV {
 [CLSCompliant(false)]
 public interface ISPIRVBuilder
 {
-
     byte[] ToByteArray();
 
     void AddMetadata(uint magic, uint version, uint genMagic, uint bound, uint schema);

@@ -127,7 +127,8 @@ using System.Text;
 #nullable enable
 #pragma warning disable 1591
 
-namespace ILGPU.Backends.SPIRV {
+namespace ILGPU.Backends.SPIRV
+{
 
 <#
     PushIndent(standardIndent);
@@ -152,7 +153,7 @@ public class StringSPIRVBuilder : ISPIRVBuilder {
 
     public void Merge(ISPIRVBuilder other) {
         if(other == null) {
-            throw new ArgumentNullException();
+            throw new ArgumentNullException(nameof(other));
         }
 
         var otherString = other as StringSPIRVBuilder;

@@ -14,29 +14,19 @@
         var list = inst.Operands?.Operands;
         if (list != null)
         {
-            foreach (var operand in list)
-            {
-                if (!IsCLSCompliant(operand.Type))
-                {
-                    return false;
-                }
-            }
-            return true;
+            return list.All(operand => IsCLSCompliant(operand.Type));
         }
         return true;
     }
 
     string GenerateParamName(SPIRVOperand operand, int fallbackIndex)
     {
-        string paramName = operand.Name ?? $"param{fallbackIndex}";
-
-        if (operand.Type == "IdResult")
+        string paramName = operand.Type switch
         {
-            paramName = "resultId";
-        } else if (operand.Type == "IdResultType")
-        {
-            paramName = "resultType";
-        }
+            "IdResult" => "resultId",
+            "IdResultType" => "resultType",
+            _ => operand.Name ?? $"param{fallbackIndex}"
+        };
 
         return paramName;
     }
@@ -44,15 +34,12 @@
     string GenerateFullParam(SPIRVOperand operand, string paramName)
     {
         var type = typeMap[operand.Type];
-        var fullParam = $"{type} {paramName}";
-        if (operand.Quantifier == "*")
+        var fullParam = operand.Quantifier switch
         {
-            fullParam = $"params {type}[] {paramName}";
-        }
-        else if (operand.Quantifier == "?")
-        {
-            fullParam = $"{type}? {paramName} = null";
-        }
+            "*" => $"params {type}[] {paramName}",
+            "?" => $"{type}? {paramName} = null",
+            _ => $"{type} {paramName}"
+        };
 
         return fullParam;
     }
@@ -62,15 +49,15 @@
         List<SPIRVOperand> operands = instruction.Operands?.Operands;
         var pairs = new List<(SPIRVOperand, string)>();
 
-        if (operands != null)
-        {
-            for (int i = 0; i < operands.Count; i++)
-            {
-                SPIRVOperand operand = operands[i];
-                string paramName = GenerateParamName(operand, i);
+        if (operands == null)
+            return pairs;
 
-                pairs.Add((operand, paramName));
-            }
+        for (int i = 0; i < operands.Count; i++)
+        {
+            var operand = operands[i];
+            string paramName = GenerateParamName(operand, i);
+
+            pairs.Add((operand, paramName));
         }
 
         return pairs;
@@ -81,8 +68,7 @@
 #>public void Generate<#= opName #>(<#
 
         var names = paramInfos.Select(x => GenerateFullParam(x.operand, x.name));
-        string joined = string.Join(", ", names);
-#><#= joined#><#
+#><#= string.Join(", ", names)#><#
 #>)<#
     }
 

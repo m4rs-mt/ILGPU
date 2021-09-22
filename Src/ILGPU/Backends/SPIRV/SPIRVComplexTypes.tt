@@ -4,6 +4,7 @@
 <#@ assembly name="System.Xml" #>
 <#const string standardIndent = "    ";#>
 #pragma warning disable 1591
+#pragma warning disable 1069
 
 using System;
 
@@ -89,4 +90,5 @@ namespace ILGPU.Backends.SPIRV {
     PopIndent();
 #>
 }
+#pragma warning restore 1069
 #pragma warning restore 1591
