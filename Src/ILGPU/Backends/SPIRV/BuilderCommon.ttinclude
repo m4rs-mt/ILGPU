@@ -1,0 +1,89 @@
+<#@ import namespace="System.Collections.Generic" #>
+<#@ include file="SPIRVTypeMappings.ttinclude"
+#><#@ assembly name="System.Xml" #>
+<#@ assembly name="System.Core"#>
+<#@ import namespace="System.Linq"#>
+<#@ import namespace="System.Collections.Generic" #>
+<#
+    var grammar = LoadGrammar();
+    var typeMap = LoadTypeMap();
+    const string standardIndent = "    ";
+
+    bool IsInstructionCLSCompliant(SPIRVOp inst)
+    {
+        var list = inst.Operands?.Operands;
+        if (list != null)
+        {
+            foreach (var operand in list)
+            {
+                if (!IsCLSCompliant(operand.Type))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return true;
+    }
+
+    string GenerateParamName(SPIRVOperand operand, int fallbackIndex)
+    {
+        string paramName = operand.Name ?? $"param{fallbackIndex}";
+
+        if (operand.Type == "IdResult")
+        {
+            paramName = "resultId";
+        } else if (operand.Type == "IdResultType")
+        {
+            paramName = "resultType";
+        }
+
+        return paramName;
+    }
+
+    string GenerateFullParam(SPIRVOperand operand, string paramName)
+    {
+        var type = typeMap[operand.Type];
+        var fullParam = $"{type} {paramName}";
+        if (operand.Quantifier == "*")
+        {
+            fullParam = $"params {type}[] {paramName}";
+        }
+        else if (operand.Quantifier == "?")
+        {
+            fullParam = $"{type}? {paramName} = null";
+        }
+
+        return fullParam;
+    }
+
+    List<(SPIRVOperand operand, string name)> GenerateParamInfos(SPIRVOp instruction)
+    {
+        List<SPIRVOperand> operands = instruction.Operands?.Operands;
+        var pairs = new List<(SPIRVOperand, string)>();
+
+        if (operands != null)
+        {
+            for (int i = 0; i < operands.Count; i++)
+            {
+                SPIRVOperand operand = operands[i];
+                string paramName = GenerateParamName(operand, i);
+
+                pairs.Add((operand, paramName));
+            }
+        }
+
+        return pairs;
+    }
+
+    void CreateHeader(string opName, List<(SPIRVOperand operand, string name)> paramInfos)
+    {
+#>public void Generate<#= opName #>(<#
+
+        var names = paramInfos.Select(x => GenerateFullParam(x.operand, x.name));
+        string joined = string.Join(", ", names);
+#><#= joined#><#
+#>)<#
+    }
+
+#>
