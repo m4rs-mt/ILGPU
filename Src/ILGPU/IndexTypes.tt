@@ -363,7 +363,11 @@ namespace ILGPU
         /// </summary>
         /// <returns>The hash code of this index.</returns>
         public readonly override int GetHashCode() =>
+#if NETFRAMEWORK
             <#= def.Expression(" ^ ", p => $"{p}.GetHashCode()") #>;
+#else
+            HashCode.Combine(<#= def.Expression(", ", p => $"{p}") #>);
+#endif
 
         /// <summary>
         /// Returns the string representation of this index.
