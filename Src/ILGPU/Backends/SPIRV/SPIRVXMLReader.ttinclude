@@ -4,59 +4,63 @@
 <#@ import namespace="System.Xml.Serialization"#>
 <#+
     SPIRVGrammar _grammarCache = null;
+    object grammarCacheLock = new object();
 
-    public SPIRVGrammar LoadGrammar()
+    public SPIRVGrammar LoadGrammar(string pathPrefix = "")
     {
-        if (_grammarCache != null)
+        lock(grammarCacheLock)
         {
-            return _grammarCache;
-        }
-
-        var xml = new XmlSerializer(typeof(SPIRVGrammar));
-        using var file = File.OpenRead(Path.Combine(Host.ResolvePath("."), "spirv.grammar.xml"));
-
-        var grammar = (SPIRVGrammar) xml.Deserialize(file);
-
-        // Sanitize operand names
-        foreach (var inst in grammar.Instructions.Instructions)
-        {
-            if (inst.Operands?.Operands == null)
-                continue;
-
-            foreach (var operand in inst.Operands.Operands)
+            if (_grammarCache != null)
             {
-                operand.Name = operand.Name?.
-                    Replace(" ", "").
-                    Replace("'", "").
-                    Replace(".", "").
-                    Replace(",", "").
-                    Replace("+", "").
-                    Replace(">", "").
-                    Replace("<", "").
-                    Replace("\n", "").
-                    Replace("~", "").
-                    Replace("...", "").
-                    Replace("ref", "");
+                return _grammarCache;
             }
-        }
 
-        // Sanitize names starting with numbers
-        foreach (var kind in grammar.Types.Types)
-        {
-            if(kind.Enumerants?.Enumerants == null)
-                continue;
+            var xml = new XmlSerializer(typeof(SPIRVGrammar));
+            using var file = File.OpenRead(Path.Combine(pathPrefix, "spirv.grammar.xml"));
 
-            foreach (var enumerant in kind.Enumerants.Enumerants)
+            var grammar = (SPIRVGrammar) xml.Deserialize(file);
+
+            // Sanitize operand names
+            foreach (var inst in grammar.Instructions.Instructions)
             {
-                enumerant.Name = char.IsDigit(enumerant.Name[0])
-                    ? "Num" + enumerant.Name
-                    : enumerant.Name;
+                if (inst.Operands?.Operands == null)
+                    continue;
+
+                foreach (var operand in inst.Operands.Operands)
+                {
+                    operand.Name = operand.Name?.
+                        Replace(" ", "").
+                        Replace("'", "").
+                        Replace(".", "").
+                        Replace(",", "").
+                        Replace("+", "").
+                        Replace(">", "").
+                        Replace("<", "").
+                        Replace("\n", "").
+                        Replace("~", "").
+                        Replace("...", "").
+                        Replace("ref", "");
+                }
             }
+
+            // Sanitize names starting with numbers
+            foreach (var kind in grammar.Types.Types)
+            {
+                if(kind.Enumerants?.Enumerants == null)
+                    continue;
+
+                foreach (var enumerant in kind.Enumerants.Enumerants)
+                {
+                    enumerant.Name = char.IsDigit(enumerant.Name[0])
+                        ? "Num" + enumerant.Name
+                        : enumerant.Name;
+                }
+            }
+
+            _grammarCache = grammar;
+
+            return grammar;
         }
-
-        _grammarCache = grammar;
-
-        return grammar;
     }
 
     [XmlRoot("root")]

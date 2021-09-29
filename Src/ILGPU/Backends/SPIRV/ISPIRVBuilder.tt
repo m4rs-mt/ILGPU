@@ -3,12 +3,10 @@
 <#@ include file="BuilderCommon.ttinclude"
 #><#@ assembly name="System.Xml" #>
 <#@ assembly name="System.Core"#>
-<#@ import namespace="System.Linq"#>
 using System;
-using System.Collections.Generic;
+using ILGPU.Backends.SPIRV.Types;
 
 #nullable enable
-#pragma warning disable 1591
 
 namespace ILGPU.Backends.SPIRV
 {
@@ -36,12 +34,6 @@ public interface ISPIRVBuilder
     PushIndent(standardIndent);
     foreach (var instruction in grammar.Instructions.Instructions)
     {
-        if (!IsInstructionCLSCompliant(instruction))
-        {
-#>[CLSCompliant(false)]
-<#
-        }
-
         var paramInfos = GenerateParamInfos(instruction);
         CreateHeader(instruction.OpName, paramInfos);
 #>;
@@ -55,4 +47,4 @@ public interface ISPIRVBuilder
     PopIndent();
 #>
 }
-#pragma warning restore 1591
+#nullable restore

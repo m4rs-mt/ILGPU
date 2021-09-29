@@ -1,9 +1,7 @@
 <#@ template hostspecific="true" language="C#" #>
 <#@ output extension=".cs"#>
-<#@ include file="BuilderCommon.ttinclude"
-#><#@ assembly name="System.Xml" #>
-<#@ assembly name="System.Core"#>
-<#@ import namespace="System.Linq"#>
+<#@ include file="BuilderCommon.ttinclude"#>
+<#@ assembly name="System.Core" #>
 <#
     void CreateBody(int opCode, List<(SPIRVOperand operand, string name)> paramInfos)
     {
@@ -16,25 +14,32 @@
 <#
         }
 
-        foreach (var (_, name) in paramInfos)
+        foreach (var (operand, name) in paramInfos)
         {
-#>tempList.AddRange(SPIRVBuilderUtils.ToUintList(<#= name #>));
+            if (operand.Quantifier == "?")
+            {
+#>if(<#= name#> != null)
+    tempList.AddRange(<#= name #>.ToUintList());
 <#
-        }
-#><#// Add 1 to the word count for the first word (what we are creating here)#>
-ushort opCode = <#= opCode#>;
+            }
+            else if (operand.Quantifier == "*")
+            {
+#>for(var element in <#= name #>)
+{
+    tempList.AddRange(<#= name #>.ToUintList());
+}
 <#
-        if (paramInfos.Count != 0)
-        {
-#>ushort wordCount = (ushort) (tempList.Count + 1);
+            }
+            else
+            {
+#>tempList.AddRange(<#= name #>.ToUintList());
 <#
-        }
-        else
-        {
-#>ushort wordCount = 1;
-<#
+            }
         }
 #>
+ushort opCode = <#= opCode#>;
+ushort wordCount = (ushort) (tempList.Count + 1);
+
 uint combinedWord = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
 _instructions.Add(combinedWord);
 <#
@@ -54,9 +59,9 @@ _instructions.Add(combinedWord);
 #>
 using System;
 using System.Collections.Generic;
+using ILGPU.Backends.SPIRV.Types;
 
 #nullable enable
-#pragma warning disable 1591
 
 namespace ILGPU.Backends.SPIRV {
 
@@ -114,12 +119,6 @@ public class BinarySPIRVBuilder : ISPIRVBuilder
     PushIndent(standardIndent);
     foreach (var instruction in grammar.Instructions.Instructions)
     {
-        if (!IsInstructionCLSCompliant(instruction))
-        {
-#>[CLSCompliant(false)]
-<#
-        }
-
         var paramInfos = GenerateParamInfos(instruction);
         CreateHeader(instruction.OpName, paramInfos);
         CreateBody(instruction.OpCode, paramInfos);
@@ -131,4 +130,4 @@ public class BinarySPIRVBuilder : ISPIRVBuilder
     PopIndent();
 #>
 }
-#pragma warning restore 1591
+#nullable restore

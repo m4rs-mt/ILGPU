@@ -1,8 +1,28 @@
 <#@ template hostspecific="true" language="C#" #>
 <#@ output extension=".cs"#>
-<#@ include file="BuilderCommon.ttinclude"
-#><#@ assembly name="System.Xml" #>
-<#@ assembly name="System.Core"#>
+<#@ include file="BuilderCommon.ttinclude"#>
+<#
+    Dictionary<string, SPIRVType> LoadOperandTypeInfoMap()
+    {
+        var infoMap = new Dictionary<string, SPIRVType>();
+
+        foreach (var instruction in grammar.Instructions.Instructions)
+        {
+            if (instruction.Operands?.Operands == null)
+            {
+                continue;
+            }
+
+            foreach (var operand in instruction.Operands.Operands)
+            {
+                var type = grammar.Types.Types.Find(x => x.Name == operand.Type);
+                infoMap[operand.Type] = type;
+            }
+        }
+
+        return infoMap;
+    }
+#>
 <#
     var typeInfo = LoadOperandTypeInfoMap();
 
@@ -123,9 +143,9 @@
 #>
 using System;
 using System.Text;
+using ILGPU.Backends.SPIRV.Types;
 
 #nullable enable
-#pragma warning disable 1591
 
 namespace ILGPU.Backends.SPIRV
 {
@@ -170,12 +190,6 @@ public class StringSPIRVBuilder : ISPIRVBuilder {
     PushIndent(standardIndent);
     foreach (var instruction in grammar.Instructions.Instructions)
     {
-        if (!IsInstructionCLSCompliant(instruction))
-        {
-#>[CLSCompliant(false)]
-<#
-        }
-
         var paramInfos = GenerateParamInfos(instruction);
         CreateHeader(instruction.OpName, paramInfos);
         CreateBody(instruction.OpName, paramInfos);
@@ -187,4 +201,3 @@ public class StringSPIRVBuilder : ISPIRVBuilder {
     PopIndent();
 #>
 }
-#pragma warning restore 1591

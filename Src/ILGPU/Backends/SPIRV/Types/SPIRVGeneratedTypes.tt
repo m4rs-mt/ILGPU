@@ -1,0 +1,135 @@
+<#@ template hostspecific="true" language="C#" #>
+<#@ include file="../SPIRVXMLReader.ttinclude"#>
+<#@ output extension=".cs"#>
+<#@ assembly name="System.Xml" #>
+<#
+    const string standardIndent = "    ";
+#>
+using System;
+using System.Collections.Generic;
+
+namespace ILGPU.Backends.SPIRV.Types
+{
+<#
+    var grammar = LoadGrammar("..");
+
+    PushIndent(standardIndent);
+
+    foreach (var kind in grammar.Types.Types)
+    {
+        GenerateType(kind);
+    }
+
+    void GenerateType(SPIRVType kind)
+    {
+        switch (kind.Category)
+        {
+            case "Id":
+                GenerateId(kind);
+                break;
+            case "BitEnum":
+                GenerateEnum(kind, 16);
+                break;
+            case "ValueEnum":
+                GenerateEnum(kind, 10);
+                break;
+            case "Composite":
+                GenerateComposite(kind);
+                break;
+        }
+    }
+
+    void GenerateId(SPIRVType kind)
+    {
+#>public struct <#= kind.Name #>
+{
+    private uint value;
+
+    public <#= kind.Name #>(uint val)
+    {
+        value = val;
+    }
+
+    public List<SPIRVWord> ToWords() => new List<SPIRVWord>() { new SPIRVWord(value) };
+
+    public string ToRepr() => value.ToString();
+}
+<#
+    }
+
+    void GenerateEnum(SPIRVType kind, int valueBase)
+    {
+#>public enum <#= kind.Name #> : uint
+{
+<#
+        PushIndent(standardIndent);
+        foreach (var enumerant in kind.Enumerants.Enumerants)
+        {
+#><#=
+                    enumerant.Name #> = <#=
+                    Convert.ToUInt32(enumerant.Value, valueBase) #>,
+<#
+        }
+
+        PopIndent();
+#>}
+
+public static class <#= kind.Name #>Extensions
+{
+    public static List<SPIRVWord> ToWords(this <#= kind.Name #> value) =>
+        new List<SPIRVWord>() { SPIRVWord.FromBytes(BitConverter.GetBytes((uint) value)) };
+
+    public static string ToRepr(this <#= kind.Name #> value) => value.ToString("D");
+}
+<#
+    }
+
+    void GenerateComposite(SPIRVType kind)
+    {
+#>public struct <#= kind.Name #>
+{
+<#
+        PushIndent(standardIndent);
+        for (int i = 0; i < kind.Bases.Bases.Count; i++)
+        {
+#>public <#=kind.Bases.Bases[i] #> base<#= i #>;
+<#
+        }
+#>public List<SPIRVWord> ToWords() {
+    List<SPIRVWord> words = new List<SPIRVWord>();
+<#
+        PushIndent(standardIndent);
+        for (int i = 0; i < kind.Bases.Bases.Count; i++)
+        {
+#>words.AddRange(base<#=i #>.ToWords());
+<#
+        }
+        PopIndent();
+#>
+    return words;
+}
+
+public string ToRepr() {
+    string repr = "{ ";
+<#
+        PushIndent(standardIndent);
+        for (int i = 0; i < kind.Bases.Bases.Count; i++)
+        {
+#>repr += $"base<#=i #> = {base<#=i #>.ToRepr()} ";
+<#
+        }
+        PopIndent();
+#>
+    repr += "}";
+    return repr;
+}
+<#
+        PopIndent();
+#>
+}
+<#
+    }
+
+    PopIndent();
+#>
+}

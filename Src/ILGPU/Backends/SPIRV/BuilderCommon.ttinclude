@@ -1,23 +1,10 @@
 <#@ import namespace="System.Collections.Generic" #>
-<#@ include file="SPIRVTypeMappings.ttinclude"
-#><#@ assembly name="System.Xml" #>
+<#@ include file="SPIRVXMLReader.ttinclude"#>
 <#@ assembly name="System.Core"#>
 <#@ import namespace="System.Linq"#>
-<#@ import namespace="System.Collections.Generic" #>
 <#
     var grammar = LoadGrammar();
-    var typeMap = LoadTypeMap();
     const string standardIndent = "    ";
-
-    bool IsInstructionCLSCompliant(SPIRVOp inst)
-    {
-        var list = inst.Operands?.Operands;
-        if (list != null)
-        {
-            return list.All(operand => IsCLSCompliant(operand.Type));
-        }
-        return true;
-    }
 
     string GenerateParamName(SPIRVOperand operand, int fallbackIndex)
     {
@@ -33,7 +20,7 @@
 
     string GenerateFullParam(SPIRVOperand operand, string paramName)
     {
-        var type = typeMap[operand.Type];
+        var type = operand.Type;
         var fullParam = operand.Quantifier switch
         {
             "*" => $"params {type}[] {paramName}",
