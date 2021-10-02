@@ -109,7 +109,8 @@ namespace ILGPU
         /// Returns the linear thread index of the current thread within the current
         /// thread group.
         /// </summary>
-        public static int LinearIndex => Index.ComputeLinearIndex(Dimension);
+        public static int LinearIndex =>
+            Stride3D.DenseXY.ComputeElementIndex(Index, Dimension);
 
         /// <summary>
         /// Returns true if the current thread is the first in the group.

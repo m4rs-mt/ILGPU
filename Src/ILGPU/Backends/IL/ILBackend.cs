@@ -69,14 +69,14 @@ namespace ILGPU.Backends.IL
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Index2D Reconstruct2DIndex(Index2D totalDim, int linearIndex) =>
-            totalDim.ReconstructIndex(linearIndex);
+            Stride2D.DenseX.ReconstructFromElementIndex(linearIndex, totalDim);
 
         /// <summary>
         /// Helper method to reconstruct 3D indices.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Index3D Reconstruct3DIndex(Index3D totalDim, int linearIndex) =>
-            totalDim.ReconstructIndex(linearIndex);
+            Stride3D.DenseXY.ReconstructFromElementIndex(linearIndex, totalDim);
 
         #endregion
 
