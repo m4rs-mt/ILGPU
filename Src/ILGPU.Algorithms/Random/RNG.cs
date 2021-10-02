@@ -1,13 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2019 ILGPU Algorithms Project
-//                     Copyright (c) 2017-2018 ILGPU Samples Project
+//                                   ILGPU Algorithms
+//                           Copyright (c) 2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RNG.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.Random.Operations;
