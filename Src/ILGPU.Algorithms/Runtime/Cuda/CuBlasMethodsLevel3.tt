@@ -46,6 +46,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> c,
             int ldc)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -87,6 +88,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> c,
             int ldc)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -125,6 +127,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> c,
             int ldc)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -164,6 +167,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> c,
             int ldc)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -205,6 +209,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> c,
             int ldc)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -245,6 +250,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> b,
             int ldb)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -284,6 +290,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> c,
             int ldc)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -321,6 +328,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> c,
             int ldc)
         {
+            EnsureAcceleratorBinding();
+
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,

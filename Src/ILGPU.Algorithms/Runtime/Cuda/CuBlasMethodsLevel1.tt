@@ -37,6 +37,7 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The computed value.</returns>
         public unsafe int <#= entry #>(ArrayView<<#= type #>> input)
         {
+            EnsureAcceleratorBinding();
             EnsurePointerMode(CuBlasPointerMode.Host);
 
             int result;
@@ -57,6 +58,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="output">The output view.</param>
         public unsafe void <#= entry #>(ArrayView<<#= type #>> input, ArrayView<int> output)
         {
+            EnsureAcceleratorBinding();
             EnsurePointerMode(CuBlasPointerMode.Device);
 
             CuBlasException.ThrowIfFailed(
@@ -80,6 +82,7 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The computed value.</returns>
         public unsafe <#= type #> <#= entry #>(ArrayView<<#= type #>> input)
         {
+            EnsureAcceleratorBinding();
             EnsurePointerMode(CuBlasPointerMode.Host);
 
             <#= type #> result = default;
@@ -100,6 +103,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="output">The output view.</param>
         public unsafe void <#= entry #>(ArrayView<<#= type #>> input, ArrayView<<#= type #>> output)
         {
+            EnsureAcceleratorBinding();
             EnsurePointerMode(CuBlasPointerMode.Device);
 
             CuBlasException.ThrowIfFailed(
@@ -126,8 +130,9 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> x,
             ArrayView<<#= type #>> y)
         {
-            <#= paramVerifier #>;
             Debug.Assert(x.Length == y.Length, "Invalid length");
+            EnsureAcceleratorBinding();
+            <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
@@ -154,8 +159,9 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> x,
             ArrayView<<#= type #>> y)
         {
-            EnsurePointerMode(CuBlasPointerMode.Host);
             Debug.Assert(x.Length == y.Length, "Invalid length");
+            EnsureAcceleratorBinding();
+            EnsurePointerMode(CuBlasPointerMode.Host);
 
             <#= type #> result = default;
             CuBlasException.ThrowIfFailed(
@@ -181,8 +187,9 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y,
             ArrayView<<#= type #>> output)
         {
-            EnsurePointerMode(CuBlasPointerMode.Device);
             Debug.Assert(x.Length == y.Length, "Invalid length");
+            EnsureAcceleratorBinding();
+            EnsurePointerMode(CuBlasPointerMode.Device);
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
@@ -212,6 +219,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramType #> c,
             <#= paramType #> s)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -243,6 +251,8 @@ namespace ILGPU.Runtime.Cuda
             <#= elemType #> c,
             <#= type #> s)
         {
+            EnsureAcceleratorBinding();
+
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
@@ -265,6 +275,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= elemType #>> c,
             ArrayView<<#= type #>> s)
         {
+            EnsureAcceleratorBinding();
+
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
@@ -290,6 +302,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y,
             <#= paramType #> param)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -316,6 +329,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramType #> alpha,
             ArrayView<<#= type #>> x)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -341,6 +355,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y)
         {
             Debug.Assert(x.Length == y.Length, "Invalid length");
+            EnsureAcceleratorBinding();
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(

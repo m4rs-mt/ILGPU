@@ -267,6 +267,13 @@ namespace ILGPU.Runtime.Cuda
             pointerModeHandler.UpdatePointerMode(this, pointerMode);
         }
 
+        /// <summary>
+        /// Ensures that the accelerator for this CuBlas instance is made current.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void EnsureAcceleratorBinding() =>
+            Stream.Accelerator.Bind();
+
         #endregion
 
         #region IDisposable
