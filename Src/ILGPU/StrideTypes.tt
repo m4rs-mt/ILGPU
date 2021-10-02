@@ -90,6 +90,66 @@ namespace ILGPU
             public readonly long ComputeElementIndex(<#= longIndexName #> index) => 0L;
 
             /// <summary>
+            /// Computes the linear 32-bit element address using the given index while
+            /// verifying that the given index is within the bounds of the specified
+            /// extent.
+            /// </summary>
+            /// <param name="index">The dimension for the index computation.</param>
+            /// <param name="extent">The extent dimension to check.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeElementIndexChecked(
+                <#= indexName #> index,
+                <#= indexName #> extent) =>
+                // Note that all element indices are in bounds
+                ComputeElementIndex(index);
+
+            /// <summary>
+            /// Computes the linear 64-bit element address using the given index while
+            /// verifying that the given index is within the bounds of the specified
+            /// extent.
+            /// </summary>
+            /// <param name="index">The dimension for index computation.</param>
+            /// <param name="extent">The extent dimension to check.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly long ComputeElementIndexChecked(
+                <#= longIndexName #> index,
+                <#= longIndexName #> extent) =>
+                // Note that all element indices are in bounds
+                ComputeElementIndex(index);
+
+            /// <summary>
+            /// Reconstructs a 32-bit index from a linear element index.
+            /// </summary>
+            /// <param name="elementIndex">The linear element index.</param>
+            /// <returns>The reconstructed index.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly <#= indexName #> ReconstructFromElementIndex(
+                int elementIndex)
+            {
+                Trace.Assert(
+                    false,
+                    "Reconstruction of general strides is not supported");
+                return <#= indexName #>.Invalid;
+            }
+            
+            /// <summary>
+            /// Reconstructs a 64-bit index from a linear element index.
+            /// </summary>
+            /// <param name="elementIndex">The linear element index.</param>
+            /// <returns>The reconstructed index.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly <#= longIndexName #> ReconstructFromElementIndex(
+                long elementIndex)
+            {
+                Trace.Assert(
+                    false,
+                    "Reconstruction of general strides is not supported");
+                return <#= longIndexName #>.Invalid;
+            }
+
+            /// <summary>
             /// Computes the 32-bit length of a required allocation.
             /// </summary>
             /// <param name="extent">The extent to allocate.</param>
@@ -172,6 +232,54 @@ namespace ILGPU
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly long ComputeElementIndex(<#= longIndexName #> index) =>
                 index;
+
+            /// <summary>
+            /// Computes the linear 32-bit element address using the given index while
+            /// verifying that the given index is within the bounds of the specified
+            /// extent.
+            /// </summary>
+            /// <param name="index">The dimension for the index computation.</param>
+            /// <param name="extent">The extent dimension to check.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeElementIndexChecked(
+                <#= indexName #> index,
+                <#= indexName #> extent) =>
+                <#= className #>.ComputeElementIndexChecked(this, index, extent);
+
+            /// <summary>
+            /// Computes the linear 64-bit element address using the given index while
+            /// verifying that the given index is within the bounds of the specified
+            /// extent.
+            /// </summary>
+            /// <param name="index">The dimension for index computation.</param>
+            /// <param name="extent">The extent dimension to check.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly long ComputeElementIndexChecked(
+                <#= longIndexName #> index,
+                <#= longIndexName #> extent) =>
+                <#= className #>.ComputeElementIndexChecked(this, index, extent);
+
+            /// <summary>
+            /// Reconstructs a 32-bit index from a linear element index.
+            /// </summary>
+            /// <param name="elementIndex">The linear element index.</param>
+            /// <returns>The reconstructed index.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly <#= indexName #> ReconstructFromElementIndex(
+                int elementIndex) =>
+                elementIndex;
+            
+            /// <summary>
+            /// Reconstructs a 64-bit index from a linear element index.
+            /// </summary>
+            /// <param name="elementIndex">The linear element index.</param>
+            /// <returns>The reconstructed index.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly <#= longIndexName #> ReconstructFromElementIndex(
+                long elementIndex) =>
+                elementIndex;
 
             /// <summary>
             /// Computes the 32-bit length of a required allocation.
@@ -295,6 +403,64 @@ namespace ILGPU
                 <#= className #>.ComputeElementIndex(this, index);
 
             /// <summary>
+            /// Computes the linear 32-bit element address using the given index while
+            /// verifying that the given index is within the bounds of the specified
+            /// extent.
+            /// </summary>
+            /// <param name="index">The dimension for the index computation.</param>
+            /// <param name="extent">The extent dimension to check.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ComputeElementIndexChecked(
+                <#= indexName #> index,
+                <#= indexName #> extent) =>
+                <#= className #>.ComputeElementIndexChecked(this, index, extent);
+
+            /// <summary>
+            /// Computes the linear 64-bit element address using the given index while
+            /// verifying that the given index is within the bounds of the specified
+            /// extent.
+            /// </summary>
+            /// <param name="index">The dimension for index computation.</param>
+            /// <param name="extent">The extent dimension to check.</param>
+            /// <returns>The computed linear element address.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly long ComputeElementIndexChecked(
+                <#= longIndexName #> index,
+                <#= longIndexName #> extent) =>
+                <#= className #>.ComputeElementIndexChecked(this, index, extent);
+
+            /// <summary>
+            /// Reconstructs a 32-bit index from a linear element index.
+            /// </summary>
+            /// <param name="elementIndex">The linear element index.</param>
+            /// <returns>The reconstructed index.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly <#= indexName #> ReconstructFromElementIndex(
+                int elementIndex)
+            {
+                Trace.Assert(
+                    false,
+                    "Reconstruction of general strides is not supported");
+                return <#= indexName #>.Invalid;
+            }
+
+            /// <summary>
+            /// Reconstructs a 64-bit index from a linear element index.
+            /// </summary>
+            /// <param name="elementIndex">The linear element index.</param>
+            /// <returns>The reconstructed index.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly <#= longIndexName #> ReconstructFromElementIndex(
+                long elementIndex)
+            {
+                Trace.Assert(
+                    false,
+                    "Reconstruction of general strides is not supported");
+                return <#= longIndexName #>.Invalid;
+            }
+
+            /// <summary>
             /// Computes the 32-bit length of a required allocation.
             /// </summary>
             /// <param name="extent">The extent to allocate.</param>
@@ -372,6 +538,58 @@ namespace ILGPU
 <#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
             index.<#= iName #> * stride.<#= iName #>Stride<#= separator #>
 <#      } #>
+
+        /// <summary>
+        /// Computes the linear 32-bit element address using the given index while
+        /// verifying that the given index is within the bounds of the specified extent.
+        /// </summary>
+        /// <param name="stride">The stride to use.</param>
+        /// <param name="index">The dimension for the index computation.</param>
+        /// <param name="extent">The extent dimension to check.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ComputeElementIndexChecked<TStride>(
+            this TStride stride,
+            <#= indexName #> index,
+            <#= indexName #> extent)
+            where TStride : <#= strideName #>
+        {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+            Trace.Assert(
+                // Default bound checks
+                index.<#= iName #> >= 0 & index.<#= iName #> < extent.<#= iName #> |
+                // Zero length views
+                index.<#= iName #> == 0 & extent.<#= iName #> == 0,
+                "<#= iName #> index out of bounds");
+<#      } #>
+            return stride.ComputeElementIndex(index);
+        }
+
+        /// <summary>
+        /// Computes the linear 64-bit element address using the given index while
+        /// verifying that the given index is within the bounds of the specified extent.
+        /// </summary>
+        /// <param name="stride">The stride to use.</param>
+        /// <param name="index">The dimension for index computation.</param>
+        /// <param name="extent">The extent dimension to check.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long ComputeElementIndexChecked<TStride>(
+            this TStride stride,
+            <#= longIndexName #> index,
+            <#= longIndexName #> extent)
+            where TStride : <#= strideName #>
+        {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+            Trace.Assert(
+                index.<#= iName #> >= 0 &
+                index.<#= iName #> < extent.<#= iName #>,
+                "<#= iName #> index out of bounds");
+<#      } #>
+            return stride.ComputeElementIndex(index);
+        }
 
         /// <summary>
         /// Computes the 32-bit length of a required allocation.
