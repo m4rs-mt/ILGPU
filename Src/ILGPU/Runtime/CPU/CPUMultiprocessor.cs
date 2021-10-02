@@ -252,7 +252,7 @@ namespace ILGPU.Runtime.CPU
                     break;
 
                 // Setup the current group index
-                threadContext.GroupIndex = Index3D.ReconstructIndex(
+                threadContext.GroupIndex = Stride3D.DenseXY.ReconstructFromElementIndex(
                     threadIdx,
                     task.GroupDim);
 
@@ -287,7 +287,8 @@ namespace ILGPU.Runtime.CPU
                                 try
                                 {
                                     // Setup the current grid index
-                                    threadContext.GridIndex = Index3D.ReconstructIndex(
+                                    threadContext.GridIndex = Stride3D.DenseXY
+                                        .ReconstructFromElementIndex(
                                         i,
                                         task.GridDim);
 
