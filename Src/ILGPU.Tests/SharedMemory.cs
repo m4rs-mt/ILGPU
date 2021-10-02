@@ -1,4 +1,15 @@
-﻿using ILGPU.Runtime;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: SharedMemory.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.Runtime;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
