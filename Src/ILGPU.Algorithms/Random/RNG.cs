@@ -184,7 +184,9 @@ namespace ILGPU.Algorithms.Random
         private readonly ref TRandomProvider GetRandomProvider()
         {
             // Compute the global warp index
-            int groupOffset = Grid.Index.ComputeLinearIndex(Grid.Dimension) % groupSize;
+            int groupOffset = Stride3D.DenseXY.ComputeElementIndex(
+                Grid.Index,
+                Grid.Dimension) % groupSize;
             int warpOffset = Group.LinearIndex;
             int warpIdx = groupOffset * Warp.WarpSize + warpOffset / Warp.WarpSize;
 
