@@ -1,10 +1,10 @@
-<Project>
+﻿<Project>
   <PropertyGroup>
     <PackageId>ILGPU.Algorithms</PackageId>
     <PackageVersion>$(Version)</PackageVersion>
 
     <Title>ILGPU Algorithms Library</Title>
-    <Copyright>Copyright © 2019-2020 ILGPU Algorithms Project. Copyright 2016-2018 ILGPU Lightning Project. All rights reserved.</Copyright>
+    <Copyright>Copyright (c) 2016-2021 ILGPU Project. All rights reserved.</Copyright>
     <Company />
     <Authors>ILGPU Algorithms Project</Authors>
     <Description>ILGPU Algorithms library for high-level GPU programming.</Description>
