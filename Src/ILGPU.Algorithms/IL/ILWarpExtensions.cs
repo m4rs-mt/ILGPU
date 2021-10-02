@@ -51,6 +51,16 @@ namespace ILGPU.Algorithms.IL
             public readonly int ThreadDimension => Warp.WarpSize;
 
             /// <summary>
+            /// Returns the number of warps per group.
+            /// </summary>
+            public readonly int ReduceSegments => MaxNumThreads / Warp.WarpSize;
+
+            /// <summary>
+            /// Returns the current warp index.
+            /// </summary>
+            public readonly int ReduceSegmentIndex => Warp.WarpIdx;
+
+            /// <summary>
             /// Performs a warp-wide barrier.
             /// </summary>
             public readonly void Barrier() => Warp.Barrier();

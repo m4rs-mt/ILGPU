@@ -51,6 +51,16 @@ namespace ILGPU.Algorithms.IL
             public readonly int ThreadDimension => Group.Dimension.Size;
 
             /// <summary>
+            /// Returns 1.
+            /// </summary>
+            public readonly int ReduceSegments => 1;
+
+            /// <summary>
+            /// Returns 0.
+            /// </summary>
+            public readonly int ReduceSegmentIndex => 0;
+
+            /// <summary>
             /// Performs a group-wide barrier.
             /// </summary>
             public readonly void Barrier() => Group.Barrier();
