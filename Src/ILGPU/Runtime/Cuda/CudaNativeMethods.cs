@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaNativeMethods.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 #pragma warning disable CA1711 // Identifiers should not have incorrect suffix
