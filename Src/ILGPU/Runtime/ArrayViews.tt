@@ -243,18 +243,12 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="index">The element index.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly <#= baseType #> ComputeLinearIndex(<#= index #> index)
-        {
-<#      for (int i = 0; i < dim.Dimension; ++i) { #>
-<#          var iName = IndexDimensions[i].PropertyName; #>
-            Trace.Assert(
-                index.<#= iName #> >= 0 & (
-                    index.<#= iName #> < Extent.<#= iName #>
-                    | index.<#= iName #> == 0),
-                "Index <#= iName #> out of bounds");
-<#      } #>
-            return Stride.ComputeElementIndex(index);
-        }
+        public readonly <#= baseType #> ComputeLinearIndex(<#= index #> index) =>
+<#          if (size == "32") { #>
+            Stride.ComputeElementIndexChecked(index, IntExtent);
+<#          } else { #>
+            Stride.ComputeElementIndexChecked(index, Extent);
+<#          } #>
 
         /// <summary>
         /// Returns a sub view of the current view starting at the given
