@@ -111,7 +111,7 @@ namespace ILGPU
         public static void AssertIntIndex(long index) =>
             Trace.Assert(
                 index >= int.MinValue & index <= int.MaxValue,
-                "64-bit index expected");
+                "32-bit index expected");
 
         /// <summary>
         /// Asserts that the given long range can be expressed by using a 32-bit integer.
