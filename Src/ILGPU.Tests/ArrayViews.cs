@@ -668,7 +668,7 @@ namespace ILGPU.Tests
             ArrayView3D<int, Stride3D.DenseXY> data,
             ArrayView3D<int, Stride3D.DenseXY> source)
         {
-            var reconstructedIndex = data.Extent.ReconstructIndex(index);
+            var reconstructedIndex = data.Stride.ReconstructFromElementIndex(index);
             data[reconstructedIndex] = source[reconstructedIndex];
         }
 
