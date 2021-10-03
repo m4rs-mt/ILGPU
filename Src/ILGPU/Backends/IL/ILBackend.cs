@@ -111,7 +111,8 @@ namespace ILGPU.Backends.IL
                     new ILAcceleratorSpecializer(
                         PointerType,
                         warpSize,
-                        Context.Properties.EnableAssertions),
+                        Context.Properties.EnableAssertions,
+                        Context.Properties.EnableIOOperations),
                     context.Properties.InliningMode,
                     context.Properties.OptimizationLevel);
                 builder.Add(transformerBuilder.ToTransformer());

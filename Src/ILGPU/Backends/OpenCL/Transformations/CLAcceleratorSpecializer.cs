@@ -54,12 +54,16 @@ namespace ILGPU.Backends.OpenCL.Transformations
         /// Constructs a new OpenCL accelerator specializer.
         /// </summary>
         /// <param name="pointerType">The actual pointer type to use.</param>
-        public CLAcceleratorSpecializer(PrimitiveType pointerType)
+        /// <param name="enableIOOperations">True, if the IO is enabled.</param>
+        public CLAcceleratorSpecializer(
+            PrimitiveType pointerType,
+            bool enableIOOperations)
             : base(
                   AcceleratorType.OpenCL,
                   null,
                   pointerType,
-                  false)
+                  enableAssertions: false,
+                  enableIOOperations)
         { }
 
         #endregion
@@ -70,12 +74,12 @@ namespace ILGPU.Backends.OpenCL.Transformations
         /// Maps internal <see cref="WriteToOutput"/> values to
         /// <see cref="PrintF(string)"/> method calls.
         /// </summary>
-        protected override void Specialize(
-            in RewriterContext context,
-            IRContext irContext,
+        protected override void Implement(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
             WriteToOutput writeToOutput)
         {
-            var builder = context.Builder;
             var location = writeToOutput.Location;
 
             // Convert to format string constant
@@ -85,7 +89,7 @@ namespace ILGPU.Backends.OpenCL.Transformations
                 expressionString);
 
             // Create a call to the native printf
-            var printFMethod = irContext.Declare(PrintFMethod, out bool _);
+            var printFMethod = context.Declare(PrintFMethod, out bool _);
             var callBuilder = builder.CreateCall(location, printFMethod);
             callBuilder.Add(expression);
             foreach (Value argument in writeToOutput.Arguments)
@@ -98,8 +102,8 @@ namespace ILGPU.Backends.OpenCL.Transformations
             }
 
             // Replace the write node with the call
-            var call = callBuilder.Seal();
-            context.ReplaceAndRemove(writeToOutput, call);
+            callBuilder.Seal();
+            builder.Remove(writeToOutput);
         }
 
         #endregion

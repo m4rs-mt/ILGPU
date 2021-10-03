@@ -653,26 +653,22 @@ namespace ILGPU.Backends.PTX
                 stringConstants.Add(key, stringBinding);
             }
 
-            // Move the value into a register
-            var tempValueRegister = AllocatePlatformRegister(
-                out RegisterDescription description);
+            // Move the value into the target register
+            var register = AllocateHardware(value);
             using (var command = BeginMove())
             {
-                command.AppendSuffix(description.BasicValueType);
-                command.AppendArgument(tempValueRegister);
+                command.AppendSuffix(register.Description.BasicValueType);
+                command.AppendArgument(register);
                 command.AppendRawValueReference(stringBinding);
             }
 
             // Convert the string value into the generic address space
-            // string (global) -> string (generic)
-            var register = AllocateHardware(value);
+            // string (global) -> string (generic) (in place conversion)
             CreateAddressSpaceCast(
-                tempValueRegister,
+                register,
                 register,
                 MemoryAddressSpace.Global,
                 MemoryAddressSpace.Generic);
-
-            FreeRegister(tempValueRegister);
         }
 
         /// <summary>
