@@ -336,7 +336,6 @@ namespace ILGPU.Backends.PTX
 
             Architecture = args.Backend.Architecture;
             FastMath = args.Properties.MathMode >= MathMode.Fast;
-            EnableAssertions = args.Properties.EnableAssertions;
 
             labelPrefix = "L_" + Method.Id.ToString();
             ReturnParamName = "retval_" + Method.Id;
@@ -391,11 +390,6 @@ namespace ILGPU.Backends.PTX
         /// Returns true if fast math is active.
         /// </summary>
         public bool FastMath { get; }
-
-        /// <summary>
-        /// Returns true if assertions are enabled.
-        /// </summary>
-        public bool EnableAssertions { get; }
 
         /// <summary>
         /// Returns the associated string builder.
