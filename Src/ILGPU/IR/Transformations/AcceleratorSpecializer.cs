@@ -13,8 +13,7 @@ using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
-using ILGPU.Util;
-using System.Reflection;
+using System.Collections.Generic;
 
 namespace ILGPU.IR.Transformations
 {
@@ -36,11 +35,18 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             public SpecializerData(
                 AcceleratorSpecializer specializer,
-                IRContext context)
+                IRContext context,
+                List<Value> toImplement)
             {
+                ToImplement = toImplement;
                 Specializer = specializer;
                 Context = context;
             }
+
+            /// <summary>
+            /// A list of values to be implemented in the next step.
+            /// </summary>
+            public List<Value> ToImplement { get; }
 
             /// <summary>
             /// Returns the parent specializer instance.
@@ -72,66 +78,11 @@ namespace ILGPU.IR.Transformations
             /// Returns true if assertions are enabled.
             /// </summary>
             public readonly bool EnableAssertions => Specializer.EnableAssertions;
-        }
 
-        #endregion
-
-        #region Static
-
-        /// <summary>
-        /// Builds an assert implementation that calls a nested fail function based on
-        /// a boolean condition (first parameter).
-        /// </summary>
-        protected static Method BuildDebugAssertImplementation(
-            IRContext irContext,
-            MethodBase debugAssertMethod,
-            MethodBase assertFailedMethod)
-        {
-            // Create a call to the debug-implementation wrapper while taking the
-            // current source location into account
-            var method = irContext.Declare(debugAssertMethod, out bool created);
-            if (!created)
-                return method;
-
-            var location = Location.Nowhere;
-            using var builder = method.CreateBuilder();
-            method.AddFlags(MethodFlags.Inline);
-
-            // Create the entry, body and exit blocks
-            var entryBlock = builder.EntryBlockBuilder;
-            var bodyBlock = builder.CreateBasicBlock(location);
-            var exitBlock = builder.CreateBasicBlock(location);
-
-            // Initialize the parameters
-            var sourceParameters = debugAssertMethod.GetParameters();
-            var parameters = InlineList<Parameter>.Create(sourceParameters.Length);
-            foreach (var parameter in sourceParameters)
-            {
-                var paramType = entryBlock.CreateType(parameter.ParameterType);
-                parameters.Add(builder.AddParameter(paramType, parameter.Name));
-            }
-
-            // Check condition
-            entryBlock.CreateIfBranch(
-                location,
-                parameters[0],
-                exitBlock,
-                bodyBlock);
-
-            // Fill the body
-            var assertFailed = bodyBlock.CreateCall(
-                location,
-                irContext.Declare(assertFailedMethod, out var _));
-            for (int i = 1; i < parameters.Count; ++i)
-                assertFailed.Add(parameters[i]);
-            assertFailed.Seal();
-
-            bodyBlock.CreateBranch(location, exitBlock);
-
-            // Create return
-            exitBlock.CreateReturn(location);
-
-            return method;
+            /// <summary>
+            /// Returns true if IO is enabled.
+            /// </summary>
+            public readonly bool EnableIOOperations => Specializer.EnableIOOperations;
         }
 
         #endregion
@@ -243,9 +194,7 @@ namespace ILGPU.IR.Transformations
         }
 
         /// <summary>
-        /// Specializes debug operations via the instance method
-        /// <see cref="Specialize(in RewriterContext, IRContext, DebugAssertOperation)"/>
-        /// of the parent <paramref name="data"/> instance.
+        /// Removes or collects debug operations.
         /// </summary>
         private static void Specialize(
             RewriterContext context,
@@ -253,21 +202,24 @@ namespace ILGPU.IR.Transformations
             DebugAssertOperation value)
         {
             if (data.EnableAssertions)
-                data.Specializer.Specialize(context, data.Context, value);
+                data.ToImplement.Add(value);
             else
                 context.Remove(value);
         }
 
         /// <summary>
-        /// Specializes IO output operations via the instance method
-        /// <see cref="Specialize(in RewriterContext, IRContext, WriteToOutput)"/> of
-        /// the parent <paramref name="data"/> instance.
+        /// Removes or collects IO operations.
         /// </summary>
         private static void Specialize(
             RewriterContext context,
             SpecializerData data,
-            WriteToOutput value) =>
-            data.Specializer.Specialize(context, data.Context, value);
+            WriteToOutput value)
+        {
+            if (data.EnableAssertions)
+                data.ToImplement.Add(value);
+            else
+                context.Remove(value);
+        }
 
         #endregion
 
@@ -305,16 +257,19 @@ namespace ILGPU.IR.Transformations
         /// <param name="warpSize">The warp size (if any).</param>
         /// <param name="intPointerType">The native integer pointer type.</param>
         /// <param name="enableAssertions">True, if the assertions are enabled.</param>
+        /// <param name="enableIOOperations">True, if the IO is enabled.</param>
         public AcceleratorSpecializer(
             AcceleratorType acceleratorType,
             int? warpSize,
             PrimitiveType intPointerType,
-            bool enableAssertions)
+            bool enableAssertions,
+            bool enableIOOperations)
         {
             AcceleratorType = acceleratorType;
             WarpSize = warpSize;
             IntPointerType = intPointerType;
             EnableAssertions = enableAssertions;
+            EnableIOOperations = enableIOOperations;
         }
 
         #endregion
@@ -341,6 +296,11 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         public bool EnableAssertions { get; }
 
+        /// <summary>
+        /// Returns true if debug output is enabled.
+        /// </summary>
+        public bool EnableIOOperations { get; }
+
         #endregion
 
         #region Methods
@@ -350,37 +310,59 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected override bool PerformTransformation(
             IRContext context,
-            Method.Builder builder) =>
-            Rewriter.Rewrite(
-                builder.SourceBlocks,
-                builder,
-                new SpecializerData(this, context));
+            Method.Builder builder)
+        {
+            var toImplement = new List<Value>(16);
+            var data = new SpecializerData(this, context, toImplement);
+            if (!Rewriter.Rewrite(builder.SourceBlocks, builder, data))
+                return false;
+
+            foreach (var value in toImplement)
+            {
+                switch (value)
+                {
+                    case DebugAssertOperation assert:
+                        Implement(context, builder, builder[assert.BasicBlock], assert);
+                        break;
+                    case WriteToOutput write:
+                        Implement(context, builder, builder[write.BasicBlock], write);
+                        break;
+                    default:
+                        throw builder.GetInvalidOperationException();
+                }
+            }
+            return true;
+        }
 
         /// <summary>
         /// Specializes debug output operations (if any). Note that this default
         /// implementation removes the output operations from the current program.
         /// </summary>
-        /// <param name="context">The current rewriter context.</param>
-        /// <param name="irContext">The parent IR context.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="methodBuilder">The parent method builder.</param>
+        /// <param name="builder">The current block builder.</param>
         /// <param name="debugAssert">The debug assert operation.</param>
-        protected virtual void Specialize(
-            in RewriterContext context,
-            IRContext irContext,
+        protected virtual void Implement(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
             DebugAssertOperation debugAssert) =>
-            context.Remove(debugAssert);
+            builder.Remove(debugAssert);
 
         /// <summary>
         /// Specializes IO output operations (if any). Note that this default
         /// implementation removes the output operations from the current program.
         /// </summary>
-        /// <param name="context">The current rewriter context.</param>
-        /// <param name="irContext">The parent IR context.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="methodBuilder">The parent method builder.</param>
+        /// <param name="builder">The current block builder.</param>
         /// <param name="writeToOutput">The IO output operation.</param>
-        protected virtual void Specialize(
-            in RewriterContext context,
-            IRContext irContext,
+        protected virtual void Implement(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
             WriteToOutput writeToOutput) =>
-            context.Remove(writeToOutput);
+            builder.Remove(writeToOutput);
 
         #endregion
     }
