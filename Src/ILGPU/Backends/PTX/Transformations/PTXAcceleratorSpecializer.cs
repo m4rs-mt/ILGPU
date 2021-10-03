@@ -55,33 +55,6 @@ namespace ILGPU.Backends.PTX.Transformations
         { }
 
         /// <summary>
-        /// Represents the intrinsic Cuda assertion failed function.
-        /// </summary>
-        /// <remarks>
-        /// All strings must be in the generic address space.
-        /// </remarks>
-        private static void DebugAssertImplementation(
-            bool condition,
-            string message,
-            string file,
-            int line,
-            string function,
-            int charSize)
-        {
-            /* Implementation
-            if (!condition)
-            {
-                AssertFailed(
-                    message,
-                    file,
-                    line,
-                    function,
-                    charSize);
-            }
-            */
-        }
-
-        /// <summary>
         /// A handle to the <see cref="PrintF(string, void*)"/> method.
         /// </summary>
         private static readonly MethodInfo PrintFMethod =
@@ -98,15 +71,6 @@ namespace ILGPU.Backends.PTX.Transformations
                 nameof(AssertFailed),
                 BindingFlags.Static | BindingFlags.NonPublic);
 
-        /// <summary>
-        /// A handle to the <see cref="DebugAssertImplementation(bool, string, string,
-        /// int, string, int)"/> method.
-        /// </summary>
-        private static readonly MethodInfo DebugAssertMethod =
-            typeof(PTXAcceleratorSpecializer).GetMethod(
-                nameof(DebugAssertImplementation),
-                BindingFlags.Static | BindingFlags.NonPublic);
-
         #endregion
 
         #region Instance
@@ -116,14 +80,17 @@ namespace ILGPU.Backends.PTX.Transformations
         /// </summary>
         /// <param name="pointerType">The actual pointer type to use.</param>
         /// <param name="enableAssertions">True, if the assertions are enabled.</param>
+        /// <param name="enableIOOperations">True, if the IO is enabled.</param>
         public PTXAcceleratorSpecializer(
             PrimitiveType pointerType,
-            bool enableAssertions)
+            bool enableAssertions,
+            bool enableIOOperations)
             : base(
                   AcceleratorType.Cuda,
                   PTXBackend.WarpSize,
                   pointerType,
-                  enableAssertions)
+                  enableAssertions,
+                  enableIOOperations)
         { }
 
         #endregion
@@ -134,53 +101,70 @@ namespace ILGPU.Backends.PTX.Transformations
         /// Maps internal debug assertions to <see cref="AssertFailed(string, string,
         /// int, string, int)"/> method calls.
         /// </summary>
-        protected override void Specialize(
-            in RewriterContext context,
-            IRContext irContext,
+
+        protected override void Implement(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
             DebugAssertOperation debugAssert)
         {
-            var builder = context.Builder;
             var location = debugAssert.Location;
 
             // Create a call to the debug-implementation wrapper while taking the
             // current source location into account
-            var debugAssertMethod = BuildDebugAssertImplementation(
-                irContext,
-                DebugAssertMethod,
-                AssertFailedMethod);
+            var nextBlock = builder.SplitBlock(debugAssert, false);
+            var innerBlock = methodBuilder.CreateBasicBlock(
+                location,
+                nameof(AssertFailed));
+            builder.CreateIfBranch(
+                location,
+                debugAssert.Condition,
+                nextBlock,
+                innerBlock);
 
             // Create a call to the assert implementation
-            var callBuilder = builder.CreateCall(location, debugAssertMethod);
-            callBuilder.Add(debugAssert.Condition);
-            callBuilder.Add(debugAssert.Message);
+            var innerBuilder = methodBuilder[innerBlock];
+            var assertFailed = innerBuilder.CreateCall(
+                location,
+                context.Declare(AssertFailedMethod, out var _));
+
+            // Move the debug assertion to this block
+            var sourceMessage = debugAssert.Message.ResolveAs<StringValue>();
+            var message = innerBuilder.CreatePrimitiveValue(
+                location,
+                sourceMessage.String,
+                sourceMessage.Encoding);
+            assertFailed.Add(message);
 
             // Append source location information
             var debugLocation = debugAssert.GetLocationInfo();
-            callBuilder.Add(
-                builder.CreatePrimitiveValue(location, debugLocation.FileName));
-            callBuilder.Add(
-                builder.CreatePrimitiveValue(location, debugLocation.Line));
-            callBuilder.Add(
-                builder.CreatePrimitiveValue(location, debugLocation.Method));
-            callBuilder.Add(
-                builder.CreatePrimitiveValue(location, 1));
+            assertFailed.Add(
+                innerBuilder.CreatePrimitiveValue(location, debugLocation.FileName));
+            assertFailed.Add(
+                innerBuilder.CreatePrimitiveValue(location, debugLocation.Line));
+            assertFailed.Add(
+                innerBuilder.CreatePrimitiveValue(location, debugLocation.Method));
+            assertFailed.Add(
+                innerBuilder.CreatePrimitiveValue(location, 1));
 
-            callBuilder.Seal();
+            // Finish the actual assertion call and branch
+            assertFailed.Seal();
+            innerBuilder.CreateBranch(location, nextBlock);
 
             // Remove the debug assertion value
-            context.Remove(debugAssert);
+            builder.Remove(debugAssert);
         }
 
         /// <summary>
         /// Maps internal <see cref="WriteToOutput"/> values to
         /// <see cref="PrintF(string, void*)"/> method calls.
         /// </summary>
-        protected override void Specialize(
-            in RewriterContext context,
-            IRContext irContext,
+        protected override void Implement(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
             WriteToOutput writeToOutput)
         {
-            var builder = context.Builder;
             var location = writeToOutput.Location;
 
             // Convert to format string constant
@@ -221,14 +205,14 @@ namespace ILGPU.Backends.PTX.Transformations
                 MemoryAddressSpace.Generic);
 
             // Create a call to the native printf
-            var printFMethod = irContext.Declare(PrintFMethod, out bool _);
+            var printFMethod = context.Declare(PrintFMethod, out bool _);
             var callBuilder = builder.CreateCall(location, printFMethod);
             callBuilder.Add(expression);
             callBuilder.Add(alloca);
 
             // Replace the write node with the call
-            var call = callBuilder.Seal();
-            context.ReplaceAndRemove(writeToOutput, call);
+            callBuilder.Seal();
+            builder.Remove(writeToOutput);
         }
 
         #endregion
