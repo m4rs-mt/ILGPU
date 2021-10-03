@@ -666,7 +666,7 @@ namespace ILGPU.Algorithms
                 addMemory[j] = 0;
             }
 
-            var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
+            var tileInfo = new TileInfo(input.IntLength, numIterationsPerGroup);
 
             // Compute local segment information
             for (Index1D i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
@@ -816,7 +816,7 @@ namespace ILGPU.Algorithms
             where TSpecialization : struct, IRadixSortSpecialization
         {
             TSpecialization specialization = default;
-            var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
+            var tileInfo = new TileInfo(input.IntLength, numIterationsPerGroup);
 
             for (Index1D i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
             {
@@ -988,7 +988,11 @@ namespace ILGPU.Algorithms
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
             var initializer = accelerator.CreateInitializer<int, Stride1D.Dense>();
-            var inclusiveScan = accelerator.CreateInclusiveScan<int, AddInt32>();
+            var inclusiveScan = accelerator.CreateScan<
+                int,
+                Stride1D.Dense,
+                Stride1D.Dense,
+                AddInt32>(ScanKind.Inclusive);
 
             var specializationType = typeof(Specialization4);
             var specialization = new Specialization4();
