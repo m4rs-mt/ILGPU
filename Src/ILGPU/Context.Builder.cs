@@ -120,7 +120,7 @@ namespace ILGPU
 
             /// <summary>
             /// Turns on all assertion checks (including out-of-bounds checks) for view
-            /// accesses.
+            /// and array accesses.
             /// </summary>
             /// <remarks>
             /// Note that calling this function automatically switches the debug mode
@@ -130,6 +130,21 @@ namespace ILGPU
             public Builder Assertions()
             {
                 EnableAssertions = true;
+                return DebugSymbols(DebugSymbolsMode.Basic);
+            }
+
+            /// <summary>
+            /// Turns on all IO operations checks.
+            /// accesses.
+            /// </summary>
+            /// <remarks>
+            /// Note that calling this function automatically switches the debug mode
+            /// to at least <see cref="DebugSymbolsMode.Basic"/>.
+            /// </remarks>
+            /// <returns>The current builder instance.</returns>
+            public Builder IOOperations()
+            {
+                EnableIOOperations = true;
                 return DebugSymbols(DebugSymbolsMode.Basic);
             }
 
@@ -194,6 +209,13 @@ namespace ILGPU
             public Builder AutoAssertions() => Debugger.IsAttached ? Assertions() : this;
 
             /// <summary>
+            /// Automatically enables all IO operations as soon as a debugger is attached.
+            /// </summary>
+            /// <returns>The current builder instance.</returns>
+            public Builder AutoIOOperations() =>
+                Debugger.IsAttached ? IOOperations() : this;
+
+            /// <summary>
             /// Automatically switches to <see cref="Debug()"/> mode if a debugger is
             /// attached.
             /// </summary>
@@ -201,13 +223,15 @@ namespace ILGPU
             public Builder AutoDebug() => Debugger.IsAttached ? Debug() : this;
 
             /// <summary>
-            /// Sets the optimization level to <see cref="OptimizationLevel.Debug"/> and
-            /// call <see cref="Assertions()"/> to turn on all debug assertion checks.
+            /// Sets the optimization level to <see cref="OptimizationLevel.Debug"/>,
+            /// calls <see cref="Assertions()"/> to turn on all debug assertion checks
+            /// and calls <see cref="IOOperations"/> to turn on all debug outputs.
             /// </summary>
             /// <returns>The current builder instance.</returns>
             public Builder Debug() =>
                 Optimize(OptimizationLevel.Debug).
                 Assertions().
+                IOOperations().
                 DebugSymbols(DebugSymbolsMode.Kernel);
 
             /// <summary>
