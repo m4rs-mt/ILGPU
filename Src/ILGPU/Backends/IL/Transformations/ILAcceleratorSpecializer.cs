@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
-using ILGPU.IR.Rewriting;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -31,15 +30,18 @@ namespace ILGPU.Backends.IL.Transformations
         /// <param name="pointerType">The actual pointer type to use.</param>
         /// <param name="warpSize">The warp size to use.</param>
         /// <param name="enableAssertions">True, if the assertions are enabled.</param>
+        /// <param name="enableIOOperations">True, if the IO is enabled.</param>
         public ILAcceleratorSpecializer(
             PrimitiveType pointerType,
             int warpSize,
-            bool enableAssertions)
+            bool enableAssertions,
+            bool enableIOOperations)
             : base(
                   AcceleratorType.CPU,
                   warpSize,
                   pointerType,
-                  enableAssertions)
+                  enableAssertions,
+                  enableIOOperations)
         { }
 
         #endregion
@@ -49,18 +51,20 @@ namespace ILGPU.Backends.IL.Transformations
         /// <summary>
         /// Keeps the debug assertion operation.
         /// </summary>
-        protected override void Specialize(
-            in RewriterContext context,
-            IRContext irContext,
+        protected override void Implement(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
             DebugAssertOperation debugAssert)
         { }
 
         /// <summary>
         /// Keeps the IO operation.
         /// </summary>
-        protected override void Specialize(
-            in RewriterContext context,
-            IRContext irContext,
+        protected override void Implement(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
             WriteToOutput writeToOutput)
         { }
 

@@ -256,20 +256,16 @@ Src/ILGPU/IndexTypes.cs
 Src/ILGPU/Interop.Generated.cs
 Src/ILGPU/IntrinsicMath.CPUOnly.cs
 Src/ILGPU/Memory.cs
-Src/ILGPU/ReductionOperations.cs
 Src/ILGPU/Runtime/ArrayViewExtensions.Generated.cs
 Src/ILGPU/Runtime/ArrayViews.cs
 Src/ILGPU/Runtime/Cuda/CudaAsm.Generated.cs
 Src/ILGPU/Runtime/KernelLoaders.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/PageLockedArrays.Generated.cs
-Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs
-Src/ILGPU/ShuffleOperations.cs
 Src/ILGPU/Static/ArithmeticEnums.cs
 Src/ILGPU/Static/CapabilityContext.cs
 Src/ILGPU/Static/DllImports.cs
 Src/ILGPU/StrideTypes.cs
-Src/ILGPU/TypeInformation.cs
 Src/ILGPU/Util/DataBlocks.cs
 Src/ILGPU/Util/PrimitiveDataBlocks.cs
 
@@ -289,7 +285,6 @@ Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel2.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel3.cs
 Src/ILGPU.Algorithms/ScanReduceOperations.cs
 Src/ILGPU.Algorithms/Sequencers.cs
-Src/ILGPU.Algorithms/TypeInformation.cs
 Src/ILGPU.Algorithms/UniqueLaunchers.cs
 Src/ILGPU.Algorithms/XMath/Cordic.cs
 Src/ILGPU.Algorithms/XMath/Cordic.Log.cs

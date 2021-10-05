@@ -333,7 +333,7 @@ namespace ILGPU.Runtime
             throw new NotSupportedException(
                 string.Format(
                     RuntimeErrorMessages.NotSupportedNonBlittableType,
-                    elementType.GetStringRepresentation()));
+                    elementType.FullName));
         }
 
         #endregion
