@@ -134,9 +134,13 @@ namespace ILGPU.Algorithms.Tests
             var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
             input.CopyFromCPU(stream, inputSeq);
 
-            var scan = Accelerator.CreateInclusiveScan<T, TScanFunc>();
+            var scan = Accelerator.CreateScan<
+                T,
+                Stride1D.General,
+                Stride1D.General,
+                TScanFunc>(ScanKind.Inclusive);
 
-            scan(stream, input.View, output.View, tmp.View);
+            scan(stream, input.View.AsGeneral(), output.View.AsGeneral(), tmp.View);
             stream.Synchronize();
 
             var expected = CalcValues(inputSeq, func, ScanKind.Inclusive);
@@ -175,9 +179,13 @@ namespace ILGPU.Algorithms.Tests
             var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
             input.CopyFromCPU(stream, inputSeq);
 
-            var scan = Accelerator.CreateExclusiveScan<T, TScanFunc>();
+            var scan = Accelerator.CreateScan<
+                T,
+                Stride1D.General,
+                Stride1D.General,
+                TScanFunc>(ScanKind.Exclusive);
 
-            scan(stream, input.View, output.View, tmp.View);
+            scan(stream, input.View.AsGeneral(), output.View.AsGeneral(), tmp.View);
             stream.Synchronize();
 
             var expected = CalcValues(inputSeq, func, ScanKind.Exclusive);
@@ -211,10 +219,14 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFromCPU(stream, inputSeq);
 
             using var scanProvider = Accelerator.CreateScanProvider<T>(length);
-            var scan = scanProvider.CreateExclusiveScan<T, TScanFunc>();
+            var scan = scanProvider.CreateScan<
+                T,
+                Stride1D.General,
+                Stride1D.General,
+                TScanFunc>(ScanKind.Exclusive);
             stream.Synchronize();
 
-            scan(stream, input.View, output.View);
+            scan(stream, input.View.AsGeneral(), output.View.AsGeneral());
             stream.Synchronize();
             
             var expected = CalcValues(inputSeq, func, ScanKind.Exclusive);
@@ -244,10 +256,14 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFromCPU(stream, inputSeq);
 
             using var scanProvider = Accelerator.CreateScanProvider<T>(length);
-            var scan = scanProvider.CreateInclusiveScan<T, TScanFunc>();
+            var scan = scanProvider.CreateScan<
+                T,
+                Stride1D.General,
+                Stride1D.General,
+                TScanFunc>(ScanKind.Inclusive);
             stream.Synchronize();
 
-            scan(stream, input.View, output.View);
+            scan(stream, input.View.AsGeneral(), output.View.AsGeneral());
             stream.Synchronize();
             
             var expected = CalcValues(inputSeq, func, ScanKind.Inclusive);
