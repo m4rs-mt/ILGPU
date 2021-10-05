@@ -304,6 +304,12 @@ namespace ILGPU
         public bool EnableAssertions { get; protected set; }
 
         /// <summary>
+        /// Returns true if IO is enabled.
+        /// </summary>
+        /// <remarks>Disabled by default.</remarks>
+        public bool EnableIOOperations { get; protected set; }
+
+        /// <summary>
         /// Returns true if additional kernel information is enabled.
         /// </summary>
         /// <remarks>Disabled by default.</remarks>

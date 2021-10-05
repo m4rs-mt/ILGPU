@@ -101,7 +101,8 @@ namespace ILGPU.Backends.PTX
                 transformerBuilder.AddBackendOptimizations(
                     new PTXAcceleratorSpecializer(
                         PointerType,
-                        Context.Properties.EnableAssertions),
+                        Context.Properties.EnableAssertions,
+                        Context.Properties.EnableIOOperations),
                     context.Properties.InliningMode,
                     context.Properties.OptimizationLevel);
 
