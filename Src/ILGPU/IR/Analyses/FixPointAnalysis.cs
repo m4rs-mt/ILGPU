@@ -580,6 +580,7 @@ namespace ILGPU.IR.Analyses
             where TContext : IAnalysisValueContext<T> =>
             value switch
             {
+                Alloca _ => source,
                 GetField getField => GetField(source, getField, context),
                 SetField setField => SetField(source, setField, context),
                 StructureValue structureValue =>
