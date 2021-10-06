@@ -323,8 +323,7 @@ namespace ILGPU.Runtime.Cuda
             int n,
             ArrayView<<#= type #>> a,
             int lda,
-            ArrayView<<#= type #>> x,
-            int incx,
+            ArrayView1D<<#= type #>, Stride1D.General> x,
             ArrayView<<#= type #>> c,
             int ldc)
         {
@@ -338,8 +337,8 @@ namespace ILGPU.Runtime.Cuda
                     n,
                     LoadCuBlasAddress(a),
                     lda,
-                    LoadCuBlasAddress(x),
-                    incx,
+                    LoadCuBlasAddress(x.BaseView),
+                    x.Stride.XStride,
                     LoadCuBlasAddress(c),
                     ldc));
         }

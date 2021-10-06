@@ -47,6 +47,16 @@ namespace ILGPU.Algorithms.IL
             int ThreadDimension { get; }
 
             /// <summary>
+            /// The number of segments for reduce operations.
+            /// </summary>
+            int ReduceSegments { get; }
+
+            /// <summary>
+            /// The reduction segment index to write to and read from.
+            /// </summary>
+            int ReduceSegmentIndex { get; }
+
+            /// <summary>
             /// Executes a barrier in the current context.
             /// </summary>
             void Barrier();
@@ -71,18 +81,18 @@ namespace ILGPU.Algorithms.IL
             where TReduction : IScanReduceOperation<T>
             where TImpl : struct, IILFunctionImplementation
         {
-            ref var sharedMemory = ref SharedMemory.Allocate<T>();
+            TImpl impl = default;
+            var sharedMemory = SharedMemory.Allocate<T>(impl.ReduceSegments);
 
             TReduction reduction = default;
-            TImpl impl = default;
             if (impl.IsFirstThread)
-                sharedMemory = reduction.Identity;
+                sharedMemory[impl.ReduceSegmentIndex] = reduction.Identity;
             impl.Barrier();
 
-            reduction.AtomicApply(ref sharedMemory, value);
+            reduction.AtomicApply(ref sharedMemory[impl.ReduceSegmentIndex], value);
 
             impl.Barrier();
-            return sharedMemory;
+            return sharedMemory[impl.ReduceSegmentIndex];
         }
 
         #endregion

@@ -67,7 +67,7 @@ namespace ILGPU.Algorithms
         {
             TComparisonOperation comparison = default;
             var isFirstGrid = Grid.IdxX == 0;
-            var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
+            var tileInfo = new TileInfo(input.IntLength, numIterationsPerGroup);
 
             // Sync groups and wait for the current one to become active
             sequentialGroupExecutor.Wait();

@@ -42,25 +42,25 @@ namespace AlgorithmsCuBlas
                 {
                     // Set pointer mode to Host to enable data transfer to CPU memory
                     blas.PointerMode = CuBlasPointerMode.Host;
-                    float output = blas.Nrm2(buf.View);
+                    float output = blas.Nrm2(buf.View.AsGeneral());
 
                     // Set pointer mode to Device to enable data transfer to GPU memory
                     blas.PointerMode = CuBlasPointerMode.Device;
-                    blas.Nrm2(buf.View, buf2.View);
+                    blas.Nrm2(buf.View.AsGeneral(), buf2.View);
 
                     // Use pointer mode scopes to recover the previous pointer mode
                     using var scope = blas.BeginPointerScope(CuBlasPointerMode.Host);
-                    float output2 = blas.Nrm2(buf.View);
+                    float output2 = blas.Nrm2(buf.View.AsGeneral());
                 }
 
                 // Initialize the CuBlas<T> library using custom pointer mode handlers
                 using (var blas = new CuBlas<CuBlasPointerModeHandlers.AutomaticMode>(accelerator))
                 {
                     // Automatic transfer to host
-                    float output = blas.Nrm2(buf.View);
+                    float output = blas.Nrm2(buf.View.AsGeneral());
 
                     // Automatic transfer to device
-                    blas.Nrm2(buf.View, buf2.View);
+                    blas.Nrm2(buf.View.AsGeneral(), buf2.View);
                 }
             }
         }
