@@ -17,6 +17,7 @@ using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -28,40 +29,48 @@ namespace ILGPU.Algorithms
     /// Represents a radix sort operation using a shuffle and operation logic.
     /// </summary>
     /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TStride">The stride of all values.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="view">The elements to sort.</param>
     /// <param name="temp">The temp view to store temporary results.</param>
     /// <remarks>The view buffer will be changed during the sorting operation.</remarks>
-    public delegate void RadixSort<T>(
+    public delegate void RadixSort<T, TStride>(
         AcceleratorStream stream,
-        ArrayView<T> view,
+        ArrayView1D<T, TStride> view,
         ArrayView<int> temp)
-        where T : unmanaged;
+        where T : unmanaged
+        where TStride : struct, IStride1D;
 
     /// <summary>
     /// Represents a radix sort operation that sorts (key, value) pair instances.
     /// </summary>
     /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TKeyStride">The stride of all keys.</typeparam>
     /// <typeparam name="TValue">The value type of each element.</typeparam>
+    /// <typeparam name="TValueStride">The stride of all values.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="keys">The keys to sort.</param>
     /// <param name="values">The corresponding values.</param>
     /// <param name="temp">The temp view to store temporary results.</param>
     /// <remarks>The view buffers will be changed during the sorting operation.</remarks>
-    public delegate void RadixSortPairs<TKey, TValue>(
+    public delegate void RadixSortPairs<TKey, TKeyStride, TValue, TValueStride>(
         AcceleratorStream stream,
-        ArrayView<TKey> keys,
-        ArrayView<TValue> values,
+        ArrayView1D<TKey, TKeyStride> keys,
+        ArrayView1D<TValue, TValueStride> values,
         ArrayView<int> temp)
         where TKey : unmanaged
-        where TValue : unmanaged;
+        where TKeyStride : struct, IStride1D
+        where TValue : unmanaged
+        where TValueStride : struct, IStride1D;
 
     /// <summary>
     /// Represents a radix sort operation that sorts (key, value) pair instances using
     /// a sequencer to provide all values for each key in the beginning of the operation.
     /// </summary>
     /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TKeyStride">The stride of all keys.</typeparam>
     /// <typeparam name="TValue">The value type of each element.</typeparam>
+    /// <typeparam name="TValueStride">The stride of all values.</typeparam>
     /// <typeparam name="TSequencer">The sequencer type to generate values.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="keys">The keys to sort.</param>
@@ -69,61 +78,85 @@ namespace ILGPU.Algorithms
     /// <param name="sequencer">The sequencer to generate the key-value pairs.</param>
     /// <param name="temp">The temp view to store temporary results.</param>
     /// <remarks>The view buffers will be changed during the sorting operation.</remarks>
-    public delegate void RadixSortPairs<TKey, TValue, TSequencer>(
+    public delegate void RadixSortPairs<
+        TKey,
+        TKeyStride,
+        TValue,
+        TValueStride,
+        TSequencer>(
         AcceleratorStream stream,
-        ArrayView<TKey> keys,
-        ArrayView<TValue> outputValues,
+        ArrayView1D<TKey, TKeyStride> keys,
+        ArrayView1D<TValue, TValueStride> outputValues,
         TSequencer sequencer,
         ArrayView<int> temp)
         where TKey : unmanaged
+        where TKeyStride : struct, IStride1D
         where TValue : unmanaged
+        where TValueStride : struct, IStride1D
         where TSequencer : struct, ISequencer<TValue>;
 
     /// <summary>
     /// Represents a radix sort operation using a shuffle and operation logic.
     /// </summary>
     /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TStride">The stride of all values.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="view">The elements to sort.</param>
     /// <remarks>The view buffer will be changed during the sorting operation.</remarks>
-    public delegate void BufferedRadixSort<T>(AcceleratorStream stream, ArrayView<T> view)
-        where T : unmanaged;
+    public delegate void BufferedRadixSort<T, TStride>(
+        AcceleratorStream stream,
+        ArrayView1D<T, TStride> view)
+        where T : unmanaged
+        where TStride : struct, IStride1D;
 
     /// <summary>
     /// Represents a radix sort operation that sorts (key, value) pair instances.
     /// </summary>
     /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TKeyStride">The stride of all keys.</typeparam>
     /// <typeparam name="TValue">The value type of each element.</typeparam>
+    /// <typeparam name="TValueStride">The stride of all values.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="keys">The keys to sort.</param>
     /// <param name="values">The corresponding values.</param>
     /// <remarks>The view buffers will be changed during the sorting operation.</remarks>
-    public delegate void BufferedRadixSortPairs<TKey, TValue>(
+    public delegate void BufferedRadixSortPairs<TKey, TKeyStride, TValue, TValueStride>(
         AcceleratorStream stream,
-        ArrayView<TKey> keys,
-        ArrayView<TValue> values)
+        ArrayView1D<TKey, TKeyStride> keys,
+        ArrayView1D<TValue, TValueStride> values)
         where TKey : unmanaged
-        where TValue : unmanaged;
+        where TKeyStride : struct, IStride1D
+        where TValue : unmanaged
+        where TValueStride : struct, IStride1D;
 
     /// <summary>
     /// Represents a radix sort operation that sorts (key, value) pair instances using
     /// a sequencer to provide all values for each key in the beginning of the operation.
     /// </summary>
     /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TKeyStride">The stride of all keys.</typeparam>
     /// <typeparam name="TValue">The value type of each element.</typeparam>
+    /// <typeparam name="TValueStride">The stride of all values.</typeparam>
     /// <typeparam name="TSequencer">The sequencer type to generate values.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="keys">The keys to sort.</param>
     /// <param name="outputValues">The determined output values.</param>
     /// <param name="sequencer">The sequencer to generate the key-value pairs.</param>
     /// <remarks>The view buffers will be changed during the sorting operation.</remarks>
-    public delegate void BufferedRadixSortPairs<TKey, TValue, TSequencer>(
+    public delegate void BufferedRadixSortPairs<
+        TKey,
+        TKeyStride,
+        TValue,
+        TValueStride,
+        TSequencer>(
         AcceleratorStream stream,
-        ArrayView<TKey> keys,
-        ArrayView<TValue> outputValues,
+        ArrayView1D<TKey, TKeyStride> keys,
+        ArrayView1D<TValue, TValueStride> outputValues,
         TSequencer sequencer)
         where TKey : unmanaged
+        where TKeyStride : struct, IStride1D
         where TValue : unmanaged
+        where TValueStride : struct, IStride1D
         where TSequencer : struct, ISequencer<TValue>;
 
     #endregion
@@ -152,15 +185,23 @@ namespace ILGPU.Algorithms
         /// Creates a new radix sort operation.
         /// </summary>
         /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TStride">The stride of all values.</typeparam>
         /// <typeparam name="TRadixSortOperation">
         /// The type of the radix-sort operation.
         /// </typeparam>
         /// <returns>The created radix sort handler.</returns>
-        public BufferedRadixSort<T> CreateRadixSort<T, TRadixSortOperation>()
+        public BufferedRadixSort<T, TStride> CreateRadixSort<
+            T,
+            TStride,
+            TRadixSortOperation>()
             where T : unmanaged
+            where TStride : struct, IStride1D
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
-            var radixSort = Accelerator.CreateRadixSort<T, TRadixSortOperation>();
+            var radixSort = Accelerator.CreateRadixSort<
+                T,
+                TStride,
+                TRadixSortOperation>();
             return (stream, input) => radixSort(stream, input, tempBuffer.View);
         }
 
@@ -169,22 +210,31 @@ namespace ILGPU.Algorithms
         /// instances.
         /// </summary>
         /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TKeyStride">The stride of all keys.</typeparam>
         /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TValueStride">The stride of all values.</typeparam>
         /// <typeparam name="TRadixSortOperation">
         /// The type of the radix-sort operation.
         /// </typeparam>
         /// <returns>The created radix sort handler.</returns>
-        public BufferedRadixSortPairs<TKey, TValue> CreateRadixSortPairs<
+        public BufferedRadixSortPairs<TKey, TKeyStride, TValue, TValueStride>
+            CreateRadixSortPairs<
             TKey,
+            TKeyStride,
             TValue,
+            TValueStride,
             TRadixSortOperation>()
             where TKey : unmanaged
+            where TKeyStride : struct, IStride1D
             where TValue : unmanaged
+            where TValueStride : struct, IStride1D
             where TRadixSortOperation : struct, IRadixSortOperation<TKey>
         {
             var radixSort = Accelerator.CreateRadixSortPairs<
                 TKey,
+                TKeyStride,
                 TValue,
+                TValueStride,
                 TRadixSortOperation>();
             return (stream, keys, values) =>
                 radixSort(stream, keys, values, tempBuffer.View);
@@ -195,7 +245,9 @@ namespace ILGPU.Algorithms
         /// instances.
         /// </summary>
         /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TKeyStride">The stride of all keys.</typeparam>
         /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TValueStride">The stride of all values.</typeparam>
         /// <typeparam name="TSequencer">
         /// The sequencer type to generate values.
         /// </typeparam>
@@ -203,19 +255,26 @@ namespace ILGPU.Algorithms
         /// The type of the radix-sort operation.
         /// </typeparam>
         /// <returns>The created radix sort handler.</returns>
-        public BufferedRadixSortPairs<TKey, TValue, TSequencer> CreateRadixSortPairs<
+        public BufferedRadixSortPairs<TKey, TKeyStride, TValue, TValueStride, TSequencer>
+            CreateRadixSortPairs<
             TKey,
+            TKeyStride,
             TValue,
+            TValueStride,
             TSequencer,
             TRadixSortOperation>()
             where TKey : unmanaged
+            where TKeyStride : struct, IStride1D
             where TValue : unmanaged
+            where TValueStride : struct, IStride1D
             where TSequencer : struct, ISequencer<TValue>
             where TRadixSortOperation : struct, IRadixSortOperation<TKey>
         {
             var radixSort = Accelerator.CreateRadixSortPairs<
                 TKey,
+                TKeyStride,
                 TValue,
+                TValueStride,
                 TSequencer,
                 TRadixSortOperation>();
             return (stream, keys, values, sequencer) =>
@@ -246,58 +305,63 @@ namespace ILGPU.Algorithms
         /// <summary>
         /// A pass delegate for the first pass.
         /// </summary>
-        private delegate void Pass1KernelDelegate<T>(
+        private delegate void Pass1KernelDelegate<T, TStride>(
             AcceleratorStream stream,
             KernelConfig config,
-            ArrayView<T> view,
+            ArrayView1D<T, TStride> view,
             ArrayView<int> counter,
             SpecializedValue<int> groupSize,
             int numGroups,
             int paddedLength,
             int shift)
-            where T : unmanaged;
+            where T : unmanaged
+            where TStride : struct, IStride1D;
 
         /// <summary>
         /// A pass delegate for the first pass.
         /// </summary>
-        private delegate void CPUPass1KernelDelegate<T>(
+        private delegate void CPUPass1KernelDelegate<T, TStride>(
             AcceleratorStream stream,
             KernelConfig config,
-            ArrayView<T> input,
+            ArrayView1D<T, TStride> input,
             ArrayView<T> output,
             ArrayView<int> counter,
             int numGroups,
             int numIterationsPerGroup,
             int shift)
-            where T : unmanaged;
+            where T : unmanaged
+            where TStride : struct, IStride1D;
 
         /// <summary>
         /// A pass delegate for the second pass.
         /// </summary>
-        private delegate void Pass2KernelDelegate<T>(
+        private delegate void Pass2KernelDelegate<T, TInputStride, TOutputStride>(
             AcceleratorStream stream,
             KernelConfig config,
-            ArrayView<T> input,
-            ArrayView<T> output,
+            ArrayView1D<T, TInputStride> input,
+            ArrayView1D<T, TOutputStride> output,
             ArrayView<int> counter,
             int numGroups,
             int paddedLength,
             int shift)
-            where T : unmanaged;
+            where T : unmanaged
+            where TInputStride : struct, IStride1D
+            where TOutputStride : struct, IStride1D;
 
         /// <summary>
         /// A pass delegate for the second pass.
         /// </summary>
-        private delegate void CPUPass2KernelDelegate<T>(
+        private delegate void CPUPass2KernelDelegate<T, TStride>(
             AcceleratorStream stream,
             KernelConfig config,
             ArrayView<T> input,
-            ArrayView<T> output,
+            ArrayView1D<T, TStride> output,
             ArrayView<int> counter,
             int numGroups,
             int numIterationsPerGroup,
             int shift)
-            where T : unmanaged;
+            where T : unmanaged
+            where TStride : struct, IStride1D;
 
         /// <summary>
         /// Computes the required number of temp-storage elements for a radix sort pairs
@@ -511,12 +575,17 @@ namespace ILGPU.Algorithms
         /// Combines the given key and values (given by the sequencer) into a merged
         /// buffer consisting of <see cref="RadixSortPair{TKey, TValue}"/> instances.
         /// </summary>
-        internal static void GatherRadixSortPairsKernel<TKey, TValue, TSequencer>(
+        internal static void GatherRadixSortPairsKernel<
+            TKey,
+            TKeyStride,
+            TValue,
+            TSequencer>(
             Index1D index,
-            ArrayView<TKey> keys,
+            ArrayView1D<TKey, TKeyStride> keys,
             TSequencer sequencer,
             ArrayView<RadixSortPair<TKey, TValue>> target)
             where TKey : unmanaged
+            where TKeyStride : struct, IStride1D
             where TValue : unmanaged
             where TSequencer : struct, ISequencer<TValue>
         {
@@ -529,13 +598,19 @@ namespace ILGPU.Algorithms
         /// Scatters views of <see cref="RadixSortPair{TKey, TValue}"/> instances into
         /// distinct key and value views.
         /// </summary>
-        internal static void ScatterRadixSortPairsKernel<TKey, TValue>(
+        internal static void ScatterRadixSortPairsKernel<
+            TKey,
+            TKeyStride,
+            TValue,
+            TValueStride>(
             Index1D index,
             ArrayView<RadixSortPair<TKey, TValue>> source,
-            ArrayView<TKey> keys,
-            ArrayView<TValue> values)
+            ArrayView1D<TKey, TKeyStride> keys,
+            ArrayView1D<TValue, TValueStride> values)
             where TKey : unmanaged
+            where TKeyStride : struct, IStride1D
             where TValue : unmanaged
+            where TValueStride : struct, IStride1D
         {
             var pair = source[index];
             keys[index] = pair.Key;
@@ -546,6 +621,7 @@ namespace ILGPU.Algorithms
         /// Performs the first radix-sort pass.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride of all elements.</typeparam>
         /// <typeparam name="TOperation">The radix-sort operation.</typeparam>
         /// <typeparam name="TSpecialization">The specialization type.</typeparam>
         /// <param name="view">The input view to use.</param>
@@ -554,14 +630,15 @@ namespace ILGPU.Algorithms
         /// <param name="numGroups">The number of virtually launched groups.</param>
         /// <param name="paddedLength">The padded length of the input view.</param>
         /// <param name="shift">The bit shift to use.</param>
-        internal static void RadixSortKernel1<T, TOperation, TSpecialization>(
-            ArrayView<T> view,
+        internal static void RadixSortKernel1<T, TStride, TOperation, TSpecialization>(
+            ArrayView1D<T, TStride> view,
             ArrayView<int> counter,
             SpecializedValue<int> groupSize,
             int numGroups,
             int paddedLength,
             int shift)
             where T : unmanaged
+            where TStride : struct, IStride1D
             where TOperation : struct, IRadixSortOperation<T>
             where TSpecialization : struct, IRadixSortSpecialization
         {
@@ -635,6 +712,7 @@ namespace ILGPU.Algorithms
         /// Performs the first radix-sort pass on the CPU.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride of the input view.</typeparam>
         /// <typeparam name="TOperation">The radix-sort operation.</typeparam>
         /// <typeparam name="TSpecialization">The specialization type.</typeparam>
         /// <param name="input">The input view to use.</param>
@@ -645,14 +723,19 @@ namespace ILGPU.Algorithms
         /// The number of iterations per group.
         /// </param>
         /// <param name="shift">The bit shift to use.</param>
-        internal static void CPURadixSortKernel1<T, TOperation, TSpecialization>(
-            ArrayView<T> input,
+        internal static void CPURadixSortKernel1<
+            T,
+            TStride,
+            TOperation,
+            TSpecialization>(
+            ArrayView1D<T, TStride> input,
             ArrayView<T> output,
             ArrayView<int> counter,
             int numGroups,
             int numIterationsPerGroup,
             int shift)
             where T : unmanaged
+            where TStride : struct, IStride1D
             where TOperation : struct, IRadixSortOperation<T>
             where TSpecialization : struct, IRadixSortSpecialization
         {
@@ -727,6 +810,8 @@ namespace ILGPU.Algorithms
         /// Performs the second radix-sort pass.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TInputStride">The stride of the input view.</typeparam>
+        /// <typeparam name="TOutputStride">The stride of the output view.</typeparam>
         /// <typeparam name="TOperation">The radix-sort operation.</typeparam>
         /// <typeparam name="TSpecialization">The specialization type.</typeparam>
         /// <param name="input">The input view to use.</param>
@@ -735,14 +820,21 @@ namespace ILGPU.Algorithms
         /// <param name="numGroups">The number of virtually launched groups.</param>
         /// <param name="paddedLength">The padded length of the input view.</param>
         /// <param name="shift">The bit shift to use.</param>
-        internal static void RadixSortKernel2<T, TOperation, TSpecialization>(
-            ArrayView<T> input,
-            ArrayView<T> output,
+        internal static void RadixSortKernel2<
+            T,
+            TInputStride,
+            TOutputStride,
+            TOperation,
+            TSpecialization>(
+            ArrayView1D<T, TInputStride> input,
+            ArrayView1D<T, TOutputStride> output,
             ArrayView<int> counter,
             int numGroups,
             int paddedLength,
             int shift)
             where T : unmanaged
+            where TInputStride : struct, IStride1D
+            where TOutputStride : struct, IStride1D
             where TOperation : struct, IRadixSortOperation<T>
             where TSpecialization : struct, IRadixSortSpecialization
         {
@@ -794,6 +886,7 @@ namespace ILGPU.Algorithms
         /// Performs the second radix-sort pass.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TStride">The stride of the output view.</typeparam>
         /// <typeparam name="TOperation">The radix-sort operation.</typeparam>
         /// <typeparam name="TSpecialization">The specialization type.</typeparam>
         /// <param name="input">The input view to use.</param>
@@ -804,14 +897,19 @@ namespace ILGPU.Algorithms
         /// The number of iterations per group.
         /// </param>
         /// <param name="shift">The bit shift to use.</param>
-        internal static void CPURadixSortKernel2<T, TOperation, TSpecialization>(
+        internal static void CPURadixSortKernel2<
+            T,
+            TStride,
+            TOperation,
+            TSpecialization>(
             ArrayView<T> input,
-            ArrayView<T> output,
+            ArrayView1D<T, TStride> output,
             ArrayView<int> counter,
             int numGroups,
             int numIterationsPerGroup,
             int shift)
             where T : unmanaged
+            where TStride : struct, IStride1D
             where TOperation : struct, IRadixSortOperation<T>
             where TSpecialization : struct, IRadixSortSpecialization
         {
@@ -876,7 +974,9 @@ namespace ILGPU.Algorithms
         /// calling the given sequencer.
         /// </summary>
         /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TKeyStride">The stride of all keys.</typeparam>
         /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TValueStride">The stride of all values.</typeparam>
         /// <typeparam name="TSequencer">
         /// The sequencer type to generate values.
         /// </typeparam>
@@ -885,29 +985,35 @@ namespace ILGPU.Algorithms
         /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created radix sort handler.</returns>
-        public static RadixSortPairs<TKey, TValue, TSequencer> CreateRadixSortPairs<
+        public static RadixSortPairs<TKey, TKeyStride, TValue, TValueStride, TSequencer>
+            CreateRadixSortPairs<
             TKey,
+            TKeyStride,
             TValue,
+            TValueStride,
             TSequencer,
             TRadixSortOperation>(
             this Accelerator accelerator)
             where TKey : unmanaged
+            where TKeyStride : struct, IStride1D
             where TValue : unmanaged
+            where TValueStride : struct, IStride1D
             where TSequencer : struct, ISequencer<TValue>
             where TRadixSortOperation : struct, IRadixSortOperation<TKey>
         {
             var gatherKernel = accelerator.LoadAutoGroupedKernel<
                 Index1D,
-                ArrayView<TKey>,
+                ArrayView1D<TKey, TKeyStride>,
                 TSequencer,
                 ArrayView<RadixSortPair<TKey, TValue>>>(GatherRadixSortPairsKernel);
             var scatterKernel = accelerator.LoadAutoGroupedKernel<
                 Index1D,
                 ArrayView<RadixSortPair<TKey, TValue>>,
-                ArrayView<TKey>,
-                ArrayView<TValue>>(ScatterRadixSortPairsKernel);
+                ArrayView1D<TKey, TKeyStride>,
+                ArrayView1D<TValue, TValueStride>>(ScatterRadixSortPairsKernel);
             var radixSort = CreateRadixSort<
                 RadixSortPair<TKey, TValue>,
+                Stride1D.Dense,
                 RadixSortPairsOperation<TKey, TValue, TRadixSortOperation>>(accelerator);
             return (stream, keys, values, sequencer, tempView) =>
             {
@@ -942,25 +1048,34 @@ namespace ILGPU.Algorithms
         /// Creates a new radix sort pairs operation that uses a values source view.
         /// </summary>
         /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TKeyStride">The stride of all keys.</typeparam>
         /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TValueStride">The stride of all values.</typeparam>
         /// <typeparam name="TRadixSortOperation">
         /// The type of the radix-sort operation.
         /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created radix sort handler.</returns>
-        public static RadixSortPairs<TKey, TValue> CreateRadixSortPairs<
+        public static RadixSortPairs<TKey, TKeyStride, TValue, TValueStride>
+            CreateRadixSortPairs<
             TKey,
+            TKeyStride,
             TValue,
+            TValueStride,
             TRadixSortOperation>(
             this Accelerator accelerator)
             where TKey : unmanaged
+            where TKeyStride : struct, IStride1D
             where TValue : unmanaged
+            where TValueStride : struct, IStride1D
             where TRadixSortOperation : struct, IRadixSortOperation<TKey>
         {
             var radixSortPairs = accelerator.CreateRadixSortPairs<
                 TKey,
+                TKeyStride,
                 TValue,
-                ViewSourceSequencer<TValue>,
+                TValueStride,
+                ViewSourceSequencer<TValue, TValueStride>,
                 TRadixSortOperation>();
             return (stream, keys, values, tempView) =>
             {
@@ -968,7 +1083,7 @@ namespace ILGPU.Algorithms
                     stream,
                     keys,
                     values,
-                    new ViewSourceSequencer<TValue>(values),
+                    new ViewSourceSequencer<TValue, TValueStride>(values),
                     tempView);
             };
         }
@@ -977,14 +1092,19 @@ namespace ILGPU.Algorithms
         /// Creates a new radix sort operation.
         /// </summary>
         /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TStride">The stride of all values.</typeparam>
         /// <typeparam name="TRadixSortOperation">
         /// The type of the radix-sort operation.
         /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created radix sort handler.</returns>
-        public static RadixSort<T> CreateRadixSort<T, TRadixSortOperation>(
+        public static RadixSort<T, TStride> CreateRadixSort<
+            T,
+            TStride,
+            TRadixSortOperation>(
             this Accelerator accelerator)
             where T : unmanaged
+            where TStride : struct, IStride1D
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
             var initializer = accelerator.CreateInitializer<int, Stride1D.Dense>();
@@ -997,16 +1117,24 @@ namespace ILGPU.Algorithms
             var specializationType = typeof(Specialization4);
             var specialization = new Specialization4();
 
+            TRadixSortOperation sortOperation = default;
+            if (sortOperation.NumBits < 1 ||
+                sortOperation.NumBits % (specialization.BitIncrement * 2) != 0)
+            {
+                throw new NotSupportedException(
+                    ErrorMessages.NotSupportedNumberOfRadixSortBits);
+            }
+
             if (accelerator.AcceleratorType == AcceleratorType.CPU)
             {
-                var pass1Kernel = accelerator.LoadKernel<CPUPass1KernelDelegate<T>>(
-                    CPURadixSortKernel1Method.MakeGenericMethod(
-                        typeof(T),
-                        typeof(TRadixSortOperation), specializationType));
-                var pass2Kernel = accelerator.LoadKernel<CPUPass2KernelDelegate<T>>(
-                    CPURadixSortKernel2Method.MakeGenericMethod(
-                        typeof(T),
-                        typeof(TRadixSortOperation), specializationType));
+                var pass1Kernel = accelerator.LoadKernel<CPUPass1KernelDelegate<T,
+                    TStride>>(CPURadixSortKernel1Method.MakeGenericMethod(
+                    typeof(T), typeof(TStride), typeof(TRadixSortOperation),
+                    specializationType));
+                var pass2Kernel = accelerator.LoadKernel<CPUPass2KernelDelegate<T,
+                    TStride>>(CPURadixSortKernel2Method.MakeGenericMethod(
+                    typeof(T), typeof(TStride), typeof(TRadixSortOperation),
+                    specializationType));
 
                 return (stream, input, tempView) =>
                 {
@@ -1023,7 +1151,7 @@ namespace ILGPU.Algorithms
                     IndexTypeExtensions.AssertIntIndexRange(numIterationsPerGroupLong);
                     int numIterationsPerGroup = (int)numIterationsPerGroupLong;
 
-                    VerifyArguments<T, TRadixSortOperation>(
+                    VerifyArguments<T, TStride, TRadixSortOperation>(
                         accelerator,
                         input,
                         tempView,
@@ -1040,6 +1168,7 @@ namespace ILGPU.Algorithms
                         bitIdx < radixSortOperation.NumBits;
                         bitIdx += specialization.BitIncrement)
                     {
+                        // Write to the temp output view
                         initializer(stream, counterView, 0);
                         pass1Kernel(
                             stream,
@@ -1070,16 +1199,25 @@ namespace ILGPU.Algorithms
             }
             else
             {
-                var pass1Kernel = accelerator.LoadKernel<Pass1KernelDelegate<T>>(
-                    RadixSortKernel1Method.MakeGenericMethod(
-                        typeof(T),
-                        typeof(TRadixSortOperation),
-                        specializationType));
-                var pass2Kernel = accelerator.LoadKernel<Pass2KernelDelegate<T>>(
-                    RadixSortKernel2Method.MakeGenericMethod(
-                        typeof(T),
-                        typeof(TRadixSortOperation),
-                        specializationType));
+                // Load specialized versions for dense and strided views
+                var pass1Kernel = accelerator.LoadKernel<Pass1KernelDelegate<T,
+                    TStride>>(RadixSortKernel1Method.MakeGenericMethod(
+                    typeof(T), typeof(TStride), typeof(TRadixSortOperation),
+                    specializationType));
+                var pass1DenseKernel = accelerator.LoadKernel<Pass1KernelDelegate<T,
+                    Stride1D.Dense>>(RadixSortKernel1Method.MakeGenericMethod(
+                    typeof(T), typeof(Stride1D.Dense), typeof(TRadixSortOperation),
+                    specializationType));
+
+                // Load specialized versions for dense and strided views
+                var pass2Kernel = accelerator.LoadKernel<Pass2KernelDelegate<T,
+                    TStride, Stride1D.Dense>>(RadixSortKernel2Method.MakeGenericMethod(
+                    typeof(T), typeof(Stride1D.Dense), typeof(TStride),
+                    typeof(TRadixSortOperation), specializationType));
+                var pass2DenseKernel = accelerator.LoadKernel<Pass2KernelDelegate<T,
+                    Stride1D.Dense, TStride>>(RadixSortKernel2Method.MakeGenericMethod(
+                    typeof(T), typeof(TStride), typeof(Stride1D.Dense),
+                    typeof(TRadixSortOperation), specializationType));
 
                 return (stream, input, tempView) =>
                 {
@@ -1090,7 +1228,7 @@ namespace ILGPU.Algorithms
                     int lengthInformation = XMath.DivRoundUp(input.IntLength, groupDim) *
                         groupDim;
 
-                    VerifyArguments<T, TRadixSortOperation>(
+                    VerifyArguments<T, TStride, TRadixSortOperation>(
                         accelerator,
                         input,
                         tempView,
@@ -1101,12 +1239,14 @@ namespace ILGPU.Algorithms
                         out var tempScanView,
                         out var tempOutputView);
 
+                    // Perform the first step writing to the temp scan view
                     TRadixSortOperation radixSortOperation = default;
-                    for (
-                        int bitIdx = 0;
-                        bitIdx < radixSortOperation.NumBits;
-                        bitIdx += specialization.BitIncrement)
+
+                    // Use loop peeling to avoid swapping input and tempOutputView
+                    // variables
+                    for (int bitIdx = 0; bitIdx < radixSortOperation.NumBits;)
                     {
+                        // Write to the temp output view
                         initializer(stream, counterView, 0);
                         pass1Kernel(
                             stream,
@@ -1132,18 +1272,45 @@ namespace ILGPU.Algorithms
                             numVirtualGroups,
                             lengthInformation,
                             bitIdx);
+                        bitIdx += specialization.BitIncrement;
+                        Debug.Assert(bitIdx < radixSortOperation.NumBits);
 
-                        Utilities.Swap(ref input, ref tempOutputView);
+                        // Write to the actual output view
+                        initializer(stream, counterView, 0);
+                        pass1DenseKernel(
+                            stream,
+                            (gridDim, groupDim),
+                            tempOutputView,
+                            counterView,
+                            SpecializedValue.New<int>(groupDim),
+                            numVirtualGroups,
+                            lengthInformation,
+                            bitIdx);
+
+                        inclusiveScan(
+                            stream,
+                            counterView,
+                            counterView2,
+                            tempScanView);
+                        pass2DenseKernel(
+                            stream,
+                            (gridDim, groupDim),
+                            tempOutputView,
+                            input,
+                            counterView2,
+                            numVirtualGroups,
+                            lengthInformation,
+                            bitIdx);
+                        bitIdx += specialization.BitIncrement;
                     }
                 };
             }
-
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void VerifyArguments<T, TRadixSortOperation>(
+        private static void VerifyArguments<T, TStride, TRadixSortOperation>(
             Accelerator accelerator,
-            ArrayView<T> input,
+            ArrayView1D<T, TStride> input,
             ArrayView<int> tempView,
             int unrollFactor,
             int numVirtualGroups,
@@ -1152,6 +1319,7 @@ namespace ILGPU.Algorithms
             out ArrayView<int> tempScanView,
             out ArrayView<T> tempOutputView)
             where T : unmanaged
+            where TStride : struct, IStride1D
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
             if (!input.IsValid)
