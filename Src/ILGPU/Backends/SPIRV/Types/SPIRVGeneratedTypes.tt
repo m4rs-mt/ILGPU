@@ -11,7 +11,7 @@ using System.Collections.Generic;
 namespace ILGPU.Backends.SPIRV.Types
 {
 <#
-    var grammar = LoadGrammar("..");
+    var grammar = LoadGrammar(Host.ResolvePath("../spirv.grammar.xml"));
 
     PushIndent(standardIndent);
 

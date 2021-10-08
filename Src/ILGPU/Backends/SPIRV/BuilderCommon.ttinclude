@@ -3,7 +3,7 @@
 <#@ assembly name="System.Core"#>
 <#@ import namespace="System.Linq"#>
 <#
-    var grammar = LoadGrammar();
+    var grammar = LoadGrammar(Host.ResolvePath("./spirv.grammar.xml"));
     const string standardIndent = "    ";
 
     string GenerateParamName(SPIRVOperand operand, int fallbackIndex)

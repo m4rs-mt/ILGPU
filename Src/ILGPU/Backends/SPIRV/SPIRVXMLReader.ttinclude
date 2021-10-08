@@ -6,7 +6,7 @@
     SPIRVGrammar _grammarCache = null;
     object grammarCacheLock = new object();
 
-    public SPIRVGrammar LoadGrammar(string pathPrefix = "")
+    public SPIRVGrammar LoadGrammar(string path)
     {
         lock(grammarCacheLock)
         {
@@ -16,7 +16,7 @@
             }
 
             var xml = new XmlSerializer(typeof(SPIRVGrammar));
-            using var file = File.OpenRead(Path.Combine(pathPrefix, "spirv.grammar.xml"));
+            using var file = File.OpenRead(path);
 
             var grammar = (SPIRVGrammar) xml.Deserialize(file);
 
