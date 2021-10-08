@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Buffers.Binary;
 
 namespace ILGPU.Backends.SPIRV
 {
     public struct SPIRVWord
     {
-        private uint data;
+        private readonly uint data;
         private const int BytesPerWord = sizeof(uint);
 
         public SPIRVWord(uint value)
@@ -30,12 +31,24 @@ namespace ILGPU.Backends.SPIRV
 
             for (int i = 0; i < words.Length; i++)
             {
-                words[i] = FromBytes(bytes.Slice(i * 4, 4));
+                if (i * 4 + 4 > bytes.Length)
+                {
+                    words[i] = FromBytes(bytes.Slice(i * 4));
+                }
+                else
+                {
+                    words[i] = FromBytes(bytes.Slice(i * 4, 4));
+                }
             }
 
             return words;
         }
 
-        public byte[] ToByteArray() => BitConverter.GetBytes(data);
+        public byte[] ToByteArray()
+        {
+            var buffer = new byte[4];
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer, data);
+            return buffer;
+        }
     }
 }

@@ -22,7 +22,12 @@ public interface ISPIRVBuilder
 {
     byte[] ToByteArray();
 
-    void AddMetadata(uint magic, uint version, uint genMagic, uint bound, uint schema);
+    void AddMetadata(
+        SPIRVWord magic,
+        SPIRVWord version,
+        SPIRVWord genMagic,
+        SPIRVWord bound,
+        SPIRVWord schema);
 
     // This is the best way I could come up with to
     // handle trying to merge different builders

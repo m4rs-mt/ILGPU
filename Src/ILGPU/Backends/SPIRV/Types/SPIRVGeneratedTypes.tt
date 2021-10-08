@@ -50,7 +50,7 @@ namespace ILGPU.Backends.SPIRV.Types
         value = val;
     }
 
-    public List<SPIRVWord> ToWords() => new List<SPIRVWord>() { new SPIRVWord(value) };
+    public List<SPIRVWord> ToWords() => new List<SPIRVWord> { new SPIRVWord(value) };
 
     public string ToRepr() => value.ToString();
 }
@@ -65,9 +65,7 @@ namespace ILGPU.Backends.SPIRV.Types
         PushIndent(standardIndent);
         foreach (var enumerant in kind.Enumerants.Enumerants)
         {
-#><#=
-                    enumerant.Name #> = <#=
-                    Convert.ToUInt32(enumerant.Value, valueBase) #>,
+#><#=enumerant.Name #> = <#= Convert.ToUInt32(enumerant.Value, valueBase) #>,
 <#
         }
 
@@ -77,10 +75,11 @@ namespace ILGPU.Backends.SPIRV.Types
 public static class <#= kind.Name #>Extensions
 {
     public static List<SPIRVWord> ToWords(this <#= kind.Name #> value) =>
-        new List<SPIRVWord>() { SPIRVWord.FromBytes(BitConverter.GetBytes((uint) value)) };
+        new List<SPIRVWord> { SPIRVWord.FromBytes(BitConverter.GetBytes((uint) value)) };
 
     public static string ToRepr(this <#= kind.Name #> value) => value.ToString("D");
 }
+
 <#
     }
 
@@ -95,7 +94,8 @@ public static class <#= kind.Name #>Extensions
 #>public <#=kind.Bases.Bases[i] #> base<#= i #>;
 <#
         }
-#>public List<SPIRVWord> ToWords() {
+#>
+public List<SPIRVWord> ToWords() {
     List<SPIRVWord> words = new List<SPIRVWord>();
 <#
         PushIndent(standardIndent);
