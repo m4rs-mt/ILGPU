@@ -161,7 +161,10 @@ namespace ILGPU.Algorithms.Tests
 #>
             input.CopyFromCPU(stream, sequence);
 
-            var radixSort = Accelerator.CreateRadixSort<T, TRadixSortOp>();
+            var radixSort = Accelerator.CreateRadixSort<
+                T,
+                Stride1D.Dense,
+                TRadixSortOp>();
             var tempMemSize =
                 Accelerator.ComputeRadixSortTempStorageSize<T, TRadixSortOp>(length);
             using var tmpBuffer = Accelerator.Allocate1D<int>(tempMemSize);
@@ -201,7 +204,10 @@ namespace ILGPU.Algorithms.Tests
 #>
             input.CopyFromCPU(stream, sequence);
 
-            var radixSort = Accelerator.CreateRadixSort<T, TRadixSortOp>();
+            var radixSort = Accelerator.CreateRadixSort<
+                T,
+                Stride1D.Dense,
+                TRadixSortOp>();
             var tempMemSize =
                 Accelerator.ComputeRadixSortTempStorageSize<T, TRadixSortOp>(length);
             using var tmpBuffer = Accelerator.Allocate1D<int>(tempMemSize);
@@ -247,9 +253,10 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFromCPU(stream, sequence);
             
             using var radixSortProvider =
-                Accelerator.CreateRadixSortProvider<T, TRadixSortOp>(length);
+                Accelerator.CreateRadixSortProvider<T, Stride1D.Dense, TRadixSortOp>(
+                length);
             var radixSortUsingSortProvider =
-                radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
+                radixSortProvider.CreateRadixSort<T, Stride1D.Dense, TRadixSortOp>();
 
             radixSortUsingSortProvider(stream, input.View);
             stream.Synchronize();
@@ -287,9 +294,10 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFromCPU(stream, sequence);
             
             using var radixSortProvider =
-                Accelerator.CreateRadixSortProvider<T, TRadixSortOp>(length);
+                Accelerator.CreateRadixSortProvider<T, Stride1D.Dense, TRadixSortOp>(
+                length);
             var radixSortUsingSortProvider =
-                radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
+                radixSortProvider.CreateRadixSort<T, Stride1D.Dense, TRadixSortOp>();
 
             radixSortUsingSortProvider(stream, input.View);
             stream.Synchronize();
@@ -327,7 +335,12 @@ namespace ILGPU.Algorithms.Tests
             keys.CopyFromCPU(stream, sourceSequence);
             values.CopyFromCPU(stream, sourceSequence);
 
-            var radixSort = Accelerator.CreateRadixSortPairs<T, T, TRadixSortOp>();
+            var radixSort = Accelerator.CreateRadixSortPairs<
+                T,
+                Stride1D.Dense,
+                T,
+                Stride1D.Dense,
+                TRadixSortOp>();
             var tempMemSize =
                 Accelerator.ComputeRadixSortPairsTempStorageSize<T, T, TRadixSortOp>(
                     length);
@@ -362,7 +375,10 @@ namespace ILGPU.Algorithms.Tests
             var sequence = sequencer.ComputeSequence(start, stepSize, length);
             input.CopyFromCPU(stream, sequence);
 
-            var radixSort = Accelerator.CreateRadixSort<T, TRadixSortOp>();
+            var radixSort = Accelerator.CreateRadixSort<
+                T,
+                Stride1D.Dense,
+                TRadixSortOp>();
             var tempMemSize =
                 Accelerator.ComputeRadixSortTempStorageSize<T, TRadixSortOp>(length);
             using var tmpBuffer = Accelerator.Allocate1D<int>(tempMemSize);
@@ -393,9 +409,10 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFromCPU(stream, sequence);
 
             using var radixSortProvider =
-                Accelerator.CreateRadixSortProvider<T, TRadixSortOp>(length);
+                Accelerator.CreateRadixSortProvider<T, Stride1D.Dense, TRadixSortOp>(
+                length);
             var radixSortUsingSortProvider =
-                radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
+                radixSortProvider.CreateRadixSort<T, Stride1D.Dense, TRadixSortOp>();
 
             radixSortUsingSortProvider(stream, input.View);
             stream.Synchronize();
