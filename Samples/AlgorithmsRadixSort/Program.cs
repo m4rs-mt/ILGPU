@@ -67,7 +67,7 @@ namespace AlgorithmsRadixSort
                 // for operations that require a temporary cache.
 
                 // Create a new radix sort instance using a descending int sorting.
-                var radixSort = accelerator.CreateRadixSort<int, AscendingInt32>();
+                var radixSort = accelerator.CreateRadixSort<int, Stride1D.Dense, AscendingInt32>();
 
                 // Compute the required amount of temporary memory
                 var tempMemSize = accelerator.ComputeRadixSortTempStorageSize<int, AscendingInt32>((Index1D)sourceBuffer.Length);
@@ -95,7 +95,7 @@ namespace AlgorithmsRadixSort
                 using (var radixSortProvider = accelerator.CreateRadixSortProvider<int, DescendingInt32>((Index1D)sourceBuffer.Length))
                 {
                     // Create a new radix sort instance using an ascending int sorting.
-                    var radixSortUsingSortProvider = radixSortProvider.CreateRadixSort<int, DescendingInt32>();
+                    var radixSortUsingSortProvider = radixSortProvider.CreateRadixSort<int, Stride1D.Dense, DescendingInt32>();
 
                     // Performs an ascending radix-sort operation
                     radixSortUsingSortProvider(

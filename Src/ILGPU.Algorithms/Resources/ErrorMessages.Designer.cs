@@ -79,6 +79,15 @@ namespace ILGPU.Algorithms.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Not supported number of radix sort bits..
+        /// </summary>
+        internal static string NotSupportedNumberOfRadixSortBits {
+            get {
+                return ResourceManager.GetString("NotSupportedNumberOfRadixSortBits", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The allocation of type &apos;{0}&apos; is not correctly aligned. Requires &apos;{1}&apos; byte alignment but was allocated at byte offset &apos;{2}&apos;..
         /// </summary>
         internal static string TempViewManagerUnalignedAllocation {
