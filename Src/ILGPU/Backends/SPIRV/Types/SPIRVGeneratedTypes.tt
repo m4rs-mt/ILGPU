@@ -52,7 +52,7 @@ namespace ILGPU.Backends.SPIRV.Types
 
     public List<SPIRVWord> ToWords() => new List<SPIRVWord> { new SPIRVWord(value) };
 
-    public string ToRepr() => value.ToString();
+    public string ToRepr() => "%" + value;
 }
 <#
     }

@@ -18,15 +18,15 @@
         {
             if (operand.Quantifier == "?")
             {
-#>if(<#= name#> != null)
-    tempList.AddRange(<#= name #>.ToWords());
+#>if(<#= name#> is <#= operand.Type#> <#= name#>NotNull)
+    tempList.AddRange(<#= name#>NotNull.ToWords());
 <#
             }
             else if (operand.Quantifier == "*")
             {
 #>foreach(var element in <#= name #>)
 {
-    tempList.AddRange(<#= name #>.ToWords());
+    tempList.AddRange(element.ToWords());
 }
 <#
             }
@@ -38,9 +38,18 @@
         }
 #>
 ushort opCode = <#= opCode#>;
-ushort wordCount = (ushort) (tempList.Count + 1);
-
-uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+<#
+        if (paramInfos.Count == 0)
+        {
+#>ushort wordCount = 0;
+<#
+        }
+        else
+        {
+#>ushort wordCount = (ushort) (tempList.Count + 1);
+<#
+        }
+#>uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
 _instructions.Add(new SPIRVWord(combined));
 <#
         if (paramInfos.Count != 0)
@@ -58,6 +67,7 @@ _instructions.Add(new SPIRVWord(combined));
     }
 #>
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using ILGPU.Backends.SPIRV.Types;
 
@@ -78,9 +88,11 @@ public class BinarySPIRVBuilder : ISPIRVBuilder
     private readonly List<SPIRVWord> _instructions = new List<SPIRVWord>();
 
     // TODO: Potential performance concern, ok or not?
-    public byte[] ToByteArray() {
-        return _instructions.Select(x => x.ToByteArray()).SelectMany(x => x).ToArray();
-    }
+    public byte[] ToByteArray() => _instructions
+        .Select(x => x.Data)
+        .Select(x => BitConverter.GetBytes(x))
+        .SelectMany(x => x)
+        .ToArray();
 
     public void AddMetadata(
         SPIRVWord magic,

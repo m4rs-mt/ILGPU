@@ -1,16 +1,15 @@
 ﻿using System;
-using System.Buffers.Binary;
 
 namespace ILGPU.Backends.SPIRV
 {
     public struct SPIRVWord
     {
-        private readonly uint data;
+        public uint Data { get; }
         private const int BytesPerWord = sizeof(uint);
 
         public SPIRVWord(uint value)
         {
-            data = value;
+            Data = value;
         }
 
         public static SPIRVWord FromBytes(ReadOnlySpan<byte> bytes)
@@ -22,33 +21,30 @@ namespace ILGPU.Backends.SPIRV
                     nameof(bytes));
             }
 
-            return new SPIRVWord(BitConverter.ToUInt32(bytes));
+            return new SPIRVWord(BitConverter.ToUInt32(bytes.ToArray(), 0));
         }
 
         public static SPIRVWord[] ManyFromBytes(ReadOnlySpan<byte> bytes)
         {
+            // Round up bytes.Length / BytesPerWord
             var words = new SPIRVWord[(bytes.Length - 1) / BytesPerWord + 1];
 
             for (int i = 0; i < words.Length; i++)
             {
-                if (i * 4 + 4 > bytes.Length)
+                int bytesIndex = i * BytesPerWord;
+                // Check if we can take a word more bytes,
+                // if we can't then just take what's left
+                if (bytesIndex + BytesPerWord > bytes.Length)
                 {
-                    words[i] = FromBytes(bytes.Slice(i * 4));
+                    words[i] = FromBytes(bytes.Slice(bytesIndex));
                 }
                 else
                 {
-                    words[i] = FromBytes(bytes.Slice(i * 4, 4));
+                    words[i] = FromBytes(bytes.Slice(bytesIndex, BytesPerWord));
                 }
             }
 
             return words;
-        }
-
-        public byte[] ToByteArray()
-        {
-            var buffer = new byte[4];
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer, data);
-            return buffer;
         }
     }
 }

@@ -28,37 +28,15 @@
 
     void CreateAppendBasic(string category, string typeName, string paramName)
     {
-        switch (category)
+        if (typeName == "IdResult")
         {
-            case "Id":
-                if (typeName == "IdResult")
-                {
-#>_builder.Append("%" + <#= paramName#> + " = ");
+#>_builder.Append(<#= paramName#>.ToRepr() + " = ");
 <#
-                }
-                else
-                {
-#>_builder.Append("%" + <#= paramName#> + " ");
+        }
+        else
+        {
+#>_builder.Append(<#= paramName#>.ToRepr() + " ");
 <#
-                }
-                break;
-            case "Literal":
-                if (typeName == "LiteralString")
-                {
-#>_builder.Append("\"" + <#= paramName#> + "\" ");
-<#
-                }
-                else
-                {
-#>_builder.Append(<#= paramName#> + " ");
-<#
-                }
-                break;
-            case "BitEnum":
-            case "ValueEnum":
-#>_builder.Append(<#= paramName#> + " ");
-<#
-            break;
         }
     }
 
@@ -113,9 +91,9 @@
             }
             else if (operand.Quantifier == "?")
             {
-#>if(<#= name#> != null) {
+#>if(<#= name#> is <#= operand.Type#> <#= name#>NotNull) {
 <#              PushIndent(standardIndent);
-                CreateAppend(type, name);
+                CreateAppend(type, name + "NotNull");
                 PopIndent();
 #>
 }
@@ -163,10 +141,16 @@ public class StringSPIRVBuilder : ISPIRVBuilder {
 
     public byte[] ToByteArray() => Encoding.UTF8.GetBytes(_builder.ToString());
 
-    public void AddMetadata(uint magic, uint version, uint genMagic, uint bound, uint schema) {
-        _builder.AppendLine($"; Magic: {magic:X}");
-        _builder.AppendLine($"; Version: {version:X}");
-        _builder.AppendLine($"; Generator Magic: {genMagic:X}");
+    public void AddMetadata(
+        SPIRVWord magic,
+        SPIRVWord version,
+        SPIRVWord genMagic,
+        SPIRVWord bound,
+        SPIRVWord schema)
+    {
+        _builder.AppendLine($"; Magic: {magic.Data:X}");
+        _builder.AppendLine($"; Version: {version.Data:X}");
+        _builder.AppendLine($"; Generator Magic: {genMagic.Data:X}");
         _builder.AppendLine($"; Bound: {bound}");
         _builder.AppendLine($"; Schema: {schema}");
     }
