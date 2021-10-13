@@ -111,6 +111,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FixedSizeBuffers", "FixedSi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AlgorithmsRandom", "AlgorithmsRandom\AlgorithmsRandom.csproj", "{9BC67CB1-E0BA-4616-B93E-7B986AEDBC76}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlazorSampleApp", "BlazorSampleApp\BlazorSampleApp.csproj", "{06318EC4-539A-4896-A35B-4B89BFBA266A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -309,6 +311,10 @@ Global
 		{9BC67CB1-E0BA-4616-B93E-7B986AEDBC76}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9BC67CB1-E0BA-4616-B93E-7B986AEDBC76}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9BC67CB1-E0BA-4616-B93E-7B986AEDBC76}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06318EC4-539A-4896-A35B-4B89BFBA266A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06318EC4-539A-4896-A35B-4B89BFBA266A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06318EC4-539A-4896-A35B-4B89BFBA266A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06318EC4-539A-4896-A35B-4B89BFBA266A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -365,6 +371,7 @@ Global
 		{FCBFA0FD-91DF-4C9E-8715-32A0EABD5E08} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 		{8E76F153-5746-4ED2-9F0E-8ED3500E9814} = {C1D99632-ED4A-4B08-A14D-4C8DB375934F}
 		{9BC67CB1-E0BA-4616-B93E-7B986AEDBC76} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
+		{06318EC4-539A-4896-A35B-4B89BFBA266A} = {30F390DB-B823-40A2-A881-382B9EF36C07}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {30E502BD-3826-417F-888F-1CE19CF5C6DA}

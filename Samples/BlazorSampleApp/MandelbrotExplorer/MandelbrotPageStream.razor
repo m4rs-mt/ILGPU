@@ -1,0 +1,38 @@
+﻿@page "/mandelbrotPageStream"
+
+<h3>Mandelbrot ILGPU Stream Demo</h3>
+
+
+<p>Example of Mandelbrot set on Blazor server using ILGPU accelerator streams.</p>
+<p>
+    <table>
+        <tr><td rowspan="5"><BasicCanvas @ref="Canvas2D"></BasicCanvas></td><td rowspan="5">&nbsp;</td><td>&nbsp;</td></tr>
+        <tr><td>@ExecutionsDetails1</td></tr>
+        <tr><td>@ExecutionsDetails2</td></tr>
+        <tr><td>@ExecutionsDetails3</td></tr>
+        <tr><td>&nbsp;</td></tr>
+    </table>
+</p>
+
+<p>
+    ILGPU Accelerator Streams are great in multi-threading environments. We dependency inject a singleton <br />
+    compute host in Blazor server and share ILGPU resources via accelerator streams. Kernels are compiled once <br />
+	per singleton, improving user response times. <br /> <br />
+	In this case we track individual accelerator streams within a host singleton thus providing a <br />
+    starting point for GPU resource management. <br />
+    
+<br />
+
+    
+    <Tooltip Text="Open additional windows and start more animations.">
+        <button class="btn btn-primary m-1" onclick="window.open('mandelbrotPageStream')" disabled="@DisabledButtons">Open New Window</button>
+    </Tooltip>
+
+    <Tooltip Text="Mandelbrot Animation Demo">
+        <button class="btn btn-primary m-1" @onclick="AnimateMandelbrot" disabled="@DisabledButtons">Mandelbrot Animation</button>
+    </Tooltip>
+
+    
+    
+    
+    </p>
