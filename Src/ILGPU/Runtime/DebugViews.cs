@@ -16,7 +16,47 @@ namespace ILGPU.Runtime
     /// <summary>
     /// Base debug view.
     /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
     abstract class BaseDebugArrayView<T>
+        where T : unmanaged
+    {
+        #region Static
+
+        /// <summary>
+        /// Synchronizes all running streams to ensure a consistent debugging state.
+        /// </summary>
+        /// <param name="source">The source debugger state.</param>
+        protected static void SyncDebuggerState(ArrayView<T> source) =>
+            source.GetAccelerator().Synchronize();
+
+        /// <summary>
+        /// Returns the underlying data of the given view for debugging purposes.
+        /// </summary>
+        /// <param name="source">The source view.</param>
+        /// <returns>The raw view data for debugging purposes.</returns>
+        protected static T[] GetDebuggerData(ArrayView<T> source)
+        {
+            SyncDebuggerState(source);
+            return source.GetAsArray();
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new debug view.
+        /// </summary>
+        protected BaseDebugArrayView() { }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a debugger view for generic array views.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    sealed class DebugArrayView<T> : BaseDebugArrayView<T>
         where T : unmanaged
     {
         #region Instance
@@ -24,10 +64,10 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Constructs a new debug view.
         /// </summary>
-        /// <param name="data">The source data array.</param>
-        protected BaseDebugArrayView(T[] data)
+        /// <param name="source">The source array view.</param>
+        public DebugArrayView(ArrayView<T> source)
         {
-            Data = data;
+            Data = GetDebuggerData(source);
         }
 
         #endregion
