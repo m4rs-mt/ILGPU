@@ -19,6 +19,14 @@ namespace ILGPU.Runtime
     public abstract class ProfilingMarker : AcceleratorObject
     {
         /// <summary>
+        /// Constructs a profiling marker.
+        /// </summary>
+        /// <param name="accelerator">The associated accelerator.</param>
+        protected ProfilingMarker(Accelerator accelerator)
+            : base(accelerator)
+        { }
+
+        /// <summary>
         /// Waits for the profiling marker to complete.
         /// </summary>
         public abstract void Synchronize();

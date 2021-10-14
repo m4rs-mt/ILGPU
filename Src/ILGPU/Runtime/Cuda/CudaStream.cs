@@ -87,7 +87,8 @@ namespace ILGPU.Runtime.Cuda
         /// <inheritdoc/>
         protected override ProfilingMarker AddProfilingMarkerInternal()
         {
-            var profilingMarker = new CudaProfilingMarker();
+            using var binding = Accelerator.BindScoped();
+            var profilingMarker = new CudaProfilingMarker(Accelerator);
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.RecordEvent(profilingMarker.EventPtr, StreamPtr));

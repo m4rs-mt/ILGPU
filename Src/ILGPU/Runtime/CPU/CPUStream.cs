@@ -50,8 +50,11 @@ namespace ILGPU.Runtime.CPU
         public override void Synchronize() { }
 
         /// <inheritdoc/>
-        protected unsafe override ProfilingMarker AddProfilingMarkerInternal() =>
-            new CPUProfilingMarker();
+        protected unsafe override ProfilingMarker AddProfilingMarkerInternal()
+        {
+            using var binding = Accelerator.BindScoped();
+            return new CPUProfilingMarker(Accelerator);
+        }
 
         #endregion
 

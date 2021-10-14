@@ -22,7 +22,8 @@ namespace ILGPU.Runtime.Cuda
     {
         #region Instance
 
-        internal CudaProfilingMarker()
+        internal CudaProfilingMarker(Accelerator accelerator)
+            : base (accelerator)
         {
             CudaException.ThrowIfFailed(
                 CurrentAPI.CreateEvent(
@@ -47,6 +48,8 @@ namespace ILGPU.Runtime.Cuda
         /// <inheritdoc/>
         public override void Synchronize()
         {
+            using var binding = Accelerator.BindScoped();
+
             var errorStatus = CurrentAPI.QueryEvent(EventPtr);
             if (errorStatus == CudaError.CUDA_ERROR_NOT_READY)
                 CudaException.ThrowIfFailed(CurrentAPI.SynchronizeEvent(EventPtr));
@@ -57,6 +60,8 @@ namespace ILGPU.Runtime.Cuda
         /// <inheritdoc/>
         public override TimeSpan MeasureFrom(ProfilingMarker marker)
         {
+            using var binding = Accelerator.BindScoped();
+
             if (!(marker is CudaProfilingMarker startMarker))
             {
                 throw new ArgumentException(
