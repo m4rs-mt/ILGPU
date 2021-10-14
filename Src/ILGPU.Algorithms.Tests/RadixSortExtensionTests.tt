@@ -41,7 +41,7 @@ namespace ILGPU.Algorithms.Tests
             // Type, RadixSortOperation, Sequencer, Start of Sequencer,
             // StepSize of Sequencer, BufferLength
 <#
-        var types = AtomicIntTypes;
+        var types = AtomicNumericTypes;
         foreach (var type in types) {
             foreach (var size in ArraySizes) {
 #>

@@ -292,18 +292,20 @@ namespace ILGPU.Algorithms.Tests
     #region Xunit RadixSortOperations Structures
 
 <#  
-    foreach (var type in IntTypes) { 
+    foreach (var type in AtomicNumericTypes) { 
 #>
     internal readonly struct XunitAscending<#=type.Name #>
         : IRadixSortOperation<<#= type.Type #>>, IXunitSerializable
     {
-        public int NumBits => sizeof(<#= type.Type #>) * 8;
+        public int NumBits =>
+            default(Ascending<#= type.Name #>).NumBits;
 
-        public <#= type.Type #> DefaultValue => 0;
+        public <#= type.Type #> DefaultValue =>
+            default(Ascending<#= type.Name #>).DefaultValue;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ExtractRadixBits(<#= type.Type #> value, int shift, int bitMask) =>
-            (int)(value >> shift) & bitMask;
+            default(Ascending<#=type.Name #>).ExtractRadixBits(value, shift, bitMask);
 
         public void Deserialize(IXunitSerializationInfo info) { }
 
@@ -313,16 +315,15 @@ namespace ILGPU.Algorithms.Tests
     internal readonly struct XunitDescending<#= type.Name #>
         : IRadixSortOperation<<#= type.Type #>>, IXunitSerializable
     {
-        public int NumBits => sizeof(<#= type.Type #>) * 8;
+        public int NumBits =>
+            default(Descending<#= type.Name #>).NumBits;
 
-        public <#= type.Type #> DefaultValue => 0;
+        public <#= type.Type #> DefaultValue =>
+            default(Descending<#= type.Name #>).DefaultValue;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int ExtractRadixBits(<#= type.Type #> value, int shift, int bitMask)
-        {
-            Ascending<#= type.Name #> operation = default;
-            return (~operation.ExtractRadixBits(value, shift, bitMask)) & bitMask;
-        }
+        public int ExtractRadixBits(<#= type.Type #> value, int shift, int bitMask) =>
+            default(Descending<#=type.Name #>).ExtractRadixBits(value, shift, bitMask);
 
         public void Deserialize(IXunitSerializationInfo info) { }
 
