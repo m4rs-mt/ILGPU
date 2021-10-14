@@ -133,61 +133,29 @@ namespace ILGPU.Algorithms.Tests
 
 <#
     foreach (var type in types) {
+        foreach (var reduceType in new[] { "Add", "Min", "Max" }) {
 #>
-    internal readonly struct XunitAdd<#= type.Name #>
+    internal readonly struct Xunit<#= reduceType #><#= type.Name #>
         : IScanReduceOperation<<#= type.Type #>>, IXunitSerializable
     {
-        public string CLCommand => "add";
+        public string CLCommand =>
+            default(<#= reduceType #><#= type.Name #>).CLCommand;
 
-        public <#= type.Type #> Identity => 0;
-
-        public <#= type.Type #> Apply(<#=type.Type#> first, <#=type.Type#> second) =>
-            (<#= type.Type #>)(first + second);
-
-        public void AtomicApply(ref <#=type.Type#> target, <#=type.Type#> value) =>
-            Atomic.Add(ref target, value);
-
-        public void Deserialize(IXunitSerializationInfo info) { }
-
-        public void Serialize(IXunitSerializationInfo info) { }
-    }
-
-    internal readonly struct XunitMax<#= type.Name #>
-        : IScanReduceOperation<<#= type.Type #>>, IXunitSerializable
-    {
-        public string CLCommand => "max";
-
-        public <#= type.Type #> Identity => <#= type.Type #>.MinValue;
+        public <#= type.Type #> Identity =>
+            default(<#= reduceType #><#= type.Name #>).Identity;
 
         public <#= type.Type #> Apply(<#=type.Type#> first, <#=type.Type#> second) =>
-            (<#= type.Type #>)(XMath.Max(first, second));
+            default(<#= reduceType #><#= type.Name #>).Apply(first, second);
 
         public void AtomicApply(ref <#=type.Type#> target, <#=type.Type#> value) =>
-            Atomic.Max(ref target, value);
-
-        public void Deserialize(IXunitSerializationInfo info) { }
-
-        public void Serialize(IXunitSerializationInfo info) { }
-    }
-
-    internal readonly struct XunitMin<#= type.Name #>
-        : IScanReduceOperation<<#= type.Type #>>, IXunitSerializable
-    {
-        public string CLCommand => "min";
-
-        public <#= type.Type #> Identity => <#= type.Type #>.MaxValue;
-
-        public <#= type.Type #> Apply(<#=type.Type#> first, <#=type.Type#> second) =>
-            (<#= type.Type #>)(XMath.Min(first, second));
-
-        public void AtomicApply(ref <#=type.Type#> target, <#=type.Type#> value) =>
-            Atomic.Min(ref target, value);
+            default(<#= reduceType #><#= type.Name #>).AtomicApply(ref target, value);
 
         public void Deserialize(IXunitSerializationInfo info) { }
 
         public void Serialize(IXunitSerializationInfo info) { }
     }
 <#
+        }
     }
 #>
 
