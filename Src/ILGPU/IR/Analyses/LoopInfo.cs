@@ -689,11 +689,8 @@ namespace ILGPU.IR.Analyses
             // Compute the actual trip count
             int baseExtent = (int)intBounds.@break - (int)intBounds.init;
             int tripCount = baseExtent / (int)intBounds.update;
-            if (BreakOperation.Kind == CompareKind.LessEqual &&
-                tripCount + intBounds.update <= baseExtent)
-            {
+            if (BreakOperation.Kind == CompareKind.LessEqual)
                 ++tripCount;
-            }
 
             return tripCount;
         }
