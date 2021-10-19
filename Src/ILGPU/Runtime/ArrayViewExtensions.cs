@@ -343,6 +343,7 @@ namespace ILGPU.Runtime
         /// <typeparam name="TView">The view type.</typeparam>
         /// <param name="view">The view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
         public static void MemSetToZero<TView>(this TView view)
             where TView : IContiguousArrayView =>
             view.MemSetToZero(view.GetDefaultStream());
@@ -354,6 +355,7 @@ namespace ILGPU.Runtime
         /// <param name="view">The view instance.</param>
         /// <param name="stream">The used accelerator stream.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
         public static void MemSetToZero<TView>(
             this TView view,
             AcceleratorStream stream)
@@ -368,6 +370,7 @@ namespace ILGPU.Runtime
         /// <param name="view">The view instance.</param>
         /// <param name="value">The value to write into the memory buffer.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
         public static void MemSet<TView>(
             this TView view,
             byte value)
@@ -382,6 +385,7 @@ namespace ILGPU.Runtime
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="value">The value to write into the memory buffer.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
         public static void MemSet<TView>(
             this TView view,
             AcceleratorStream stream,
