@@ -23,7 +23,7 @@ The sample projects demonstrate the basic usage of ILGPU to help you get started
 
 # Build Instructions
 
-ILGPU requires Visual Studio 2019 (Community edition or higher).
+ILGPU requires Visual Studio 2019 (or higher) and/or a DotNet Core/5.0 SDK toolchain.
 
 Use the provided Visual Studio solution to build the ILGPU libs
 in the desired configurations (Debug/Release).
@@ -39,12 +39,10 @@ execute the Cuda test cases.
 
 # Related Information
 * ILGPU Homepage (www.ilgpu.net)
-* ILGPU Algorithms (https://github.com/m4rs-mt/ILGPU.Algorithms)
-* ILGPU Samples (https://github.com/m4rs-mt/ILGPU.Samples)
-* ILGPU Class Reference (http://www.ilgpu.net/Documentation/LatestReference)
-* ILGPU Documentation (http://www.ilgpu.net/Documentation)
+* Latest ILGPU Samples (https://github.com/m4rs-mt/ILGPU/tree/master/Samples)
+* Latest ILGPU Documentation (https://github.com/m4rs-mt/ILGPU/tree/master/Docs)
 * Nuget (https://www.nuget.org/packages/ILGPU)
-* Release Notes (http://www.ilgpu.net/ReleaseVersions)
+* Release (https://github.com/m4rs-mt/ILGPU/releases/)
 
 # Preview versions
 Preview/Daily builds are distributed using https://feedz.io/. To pull preview versions into your project, use the following NuGet.config file:
@@ -98,7 +96,9 @@ ILGPU also provides Source Link support for a better debugging experience. Make 
 ILGPU is licensed under the University of Illinois/NCSA Open Source License.
 Detailed license information can be found in LICENSE.txt.
 
-Copyright (c) 2016-2020 Marcel Koester (www.ilgpu.net). All rights reserved.
+Copyright (c) 2016-2021 ILGPU Project. All rights reserved.
+
+Originally developed by Marcel Koester.
 
 ## License information of required dependencies
 
