@@ -499,8 +499,10 @@ namespace ILGPU.IR.Transformations
             // Try to compute a constant (compile-time known) trip count
             var tripCount = bounds.TryGetTripCount(out var _);
             if (!tripCount.HasValue ||
-                bounds.UpdateOperation.Kind != BinaryArithmeticKind.Add && bounds.UpdateOperation.Kind != BinaryArithmeticKind.Sub)
+                bounds.UpdateOperation.Kind != BinaryArithmeticKind.Add
+                /*&& bounds.UpdateOperation.Kind != BinaryArithmeticKind.Sub*/) 
             {
+                // TODO fix issue with Sub
                 return false;
             }
 
