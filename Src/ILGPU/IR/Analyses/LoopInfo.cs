@@ -676,7 +676,8 @@ namespace ILGPU.IR.Analyses
             }
 
             // Check for unsupported loops
-            if (UpdateOperation.Kind != BinaryArithmeticKind.Add && UpdateOperation.Kind != BinaryArithmeticKind.Sub ||
+            if (UpdateOperation.Kind != BinaryArithmeticKind.Add &&
+                UpdateOperation.Kind != BinaryArithmeticKind.Sub ||
                 intBounds.update == 0)
             {
                 return null;
