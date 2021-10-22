@@ -7,7 +7,7 @@ CUDA / OpenCL with the ease of use of C#.
 
 # Setting up ILGPU.
 
-This tutorial is a little different now because we are going to be looking at the ILGPU 1.0.0 beta.
+This tutorial is a little different now because we are going to be looking at the ILGPU 1.0.0.
 
 ILGPU should work on any 64bit platform that .Net supports. I have even used it on the inexpensive nvidia jetson nano with pretty decent cuda performance. 
 
