@@ -30,9 +30,10 @@ namespace ILGPU.Backends.SPIRV.Types
             value = val;
         }
 
-        public SPIRVWord[] ToWords() => throw new NotImplementedException();
+        public SPIRVWord[] ToWords() =>
+            new[] {SPIRVWord.FromBytes(BitConverter.GetBytes(value))};
 
-        public string ToRepr() => throw new NotImplementedException();
+        public string ToRepr() => value.ToString();
     }
 
     /// <summary>

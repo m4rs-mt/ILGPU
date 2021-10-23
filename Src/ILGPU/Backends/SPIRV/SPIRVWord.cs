@@ -46,5 +46,9 @@ namespace ILGPU.Backends.SPIRV
 
             return words;
         }
+
+        public override string ToString() => Data.ToString();
+
+        public static implicit operator SPIRVWord(uint u) => new SPIRVWord(u);
     }
 }

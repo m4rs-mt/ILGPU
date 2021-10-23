@@ -41,16 +41,16 @@ namespace ILGPU.Backends.SPIRV.Types
 
     void GenerateId(SPIRVType kind)
     {
-#>public struct <#= kind.Name #>
+#>public struct <#= kind.Name #> : ISPIRVType
 {
-    private uint value;
+    private SPIRVWord value;
 
-    public <#= kind.Name #>(uint val)
+    public <#= kind.Name #>(SPIRVWord word)
     {
-        value = val;
+        value = word;
     }
 
-    public List<SPIRVWord> ToWords() => new List<SPIRVWord> { new SPIRVWord(value) };
+    public SPIRVWord[] ToWords() => new SPIRVWord[] { value };
 
     public string ToRepr() => "%" + value;
 }
@@ -59,25 +59,35 @@ namespace ILGPU.Backends.SPIRV.Types
 
     void GenerateEnum(SPIRVType kind, int valueBase)
     {
-#>public enum <#= kind.Name #> : uint
+#>public struct <#= kind.Name #> : ISPIRVType
 {
+    private SPIRVWord value;
+    private string repr;
+
+    private <#= kind.Name #>(SPIRVWord word, string name) {
+        value = word;
+        repr = name;
+    }
+
 <#
         PushIndent(standardIndent);
         foreach (var enumerant in kind.Enumerants.Enumerants)
         {
-#><#=enumerant.Name #> = <#= Convert.ToUInt32(enumerant.Value, valueBase) #>,
+            uint enumValue = Convert.ToUInt32(enumerant.Value, valueBase);
+            string enumName = enumerant.Name;
+            string kindName = kind.Name;
+#>public static readonly <#= kindName #> <#=enumName #> =
+        new <#= kindName #>(<#= enumValue #>, "<#=enumName #>");
 <#
         }
 
         PopIndent();
-#>}
+#>
 
-public static class <#= kind.Name #>Extensions
-{
-    public static List<SPIRVWord> ToWords(this <#= kind.Name #> value) =>
-        new List<SPIRVWord> { SPIRVWord.FromBytes(BitConverter.GetBytes((uint) value)) };
+    public SPIRVWord[] ToWords() =>
+        new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(value.Data)) };
 
-    public static string ToRepr(this <#= kind.Name #> value) => value.ToString("D");
+    public string ToRepr() => repr;
 }
 
 <#
@@ -85,7 +95,7 @@ public static class <#= kind.Name #>Extensions
 
     void GenerateComposite(SPIRVType kind)
     {
-#>public struct <#= kind.Name #>
+#>public struct <#= kind.Name #> : ISPIRVType
 {
 <#
         PushIndent(standardIndent);
@@ -95,7 +105,8 @@ public static class <#= kind.Name #>Extensions
 <#
         }
 #>
-public List<SPIRVWord> ToWords() {
+
+public SPIRVWord[] ToWords() {
     List<SPIRVWord> words = new List<SPIRVWord>();
 <#
         PushIndent(standardIndent);
@@ -106,7 +117,7 @@ public List<SPIRVWord> ToWords() {
         }
         PopIndent();
 #>
-    return words;
+    return words.ToArray();
 }
 
 public string ToRepr() {
