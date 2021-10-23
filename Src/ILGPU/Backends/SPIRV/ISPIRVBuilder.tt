@@ -14,11 +14,7 @@ namespace ILGPU.Backends.SPIRV
 <#
     PushIndent(standardIndent);
 #>
-/// <summary>
-/// Defines utility methods to generate SPIRV operations
-/// </summary>
-[CLSCompliant(false)]
-public interface ISPIRVBuilder
+internal interface ISPIRVBuilder
 {
     byte[] ToByteArray();
 

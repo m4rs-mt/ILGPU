@@ -1,6 +1,6 @@
 ﻿namespace ILGPU.Backends.SPIRV.Types
 {
-    public interface ISPIRVType
+    internal interface ISPIRVType
     {
         SPIRVWord[] ToWords();
 

@@ -3,10 +3,7 @@ using System.Text;
 
 namespace ILGPU.Backends.SPIRV.Types
 {
-    /// <summary>
-    /// Represents a SPIR-V integer literal
-    /// </summary>
-    public readonly struct LiteralInteger : ISPIRVType
+    internal readonly struct LiteralInteger : ISPIRVType
     {
         private readonly int value;
 
@@ -21,7 +18,7 @@ namespace ILGPU.Backends.SPIRV.Types
         public string ToRepr() => value.ToString();
     }
 
-    public readonly struct LiteralFloat : ISPIRVType
+    internal readonly struct LiteralFloat : ISPIRVType
     {
         private readonly float value;
 
@@ -36,10 +33,7 @@ namespace ILGPU.Backends.SPIRV.Types
         public string ToRepr() => value.ToString();
     }
 
-    /// <summary>
-    /// Represents a SPIR-V literal string
-    /// </summary>
-    public readonly struct LiteralString : ISPIRVType
+    internal readonly struct LiteralString : ISPIRVType
     {
         private readonly string value;
 
@@ -54,7 +48,7 @@ namespace ILGPU.Backends.SPIRV.Types
         public string ToRepr() => value;
     }
 
-    public readonly struct LiteralContextDependentNumber : ISPIRVType
+    internal readonly struct LiteralContextDependentNumber : ISPIRVType
     {
         private readonly LiteralFloat? floatValue;
         private readonly LiteralInteger? intValue;
@@ -76,7 +70,7 @@ namespace ILGPU.Backends.SPIRV.Types
         public string ToRepr() => floatValue?.ToRepr() ?? intValue?.ToRepr();
     }
 
-    public readonly struct LiteralExtInstInteger
+    internal readonly struct LiteralExtInstInteger
     {
         private readonly uint value;
 
@@ -91,7 +85,7 @@ namespace ILGPU.Backends.SPIRV.Types
         public string ToRepr() => value.ToString();
     }
 
-    public readonly struct LiteralSpecConstantOpInteger
+    internal readonly struct LiteralSpecConstantOpInteger
     {
         private readonly uint value;
 

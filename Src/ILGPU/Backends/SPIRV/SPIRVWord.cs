@@ -2,7 +2,7 @@
 
 namespace ILGPU.Backends.SPIRV
 {
-    public struct SPIRVWord
+    internal struct SPIRVWord
     {
         public uint Data { get; }
         private const int BytesPerWord = sizeof(uint);

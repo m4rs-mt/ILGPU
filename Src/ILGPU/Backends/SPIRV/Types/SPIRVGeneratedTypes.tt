@@ -41,7 +41,7 @@ namespace ILGPU.Backends.SPIRV.Types
 
     void GenerateId(SPIRVType kind)
     {
-#>public struct <#= kind.Name #> : ISPIRVType
+#>internal struct <#= kind.Name #> : ISPIRVType
 {
     private SPIRVWord value;
 
@@ -59,7 +59,7 @@ namespace ILGPU.Backends.SPIRV.Types
 
     void GenerateEnum(SPIRVType kind, int valueBase)
     {
-#>public struct <#= kind.Name #> : ISPIRVType
+#>internal struct <#= kind.Name #> : ISPIRVType
 {
     private SPIRVWord value;
     private string repr;
@@ -95,7 +95,7 @@ namespace ILGPU.Backends.SPIRV.Types
 
     void GenerateComposite(SPIRVType kind)
     {
-#>public struct <#= kind.Name #> : ISPIRVType
+#>internal struct <#= kind.Name #> : ISPIRVType
 {
 <#
         PushIndent(standardIndent);

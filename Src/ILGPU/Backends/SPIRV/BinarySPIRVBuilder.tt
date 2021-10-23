@@ -78,11 +78,7 @@ namespace ILGPU.Backends.SPIRV {
 <#
     PushIndent(standardIndent);
 #>
-/// <summary>
-/// Defines utility methods to generate SPIRV operations
-/// </summary>
-[CLSCompliant(false)]
-public class BinarySPIRVBuilder : ISPIRVBuilder
+internal class BinarySPIRVBuilder : ISPIRVBuilder
 {
 
     private readonly List<SPIRVWord> _instructions = new List<SPIRVWord>();
