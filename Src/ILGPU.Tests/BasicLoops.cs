@@ -390,6 +390,25 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
+        internal static void LoopUnrollingLessEqualKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            for (int i = 0; i <= 2; i++)
+                data[index] = i;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrollingLessEqualKernel))]
+        public void LoopUnrollingLessEqual()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(2, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
         internal static void LoopUnrollingBreakKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -407,6 +426,31 @@ namespace ILGPU.Tests
         [Fact]
         [KernelMethod(nameof(LoopUnrollingBreakKernel))]
         public void LoopUnrollingBreak()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(5, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void LoopUnrollingBreakLessEqualKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int j = 0;
+            for (int i = 0; i <= 4; ++i)
+            {
+                ++j;
+                if (i == 2) break;
+                ++j;
+            }
+            data[index] = j;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrollingBreakLessEqualKernel))]
+        public void LoopUnrollingBreakLessEqual()
         {
             using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
