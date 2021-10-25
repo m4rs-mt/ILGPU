@@ -19,7 +19,8 @@ public static readonly (string, string)[] CuBlasTypes = new (string, string)[]
     ("float", "float"),
     ("double", "double"),
     ("Float2", "float"),
-    ("Double2", "double")
+    ("Double2", "double"),
+    ("Half", "half"),
 };
 
 // Level 1
@@ -248,6 +249,7 @@ public static readonly string[] Gemm = new string[]
     "Dgemm_v2",
     "Cgemm_v2",
     "Zgemm_v2",
+    "Hgemm",
 };
 
 public static readonly string[] Symm = new string[]
