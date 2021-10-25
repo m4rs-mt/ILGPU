@@ -394,7 +394,8 @@ namespace ILGPU.IR.Transformations
             InductionVariable inductionVariable,
             in InductionVariableBounds bounds,
             int unrolls,
-            int iterations)
+            int iterations,
+            int update)
         {
             var entryBlock = loopInfo.Entry;
             var exitBlock = loopInfo.Exit;
@@ -409,8 +410,6 @@ namespace ILGPU.IR.Transformations
                 loopInfo,
                 inductionVariable,
                 iterations < 2);
-
-            var update = bounds.GetIntegerBounds().update.Value;
 
             // Unroll the loop until we reach the maximum unrolling factor
             for (int i = 0; i < unrolls; ++i)
@@ -497,10 +496,11 @@ namespace ILGPU.IR.Transformations
             }
 
             // Try to compute a constant (compile-time known) trip count
-            var tripCount = bounds.TryGetTripCount(out var _);
+            var tripCount = bounds.TryGetTripCount(out var intBounds);
             if (!tripCount.HasValue ||
+                !intBounds.update.HasValue ||
                 bounds.UpdateOperation.Kind != BinaryArithmeticKind.Add
-                /*&& bounds.UpdateOperation.Kind != BinaryArithmeticKind.Sub*/) 
+                /*&& bounds.UpdateOperation.Kind != BinaryArithmeticKind.Sub*/)
             {
                 // TODO fix issue with Sub
                 return false;
@@ -508,9 +508,7 @@ namespace ILGPU.IR.Transformations
 
             // If trip count is 0, leave out loop completely
             if (tripCount.Value == 0)
-            {
                 return true;
-            }
 
             // Compute the unroll factor and the number of iterations to use
             var (unrolls, iterations) = ComputeUnrollFactor(
@@ -526,7 +524,8 @@ namespace ILGPU.IR.Transformations
                 inductionVariable,
                 bounds,
                 unrolls,
-                iterations);
+                iterations,
+                intBounds.update.Value);
             return true;
         }
 

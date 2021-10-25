@@ -688,9 +688,7 @@ namespace ILGPU.IR.Analyses
 
             int update = intBounds.update.Value;
             if (UpdateOperation.Kind == BinaryArithmeticKind.Sub)
-            {
                 update *= -1;
-            }
 
             // Check if loop is entered at all
             bool loopIsEntered;
@@ -719,15 +717,11 @@ namespace ILGPU.IR.Analyses
             }
 
             if (!loopIsEntered)
-            {
                 return 0;
-            }
 
             // Special Case for CompareKind.Equal: can only be true, once
             if (BreakOperation.Kind == CompareKind.Equal)
-            {
                 return 1;
-            }
 
             // Determine lastVal (might not be hit exactly)
             int lastVal;
@@ -745,13 +739,11 @@ namespace ILGPU.IR.Analyses
             // Compute the number of steps
             int stepCount = (lastVal - initVal) / update;
 
-            // if stepCount is less than zero, it's probably an infinite loop
+            // If stepCount is less than zero, it's probably an infinite loop
             if (stepCount < 0)
-            {
                 return null;
-            }
 
-            // the trip count is one more than the step count
+            // The trip count is one more than the step count
             return stepCount + 1;
         }
 
