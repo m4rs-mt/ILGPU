@@ -189,10 +189,10 @@ namespace ILGPU.Tests
 
         internal static void DoWhileKernel(
             Index1D index,
-            ArrayView1D<int, Stride1D.Dense> data,
-            int counter)
+            ArrayView1D<int, Stride1D.Dense> data)
         {
-            int value = 3;
+            int counter = 4;
+            int value = 13;
             do
             {
                 ++value;
@@ -206,9 +206,34 @@ namespace ILGPU.Tests
         public void DoWhile()
         {
             using var buffer = Accelerator.Allocate1D<int>(Length);
-            Execute(buffer.Length, buffer.View, 38);
+            Execute(buffer.Length, buffer.View);
 
-            var expected = Enumerable.Repeat(42, Length).ToArray();
+            var expected = Enumerable.Repeat(18, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void DoWhileIncrementKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int value = 3;
+            int counter = 0;
+            do
+            {
+                ++value;
+            }
+            while (counter++ < 3);
+            data[index] = value;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(DoWhileIncrementKernel))]
+        public void DoWhileIncrement()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(7, Length).ToArray();
             Verify(buffer.View, expected);
         }
 
