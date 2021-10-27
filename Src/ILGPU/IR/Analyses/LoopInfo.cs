@@ -164,8 +164,12 @@ namespace ILGPU.IR.Analyses
             if (loop.Entries.Length > 1 || loop.Exits.Length > 1 ||
                 loop.Headers.Length > 1 || loop.Breakers.Length > 1 ||
                 loop.BackEdges.Length > 1 ||
-                !TryGetLoopBody(loop, out var body) ||
-                !TryGetPhis(loop, out var inductionVariables, out var phiValues))
+                !TryGetLoopBody(loop, out var body, out bool isDoWhileLoop) ||
+                !TryGetPhis(
+                    loop,
+                    isDoWhileLoop,
+                    out var inductionVariables,
+                    out var phiValues))
             {
                 return false;
             }
@@ -173,6 +177,7 @@ namespace ILGPU.IR.Analyses
             loopInfo = new LoopInfo<TOrder, TDirection>(
                 loop,
                 body,
+                isDoWhileLoop,
                 ref inductionVariables,
                 ref phiValues);
             return true;
@@ -183,18 +188,36 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="loop">The parent loop.</param>
         /// <param name="body">The loop body (if any).</param>
+        /// <param name="isDoWhileLoop">
+        /// True, if the body is executed in all cases.
+        /// </param>
         /// <returns>True, if the given loop body could be resolved.</returns>
         private static bool TryGetLoopBody(
             Loops<TOrder, TDirection>.Node loop,
-            out BasicBlock body)
+            out BasicBlock body,
+            out bool isDoWhileLoop)
         {
+            body = null;
+            isDoWhileLoop = false;
+
+            // Get the header block and check for supported loop graphs
             var header = loop.Headers[0];
             var successors = header.GetSuccessors<TDirection>();
-            body = null;
             if (successors.Length != 2)
                 return false;
 
+            // Determine the main body block
             body = loop.Exits.Contains(successors[0]) ? successors[1] : successors[0];
+
+            // Determine whether the body block will be executed in all cases
+            isDoWhileLoop = true;
+            foreach (var entry in loop.Entries)
+            {
+                isDoWhileLoop &= entry.Successors.Contains(
+                    body,
+                    new BasicBlock.Comparer());
+            }
+
             return true;
         }
 
@@ -203,11 +226,15 @@ namespace ILGPU.IR.Analyses
         /// loop object.
         /// </summary>
         /// <param name="loop">The parent loop.</param>
+        /// <param name="isDoWhileLoop">
+        /// True, if the body is executed in all cases.
+        /// </param>
         /// <param name="inductionVariables">The list of induction variables.</param>
         /// <param name="phiValues">The list of phi values.</param>
         /// <returns>True, if the given loop has supported phi values.</returns>
         private static bool TryGetPhis(
             Loops<TOrder, TDirection>.Node loop,
+            bool isDoWhileLoop,
             out InlineList<InductionVariable> inductionVariables,
             out InlineList<(PhiValue, Value)> phiValues)
         {
@@ -233,7 +260,8 @@ namespace ILGPU.IR.Analyses
                     phiValue,
                     outside,
                     inside,
-                    branch));
+                    branch,
+                    isDoWhileLoop));
                 visitedPhis.Add(phiValue);
             }
 
@@ -338,16 +366,21 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="loop">The parent loop.</param>
         /// <param name="body">The start loop-body block.</param>
+        /// <param name="isDoWhileLoop">
+        /// True, if the body is executed in all cases.
+        /// </param>
         /// <param name="variables">All induction variables.</param>
         /// <param name="values">All affected phi values.</param>
         private LoopInfo(
             in Loops<TOrder, TDirection>.Node loop,
             BasicBlock body,
+            bool isDoWhileLoop,
             ref InlineList<InductionVariable> variables,
             ref InlineList<(PhiValue, Value)> values)
         {
             Loop = loop;
             Body = body;
+            IsDoWhileLoop = isDoWhileLoop;
             variables.MoveTo(ref inductionVariables);
             values.MoveTo(ref phiValues);
         }
@@ -375,6 +408,11 @@ namespace ILGPU.IR.Analyses
         /// Returns the body entry block.
         /// </summary>
         public BasicBlock Body { get; }
+
+        /// <summary>
+        /// Returns true if the body is executed in all cases.
+        /// </summary>
+        public bool IsDoWhileLoop { get; }
 
         /// <summary>
         /// Returns the unique exit block that does not belong to the loop.
@@ -603,14 +641,19 @@ namespace ILGPU.IR.Analyses
         /// <param name="init">The initialization value.</param>
         /// <param name="updateOperation">The update operation.</param>
         /// <param name="breakOperation">The break operation.</param>
+        /// <param name="isDoWhileLoop">
+        /// True, if the current loop is a do-while loop.
+        /// </param>
         internal InductionVariableBounds(
             Value init,
             InductionVariableOperation<BinaryArithmeticKind> updateOperation,
-            InductionVariableOperation<CompareKind> breakOperation)
+            InductionVariableOperation<CompareKind> breakOperation,
+            bool isDoWhileLoop)
         {
             Init = init;
             UpdateOperation = updateOperation;
             BreakOperation = breakOperation;
+            IsDoWhileLoop = isDoWhileLoop;
         }
 
         #endregion
@@ -631,6 +674,11 @@ namespace ILGPU.IR.Analyses
         /// Returns the break value.
         /// </summary>
         public Value BreakValue => BreakOperation.Value;
+
+        /// <summary>
+        /// Returns true if the current loop is a do-while loop.
+        /// </summary>
+        public bool IsDoWhileLoop { get; }
 
         /// <summary>
         /// The update kind.
@@ -683,6 +731,7 @@ namespace ILGPU.IR.Analyses
                 return null;
             }
 
+            int doWhileOffset = IsDoWhileLoop ? 1 : 0;
             int initVal = intBounds.init.Value;
             int breakVal = intBounds.@break.Value;
 
@@ -690,51 +739,46 @@ namespace ILGPU.IR.Analyses
             if (UpdateOperation.Kind == BinaryArithmeticKind.Sub)
                 update *= -1;
 
-            // Check if loop is entered at all
-            bool loopIsEntered;
+            // Check if a while loop performs at least a single iteration
+            bool whileLoopIsEntered;
             switch (BreakOperation.Kind)
             {
                 case CompareKind.Equal:
-                    loopIsEntered = initVal == breakVal;
+                    whileLoopIsEntered = initVal == breakVal;
                     break;
                 case CompareKind.NotEqual:
-                    loopIsEntered = initVal != breakVal;
+                    whileLoopIsEntered = initVal != breakVal;
                     break;
                 case CompareKind.GreaterEqual:
-                    loopIsEntered = initVal >= breakVal;
+                    whileLoopIsEntered = initVal >= breakVal;
                     break;
                 case CompareKind.GreaterThan:
-                    loopIsEntered = initVal > breakVal;
+                    whileLoopIsEntered = initVal > breakVal;
                     break;
                 case CompareKind.LessEqual:
-                    loopIsEntered = initVal <= breakVal;
+                    whileLoopIsEntered = initVal <= breakVal;
                     break;
                 case CompareKind.LessThan:
-                    loopIsEntered = initVal < breakVal;
+                    whileLoopIsEntered = initVal < breakVal;
                     break;
                 default:
                     return null;
             }
 
-            if (!loopIsEntered)
-                return 0;
+            // If a while loop is not entered, it can still be a do-while loop
+            if (!whileLoopIsEntered)
+                return doWhileOffset;
 
             // Special Case for CompareKind.Equal: can only be true, once
             if (BreakOperation.Kind == CompareKind.Equal)
-                return 1;
+                return 1 + doWhileOffset;
 
             // Determine lastVal (might not be hit exactly)
-            int lastVal;
-            if (BreakOperation.Kind == CompareKind.LessThan ||
+            int lastVal = BreakOperation.Kind == CompareKind.LessThan ||
                 BreakOperation.Kind == CompareKind.GreaterThan ||
-                BreakOperation.Kind == CompareKind.NotEqual)
-            {
-                lastVal = update > 0 ? breakVal - 1 : breakVal + 1;
-            }
-            else
-            {
-                lastVal = breakVal;
-            }
+                BreakOperation.Kind == CompareKind.NotEqual
+                ? update > 0 ? breakVal - 1 : breakVal + 1
+                : breakVal;
 
             // Compute the number of steps
             int stepCount = (lastVal - initVal) / update;
@@ -744,7 +788,7 @@ namespace ILGPU.IR.Analyses
                 return null;
 
             // The trip count is one more than the step count
-            return stepCount + 1;
+            return stepCount + 1 + doWhileOffset;
         }
 
         #endregion
@@ -765,18 +809,23 @@ namespace ILGPU.IR.Analyses
         /// <param name="init">The init value.</param>
         /// <param name="update">The update value.</param>
         /// <param name="breakBranch">The branch that breaks the loop.</param>
+        /// <param name="isDoWhileLoop">
+        /// True, if the current loop is a do-while loop.
+        /// </param>
         internal InductionVariable(
             int index,
             PhiValue phi,
             Value init,
             Value update,
-            ConditionalBranch breakBranch)
+            ConditionalBranch breakBranch,
+            bool isDoWhileLoop)
         {
             Index = index;
             Phi = phi;
             Init = init;
             Update = update;
             BreakBranch = breakBranch;
+            IsDoWhileLoop = isDoWhileLoop;
         }
 
         #endregion
@@ -812,6 +861,11 @@ namespace ILGPU.IR.Analyses
         /// Returns the branch that actually breaks the loop.
         /// </summary>
         public ConditionalBranch BreakBranch { get; }
+
+        /// <summary>
+        /// Returns true if the current loop is a do-while loop.
+        /// </summary>
+        public bool IsDoWhileLoop { get; }
 
         #endregion
 
@@ -894,7 +948,8 @@ namespace ILGPU.IR.Analyses
             bounds = new InductionVariableBounds(
                 Init,
                 updateOperation,
-                breakOperation);
+                breakOperation,
+                IsDoWhileLoop);
             return true;
         }
 
