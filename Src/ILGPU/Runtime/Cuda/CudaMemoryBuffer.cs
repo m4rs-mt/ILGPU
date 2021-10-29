@@ -89,15 +89,39 @@ namespace ILGPU.Runtime.Cuda
 
             var length = new IntPtr(targetView.LengthInBytes);
 
-            // a) Copy from CPU to GPU
-            // b) Copy from GPU to CPU
-            // c) Copy from GPU to GPU
-            CudaException.ThrowIfFailed(
-                CurrentAPI.MemcpyAsync(
-                    targetAddress,
-                    sourceAddress,
-                    length,
-                    stream));
+            if (sourceType == AcceleratorType.Cuda &&
+                targetType == AcceleratorType.Cuda &&
+                sourceView.GetAccelerator() is CudaAccelerator sourceAccelerator &&
+                targetView.GetAccelerator() is CudaAccelerator targetAccelerator &&
+                sourceAccelerator.HasPeerAccess(targetAccelerator))
+            {
+                // Copy between two peer accelerators.
+                //
+                // NOTE: When using the standard memory copy between peer accelerators,
+                // even though the function infers that we are copying from device to
+                // device, it does not appear to take advantage of NVLink. This code
+                // path uses the explicit peer copy operation to workaround the issue.
+                CudaException.ThrowIfFailed(
+                    CurrentAPI.MemcpyPeerAsync(
+                        targetAddress,
+                        targetAccelerator.NativePtr,
+                        sourceAddress,
+                        sourceAccelerator.NativePtr,
+                        length,
+                        stream));
+            }
+            else
+            {
+                // a) Copy from CPU to GPU
+                // b) Copy from GPU to CPU
+                // c) Copy from GPU to GPU
+                CudaException.ThrowIfFailed(
+                    CurrentAPI.MemcpyAsync(
+                        targetAddress,
+                        sourceAddress,
+                        length,
+                        stream));
+            }
         }
 
         #endregion

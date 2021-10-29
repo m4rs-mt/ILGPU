@@ -372,10 +372,10 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="destination">The destination.</param>
         /// <param name="source">The source.</param>
         /// <param name="length">The number of bytes to copy.</param>
-        /// <returns>The error status.</returns>
         /// <param name="stream">
         /// The accelerator stream for asynchronous processing.
         /// </param>
+        /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CudaError MemcpyAsync(
             IntPtr destination,
@@ -388,6 +388,37 @@ namespace ILGPU.Runtime.Cuda
                 destination,
                 source,
                 length,
+                cudaStream?.StreamPtr ?? IntPtr.Zero);
+        }
+
+        /// <summary>
+        /// Performs a memory-copy operation between peers.
+        /// </summary>
+        /// <param name="dstDevice">The destination device.</param>
+        /// <param name="dstContext">The destination context.</param>
+        /// <param name="srcDevice">The source device.</param>
+        /// <param name="srcContext">The source context.</param>
+        /// <param name="byteCount">The number of bytes to copy.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
+        /// <returns>The error status.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public CudaError MemcpyPeerAsync(
+            IntPtr dstDevice,
+            IntPtr dstContext,
+            IntPtr srcDevice,
+            IntPtr srcContext,
+            IntPtr byteCount,
+            AcceleratorStream stream)
+        {
+            var cudaStream = stream as CudaStream;
+            return cuMemcpyPeerAsync(
+                dstDevice,
+                dstContext,
+                srcDevice,
+                srcContext,
+                byteCount,
                 cudaStream?.StreamPtr ?? IntPtr.Zero);
         }
 

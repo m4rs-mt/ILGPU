@@ -107,6 +107,14 @@
         <Parameter Name="length" Type="IntPtr" />
         <Parameter Name="stream" Type="IntPtr" />
     </Import>
+    <Import Name="cuMemcpyPeerAsync">
+        <Parameter Name="dstDevice" Type="IntPtr" />
+        <Parameter Name="dstContext" Type="IntPtr" />
+        <Parameter Name="srcDevice" Type="IntPtr" />
+        <Parameter Name="srcContext" Type="IntPtr" />
+        <Parameter Name="byteCount" Type="IntPtr" />
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
     <Import Name="cuMemsetD8Async">
         <Parameter Name="destinationDevice" Type="IntPtr" />
         <Parameter Name="value" Type="byte" />
