@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using static ILGPU.Util.InlineList;
 
 namespace ILGPU.IR.Analyses
 {
@@ -240,6 +241,7 @@ namespace ILGPU.IR.Analyses
         {
             var phis = loop.ComputePhis();
             var visitedPhis = new HashSet<PhiValue>();
+            var visited = new HashSet<Value>();
 
             inductionVariables = InlineList<InductionVariable>.Create(phis.Count);
             phiValues = InlineList<(PhiValue, Value)>.Create(phis.Count);
@@ -247,14 +249,27 @@ namespace ILGPU.IR.Analyses
             // Analyze all breakers
             foreach (var breaker in loop.Breakers)
             {
+                // Check whether the terminator is a simple breaker which has a potential
+                // breaker phi attached to it
                 if (!(breaker.Terminator is ConditionalBranch branch) ||
                     !IsInductionVariable(branch.Condition, out var phiValue) ||
-                    !loop.Contains(phiValue.BasicBlock) ||
-                    !TryGetPhiOperands(loop, phiValue, out var inside, out var outside))
+                    !loop.Contains(phiValue.BasicBlock))
                 {
                     return false;
                 }
 
+                // Check for supported inside and outside operands. Insider operands are
+                // "provided" by the loop body (defined in this scope), while outside
+                // operands are defined prior to entering the loop at all.
+                if (!TryGetPhiOperands(loop, phiValue, out var inside, out var outside))
+                    return false;
+
+                // Check whether the induction variable is modified in a different place
+                if (!IsInductionVariableModifiedOnce(loop, phiValue, inside, visited))
+                    return false;
+
+                // Add a new induction variable and add this phi to the set of visited
+                // phi values in order to skip further tests
                 inductionVariables.Add(new InductionVariable(
                     inductionVariables.Count,
                     phiValue,
@@ -352,6 +367,87 @@ namespace ILGPU.IR.Analyses
             return phiValue != null
                 ? !(right is PhiValue)
                 : (phiValue = right as PhiValue) != null;
+        }
+
+        /// <summary>
+        /// Checks whether an induction variable is modified in more than one place. If
+        /// this is the case, this function returns false.
+        /// </summary>
+        /// <param name="loop">The parent loop.</param>
+        /// <param name="phiValue">The current phi value to check.</param>
+        /// <param name="current">The current value to check.</param>
+        /// <param name="visited">The set of all visited values.</param>
+        /// <returns>
+        /// True, if the induction variable is not "modified" in multiple places.
+        /// </returns>
+        private static bool IsInductionVariableModifiedOnce(
+            Loops<TOrder, TDirection>.Node loop,
+            PhiValue phiValue,
+            Value current,
+            HashSet<Value> visited)
+        {
+            // Initialize the visited set by clearing all elements and adding our own
+            // phi value to the set of visited values
+            visited.Clear();
+            visited.Add(phiValue);
+
+            // Traverse all values recursively in order to check them one after another
+            return IsInductionVariableModifiedOnceRecursive(
+                loop,
+                phiValue,
+                current,
+                visited);
+        }
+
+        /// <summary>
+        /// Checks whether an induction variable is modified in more than one place. If
+        /// this is the case, this function returns false. It is implemented using
+        /// recursion to traverse through all attached values.
+        /// </summary>
+        /// <param name="loop">The parent loop.</param>
+        /// <param name="phiValue">The current phi value to check.</param>
+        /// <param name="current">The current value to check.</param>
+        /// <param name="visited">The set of all visited values.</param>
+        /// <returns>
+        /// True, if the induction variable is not "modified" in multiple places.
+        /// </returns>
+        private static bool IsInductionVariableModifiedOnceRecursive(
+            Loops<TOrder, TDirection>.Node loop,
+            PhiValue phiValue,
+            Value current,
+            HashSet<Value> visited)
+        {
+            // If the current value has already been found, we have detected a valid
+            // phi-value cycle
+            if (!visited.Add(current))
+                return true;
+
+            // If the current value is a phi value and not equal to the parent phi value,
+            // it can happen that this phi value also depends on iteration data
+            if (current is PhiValue otherPhiValue && otherPhiValue != phiValue)
+                return false;
+
+            // Recurse into each child value of the given value (if they are defined in
+            // the scope of the parent loop).
+            foreach (Value value in current)
+            {
+                // Skip non-included values
+                if (!loop.Contains(value.BasicBlock))
+                    continue;
+
+                // Recurse into this value
+                if (!IsInductionVariableModifiedOnceRecursive(
+                    loop,
+                    phiValue,
+                    value,
+                    visited))
+                {
+                    return false;
+                }
+            }
+
+            // We did not find any other induction-variable modifications
+            return true;
         }
 
         #endregion
