@@ -253,7 +253,7 @@ namespace ILGPU.Runtime.CPU
             MaxGridSize = new Index3D(int.MaxValue, ushort.MaxValue, ushort.MaxValue);
             MaxSharedMemoryPerGroup = int.MaxValue;
             MaxConstantMemory = int.MaxValue;
-            NumThreads = MaxNumThreads * numMultiprocessors;
+            NumThreads = MaxNumThreads;
         }
 
         /// <summary>

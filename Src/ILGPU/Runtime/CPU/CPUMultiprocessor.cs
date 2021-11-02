@@ -150,7 +150,7 @@ namespace ILGPU.Runtime.CPU
             {
                 int globalThreadIdx = ProcessorIndex * MaxNumThreadsPerMultiprocessor
                     + threadIdx;
-                threads[globalThreadIdx].Start(globalThreadIdx);
+                threads[threadIdx].Start(globalThreadIdx);
             });
             maxNumLaunchedThreadsPerGroup = groupSize;
 
