@@ -33,6 +33,14 @@ namespace ILGPU
             /// <param name="value">The target value.</param>
             /// <returns>The old value.</returns>
             T CompareExchange(ref T target, T compare, T value);
+
+            /// <summary>
+            /// Returns true if both operands represent the same value.
+            /// </summary>
+            /// <param name="left">The left operand.</param>
+            /// <param name="right">The right operand.</param>
+            /// <returns>True, if both operands represent the same value.</returns>
+            bool IsSame(T left, T right);
         }
 
         /// <summary>
@@ -110,9 +118,9 @@ namespace ILGPU
         public static float Exchange(ref float target, float value)
         {
             var result = Exchange(
-                ref Unsafe.As<float, int>(ref target),
-                Unsafe.As<float, int>(ref value));
-            return Unsafe.As<int, float>(ref result);
+                ref Unsafe.As<float, uint>(ref target),
+                Interop.FloatAsInt(value));
+            return Interop.IntAsFloat(result);
         }
 
         /// <summary>
@@ -125,9 +133,9 @@ namespace ILGPU
         public static double Exchange(ref double target, double value)
         {
             var result = Exchange(
-                ref Unsafe.As<double, long>(ref target),
-                Unsafe.As<double, long>(ref value));
-            return Unsafe.As<long, double>(ref result);
+                ref Unsafe.As<double, ulong>(ref target),
+                Interop.FloatAsInt(value));
+            return Interop.IntAsFloat(result);
         }
 
         /// <summary>
@@ -196,10 +204,10 @@ namespace ILGPU
             float value)
         {
             var result = CompareExchange(
-                ref Unsafe.As<float, int>(ref target),
-                Unsafe.As<float, int>(ref compare),
-                Unsafe.As<float, int>(ref value));
-            return Unsafe.As<int, float>(ref result);
+                ref Unsafe.As<float, uint>(ref target),
+                Interop.FloatAsInt(compare),
+                Interop.FloatAsInt(value));
+            return Interop.IntAsFloat(result);
         }
 
         /// <summary>
@@ -216,10 +224,10 @@ namespace ILGPU
             double value)
         {
             var result = CompareExchange(
-                ref Unsafe.As<double, long>(ref target),
-                Unsafe.As<double, long>(ref compare),
-                Unsafe.As<double, long>(ref value));
-            return Unsafe.As<long, double>(ref result);
+                ref Unsafe.As<double, ulong>(ref target),
+                Interop.FloatAsInt(compare),
+                Interop.FloatAsInt(value));
+            return Interop.IntAsFloat(result);
         }
 
         /// <summary>
@@ -266,7 +274,7 @@ namespace ILGPU
             T value,
             TOperation operation,
             TCompareExchangeOperation compareExchangeOperation)
-            where T : unmanaged, IEquatable<T>
+            where T : unmanaged
             where TOperation : struct, AtomicOperations.IAtomicOperation<T>
             where TCompareExchangeOperation :
                 struct,
@@ -284,7 +292,7 @@ namespace ILGPU
                     expected,
                     newValue);
             }
-            while (!expected.Equals(current));
+            while (!compareExchangeOperation.IsSame(expected, current));
 
             return current;
         }
