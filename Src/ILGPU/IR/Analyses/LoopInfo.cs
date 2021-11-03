@@ -675,24 +675,76 @@ namespace ILGPU.IR.Analyses
                 return null;
             }
 
-            // Check for simple loops
-            if (
-                UpdateOperation.Kind != BinaryArithmeticKind.Add ||
-                intBounds.update < 1 ||
-                BreakOperation.Kind != CompareKind.Equal &&
-                BreakOperation.Kind != CompareKind.LessEqual &&
-                BreakOperation.Kind != CompareKind.LessThan)
+            // Check for unsupported loops
+            if (UpdateOperation.Kind != BinaryArithmeticKind.Add &&
+                UpdateOperation.Kind != BinaryArithmeticKind.Sub ||
+                intBounds.update == 0)
             {
                 return null;
             }
 
-            // Compute the actual trip count
-            int baseExtent = (int)intBounds.@break - (int)intBounds.init;
-            int tripCount = baseExtent / (int)intBounds.update;
-            if (BreakOperation.Kind == CompareKind.LessEqual)
-                ++tripCount;
+            int initVal = intBounds.init.Value;
+            int breakVal = intBounds.@break.Value;
 
-            return tripCount;
+            int update = intBounds.update.Value;
+            if (UpdateOperation.Kind == BinaryArithmeticKind.Sub)
+                update *= -1;
+
+            // Check if loop is entered at all
+            bool loopIsEntered;
+            switch (BreakOperation.Kind)
+            {
+                case CompareKind.Equal:
+                    loopIsEntered = initVal == breakVal;
+                    break;
+                case CompareKind.NotEqual:
+                    loopIsEntered = initVal != breakVal;
+                    break;
+                case CompareKind.GreaterEqual:
+                    loopIsEntered = initVal >= breakVal;
+                    break;
+                case CompareKind.GreaterThan:
+                    loopIsEntered = initVal > breakVal;
+                    break;
+                case CompareKind.LessEqual:
+                    loopIsEntered = initVal <= breakVal;
+                    break;
+                case CompareKind.LessThan:
+                    loopIsEntered = initVal < breakVal;
+                    break;
+                default:
+                    return null;
+            }
+
+            if (!loopIsEntered)
+                return 0;
+
+            // Special Case for CompareKind.Equal: can only be true, once
+            if (BreakOperation.Kind == CompareKind.Equal)
+                return 1;
+
+            // Determine lastVal (might not be hit exactly)
+            int lastVal;
+            if (BreakOperation.Kind == CompareKind.LessThan ||
+                BreakOperation.Kind == CompareKind.GreaterThan ||
+                BreakOperation.Kind == CompareKind.NotEqual)
+            {
+                lastVal = update > 0 ? breakVal - 1 : breakVal + 1;
+            }
+            else
+            {
+                lastVal = breakVal;
+            }
+
+            // Compute the number of steps
+            int stepCount = (lastVal - initVal) / update;
+
+            // If stepCount is less than zero, it's probably an infinite loop
+            if (stepCount < 0)
+                return null;
+
+            // The trip count is one more than the step count
+            return stepCount + 1;
         }
 
         #endregion
