@@ -11,6 +11,8 @@
 
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
+using System;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace ILGPU.Tests.CPU
@@ -30,19 +32,22 @@ namespace ILGPU.Tests.CPU
             data[globalIndex] = globalIndex;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(2, 1, 1)]
         [InlineData(4, 4, 1)]
         [InlineData(2, 1, 64)]
         [InlineData(2, 16, 2)]
         [InlineData(2, 32, 64)]
         [InlineData(32, 8, 1)] // AMD default
+        [InlineData(32, 8, 4)]
         [InlineData(32, 8, 16)]
         [InlineData(64, 4, 1)] // Legacy AMD default
         [InlineData(64, 4, 4)]
         [InlineData(16, 8, 1)] // Intel default
+        [InlineData(16, 8, 4)]
         [InlineData(16, 8, 8)]
         [InlineData(32, 32, 1)] // Nvidia default
+        [InlineData(32, 32, 2)]
         [InlineData(32, 32, 4)]
         public void TestCustomDeviceSetup(
             int numThreadsPerWarp,
@@ -54,6 +59,16 @@ namespace ILGPU.Tests.CPU
                 numThreadsPerWarp,
                 numWarpsPerMultiprocessor,
                 numMultiprocessors);
+
+            // Skip specific tests on MacOS
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // Detect the number of processors and check whether we run in a supported
+                // range of tests
+                int maxNumThreads = Environment.ProcessorCount * 768;
+                Skip.If(customDevice.NumThreads > maxNumThreads);
+            }
+
             using var context = Context.Create(builder =>
                 builder.Assertions().CPU(customDevice));
 
