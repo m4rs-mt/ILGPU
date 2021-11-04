@@ -119,6 +119,44 @@ namespace ILGPU.Runtime
             where T : unmanaged =>
             new VariableView<T>(view.SubView(element, 1L));
 
+        /// <summary>
+        /// Converts this array view into a dense version.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.Dense> AsDense<T>(
+            this ArrayView<T> view)
+            where T : unmanaged =>
+            view;
+
+        /// <summary>
+        /// Converts this array view into a general version.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
+        /// <param name="stride">The generic stride information to use.</param>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.General> AsGeneral<T>(
+            this ArrayView<T> view,
+            Stride1D.General stride)
+            where T : unmanaged =>
+            view.AsDense().AsGeneral(stride);
+
+        /// <summary>
+        /// Converts this array view into a general version.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.General> AsGeneral<T>(
+            this ArrayView<T> view)
+            where T : unmanaged =>
+            view.AsDense().AsGeneral();
+
         #endregion
 
         #region Base Methods
