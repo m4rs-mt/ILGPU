@@ -522,6 +522,50 @@ namespace ILGPU.IR.Construction
                 return instance.Seal();
             }
 
+            // Optimize common cases in which this set field operation fills a whole
+            // structure instance
+            if (objectValue is SetField &&
+                !fieldSpan.HasSpan &&
+                fieldSpan.Index + 1 == structureType.NumFields &&
+                structureType.NumFields < 32)
+            {
+                // Initialize our internal field-value lookup
+                var fieldValues = new Value[structureType.NumFields];
+                fieldValues[fieldSpan.Index] = value;
+
+                // Traverse the whole chain of all set-field operations
+                var parent = objectValue;
+                int traversalLength = structureType.NumFields - 1;
+                while (!(parent is NullValue) && traversalLength > 0)
+                {
+                    // Check whether we are still on the right track while traversing
+                    // set of (possibly unordered) set-field operations
+                    if (!(parent is SetField otherSetField) ||
+                        otherSetField.FieldSpan.HasSpan ||
+                        fieldValues[otherSetField.FieldSpan.Index] != null)
+                    {
+                        break;
+                    }
+
+                    // Register this set-field operation
+                    fieldValues[otherSetField.FieldSpan.Index] = otherSetField.Value;
+                    // Decrease the traversal length
+                    --traversalLength;
+                    // Update the parent
+                    parent = otherSetField.ObjectValue;
+                }
+
+                // Check whether all indices have been visited found
+                if (traversalLength < 1 && parent is NullValue)
+                {
+                    // Build new structure value containing all traversed values
+                    var instance = CreateStructure(location, structureType);
+                    foreach (var fieldValue in fieldValues)
+                        instance.Add(fieldValue);
+                    return instance.Seal();
+                }
+            }
+
             return objectValue is NullValue && fieldSpan.Span == structureType.NumFields
                 ? (ValueReference)value
                 : Append(new SetField(
