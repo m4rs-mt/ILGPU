@@ -43,6 +43,17 @@ namespace AdvancedAtomics
         {
             return Atomic.CompareExchange(ref target, compare, value);
         }
+
+        /// <summary>
+        /// Returns true if both operands represent the same value.
+        /// </summary>
+        /// <param name="left">The left operand.</param>
+        /// <param name="right">The right operand.</param>
+        /// <returns>True, if both operands represent the same value.</returns>
+        public bool IsSame(double first, double second)
+        {
+            return first == second;
+        }
     }
 
     /// <summary>
