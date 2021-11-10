@@ -47,7 +47,7 @@
     <PackageReference Include="System.Memory" Version="4.5.4" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
     <PackageReference Include="System.Reflection.Metadata" Version="5.0.0" />
-    <PackageReference Include="T4.Build" Version="0.2.0" PrivateAssets="All" />
+    <PackageReference Include="T4.Build" Version="0.2.3" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
