@@ -14,6 +14,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.OpenCL;
 using ILGPU.Util;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.OpenCL
@@ -396,6 +397,18 @@ namespace ILGPU.Backends.OpenCL
             statement.AppendCommand(CLInstructions.AddressOfOperation);
             statement.AppendArgument(source);
             statement.AppendFieldViaPtr(value.FieldSpan.Access);
+        }
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(AlignTo)"/>
+        public void GenerateCode(AlignTo value) =>
+            // FIXME: this code need patching before being merged to master
+            throw new NotImplementedException();
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(AsAligned)"/>
+        public void GenerateCode(AsAligned value)
+        {
+            var source = Load(value.Source);
+            Bind(value, source);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PrimitiveValue)"/>
