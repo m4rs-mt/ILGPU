@@ -232,6 +232,7 @@ namespace ILGPU.IR.Transformations
                 case NewView _:
                 case SubViewValue _:
                 case BaseAddressSpaceCast _:
+                case BaseAlignOperationValue _:
                 case LoadElementAddress _:
                 case LoadFieldAddress _:
                     data.Push(value);
@@ -376,6 +377,9 @@ namespace ILGPU.IR.Transformations
 
             // Invalidate types of affected values
             rewriter.Add<PointerCast>(InvalidateType);
+            rewriter.Add<ViewCast>(InvalidateType);
+            rewriter.Add<AlignTo>(InvalidateType);
+            rewriter.Add<AsAligned>(InvalidateType);
             rewriter.Add<LoadFieldAddress>(InvalidateType);
             rewriter.Add<LoadElementAddress>(InvalidateType);
             rewriter.Add<ReturnTerminator>(InvalidateType);
