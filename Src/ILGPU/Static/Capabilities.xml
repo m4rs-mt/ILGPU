@@ -44,6 +44,14 @@
         <OpenCL manual="true" />
     </Capability>
 
+    <Capability Name="AMD_Printf">
+        <Summary>Supports AMD printf.</Summary>
+        <FeatureName>AMD printf extension</FeatureName>
+        <OpenCL>
+            <Extension>cl_amd_printf</Extension>
+        </OpenCL>
+    </Capability>
+
     <Capability Name="Int64_Atomics">
         <Summary>Supports 64-bit Atomics.</Summary>
         <FeatureName>64-bit atomics extension</FeatureName>
