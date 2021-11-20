@@ -72,7 +72,8 @@ namespace ILGPU
             /// auto-assertion mode via <see cref="AutoAssertions"/>.
             /// </summary>
             /// <returns>The current builder instance.</returns>
-            public Builder Default() => AllAccelerators().AutoAssertions();
+            public Builder Default() =>
+                AllAccelerators().AutoAssertions().AutoIOOperations();
 
             /// <summary>
             /// Enables all supported accelerators.
