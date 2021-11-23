@@ -203,6 +203,11 @@ namespace ILGPU.Backends.OpenCL
                 {
                     continue;
                 }
+                else if (basicValueType == BasicValueType.Float64
+                    && !capabilities.Float64)
+                {
+                    continue;
+                }
 
                 var primitiveType = typeContext.GetPrimitiveType(basicValueType);
                 mapping[primitiveType] = GetBasicValueType(basicValueType);
