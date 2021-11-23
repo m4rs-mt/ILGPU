@@ -491,9 +491,6 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="Accelerator.EnablePeerAccessInternal(Accelerator)"/>
         protected override void EnablePeerAccessInternal(Accelerator otherAccelerator)
         {
-            if (HasPeerAccess(otherAccelerator))
-                return;
-
             if (!(otherAccelerator is CudaAccelerator cudaAccelerator))
             {
                 throw new InvalidOperationException(
@@ -507,9 +504,6 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="Accelerator.DisablePeerAccessInternal(Accelerator)"/>
         protected override void DisablePeerAccessInternal(Accelerator otherAccelerator)
         {
-            if (!HasPeerAccess(otherAccelerator))
-                return;
-
             var cudaAccelerator = otherAccelerator as CudaAccelerator;
             Debug.Assert(cudaAccelerator != null, "Invalid EnablePeerAccess method");
 

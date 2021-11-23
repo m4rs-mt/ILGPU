@@ -434,6 +434,7 @@ namespace ILGPU
                             : DebugSymbolsMode.Disabled
                         : DebugSymbolsMode,
                 EnableAssertions = EnableAssertions,
+                EnableIOOperations = EnableIOOperations,
                 EnableKernelInformation = EnableKernelInformation,
                 EnableVerifier = EnableVerifier,
                 EnableParallelCodeGenerationInFrontend =

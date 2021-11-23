@@ -251,7 +251,7 @@ namespace ILGPU.Runtime.CPU
             }
         }
 
-        /// <summary cref="Accelerator.DisablePeerAccess(Accelerator)"/>
+        /// <summary cref="Accelerator.DisablePeerAccessInternal(Accelerator)"/>
         protected override void DisablePeerAccessInternal(
             Accelerator otherAccelerator) =>
             Debug.Assert(

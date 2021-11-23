@@ -706,6 +706,9 @@ namespace ILGPU.Runtime.OpenCL
             writer.Write("  Has FP16 support:                        ");
             writer.WriteLine(Capabilities.Float16);
 
+            writer.Write("  Has FP64 support:                        ");
+            writer.WriteLine(Capabilities.Float64);
+
             writer.Write("  Has Int64 atomics support:               ");
             writer.WriteLine(Capabilities.Int64_Atomics);
 

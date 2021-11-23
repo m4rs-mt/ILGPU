@@ -215,7 +215,7 @@ namespace ILGPU.IR.Transformations
             SpecializerData data,
             WriteToOutput value)
         {
-            if (data.EnableAssertions)
+            if (data.EnableIOOperations)
                 data.ToImplement.Add(value);
             else
                 context.Remove(value);

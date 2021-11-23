@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -518,6 +519,50 @@ namespace ILGPU.Tests
 
             var expectedLength = Enumerable.Repeat(
                 length / 2, length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void ArrayViewCastLoopKernel(
+            ArrayView<Int2> data,
+            int value)
+        {
+            ArrayView1D<int, Stride1D.Dense> shared =
+                ILGPU.SharedMemory.Allocate1D<int>(1024);
+            var reinterpreted = shared.Cast<int, Int2>();
+
+            // Fill shared memory
+            for (int t = Group.Index.X;
+                t < reinterpreted.Extent.Size;
+                t += Group.Dimension.X)
+            {
+                reinterpreted[t] = t + value;
+            }
+            Group.Barrier();
+
+            // Store to main memory
+            for (int t = Group.Index.X;
+                t < reinterpreted.Extent.Size;
+                t += Group.Dimension.X)
+            {
+                data[t] = reinterpreted[t];
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(ArrayViewCastLoopKernel))]
+        public void ArrayViewCastLoop()
+        {
+            const int MaxLength = 1024;
+            int length = Math.Min(MaxLength, Accelerator.MaxNumThreadsPerGroup);
+            using var buffer = Accelerator.Allocate1D<Int2>(MaxLength / 2);
+            Execute(
+                new KernelConfig(1, length),
+                buffer.View.AsContiguous(),
+                length);
+
+            var expected = new Int2[MaxLength / 2];
+            for (int i = 0; i < expected.Length; ++i)
+                expected[i] = i + length;
             Verify(buffer.View, expected);
         }
 
