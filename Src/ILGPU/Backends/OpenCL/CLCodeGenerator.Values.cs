@@ -400,9 +400,74 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(AlignTo)"/>
-        public void GenerateCode(AlignTo value) =>
-            // FIXME: this code need patching before being merged to master
-            throw new NotImplementedException();
+        public void GenerateCode(AlignTo value)
+        {
+            // Load the base view pointer
+            var source = Load(value.Source);
+            var target = Allocate(value);
+            var alignmentVariable = Load(value.AlignmentInBytes);
+            var arithmeticBasicValueType =
+                value.Source.BasicValueType.GetArithmeticBasicValueType(true);
+
+            // var baseOffset = (int)ptr & (alignmentInBytes - 1);
+            var baseOffset = AllocateType(arithmeticBasicValueType);
+            using (var statement = BeginStatement(baseOffset))
+            {
+                statement.AppendCast(arithmeticBasicValueType);
+                statement.AppendArgument(source);
+                statement.AppendCommand(CLInstructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.And,
+                    isFloat: false,
+                    out bool _));
+                // Optimize for the case in which the alignment is a constant value
+                if (value.TryGetAlignmentConstant(out int alignment))
+                {
+                    statement.AppendConstant(alignment - 1);
+                }
+                else
+                {
+                    statement.AppendCommand('(');
+                    statement.AppendArgument(alignmentVariable);
+                    statement.AppendCommand(CLInstructions.GetArithmeticOperation(
+                        BinaryArithmeticKind.Sub,
+                        isFloat: false,
+                        out bool _));
+                    statement.AppendConstant(1);
+                    statement.AppendCommand(')');
+                }
+            }
+
+            // if (baseOffset == 0) { 0 } else { alignment - baseOffset }
+            var adjustment = AllocateType(arithmeticBasicValueType);
+            using (var selectStatement = BeginStatement(adjustment))
+            {
+                selectStatement.AppendArgument(baseOffset);
+                selectStatement.AppendCommand(" == 0 ? 0 : (");
+                if (value.TryGetAlignmentConstant(out int alignmentConstant))
+                    selectStatement.AppendConstant(alignmentConstant);
+                else
+                    selectStatement.AppendArgument(alignmentVariable);
+                selectStatement.AppendCommand(CLInstructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.Sub,
+                    isFloat: false,
+                    out bool _));
+                selectStatement.AppendArgument(baseOffset);
+                selectStatement.AppendCommand(')');
+            }
+
+            // Adjust the given pointer
+            using var command = BeginStatement(target);
+            command.AppendCast(value.Type);
+            command.AppendCommand('(');
+            command.AppendCast(arithmeticBasicValueType);
+            command.AppendArgument(source);
+            command.AppendCommand(CLInstructions.GetArithmeticOperation(
+                BinaryArithmeticKind.Add,
+                isFloat: false,
+                out bool _));
+            command.AppendArgument(adjustment);
+            command.AppendCommand(')');
+        }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(AsAligned)"/>
         public void GenerateCode(AsAligned value)
