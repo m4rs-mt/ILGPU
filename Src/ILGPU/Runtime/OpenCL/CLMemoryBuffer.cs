@@ -93,7 +93,7 @@ namespace ILGPU.Runtime.OpenCL
                         target.NativePtr,
                         false,
                         new IntPtr(targetView.Index * ArrayView<T>.ElementSize),
-                        new IntPtr(target.LengthInBytes),
+                        new IntPtr(source.LengthInBytes),
                         sourceView.LoadEffectiveAddressAsPtr()));
                 return;
             }
