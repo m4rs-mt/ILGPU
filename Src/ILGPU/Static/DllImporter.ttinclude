@@ -28,6 +28,9 @@ public class EntryPoint
     public string Name { get; set; }
 
     [XmlAttribute]
+    public string DisplayName { get; set; }
+
+    [XmlAttribute]
     public string ReturnType { get; set; }
 
     [XmlAttribute]
@@ -185,7 +188,7 @@ public void WriteMethodDeclaration(EntryPoint entryPoint)
     if (entryPoint.Unsafe)
         Write(" unsafe");
     Write($" abstract {entryPoint.ReturnType}");
-    WriteLine($" {_makeMethodName(entryPoint.Name)}(");
+    WriteLine($" {entryPoint.DisplayName ?? _makeMethodName(entryPoint.Name)}(");
 
     PushIndent();
     foreach (var (param, suffix) in entryPoint.ParamExpressions)
@@ -204,7 +207,7 @@ public void WriteMethodImplementation(EntryPoint entryPoint)
     if (entryPoint.Unsafe)
         Write(" unsafe");
     Write($" sealed override {entryPoint.ReturnType}");
-    WriteLine($" {_makeMethodName(entryPoint.Name)}(");
+    WriteLine($" {entryPoint.DisplayName ?? _makeMethodName(entryPoint.Name)}(");
 
     PushIndent();
     foreach (var (param, suffix) in entryPoint.ParamBodyExpressions)
