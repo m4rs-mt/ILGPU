@@ -1,0 +1,344 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ImportLibrary Namespace="ILGPU.Runtime.Cuda.API"
+               ClassName="NvmlAPI"
+               VersionType="NvmlAPIVersion"
+               DefaultMethodAccessModifier="public"
+               DefaultReturnType="NvmlReturn">
+    <LibraryVersions>
+        <LibraryVersion Name="V6" Platform="Windows" LibName="nvml" />
+        <LibraryVersion Name="V6" Platform="Linux" LibName="nvidia-ml.so" />
+        <LibraryVersion Name="V6" Platform="OSX" LibName="nvidia-ml.dylib" />
+    </LibraryVersions>
+
+    <Region Name="Initialization">
+        <Import Name="nvmlInit_v2" />
+        <Import Name="nvmlShutdown" />
+    </Region>
+
+    <Region Name="Device Queries">
+        <Import Name="nvmlDeviceGetAPIRestriction">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="apiType" Type="NvmlRestrictedAPI" />
+            <Parameter Name="isRestricted" Type="NvmlEnableState" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetApplicationsClock">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="clockType" Type="NvmlClockType" />
+            <Parameter Name="clockMHz" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetArchitecture">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="arch" Type="NvmlDeviceArchitecture" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetAttributes(nvmlDevice_t device, nvmlDeviceAttributes_t *attributes); -->
+        <Import Name="nvmlDeviceGetAutoBoostedClocksEnabled">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="isEnabled" Type="NvmlEnableState" Flags="Out" />
+            <Parameter Name="defaultIsEnabled" Type="NvmlEnableState" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetBAR1MemoryInfo(nvmlDevice_t device, nvmlBAR1Memory_t *bar1Memory); -->
+        <Import Name="nvmlDeviceGetBoardId">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="boardId" Type="uint" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetBoardPartNumber(nvmlDevice_t device, char* partNumber, unsigned int length); -->
+        <Import Name="nvmlDeviceGetBrand">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="type" Type="NvmlBrandType" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetBridgeChipInfo(nvmlDevice_t device, nvmlBridgeChipHierarchy_t *bridgeHierarchy); -->
+        <Import Name="nvmlDeviceGetClock">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="clockType" Type="NvmlClockType" />
+            <Parameter Name="clockId" Type="NvmlClockId" />
+            <Parameter Name="clockMHz" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetClockInfo">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="clockType" Type="NvmlClockType" />
+            <Parameter Name="clock" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetComputeMode">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="mode" Type="NvmlComputeMode" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device, unsigned int *infoCount, nvmlProcessInfo_t *infos); -->
+        <Import Name="nvmlDeviceGetCount_v2">
+            <Parameter Name="deviceCount" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetCudaComputeCapability">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="major" Type="int" Flags="Out" />
+            <Parameter Name="minor" Type="int" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetCurrPcieLinkGeneration">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="currLinkGen" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetCurrPcieLinkWidth">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="currLinkWidth" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetCurrentClocksThrottleReasons">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="clocksThrottleReasons" Type="ulong" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetDecoderUtilization">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="utilization" Type="uint" Flags="Out" />
+            <Parameter Name="samplingPeriodUs" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetDefaultApplicationsClock">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="clockType" Type="NvmlClockType" />
+            <Parameter Name="clockMHz" Type="uint" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetDetailedEccErrors(nvmlDevice_t device, nvmlMemoryErrorType_t errorType, nvmlEccCounterType_t counterType, nvmlEccErrorCounts_t *eccCounts); -->
+        <Import Name="nvmlDeviceGetDisplayActive">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="isActive" Type="NvmlEnableState" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetDisplayMode">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="display" Type="NvmlEnableState" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetDriverModel">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="current" Type="NvmlDriverModel" Flags="Out" />
+            <Parameter Name="pending" Type="NvmlDriverModel" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetEccMode">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="current" Type="NvmlEnableState" Flags="Out" />
+            <Parameter Name="pending" Type="NvmlEnableState" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetEncoderCapacity">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="encoderQueryType" Type="NvmlEncoderType" />
+            <Parameter Name="encoderCapacity" Type="uint" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetEncoderSessions(nvmlDevice_t device, unsigned int *sessionCount, nvmlEncoderSessionInfo_t *sessionInfos); -->
+        <Import Name="nvmlDeviceGetEncoderStats">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="sessionCount" Type="uint" Flags="Out" />
+            <Parameter Name="averageFps" Type="uint" Flags="Out" />
+            <Parameter Name="averageLatency" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetEncoderUtilization">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="utilization" Type="uint" Flags="Out" />
+            <Parameter Name="samplingPeriodUs" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetEnforcedPowerLimit">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="limit" Type="uint" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetFBCSessions(nvmlDevice_t device, unsigned int *sessionCount, nvmlFBCSessionInfo_t *sessionInfo); -->
+        <!-- TODO: Import nvmlDeviceGetFBCStats(nvmlDevice_t device, nvmlFBCStats_t *fbcStats); -->
+        <Import Name="nvmlDeviceGetFanSpeed">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="speed" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetFanSpeed_v2">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="fan" Type="uint" />
+            <Parameter Name="speed" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetGpuOperationMode">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="current" Type="NvmlGpuOperationMode" Flags="Out" />
+            <Parameter Name="pending" Type="NvmlGpuOperationMode" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t device, unsigned int *infoCount, nvmlProcessInfo_t *infos); -->
+        <Import Name="nvmlDeviceGetHandleByIndex_v2">
+            <Parameter Name="index" Type="uint" />
+            <Parameter Name="device" Type="IntPtr" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetHandleByPciBusId_v2"
+                BestFitMapping="false"
+                CharSet="Ansi"
+                ThrowOnUnmappableChar="true">
+            <Parameter Name="pciBusId" Type="string" />
+            <Parameter Name="device" Type="IntPtr" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetHandleBySerial"
+                BestFitMapping="false"
+                CharSet="Ansi"
+                ThrowOnUnmappableChar="true">
+            <Parameter Name="serial" Type="string" />
+            <Parameter Name="device" Type="IntPtr" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetHandleByUUID"
+                BestFitMapping="false"
+                CharSet="Ansi"
+                ThrowOnUnmappableChar="true">
+            <Parameter Name="uuid" Type="string" />
+            <Parameter Name="device" Type="IntPtr" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetIndex">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="index" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetInforomConfigurationChecksum">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="checksum" Type="uint" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetInforomImageVersion(nvmlDevice_t device, char *version, unsigned int length); -->
+        <!-- TODO: Import nvmlDeviceGetInforomVersion(nvmlDevice_t device, nvmlInforomObject_t object, char *version, unsigned int length); -->
+        <Import Name="nvmlDeviceGetMaxClockInfo">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="type" Type="NvmlClockType" />
+            <Parameter Name="clock" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetMaxCustomerBoostClock">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="clockType" Type="NvmlClockType" />
+            <Parameter Name="clockMHz" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetMaxPcieLinkGeneration">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="maxLinkGen" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetMaxPcieLinkWidth">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="maxLinkWidth" Type="uint" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetMemoryErrorCounter(nvmlDevice_t device, nvmlMemoryErrorType_t errorType,
+                nvmlEccCounterType_t counterType,
+                nvmlMemoryLocation_t locationType, unsigned long long *count);
+        -->
+        <!-- TODO: Import nvmlDeviceGetMemoryInfo(nvmlDevice_t device, nvmlMemory_t *memory); -->
+        <Import Name="nvmlDeviceGetMinorNumber">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="minorNumber" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetMultiGpuBoard">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="multiGpuBool" Type="uint" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetName(nvmlDevice_t device, char *name, unsigned int length); -->
+        <!-- TODO: Import nvmlDeviceGetP2PStatus(nvmlDevice_t device1, nvmlDevice_t device2, nvmlGpuP2PCapsIndex_t p2pIndex,nvmlGpuP2PStatus_t *p2pStatus); -->
+        <!-- TODO: Import nvmlDeviceGetPciInfo_v3(nvmlDevice_t device, nvmlPciInfo_t *pci); -->
+        <Import Name="nvmlDeviceGetPcieReplayCounter">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="value" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetPcieThroughput">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="counter" Type="NvmlPcieUtilCounter" />
+            <Parameter Name="value" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetPerformanceState">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="state" Type="NvmlPstates" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetPersistenceMode">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="mode" Type="NvmlEnableState" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetPowerManagementDefaultLimit">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="defaultLimit" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetPowerManagementLimit">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="limit" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetPowerManagementLimitConstraints">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="minLimit" Type="uint" Flags="Out" />
+            <Parameter Name="maxLimit" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetPowerManagementMode">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="mode" Type="NvmlEnableState" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetPowerState">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="pState" Type="NvmlPstates" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetPowerUsage">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="power" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetRemappedRows">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="corrRows" Type="uint" Flags="Out" />
+            <Parameter Name="uncRows" Type="uint" Flags="Out" />
+            <Parameter Name="isPending" Type="uint" Flags="Out" />
+            <Parameter Name="failureOccurred" Type="uint" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetRetiredPages(nvmlDevice_t device, nvmlPageRetirementCause_t cause,
+                unsigned int *pageCount, unsigned long long *addresses);
+        -->
+        <Import Name="nvmlDeviceGetRetiredPagesPendingStatus">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="isPending" Type="NvmlEnableState" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetRetiredPages_v2(nvmlDevice_t device, nvmlPageRetirementCause_t cause,
+                unsigned int *pageCount, unsigned long long *addresses, unsigned long long *timestamps);
+        -->
+        <!-- TODO: Import nvmlDeviceGetSamples(nvmlDevice_t device, nvmlSamplingType_t type, unsigned long long lastSeenTimeStamp,
+                nvmlValueType_t *sampleValType, unsigned int *sampleCount, nvmlSample_t *samples);
+        -->
+        <!-- TODO: Import nvmlDeviceGetSerial(nvmlDevice_t device, char *serial, unsigned int length); -->
+        <Import Name="nvmlDeviceGetSupportedClocksThrottleReasons">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="supportedClocksThrottleReasons" Type="NvmlClocksThrottleReasons" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetSupportedGraphicsClocks(nvmlDevice_t device, unsigned int memoryClockMHz, unsigned int *count, unsigned int *clocksMHz); -->
+        <!-- TODO: Import nvmlDeviceGetSupportedMemoryClocks(nvmlDevice_t device, unsigned int *count, unsigned int *clocksMHz); -->
+        <Import Name="nvmlDeviceGetTemperature">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="sensorType" Type="NvmlTemperatureSensors" />
+            <Parameter Name="temp" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetTemperatureThreshold">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="thresholdType" Type="NvmlTemperatureThresholds" />
+            <Parameter Name="temp" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetTopologyCommonAncestor">
+            <Parameter Name="device1" Type="IntPtr" />
+            <Parameter Name="device2" Type="IntPtr" />
+            <Parameter Name="pathInfo" Type="NvmlGpuTopologyLevel" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetTopologyNearestGpus(nvmlDevice_t device, nvmlGpuTopologyLevel_t level, unsigned int *count, nvmlDevice_t *deviceArray); -->
+        <Import Name="nvmlDeviceGetTotalEccErrors">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="errorType" Type="NvmlMemoryErrorType" />
+            <Parameter Name="counterType" Type="NvmlEccCounterType" />
+            <Parameter Name="eccCounts" Type="ulong" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceGetTotalEnergyConsumption">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="energy" Type="ulong" Flags="Out" />
+        </Import>
+        <!-- TODO: Import nvmlDeviceGetUUID(nvmlDevice_t device, char *uuid, unsigned int length); -->
+        <!-- TODO: Import nvmlDeviceGetUtilizationRates(nvmlDevice_t device, nvmlUtilization_t *utilization); -->
+        <!-- TODO: Import nvmlDeviceGetVbiosVersion(nvmlDevice_t device, char *version, unsigned int length); -->
+        <!-- TODO: Import nvmlDeviceGetViolationStatus(nvmlDevice_t device, nvmlPerfPolicyType_t perfPolicyType, nvmlViolationTime_t *violTime); -->
+        <Import Name="nvmlDeviceOnSameBoard">
+            <Parameter Name="device1" Type="IntPtr" />
+            <Parameter Name="device2" Type="IntPtr" />
+            <Parameter Name="onSameBoard" Type="int" Flags="Out" />
+        </Import>
+        <Import Name="nvmlDeviceResetApplicationsClocks">
+            <Parameter Name="device1" Type="IntPtr" />
+        </Import>
+        <Import Name="nvmlDeviceSetAutoBoostedClocksEnabled">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="enabled" Type="NvmlEnableState" />
+        </Import>
+        <Import Name="nvmlDeviceSetDefaultAutoBoostedClocksEnabled">
+            <Parameter Name="device" Type="IntPtr" />
+            <Parameter Name="enabled" Type="NvmlEnableState" />
+            <Parameter Name="flags" Type="uint" />
+        </Import>
+        <Import Name="nvmlDeviceValidateInforom">
+            <Parameter Name="device" Type="IntPtr" />
+        </Import>
+        <!-- TODO: Import nvmlSystemGetTopologyGpuSet(unsigned int cpuNumber, unsigned int *count, nvmlDevice_t *deviceArray); -->
+        <!-- TODO: Import nvmlVgpuInstanceGetMdevUUID(nvmlVgpuInstance_t vgpuInstance, char *mdevUuid, unsigned int size); -->
+    </Region>
+</ImportLibrary>
