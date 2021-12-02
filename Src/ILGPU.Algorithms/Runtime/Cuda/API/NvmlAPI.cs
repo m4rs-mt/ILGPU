@@ -68,9 +68,53 @@ namespace ILGPU.Runtime.Cuda.API
             throw firstException ?? new DllNotFoundException(nameof(NvmlAPI));
         }
 
+        /// <summary>
+        /// Helper method to read a null terminated string from the NVML Interop API.
+        /// </summary>
+        /// <param name="interopFunc">The interop function.</param>
+        /// <param name="length">The max length to retrieve.</param>
+        /// <param name="nvmlString">Filled in with the result string.</param>
+        /// <returns>The interop status code.</returns>
+        internal unsafe static NvmlReturn GetNvmlString(
+            Func<IntPtr, uint, NvmlReturn> interopFunc,
+            uint length,
+            out string nvmlString)
+        {
+            NvmlReturn result;
+            ReadOnlySpan<byte> buffer =
+                stackalloc byte[(int)length + 1];
+            fixed (byte* ptr = buffer)
+            {
+                result = interopFunc(new IntPtr(ptr), length);
+                if (result == NvmlReturn.NVML_SUCCESS)
+                {
+                    var strlen = buffer.IndexOf<byte>(0);
+                    nvmlString = Encoding.UTF8.GetString(ptr, strlen);
+                }
+                else
+                {
+                    nvmlString = default;
+                }
+            }
+
+            return result;
+        }
+
         #endregion
 
         #region Device Queries
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetBoardPartNumber_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetBoardPartNumber(
+            IntPtr device,
+            out string partNumber) =>
+            GetNvmlString(
+                (str, len) => DeviceGetBoardPartNumber_Interop(device, str, len),
+                NvmlConstants.NVML_DEVICE_PART_NUMBER_BUFFER_SIZE,
+                out partNumber);
 
         /// <summary>
         /// Provides access to <see cref="DeviceGetBridgeChipInfo_Interop"/>
@@ -100,6 +144,74 @@ namespace ILGPU.Runtime.Cuda.API
 
             return result;
         }
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetInforomImageVersion_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetInforomImageVersion(
+            IntPtr device,
+            out string version) =>
+            GetNvmlString(
+                (str, len) => DeviceGetInforomImageVersion_Interop(device, str, len),
+                NvmlConstants.NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE,
+                out version);
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetInforomVersion_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetInforomVersion(
+            IntPtr device,
+            NvmlInforomObject inforomObject,
+            out string version) =>
+            GetNvmlString(
+                (str, len) =>
+                {
+                    return DeviceGetInforomVersion_Interop(
+                        device,
+                        inforomObject,
+                        str,
+                        len);
+                },
+                NvmlConstants.NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE,
+                out version);
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetName_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetName(
+            IntPtr device,
+            out string name) =>
+            GetNvmlString(
+                (str, len) => DeviceGetName_Interop(device, str, len),
+                NvmlConstants.NVML_DEVICE_NAME_V2_BUFFER_SIZE,
+                out name);
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetSerial_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetSerial(
+            IntPtr device,
+            out string serial) =>
+            GetNvmlString(
+                (str, len) => DeviceGetSerial_Interop(device, str, len),
+                NvmlConstants.NVML_DEVICE_SERIAL_BUFFER_SIZE,
+                out serial);
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetUUID_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetUUID(
+            IntPtr device,
+            out string uuid) =>
+            GetNvmlString(
+                (str, len) => DeviceGetUUID_Interop(device, str, len),
+                NvmlConstants.NVML_DEVICE_UUID_V2_BUFFER_SIZE,
+                out uuid);
 
         /// <summary>
         /// Provides access to <see cref="DeviceGetPciInfo_Interop"/>
@@ -147,6 +259,30 @@ namespace ILGPU.Runtime.Cuda.API
 
             return result;
         }
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetVbiosVersion_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetVbiosVersion(
+            IntPtr device,
+            out string version) =>
+            GetNvmlString(
+                (str, len) => DeviceGetVbiosVersion_Interop(device, str, len),
+                NvmlConstants.NVML_DEVICE_VBIOS_VERSION_BUFFER_SIZE,
+                out version);
+
+        /// <summary>
+        /// Provides access to <see cref="VgpuInstanceGetMdevUUID_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn VgpuInstanceGetMdevUUID(
+            uint vgpuInstance,
+            out string version) =>
+            GetNvmlString(
+                (str, len) => VgpuInstanceGetMdevUUID_Interop(vgpuInstance, str, len),
+                NvmlConstants.NVML_DEVICE_UUID_V2_BUFFER_SIZE,
+                out version);
 
         #endregion
     }
