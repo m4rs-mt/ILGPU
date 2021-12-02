@@ -222,6 +222,40 @@ namespace ILGPU.Runtime.Cuda.API
             }
         }
 
+        /// <summary>
+        /// Delegate that is called to fill the array, with a length indicating the
+        /// available space. Unlike <see cref="GetNvmlArray{T}"/>, this delegate cannot
+        /// query the API for the number of records available.
+        /// </summary>
+        internal unsafe delegate NvmlReturn FillNvmlArrayInterop<T>(
+            uint len,
+            T* ptr)
+            where T : unmanaged;
+
+        /// <summary>
+        /// Helper method to fill a fixed sized array of values from the NVML Interop API.
+        /// </summary>
+        /// <param name="interopFunc">The interop function.</param>
+        /// <param name="length">The desired length.</param>
+        /// <param name="nvmlArray">Filled in with the result array.</param>
+        /// <returns>The interop status code.</returns>
+        internal unsafe static NvmlReturn FillNvmlArray<T>(
+            FillNvmlArrayInterop<T> interopFunc,
+            uint length,
+            out T[] nvmlArray)
+            where T : unmanaged
+        {
+            // Allocate enough space for the requested length.
+            T[] buffer = new T[length];
+
+            fixed (T* ptr = buffer)
+            {
+                NvmlReturn result = interopFunc(length, ptr);
+                nvmlArray = (result == NvmlReturn.NVML_SUCCESS) ? buffer : default;
+                return result;
+            }
+        }
+
         #endregion
 
         #region Device Queries
@@ -572,6 +606,54 @@ namespace ILGPU.Runtime.Cuda.API
                 (str, len) => VgpuInstanceGetMdevUUID_Interop(vgpuInstance, str, len),
                 NvmlConstants.NVML_DEVICE_UUID_V2_BUFFER_SIZE,
                 out version);
+
+        #endregion
+
+        #region Device Queries - CPU and Memory Affinity
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetCpuAffinity_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetCpuAffinity(
+            IntPtr device,
+            uint cpuSetSize,
+            out ulong[] cpuSet)
+        {
+            NvmlReturn Interop(uint len, ulong* ptr) =>
+                DeviceGetCpuAffinity_Interop(device, len, ptr);
+            return FillNvmlArray(Interop, cpuSetSize, out cpuSet);
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetCpuAffinityWithinScope_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetCpuAffinityWithinScope(
+            IntPtr device,
+            uint cpuSetSize,
+            out ulong[] cpuSet,
+            NvmlAffinityScope scope)
+        {
+            NvmlReturn Interop(uint len, ulong* ptr) =>
+                DeviceGetCpuAffinityWithinScope_Interop(device, len, ptr, scope);
+            return FillNvmlArray(Interop, cpuSetSize, out cpuSet);
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="DeviceGetMemoryAffinity_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetMemoryAffinity(
+            IntPtr device,
+            uint nodeSetSize,
+            out ulong[] nodeSet,
+            NvmlAffinityScope scope)
+        {
+            NvmlReturn Interop(uint len, ulong* ptr) =>
+                DeviceGetMemoryAffinity_Interop(device, len, ptr, scope);
+            return FillNvmlArray(Interop, nodeSetSize, out nodeSet);
+        }
 
         #endregion
     }

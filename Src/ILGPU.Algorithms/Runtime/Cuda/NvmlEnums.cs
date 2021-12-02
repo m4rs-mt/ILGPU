@@ -18,6 +18,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Runtime.Cuda
 {
+    public enum NvmlAffinityScope : int
+    {
+        NVML_AFFINITY_SCOPE_NODE = 0,
+        NVML_AFFINITY_SCOPE_SOCKET = 1,
+    }
+
     public enum NvmlBrandType : int
     {
         NVML_BRAND_UNKNOWN = 0,
