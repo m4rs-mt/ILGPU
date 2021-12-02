@@ -656,6 +656,71 @@ namespace ILGPU.Runtime.Cuda.API
         }
 
         #endregion
+
+        #region System Queries
+
+        /// <summary>
+        /// Provides access to <see cref="SystemGetCudaDriverVersion_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public NvmlReturn SystemGetCudaDriverVersion(
+            out CudaDriverVersion cudaDriverVersion)
+        {
+            NvmlReturn result = SystemGetCudaDriverVersion_Interop(out int version);
+            cudaDriverVersion = result == NvmlReturn.NVML_SUCCESS
+                ? CudaDriverVersion.FromValue(version)
+                : default;
+            return result;
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="SystemGetCudaDriverVersion_v2_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public NvmlReturn SystemGetCudaDriverVersion_v2(
+            out CudaDriverVersion cudaDriverVersion)
+        {
+            NvmlReturn result = SystemGetCudaDriverVersion_v2_Interop(out int version);
+            cudaDriverVersion = result == NvmlReturn.NVML_SUCCESS
+                ? CudaDriverVersion.FromValue(version)
+                : default;
+            return result;
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="SystemGetDriverVersion_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public NvmlReturn SystemGetDriverVersion(out string version) =>
+            GetNvmlString(
+                (str, len) => SystemGetDriverVersion_Interop(str, len),
+                NvmlConstants.NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE,
+                out version);
+
+        /// <summary>
+        /// Provides access to <see cref="SystemGetNVMLVersion_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public NvmlReturn SystemGetNVMLVersion(out string version) =>
+            GetNvmlString(
+                (str, len) => SystemGetNVMLVersion_Interop(str, len),
+                NvmlConstants.NVML_SYSTEM_NVML_VERSION_BUFFER_SIZE,
+                out version);
+
+        /// <summary>
+        /// Provides access to <see cref="SystemGetProcessName_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public NvmlReturn SystemGetProcessName(
+            uint pid,
+            out string name,
+            uint length) =>
+            GetNvmlString(
+                (str, len) => SystemGetProcessName_Interop(pid, str, len),
+                length,
+                out name);
+
+        #endregion
     }
 }
 

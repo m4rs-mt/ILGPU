@@ -530,4 +530,32 @@
             <Parameter Name="device" Type="IntPtr" />
         </Import>
     </Region>
+
+    <Region Name="System Queries">
+        <Import Name="nvmlSystemGetCudaDriverVersion"
+                DisplayName="SystemGetCudaDriverVersion_Interop">
+            <Parameter Name="cudaDriverVersion" Type="int" Flags="Out" />
+        </Import>
+        <Import Name="nvmlSystemGetCudaDriverVersion_v2"
+                DisplayName="SystemGetCudaDriverVersion_v2_Interop">
+            <Parameter Name="cudaDriverVersion" Type="int" Flags="Out" />
+        </Import>
+        <Import Name="nvmlSystemGetDriverVersion"
+                DisplayName="SystemGetDriverVersion_Interop">
+            <Parameter Name="name" Type="IntPtr" />
+            <Parameter Name="length" Type="uint" />
+        </Import>
+        <Import Name="nvmlSystemGetNVMLVersion"
+                DisplayName="SystemGetNVMLVersion_Interop">
+            <Parameter Name="name" Type="IntPtr" />
+            <Parameter Name="length" Type="uint" />
+        </Import>
+        <Import Name="nvmlSystemGetProcessName"
+                DisplayName="SystemGetProcessName_Interop">
+            <Parameter Name="pid" Type="uint" />
+            <Parameter Name="name" Type="IntPtr" />
+            <Parameter Name="length" Type="uint" />
+        </Import>
+    </Region>
+
 </ImportLibrary>
