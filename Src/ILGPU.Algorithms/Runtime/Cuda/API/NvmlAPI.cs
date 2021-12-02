@@ -721,6 +721,211 @@ namespace ILGPU.Runtime.Cuda.API
                 out name);
 
         #endregion
+
+        #region Unit Queries
+
+        /// <summary>
+        /// Provides access to <see cref="SystemGetHicVersion_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn SystemGetHicVersion(out NvmlHwbcEntry[] hwbcEntries)
+        {
+            NvmlReturn Interop(ref uint len, NvmlHwbcEntry_Interop* ptr) =>
+                SystemGetHicVersion_Interop(ref len, ptr);
+            NvmlReturn result = GetNvmlArray<NvmlHwbcEntry_Interop>(
+                Interop,
+                out var interopResult);
+            if (result == NvmlReturn.NVML_SUCCESS)
+            {
+                hwbcEntries = new NvmlHwbcEntry[interopResult.Length];
+                for (int i = 0; i < interopResult.Length; i++)
+                {
+                    var interopItem = interopResult[i];
+                    var firmwareVersionSpan = new Span<byte>(
+                        interopItem.FirmwareVersion,
+                        NvmlHwbcEntry_Interop.NVML_MAX_FIRMWAREVERSION);
+                    var strlen = firmwareVersionSpan.IndexOf<byte>(0);
+                    var firmwareVersion = Encoding.UTF8.GetString(
+                        interopItem.FirmwareVersion,
+                        strlen);
+                    hwbcEntries[i] =
+                        new NvmlHwbcEntry
+                        {
+                            HwbcId = interopResult[i].HwbcId,
+                            FirmwareVersion = firmwareVersion,
+                        };
+                }
+            }
+            else
+            {
+                hwbcEntries = default;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="UnitGetDevices_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn UnitGetDevices(
+            IntPtr unit,
+            out IntPtr[] devices)
+        {
+            NvmlReturn Interop(ref uint len, IntPtr* ptr) =>
+                UnitGetDevices_Interop(unit, ref len, ptr);
+            return GetNvmlArray(Interop, out devices);
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="UnitGetFanSpeedInfo_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn UnitGetFanSpeedInfo(
+            IntPtr unit,
+            out NvmlUnitFanSpeeds fanSpeeds)
+        {
+            var result = UnitGetFanSpeedInfo_Interop(unit, out var interopResult);
+            if (result == NvmlReturn.NVML_SUCCESS)
+            {
+                fanSpeeds =
+                    new NvmlUnitFanSpeeds()
+                    {
+                        Count = interopResult.Count,
+                        Fans = new NvmlUnitFanInfo[interopResult.Count]
+                    };
+                for (int i = 0; i < interopResult.Count; i++)
+                    fanSpeeds.Fans[i] = interopResult.Fans[i];
+            }
+            else
+            {
+                fanSpeeds = default;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="UnitGetLedState_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn UnitGetLedState(IntPtr unit, out NvmlLedState ledState)
+        {
+            NvmlReturn result = UnitGetLedState_Interop(unit, out var interopResult);
+            if (result == NvmlReturn.NVML_SUCCESS)
+            {
+                var causeSpan = new Span<byte>(
+                    interopResult.Cause,
+                    NvmlLedState_Interop.NVML_MAX_CAUSE);
+                var strlen = causeSpan.IndexOf<byte>(0);
+                var cause = Encoding.UTF8.GetString(interopResult.Cause, strlen);
+
+                ledState =
+                    new NvmlLedState()
+                    {
+                        Cause = cause,
+                        Color = interopResult.Color,
+                    };
+            }
+            else
+            {
+                ledState = default;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="UnitGetPsuInfo_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn UnitGetPsuInfo(IntPtr unit, out NvmlPSUInfo psuInfo)
+        {
+            NvmlReturn result = UnitGetPsuInfo_Interop(unit, out var interopResult);
+            if (result == NvmlReturn.NVML_SUCCESS)
+            {
+                var stateSpan = new Span<byte>(
+                    interopResult.State,
+                    NvmlPSUInfo_Interop.NVML_MAX_STATE);
+                var strlen = stateSpan.IndexOf<byte>(0);
+                var state = Encoding.UTF8.GetString(interopResult.State, strlen);
+
+                psuInfo =
+                    new NvmlPSUInfo()
+                    {
+                        Current = interopResult.Current,
+                        Power = interopResult.Power,
+                        State = state,
+                        Voltage = interopResult.Voltage,
+                    };
+            }
+            else
+            {
+                psuInfo = default;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Provides access to <see cref="UnitGetUnitInfo_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn UnitGetUnitInfo(IntPtr unit, out NvmlUnitInfo info)
+        {
+            NvmlReturn result = UnitGetUnitInfo_Interop(unit, out var interopResult);
+            if (result == NvmlReturn.NVML_SUCCESS)
+            {
+                var strSpan = new Span<byte>(
+                    interopResult.FirmwareVersion,
+                    NvmlUnitInfo_Interop.NVML_MAX_STRLEN);
+                var strlen = strSpan.IndexOf<byte>(0);
+                string firmwareVersion = Encoding.UTF8.GetString(
+                    interopResult.FirmwareVersion,
+                    strlen);
+
+                strSpan = new Span<byte>(
+                    interopResult.Id,
+                    NvmlUnitInfo_Interop.NVML_MAX_STRLEN);
+                strlen = strSpan.IndexOf<byte>(0);
+                string id = Encoding.UTF8.GetString(
+                    interopResult.Id,
+                    strlen);
+
+                strSpan = new Span<byte>(
+                    interopResult.Name,
+                    NvmlUnitInfo_Interop.NVML_MAX_STRLEN);
+                strlen = strSpan.IndexOf<byte>(0);
+                string name = Encoding.UTF8.GetString(
+                    interopResult.Name,
+                    strlen);
+
+                strSpan = new Span<byte>(
+                    interopResult.Serial,
+                    NvmlUnitInfo_Interop.NVML_MAX_STRLEN);
+                strlen = strSpan.IndexOf<byte>(0);
+                string serial = Encoding.UTF8.GetString(
+                    interopResult.Serial,
+                    strlen);
+
+                info =
+                    new NvmlUnitInfo()
+                    {
+                        FirmwareVersion = firmwareVersion,
+                        Id = id,
+                        Name = name,
+                        Serial = serial,
+                    };
+            }
+            else
+            {
+                info = default;
+            }
+
+            return result;
+        }
+
+        #endregion
     }
 }
 

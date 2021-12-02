@@ -558,4 +558,52 @@
         </Import>
     </Region>
 
+    <Region Name="Unit Queries">
+        <Import Name="nvmlSystemGetHicVersion"
+                DisplayName="SystemGetHicVersion_Interop"
+                Unsafe="true">
+            <Parameter Name="hwbcCount" Type="uint" Flags="Ref" />
+            <Parameter Name="hwbcEntries" Type="NvmlHwbcEntry_Interop*" />
+        </Import>
+        <Import Name="nvmlUnitGetCount">
+            <Parameter Name="unitCount" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlUnitGetDevices"
+                DisplayName="UnitGetDevices_Interop"
+                Unsafe="true">
+            <Parameter Name="unit" Type="IntPtr" />
+            <Parameter Name="deviceCount" Type="uint" Flags="Ref" />
+            <Parameter Name="devices" Type="IntPtr*" />
+        </Import>
+        <Import Name="nvmlUnitGetFanSpeedInfo"
+                DisplayName="UnitGetFanSpeedInfo_Interop">
+            <Parameter Name="unit" Type="IntPtr" />
+            <Parameter Name="fanSpeeds" Type="NvmlUnitFanSpeeds_Interop" Flags="Out" />
+        </Import>
+        <Import Name="nvmlUnitGetHandleByIndex">
+            <Parameter Name="index" Type="uint" />
+            <Parameter Name="unit" Type="IntPtr" Flags="Out" />
+        </Import>
+        <Import Name="nvmlUnitGetLedState"
+                DisplayName="UnitGetLedState_Interop">
+            <Parameter Name="unit" Type="IntPtr" />
+            <Parameter Name="state" Type="NvmlLedState_Interop" Flags="Out" />
+        </Import>
+        <Import Name="nvmlUnitGetPsuInfo"
+                DisplayName="UnitGetPsuInfo_Interop">
+            <Parameter Name="unit" Type="IntPtr" />
+            <Parameter Name="psu" Type="NvmlPSUInfo_Interop" Flags="Out" />
+        </Import>
+        <Import Name="nvmlUnitGetTemperature">
+            <Parameter Name="unit" Type="IntPtr" />
+            <Parameter Name="type" Type="uint" />
+            <Parameter Name="temp" Type="uint" Flags="Out" />
+        </Import>
+        <Import Name="nvmlUnitGetUnitInfo"
+                DisplayName="UnitGetUnitInfo_Interop">
+            <Parameter Name="unit" Type="IntPtr" />
+            <Parameter Name="info" Type="NvmlUnitInfo_Interop" Flags="Out" />
+        </Import>
+    </Region>
+
 </ImportLibrary>

@@ -121,6 +121,12 @@ namespace ILGPU.Runtime.Cuda
         NVML_ENCODER_QUERY_HEVC = 1,
     }
 
+    public enum NvmlFanState : int
+    {
+        NVML_FAN_NORMAL = 0,
+        NVML_FAN_FAILED = 1,
+    }
+
     public enum NvmlFBCSessionType : int
     {
         NVML_FBC_SESSION_TYPE_UNKNOWN = 0,
@@ -174,6 +180,12 @@ namespace ILGPU.Runtime.Cuda
         NVML_INFOROM_ECC = 1,
         NVML_INFOROM_POWER = 2,
         NVML_INFOROM_COUNT
+    }
+
+    public enum NvmlLedColor : int
+    {
+        NVML_LED_COLOR_GREEN = 0,
+        NVML_LED_COLOR_AMBER = 1,
     }
 
     public enum NvmlMemoryErrorType : int
