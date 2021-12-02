@@ -77,7 +77,8 @@ namespace ILGPU.Runtime
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TStride">The <#= dimension #>D stride type.</typeparam>
-    [DebuggerDisplay("{BaseView}")]
+    [DebuggerTypeProxy(typeof(DebugArrayView<#= dimension #>D<,>))]
+    [DebuggerDisplay("Extent = {Extent}, Stride = {Stride}, Length = {Length}")]
     [StructLayout(LayoutKind.Sequential)]
     public readonly partial struct <#= typeName #><T, TStride> :
         IArrayView<T, <#= intIndexType #>, <#= indexType #>, TStride>

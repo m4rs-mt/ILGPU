@@ -150,6 +150,66 @@ namespace ILGPU.IR.Analyses
             return new AlignmentInfo(result);
         }
 
+        /// <summary>
+        /// Tries to determine power of 2 information for the given unary operation.
+        /// </summary>
+        /// <param name="unary">The unary operation to analyze.</param>
+        /// <returns>The power of 2 value (if any).</returns>
+        private static int? TryGetPowerOf2(UnaryArithmeticValue unary) =>
+            unary.Kind switch
+            {
+                UnaryArithmeticKind.Abs => TryGetPowerOf2(unary.Value),
+                _ => null
+            };
+
+        /// <summary>
+        /// Tries to determine power of 2 information for the given binary operation.
+        /// </summary>
+        /// <param name="binary">The binary operation to analyze.</param>
+        /// <returns>The power of 2 value (if any).</returns>
+        private static int? TryGetPowerOf2(BinaryArithmeticValue binary) =>
+            binary.Kind switch
+            {
+                // Check whether either the left or the right operand are a power of 2
+                BinaryArithmeticKind.Mul =>
+                    TryGetPowerOf2(binary.Left) ??
+                    TryGetPowerOf2(binary.Right),
+                // Check whether we can determine a power of 2 of the left operand or
+                // whether the RHS of the SHL operation is a primitive value
+                BinaryArithmeticKind.Shl =>
+                    TryGetPowerOf2(binary.Left) ??
+                    (binary.Right.Resolve() is PrimitiveValue shlPrimitive &&
+                    shlPrimitive.Int32Value > 0
+                    ? (int?)(shlPrimitive.Int32Value * 2)
+                    : null),
+                _ => null,
+            };
+
+        /// <summary>
+        /// Tries to determine a power of 2 for the given value (if any could be
+        /// determined).
+        /// </summary>
+        /// <param name="value">The value to analyze.</param>
+        /// <returns>The power of 2 value (if any).</returns>
+        private static int? TryGetPowerOf2(Value value)
+        {
+            // Ensure that the value is operating on an integer type
+            value.Assert(value.BasicValueType.IsInt());
+            return value switch
+            {
+                // Check whether the value is a power of two in the case of a raw value
+                PrimitiveValue primitive =>
+                    primitive.Int32Value > 1 &&
+                    Utilities.IsPowerOf2(primitive.Int32Value)
+                    ? (int?)primitive.Int32Value
+                    : null,
+                // Propagate information in the presence of a arithmetic operations
+                UnaryArithmeticValue unary => TryGetPowerOf2(unary),
+                BinaryArithmeticValue binary => TryGetPowerOf2(binary),
+                _ => null
+            };
+        }
+
         #endregion
 
         #region Instance
@@ -282,14 +342,11 @@ namespace ILGPU.IR.Analyses
             int typeAlignment = AllocaAlignments.GetAllocaTypeAlignment(elementType);
 
             // Check whether we have found a power of 2 != 0
-            if (lea.Offset.Resolve() is PrimitiveValue primitiveValue &&
-                primitiveValue.IsInt &&
-                primitiveValue.RawValue > 1L &&
-                Utilities.IsPowerOf2(primitiveValue.RawValue) &&
-                primitiveValue.RawValue < int.MaxValue / typeAlignment)
+            int? powerOf2 = TryGetPowerOf2(lea.Offset);
+            if (powerOf2.HasValue && powerOf2.Value > 0)
             {
                 // We can use a multiple of the type alignment
-                typeAlignment *= (int)primitiveValue.RawValue;
+                typeAlignment *= powerOf2.Value;
             }
 
             // Use the minimum alignment information of both addresses. Note that this
