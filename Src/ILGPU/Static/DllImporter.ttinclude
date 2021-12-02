@@ -32,6 +32,9 @@ public class EntryPoint
 
     [XmlAttribute]
     public string AccessModifier { get; set; }
+    
+    [XmlAttribute]
+    public bool Unsafe { get; set; } = false;
 
     [XmlAttribute]
     public CharSet CharSet { get; set; } = CharSet.Auto;
@@ -159,7 +162,10 @@ public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
     PopIndent();
 
     WriteLine("[DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]");
-    Write($"internal static extern {entryPoint.ReturnType}");
+    Write("internal");
+    if (entryPoint.Unsafe)
+        Write(" unsafe");
+    Write($" static extern {entryPoint.ReturnType}");
     WriteLine($" {_makeImportName(entryPoint.Name)}(");
 
     PushIndent();
@@ -175,8 +181,10 @@ public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
 /// </summary>
 public void WriteMethodDeclaration(EntryPoint entryPoint)
 {
-    var accessModifier = entryPoint.AccessModifier ?? EntryPoint.FallbackAccessModifier;
-    Write($"{accessModifier} abstract {entryPoint.ReturnType}");
+    Write(entryPoint.AccessModifier ?? EntryPoint.FallbackAccessModifier);
+    if (entryPoint.Unsafe)
+        Write(" unsafe");
+    Write($" abstract {entryPoint.ReturnType}");
     WriteLine($" {_makeMethodName(entryPoint.Name)}(");
 
     PushIndent();
@@ -192,8 +200,10 @@ public void WriteMethodDeclaration(EntryPoint entryPoint)
 /// </summary>
 public void WriteMethodImplementation(EntryPoint entryPoint)
 {
-    var accessModifier = entryPoint.AccessModifier ?? EntryPoint.FallbackAccessModifier;
-    Write($"{accessModifier} sealed override {entryPoint.ReturnType}");
+    Write(entryPoint.AccessModifier ?? EntryPoint.FallbackAccessModifier);
+    if (entryPoint.Unsafe)
+        Write(" unsafe");
+    Write($" sealed override {entryPoint.ReturnType}");
     WriteLine($" {_makeMethodName(entryPoint.Name)}(");
 
     PushIndent();
