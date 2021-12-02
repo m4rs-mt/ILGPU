@@ -162,6 +162,30 @@ namespace ILGPU.Runtime.Cuda
     }
 
     [CLSCompliant(false)]
+    [StructLayout(LayoutKind.Explicit)]
+    public struct NvmlSample
+    {
+        [FieldOffset(0)]
+        public ulong TimeStamp;
+
+        [FieldOffset(8)]
+        public double DVal;
+
+        [FieldOffset(8)]
+        public uint UiVal;
+
+        [FieldOffset(8)]
+        public ulong UlVal;
+
+        [FieldOffset(8)]
+        public ulong UllVal;
+
+        [FieldOffset(8)]
+        public long SllVal;
+    }
+
+
+    [CLSCompliant(false)]
     public struct NvmlUtilization
     {
         public uint Gpu;
