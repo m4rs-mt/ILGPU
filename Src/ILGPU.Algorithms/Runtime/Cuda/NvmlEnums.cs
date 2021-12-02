@@ -115,6 +115,15 @@ namespace ILGPU.Runtime.Cuda
         NVML_ENCODER_QUERY_HEVC = 1,
     }
 
+    public enum NvmlFBCSessionType : int
+    {
+        NVML_FBC_SESSION_TYPE_UNKNOWN = 0,
+        NVML_FBC_SESSION_TYPE_TOSYS,
+        NVML_FBC_SESSION_TYPE_CUDA,
+        NVML_FBC_SESSION_TYPE_VID,
+        NVML_FBC_SESSION_TYPE_HWENC,
+    }
+
     public enum NvmlGpuOperationMode : int
     {
         NVML_GOM_ALL_ON = 0,
@@ -184,6 +193,13 @@ namespace ILGPU.Runtime.Cuda
         NVML_MEMORY_LOCATION_CBU = 6,
         NVML_MEMORY_LOCATION_SRAM = 7,
         NVML_MEMORY_LOCATION_COUNT
+    }
+
+    public enum NvmlPageRetirementCause : int
+    {
+        NVML_PAGE_RETIREMENT_CAUSE_MULTIPLE_SINGLE_BIT_ECC_ERRORS = 0,
+        NVML_PAGE_RETIREMENT_CAUSE_DOUBLE_BIT_ECC_ERROR = 1,
+        NVML_PAGE_RETIREMENT_CAUSE_COUNT
     }
 
     public enum NvmlPcieUtilCounter : int

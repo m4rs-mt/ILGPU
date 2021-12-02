@@ -82,6 +82,36 @@ namespace ILGPU.Runtime.Cuda
     }
 
     [CLSCompliant(false)]
+    public struct NvmlEncoderSessionInfo
+    {
+        public uint SessionId;
+        public uint Pid;
+        public uint VgpuInstance;
+        public NvmlEncoderType CodecType;
+        public uint HResolution;
+        public uint VResolution;
+        public uint AverageFps;
+        public uint AverageLatency;
+    }
+
+    [CLSCompliant(false)]
+    public struct NvmlFBCSessionInfo
+    {
+        public uint SessionId;
+        public uint Pid;
+        public uint VgpuInstance;
+        public uint DisplayOrdinal;
+        public NvmlFBCSessionType SessionType;
+        public uint SessionFlags;
+        public uint HMaxResolution;
+        public uint VMaxResolution;
+        public uint HResolution;
+        public uint VResolution;
+        public uint AverageFPS;
+        public uint AverageLatency;
+    }
+
+    [CLSCompliant(false)]
     public struct NvmlFBCStats
     {
         public uint SessionsCount;
@@ -120,6 +150,15 @@ namespace ILGPU.Runtime.Cuda
         public uint PciDeviceId;
         public uint PciSubSystemId;
         public string BusId;
+    }
+
+    [CLSCompliant(false)]
+    public struct NvmlProcessInfo
+    {
+        public uint Pid;
+        public ulong UsedGpuMemory;
+        public uint GpuInstanceId;
+        public uint ComputeInstanceId;
     }
 
     [CLSCompliant(false)]
