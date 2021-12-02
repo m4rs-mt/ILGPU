@@ -22,11 +22,16 @@
 
 public class EntryPoint
 {
+    public static readonly string FallbackAccessModifier = "internal";
+
     [XmlAttribute]
     public string Name { get; set; }
 
     [XmlAttribute]
     public string ReturnType { get; set; }
+
+    [XmlAttribute]
+    public string AccessModifier { get; set; }
 
     [XmlAttribute]
     public CharSet CharSet { get; set; } = CharSet.Auto;
@@ -170,7 +175,8 @@ public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
 /// </summary>
 public void WriteMethodDeclaration(EntryPoint entryPoint)
 {
-    Write($"internal abstract {entryPoint.ReturnType}");
+    var accessModifier = entryPoint.AccessModifier ?? EntryPoint.FallbackAccessModifier;
+    Write($"{accessModifier} abstract {entryPoint.ReturnType}");
     WriteLine($" {_makeMethodName(entryPoint.Name)}(");
 
     PushIndent();
@@ -186,7 +192,8 @@ public void WriteMethodDeclaration(EntryPoint entryPoint)
 /// </summary>
 public void WriteMethodImplementation(EntryPoint entryPoint)
 {
-    Write($"internal sealed override {entryPoint.ReturnType}");
+    var accessModifier = entryPoint.AccessModifier ?? EntryPoint.FallbackAccessModifier;
+    Write($"{accessModifier} sealed override {entryPoint.ReturnType}");
     WriteLine($" {_makeMethodName(entryPoint.Name)}(");
 
     PushIndent();
