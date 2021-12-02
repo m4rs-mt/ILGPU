@@ -24,6 +24,9 @@ public class EntryPoint
 {
     public static readonly string FallbackAccessModifier = "internal";
 
+    public static readonly string FallbackDllImportSearchPath =
+        nameof(System.Runtime.InteropServices.DllImportSearchPath.LegacyBehavior);
+
     [XmlAttribute]
     public string Name { get; set; }
 
@@ -36,6 +39,9 @@ public class EntryPoint
     [XmlAttribute]
     public string AccessModifier { get; set; }
     
+    [XmlAttribute]
+    public string DllImportSearchPath { get; set; }
+
     [XmlAttribute]
     public bool Unsafe { get; set; } = false;
 
@@ -164,7 +170,9 @@ public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
     WriteLine(")]");
     PopIndent();
 
-    WriteLine("[DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]");
+    Write("[DefaultDllImportSearchPaths(DllImportSearchPath.");
+    Write(entryPoint.DllImportSearchPath ?? EntryPoint.FallbackDllImportSearchPath);
+    WriteLine(")]");
     Write("internal");
     if (entryPoint.Unsafe)
         Write(" unsafe");
