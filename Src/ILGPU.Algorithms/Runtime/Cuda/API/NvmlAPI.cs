@@ -427,6 +427,47 @@ namespace ILGPU.Runtime.Cuda.API
         }
 
         /// <summary>
+        /// Provides access to <see cref="DeviceGetSamples_Interop"/>
+        /// without using raw pointers.
+        /// </summary>
+        public unsafe NvmlReturn DeviceGetSamples(
+            IntPtr device,
+            NvmlSamplingType type,
+            ulong lastSeenTimeStamp,
+            out NvmlValueType sampleValType,
+            uint sampleCount,
+            out NvmlSample[] samples)
+        {
+            // Allocate enough space for sampleCount.
+            uint length = sampleCount;
+            NvmlSample[] buffer = new NvmlSample[length];
+
+            fixed (NvmlSample* ptr = buffer)
+            {
+                NvmlReturn result = DeviceGetSamples_Interop(
+                    device,
+                    type,
+                    lastSeenTimeStamp,
+                    out sampleValType,
+                    ref length,
+                    ptr);
+                if (result == NvmlReturn.NVML_SUCCESS)
+                {
+                    // Adjust the return buffer to the actual length.
+                    if (length < sampleCount)
+                        Array.Resize(ref buffer, (int)length);
+                    samples = buffer;
+                }
+                else
+                {
+                    samples = default;
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
         /// Provides access to <see cref="DeviceGetSerial_Interop"/>
         /// without using raw pointers.
         /// </summary>

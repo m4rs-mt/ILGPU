@@ -283,6 +283,18 @@ namespace ILGPU.Runtime.Cuda
         NVML_ERROR_UNKNOWN = 999,
     }
 
+    public enum NvmlSamplingType : int
+    {
+        NVML_TOTAL_POWER_SAMPLES = 0,
+        NVML_GPU_UTILIZATION_SAMPLES = 1,
+        NVML_MEMORY_UTILIZATION_SAMPLES = 2,
+        NVML_ENC_UTILIZATION_SAMPLES = 3,
+        NVML_DEC_UTILIZATION_SAMPLES = 4,
+        NVML_PROCESSOR_CLK_SAMPLES = 5,
+        NVML_MEMORY_CLK_SAMPLES = 6,
+        NVML_SAMPLINGTYPE_COUNT
+    }
+
     public enum NvmlTemperatureSensors : int
     {
         NVML_TEMPERATURE_GPU = 0,
@@ -296,6 +308,16 @@ namespace ILGPU.Runtime.Cuda
         NVML_TEMPERATURE_THRESHOLD_MEM_MAX = 2,
         NVML_TEMPERATURE_THRESHOLD_GPU_MAX = 3,
         NVML_TEMPERATURE_THRESHOLD_COUNT
+    }
+
+    public enum NvmlValueType : int
+    {
+        NVML_VALUE_TYPE_DOUBLE = 0,
+        NVML_VALUE_TYPE_UNSIGNED_INT = 1,
+        NVML_VALUE_TYPE_UNSIGNED_LONG = 2,
+        NVML_VALUE_TYPE_UNSIGNED_LONG_LONG = 3,
+        NVML_VALUE_TYPE_SIGNED_LONG_LONG = 4,
+        NVML_VALUE_TYPE_COUNT
     }
 
     [CLSCompliant(false)]
