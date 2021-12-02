@@ -30,6 +30,12 @@ namespace ILGPU.Runtime.Cuda
         NVML_BRAND_COUNT
     }
 
+    public enum NvmlBridgeChipType : int
+    {
+        NVML_BRIDGE_CHIP_PLX = 0,
+        NVML_BRIDGE_CHIP_BRO4 = 1
+    }
+
     public enum NvmlClockId : int
     {
         NVML_CLOCK_ID_CURRENT = 0,
@@ -116,6 +122,27 @@ namespace ILGPU.Runtime.Cuda
         NVML_GOM_LOW_DP = 2
     }
 
+    public enum NvmlGpuP2PCapsIndex : int
+    {
+        NVML_P2P_CAPS_INDEX_READ = 0,
+        NVML_P2P_CAPS_INDEX_WRITE,
+        NVML_P2P_CAPS_INDEX_NVLINK,
+        NVML_P2P_CAPS_INDEX_ATOMICS,
+        NVML_P2P_CAPS_INDEX_PROP,
+        NVML_P2P_CAPS_INDEX_UNKNOWN
+    }
+
+    public enum NvmlGpuP2PStatus : int
+    {
+        NVML_P2P_STATUS_OK = 0,
+        NVML_P2P_STATUS_CHIPSET_NOT_SUPPORED,
+        NVML_P2P_STATUS_GPU_NOT_SUPPORTED,
+        NVML_P2P_STATUS_IOH_TOPOLOGY_NOT_SUPPORTED,
+        NVML_P2P_STATUS_DISABLED_BY_REGKEY,
+        NVML_P2P_STATUS_NOT_SUPPORTED,
+        NVML_P2P_STATUS_UNKNOWN
+    }
+
     public enum NvmlGpuTopologyLevel : int
     {
         NVML_TOPOLOGY_INTERNAL = 0,
@@ -133,11 +160,42 @@ namespace ILGPU.Runtime.Cuda
         NVML_MEMORY_ERROR_TYPE_COUNT
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1027:Mark enums with FlagsAttribute",
+        Justification = "This is not a flag enumeration")]
+    public enum NvmlMemoryLocation : int
+    {
+        NVML_MEMORY_LOCATION_L1_CACHE = 0,
+        NVML_MEMORY_LOCATION_L2_CACHE = 1,
+        NVML_MEMORY_LOCATION_DRAM = 2,
+        NVML_MEMORY_LOCATION_DEVICE_MEMORY = NVML_MEMORY_LOCATION_DRAM,
+        NVML_MEMORY_LOCATION_REGISTER_FILE = 3,
+        NVML_MEMORY_LOCATION_TEXTURE_MEMORY = 4,
+        NVML_MEMORY_LOCATION_TEXTURE_SHM = 5,
+        NVML_MEMORY_LOCATION_CBU = 6,
+        NVML_MEMORY_LOCATION_SRAM = 7,
+        NVML_MEMORY_LOCATION_COUNT
+    }
+
     public enum NvmlPcieUtilCounter : int
     {
         NVML_PCIE_UTIL_TX_BYTES = 0, // 1KB granularity
         NVML_PCIE_UTIL_RX_BYTES = 1, // 1KB granularity
         NVML_PCIE_UTIL_COUNT
+    }
+
+    public enum NvmlPerfPolicyType : int
+    {
+        NVML_PERF_POLICY_POWER = 0,
+        NVML_PERF_POLICY_THERMAL = 1,
+        NVML_PERF_POLICY_SYNC_BOOST = 2,
+        NVML_PERF_POLICY_BOARD_LIMIT = 3,
+        NVML_PERF_POLICY_LOW_UTILIZATION = 4,
+        NVML_PERF_POLICY_RELIABILITY = 5,
+        NVML_PERF_POLICY_TOTAL_APP_CLOCKS = 10,
+        NVML_PERF_POLICY_TOTAL_BASE_CLOCKS = 11,
+        NVML_PERF_POLICY_COUNT
     }
 
     [SuppressMessage(
@@ -214,6 +272,21 @@ namespace ILGPU.Runtime.Cuda
         NVML_TEMPERATURE_THRESHOLD_MEM_MAX = 2,
         NVML_TEMPERATURE_THRESHOLD_GPU_MAX = 3,
         NVML_TEMPERATURE_THRESHOLD_COUNT
+    }
+
+    [CLSCompliant(false)]
+    public static class NvmlConstants
+    {
+        public const uint NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE = 16;
+        public const uint NVML_DEVICE_NAME_V2_BUFFER_SIZE = 96;
+        public const uint NVML_DEVICE_PART_NUMBER_BUFFER_SIZE = 80;
+        public const uint NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE = 32;
+        public const uint NVML_DEVICE_PCI_BUS_ID_BUFFER_V2_SIZE = 16;
+        public const uint NVML_DEVICE_SERIAL_BUFFER_SIZE = 30;
+        public const uint NVML_DEVICE_UUID_V2_BUFFER_SIZE = 96;
+        public const uint NVML_DEVICE_VBIOS_VERSION_BUFFER_SIZE = 32;
+        public const uint NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE = 80;
+        public const uint NVML_SYSTEM_NVML_VERSION_BUFFER_SIZE = 80;
     }
 }
 
