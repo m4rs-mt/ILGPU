@@ -153,6 +153,14 @@ namespace ILGPU.Runtime.Cuda
         NVML_TOPOLOGY_SYSTEM = 50,
     }
 
+    public enum NvmlInforomObject : int
+    {
+        NVML_INFOROM_OEM = 0,
+        NVML_INFOROM_ECC = 1,
+        NVML_INFOROM_POWER = 2,
+        NVML_INFOROM_COUNT
+    }
+
     public enum NvmlMemoryErrorType : int
     {
         NVML_MEMORY_ERROR_TYPE_CORRECTED = 0,
