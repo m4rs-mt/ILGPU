@@ -51,7 +51,7 @@ namespace <#= imports.Namespace #>
         #region Native Methods
 
 <#      foreach (var entryPoint in imports.EntryPoints) { #>
-        internal abstract <#= imports.GetReturnType(entryPoint) #> <#= entryPoint.Name #>(
+        internal abstract <#= entryPoint.ReturnType #> <#= entryPoint.Name #>(
 <#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
             <#= param #><#= suffix #>
 <#          } #>
@@ -95,7 +95,7 @@ namespace <#= imports.Namespace #>
 <#          } #>
         )]
         [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        internal static extern <#= imports.GetReturnType(entryPoint) #>
+        internal static extern <#= entryPoint.ReturnType #>
             <#= entryPoint.Name #>_Import(
 <#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
             <#= param #><#= suffix #>
@@ -117,7 +117,7 @@ namespace <#= imports.Namespace #>
         #region Implementations
 
 <#      foreach (var entryPoint in imports.EntryPoints) { #>
-        internal sealed override <#= imports.GetReturnType(entryPoint) #>
+        internal sealed override <#= entryPoint.ReturnType #>
             <#= entryPoint.Name #>(
 <#          foreach (var (param, suffix) in entryPoint.ParamBodyExpressions) { #>
             <#= param #><#= suffix #>
@@ -150,7 +150,7 @@ namespace <#= imports.Namespace #>
         #region Implementations
 
 <#      foreach (var entryPoint in imports.EntryPoints) { #>
-        internal sealed override <#= imports.GetReturnType(entryPoint) #>
+        internal sealed override <#= entryPoint.ReturnType #>
             <#= entryPoint.Name #>(
 <#          foreach (var (param, suffix) in entryPoint.ParamBodyExpressions) { #>
             <#= param #><#= suffix #>
@@ -183,8 +183,16 @@ public class ImportFiles
 [XmlRoot("Imports")]
 public class Imports
 {
-    internal static Imports Load(string rootPath, string fileName) =>
-        XmlHelper.Load<Imports>(rootPath, fileName);
+    internal static Imports Load(string rootPath, string fileName)
+    {
+        var imports = XmlHelper.Load<Imports>(rootPath, fileName);
+
+        // Setup default return types.
+        foreach (var entryPoint in imports.EntryPoints)
+            entryPoint.ReturnType ??= imports.DefaultReturnType;
+
+        return imports;
+    }
 
     [XmlAttribute]
     public string Namespace { get; set; }
@@ -203,9 +211,6 @@ public class Imports
 
     [XmlElement("Import")]
     public EntryPoint[] EntryPoints { get; set; }
-
-    public string GetReturnType(EntryPoint entryPoint) =>
-        entryPoint.ReturnType ?? DefaultReturnType;
 }
 
 public class LibraryNames
