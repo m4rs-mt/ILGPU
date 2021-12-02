@@ -47,12 +47,12 @@ public static class Program
 }
 ```
 ## Accelerators
-In ILGPU the accelerator repersents a hardware or software GPU.
+In ILGPU the accelerator represents a hardware or software GPU.
 Every ILGPU program will require at least 1 Accelerator.
 Currently there are 3 Accelerator types CPU, Cuda, and OpenCL, 
 as well as an abstract Accelerator.
 
-### Device Info Example [See Also Devce Info Sample](https://github.com/m4rs-mt/ILGPU/tree/master/Samples/DeviceInfo)
+### Device Info Example [See Also Device Info Sample](https://github.com/m4rs-mt/ILGPU/tree/master/Samples/DeviceInfo)
 ```c#
 using ILGPU;
 using ILGPU.Runtime;

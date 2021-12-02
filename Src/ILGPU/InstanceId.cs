@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -17,6 +18,26 @@ namespace ILGPU
 {
     internal readonly struct InstanceId : IEquatable<InstanceId>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Compares instance id.
+        /// </summary>
+        public readonly struct Comparer : IEqualityComparer<InstanceId>
+        {
+            /// <summary>
+            /// Returns true if both instance ids represent the same value.
+            /// </summary>
+            public readonly bool Equals(InstanceId x, InstanceId y) => x == y;
+
+            /// <summary>
+            /// Returns the hash code of the given instance id.
+            /// </summary>
+            public readonly int GetHashCode(InstanceId obj) => obj.GetHashCode();
+        }
+
+        #endregion
+
         #region Static
 
         /// <summary>
@@ -68,7 +89,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="other">The other id.</param>
         /// <returns>True, if the given id is equal to this id.</returns>
-        public bool Equals(InstanceId other) => this == other;
+        public readonly bool Equals(InstanceId other) => this == other;
 
         #endregion
 
@@ -79,14 +100,14 @@ namespace ILGPU
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to this id.</returns>
-        public override bool Equals(object obj) =>
+        public readonly override bool Equals(object obj) =>
             obj is InstanceId id && id == this;
 
         /// <summary>
         /// Returns the hash code of this id.
         /// </summary>
         /// <returns>The hash code of this id.</returns>
-        public override int GetHashCode() => Value.GetHashCode();
+        public readonly override int GetHashCode() => Value.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of the <see cref="Value"/> property.
@@ -94,7 +115,7 @@ namespace ILGPU
         /// <returns>
         /// The string representation of the <see cref="Value"/> property.
         /// </returns>
-        public override string ToString() => Value.ToString();
+        public readonly override string ToString() => Value.ToString();
 
         #endregion
 

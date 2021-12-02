@@ -231,7 +231,7 @@ namespace ILGPU.IR.Transformations
                     return false;
                 case NewView _:
                 case SubViewValue _:
-                case PointerCast _:
+                case BaseAddressSpaceCast _:
                 case LoadElementAddress _:
                 case LoadFieldAddress _:
                     data.Push(value);

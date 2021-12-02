@@ -35,16 +35,11 @@ namespace ILGPU.Runtime.Cuda
             in ArrayView<T> targetView)
             where T : unmanaged
         {
-            if (stream is null)
-                throw new ArgumentNullException(nameof(stream));
-
             if (targetView.GetAcceleratorType() != AcceleratorType.Cuda)
             {
                 throw new NotSupportedException(
                     RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
-
-            var binding = stream.Accelerator.BindScoped();
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.Memset(
@@ -52,8 +47,6 @@ namespace ILGPU.Runtime.Cuda
                     value,
                     new IntPtr(targetView.LengthInBytes),
                     stream));
-
-            binding.Recover();
         }
 
         /// <summary>
@@ -69,11 +62,6 @@ namespace ILGPU.Runtime.Cuda
             in ArrayView<T> targetView)
             where T : unmanaged
         {
-            if (stream is null)
-                throw new ArgumentNullException(nameof(stream));
-
-            using var binding = stream.Accelerator.BindScoped();
-
             var sourceType = sourceView.GetAcceleratorType();
             var targetType = targetView.GetAcceleratorType();
 

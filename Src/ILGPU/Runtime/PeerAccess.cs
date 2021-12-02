@@ -9,8 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace ILGPU.Runtime
@@ -23,8 +23,8 @@ namespace ILGPU.Runtime
         /// Contains a collection of all peer accelerators.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly HashSet<Accelerator> storedPeerAccelerators =
-            new HashSet<Accelerator>();
+        private InlineList<InstanceId> storedPeerAccelerators =
+            InlineList<InstanceId>.Create(16);
 
         #endregion
 
@@ -35,22 +35,14 @@ namespace ILGPU.Runtime
         /// </summary>
         private void PeerAccessAcceleratorDestroyed(object sender, EventArgs e)
         {
-            if (sender is Accelerator otherAccelerator)
-                DisablePeerAccess(otherAccelerator);
-        }
+            // Reject cases in which the sender is not another accelerator instance
+            if (!(sender is Accelerator otherAccelerator))
+                return;
 
-        /// <summary>
-        /// Returns true if peer access between the current and the given accelerator
-        /// has been enabled.
-        /// </summary>
-        /// <param name="otherAccelerator">The target accelerator.</param>
-        /// <returns></returns>
-        public bool HasPeerAccess(Accelerator otherAccelerator)
-        {
-            if (otherAccelerator == null)
-                throw new ArgumentNullException(nameof(otherAccelerator));
-            lock (syncRoot)
-                return storedPeerAccelerators.Contains(otherAccelerator);
+            // Disable the peer access to this accelerator
+            otherAccelerator.DisablePeerAccess(this);
+            // Try to disable peer access to the other accelerator
+            DisablePeerAccess(otherAccelerator);
         }
 
         /// <summary>
@@ -64,10 +56,25 @@ namespace ILGPU.Runtime
         {
             if (otherAccelerator == null)
                 throw new ArgumentNullException(nameof(otherAccelerator));
+            Bind();
+            return CanAccessPeerInternal(otherAccelerator);
+        }
+
+        /// <summary>
+        /// Returns true if peer access between the current and the given accelerator
+        /// has been enabled.
+        /// </summary>
+        /// <param name="otherAccelerator">The target accelerator.</param>
+        /// <returns></returns>
+        public bool HasPeerAccess(Accelerator otherAccelerator)
+        {
+            if (otherAccelerator == null)
+                throw new ArgumentNullException(nameof(otherAccelerator));
             lock (syncRoot)
             {
-                Bind();
-                return CanAccessPeerInternal(otherAccelerator);
+                return storedPeerAccelerators.Contains(
+                    otherAccelerator.InstanceId,
+                    new InstanceId.Comparer());
             }
         }
 
@@ -81,6 +88,16 @@ namespace ILGPU.Runtime
         protected abstract bool CanAccessPeerInternal(Accelerator otherAccelerator);
 
         /// <summary>
+        /// Tries to enable a bidirectional peer access between the current and the given
+        /// accelerator.
+        /// </summary>
+        /// <param name="otherAccelerator">The other accelerator.</param>
+        /// <returns>True, if the bidirectional access could be established.</returns>
+        public bool EnableBidirectionalPeerAccess(Accelerator otherAccelerator) =>
+            EnablePeerAccess(otherAccelerator) &&
+            otherAccelerator.EnablePeerAccess(this);
+
+        /// <summary>
         /// Enables peer access to the given accelerator.
         /// </summary>
         /// <param name="otherAccelerator">The other accelerator.</param>
@@ -89,10 +106,12 @@ namespace ILGPU.Runtime
             lock (syncRoot)
             {
                 if (HasPeerAccess(otherAccelerator))
+                    return true;
+                if (!CanAccessPeerInternal(otherAccelerator))
                     return false;
                 Bind();
                 otherAccelerator.Disposed += PeerAccessAcceleratorDestroyed;
-                storedPeerAccelerators.Add(otherAccelerator);
+                storedPeerAccelerators.Add(otherAccelerator.InstanceId);
                 EnablePeerAccessInternal(otherAccelerator);
                 return true;
             }
@@ -116,7 +135,9 @@ namespace ILGPU.Runtime
                     return false;
                 Bind();
                 otherAccelerator.Disposed -= PeerAccessAcceleratorDestroyed;
-                storedPeerAccelerators.Remove(otherAccelerator);
+                storedPeerAccelerators.Remove(
+                    otherAccelerator.InstanceId,
+                    new InstanceId.Comparer());
                 DisablePeerAccessInternal(otherAccelerator);
                 return true;
             }

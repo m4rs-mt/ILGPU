@@ -126,7 +126,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Specializes loop bodies.
         /// </summary>
-        private readonly ref struct LoopSpecializer
+        private ref struct LoopSpecializer
         {
             #region Instance
 
@@ -135,6 +135,12 @@ namespace ILGPU.IR.Transformations
             /// instead in the remainder of the program.
             /// </summary>
             private readonly Dictionary<PhiValue, Value> phiMapping;
+
+            /// <summary>
+            /// Maps original values to new target values that have to be used instead
+            /// in the remainder of the program.
+            /// </summary>
+            private InlineList<(Value Source, Value Target)> valueMapping;
 
             /// <summary>
             /// All blocks in the scope of this loop in RPO.
@@ -165,6 +171,18 @@ namespace ILGPU.IR.Transformations
                 variable.BreakBranch.Assert(hasOtherTarget);
                 LoopBody = loopBody;
                 BackEdge = loopInfo.BackEdge;
+
+                // Determine all values in the body of the loop that require value
+                // updates
+                valueMapping = InlineList<(Value, Value)>.Create(phiValues.Length);
+                var bodyBlockSet = blocks.ToSet();
+                foreach (Value value in blocks.Values)
+                {
+                    // Skip phi values since they will be handled separately
+                    if (value is PhiValue || value.Uses.AllIn(bodyBlockSet))
+                        continue;
+                    valueMapping.Add((value, value));
+                }
 
                 // Check whether we will fully unroll the loop
                 if (fullUnrollMode)
@@ -243,12 +261,38 @@ namespace ILGPU.IR.Transformations
             #region Methods
 
             /// <summary>
+            /// Creates a rebuilder value mapping including all currently known value
+            /// updates.
+            /// </summary>
+            /// <param name="initValue">The current init value to use.</param>
+            private readonly Dictionary<Value, Value> CreateValueRebuilderMapping(
+                Value initValue)
+            {
+                // Build a value remapping for all registered values
+                var result = new Dictionary<Value, Value>(phiValues.Length + 1)
+                {
+                    // Replace the actual induction variable with the updated value
+                    [PhiVariable] = initValue
+                };
+
+                // Map all remaining phi values
+                foreach (var (phi, _) in phiValues)
+                {
+                    // Replace the remapped phi with the outside operand representing
+                    // its initial value
+                    result[phi] = phiMapping[phi];
+                }
+
+                return result;
+            }
+
+            /// <summary>
             /// Specializes a single loop iteration.
             /// </summary>
             /// <param name="exitBlock">The current exit block to jump to.</param>
             /// <param name="initValue">The current init value to use.</param>
             /// <returns>The new entry and exit blocks.</returns>
-            public readonly (BasicBlock.Builder entry, BasicBlock.Builder exit)
+            public (BasicBlock.Builder entry, BasicBlock.Builder exit)
                 SpecializeLoop(
                 BasicBlock exitBlock,
                 Value initValue)
@@ -259,23 +303,12 @@ namespace ILGPU.IR.Transformations
                     exitBlock.Location);
 
                 // Rebuild the affected parts of the program
+                var valueRebuilderMapping = CreateValueRebuilderMapping(initValue);
                 var rebuilder = IRRebuilder.Create(
                     Builder,
-                    null,
+                    valueRebuilderMapping,
                     blocks,
                     new LoopRemapper(exitBlock, currentExit));
-
-                // Replace the actual induction variable with the updated value
-                rebuilder.Map(PhiVariable, initValue);
-
-                // Map all remaining phi values
-                foreach (var (phi, _) in phiValues)
-                {
-                    // Replace the remapped phi with the outside operand representing
-                    // its initial value
-                    rebuilder.Map(phi, phiMapping[phi]);
-                }
-
                 rebuilder.Rebuild();
 
                 // Update all phi mappings
@@ -287,6 +320,13 @@ namespace ILGPU.IR.Transformations
                     phiMapping[phi] = rebuilder[backEdgeValue];
                 }
                 phiMapping[PhiVariable] = rebuilder[Variable.Update];
+
+                // Update all values to track
+                for (int i = 0, e = valueMapping.Count; i < e; ++i)
+                {
+                    var source = valueMapping[i].Source;
+                    valueMapping[i] = (source, rebuilder[source]);
+                }
 
                 // Remove the back-edge branch and simplify the exit branch to form a
                 // straight-line piece of code
@@ -322,6 +362,15 @@ namespace ILGPU.IR.Transformations
             {
                 foreach (var entry in phiMapping)
                     entry.Key.Replace(entry.Value);
+            }
+
+            /// <summary>
+            /// Replace all loop-specific values.
+            /// </summary>
+            public readonly void ReplaceValues()
+            {
+                foreach (var entry in valueMapping)
+                    entry.Source.Replace(entry.Target);
             }
 
             /// <summary>
@@ -394,7 +443,8 @@ namespace ILGPU.IR.Transformations
             InductionVariable inductionVariable,
             in InductionVariableBounds bounds,
             int unrolls,
-            int iterations)
+            int iterations,
+            int update)
         {
             var entryBlock = loopInfo.Entry;
             var exitBlock = loopInfo.Exit;
@@ -417,12 +467,12 @@ namespace ILGPU.IR.Transformations
                 Value startValue = current.CreatePrimitiveValue(
                     bounds.Init.Location,
                     bounds.Init.BasicValueType,
-                    i);
+                    i * update);
                 startValue = current.CreateArithmetic(
                     bounds.UpdateValue.Location,
                     loopSpecializer.VariableInitValue,
                     startValue,
-                    BinaryArithmeticKind.Add);
+                    bounds.UpdateOperation.Kind);
 
                 // Specialize the whole loop and wire the blocks
                 var (loopEntry, loopExit) = loopSpecializer.SpecializeLoop(
@@ -449,6 +499,9 @@ namespace ILGPU.IR.Transformations
 
                 // Preserve all phis and rewire their operands
                 loopSpecializer.RewirePhis(current);
+
+                // Replace all values used outside of the loop with their computed values
+                loopSpecializer.ReplaceValues();
             }
             else
             {
@@ -464,6 +517,10 @@ namespace ILGPU.IR.Transformations
 
                 // Replace all phi values with their computed values
                 loopSpecializer.ReplacePhis();
+
+                // Replace all values with used outside of the loop with their computed
+                // values
+                loopSpecializer.ReplaceValues();
 
                 // Clear all old body blocks to remove all old uses
                 loopSpecializer.ClearBody();
@@ -495,12 +552,18 @@ namespace ILGPU.IR.Transformations
             }
 
             // Try to compute a constant (compile-time known) trip count
-            var tripCount = bounds.TryGetTripCount(out var _);
+            var tripCount = bounds.TryGetTripCount(out var intBounds);
             if (!tripCount.HasValue ||
-                bounds.UpdateOperation.Kind != BinaryArithmeticKind.Add)
+                !intBounds.update.HasValue ||
+                bounds.UpdateOperation.Kind != BinaryArithmeticKind.Add &&
+                bounds.UpdateOperation.Kind != BinaryArithmeticKind.Sub)
             {
                 return false;
             }
+
+            // If trip count is 0, leave out loop completely
+            if (tripCount.Value == 0)
+                return true;
 
             // Compute the unroll factor and the number of iterations to use
             var (unrolls, iterations) = ComputeUnrollFactor(
@@ -516,7 +579,8 @@ namespace ILGPU.IR.Transformations
                 inductionVariable,
                 bounds,
                 unrolls,
-                iterations);
+                iterations,
+                intBounds.update.Value);
             return true;
         }
 

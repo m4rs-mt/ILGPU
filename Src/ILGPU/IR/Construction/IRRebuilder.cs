@@ -342,11 +342,8 @@ namespace ILGPU.IR.Construction
                 var newBlock = blockMapping[block];
                 foreach (Value value in block)
                 {
-                    if (value is PhiValue phiValue)
+                    if (value is PhiValue phiValue && !valueMapping.ContainsKey(value))
                     {
-                        // Phi must not be defined at this point
-                        phiValue.Assert(!valueMapping.ContainsKey(value));
-
                         // Setup debug information for the current value
                         var phiBuilder = newBlock.CreatePhi(
                             value.Location,

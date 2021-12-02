@@ -189,10 +189,10 @@ namespace ILGPU.Tests
 
         internal static void DoWhileKernel(
             Index1D index,
-            ArrayView1D<int, Stride1D.Dense> data,
-            int counter)
+            ArrayView1D<int, Stride1D.Dense> data)
         {
-            int value = 3;
+            int counter = 4;
+            int value = 13;
             do
             {
                 ++value;
@@ -206,10 +206,65 @@ namespace ILGPU.Tests
         public void DoWhile()
         {
             using var buffer = Accelerator.Allocate1D<int>(Length);
-            Execute(buffer.Length, buffer.View, 38);
+            Execute(buffer.Length, buffer.View);
 
-            var expected = Enumerable.Repeat(42, Length).ToArray();
+            var expected = Enumerable.Repeat(18, Length).ToArray();
             Verify(buffer.View, expected);
+        }
+
+        internal static void DoWhileIncrementKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> data2,
+            ArrayView1D<int, Stride1D.Dense> data3)
+        {
+            int value = 3;
+            int counter = 0;
+            do
+            {
+                ++value;
+            }
+            while (counter++ < 3);
+            data[index] = value;
+
+            int value2 = 1;
+            do
+            {
+                value2 *= 3;
+            }
+            while (counter++ == 5);
+            data2[index] = value2;
+
+            int value3 = 13;
+            do
+            {
+                --value3;
+            }
+            while (counter++ != 8);
+            data3[index] = value3;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(DoWhileIncrementKernel))]
+        public void DoWhileIncrement()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            using var buffer2 = Accelerator.Allocate1D<int>(Length);
+            using var buffer3 = Accelerator.Allocate1D<int>(Length);
+            Execute(
+                buffer.Length,
+                buffer.View,
+                buffer2.View,
+                buffer3.View);
+
+            var expected = Enumerable.Repeat(7, Length).ToArray();
+            Verify(buffer.View, expected);
+
+            var expected2 = Enumerable.Repeat(3, Length).ToArray();
+            Verify(buffer2.View, expected2);
+
+            var expected3 = Enumerable.Repeat(9, Length).ToArray();
+            Verify(buffer3.View, expected3);
         }
 
         internal static void DoWhileConstantKernel(
@@ -390,6 +445,25 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
+        internal static void LoopUnrollingLessEqualKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            for (int i = 0; i <= 2; i++)
+                data[index] = i;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrollingLessEqualKernel))]
+        public void LoopUnrollingLessEqual()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(2, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
         internal static void LoopUnrollingBreakKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -407,6 +481,31 @@ namespace ILGPU.Tests
         [Fact]
         [KernelMethod(nameof(LoopUnrollingBreakKernel))]
         public void LoopUnrollingBreak()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(5, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void LoopUnrollingBreakLessEqualKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int j = 0;
+            for (int i = 0; i <= 4; ++i)
+            {
+                ++j;
+                if (i == 2) break;
+                ++j;
+            }
+            data[index] = j;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrollingBreakLessEqualKernel))]
+        public void LoopUnrollingBreakLessEqual()
         {
             using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
@@ -555,6 +654,92 @@ namespace ILGPU.Tests
 
             var expected = Enumerable.Repeat(13, Length).ToArray();
             Verify(source.View, expected);
+        }
+
+        internal static void LoopUnrolling_ForNotMultipleBounds_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> dataView)
+        {
+            dataView[index] = 0;
+            for (int i = 0; i < 3; i += 2)
+                dataView[index]++;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_ForNotMultipleBounds_Kernel))]
+        public void LoopUnrolling_ForNotMultipleBounds()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(2, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void LoopUnrolling_ForEqualCheck_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> dataView)
+        {
+            dataView[index] = 0;
+            for (int i = 0; i == 6; i++)
+                dataView[index]++;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_ForEqualCheck_Kernel))]
+        public void LoopUnrolling_ForEqualCheck()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(0, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void LoopUnrolling_NotMultipleUpdateValue_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> dataView)
+        {
+            dataView[index] = 0;
+            for (int i = 0; i < 4; i += 2)
+                dataView[index] += i;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_NotMultipleUpdateValue_Kernel))]
+        public void LoopUnrolling_NotMultipleUpdateValue()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(2, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void LoopUnrolling_ModifiedValueUpdate_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> dataView)
+        {
+            dataView[index] = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                dataView[index]++;
+                if (dataView[index] == 2)
+                {
+                    i++;
+                }
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_ModifiedValueUpdate_Kernel))]
+        public void LoopUnrolling_ModifiedValueUpdate()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(4, Length).ToArray();
+            Verify(buffer.View, expected);
         }
 
         private static void LoopViewSwap_Kernel(
