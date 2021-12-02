@@ -20,6 +20,8 @@
 <#
 string rootPath = Host.ResolvePath(".");
 var importFiles = ImportFiles.Load(rootPath, "DllImports.xml");
+
+SetMakeImportNameFunc(importName => $"{importName}_Import");
 #>
 using ILGPU.Resources;
 using System;
@@ -50,14 +52,12 @@ namespace <#= imports.Namespace #>
 
         #region Native Methods
 
-<#      foreach (var entryPoint in imports.EntryPoints) { #>
-        internal abstract <#= entryPoint.ReturnType #> <#= entryPoint.Name #>(
-<#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
-            <#= param #><#= suffix #>
-<#          } #>
-        
-<#      } #>
-
+<#
+        PushIndent(2);
+        foreach (var entryPoint in imports.EntryPoints)
+            WriteMethodDeclaration(entryPoint);
+        PopIndent();
+#>
         #endregion
 
         #region Static
@@ -83,26 +83,12 @@ namespace <#= imports.Namespace #>
     {
         #region Native Methods
 
-<#      foreach (var entryPoint in imports.EntryPoints) { #>
-        [DllImport(LibName<#= platformName #>,
-            EntryPoint = "<#= entryPoint.Name #>"
-<#          if (!entryPoint.BestFitMapping) { #>
-            , BestFitMapping = false
-<#          } if (entryPoint.CharSet != CharSet.Auto) { #>
-            , CharSet = CharSet.<#= entryPoint.CharSet #>
-<#          } if (entryPoint.ThrowOnUnmappableChar) { #>
-            , ThrowOnUnmappableChar = true
-<#          } #>
-        )]
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        internal static extern <#= entryPoint.ReturnType #>
-            <#= entryPoint.Name #>_Import(
-<#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
-            <#= param #><#= suffix #>
-<#          } #>
-        
-<#      } #>
-
+<#
+        PushIndent(2);
+        foreach (var entryPoint in imports.EntryPoints)
+            WriteMethodNativeImport($"LibName{platformName}", entryPoint);
+        PopIndent();
+#>
         #endregion
 
         #region RuntimeAPI
@@ -116,19 +102,12 @@ namespace <#= imports.Namespace #>
 
         #region Implementations
 
-<#      foreach (var entryPoint in imports.EntryPoints) { #>
-        internal sealed override <#= entryPoint.ReturnType #>
-            <#= entryPoint.Name #>(
-<#          foreach (var (param, suffix) in entryPoint.ParamBodyExpressions) { #>
-            <#= param #><#= suffix #>
-<#          } #>
-            <#= entryPoint.Name #>_Import(
-<#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
-            <#= param.ToExprString() #><#= suffix #>
-<#          } #>
-        
-<#      } #>
-
+<#
+        PushIndent(2);
+        foreach (var entryPoint in imports.EntryPoints)
+            WriteMethodImplementation(entryPoint);
+        PopIndent();
+#>
         #endregion
     }
 
