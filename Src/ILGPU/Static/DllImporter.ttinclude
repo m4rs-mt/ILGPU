@@ -11,6 +11,7 @@
 
 <#@ assembly name="System.Core" #>
 <#@ assembly name="System.Xml" #>
+<#@ include file="TextTemplateHelpers.ttinclude" #>
 <#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.IO" #>
@@ -119,6 +120,87 @@ public class Parameter
 
     public string ToExprString() =>
         $"{FlagsExpression}{Name}";
+}
+
+/// <summary>
+/// Sets transformation function for native import method names.
+/// </summary>
+private Func<string, string> _makeImportName = importName => importName;
+public void SetMakeImportNameFunc(Func<string, string> func) =>
+    _makeImportName = func ?? new Func<string, string>(importName => importName);
+
+/// <summary>
+/// Sets transformation function for class method names.
+/// </summary>
+private Func<string, string> _makeMethodName = methodName => methodName;
+public void SetMakeMethodNameFunc(Func<string, string> func) =>
+    _makeMethodName = func ?? new Func<string, string>(methodName => methodName);
+
+/// <summary>
+/// Writes the native import declaration.
+/// </summary>
+public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
+{
+    WriteLine($"[DllImport({libName},");
+    PushIndent();
+    WriteLine($"EntryPoint = \"{entryPoint.Name}\"");
+    if (!entryPoint.BestFitMapping)
+        WriteLine(", BestFitMapping = false");
+    if (entryPoint.CharSet != CharSet.Auto)
+        WriteLine($", CharSet = CharSet.{entryPoint.CharSet}");
+    if (entryPoint.ThrowOnUnmappableChar)
+        WriteLine(", ThrowOnUnmappableChar = true");
+    WriteLine(")]");
+    PopIndent();
+
+    WriteLine("[DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]");
+    Write($"internal static extern {entryPoint.ReturnType}");
+    WriteLine($" {_makeImportName(entryPoint.Name)}(");
+
+    PushIndent();
+    foreach (var (param, suffix) in entryPoint.ParamExpressions)
+        WriteLine($"{param}{suffix}");
+    PopIndent();
+
+    WriteLine();
+}
+
+/// <summary>
+/// Writes the abstract method declaration.
+/// </summary>
+public void WriteMethodDeclaration(EntryPoint entryPoint)
+{
+    Write($"internal abstract {entryPoint.ReturnType}");
+    WriteLine($" {_makeMethodName(entryPoint.Name)}(");
+
+    PushIndent();
+    foreach (var (param, suffix) in entryPoint.ParamExpressions)
+        WriteLine($"{param}{suffix}");
+    PopIndent();
+
+    WriteLine();
+}
+
+/// <summary>
+/// Writes the method implementation of the abstract base method.
+/// </summary>
+public void WriteMethodImplementation(EntryPoint entryPoint)
+{
+    Write($"internal sealed override {entryPoint.ReturnType}");
+    WriteLine($" {_makeMethodName(entryPoint.Name)}(");
+
+    PushIndent();
+    foreach (var (param, suffix) in entryPoint.ParamBodyExpressions)
+        WriteLine($"{param}{suffix}");
+
+    WriteLine($"{_makeImportName(entryPoint.Name)}(");
+    PushIndent();
+    foreach (var (param, suffix) in entryPoint.ParamExpressions)
+        WriteLine($"{param.ToExprString()}{suffix}");
+    PopIndent();
+    PopIndent();
+
+    WriteLine();
 }
 
 #>
