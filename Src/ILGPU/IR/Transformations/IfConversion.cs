@@ -1357,6 +1357,9 @@ namespace ILGPU.IR.Transformations
 
                 // Clear all other blocks to remove all obsolete uses
                 ClearBlocks();
+
+                // Replace the original terminator
+                terminator.Replace(BlockBuilder.CreateUndefined());
             }
 
             /// <summary>

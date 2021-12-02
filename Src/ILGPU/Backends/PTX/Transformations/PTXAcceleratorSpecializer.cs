@@ -112,7 +112,7 @@ namespace ILGPU.Backends.PTX.Transformations
 
             // Create a call to the debug-implementation wrapper while taking the
             // current source location into account
-            var nextBlock = builder.SplitBlock(debugAssert, false);
+            var nextBlock = builder.SplitBlock(debugAssert);
             var innerBlock = methodBuilder.CreateBasicBlock(
                 location,
                 nameof(AssertFailed));
@@ -152,7 +152,7 @@ namespace ILGPU.Backends.PTX.Transformations
             innerBuilder.CreateBranch(location, nextBlock);
 
             // Remove the debug assertion value
-            builder.Remove(debugAssert);
+            debugAssert.Replace(builder.CreateUndefined());
         }
 
         /// <summary>
