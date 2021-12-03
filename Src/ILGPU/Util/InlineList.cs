@@ -321,6 +321,16 @@ namespace ILGPU.Util
         }
 
         /// <summary>
+        /// Pops an element from the back of this list.
+        /// </summary>
+        public T Pop()
+        {
+            var element = items[Count - 1];
+            --Count;
+            return element;
+        }
+
+        /// <summary>
         /// Reverses all items in this list.
         /// </summary>
         public void Reverse() => Array.Reverse(items);
