@@ -221,6 +221,15 @@ namespace ILGPU.IR.Transformations
                 context.Remove(value);
         }
 
+        /// <summary>
+        /// Collects alignment operations (for debugging purposes).
+        /// </summary>
+        private static void Specialize(
+            RewriterContext context,
+            SpecializerData data,
+            AsAligned value) =>
+            data.ToImplement.Add(value);
+
         #endregion
 
         #region Rewriter
@@ -241,6 +250,10 @@ namespace ILGPU.IR.Transformations
 
             Rewriter.Add<DebugAssertOperation>(Specialize);
             Rewriter.Add<WriteToOutput>(Specialize);
+
+            Rewriter.Add<AsAligned>(
+                (data, _) => data.Specializer.EnableAssertions,
+                Specialize);
 
             Rewriter.Add<IntAsPointerCast>(CanSpecialize, Specialize);
             Rewriter.Add<PointerAsIntCast>(CanSpecialize, Specialize);
@@ -327,6 +340,9 @@ namespace ILGPU.IR.Transformations
                     case WriteToOutput write:
                         Implement(context, builder, builder[write.BasicBlock], write);
                         break;
+                    case AsAligned aligned:
+                        Implement(context, builder, builder[aligned.BasicBlock], aligned);
+                        break;
                     default:
                         throw builder.GetInvalidOperationException();
                 }
@@ -363,6 +379,22 @@ namespace ILGPU.IR.Transformations
             BasicBlock.Builder builder,
             WriteToOutput writeToOutput) =>
             builder.Remove(writeToOutput);
+
+        /// <summary>
+        /// Specializes as-aligned operations (if any) for debugging purposes (if
+        /// enabled). Note that this default implementation does not perform any
+        /// operation.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="methodBuilder">The parent method builder.</param>
+        /// <param name="builder">The current block builder.</param>
+        /// <param name="asAligned">The current alignment operation.</param>
+        protected virtual void Implement(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
+            AsAligned asAligned)
+        { }
 
         #endregion
     }

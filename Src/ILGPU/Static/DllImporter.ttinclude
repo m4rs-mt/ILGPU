@@ -11,6 +11,7 @@
 
 <#@ assembly name="System.Core" #>
 <#@ assembly name="System.Xml" #>
+<#@ include file="TextTemplateHelpers.ttinclude" #>
 <#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.IO" #>
@@ -18,88 +19,31 @@
 <#@ import namespace="System.Runtime.InteropServices" #>
 <#@ import namespace="System.Xml.Serialization" #>
 <#+
-[XmlRoot("ImportFiles")]
-public class ImportFiles
-{
-    internal static string[] Load(string rootPath, string fileName) =>
-        XmlHelper.Load<ImportFiles>(rootPath, fileName).Files;
-
-    [XmlElement("File")]
-    public string[] Files { get; set; }
-}
-
-[XmlRoot("Imports")]
-public class Imports
-{
-    internal static Imports Load(string rootPath, string fileName) =>
-        XmlHelper.Load<Imports>(rootPath, fileName);
-
-    [XmlAttribute]
-    public string Namespace { get; set; }
-
-    [XmlAttribute]
-    public string ClassName { get; set; }
-
-    [XmlAttribute]
-    public string DefaultReturnType { get; set; }
-
-    [XmlAttribute]
-    public string NotSupportedException { get; set;}
-
-    [XmlElement("LibraryNames")]
-    public LibraryNames LibraryNames { get; set; }
-
-    [XmlElement("Import")]
-    public EntryPoint[] EntryPoints { get; set; }
-
-    public string GetReturnType(EntryPoint entryPoint) =>
-        entryPoint.ReturnType ?? DefaultReturnType;
-}
-
-public class LibraryNames
-{
-    [XmlElement]
-    public string Windows { get; set; }
-
-    [XmlElement]
-    public string Linux { get; set; }
-
-    [XmlElement]
-    public string MacOS { get; set; }
-
-    [XmlIgnore]
-    public IEnumerable<(string, string)> Platforms
-    {
-        get
-        {
-            yield return (nameof(Windows), Windows);
-            yield return (nameof(Linux), Linux);
-            yield return (nameof(MacOS), MacOS);
-        }
-    }
-
-    public IEnumerable<(int, string)> ToMapping()
-    {
-        var mapping = new Dictionary<string, (int, string)>();
-        foreach (var (name, libName) in Platforms)
-        {
-            if (!mapping.TryGetValue(libName, out var entry))
-            {
-                entry = (mapping.Count, name);
-                mapping.Add(libName, entry);
-            }
-            yield return entry;
-        }
-    }
-}
 
 public class EntryPoint
 {
+    public static readonly string FallbackAccessModifier = "internal";
+
+    public static readonly string FallbackDllImportSearchPath =
+        nameof(System.Runtime.InteropServices.DllImportSearchPath.LegacyBehavior);
+
     [XmlAttribute]
     public string Name { get; set; }
 
     [XmlAttribute]
+    public string DisplayName { get; set; }
+
+    [XmlAttribute]
     public string ReturnType { get; set; }
+
+    [XmlAttribute]
+    public string AccessModifier { get; set; }
+    
+    [XmlAttribute]
+    public string DllImportSearchPath { get; set; }
+
+    [XmlAttribute]
+    public bool Unsafe { get; set; } = false;
 
     [XmlAttribute]
     public CharSet CharSet { get; set; } = CharSet.Auto;
@@ -193,6 +137,98 @@ public class Parameter
 
     public string ToExprString() =>
         $"{FlagsExpression}{Name}";
+}
+
+/// <summary>
+/// Sets transformation function for native import method names.
+/// </summary>
+private Func<string, string> _makeImportName = importName => importName;
+public void SetMakeImportNameFunc(Func<string, string> func) =>
+    _makeImportName = func ?? new Func<string, string>(importName => importName);
+
+/// <summary>
+/// Sets transformation function for class method names.
+/// </summary>
+private Func<string, string> _makeMethodName = methodName => methodName;
+public void SetMakeMethodNameFunc(Func<string, string> func) =>
+    _makeMethodName = func ?? new Func<string, string>(methodName => methodName);
+
+/// <summary>
+/// Writes the native import declaration.
+/// </summary>
+public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
+{
+    WriteLine($"[DllImport({libName},");
+    PushIndent();
+    WriteLine($"EntryPoint = \"{entryPoint.Name}\"");
+    if (!entryPoint.BestFitMapping)
+        WriteLine(", BestFitMapping = false");
+    if (entryPoint.CharSet != CharSet.Auto)
+        WriteLine($", CharSet = CharSet.{entryPoint.CharSet}");
+    if (entryPoint.ThrowOnUnmappableChar)
+        WriteLine(", ThrowOnUnmappableChar = true");
+    WriteLine(")]");
+    PopIndent();
+
+    Write("[DefaultDllImportSearchPaths(DllImportSearchPath.");
+    Write(entryPoint.DllImportSearchPath ?? EntryPoint.FallbackDllImportSearchPath);
+    WriteLine(")]");
+    Write("internal");
+    if (entryPoint.Unsafe)
+        Write(" unsafe");
+    Write($" static extern {entryPoint.ReturnType}");
+    WriteLine($" {_makeImportName(entryPoint.Name)}(");
+
+    PushIndent();
+    foreach (var (param, suffix) in entryPoint.ParamExpressions)
+        WriteLine($"{param}{suffix}");
+    PopIndent();
+
+    WriteLine();
+}
+
+/// <summary>
+/// Writes the abstract method declaration.
+/// </summary>
+public void WriteMethodDeclaration(EntryPoint entryPoint)
+{
+    Write(entryPoint.AccessModifier ?? EntryPoint.FallbackAccessModifier);
+    if (entryPoint.Unsafe)
+        Write(" unsafe");
+    Write($" abstract {entryPoint.ReturnType}");
+    WriteLine($" {entryPoint.DisplayName ?? _makeMethodName(entryPoint.Name)}(");
+
+    PushIndent();
+    foreach (var (param, suffix) in entryPoint.ParamExpressions)
+        WriteLine($"{param}{suffix}");
+    PopIndent();
+
+    WriteLine();
+}
+
+/// <summary>
+/// Writes the method implementation of the abstract base method.
+/// </summary>
+public void WriteMethodImplementation(EntryPoint entryPoint)
+{
+    Write(entryPoint.AccessModifier ?? EntryPoint.FallbackAccessModifier);
+    if (entryPoint.Unsafe)
+        Write(" unsafe");
+    Write($" sealed override {entryPoint.ReturnType}");
+    WriteLine($" {entryPoint.DisplayName ?? _makeMethodName(entryPoint.Name)}(");
+
+    PushIndent();
+    foreach (var (param, suffix) in entryPoint.ParamBodyExpressions)
+        WriteLine($"{param}{suffix}");
+
+    WriteLine($"{_makeImportName(entryPoint.Name)}(");
+    PushIndent();
+    foreach (var (param, suffix) in entryPoint.ParamExpressions)
+        WriteLine($"{param.ToExprString()}{suffix}");
+    PopIndent();
+    PopIndent();
+
+    WriteLine();
 }
 
 #>
