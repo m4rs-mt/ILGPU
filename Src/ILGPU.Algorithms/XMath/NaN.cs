@@ -50,5 +50,23 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsInfinity(float value) =>
             IntrinsicMath.CPUOnly.IsInfinity(value);
+
+        /// <summary>
+        /// Returns true iff the given value is finite.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>True, iff the given value is finite.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFinite(double value) =>
+            IntrinsicMath.CPUOnly.IsFinite(value);
+
+        /// <summary>
+        /// Returns true iff the given value is finite.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>True, iff the given value is finite.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFinite(float value) =>
+            IntrinsicMath.CPUOnly.IsFinite(value);
     }
 }

@@ -82,6 +82,12 @@
         <Call>IntrinsicMath.CPUOnly.IsInfinity</Call>
         <Implementation>{TypeName}.IsInfinity({Value0})</Implementation>
     </Operation>
+    <Operation Name="IsFinF" IsPredicate="true">
+        <Summary>The is-finite operation.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.IsFinite</Call>
+        <Implementation>!IsNaN({Value0}) &amp;&amp; !IsInfinity({Value0})</Implementation>
+    </Operation>
 
     <Operation Name="SqrtF">
         <Summary>Computes sqrt(value).</Summary>

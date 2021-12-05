@@ -306,6 +306,10 @@ namespace ILGPU.Backends.OpenCL
 
                 { (UnaryArithmeticKind.IsNaNF, CLUnaryCategory.Float), ("isnan", true) },
                 { (UnaryArithmeticKind.IsInfF, CLUnaryCategory.Float), ("isinf", true) },
+                {
+                    (UnaryArithmeticKind.IsFinF, CLUnaryCategory.Float),
+                    ("isfinite", true)
+                },
 
                 { (UnaryArithmeticKind.SqrtF, CLUnaryCategory.Float), ("sqrt", true) },
                 { (UnaryArithmeticKind.RsqrtF, CLUnaryCategory.Float), ("rsqrt", true) },

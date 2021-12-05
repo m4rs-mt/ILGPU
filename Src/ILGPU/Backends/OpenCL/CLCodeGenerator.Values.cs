@@ -68,10 +68,14 @@ namespace ILGPU.Backends.OpenCL
         public void GenerateCode(UnaryArithmeticValue value)
         {
             var argument = Load(value.Value);
-            var target = Allocate(value, value.ArithmeticBasicValueType);
+            var target = Allocate(
+                value,
+                value.BasicValueType == BasicValueType.Int1
+                ? ArithmeticBasicValueType.UInt1 : value.ArithmeticBasicValueType);
 
             using var statement = BeginStatement(target);
-            statement.AppendCast(value.ArithmeticBasicValueType);
+            if (value.BasicValueType != BasicValueType.Int1)
+                statement.AppendCast(value.ArithmeticBasicValueType);
             var operation = CLInstructions.GetArithmeticOperation(
                 value.Kind,
                 value.ArithmeticBasicValueType,

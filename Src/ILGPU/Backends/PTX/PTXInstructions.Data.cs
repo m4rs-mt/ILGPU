@@ -423,6 +423,9 @@ namespace ILGPU.Backends.PTX
                 { (UnaryArithmeticKind.IsInfF, ArithmeticBasicValueType.Float32), "testp.infinite.f32" },
                 { (UnaryArithmeticKind.IsInfF, ArithmeticBasicValueType.Float64), "testp.infinite.f64" },
 
+                { (UnaryArithmeticKind.IsFinF, ArithmeticBasicValueType.Float32), "testp.finite.f32" },
+                { (UnaryArithmeticKind.IsFinF, ArithmeticBasicValueType.Float64), "testp.finite.f64" },
+
                 { (UnaryArithmeticKind.SqrtF, ArithmeticBasicValueType.Float32), "sqrt.rn.f32" },
                 { (UnaryArithmeticKind.SqrtF, ArithmeticBasicValueType.Float64), "sqrt.rn.f64" },
 

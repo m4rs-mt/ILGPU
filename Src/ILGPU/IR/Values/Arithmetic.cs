@@ -163,8 +163,9 @@ namespace ILGPU.IR.Values
             var type = Value.Type;
             switch (Kind)
             {
-                case UnaryArithmeticKind.IsInfF:
                 case UnaryArithmeticKind.IsNaNF:
+                case UnaryArithmeticKind.IsInfF:
+                case UnaryArithmeticKind.IsFinF:
                     type = initializer.Context.GetPrimitiveType(
                         BasicValueType.Int1);
                     break;
