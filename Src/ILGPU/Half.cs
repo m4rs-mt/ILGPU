@@ -76,8 +76,16 @@ namespace ILGPU
         /// </summary>
         /// <param name="half">The half value.</param>
         /// <returns>True, if the given half value represents infinity.</returns>
-        [MathIntrinsic(MathIntrinsicKind.IsInfF)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsInfinity(Half half) => HalfExtensions.IsInfinity(half);
+
+        /// <summary>
+        /// Returns true if the given half value represents a finite number.
+        /// </summary>
+        /// <param name="half">The half value.</param>
+        /// <returns>True, if the given half value represents a finite number.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFinite(Half half) => HalfExtensions.IsFinite(half);
 
         #endregion
 
@@ -381,6 +389,14 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsInfinity(Half half) =>
             (half.RawValue & ExponentMantissaMask) == ExponentMask;
+
+        /// <summary>
+        /// Returns true if the given half value represents a finite number.
+        /// </summary>
+        /// <param name="half">The half value.</param>
+        /// <returns>True, if the given half value represents a finite number.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFinite(Half half) => !IsNaN(half) & !IsInfinity(half);
 
         /// <summary>
         /// Implements a FP16 addition using FP32.
