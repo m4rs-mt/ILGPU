@@ -250,10 +250,10 @@ namespace ILGPU.IR.Analyses
             {
                 case Alloca alloca:
                     return AllocaAlignments.GetInitialAlignment(alloca);
-                case AlignViewTo alignTo:
+                case BaseAlignOperationValue alignment:
                     // Use a compile-time known alignment constant for the alignment
                     // information instead of type-based alignment reasoning
-                    return alignTo.GetAlignmentConstant();
+                    return alignment.GetAlignmentConstant();
                 case NewView _:
                 case BaseAddressSpaceCast _:
                 case SubViewValue _:
@@ -302,6 +302,28 @@ namespace ILGPU.IR.Analyses
         #endregion
 
         #region Merging
+
+        /// <summary>
+        /// Computes merged alignment information of the given
+        /// <see cref="BaseAlignOperationValue"/> node.
+        /// </summary>
+        private static AnalysisValue<int> MergeAlignmentValue<TContext>(
+            BaseAlignOperationValue align,
+            TContext context)
+            where TContext : IAnalysisValueContext<int>
+        {
+            // Determine the base alignment of the input address
+            int baseAlignment = context[align.Source].Data;
+
+            // Simply assume the specified alignment information
+            int newAlignment = align.GetAlignmentConstant();
+
+            // Take the maximum of both values to compensate cases in which the alignment
+            // constant could not be properly resolved at compile time
+            return CreateValue(
+                Math.Max(baseAlignment, newAlignment),
+                align.Type);
+        }
 
         /// <summary>
         /// Computes merged alignment information of the given
@@ -357,14 +379,16 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
-        /// Returns merged information about <see cref="LoadFieldAddress"/> and
-        /// <see cref="LoadElementAddress"/> IR nodes.
+        /// Returns merged information about <see cref="LoadFieldAddress"/>,
+        /// <see cref="LoadElementAddress"/> and <see cref="BaseAlignOperationValue"/> IR
+        /// nodes.
         /// </summary>
         protected override AnalysisValue<int>? TryMerge<TContext>(
             Value value,
             TContext context) =>
             value switch
             {
+                BaseAlignOperationValue align => MergeAlignmentValue(align, context),
                 LoadFieldAddress lfa => MergeLoadFieldAddress(lfa, context),
                 LoadElementAddress lea => MergeLoadElementAddress(lea, context),
                 _ => null,

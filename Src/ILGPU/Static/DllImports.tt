@@ -20,6 +20,8 @@
 <#
 string rootPath = Host.ResolvePath(".");
 var importFiles = ImportFiles.Load(rootPath, "DllImports.xml");
+
+SetMakeImportNameFunc(importName => $"{importName}_Import");
 #>
 using ILGPU.Resources;
 using System;
@@ -50,14 +52,12 @@ namespace <#= imports.Namespace #>
 
         #region Native Methods
 
-<#      foreach (var entryPoint in imports.EntryPoints) { #>
-        internal abstract <#= imports.GetReturnType(entryPoint) #> <#= entryPoint.Name #>(
-<#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
-            <#= param #><#= suffix #>
-<#          } #>
-        
-<#      } #>
-
+<#
+        PushIndent(2);
+        foreach (var entryPoint in imports.EntryPoints)
+            WriteMethodDeclaration(entryPoint);
+        PopIndent();
+#>
         #endregion
 
         #region Static
@@ -83,26 +83,12 @@ namespace <#= imports.Namespace #>
     {
         #region Native Methods
 
-<#      foreach (var entryPoint in imports.EntryPoints) { #>
-        [DllImport(LibName<#= platformName #>,
-            EntryPoint = "<#= entryPoint.Name #>"
-<#          if (!entryPoint.BestFitMapping) { #>
-            , BestFitMapping = false
-<#          } if (entryPoint.CharSet != CharSet.Auto) { #>
-            , CharSet = CharSet.<#= entryPoint.CharSet #>
-<#          } if (entryPoint.ThrowOnUnmappableChar) { #>
-            , ThrowOnUnmappableChar = true
-<#          } #>
-        )]
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        internal static extern <#= imports.GetReturnType(entryPoint) #>
-            <#= entryPoint.Name #>_Import(
-<#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
-            <#= param #><#= suffix #>
-<#          } #>
-        
-<#      } #>
-
+<#
+        PushIndent(2);
+        foreach (var entryPoint in imports.EntryPoints)
+            WriteMethodNativeImport($"LibName{platformName}", entryPoint);
+        PopIndent();
+#>
         #endregion
 
         #region RuntimeAPI
@@ -116,19 +102,12 @@ namespace <#= imports.Namespace #>
 
         #region Implementations
 
-<#      foreach (var entryPoint in imports.EntryPoints) { #>
-        internal sealed override <#= imports.GetReturnType(entryPoint) #>
-            <#= entryPoint.Name #>(
-<#          foreach (var (param, suffix) in entryPoint.ParamBodyExpressions) { #>
-            <#= param #><#= suffix #>
-<#          } #>
-            <#= entryPoint.Name #>_Import(
-<#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
-            <#= param.ToExprString() #><#= suffix #>
-<#          } #>
-        
-<#      } #>
-
+<#
+        PushIndent(2);
+        foreach (var entryPoint in imports.EntryPoints)
+            WriteMethodImplementation(entryPoint);
+        PopIndent();
+#>
         #endregion
     }
 
@@ -150,7 +129,7 @@ namespace <#= imports.Namespace #>
         #region Implementations
 
 <#      foreach (var entryPoint in imports.EntryPoints) { #>
-        internal sealed override <#= imports.GetReturnType(entryPoint) #>
+        internal sealed override <#= entryPoint.ReturnType #>
             <#= entryPoint.Name #>(
 <#          foreach (var (param, suffix) in entryPoint.ParamBodyExpressions) { #>
             <#= param #><#= suffix #>
@@ -167,3 +146,87 @@ namespace <#= imports.Namespace #>
 
 #pragma warning restore CA5393 // Do not use unsafe DllImportSearchPath value
 #pragma warning restore IDE1006 // Naming
+
+<#+
+
+[XmlRoot("ImportFiles")]
+public class ImportFiles
+{
+    internal static string[] Load(string rootPath, string fileName) =>
+        XmlHelper.Load<ImportFiles>(rootPath, fileName).Files;
+
+    [XmlElement("File")]
+    public string[] Files { get; set; }
+}
+
+[XmlRoot("Imports")]
+public class Imports
+{
+    internal static Imports Load(string rootPath, string fileName)
+    {
+        var imports = XmlHelper.Load<Imports>(rootPath, fileName);
+
+        // Setup default return types.
+        foreach (var entryPoint in imports.EntryPoints)
+            entryPoint.ReturnType ??= imports.DefaultReturnType;
+
+        return imports;
+    }
+
+    [XmlAttribute]
+    public string Namespace { get; set; }
+
+    [XmlAttribute]
+    public string ClassName { get; set; }
+
+    [XmlAttribute]
+    public string DefaultReturnType { get; set; }
+
+    [XmlAttribute]
+    public string NotSupportedException { get; set;}
+
+    [XmlElement("LibraryNames")]
+    public LibraryNames LibraryNames { get; set; }
+
+    [XmlElement("Import")]
+    public EntryPoint[] EntryPoints { get; set; }
+}
+
+public class LibraryNames
+{
+    [XmlElement]
+    public string Windows { get; set; }
+
+    [XmlElement]
+    public string Linux { get; set; }
+
+    [XmlElement]
+    public string MacOS { get; set; }
+
+    [XmlIgnore]
+    public IEnumerable<(string, string)> Platforms
+    {
+        get
+        {
+            yield return (nameof(Windows), Windows);
+            yield return (nameof(Linux), Linux);
+            yield return (nameof(MacOS), MacOS);
+        }
+    }
+
+    public IEnumerable<(int, string)> ToMapping()
+    {
+        var mapping = new Dictionary<string, (int, string)>();
+        foreach (var (name, libName) in Platforms)
+        {
+            if (!mapping.TryGetValue(libName, out var entry))
+            {
+                entry = (mapping.Count, name);
+                mapping.Add(libName, entry);
+            }
+            yield return entry;
+        }
+    }
+}
+
+#>

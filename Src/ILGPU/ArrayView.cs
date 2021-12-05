@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
+using ILGPU.Resources;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
@@ -407,6 +408,21 @@ namespace ILGPU
             new ArrayView<byte>(Buffer, GetIndexInBytes(), LengthInBytes);
 
         /// <summary>
+        /// Computes the number of unaligned elements in this view while taking the given
+        /// alignment into account.
+        /// </summary>
+        /// <param name="alignmentInBytes">The alignment in bytes.</param>
+        /// <returns>The number of unaligned elements to skip.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private readonly long ComputeNumUnalignedElementsToSkip(int alignmentInBytes)
+        {
+            long alignmentOffset = Interop.ComputeAlignmentOffset(
+                LoadEffectiveAddressAsPtr().ToInt64(),
+                alignmentInBytes);
+            return IntrinsicMath.Min(alignmentOffset / Interop.SizeOf<T>(), Length);
+        }
+
+        /// <summary>
         /// Aligns the current array view to the given alignment in bytes and returns a
         /// view spanning the initial unaligned parts of the current view and another
         /// view (main) spanning the remaining aligned elements of the current view.
@@ -418,19 +434,27 @@ namespace ILGPU
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [ViewIntrinsic(ViewIntrinsicKind.AlignTo)]
-        internal readonly unsafe (ArrayView<T> prefix, ArrayView<T> main)
-            AlignToInternal(
+        internal readonly (ArrayView<T> Prefix, ArrayView<T> Main) AlignToInternal(
             int alignmentInBytes)
         {
-            long elementsToSkip = IntrinsicMath.Min(
-                Interop.ComputeAlignmentOffset(
-                    LoadEffectiveAddressAsPtr().ToInt64(),
-                    alignmentInBytes) / Interop.SizeOf<T>(),
-                Length);
-
+            long elementsToSkip = ComputeNumUnalignedElementsToSkip(alignmentInBytes);
             return (
                 new ArrayView<T>(Buffer, 0, elementsToSkip),
                 new ArrayView<T>(Buffer, elementsToSkip, Length - elementsToSkip));
+        }
+
+        /// <summary>
+        /// Performs an assertion check to verify the alignment of the given array view.
+        /// </summary>
+        /// <returns>The given input view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [ViewIntrinsic(ViewIntrinsicKind.AsAligned)]
+        internal readonly ArrayView<T> AsAlignedInternal(int alignmentInBytes)
+        {
+            Trace.Assert(
+                ComputeNumUnalignedElementsToSkip(alignmentInBytes) == 0,
+                RuntimeErrorMessages.InvalidlyAssumedPointerOrViewAlignment);
+            return this;
         }
 
         /// <summary>
