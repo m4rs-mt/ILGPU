@@ -1,0 +1,35 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: TextTemplateHelpers.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#+
+
+/// <summary>
+/// Writes a blank line.
+/// The T4 implementation does not provide this overload.
+/// </summary>
+public void WriteLine() =>
+    WriteLine("");
+
+/// <summary>
+/// Pushes a single 4 space indent.
+/// </summary>
+public void PushIndent() =>
+    PushIndent(1);
+
+/// <summary>
+/// Pushes a single indent as multiple of 4 spaces.
+/// </summary>
+public void PushIndent(int width) =>
+    PushIndent(new string(Enumerable.Repeat(' ', width * 4).ToArray()));
+
+#>

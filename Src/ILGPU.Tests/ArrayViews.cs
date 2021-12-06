@@ -841,16 +841,26 @@ namespace ILGPU.Tests
             T element)
             where T : unmanaged
         {
-            var (prefix, main) = data.AlignTo(alignmentInBytes);
+            var sourceAlignment = data.AsAligned(Interop.SizeOf<T>());
+            var (prefix, main) = sourceAlignment.AlignTo(alignmentInBytes);
 
             prefixLength[index] = prefix.Length;
             mainLength[index] = main.Length;
 
             if (index < prefix.Length)
-                prefix[index] = element;
+            {
+                var unalignedPrefix = prefix.AsAligned(1);
+                unalignedPrefix[index] = element;
+            }
 
             Trace.Assert(main.Length > 0);
-            main[index] = element;
+
+            // Ensure that the main view is aligned
+            if (index < main.Length)
+            {
+                var mainAligned = main.AsAligned(alignmentInBytes);
+                mainAligned[index] = element;
+            }
         }
 
         public static TheoryData<object, object> AlignToData =>

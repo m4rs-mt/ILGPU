@@ -32,7 +32,8 @@ namespace ILGPU.Frontend.Intrinsic
         GetViewLongExtent,
         GetStride,
         GetViewElementAddressByIndex,
-        AlignTo
+        AlignTo,
+        AsAligned
     }
 
     /// <summary>
@@ -135,7 +136,12 @@ namespace ILGPU.Frontend.Intrinsic
                             context[paramOffset++],
                             new FieldAccess(0))),
                 ViewIntrinsicKind.AlignTo =>
-                    builder.CreateAlignViewTo(
+                    builder.CreateAlignTo(
+                        location,
+                        instanceValue,
+                        context[paramOffset++]),
+                ViewIntrinsicKind.AsAligned =>
+                    builder.CreateAsAligned(
                         location,
                         instanceValue,
                         context[paramOffset++]),
