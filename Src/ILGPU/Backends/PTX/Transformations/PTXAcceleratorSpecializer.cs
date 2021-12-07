@@ -11,10 +11,10 @@
 
 using ILGPU.Frontend;
 using ILGPU.IR;
-using ILGPU.IR.Rewriting;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using ILGPU.Runtime;
 using System.Reflection;
 using System.Text;
@@ -112,7 +112,7 @@ namespace ILGPU.Backends.PTX.Transformations
 
             // Create a call to the debug-implementation wrapper while taking the
             // current source location into account
-            var nextBlock = builder.SplitBlock(debugAssert, false);
+            var nextBlock = builder.SplitBlock(debugAssert);
             var innerBlock = methodBuilder.CreateBasicBlock(
                 location,
                 nameof(AssertFailed));
@@ -152,7 +152,7 @@ namespace ILGPU.Backends.PTX.Transformations
             innerBuilder.CreateBranch(location, nextBlock);
 
             // Remove the debug assertion value
-            builder.Remove(debugAssert);
+            debugAssert.Replace(builder.CreateUndefined());
         }
 
         /// <summary>
@@ -213,6 +213,52 @@ namespace ILGPU.Backends.PTX.Transformations
             // Replace the write node with the call
             callBuilder.Seal();
             builder.Remove(writeToOutput);
+        }
+
+        /// <summary>
+        /// Maps internal <see cref="AsAligned"/> values to a debug assertion while
+        /// preserving the <see cref="AsAligned"/> value.
+        /// </summary>
+        protected override void Implement(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
+            AsAligned asAligned)
+        {
+            // Preserve the asAligned operation
+            if (!EnableAssertions)
+                return;
+
+            // Check the actual pointer alignment
+            var location = asAligned.Location;
+            var comparison = builder.CreateCompare(
+                location,
+                builder.CreateArithmetic(
+                    location,
+                    builder.CreatePointerAsIntCast(
+                        location,
+                        asAligned.Source,
+                        IntPointerType.BasicValueType),
+                    builder.CreateConvert(
+                        location,
+                        asAligned.AlignmentInBytes,
+                        IntPointerType.BasicValueType),
+                    BinaryArithmeticKind.Rem),
+                builder.CreatePrimitiveValue(
+                    location,
+                    IntPointerType.BasicValueType,
+                    0L),
+                CompareKind.Equal);
+
+            // Create the debug assertion
+            Value assert = builder.CreateDebugAssert(
+                location,
+                comparison,
+                builder.CreatePrimitiveValue(
+                    location,
+                    RuntimeErrorMessages.InvalidlyAssumedPointerOrViewAlignment));
+            if (assert is DebugAssertOperation assertOperation)
+                Implement(context, methodBuilder, builder, assertOperation);
         }
 
         #endregion
