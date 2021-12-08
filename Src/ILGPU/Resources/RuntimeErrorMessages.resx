@@ -165,6 +165,9 @@
   <data name="InvalidKernelSpecializationGroupSize" xml:space="preserve">
     <value>The given kernel specialization is not compatible with the defined group size.</value>
   </data>
+  <data name="InvalidlyAssumedPointerOrViewAlignment" xml:space="preserve">
+    <value>Invalidly assumed pointer or view orientation</value>
+  </data>
   <data name="InvalidNumberOfUniformArgs" xml:space="preserve">
     <value>The number of provided arguments does not match the required length</value>
   </data>

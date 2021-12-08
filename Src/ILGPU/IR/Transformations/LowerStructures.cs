@@ -601,7 +601,7 @@ namespace ILGPU.IR.Transformations
         {
             // Keep particular values that cannot be rewritten by this pass
             rewriter.Add<Parameter>((_, value) => value.Type.IsStructureType, Keep);
-            rewriter.Add<AlignViewTo>(Keep);
+            rewriter.Add<AlignTo>((_, value) => value.Type.IsStructureType, Keep);
 
             // Rewrite known values
             rewriter.Add<NullValue>((_, value) => value.Type.IsStructureType, Lower);

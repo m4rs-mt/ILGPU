@@ -353,7 +353,7 @@ namespace ILGPU.IR
             get => parent as BasicBlock;
             internal set
             {
-                this.Assert(parent.IsBasicBlock);
+                this.Assert(value.IsBasicBlock);
                 parent = value;
             }
         }

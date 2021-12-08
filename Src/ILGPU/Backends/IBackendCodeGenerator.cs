@@ -193,6 +193,18 @@ namespace ILGPU.Backends
         /// Generates code for the given value.
         /// </summary>
         /// <param name="value">The node.</param>
+        void GenerateCode(AlignTo value);
+
+        /// <summary>
+        /// Generates code for the given value.
+        /// </summary>
+        /// <param name="value">The node.</param>
+        void GenerateCode(AsAligned value);
+
+        /// <summary>
+        /// Generates code for the given value.
+        /// </summary>
+        /// <param name="value">The node.</param>
         void GenerateCode(PrimitiveValue value);
 
         /// <summary>
@@ -480,9 +492,13 @@ namespace ILGPU.Backends
             public void Visit(NewView value) =>
                 throw new InvalidCodeGenerationException();
 
-            /// <summary cref="IValueVisitor.Visit(AlignViewTo)"/>
-            public void Visit(AlignViewTo value) =>
-                throw new InvalidCodeGenerationException();
+            /// <summary cref="IValueVisitor.Visit(AlignTo)"/>
+            public void Visit(AlignTo value) =>
+                CodeGenerator.GenerateCode(value);
+
+            /// <summary cref="IValueVisitor.Visit(AsAligned)"/>
+            public void Visit(AsAligned value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(GetViewLength)"/>
             public void Visit(GetViewLength value) =>
