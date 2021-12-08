@@ -29,6 +29,7 @@ using System.Runtime.InteropServices;
 
 #pragma warning disable CA5393 // Do not use unsafe DllImportSearchPath value
 #pragma warning disable IDE1006 // Naming
+#pragma warning disable CA2101 // Specify marshaling for P/Invoke string arguments
 
 <# foreach (var importFile in importFiles) { #>
 <#      var imports = Imports.Load(rootPath, importFile); #>
@@ -144,6 +145,7 @@ namespace <#= imports.Namespace #>
 
 <# } #>
 
+#pragma warning restore CA2101 // Specify marshaling for P/Invoke string arguments
 #pragma warning restore CA5393 // Do not use unsafe DllImportSearchPath value
 #pragma warning restore IDE1006 // Naming
 

@@ -183,7 +183,11 @@ namespace ILGPU.Frontend.Intrinsic
                 else if (part.StartsWith("%", StringComparison.Ordinal))
                 {
                     // Check whether the argument can be resolved to an integer.
+#if NETFRAMEWORK
                     if (int.TryParse(part.Substring(1), out int argument))
+#else
+                    if (int.TryParse(part[1..], out int argument))
+#endif
                     {
                         result.Add(new FormatExpression(argument));
                     }
