@@ -522,6 +522,9 @@ namespace ILGPU.IR.Transformations
                 // values
                 loopSpecializer.ReplaceValues();
 
+                // Clear the loop header
+                builder[loopInfo.Header].Clear();
+
                 // Clear all old body blocks to remove all old uses
                 loopSpecializer.ClearBody();
             }

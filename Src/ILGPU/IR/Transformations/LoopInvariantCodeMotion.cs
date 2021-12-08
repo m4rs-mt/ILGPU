@@ -14,6 +14,7 @@ using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Loop = ILGPU.IR.Analyses.Loops<
@@ -91,6 +92,7 @@ namespace ILGPU.IR.Transformations
                                 return ReturnNotInvariant(phiValue);
                         }
                         break;
+                    case MethodCall _:
                     case MemoryValue _:
                         // Values with side effects cannot be moved out of loops
                         return false;
@@ -109,6 +111,66 @@ namespace ILGPU.IR.Transformations
             }
 
             #endregion
+        }
+
+        /// <summary>
+        /// A helper structure to move values around
+        /// </summary>
+        private struct Mover
+        {
+            private readonly HashSet<Value> visited;
+            private InlineList<Value> toMove;
+
+            /// <summary>
+            /// Initializes a new mover.
+            /// </summary>
+            /// <param name="numBlocks">The number of blocks of the parent loop.</param>
+            public Mover(int numBlocks)
+            {
+                visited = new HashSet<Value>();
+                toMove = InlineList<Value>.Create(numBlocks << 1);
+            }
+
+            /// <summary>
+            /// Registers the given value to be moved later.
+            /// </summary>
+            /// <param name="value">The value to be moved.</param>
+            public void Add(Value value)
+            {
+                visited.Add(value);
+                toMove.Add(value);
+            }
+
+            /// <summary>
+            /// Returns a span to iterate over all values to be moved.
+            /// </summary>
+            public readonly ReadOnlySpan<Value> ToMove => toMove.AsReadOnlySpan();
+
+            /// <summary>
+            /// Checks whether given value should be actually moved out of the loop.
+            /// </summary>
+            /// <param name="value">The value to check.</param>
+            /// <returns>True, if the given value should be moved.</returns>
+            public readonly bool ShouldBeMoved(Value value)
+            {
+                // Check whether the given value is scheduled to be moved
+                if (!visited.Contains(value))
+                    return false;
+
+                // Check whether this value is a constant and should not be moved out of
+                // the loop due to direct dependencies which will not be moved out of the
+                // current loop
+                if (value is ConstantNode)
+                {
+                    foreach (Value use in value.Uses)
+                    {
+                        if (ShouldBeMoved(use))
+                            return true;
+                    }
+                    return false;
+                }
+                return true;
+            }
         }
 
         /// <summary>
@@ -165,7 +227,7 @@ namespace ILGPU.IR.Transformations
 
             // Get the initial entry builder to move all values to
             var entry = loop.Entries[0];
-            var toMove = InlineList<Value>.Create(blocks.Count << 1);
+            var mover = new Mover(blocks.Count);
 
             // Traverse all blocks in reverse post order to move all values without
             // violating any SSA properties
@@ -177,16 +239,20 @@ namespace ILGPU.IR.Transformations
                 {
                     // Move out of the loop if this value is loop invariant
                     if (invariance.IsLoopInvariant(value))
-                        toMove.Add(value);
+                        mover.Add(value);
                 }
             }
 
             // Move values
             var entryBuilder = builder[entry];
-            foreach (var valueToMove in toMove)
-                entryBuilder.AddFromOtherBlock(valueToMove);
+            foreach (var valueToMove in mover.ToMove)
+            {
+                // Check whether this value should be moved out of the current loop
+                if (mover.ShouldBeMoved(valueToMove))
+                    entryBuilder.AddFromOtherBlock(valueToMove);
+            }
 
-            return toMove.Count > 0;
+            return mover.ToMove.Length > 0;
         }
 
         #endregion

@@ -375,6 +375,31 @@ namespace ILGPU.IR
                             Assert(value, values.Contains(node));
                         }
                     }
+
+                    // Check the terminator value
+                    Assert(block.Terminator, values.Add(block.Terminator));
+                    foreach (Value node in block.Terminator.Nodes)
+                    {
+                        if (node is UndefinedValue)
+                            continue;
+                        Assert(block.Terminator, values.Contains(node));
+                    }
+                }
+
+                // Check all uses
+                foreach (var block in Method.Blocks)
+                {
+                    // Bind value and check for defined operands
+                    foreach (Value value in block)
+                    {
+                        // Check for defined uses
+                        foreach (Value use in value.Uses)
+                        {
+                            if (use.Method != value.Method)
+                                continue;
+                            Assert(value, values.Contains(use));
+                        }
+                    }
                 }
             }
 
