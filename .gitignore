@@ -278,8 +278,10 @@ Src/ILGPU.Algorithms/HistogramOperations.cs
 Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
 Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
 Src/ILGPU.Algorithms/RadixSortOperations.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/CuRandNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/CuBlasNativeMethods.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTWAPI.Generated.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTWNativeMethods.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuRandNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/NvmlNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel1.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel2.cs
