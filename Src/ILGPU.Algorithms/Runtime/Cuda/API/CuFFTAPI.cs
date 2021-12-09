@@ -11,6 +11,8 @@
 
 using System;
 
+// disable: max_line_length
+
 namespace ILGPU.Runtime.Cuda.API
 {
     /// <summary>
@@ -471,7 +473,8 @@ namespace ILGPU.Runtime.Cuda.API
         #region Refined Estimated Size Of Work Area
 
         /// <summary>
-        /// Estimates the work area for a 1D plan.
+        /// Provides a more accurate estimate of the work area for a 1D plan than
+        /// <see cref="Estimate1D(int, CuFFTType, int, Span{UIntPtr})"/>.
         /// </summary>
         /// <param name="plan">The plan handle.</param>
         /// <param name="nx">The transform size.</param>
@@ -498,7 +501,8 @@ namespace ILGPU.Runtime.Cuda.API
         }
 
         /// <summary>
-        /// Estimates the work area for a 2D plan.
+        /// Provides a more accurate estimate of the work area for a 2D plan than
+        /// <see cref="Estimate2D(int, int, CuFFTType, Span{UIntPtr})"/>.
         /// </summary>
         /// <param name="plan">The plan handle.</param>
         /// <param name="nx">The transform size in the x dimension.</param>
@@ -525,7 +529,8 @@ namespace ILGPU.Runtime.Cuda.API
         }
 
         /// <summary>
-        /// Estimates the work area for a 3D plan.
+        /// Provides a more accurate estimate of the work area for a 3D plan than
+        /// <see cref="Estimate3D(int, int, int, CuFFTType, Span{UIntPtr})"/>.
         /// </summary>
         /// <param name="plan">The plan handle.</param>
         /// <param name="nx">The transform size in the x dimension.</param>
@@ -555,7 +560,8 @@ namespace ILGPU.Runtime.Cuda.API
         }
 
         /// <summary>
-        /// Estimates the work area for a custom plan.
+        /// Provides a more accurate estimate of the work area for a custom plan than
+        /// <see cref="EstimateMany(int, ReadOnlySpan{int}, ReadOnlySpan{int}, int, int, Span{int}, int, int, CuFFTType, int, Span{UIntPtr})"/>.
         /// </summary>
         /// <param name="plan">The plan handle.</param>
         /// <param name="rank">The transform.</param>

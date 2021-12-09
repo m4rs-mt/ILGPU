@@ -141,6 +141,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuRandNativeMethods.cs</LastGenOutput>
     </None>
+    <None Update="Runtime\Cuda\CuFFTPlan.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTPlan.Generated.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Cuda\CuFFTW.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuFFTW.Generated.cs</LastGenOutput>
@@ -281,6 +285,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuFFTPlan.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTPlan.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\Cuda\CuFFTW.Generated.cs">
       <DesignTime>True</DesignTime>
