@@ -101,6 +101,14 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
     </None>
+    <None Update="Runtime\Cuda\API\CuFFTAPI.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTAPI.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuFFTNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTNativeMethods.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Cuda\API\CuFFTWAPI.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuFFTWAPI.Generated.cs</LastGenOutput>
@@ -223,6 +231,16 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ErrorMessages.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTAPI.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTAPI.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTNativeMethods.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\Cuda\API\CuFFTWAPI.Generated.cs">
       <DesignTime>True</DesignTime>
