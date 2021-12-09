@@ -22,6 +22,10 @@ namespace ILGPU
         "Design",
         "CA1027:Mark enums with FlagsAttribute",
         Justification = "This no flags enumeration")]
+    [SuppressMessage(
+        "Design",
+        "CA1069:Enums values should not be duplicated",
+        Justification = "This is required to be backwards compatible")]
     public enum InliningMode
     {
         /// <summary>
@@ -95,6 +99,10 @@ namespace ILGPU
         "Design",
         "CA1027:Mark enums with FlagsAttribute",
         Justification = "This no flags enumeration")]
+    [SuppressMessage(
+        "Design",
+        "CA1069:Enums values should not be duplicated",
+        Justification = "This is required to be backwards compatible")]
     public enum OptimizationLevel
     {
         /// <summary>

@@ -628,6 +628,154 @@ namespace ILGPU.Backends.PTX
             }
         }
 
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(AlignTo)"/>
+        public void GenerateCode(AlignTo value)
+        {
+            // Load the 32-bit or 64-bit base pointer
+            var ptr = LoadHardware(value.Source);
+            var arithmeticBasicValueType =
+                value.Source.BasicValueType.GetArithmeticBasicValueType(true);
+
+            // Load the alignment value into a register
+            var alignment = LoadPrimitive(value.AlignmentInBytes);
+
+            // var baseOffset = (int)ptr & (alignmentInBytes - 1);
+            var tempRegister = AllocateRegister(ptr.Description);
+
+            // Get the specialized and and convert operations
+            var andOperation = PTXInstructions.GetArithmeticOperation(
+                BinaryArithmeticKind.And,
+                arithmeticBasicValueType,
+                Backend.Capabilities,
+                FastMath);
+            var convertOperation = PTXInstructions.GetConvertOperation(
+                alignment.BasicValueType.GetArithmeticBasicValueType(
+                    isUnsigned: false),
+                tempRegister.BasicValueType.GetArithmeticBasicValueType(
+                    isUnsigned: true));
+
+            // Check for a predefined alignment constant
+            bool hasConstantAlignment;
+            if (hasConstantAlignment = value.TryGetAlignmentConstant(
+                out int alignmentConstant))
+            {
+                // Emit a specialized instruction using an inline constant
+                using var command = BeginCommand(andOperation);
+                command.AppendArgument(tempRegister);
+                command.AppendArgument(ptr);
+                command.AppendConstant(alignmentConstant);
+            }
+            else
+            {
+                // Convert the alignment information if necessary
+                if (tempRegister.Kind != alignment.Kind)
+                {
+                    using var convert = BeginCommand(convertOperation);
+                    convert.AppendArgument(tempRegister);
+                    convert.AppendArgument(alignment);
+                }
+
+                // Compute the actual alignment mask
+                using (var alignmentMinusOne = BeginCommand(
+                    PTXInstructions.GetArithmeticOperation(
+                        BinaryArithmeticKind.Sub,
+                        arithmeticBasicValueType,
+                        Backend.Capabilities,
+                        FastMath)))
+                {
+                    alignmentMinusOne.AppendArgument(tempRegister);
+                    alignmentMinusOne.AppendArgument(tempRegister);
+                    alignmentMinusOne.AppendConstant(1);
+                }
+
+                // Compute the actual temp register contents
+                using var command = BeginCommand(andOperation);
+                command.AppendArgument(tempRegister);
+                command.AppendArgument(ptr);
+                command.AppendArgument(tempRegister);
+            }
+
+            // if (baseOffset == 0) ...
+            using var predicate = new PredicateScope(this);
+            using (var command = BeginCommand(
+                PTXInstructions.GetCompareOperation(
+                    CompareKind.Equal,
+                    CompareFlags.None,
+                    arithmeticBasicValueType)))
+            {
+                command.AppendArgument(predicate.PredicateRegister);
+                command.AppendArgument(tempRegister);
+                command.AppendConstant(0);
+            }
+
+            // Allocate the target register
+            var targetRegister = AllocateHardware(value);
+
+            // Use the same value as before the case of baseOffset = 0
+            Move(
+                ptr,
+                targetRegister,
+                predicate: predicate.GetConfiguration(true));
+
+            // We need a temporary register to store the converted alignment
+            var alignmentOffsetRegister = AllocateRegister(ptr.Description);
+            if (!hasConstantAlignment && alignmentOffsetRegister.Kind != alignment.Kind)
+            {
+                using var convert = BeginCommand(
+                    convertOperation,
+                    predicate: predicate.GetConfiguration(false));
+                convert.AppendArgument(alignmentOffsetRegister);
+                convert.AppendArgument(alignment);
+            }
+            else
+            {
+                // Move the alignment constant into the offset register
+                using var move = BeginMove(
+                    predicate: predicate.GetConfiguration(false));
+                move.AppendArgument(alignmentOffsetRegister);
+                move.AppendConstant(alignmentConstant);
+            }
+
+            // Compute the alignment offset:
+            // baseOffset = alignment - baseOffset
+            using (var command = BeginCommand(
+                PTXInstructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.Sub,
+                    arithmeticBasicValueType,
+                    Backend.Capabilities,
+                    FastMath),
+                predicate: predicate.GetConfiguration(false)))
+            {
+                command.AppendArgument(tempRegister);
+                command.AppendArgument(alignmentOffsetRegister);
+                command.AppendArgument(tempRegister);
+            }
+
+            // Adjust the given pointer if baseOffset != 0
+            using (var command = BeginCommand(
+                PTXInstructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.Add,
+                    arithmeticBasicValueType,
+                    Backend.Capabilities,
+                    FastMath),
+                predicate: predicate.GetConfiguration(false)))
+            {
+                command.AppendArgument(targetRegister);
+                command.AppendArgument(ptr);
+                command.AppendArgument(tempRegister);
+            }
+
+            Free(tempRegister);
+            Free(alignmentOffsetRegister);
+        }
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(AsAligned)"/>
+        public void GenerateCode(AsAligned value)
+        {
+            var source = LoadPrimitive(value.Source);
+            Bind(value, source);
+        }
+
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PrimitiveValue)"/>
         public void GenerateCode(PrimitiveValue value)
         {

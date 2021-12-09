@@ -71,6 +71,20 @@ namespace ILGPU.Frontend.Intrinsic
                 nameof(double.IsInfinity),
                 typeof(double));
 
+#if !NETFRAMEWORK
+            AddRemapping(
+                typeof(float),
+                CPUMathType,
+                nameof(float.IsFinite),
+                typeof(float));
+
+            AddRemapping(
+                typeof(double),
+                CPUMathType,
+                nameof(double.IsFinite),
+                typeof(double));
+#endif
+
             RegisterMathRemappings();
             RegisterBitConverterRemappings();
             RegisterCopySignRemappings();

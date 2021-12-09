@@ -78,7 +78,9 @@ namespace ILGPU.IR.Transformations
             RewriteConverter<
                 TypeLowering<ViewType>, LoadElementAddress> leaConverter,
             RewriteConverter<
-                TypeLowering<ViewType>, AlignViewTo> alignToConverter)
+                TypeLowering<ViewType>, AlignTo> alignToConverter,
+            RewriteConverter<
+                TypeLowering<ViewType>, AsAligned> asAlignedConverter)
         {
             AddRewriters(rewriter);
 
@@ -95,8 +97,13 @@ namespace ILGPU.IR.Transformations
                 (converter, value) => value.IsViewAccess && Register(converter, value),
                 leaConverter);
             rewriter.Add(
-                (converter, value) => Register(converter, value, value.View.Type),
+                (converter, value) => value.IsViewOperation &&
+                    Register(converter, value, value.Source.Type),
                 alignToConverter);
+            rewriter.Add(
+                (converter, value) => value.IsViewOperation &&
+                    Register(converter, value, value.Source.Type),
+                asAlignedConverter);
         }
 
         /// <summary>

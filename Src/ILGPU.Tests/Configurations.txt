@@ -18,6 +18,7 @@ InteropTests
 
 BinaryIntOperations
 UnaryIntOperations
+UnaryFloatOperations
 
 CompareIntOperations
 CompareFloatOperations

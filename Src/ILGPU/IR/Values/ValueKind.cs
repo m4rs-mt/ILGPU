@@ -221,9 +221,14 @@ namespace ILGPU.IR
         GetViewLength,
 
         /// <summary>
-        /// A <see cref="Values.AlignViewTo"/> value.
+        /// A <see cref="Values.AlignTo"/> value.
         /// </summary>
-        AlignViewTo,
+        AlignTo,
+
+        /// <summary>
+        /// A <see cref="Values.AsAligned"/> value.
+        /// </summary>
+        AsAligned,
 
         /// <summary>
         /// A <see cref="Values.SubViewValue"/> value.
