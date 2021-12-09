@@ -101,6 +101,14 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
     </None>
+    <None Update="Runtime\Cuda\API\CuFFTWAPI.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTWAPI.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuFFTWNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTWNativeMethods.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Cuda\API\NvmlNativeMethods.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>NvmlNativeMethods.cs</LastGenOutput>
@@ -207,6 +215,16 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ErrorMessages.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTWAPI.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTWAPI.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTWNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTWNativeMethods.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\Cuda\API\NvmlNativeMethods.cs">
       <DesignTime>True</DesignTime>
