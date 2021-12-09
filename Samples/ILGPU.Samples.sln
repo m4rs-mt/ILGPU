@@ -115,6 +115,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AlgorithmsNvml", "Algorithm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AlgorithmsCuFFTW", "AlgorithmsCuFFTW\AlgorithmsCuFFTW.csproj", "{9E90DBE0-1BD4-4F23-8923-833962A4E741}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AlgorithmsCuFFT", "AlgorithmsCuFFT\AlgorithmsCuFFT.csproj", "{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -321,6 +323,10 @@ Global
 		{9E90DBE0-1BD4-4F23-8923-833962A4E741}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E90DBE0-1BD4-4F23-8923-833962A4E741}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E90DBE0-1BD4-4F23-8923-833962A4E741}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -379,6 +385,7 @@ Global
 		{9BC67CB1-E0BA-4616-B93E-7B986AEDBC76} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 		{13C88B0D-8244-40D5-94A6-EA167ECDED85} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 		{9E90DBE0-1BD4-4F23-8923-833962A4E741} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
+		{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {30E502BD-3826-417F-888F-1CE19CF5C6DA}
