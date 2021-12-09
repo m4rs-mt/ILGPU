@@ -133,6 +133,14 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuRandNativeMethods.cs</LastGenOutput>
     </None>
+    <None Update="Runtime\Cuda\CuFFTW.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTW.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuFFTWPlan.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTWPlan.cs</LastGenOutput>
+    </None>
     <None Update="ScanReduceOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ScanReduceOperations.cs</LastGenOutput>
@@ -255,6 +263,16 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuFFTW.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTW.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuFFTWPlan.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTWPlan.tt</DependentUpon>
     </Compile>
     <Compile Update="ScanReduceOperations.cs">
       <DesignTime>True</DesignTime>
