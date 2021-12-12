@@ -29,6 +29,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 {
     public partial class MandelbrotPageCPU : IDisposable
     {
+#nullable disable
         public BasicCanvas Canvas2D { get; set; }
 
         public bool DisabledButtons { get; set; } = true;
@@ -53,13 +54,27 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         public string ExecutionsDetails4 { get; set; }
 
+        private Device _lastDevice = null;
+
+        private Device _CPUDevice = null;
+
+        // Measure performance
+        private static Stopwatch _stopWatch;
+
+        // This only gets called when the user has navigated elsewhere.
+        void LocationChanged(object sender, LocationChangedEventArgs e)
+        {
+            // assume we're leaving this page for good, preempt new computation
+            _disposing = true;
+        }
+
+#nullable enable
+
         public bool _disposing = false;
 
         public bool _computing = false;
 
-        private Device _lastDevice = null;
 
-        private Device _CPUDevice = null;
 
         /// <summary>
         /// Ready Blazor page once component loading is complete
@@ -138,12 +153,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
-        // This only gets called when the user has navigated elsewhere.
-        void LocationChanged(object sender, LocationChangedEventArgs e)
-        {
-            // assume we're leaving this page for good, preempt new computation
-            _disposing = true;
-        }
+     
 
         /// <summary>
         /// Create a CPU accelerator device list
@@ -171,8 +181,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
 
         
-        // Measure performance
-        private static Stopwatch _stopWatch;
+     
 
         private void RestartWatch()
         {
@@ -187,13 +196,14 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
-        public string DeviceName { get; set; } = "Single Thread"; 
+        public string DeviceName { get; set; } = "Single Thread";
 
         protected async void UpdateSelected(ChangeEventArgs e)
         {
+#nullable disable            
 
             DeviceName = e.Value.ToString();
-       
+
             areaView[0] = -2.0f;
             areaView[1] = 1.0f;
             areaView[2] = -1.0f;
@@ -204,6 +214,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
             await MandelbrotExtensions.Draw(Canvas2D, data, displayPort[0], displayPort[1], maxIterations, Color.Blue);
             _computing = false;
             StateHasChanged();
+#nullable enable
         }
 
     

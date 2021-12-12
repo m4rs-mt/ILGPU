@@ -163,7 +163,10 @@ namespace BlazorSampleApp.MandelbrotExplorer
             for (int i = 0; i < width * height; i++)
             {
                 Color fillColor = color;
-
+                if (basicCanvas.IsDisposing)
+                {
+                    return;
+                }
 
                 if (data[i] >= iterations)
                 {
@@ -188,8 +191,21 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 
             }
 
-            await basicCanvas.CreateImageData("Mandelbrot", width, height, result);
+            if (basicCanvas.IsDisposing)
+            {
+                return;
+            }
+            
+            await basicCanvas.CreateImageDataCopyByteArray("Mandelbrot", width, height, result);
+
+            if (basicCanvas.IsDisposing)
+            {
+                return;
+            }
+            
             await basicCanvas.PutImageData("Mandelbrot", 0, 0);
+            
+            
         }
     }
 }

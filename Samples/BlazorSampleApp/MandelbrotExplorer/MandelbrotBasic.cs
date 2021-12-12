@@ -31,6 +31,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
     /// </summary>
     public class MandelbrotBasic : IMandelbrotBasic, IDisposable
     {
+#nullable disable
         private Context _context = null;
         private Accelerator _accelerator = null;
         private System.Action<Index1D, ArrayView1D<int, Stride1D.Dense>, ArrayView1D<float, Stride1D.Dense>, int, ArrayView<int>> mandelbrot_kernel;
@@ -43,6 +44,12 @@ namespace BlazorSampleApp.MandelbrotExplorer
         // up the GPU and all shared ILGPU sessions on the GPU by disposing a buffer while a kernel is active.
         private bool _computing = true;
 
+
+        int _buffersize;
+        MemoryBuffer1D<int, Stride1D.Dense> _display = null;
+        MemoryBuffer1D<float, Stride1D.Dense> _area = null;
+        MemoryBuffer1D<int, Stride1D.Dense> _output = null;
+#nullable enable
 
         public bool IsDisposing { get {  return _disposing; }  }
 
@@ -153,10 +160,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
             return;
         }
 
-        int _buffersize;
-        MemoryBuffer1D<int, Stride1D.Dense> _display = null;
-        MemoryBuffer1D<float, Stride1D.Dense> _area = null;
-        MemoryBuffer1D<int, Stride1D.Dense> _output = null;
+
 
         /// <summary>
         /// Initialize resources for repetitive computing
@@ -221,14 +225,15 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// Clean up compute resources.
         /// </summary>
         public void CleanupGPURepeat()
-        {           
+        {
+#nullable disable
             _display?.Dispose();
             _display = null;
             _area?.Dispose();
             _area = null;
             _output?.Dispose();
             _output = null;
-
+#nullable enable
         }
 
        

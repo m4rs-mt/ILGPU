@@ -18,24 +18,30 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
+
 namespace BlazorSampleApp.Components
 {
-    /// <summary>
-    /// This wraps up a HTML/webgl canvas for 2D webgl rendering from Blazor.
-    /// 
-    /// Note server side Blazor maintains a link between the client web browser
-    /// and the webserver, this could be a 100 milisecond delay or more. Therefore
-    /// one may have to use javascript to make a page appear performant.
-    /// </summary>
-    public partial class BasicCanvas
+    public partial class BasicCanvas : ComponentBase, IAsyncDisposable
     {
+#nullable disable
+        private IJSObjectReference asyncModule = null;
 
-        [Parameter]
-        public bool IsRenderedFromServer { get; set; } = false;
+        private IJSInProcessObjectReference module = null;
+
+        protected IJSRuntime _jsRuntime;
+
+        protected IJSInProcessRuntime _jsInProcessRuntime = null;
+
+        public event Action<BasicCanvas> CanvasInitComplete = null;
+
+#nullable enable
+
 
         [Parameter]
         public bool IsTransparent { get; set; } = false;
 
+        [Parameter]
+        public bool IsDesyncronized { get; set; } = false;
 
         [Parameter]
         public int Height { get; set; } = 600;
@@ -43,16 +49,21 @@ namespace BlazorSampleApp.Components
         [Parameter]
         public int Width { get; set; } = 800;
 
-       
+        [Parameter]
+        public bool IsFullScreen { get; set; } = false;
 
-        //unique canvas id
+
         [Parameter]
         public string CanvasId { get; set; } = Guid.NewGuid().ToString();
 
         protected ElementReference _canvasRef;
+
         public ElementReference CanvasReference => this._canvasRef;
 
-        private IJSRuntime _jsRuntime;
+        public bool IsWebAssembley { get { return (_jsRuntime is IJSInProcessRuntime); } }
+
+        public bool IsDisposing { get; set; } = false;
+
 
         [Inject]
         public IJSRuntime JsRuntime
@@ -65,44 +76,39 @@ namespace BlazorSampleApp.Components
             {
                 _jsRuntime = value;
 
-                // Is this a web assembly application?
-                if (value is IJSInProcessRuntime)
+                if (IsWebAssembley)
                 {
-                    FastJSRuntime = (IJSInProcessRuntime)value;
+                    _jsInProcessRuntime = (IJSInProcessRuntime)value;
+
                 }
             }
         }
 
-        // Only used in Blazor WebAssembly applications.
-        public IJSInProcessRuntime FastJSRuntime { get; set; } = null;
 
 
-        public event Action<BasicCanvas> CanvasInitComplete;
 
-        /// <summary>
-        /// Once the razor page is rendered we need to link the canvas to give access to Blazor C#
-        /// </summary>
-        /// <param name="firstRender"></param>
-        /// <returns></returns>
+
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-
+            await base.OnAfterRenderAsync(firstRender);
             if (firstRender)
             {
 
                 try
                 {
-                    // Are we running on WebAssembly?
-                    if (JsRuntime is IJSInProcessRuntime)
+                    if (IsWebAssembley)
                     {
-                        // then await is not needed
-                        FastJSRuntime = (IJSInProcessRuntime)JsRuntime;
-                        FastJSRuntime.InvokeVoid("initializeBasicCanvas", CanvasId, true, IsTransparent);
 
+                        module = await _jsInProcessRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./Scripts/BasicCanvas.js");
+
+                        module.InvokeVoid("initializeBasicCanvas", CanvasId, IsWebAssembley, IsTransparent, IsDesyncronized);
                     }
                     else
                     {
-                        await JsRuntime.InvokeVoidAsync("initializeBasicCanvas", CanvasId, false, IsTransparent);
+                        asyncModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./Scripts/BasicCanvas.js");
+
+                        await asyncModule.InvokeVoidAsync("initializeBasicCanvas", CanvasId, IsWebAssembley, IsTransparent, IsDesyncronized);
+
                     }
 
                     if (CanvasInitComplete != null)
@@ -114,121 +120,147 @@ namespace BlazorSampleApp.Components
                     var crap = ex.Message;
                 }
 
-                await base.OnAfterRenderAsync(firstRender);
-
             }
+
         }
 
-#nullable enable   /// Allow nullable reference types
-
-
-
-
-        /// for performance reasons we will often have separate javascripts we may need to call from blazor
-        public async Task SetGlobalFunction(string globalFunctionName, params object?[]? args)
+        public async ValueTask DisposeAsync()
         {
-            // Are we running on WebAssembly?
-            if (FastJSRuntime != null)
+            IsDisposing = true;
+
+            if (asyncModule != null)
             {
-                FastJSRuntime.InvokeVoid(globalFunctionName, CanvasReference, args);
+                await asyncModule.DisposeAsync();
+            }
+            module?.Dispose();
+        }
+
+        public async ValueTask InjectScript(string scriptText)
+        {
+            if (module != null)
+            {
+                module.InvokeVoid("InjectScript", scriptText);
             }
             else
             {
-#pragma warning disable CS8604 // Possible null reference argument.
-                await JsRuntime.InvokeVoidAsync(globalFunctionName, CanvasReference, args);
-#pragma warning restore CS8604 // Possible null reference argument.
+                await asyncModule.InvokeVoidAsync("InjectScript", scriptText);
             }
         }
 
-        /// <summary>
-        /// We want to return a value/object from the webgl drawing context
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="ValueName"></param>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        public async Task<T> GetValue<T>(string ValueName, params object?[]? args)
+        public async ValueTask SetFunction(string functionName, string functionText)
         {
-            // Are we running on WebAssembly?
-            if (FastJSRuntime != null)
+            if (module != null)
             {
-                return FastJSRuntime.Invoke<T>("getValueBasicCanvas", CanvasReference, ValueName, args);
+                module.InvokeVoid("InjectFunction", CanvasReference, functionName, functionText);
             }
             else
             {
-#pragma warning disable CS8604 // Possible null reference argument.
-                return await JsRuntime.InvokeAsync<T>("getValueBasicCanvas", CanvasReference, ValueName, args);
-#pragma warning restore CS8604 // Possible null reference argument.
+                await asyncModule.InvokeVoidAsync("InjectFunction", CanvasReference, functionName, functionText);
             }
         }
 
-        /// <summary>
-        /// Used to set a value on the webgl 2d drawing context associated with our canvas.
-        /// </summary>
-        /// <param name="ValueName"></param>
-        /// <param name="args"></param>
-        /// <returns></returns>
-
-        public async Task SetValue(string ValueName, params object?[]? args)
+        public async ValueTask SetGlobalFunction(string globalFunctionName, params object?[]? args)
         {
-            // are we running on webassembly?
-            if (FastJSRuntime != null)
+            if (module != null)
             {
-                FastJSRuntime.InvokeVoid("setValueBasicCanvas", CanvasReference, ValueName, args);
+                module.InvokeVoid(globalFunctionName, CanvasReference, args);
             }
             else
             {
-#pragma warning disable CS8604 // Possible null reference argument.
-                await JsRuntime.InvokeVoidAsync("setValueBasicContext", CanvasReference, ValueName, args);
-#pragma warning restore CS8604 // Possible null reference argument.
+                await asyncModule.InvokeVoidAsync(globalFunctionName, CanvasReference, args);
             }
         }
 
-        /// <summary>
-        /// Used to call a function on the webgl 2d drawing context associated with our canvas.
-        /// </summary>
-        /// <param name="FunctionName"></param>
-        /// <param name="args"></param>
-        /// <returns></returns>
-
-        public async Task SetFunction(string FunctionName, params object?[]? args)
+        public async ValueTask<T> GetGlobalFunction<T>(string globalFunctionName, params object?[]? args)
         {
-            // Are we running on WebAssembly?
-            if (FastJSRuntime != null)
+            if (module != null)
             {
-                FastJSRuntime.InvokeVoid("setFunctionBasicCanvas", CanvasReference, FunctionName, args);
+                return module.Invoke<T>(globalFunctionName, CanvasReference, args);
             }
             else
             {
-#pragma warning disable CS8604 // Possible null reference argument.
-                await JsRuntime.InvokeVoidAsync("setFunctionBasicContext", CanvasReference, FunctionName, args);
-#pragma warning restore CS8604 // Possible null reference argument.
+                return await asyncModule.InvokeAsync<T>(globalFunctionName, CanvasReference, args);
             }
         }
 
-        /// <summary>
-        /// Used to call a function on the DrawingBasis object associated with our canvas.
-        /// 
-        /// Some advanced functions require JavaScript support objects accessible to webgl context. 
-        /// </summary>
-        /// <param name="FunctionName"></param>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        public async Task SetFunctionDrawingBasis(string FunctionName, params object?[]? args)
+
+        public async ValueTask SetValueBasicContext(string ValueName, params object?[]? args)
         {
-            // Are we running on WebAssembly?
-            if (FastJSRuntime != null)
+            if (module != null)
             {
-                FastJSRuntime.InvokeVoid("setFunctionDrawingBasis", CanvasReference, FunctionName, args);
+                module.InvokeVoid("setValueBasicContext", CanvasReference, ValueName, args);
             }
             else
             {
-#pragma warning disable CS8604 // Possible null reference argument.
-                await JsRuntime.InvokeVoidAsync("setFunctionDrawingBasis", CanvasReference, FunctionName, args);
-#pragma warning restore CS8604 // Possible null reference argument.
+                await asyncModule.InvokeVoidAsync("setValueBasicContext", CanvasReference, ValueName, args);
             }
         }
 
+
+        public async ValueTask<T> GetValueBasicContext<T>(string ValueName, params object?[]? args)
+        {
+            if (module != null)
+            {
+                return module.Invoke<T>("getValueBasicContext", CanvasReference, ValueName, args);
+            }
+            else
+            {
+                return await asyncModule.InvokeAsync<T>("getValueBasicContext", CanvasReference, ValueName, args);
+            }
+        }
+
+
+
+        public async ValueTask SetFunctionBasicContext(string FunctionName, params object?[]? args)
+        {
+            if (module != null)
+            {
+                module.InvokeVoid("setFunctionBasicContext", CanvasReference, FunctionName, args);
+            }
+            else
+            {
+                await asyncModule.InvokeVoidAsync("setFunctionBasicContext", CanvasReference, FunctionName, args);
+            }
+        }
+
+
+        public async ValueTask<T> GetFunctionBasicContext<T>(string FunctionName, params object?[]? args)
+        {
+            if (module != null)
+            {
+                return module.Invoke<T>("getFunctionBasicContext", CanvasReference, FunctionName, args);
+            }
+            else
+            {
+                return await asyncModule.InvokeAsync<T>("getFunctionBasicContext", CanvasReference, FunctionName, args);
+            }
+        }
+
+
+        public async ValueTask SetFunctionDrawingBasis(string FunctionName, params object?[]? args)
+        {
+            if (module != null)
+            {
+                module.InvokeVoid("setFunctionDrawingBasis", CanvasReference, FunctionName, args);
+            }
+            else
+            {
+                await asyncModule.InvokeVoidAsync("setFunctionDrawingBasis", CanvasReference, FunctionName, args);
+            }
+        }
+
+
+        public async ValueTask<T> GetFunctionDrawingBasis<T>(string FunctionName, params object?[]? args)
+        {
+            if (module != null)
+            {
+                return module.Invoke<T>("getFunctionDrawingBasis", CanvasReference, FunctionName, args);
+            }
+            else
+            {
+                return await asyncModule.InvokeAsync<T>("getFunctionDrawingBasis", CanvasReference, FunctionName, args);
+            }
+        }
 
     }
 }

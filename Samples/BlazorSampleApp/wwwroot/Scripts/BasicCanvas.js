@@ -1,6 +1,4 @@
-﻿'use strict'
-
-// -----------------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
 //                 Copyright (c) 2017-2021 ILGPU Samples Project
 //                                www.ilgpu.net
@@ -13,20 +11,15 @@
 
 
 
+export function initializeBasicCanvas(canvasid, isWebassemblyClient, isTransparent, isDesynchronized) {
+    "use strict";
 
-/// <summary>
-/// This attaches the html canvas of our Blazor Basic Canvas component to the 
-/// webgl 2d drawing context. Allows Blazor to call webgl rendering context 
-/// directly or using the DrawingBasis class when advanced webgl methods
-/// need browser javascript accessible data. 
-/// </summary>
-function initializeBasicCanvas(canvasid, isWebassemblyClient, isTransparent) {
 
-    const canvas = document.getElementById(canvasid); //'webgl-canvas'
+    const canvas = window.document.getElementById(canvasid); //'webgl-canvas'
 
-    let context = canvas.getContext('2d', { alpha: false, colorSpace: 'srgb' });
+    let context = canvas.getContext("2d", { alpha: isTransparent, colorSpace: "srgb", desynchronized: isDesynchronized });
 
-    // If the browser supports a 2d webgl context then create a drawing basis 
+    // If the browser supports a 2d webgl context then create a drawing basis
     // and attach our drawing basis to the canvas for all webgl support
     if (context) {
         canvas.drawingBasis = new DrawingBasis(context, isWebassemblyClient, canvas);
@@ -37,34 +30,15 @@ function initializeBasicCanvas(canvasid, isWebassemblyClient, isTransparent) {
 }
 
 
+export function InjectScript(scriptText) {
+    "use strict";
+    eval(scriptText);
 
-
-/// <summary>
-/// Return a value from our rendering context
-/// </summary>
-function getValueBasicContext(drawcanvas, valueName) {
-
-    // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
-    // When the first element is an array substitute the first element as the array.
-    if (Array.isArray(valueName)) {
-        valueName = valueName[0];       
-    }
-
-
-    if (drawcanvas && drawcanvas.drawingBasis) {
-
-        const context = drawcanvas.drawingBasis.context;
-
-        return context[valueName];
-    }
 }
 
 
-/// <summary>
-/// Set values on the webgl drawing context
-/// </summary>
-function setValueBasicContext(drawcanvas, valueName, values) {
-
+export function setValueBasicContext(drawcanvas, valueName, values) {
+    "use strict";
     if (drawcanvas && drawcanvas.drawingBasis) {
 
         const context = drawcanvas.drawingBasis.context;
@@ -76,34 +50,28 @@ function setValueBasicContext(drawcanvas, valueName, values) {
             if (Array.isArray(values[0])) {
 
                 values = values[0];
-            }           
+            }
         }
         context[valueName] = values;
     }
 }
 
 
-/// <summary>
-/// This function allows us to call any webgl context function by name
-/// </summary>
-function setFunctionBasicContext(drawcanvas, functionName, values) {
-
+export function setFunctionBasicContext(drawcanvas, functionName, values) {
+    "use strict";
     if (drawcanvas && drawcanvas.drawingBasis) {
 
         const context = drawcanvas.drawingBasis.context;
 
-        if (Array.isArray(values))
-        {
+        if (Array.isArray(values)) {
             // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
             // When the first element is an array substitute the first element as the array.
-            if (Array.isArray(values[0]))
-            {
+            if (Array.isArray(values[0])) {
                 values = values[0];
             }
 
             // call the named webgl function
-            switch (values.length)
-            {
+            switch (values.length) {
                 case 0: //no parameters empty array
                     context[functionName]();
                     break;
@@ -133,19 +101,18 @@ function setFunctionBasicContext(drawcanvas, functionName, values) {
                     break;
             }
         }
-        else
-        {
+        else {
             context[functionName](values);
         }
     }
 }
 
 
-/// <summary>
-/// more than a few webgl functions require additional support which we store in drawing basis class
-/// </summary>
-function setFunctionDrawingBasis(drawcanvas, functionName, values) {
 
+
+
+export function setFunctionDrawingBasis(drawcanvas, functionName, values) {
+    "use strict";
     if (drawcanvas && drawcanvas.drawingBasis) {
 
         const drawingBasis = drawcanvas.drawingBasis;
@@ -195,6 +162,110 @@ function setFunctionDrawingBasis(drawcanvas, functionName, values) {
 
 
 
+export function getValueBasicContext(drawcanvas, valueName) {
+    "use strict";
+    // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
+    // When the first element is an array substitute the first element as the array.
+    if (Array.isArray(valueName)) {
+        valueName = valueName[0];
+    }
+
+
+    if (drawcanvas && drawcanvas.drawingBasis) {
+
+        const context = drawcanvas.drawingBasis.context;
+
+        return context[valueName];
+    }
+}
+
+
+export function getFunctionBasicContext(drawcanvas, functionName, values) {
+    "use strict";
+    if (drawcanvas && drawcanvas.drawingBasis) {
+
+        const context = drawcanvas.drawingBasis.context;
+
+        if (Array.isArray(values)) {
+            // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
+            // When the first element is an array substitute the first element as the array.
+            if (Array.isArray(values[0])) {
+                values = values[0];
+            }
+
+            // call the named webgl function
+            switch (values.length) {
+                case 0: //no parameters empty array
+                    return context[functionName]();
+                case 1:
+                    return context[functionName](values[0]);
+                case 2:
+                    return context[functionName](values[0], values[1]);
+                case 3:
+                    return context[functionName](values[0], values[1], values[2]);
+                case 4:
+                    return context[functionName](values[0], values[1], values[2], values[3]);
+                case 5:
+                    return context[functionName](values[0], values[1], values[2], values[3], values[4]);
+                case 6:
+                    return context[functionName](values[0], values[1], values[2], values[3], values[4], values[5]);
+                case 7:
+                    return context[functionName](values[0], values[1], values[2], values[3], values[4], values[5], values[6]);
+                default:
+                    return context[functionName](values); // arrays longer than 7 terms have to be managed by the receiving function
+            }
+        }
+        else {
+            return context[functionName](values);
+        }
+    }
+}
+
+
+
+export function getFunctionDrawingBasis(drawcanvas, functionName, values) {
+    "use strict";
+    if (drawcanvas && drawcanvas.drawingBasis) {
+
+        const drawingBasis = drawcanvas.drawingBasis;
+
+        // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
+        // When the first element is an array substitute the first element as the array.
+        if (Array.isArray(values)) {
+
+            if (Array.isArray(values[0])) {
+                values = values[0];
+            }
+
+            switch (values.length) {
+                case 0: //no parameters empty array
+                    return drawingBasis[functionName]();
+                case 1:
+                    return drawingBasis[functionName](values[0]);
+                case 2:
+                    return drawingBasis[functionName](values[0], values[1]);
+                case 3:
+                    return drawingBasis[functionName](values[0], values[1], values[2]);
+                case 4:
+                    return drawingBasis[functionName](values[0], values[1], values[2], values[3]);
+                case 5:
+                    return drawingBasis[functionName](values[0], values[1], values[2], values[3], values[4]);
+                case 6:
+                    return drawingBasis[functionName](values[0], values[1], values[2], values[3], values[4], values[5]);
+                case 7:
+                    return drawingBasis[functionName](values[0], values[1], values[2], values[3], values[4], values[5], values[6]);
+                default:
+                    return drawingBasis[functionName](values); // arrays longer than 7 terms have to be managed by the receiving function
+            }
+        } else {
+            return drawingBasis[functionName](values);
+        }
+    }
+    return null;
+}
+
+
+
 /// <summary>
 /// DrawingBasis is a wrapper class to simplify use of the CanvasRenderingContext2D 
 ///
@@ -205,8 +276,8 @@ function setFunctionDrawingBasis(drawcanvas, functionName, values) {
 
 
 
-class DrawingBasis {
-
+export class DrawingBasis {
+    "use strict";
     constructor(canvasContext, isWebAssemblyClient, canvas) {
         // reference for GLContext
         this.context = canvasContext;
@@ -217,8 +288,10 @@ class DrawingBasis {
         // is the rest of the Blazor page "in process" with the WebGL canvas?
         this.isWebAssemblyClient = isWebAssemblyClient;
 
-        // we need to store information where the webgl methods can access the information
         this.imageStorage = [];
+
+        // we need to store information where the webgl methods can access the information
+        this.pixelImageStorage = [];
         this.gradientStorage = [];
         this.patternStorage = [];
         this.transformStorage = [];
@@ -226,72 +299,110 @@ class DrawingBasis {
 
     // oddly enough most methods will call directly on the context, however we will want to manage resources by name
 
+    measureText(text) {
+        const textMetrics = this.context.measureText(text);
+        // convert to json object
+        const result = {
+            "width": textMetrics.width,
+            "actualBoundingBoxAscent": textMetrics.actualBoundingBoxAscent,
+            "actualBoundingBoxDescent": textMetrics.actualBoundingBoxDescent,
+            "actualBoundingBoxLeft": textMetrics.actualBoundingBoxLeft,
+            "actualBoundingBoxRight": textMetrics.actualBoundingBoxRight,
+            "fontBoundingBoxAscent": textMetrics.fontBoundingBoxAscent,
+            "fontBoundingBoxDescent": textMetrics.fontBoundingBoxDescent
+        };
+
+
+        return result;
+    }
+
+
     // image processing
     createImageData(name, width, height) {
-        this.imageStorage[name] = this.context.createImageData(width, height);
+        this.pixelImageStorage[name] = this.context.createImageData(width, height);
     }
 
-    createImageData(name, sourceName, width, height = 0) {
-        if (height == 0) {
-            this.imageStorage[name] = this.context.createImageData(this.imageStorage[sourceName], width * 4); // only create the same size canvas
-        }
-        else {
-            this.imageStorage[name] = this.context.createImageData(this.imageStorage[sourceName], width * 4, height * 4); // only create the same size canvas
-        }
-    }
 
-    // We create a new image in webgl and then copy pixel values. 
-    // An 800 x 600 image will be approximately 2MB in size
-    // therefor for performance reasons this is a poor approach,  
-    // data compression would be appropriate for transmission.
-    // For example generating a compressed PNG file on the server
-    // and having the canvas download the image file would reduce the
-    // load on server bandwidth by 80% or more.
-    createImageData(name, width, height, values) // r,g,b,a array
+    // create an image and copy an large array of data, less than optimal
+    createImageDataCopyByteArray(name, width, height, values) // r,g,b,a array
     {
-
         values = values[0];
-       
-        delete this.imageStorage[name];
+
+        delete this.pixelImageStorage[name];
 
         // create a blank image, image data is always initially blank
         const imageData = this.context.createImageData(width, height);
-        this.imageStorage[name] = imageData;
+        this.pixelImageStorage[name] = imageData;
         const length = imageData.data.length;
 
         // Different runtimes will return either a based64 encoded string or the actual Uint8Array
         if (values instanceof Uint8Array) {
-            // Copy contents from the source.
+            // Copy contents from the source.          
             for (let i = 0; i < length; i += 1) {
                 imageData.data[i] = values[i];
             }
+
+
         }
         else // Otherwise we have a base 64 encoded string
         {
             // Likely there are better ways to decode and copy in JavaScript
             var binary_string = window.atob(values);
             for (let i = 0; i < length; i += 1) {
-                imageData.data[i] = binary_string.charCodeAt(i);[i];
+                imageData.data[i] = binary_string.charCodeAt(i)[i];
             }
         }
     }
 
-    // paint an image to the canvas
-    putImageData(name, x, y) {
-        this.context.putImageData(this.imageStorage[name], x, y);
+    loadImage(name, src) {
+        const img = new Image();
+        img.src = src;
+        img.name = name;
+        img.loadComplete = false;
+        img.onload = function () {
+            img.loadComplete = true;
+        };
+
+        this.imageStorage[name] = img;
     }
 
-    // paint an image to the canvas limited to the dirty area to be repainted
-    putImageDataRepaint(name, x, y, dirtyX, dirtyY, dirtyWidth, dirtyHeight) {
-        this.context.putImageData(this.imageStorage[name], x, y, dirtyX, dirtyY, dirtyWidth, dirtyHeight);
+    loadPaintImage(name, src, x, y) {
+        const img = new Image();
+        img.src = src;
+        img.name = name;
+        img.loadComplete = false;
+        this.imageStorage[name] = img;
+        img.onload = function () {
+            img.loadComplete = true;
+            this.context.drawImage(img, x, y);
+        };
+
+        this.imageStorage[name] = img;
     }
+
+    // grab an image from the current displayed canvas
+    getImageData(name, x, y, width, height) {
+        const image = this.context.getImageData(x, y, width, height);
+        this.pixelImageStorage[name] = image;
+    }
+
+
+    // paint a whole image to the canvas
+    putImageData(name, x, y) {
+        this.context.putImageData(this.pixelImageStorage[name], x, y);
+    }
+
+
+    // paint part of the source image to the destination canvas
+    putImageDataPartial(name, x, y, dx, dy, dWidth, dHeight) {
+        this.context.putImageData(this.pixelImageStorage[name], x, y, dx, dy, dWidth, dHeight);
+    }
+
+
+
+
 
     // webgl supports an assortment of functions for loading image files 
-
-    //transforms
-    createTransform(name, m11, m12, m21, m22, dx, dy) {
-        this.transformStorage[name] = new DOMMatrix([m11, m12, m21, m22, dx, dy]);
-    }
 
     setTransform(name) {
         this.context.setTransform(this.transformStorage[name]);
@@ -299,7 +410,7 @@ class DrawingBasis {
 
     // patterns
     createPattern(name, imageName, repetition) {
-        this.patternStorage[name] = createPattern(this.imageStorage[name], repetition);
+        this.patternStorage[name] = this.context.createPattern(this.imageStorage[name], repetition);
     }
 
     setPatternFillStyle(name) {
@@ -323,3 +434,4 @@ class DrawingBasis {
         this.context.fillStyle = this.gradientStorage[name];
     }
 }
+

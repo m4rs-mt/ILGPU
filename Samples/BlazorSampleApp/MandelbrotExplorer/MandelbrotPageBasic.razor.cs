@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.JSInterop;
 using ILGPU;
 using ILGPU.Runtime;
+
 using BlazorSampleApp.Components;
 
 
@@ -29,6 +30,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 {
     public partial class MandelbrotPageBasic : IDisposable
     {
+#nullable disable
         public BasicCanvas Canvas2D { get; set; }
 
         public bool DisabledButtons { get; set; } = true;
@@ -51,6 +53,19 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         public string ExecutionsDetails3 { get; set; }
 
+        private static Stopwatch _stopWatch;
+
+
+        private Device _lastDevice = null;
+
+        void LocationChanged(object sender, LocationChangedEventArgs e)
+        {
+            // assume we're leaving this page
+            _disposing = true;
+        }
+
+
+#nullable enable
         private bool _disposing = false;
 
         protected override void OnInitialized()
@@ -59,12 +74,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
             base.OnInitialized();
         }
 
-        void LocationChanged(object sender, LocationChangedEventArgs e)
-        {
-            // assume we're leaving this page
-            _disposing = true;
-        }
-
+     
         protected override void OnAfterRender(bool firstRender)
         {
             if (firstRender)
@@ -100,10 +110,6 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
-        private Device _lastDevice = null;
-
-      
-
         List<string> SystemDevices = new List<string>();
 
         /// <summary>
@@ -129,7 +135,6 @@ namespace BlazorSampleApp.MandelbrotExplorer
            
         }
 
-        private static Stopwatch _stopWatch;
 
         private void RestartWatch()
         {
@@ -150,8 +155,10 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         protected async void UpdateSelected(ChangeEventArgs e)
         {
+#nullable disable
             DeviceName = e.Value.ToString();
             await RenderDevice(DeviceName);
+#nullable enable
         }
 
         public async Task RenderDevice(string deviceName)

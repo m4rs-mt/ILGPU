@@ -26,7 +26,8 @@ namespace BlazorSampleApp.MandelbrotExplorer
     /// An example razor page calling a streamed accelerator via an injected IMandelbrotClient.
     /// </summary>
     public partial class MandelbrotPageStream: IDisposable
-    {   
+    {
+#nullable disable
         public BasicCanvas Canvas2D { get; set; }
 
         [Inject]
@@ -38,6 +39,8 @@ namespace BlazorSampleApp.MandelbrotExplorer
         [Inject]
         NavigationManager NavManager { get; set; }
 
+
+
         // current details
         public string ExecutionsDetails1 { get; set; }
 
@@ -45,6 +48,15 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         public string ExecutionsDetails3 { get; set; }
 
+        private Stopwatch _stopWatch;
+
+        void LocationChanged(object sender, LocationChangedEventArgs e)
+        {
+            // assume we're leaving this page for good, preempt new computation
+            _disposing = true;
+        }
+
+#nullable enable
         public bool DisabledButtons { get; set; } = true;
 
         string DeviceName { get; set; } = "n/a";
@@ -62,7 +74,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         
         private bool _disposing = false;
 
-        private Stopwatch _stopWatch;
+      
               
       
         private void RestartWatch()
@@ -98,12 +110,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
 
         // This only gets called when the user has navigated elsewhere, this prempts the.
-        void LocationChanged(object sender, LocationChangedEventArgs e)
-        {
-            // assume we're leaving this page for good, preempt new computation
-            _disposing = true;
-            
-        }
+    
 
 
         // Once the razor page/component is render complete we can interact with the browser

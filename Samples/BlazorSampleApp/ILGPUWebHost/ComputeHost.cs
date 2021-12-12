@@ -139,7 +139,9 @@ namespace BlazorSampleApp.ILGPUWebHost
                 _computeSessions.Add(computeSession);
                 return computeSession;
             }
+#nullable disable
             return null;
+#nullable enable
         }
 
 
@@ -152,7 +154,7 @@ namespace BlazorSampleApp.ILGPUWebHost
         /// <returns></returns>
         public ComputeSession FindComputeSession(string sessionID)
         {
-
+#nullable disable
             ComputeSession result = null;
 
             if (!_disposing)
@@ -160,7 +162,8 @@ namespace BlazorSampleApp.ILGPUWebHost
                 result = _computeSessions?.Find(x => x.SessionID == sessionID);
             }
 
-            return null;
+            return result;
+#nullable enable
         }
 
         /// <summary>

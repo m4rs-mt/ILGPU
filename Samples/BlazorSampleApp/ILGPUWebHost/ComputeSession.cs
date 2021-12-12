@@ -32,7 +32,7 @@ namespace BlazorSampleApp.ILGPUWebHost
 
     public class ComputeSession : IDisposable
     {
-
+#nullable disable
         // one or more kernels can be hosted in each compute session depending on the complexity of our calculation
         private System.Action<AcceleratorStream, Index1D, ArrayView1D<int, Stride1D.Dense>, ArrayView1D<float, Stride1D.Dense>, int, ArrayView<int>> mandelbrot_kernel;
 
@@ -62,6 +62,14 @@ namespace BlazorSampleApp.ILGPUWebHost
 
         private ComputeHost _host;
 
+        int _buffersize;
+        int _iterations;
+        MemoryBuffer1D<int, Stride1D.Dense> _display = null;
+        MemoryBuffer1D<float, Stride1D.Dense> _area = null;
+        MemoryBuffer1D<int, Stride1D.Dense> _output = null;
+
+
+
         public AcceleratorStream Stream 
         {
             get
@@ -76,6 +84,8 @@ namespace BlazorSampleApp.ILGPUWebHost
                 }
             }
         }
+
+#nullable enable
 
         public ComputeSession(string sessionID, Accelerator accelerator, ComputeHost host)
         {
@@ -121,6 +131,7 @@ namespace BlazorSampleApp.ILGPUWebHost
         /// </summary>
         public async void Dispose()
         {
+#nullable disable
             _disposing = true;
             _active = false; // do not allow any new computation.
 
@@ -140,15 +151,11 @@ namespace BlazorSampleApp.ILGPUWebHost
             _output?.Dispose();
             _output = null;
             mandelbrot_kernel = null;
+#nullable enable
         }
 
 
-        int _buffersize;
-        int _iterations;
-        MemoryBuffer1D<int, Stride1D.Dense> _display = null;
-        MemoryBuffer1D<float, Stride1D.Dense> _area = null;
-        MemoryBuffer1D<int, Stride1D.Dense> _output = null;
-
+        
         public void InitGPU(ref int[] buffer, int[] displayPort, float[] viewArea, int max_iterations)
         {
             if (IsActive && !_disposing)

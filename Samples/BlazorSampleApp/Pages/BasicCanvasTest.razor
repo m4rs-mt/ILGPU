@@ -1,0 +1,19 @@
+﻿@page "/basicCanvasTest"
+<h3>Basic Canvas Test Page</h3>
+
+<BasicCanvas @ref="Canvas2D"></BasicCanvas>
+
+<p>
+    This canvas will work in both Blazor server or Blazor web assembly operation.
+</p>
+
+<p>
+
+    <Tooltip Text="Set color using canvas methods">
+        <button class="btn btn-primary m-1" @onclick="RenderMethods">Run C# Methods</button>
+    </Tooltip>
+
+    <Tooltip Text="Set color using injected script">
+        <button class="btn btn-primary m-1" @onclick="InjectJavaScriptDemo">Run Injected JavaScript</button>
+    </Tooltip>
+ </p>

@@ -28,8 +28,10 @@ namespace BlazorSampleApp.MandelbrotExplorer
     /// </summary>
     public class MandelbrotClient : IMandelbrotClient, IDisposable
     {
-
+#nullable disable
         private ComputeSession _session;
+
+        private int[] _buffer = null;
 
         public bool IsActive { get { return _session?.IsActive ?? false; }  }
 
@@ -37,7 +39,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         private string SessionId = Guid.NewGuid().ToString();   
 
         private bool _disposing = false;
-      
+#nullable enable      
         public int ViewWidth { get; private set; }
 
         public int ViewHeight {  get; private set; }
@@ -50,7 +52,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         public int MaxIterations { get; set; } = 1000;
 
-        private int[] _buffer = null;
+       
 
         /// <summary>
         /// set display size and compile the GPU kernel
@@ -106,8 +108,9 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 }
 
             }
-
+#nullable disable
             return null;
+#nullable enable
         }
 
         public MandelbrotClient(IComputeHost computeHost)
@@ -136,7 +139,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
             if (!_session?.IsDisposing ?? false)
             {
-                _session.Dispose();
+                _session?.Dispose();
             }
 
             _session = null;
