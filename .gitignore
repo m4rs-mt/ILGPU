@@ -284,6 +284,7 @@ Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTWAPI.Generated.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTWNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/CuRandNativeMethods.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/NvJpegNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/NvmlNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel1.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel2.cs

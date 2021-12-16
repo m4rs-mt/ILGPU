@@ -117,6 +117,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuFFTWNativeMethods.cs</LastGenOutput>
     </None>
+    <None Update="Runtime\Cuda\API\NvJpegNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>NvJpegNativeMethods.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Cuda\API\NvmlNativeMethods.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>NvmlNativeMethods.cs</LastGenOutput>
@@ -255,6 +259,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CuFFTWNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\NvJpegNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>NvJpegNativeMethods.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\Cuda\API\NvmlNativeMethods.cs">
       <DesignTime>True</DesignTime>
