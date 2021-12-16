@@ -1,0 +1,39 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2021 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: NvJpegNativeMethods.tt/NvJpegNativeMethods.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ include file="../../../../ILGPU/Static/DllLibraryImporter.ttinclude" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using System;
+using System.Runtime.InteropServices;
+
+#pragma warning disable CA1711 // Identifiers should not have incorrect suffix
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+<#
+string rootPath = Host.ResolvePath(".");
+var importLib = ImportLibrary.Load(rootPath, "NvJpegAPI.xml");
+
+// Remove 'nvjpeg' prefix.
+SetMakeMethodNameFunc(methodName =>
+    Regex.Replace(methodName, "^nvjpeg(.+)$", "$1"));
+
+WriteLibrary(importLib);
+
+#>
+
+#pragma warning restore CA1711 // Identifiers should not have incorrect suffix
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

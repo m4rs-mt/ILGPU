@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ImportLibrary Namespace="ILGPU.Runtime.Cuda.API"
+               ClassName="NvJpegAPI"
+               VersionType="NvJpegAPIVersion"
+               DefaultDllImportSearchPath="LegacyBehavior"
+               DefaultMethodAccessModifier="public"
+               DefaultReturnType="NvJpegStatus">
+    <LibraryVersions>
+        <LibraryVersion Name="V11" Platform="Windows" LibName="nvjpeg64_11.dll" />
+        <LibraryVersion Name="V11" Platform="Linux" LibName="libnvjpeg.so.11" />
+    </LibraryVersions>
+
+    <Region Name="Creation">
+        <Import Name="nvjpegCreateSimple">
+            <Parameter Name="libHandle" Type="IntPtr" Flags="Out" />
+        </Import>
+        <Import Name="nvjpegDestroy">
+            <Parameter Name="libHandle" Type="IntPtr" />
+        </Import>
+        <Import Name="nvjpegJpegStateCreate">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="stateHandle" Type="IntPtr" Flags="Out" />
+        </Import>
+        <Import Name="nvjpegJpegStateDestroy">
+            <Parameter Name="stateHandle" Type="IntPtr" />
+        </Import>
+    </Region>
+
+    <Region Name="Retrieve Encoded Image Information">
+        <Import Name="nvjpegGetImageInfo"
+                Unsafe="true">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="data" Type="byte*" />
+            <Parameter Name="length" Type="ulong" />
+            <Parameter Name="numComponents" Type="int" Flags="Out" />
+            <Parameter Name="sampling" Type="NvJpegChromaSubsampling" Flags="Out" />
+            <Parameter Name="widths" Type="int*" />
+            <Parameter Name="heights" Type="int*" />
+        </Import>
+    </Region>
+
+    <Region Name="Decode">
+        <Import Name="nvjpegDecode"
+                Unsafe="true">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="stateHandle" Type="IntPtr" />
+            <Parameter Name="data" Type="byte*" />
+            <Parameter Name="length" Type="ulong" />
+            <Parameter Name="outputFormat" Type="NvJpegOutputFormat" />
+            <Parameter Name="destination" Type="NvJpegImage_Interop*" />
+            <Parameter Name="cudaStreamHandle" Type="IntPtr" />
+        </Import>
+    </Region>
+
+    <Region Name="Utilities">
+        <Import Name="nvjpegGetProperty">
+            <Parameter Name="type" Type="LibraryPropertyType" />
+            <Parameter Name="value" Type="int" Flags="Out" />
+        </Import>
+        <Import Name="nvjpegGetCudartProperty">
+            <Parameter Name="type" Type="LibraryPropertyType" />
+            <Parameter Name="value" Type="int" Flags="Out" />
+        </Import>
+    </Region>
+
+</ImportLibrary>
