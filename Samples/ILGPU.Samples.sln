@@ -117,6 +117,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AlgorithmsCuFFTW", "Algorit
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AlgorithmsCuFFT", "AlgorithmsCuFFT\AlgorithmsCuFFT.csproj", "{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgorithmsNvJpeg", "AlgorithmsNvJpeg\AlgorithmsNvJpeg.csproj", "{9CB52A85-9ACB-4B7E-95C5-75E9023EF5EC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -327,6 +329,12 @@ Global
 		{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CB52A85-9ACB-4B7E-95C5-75E9023EF5EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CB52A85-9ACB-4B7E-95C5-75E9023EF5EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CB52A85-9ACB-4B7E-95C5-75E9023EF5EC}.DebugVerification|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CB52A85-9ACB-4B7E-95C5-75E9023EF5EC}.DebugVerification|Any CPU.Build.0 = Debug|Any CPU
+		{9CB52A85-9ACB-4B7E-95C5-75E9023EF5EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CB52A85-9ACB-4B7E-95C5-75E9023EF5EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -386,6 +394,7 @@ Global
 		{13C88B0D-8244-40D5-94A6-EA167ECDED85} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 		{9E90DBE0-1BD4-4F23-8923-833962A4E741} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 		{5FE4D2B9-32C7-4E45-B9E2-B2FE270BF692} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
+		{9CB52A85-9ACB-4B7E-95C5-75E9023EF5EC} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {30E502BD-3826-417F-888F-1CE19CF5C6DA}
