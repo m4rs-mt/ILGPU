@@ -260,11 +260,16 @@ namespace ILGPU
                 Properties.InliningMode);
 
             // Initialize the default CPU device
+            // NB: Ensure that the current accelerator is not changed when creating the
+            // implicit CPU accelerator. Otherwise, we may unintentionally initialize
+            // Accelerator.Current before an accelerator has been created by the user.
+            var currentAccelerator = Accelerator.Current;
             CPUAccelerator = new CPUAccelerator(
                 this,
                 CPUDevice.Implicit,
                 CPUAcceleratorMode.Parallel,
                 ThreadPriority.Lowest);
+            Debug.Assert(Accelerator.Current == currentAccelerator);
 
             // Initialize all devices
             Devices = devices;

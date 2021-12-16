@@ -85,7 +85,7 @@ namespace ILGPU.Runtime.CPU
         /// purposes. Instead, it acts as a placeholder accelerator for buffers that
         /// are implicitly associated with a parent CPU accelerator.
         /// </summary>
-        public static readonly CPUDevice Implicit =
+        internal static readonly CPUDevice Implicit =
             new CPUDevice(
                 numThreadsPerWarp: 0,
                 numWarpsPerMultiprocessor: 0,
