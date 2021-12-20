@@ -304,6 +304,33 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Could not find environment variable &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedLibDeviceEnvironmentVariable {
+            get {
+                return ResourceManager.GetString("NotSupportedLibDeviceEnvironmentVariable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find LibDevice BitCode in &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedLibDeviceNotFoundBitCode {
+            get {
+                return ResourceManager.GetString("NotSupportedLibDeviceNotFoundBitCode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find NVVM DLL in &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedLibDeviceNotFoundNvvmDll {
+            get {
+                return ResourceManager.GetString("NotSupportedLibDeviceNotFoundNvvmDll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Type type &apos;{0}&apos; is not blittable.
         /// </summary>
         internal static string NotSupportedNonBlittableType {
