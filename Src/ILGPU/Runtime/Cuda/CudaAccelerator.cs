@@ -178,11 +178,18 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetCacheConfig(out cacheConfiguration));
 
+            var nvvmAPI = !string.IsNullOrEmpty(context.Properties.LibNvvmPath)
+                ? NvvmAPI.Create(
+                    context.Properties.LibNvvmPath,
+                    context.Properties.LibDevicePath)
+                : default;
+
             Init(new PTXBackend(
                 Context,
                 Capabilities,
                 Architecture,
-                InstructionSet));
+                InstructionSet,
+                nvvmAPI));
         }
 
         #endregion

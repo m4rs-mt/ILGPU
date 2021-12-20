@@ -1,0 +1,76 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: CudaLibDevice.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.ComponentModel" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Runtime.InteropServices" #>
+<#@ import namespace="System.Xml.Serialization" #>
+<#+
+
+public static class LibDeviceConstants
+{
+    public const string Prefix = "__ilgpu";
+}
+
+[XmlRoot("LibDevice")]
+public class LibDeviceFunctions
+{
+    internal static LibDeviceFunction[] Load(string rootPath, string fileName) =>
+        XmlHelper.Load<LibDeviceFunctions>(rootPath, fileName).Functions;
+
+    [XmlElement("Function")]
+    public LibDeviceFunction[] Functions { get; set; }
+}
+
+[XmlRoot("Function")]
+public class LibDeviceFunction
+{
+    [XmlAttribute]
+    public string Name { get; set; }
+
+    [XmlAttribute]
+    public string DisplayName { get; set; }
+
+    [XmlAttribute]
+    public string ReturnType { get; set; }
+
+    [XmlElement("Parameter")]
+    public LibDeviceFunctionParameter[] Parameters { get; set; }
+}
+
+[XmlRoot("Parameter")]
+public class LibDeviceFunctionParameter
+{
+    [XmlAttribute]
+    public string Name { get; set; }
+
+    [XmlAttribute]
+    public string Type { get; set; }
+    
+    [XmlAttribute]
+    public string Flags { get; set; }
+
+    [XmlIgnore]
+    public string FlagsExpression =>
+        Flags switch
+        {
+            "Out" => "out ",
+            "Ref" => "ref ",
+            _ => string.Empty
+        };
+}
+
+#>

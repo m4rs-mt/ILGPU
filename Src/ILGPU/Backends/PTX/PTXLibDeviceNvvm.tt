@@ -1,0 +1,170 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: PTXLibDeviceNvvm.tt/PTXLibDeviceNvvm.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="../../Static/TextTransformHelpers.ttinclude" #>
+<#@ include file="../../Static/TypeInformation.ttinclude" #>
+<#@ include file="../../Static/CudaLibDevice.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath(".");
+var functions = LibDeviceFunctions.Load(rootPath, "../../Static/CudaLibDevice.xml");
+#>
+
+using ILGPU.IR;
+using System.Collections.Generic;
+using System.Text;
+
+// disable: max_line_length
+
+namespace ILGPU.Backends.PTX
+{
+    /// <summary>
+    /// Contains the NVVM fragments for Cuda LibDevice functions.
+    /// </summary>
+    internal static class PTXLibDeviceNvvm
+    {
+        private const string prefix = @"
+            target triple = ""nvptx64-unknown-cuda""
+            target datalayout = ""e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64""";
+
+<#
+    foreach (var func in functions)
+    {
+        PushIndent(2);
+        WriteLibDeviceFunctionNvvm(func);
+        PopIndent();
+    }
+
+#>
+        private static readonly Dictionary<string, string> fragments =
+            new Dictionary<string, string>()
+            {
+<#
+    PushIndent(4);
+    foreach (var func in functions)
+        WriteLine($"{{ \"{func.Name}\", {func.Name} }},");
+    PopIndent();
+#>
+            };
+
+        /// <summary>
+        /// Generates an NVVM module for the Cuda LibDevice functions (if any).
+        /// </summary>
+        /// <param name="methods">The methods to check.</param>
+        /// <returns>The NVVM module, or an empty string.</returns>
+        public static string GenerateNvvm(IEnumerable<Method> methods)
+        {
+            var builder = new StringBuilder();
+            bool addPrefix = true;
+
+            foreach (var method in methods)
+            {
+                if (method.HasSource &&
+                    fragments.TryGetValue(method.Source.Name, out var methodNvvm))
+                {
+                    if (addPrefix)
+                    {
+                        builder.AppendLine(prefix);
+                        addPrefix = false;
+                    }
+
+                    builder.AppendLine(methodNvvm);
+                }
+            }
+
+            return builder.ToString();
+        }
+    }
+}
+<#+
+
+void WriteLibDeviceFunctionNvvm(LibDeviceFunction func)
+{
+    WriteLine($"private const string {func.Name} = @\"");
+    PushIndent();
+
+    Write("declare ");
+    WriteNvvmType(func.ReturnType);
+    Write(" @");
+    Write(func.Name);
+    Write("(");
+    for (int i = 0; i < func.Parameters.Length; i++)
+    {
+        var param = func.Parameters[i];
+        WriteNvvmType(param.Type);
+        Write($" %{param.Name}");
+        if (i < func.Parameters.Length - 1)
+            Write(",");
+        else
+            Write(")");
+        WriteLine();
+    }
+    WriteLine();
+
+    Write("define ");
+    WriteNvvmType(func.ReturnType);
+    Write(" @");
+    Write($"{LibDeviceConstants.Prefix}{func.Name}");
+    Write("(");
+    for (int i = 0; i < func.Parameters.Length; i++)
+    {
+        var param = func.Parameters[i];
+        WriteNvvmType(param.Type);
+        Write($" %{param.Name}");
+        if (i < func.Parameters.Length - 1)
+            Write(",");
+        else
+            Write(") {");
+        WriteLine();
+    }
+    WriteLine("entry:");
+
+    PushIndent();
+    Write("%call = call ");
+    WriteNvvmType(func.ReturnType);
+    Write(" @");
+    Write(func.Name);
+    Write("(");
+    for (int i = 0; i < func.Parameters.Length; i++)
+    {
+        var param = func.Parameters[i];
+        WriteNvvmType(param.Type);
+        Write($" %{param.Name}");
+        if (i < func.Parameters.Length - 1)
+            Write(",");
+        else
+            Write(")");
+    }
+    WriteLine();
+    Write("ret ");
+    WriteNvvmType(func.ReturnType);
+    WriteLine(" %call");
+    PopIndent();
+    WriteLine("}\";");
+    WriteLine();
+
+    PopIndent();
+}
+
+void WriteNvvmType(string type)
+{
+    if (type == "string")
+        Write("i8*");
+    else
+        Write(type);
+}
+
+#>

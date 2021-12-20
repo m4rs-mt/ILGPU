@@ -276,6 +276,19 @@ namespace ILGPU
             }
 
             /// <summary>
+            /// Explicitly specifies the LibDevice location.
+            /// </summary>
+            /// <param name="libNvvmPath">Path to LibNvvm DLL.</param>
+            /// <param name="libDevicePath">Path to LibDevice bitcode.</param>
+            /// <returns>The current builder instance.</returns>
+            public Builder LibDevice(string libNvvmPath, string libDevicePath)
+            {
+                LibNvvmPath = libNvvmPath;
+                LibDevicePath = libDevicePath;
+                return this;
+            }
+
+            /// <summary>
             /// Converts this builder instance into a context instance.
             /// </summary>
             /// <returns>The created context instance.</returns>

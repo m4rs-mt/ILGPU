@@ -400,6 +400,16 @@ namespace ILGPU
         /// <remarks>Disabled by default.</remarks>
         public bool EnableProfiling { get; protected set; }
 
+        /// <summary>
+        /// Returns the path to LibNVVM DLL.
+        /// </summary>
+        public string LibNvvmPath { get; protected set; }
+
+        /// <summary>
+        /// Returns the path to LibDevice bitcode.
+        /// </summary>
+        public string LibDevicePath { get; protected set; }
+
         #endregion
 
         #region Methods
@@ -455,6 +465,8 @@ namespace ILGPU
                 CachingMode = CachingMode,
                 PageLockingMode = PageLockingMode,
                 EnableProfiling = EnableProfiling,
+                LibNvvmPath = LibNvvmPath,
+                LibDevicePath = LibDevicePath,
             };
 
         #endregion
