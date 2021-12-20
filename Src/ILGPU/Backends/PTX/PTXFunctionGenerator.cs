@@ -80,6 +80,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public override void GenerateHeader(StringBuilder builder)
         {
+            if (PTXLibDeviceMethods.IsLibDeviceMethod(Method))
+                return;
+
             GenerateHeaderDeclaration(builder);
             builder.AppendLine(";");
         }
