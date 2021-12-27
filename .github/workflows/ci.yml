@@ -24,44 +24,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Check line length
-        run: |
-          $found = $false
-          Foreach ($pattern in "*.cs","*.tt") {
-            Foreach ($file in Get-ChildItem -Path Src -Filter $pattern -Recurse -File) {
-              If (-Not (($file.Directory.Name -Eq "Resources") -Or (Select-String -Path $file -Pattern "^// disable: max_line_length" -Quiet))) {
-                $index = 1
-                Foreach ($line in Get-Content $file)
-                {
-                  If ($line.Length -gt 90) {
-                    Write-Host "##[error]${file}:${index}: line too long ($($line.Length) > 90 characters)"
-                    $found = $true
-                  }
-                  $index++
-                }
-              }
-            }
-          }
+        run: .github/workflows/Scripts/CheckLineLength.ps1 -path Src
 
-          If ($found) {
-            Exit 1
-          }
       - name: Check T4 line endings
-        run: |
-          # WORKAROUND: The TextTransform tool fails when the T4 template ends with a newline.
-          $found = $false
-          Foreach ($pattern in "*.tt","*.ttinclude") {
-            Foreach ($file in Get-ChildItem -Path Src -Filter $pattern -Recurse -File) {
-              If ((Get-Content -Raw $file) -match "\r\n$") {
-                Write-Host "##[error]${file}: Bad T4 line ending"
-                $found = $true
-              }
-            }
-          }
-
-          If ($found) {
-            Exit 1
-          }
+        run: .github/workflows/Scripts/CheckT4LineEndings.ps1 -path Src
 
   # Setup the OS matrix so that CUDA tests do not run on forks, as it needs self-hosted runners.
   # Skip running on macOS in most cases.
@@ -227,37 +195,7 @@ jobs:
           dotnet pack --configuration=Release @params Src
 
       - name: Fix NuGet Symbols Packages
-        run: |
-          # WORKAROUND: The Symbols packages should only contain Portable
-          # PDBs (no Windows PDBs allowed). Transfer net471 pdb from Symbols
-          # packages to Main NuGet packages. Can be removed after updating
-          # ILGPU from net471 to net472.
-
-          ForEach ($library in "ILGPU", "ILGPU.Algorithms") {
-            # Get path to the Main and Symbols NuGet packages
-            $releaseDir = './Bin/Release'
-            $mainPkgPath = Join-Path $releaseDir "$library.${{ needs.check-version.outputs.version }}.nupkg"
-            $symbolsPkgPath = Join-Path $releaseDir "$library.${{ needs.check-version.outputs.version }}.snupkg"
-
-            # Transfer net471 pdb from the Symbols to Main NuGet package
-            Add-Type -AssemblyName System.IO.Compression.FileSystem
-            $pdbEntryPath = "lib/net471/$library.pdb"
-
-            $mainPkgZip = [System.IO.Compression.ZipFile]::Open(
-              $mainPkgPath,
-              'Update')
-            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-              $mainPkgZip,
-              "$releaseDir/net471/$library.pdb",
-              $pdbEntryPath);
-            $mainPkgZip.Dispose()
-
-            $symbolsPkgZip = [System.IO.Compression.ZipFile]::Open(
-              $symbolsPkgPath,
-              'Update')
-            $symbolsPkgZip.GetEntry($pdbEntryPath).Delete();
-            $symbolsPkgZip.Dispose()
-          }
+        run: .github/workflows/Scripts/FixNugetSymbolPackages.ps1 -version "${{ needs.check-version.outputs.version }}"
 
       - name: Upload NuGet package artifacts
         uses: actions/upload-artifact@v2
@@ -283,45 +221,12 @@ jobs:
       # Change the ILGPU project references to NuGet package references
       - name: Update sample references
         id: package
+        run: .github/workflows/Scripts/UpdateSampleReferences.ps1 -version "${{ needs.check-version.outputs.version }}" -suffix "${{ needs.check-version.outputs.suffix }}"
+
+      # Compress the Samples folder
+      - name: Compress samples
         run: |
-          $version = "${{ needs.check-version.outputs.version }}"
-
-          # NB: Perform operations in the Samples folder, so that the relative paths returned by
-          # the dotnet CLI are correct.
-          pushd Samples
-
-          # Remove ILGPU libraries from Samples solution.
-          $projectPaths = dotnet sln list | Select-String -Pattern "\.\.\\Src\\"
-          dotnet sln remove $projectPaths
-
-          # Update each sample project individually.
-          $projectPaths = dotnet sln list | Select-String -Pattern "\.[cf]sproj$"
-
-          ForEach ($projectPath in $projectPaths) {
-            # Replace existing ILGPU libaries with NuGet package reference.
-            $referencePaths = dotnet list $projectPath reference | Select-String -Pattern "\.\.\\Src\\"
-            ForEach ($referencePath in $referencePaths) {
-              dotnet remove $projectPath reference $referencePath
-
-              $found = $referencePath -match '\\([^\\]*).csproj$'
-              if ($found) {
-                $libraryName = $matches[1]
-                dotnet add $projectPath package $libraryName -v $version --no-restore
-              }
-            }
-          }
-
-          # Create a local nuget configuration to FeedzIO if the version contains a suffix.
-          $suffix = "${{ needs.check-version.outputs.suffix }}"
-          if ([bool]$suffix) {
-            dotnet new nugetconfig
-            dotnet nuget add source "https://f.feedz.io/ilgpu/preview/nuget/index.json" --name "ILGPU Preview NuGet Packages"
-          }
-
-          popd
-
-          # Compress the Samples folder
-          $artifactPath = "Samples-$version.zip"
+          $artifactPath = "Samples-${{ needs.check-version.outputs.version }}.zip"
           Compress-Archive .\Samples\* -DestinationPath $artifactPath
 
       # Verify that the sample projects can compile after switching to NuGet references
