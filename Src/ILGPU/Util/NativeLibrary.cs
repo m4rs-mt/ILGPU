@@ -12,6 +12,8 @@
 using System;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CA2101 // Specify marshaling for P/Invoke string arguments
+
 namespace ILGPU.Util
 {
     /// <summary>
@@ -118,3 +120,5 @@ namespace ILGPU.Util
     }
 #endif
 }
+
+#pragma warning restore CA2101 // Specify marshaling for P/Invoke string arguments
