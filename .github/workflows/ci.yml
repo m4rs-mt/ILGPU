@@ -82,10 +82,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup the latest .NET 5 SDK
+      - name: Setup the latest .NET 6 SDK
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 5.0.x
+          dotnet-version: 6.0.x
 
       - name: Build
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true ${{ matrix.path }}
@@ -97,7 +97,7 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
         library: [ILGPU, ILGPU.Algorithms]
-        framework: [netcoreapp3.1, net5.0]
+        framework: [netcoreapp3.1, net5.0, net6.0]
         include:
           - os: windows-latest
             library: ILGPU
@@ -111,7 +111,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Setup the latest .NET 6 SDK
+        if: matrix.framework == 'net6.0'
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
+
       - name: Setup the latest .NET 5 SDK
+        if: matrix.framework == 'net5.0'
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 5.0.x
@@ -179,10 +186,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup the latest .NET 5 SDK
+      - name: Setup the latest .NET 6 SDK
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 5.0.x
+          dotnet-version: 6.0.x
 
       - name: Create NuGet packages
         run: |
@@ -213,10 +220,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup the latest .NET 5 SDK
+      - name: Setup the latest .NET 6 SDK
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 5.0.x
+          dotnet-version: 6.0.x
 
       # Change the ILGPU project references to NuGet package references
       - name: Update sample references

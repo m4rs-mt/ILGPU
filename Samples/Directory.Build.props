@@ -3,5 +3,9 @@
     <LibrarySamplesTargetFrameworks>net471;netcoreapp3.1;net5.0</LibrarySamplesTargetFrameworks>
     <LibrarySamplesTargetFrameworksWindows>net471;netcoreapp3.1;net5.0-windows</LibrarySamplesTargetFrameworksWindows>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildVersion)' &gt;= '17.0'">
+    <LibrarySamplesTargetFrameworks>$(LibrarySamplesTargetFrameworks);net6.0</LibrarySamplesTargetFrameworks>
+    <LibrarySamplesTargetFrameworksWindows>$(LibrarySamplesTargetFrameworksWindows);net6.0-windows</LibrarySamplesTargetFrameworksWindows>
+  </PropertyGroup>
 
 </Project>
