@@ -180,13 +180,8 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $xpath = "/Project/PropertyGroup/VersionPrefix/text()"
-          $main_version = (Select-Xml -path Src/ILGPU/ILGPU.csproj -XPath $xpath).Node.Value
-          $algo_version = (Select-Xml -path Src/ILGPU.Algorithms/ILGPU.Algorithms.csproj -XPath $xpath).Node.Value
-          if (-not ($main_version -eq $algo_version)) {
-            echo "::error ::There is a mismatch between the project version of ILGPU ($main_version) and ILGPU.Algorithms ($algo_version)"
-            exit 1
-          }
+          $xpath = "/Project/PropertyGroup/LibraryVersionPrefix/text()"
+          $main_version = (Select-Xml -path Src/Directory.Build.props -XPath $xpath).Node.Value
 
           if ("${{ github.ref }}" -like "refs/tags/v*") {
             $tag = "${{ github.ref }}".SubString(11)
