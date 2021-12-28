@@ -19,7 +19,7 @@ Param (
 # PDBs (no Windows PDBs allowed). Transfer net471 pdb from Symbols
 # packages to Main NuGet packages. Can be removed after updating
 # ILGPU from net471 to net472.
-ForEach ($library in "ILGPU", "ILGPU.Algorithms") {
+ForEach ($library in "ILGPU.Core", "ILGPU.Algorithms") {
   # Get path to the Main and Symbols NuGet packages
   $releaseDir = './Bin/Release'
   $mainPkgPath = Join-Path $releaseDir "$library.$version.nupkg"
@@ -27,20 +27,27 @@ ForEach ($library in "ILGPU", "ILGPU.Algorithms") {
 
   # Transfer net471 pdb from the Symbols to Main NuGet package
   Add-Type -AssemblyName System.IO.Compression.FileSystem
-  $pdbEntryPath = "lib/net471/$library.pdb"
 
   $mainPkgZip = [System.IO.Compression.ZipFile]::Open(
     $mainPkgPath,
     'Update')
-  [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-    $mainPkgZip,
-    "$releaseDir/net471/$library.pdb",
-    $pdbEntryPath);
-  $mainPkgZip.Dispose()
-
   $symbolsPkgZip = [System.IO.Compression.ZipFile]::Open(
     $symbolsPkgPath,
     'Update')
-  $symbolsPkgZip.GetEntry($pdbEntryPath).Delete();
+
+  $pdbEntries = $symbolsPkgZip.Entries | Where-Object { $_.FullName -like 'lib/net471/*.pdb' }
+  ForEach ($oldEntry in $pdbEntries) {
+    $newEntry = $mainPkgZip.CreateEntry($oldEntry.FullName);
+
+    $oldStream = $oldEntry.Open();
+    $newStream = $newEntry.Open();
+    $oldStream.CopyTo($newStream);
+    $newStream.Dispose();
+    $oldStream.Dispose();
+
+    $oldEntry.Delete();
+  }
+
+  $mainPkgZip.Dispose()
   $symbolsPkgZip.Dispose()
 }

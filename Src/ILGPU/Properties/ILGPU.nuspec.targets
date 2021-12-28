@@ -1,9 +1,9 @@
 ﻿<Project>
     <PropertyGroup>
-        <PackageId>ILGPU</PackageId>
+        <PackageId>ILGPU.Core</PackageId>
         <PackageVersion>$(Version)</PackageVersion>
 
-        <Title>ILGPU</Title>
+        <Title>ILGPU.Core</Title>
         <Copyright>Copyright (c) 2016-2022 ILGPU Project. All rights reserved.</Copyright>
         <Company />
         <Authors>Marcel Koester</Authors>

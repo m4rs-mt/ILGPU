@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeContentInPack>false</IncludeContentInPack>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <VersionPrefix>$(LibraryVersionPrefix)</VersionPrefix>
+    <AssemblyVersion>$(LibraryAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(LibraryFileVersion)</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputPath>../../Bin/$(Configuration)/</OutputPath>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
+    <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
+  </ItemGroup>
+
+  <Import Project="ILGPU.MetaPackage.nuspec.targets" />
+</Project>

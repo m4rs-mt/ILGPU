@@ -1,0 +1,18 @@
+﻿<Project>
+    <PropertyGroup>
+        <PackageId>ILGPU</PackageId>
+        <PackageVersion>$(Version)</PackageVersion>
+
+        <Title>ILGPU</Title>
+        <Copyright>Copyright (c) 2016-2022 ILGPU Project. All rights reserved.</Copyright>
+        <Company />
+        <Authors>Marcel Koester</Authors>
+        <Description>ILGPU Just-In-Time Compiler</Description>
+        <PackageDescription>
+            Meta-package for ILGPU compiler and runtime libraries.
+        </PackageDescription>
+        <PackageProjectUrl>http://www.ilgpu.net</PackageProjectUrl>
+        <PackageReleaseNotes>http://www.ilgpu.net/releases/ILGPU.ReleaseNotes.txt</PackageReleaseNotes>
+        <PackageTags>ilgpu gpu msil il cil cpu ptx nvidia amd amp opencl cuda compiler jit</PackageTags>
+    </PropertyGroup>
+</Project>
