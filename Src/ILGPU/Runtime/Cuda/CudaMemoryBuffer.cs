@@ -41,6 +41,7 @@ namespace ILGPU.Runtime.Cuda
                     RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
 
+            using var binding = stream.Accelerator.BindScoped();
             CudaException.ThrowIfFailed(
                 CurrentAPI.Memset(
                     targetView.LoadEffectiveAddressAsPtr(),
@@ -74,12 +75,12 @@ namespace ILGPU.Runtime.Cuda
 
             var sourceAddress = sourceView.LoadEffectiveAddressAsPtr();
             var targetAddress = targetView.LoadEffectiveAddressAsPtr();
-
             var length = new IntPtr(targetView.LengthInBytes);
 
             // a) Copy from CPU to GPU
             // b) Copy from GPU to CPU
             // c) Copy from GPU to GPU
+            using var binding = stream.Accelerator.BindScoped();
             CudaException.ThrowIfFailed(
                 CurrentAPI.MemcpyAsync(
                     targetAddress,
