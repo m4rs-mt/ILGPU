@@ -246,6 +246,8 @@ ModelManifest.xml
 # Ignore specific template outputs
 Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
+Src/ILGPU/Backends/PTX/PTXLibDeviceMethods.cs
+Src/ILGPU/Backends/PTX/PTXLibDeviceNvvm.cs
 Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
 Src/ILGPU/HalfConversion.cs
 Src/ILGPU/IR/Construction/ArithmeticOperations.cs
@@ -259,6 +261,7 @@ Src/ILGPU/Memory.cs
 Src/ILGPU/Runtime/ArrayViewExtensions.Generated.cs
 Src/ILGPU/Runtime/ArrayViews.cs
 Src/ILGPU/Runtime/Cuda/CudaAsm.Generated.cs
+Src/ILGPU/Runtime/Cuda/LibDevice.cs
 Src/ILGPU/Runtime/KernelLoaders.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/PageLockedArrays.Generated.cs
@@ -278,12 +281,20 @@ Src/ILGPU.Algorithms/HistogramOperations.cs
 Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
 Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
 Src/ILGPU.Algorithms/RadixSortOperations.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/CuRandNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/CuBlasNativeMethods.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTAPI.Generated.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTNativeMethods.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTWAPI.Generated.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTWNativeMethods.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/CuRandNativeMethods.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/API/NvJpegNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/NvmlNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel1.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel2.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel3.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/CuFFTPlan.Generated.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/CuFFTW.Generated.cs
+Src/ILGPU.Algorithms/Runtime/Cuda/CuFFTWPlan.cs
 Src/ILGPU.Algorithms/ScanReduceOperations.cs
 Src/ILGPU.Algorithms/Sequencers.cs
 Src/ILGPU.Algorithms/UniqueLaunchers.cs

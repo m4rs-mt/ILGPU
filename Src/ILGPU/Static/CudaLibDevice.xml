@@ -1,0 +1,1715 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<LibDevice>
+    <Function Name="__nv_abs"
+              DisplayName="Abs"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_acos"
+              DisplayName="Acos"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_acosf"
+              DisplayName="Acos"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_acosh"
+              DisplayName="Acosh"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_acoshf"
+              DisplayName="Acosh"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_asin"
+              DisplayName="Asin"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_asinf"
+              DisplayName="Asin"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_asinh"
+              DisplayName="Asinh"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_asinhf"
+              DisplayName="Asinh"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_atan"
+              DisplayName="Atan"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_atan2"
+              DisplayName="Atan"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_atan2f"
+              DisplayName="Atan"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_atanf"
+              DisplayName="Atan"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_atanh"
+              DisplayName="Atanh"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_atanhf"
+              DisplayName="Atanh"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_brev"
+              DisplayName="BitReverse"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_brevll"
+              DisplayName="BitReverse"
+              ReturnType="long">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_byte_perm"
+              DisplayName="BytePerm"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+        <Parameter Name="z" Type="int" />
+    </Function>
+    <Function Name="__nv_cbrt"
+              DisplayName="Cbrt"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_cbrtf"
+              DisplayName="Cbrt"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_ceil"
+              DisplayName="Ceil"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_ceilf"
+              DisplayName="Ceil"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_clz"
+              DisplayName="CountLeadingZero"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_clzll"
+              DisplayName="CountLeadingZero"
+              ReturnType="long">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_copysign"
+              DisplayName="CopySign"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_copysignf"
+              DisplayName="CopySign"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_cos"
+              DisplayName="Cos"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_cosf"
+              DisplayName="Cos"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_cosh"
+              DisplayName="Cosh"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_coshf"
+              DisplayName="Cosh"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_cospi"
+              DisplayName="CosPi"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_cospif"
+              DisplayName="CosPi"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_dadd_rd"
+              DisplayName="AddRoundDown"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_dadd_rn"
+              DisplayName="AddRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_dadd_ru"
+              DisplayName="AddRoundUp"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_dadd_rz"
+              DisplayName="AddRoundZero"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_ddiv_rd"
+              DisplayName="DivRoundDown"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_ddiv_rn"
+              DisplayName="DivRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_ddiv_ru"
+              DisplayName="DivRoundUp"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_ddiv_rz"
+              DisplayName="DivRoundZero"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_dmul_rd"
+              DisplayName="MulRoundDown"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_dmul_rn"
+              DisplayName="MulRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_dmul_ru"
+              DisplayName="MulRoundUp"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_dmul_rz"
+              DisplayName="MulRoundZero"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_double2float_rd"
+              DisplayName="DoubleToFloatRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2float_rn"
+              DisplayName="DoubleToFloatRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2float_ru"
+              DisplayName="DoubleToFloatRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2float_rz"
+              DisplayName="DoubleToFloatRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2hiint"
+              DisplayName="DoubleToHiInt"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2int_rd"
+              DisplayName="DoubleToIntRoundDown"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2int_rn"
+              DisplayName="DoubleToIntRoundEven"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2int_ru"
+              DisplayName="DoubleToIntRoundUp"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2int_rz"
+              DisplayName="DoubleToIntRoundZero"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2ll_rd"
+              DisplayName="DoubleToLongRoundDown"
+              ReturnType="long">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2ll_rn"
+              DisplayName="DoubleToLongRoundEven"
+              ReturnType="long">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2ll_ru"
+              DisplayName="DoubleToLongRoundUp"
+              ReturnType="long">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2ll_rz"
+              DisplayName="DoubleToLongRoundZero"
+              ReturnType="long">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2loint"
+              DisplayName="DoubleToLoInt"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2uint_rd"
+              DisplayName="DoubleToUIntRoundDown"
+              ReturnType="uint">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2uint_rn"
+              DisplayName="DoubleToUIntRoundEven"
+              ReturnType="uint">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2uint_ru"
+              DisplayName="DoubleToUIntRoundUp"
+              ReturnType="uint">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2uint_rz"
+              DisplayName="DoubleToUIntRoundZero"
+              ReturnType="uint">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2ull_rd"
+              DisplayName="DoubleToULongRoundDown"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2ull_rn"
+              DisplayName="DoubleToULongRoundEven"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2ull_ru"
+              DisplayName="DoubleToULongRoundUp"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double2ull_rz"
+              DisplayName="DoubleToULongRoundZero"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_double_as_longlong"
+              DisplayName="DoubleAsLong"
+              ReturnType="long">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_drcp_rd"
+              DisplayName="RcpRoundDown"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_drcp_rn"
+              DisplayName="RcpRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_drcp_ru"
+              DisplayName="RcpRoundUp"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_drcp_rz"
+              DisplayName="RcpRoundZero"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_dsqrt_rd"
+              DisplayName="SqrtRoundDown"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_dsqrt_rn"
+              DisplayName="SqrtRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_dsqrt_ru"
+              DisplayName="SqrtRoundUp"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_dsqrt_rz"
+              DisplayName="SqrtRoundZero"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_erf"
+              DisplayName="Erf"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_erfc"
+              DisplayName="Erfc"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_erfcf"
+              DisplayName="Erfc"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_erfcinv"
+              DisplayName="ErfcInv"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_erfcinvf"
+              DisplayName="ErfcInv"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_erfcx"
+              DisplayName="Erfcx"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_erfcxf"
+              DisplayName="Erfcx"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_erff"
+              DisplayName="Erf"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_erfinv"
+              DisplayName="ErfInv"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_erfinvf"
+              DisplayName="ErfInv"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_exp"
+              DisplayName="Exp"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_exp10"
+              DisplayName="Exp10"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_exp10f"
+              DisplayName="Exp10"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_exp2"
+              DisplayName="Exp2"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_exp2f"
+              DisplayName="Exp2"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_expf"
+              DisplayName="Exp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_expm1"
+              DisplayName="Expm1"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_expm1f"
+              DisplayName="Expm1"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fabs"
+              DisplayName="Abs"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_fabsf"
+              DisplayName="Abs"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fadd_rd"
+              DisplayName="AddRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fadd_rn"
+              DisplayName="AddRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fadd_ru"
+              DisplayName="AddRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fadd_rz"
+              DisplayName="AddRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_cosf"
+              DisplayName="FastCos"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_exp10f"
+              DisplayName="FastExp10"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_expf"
+              DisplayName="FastExp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_fdividef"
+              DisplayName="FastDivide"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_log10f"
+              DisplayName="FastLog10"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_log2f"
+              DisplayName="FastLog2"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_logf"
+              DisplayName="FastLog"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_powf"
+              DisplayName="FastPow"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_sincosf"
+              DisplayName="FastSinCos"
+              ReturnType="void">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="sin" Type="float" Flags="Out" />
+        <Parameter Name="cos" Type="float" Flags="Out" />
+    </Function>
+    <Function Name="__nv_fast_sinf"
+              DisplayName="FastSin"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fast_tanf"
+              DisplayName="FastTan"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fdim"
+              DisplayName="Dim"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_fdimf"
+              DisplayName="Dim"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fdiv_rd"
+              DisplayName="DivRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fdiv_rn"
+              DisplayName="DivRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fdiv_ru"
+              DisplayName="DivRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fdiv_rz"
+              DisplayName="DivRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_ffs"
+              DisplayName="FindFirstSignificant"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_ffsll"
+              DisplayName="FindFirstSignificant"
+              ReturnType="int">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_finitef"
+              DisplayName="Finite"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2half_rn"
+              DisplayName="FloatToHalfRoundEven"
+              ReturnType="Half">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2int_rd"
+              DisplayName="FloatToIntRoundDown"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2int_rn"
+              DisplayName="FloatToIntRoundEven"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2int_ru"
+              DisplayName="FloatToIntRoundUp"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2int_rz"
+              DisplayName="FloatToIntRoundZero"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2ll_rd"
+              DisplayName="FloatToLongRoundDown"
+              ReturnType="long">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2ll_rn"
+              DisplayName="FloatToLongRoundEven"
+              ReturnType="long">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2ll_ru"
+              DisplayName="FloatToLongRoundUp"
+              ReturnType="long">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2ll_rz"
+              DisplayName="FloatToLongRoundZero"
+              ReturnType="long">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2uint_rd"
+              DisplayName="FloatToUIntRoundDown"
+              ReturnType="uint">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2uint_rn"
+              DisplayName="FloatToUIntRoundEven"
+              ReturnType="uint">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2uint_ru"
+              DisplayName="FloatToUIntRoundUp"
+              ReturnType="uint">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2uint_rz"
+              DisplayName="FloatToUIntRoundZero"
+              ReturnType="uint">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2ull_rd"
+              DisplayName="FloatToULongRoundDown"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2ull_rn"
+              DisplayName="FloatToULongRoundEven"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2ull_ru"
+              DisplayName="FloatToULongRoundUp"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float2ull_rz"
+              DisplayName="FloatToULongRoundZero"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_float_as_int"
+              DisplayName="FloatAsInt"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_floor"
+              DisplayName="Floor"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_floorf"
+              DisplayName="Floor"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fma"
+              DisplayName="FusedMultiplyAdd"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+        <Parameter Name="z" Type="double" />
+    </Function>
+    <Function Name="__nv_fma_rd"
+              DisplayName="FusedMultiplyAddRoundDown"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+        <Parameter Name="z" Type="double" />
+    </Function>
+    <Function Name="__nv_fma_rn"
+              DisplayName="FusedMultiplyAddRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+        <Parameter Name="z" Type="double" />
+    </Function>
+    <Function Name="__nv_fma_ru"
+              DisplayName="FusedMultiplyAddRoundUp"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+        <Parameter Name="z" Type="double" />
+    </Function>
+    <Function Name="__nv_fma_rz"
+              DisplayName="FusedMultiplyAddRoundZero"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+        <Parameter Name="z" Type="double" />
+    </Function>
+    <Function Name="__nv_fmaf"
+              DisplayName="FusedMultiplyAdd"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+        <Parameter Name="z" Type="float" />
+    </Function>
+    <Function Name="__nv_fmaf_rd"
+              DisplayName="FusedMultiplyAddRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+        <Parameter Name="z" Type="float" />
+    </Function>
+    <Function Name="__nv_fmaf_rn"
+              DisplayName="FusedMultiplyAddRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+        <Parameter Name="z" Type="float" />
+    </Function>
+    <Function Name="__nv_fmaf_ru"
+              DisplayName="FusedMultiplyAddRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+        <Parameter Name="z" Type="float" />
+    </Function>
+    <Function Name="__nv_fmaf_rz"
+              DisplayName="FusedMultiplyAddRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+        <Parameter Name="z" Type="float" />
+    </Function>
+    <Function Name="__nv_fmax"
+              DisplayName="Max"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_fmaxf"
+              DisplayName="Max"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fmin"
+              DisplayName="Min"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_fminf"
+              DisplayName="Min"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fmod"
+              DisplayName="Fmod"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_fmodf"
+              DisplayName="Fmod"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fmul_rd"
+              DisplayName="MulRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fmul_rn"
+              DisplayName="MulRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fmul_ru"
+              DisplayName="MulRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fmul_rz"
+              DisplayName="MulRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_frcp_rd"
+              DisplayName="RcpRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_frcp_rn"
+              DisplayName="RcpRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_frcp_ru"
+              DisplayName="RcpRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_frcp_rz"
+              DisplayName="RcpRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_frexp"
+              DisplayName="Rexp"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="int" Flags="Out" />
+    </Function>
+    <Function Name="__nv_frexpf"
+              DisplayName="Rexp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="int" Flags="Out" />
+    </Function>
+    <Function Name="__nv_frsqrt_rn"
+              DisplayName="RsqrtRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fsqrt_rd"
+              DisplayName="SqrtRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fsqrt_rb"
+              DisplayName="SqrtRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fsqrt_ru"
+              DisplayName="SqrtRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fsqrt_rz"
+              DisplayName="SqrtRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_fsub_rd"
+              DisplayName="SubRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fsub_rn"
+              DisplayName="SubRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fsub_ru"
+              DisplayName="SubRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_fsub_rz"
+              DisplayName="SubRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_hadd"
+              DisplayName="Hadd"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_half2float"
+              DisplayName="HalfToFloat"
+              ReturnType="float">
+        <Parameter Name="x" Type="Half" />
+    </Function>
+    <Function Name="__nv_hiloint2double"
+              DisplayName="HiLoIntToDouble"
+              ReturnType="double">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_hypot"
+              DisplayName="Hypot"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_hypotf"
+              DisplayName="Hypot"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_ilogb"
+              DisplayName="ILogB"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_ilogbf"
+              DisplayName="ILogB"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_int2double_rn"
+              DisplayName="IntToDoubleRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_int2float_rd"
+              DisplayName="IntToFloatRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_int2float_rn"
+              DisplayName="IntToFloatRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_int2float_ru"
+              DisplayName="IntToFloatRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_int2float_rz"
+              DisplayName="IntToFloatRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_int_as_float"
+              DisplayName="IntAsFloat"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_isfinited"
+              DisplayName="IsFinite"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_isinfd"
+              DisplayName="IsInfinity"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_isinff"
+              DisplayName="IsInfinity"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_isnand"
+              DisplayName="IsNaN"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_isnanf"
+              DisplayName="IsNaN"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_j0"
+              DisplayName="J0"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_j0f"
+              DisplayName="J0"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_j1"
+              DisplayName="J1"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_j1f"
+              DisplayName="J1"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_jn"
+              DisplayName="JN"
+              ReturnType="double">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_jnf"
+              DisplayName="JN"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_ldexp"
+              DisplayName="Exp"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_ldexpf"
+              DisplayName="Exp"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_lgamma"
+              DisplayName="Gamma"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_lgammaf"
+              DisplayName="Gamma"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_ll2double_rd"
+              DisplayName="LongToDoubleRoundDown"
+              ReturnType="double">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_ll2double_rn"
+              DisplayName="LongToDoubleRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_ll2double_ru"
+              DisplayName="LongToDoubleRoundUp"
+              ReturnType="double">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_ll2double_rz"
+              DisplayName="LongToDoubleRoundZero"
+              ReturnType="double">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_ll2float_rd"
+              DisplayName="LongToFloatRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_ll2float_rn"
+              DisplayName="LongToFloatRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_ll2float_ru"
+              DisplayName="LongToFloatRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_ll2float_rz"
+              DisplayName="LongToFloatRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_llabs"
+              DisplayName="Abs"
+              ReturnType="long">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_llmax"
+              DisplayName="Max"
+              ReturnType="long">
+        <Parameter Name="x" Type="long" />
+        <Parameter Name="y" Type="long" />
+    </Function>
+    <Function Name="__nv_llmin"
+              DisplayName="Min"
+              ReturnType="long">
+        <Parameter Name="x" Type="long" />
+        <Parameter Name="y" Type="long" />
+    </Function>
+    <Function Name="__nv_llrint"
+              DisplayName="LRint"
+              ReturnType="long">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_llrintf"
+              DisplayName="LRint"
+              ReturnType="long">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_llround"
+              DisplayName="LRound"
+              ReturnType="long">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_llroundf"
+              DisplayName="LRound"
+              ReturnType="long">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_log"
+              DisplayName="Log"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_log10"
+              DisplayName="Log10"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_log10f"
+              DisplayName="Log10"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_log1p"
+              DisplayName="Log1P"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_log1pf"
+              DisplayName="Log1P"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_log2"
+              DisplayName="Log2"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_log2f"
+              DisplayName="Log2"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_logb"
+              DisplayName="LogB"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_logbf"
+              DisplayName="LogB"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_logf"
+              DisplayName="Log"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_longlong_as_double"
+              DisplayName="LongAsDouble"
+              ReturnType="double">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_max"
+              DisplayName="Max"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_min"
+              DisplayName="Min"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_modf"
+              DisplayName="Modf"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_modff"
+              DisplayName="Modf"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_mul24"
+              DisplayName="Mul24"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_mul64hi"
+              DisplayName="Mul64Hi"
+              ReturnType="long">
+        <Parameter Name="x" Type="long" />
+        <Parameter Name="y" Type="long" />
+    </Function>
+    <Function Name="__nv_mulhi"
+              DisplayName="MulHi"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_nan"
+              DisplayName="NaN"
+              ReturnType="double">
+        <Parameter Name="tagp" Type="string" />
+    </Function>
+    <Function Name="__nv_nanf"
+              DisplayName="NaNF"
+              ReturnType="float">
+        <Parameter Name="tagp" Type="string" />
+    </Function>
+    <Function Name="__nv_nearbyint"
+              DisplayName="NearbyInt"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_nearbyintf"
+              DisplayName="NearbyInt"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_nextafter"
+              DisplayName="NextAfter"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_nextafterf"
+              DisplayName="NextAfter"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_normcdf"
+              DisplayName="Normcdf"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_normcdff"
+              DisplayName="Normcdf"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_normcdfinv"
+              DisplayName="NormcdfInv"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_normcdfinvf"
+              DisplayName="NormcdfInv"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_popc"
+              DisplayName="PopCount"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_popcll"
+              DisplayName="PopCount"
+              ReturnType="int">
+        <Parameter Name="x" Type="long" />
+    </Function>
+    <Function Name="__nv_pow"
+              DisplayName="Pow"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_powf"
+              DisplayName="Pow"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_powi"
+              DisplayName="Pow"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_powif"
+              DisplayName="Pow"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_rcbrt"
+              DisplayName="Rcbrt"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_rcbrtf"
+              DisplayName="Rcbrt"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_remainder"
+              DisplayName="Remainder"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+    </Function>
+    <Function Name="__nv_remainderf"
+              DisplayName="Remainder"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+    </Function>
+    <Function Name="__nv_remquo"
+              DisplayName="RemQuo"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="double" />
+        <Parameter Name="quo" Type="int" Flags="Out" />
+    </Function>
+    <Function Name="__nv_remquof"
+              DisplayName="RemQuo"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="float" />
+        <Parameter Name="quo" Type="int" Flags="Out" />
+    </Function>
+    <Function Name="__nv_rhadd"
+              DisplayName="Rhadd"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_rint"
+              DisplayName="Rint"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_rintf"
+              DisplayName="Rint"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_round"
+              DisplayName="Round"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_roundf"
+              DisplayName="Round"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_rsqrt"
+              DisplayName="Rsqrt"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_rsqrtf"
+              DisplayName="Rsqrt"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_sad"
+              DisplayName="Sad"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+        <Parameter Name="z" Type="int" />
+    </Function>
+    <Function Name="__nv_saturatef"
+              DisplayName="Saturate"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_scalbn"
+              DisplayName="Scalbn"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_scalbnf"
+              DisplayName="Scalbn"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_signbitd"
+              DisplayName="SignBit"
+              ReturnType="int">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_signbitf"
+              DisplayName="SignBit"
+              ReturnType="int">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_sin"
+              DisplayName="Sin"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_sincos"
+              DisplayName="SinCos"
+              ReturnType="void">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="sin" Type="double" Flags="Out" />
+        <Parameter Name="cos" Type="double" Flags="Out" />
+    </Function>
+    <Function Name="__nv_sincosf"
+              DisplayName="SinCos"
+              ReturnType="void">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="sin" Type="float" Flags="Out" />
+        <Parameter Name="cos" Type="float" Flags="Out" />
+    </Function>
+    <Function Name="__nv_sincospi"
+              DisplayName="SinCosPi"
+              ReturnType="void">
+        <Parameter Name="x" Type="double" />
+        <Parameter Name="sin" Type="double" Flags="Out" />
+        <Parameter Name="cos" Type="double" Flags="Out" />
+    </Function>
+    <Function Name="__nv_sincospif"
+              DisplayName="SinCosPi"
+              ReturnType="void">
+        <Parameter Name="x" Type="float" />
+        <Parameter Name="sin" Type="float" Flags="Out" />
+        <Parameter Name="cos" Type="float" Flags="Out" />
+    </Function>
+    <Function Name="__nv_sinf"
+              DisplayName="Sin"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_sinh"
+              DisplayName="Sinh"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_sinhf"
+              DisplayName="Sinh"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_sinpi"
+              DisplayName="SinPi"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_sinpif"
+              DisplayName="SinPi"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_sqrt"
+              DisplayName="Sqrt"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_sqrtf"
+              DisplayName="Sqrt"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_tan"
+              DisplayName="Tan"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_tanf"
+              DisplayName="Tan"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_tanh"
+              DisplayName="Tanh"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_tanhf"
+              DisplayName="Tanh"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_tgamma"
+              DisplayName="Tgamma"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_tgammaf"
+              DisplayName="Tgamma"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_trunc"
+              DisplayName="Trunc"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_truncf"
+              DisplayName="Trunc"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_uhadd"
+              DisplayName="Uhadd"
+              ReturnType="int">
+        <Parameter Name="x" Type="int" />
+        <Parameter Name="y" Type="int" />
+    </Function>
+    <Function Name="__nv_uint2double_rn"
+              DisplayName="UIntToDoubleRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_uint2float_rd"
+              DisplayName="UIntToFloatRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_uint2float_rn"
+              DisplayName="UIntToFloatRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_uint2float_ru"
+              DisplayName="UIntToFloatRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_uint2float_rz"
+              DisplayName="UIntToFloatRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="int" />
+    </Function>
+    <Function Name="__nv_ull2double_rd"
+              DisplayName="ULongToDoubleRoundDown"
+              ReturnType="double">
+        <Parameter Name="x" Type="ulong" />
+    </Function>
+    <Function Name="__nv_ull2double_rn"
+              DisplayName="LongToDoubleRoundEven"
+              ReturnType="double">
+        <Parameter Name="x" Type="ulong" />
+    </Function>
+    <Function Name="__nv_ull2double_ru"
+              DisplayName="ULongToDoubleRoundUp"
+              ReturnType="double">
+        <Parameter Name="x" Type="ulong" />
+    </Function>
+    <Function Name="__nv_ull2double_rz"
+              DisplayName="ULongToDoubleRoundZero"
+              ReturnType="double">
+        <Parameter Name="x" Type="ulong" />
+    </Function>
+    <Function Name="__nv_ull2float_rd"
+              DisplayName="ULongToFloatRoundDown"
+              ReturnType="float">
+        <Parameter Name="x" Type="ulong" />
+    </Function>
+    <Function Name="__nv_ull2float_rn"
+              DisplayName="ULongToFloatRoundEven"
+              ReturnType="float">
+        <Parameter Name="x" Type="ulong" />
+    </Function>
+    <Function Name="__nv_ull2float_ru"
+              DisplayName="ULongToFloatRoundUp"
+              ReturnType="float">
+        <Parameter Name="x" Type="ulong" />
+    </Function>
+    <Function Name="__nv_ull2float_rz"
+              DisplayName="ULongToFloatRoundZero"
+              ReturnType="float">
+        <Parameter Name="x" Type="ulong" />
+    </Function>
+    <Function Name="__nv_ullmax"
+              DisplayName="Max"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="ulong" />
+        <Parameter Name="y" Type="ulong" />
+    </Function>
+    <Function Name="__nv_ullmin"
+              DisplayName="Min"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="ulong" />
+        <Parameter Name="y" Type="ulong" />
+    </Function>
+    <Function Name="__nv_umax"
+              DisplayName="Max"
+              ReturnType="uint">
+        <Parameter Name="x" Type="uint" />
+        <Parameter Name="y" Type="uint" />
+    </Function>
+    <Function Name="__nv_umin"
+              DisplayName="Min"
+              ReturnType="uint">
+        <Parameter Name="x" Type="uint" />
+        <Parameter Name="y" Type="uint" />
+    </Function>
+    <Function Name="__nv_umul24"
+              DisplayName="Mul24"
+              ReturnType="uint">
+        <Parameter Name="x" Type="uint" />
+        <Parameter Name="y" Type="uint" />
+    </Function>
+    <Function Name="__nv_umul64hi"
+              DisplayName="Mul64Hi"
+              ReturnType="ulong">
+        <Parameter Name="x" Type="ulong" />
+        <Parameter Name="y" Type="ulong" />
+    </Function>
+    <Function Name="__nv_umulhi"
+              DisplayName="MulHi"
+              ReturnType="uint">
+        <Parameter Name="x" Type="uint" />
+        <Parameter Name="y" Type="uint" />
+    </Function>
+    <Function Name="__nv_urhadd"
+              DisplayName="Rhadd"
+              ReturnType="uint">
+        <Parameter Name="x" Type="uint" />
+        <Parameter Name="y" Type="uint" />
+    </Function>
+    <Function Name="__nv_usad"
+              DisplayName="Sad"
+              ReturnType="uint">
+        <Parameter Name="x" Type="uint" />
+        <Parameter Name="y" Type="uint" />
+        <Parameter Name="z" Type="uint" />
+    </Function>
+    <Function Name="__nv_y0"
+              DisplayName="Y0"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_y0f"
+              DisplayName="Y0"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_y1"
+              DisplayName="Y1"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_y1f"
+              DisplayName="Y1"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+    <Function Name="__nv_yn"
+              DisplayName="YN"
+              ReturnType="double">
+        <Parameter Name="x" Type="double" />
+    </Function>
+    <Function Name="__nv_ynf"
+              DisplayName="YN"
+              ReturnType="float">
+        <Parameter Name="x" Type="float" />
+    </Function>
+</LibDevice>

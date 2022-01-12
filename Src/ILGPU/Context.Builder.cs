@@ -19,6 +19,9 @@ using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.OpenCL;
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace ILGPU
 {
@@ -272,6 +275,68 @@ namespace ILGPU
             public Builder Profiling()
             {
                 EnableProfiling = true;
+                return this;
+            }
+
+            /// <summary>
+            /// Turns on LibDevice support.
+            /// Automatically detects the CUDA SDK location.
+            /// </summary>
+            /// <returns>The current builder instance.</returns>
+            public Builder LibDevice()
+            {
+                // Find the CUDA installation path.
+                var cudaEnvName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "CUDA_PATH"
+                    : "CUDA_HOME";
+                var cudaPath = Environment.GetEnvironmentVariable(cudaEnvName);
+                if (string.IsNullOrEmpty(cudaPath))
+                {
+                    throw new NotSupportedException(string.Format(
+                        RuntimeErrorMessages.NotSupportedLibDeviceEnvironmentVariable,
+                        cudaEnvName));
+                }
+                var nvvmRoot = Path.Combine(cudaPath, "nvvm");
+
+                // Find the NVVM DLL.
+                var nvvmBinName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "bin"
+                    : "lib64";
+                var nvvmBinDir = Path.Combine(nvvmRoot, nvvmBinName);
+                var nvvmSearchPattern =
+                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "nvvm*.dll"
+                    : "libnvvm*.so";
+                var nvvmFiles = Directory.EnumerateFiles(nvvmBinDir, nvvmSearchPattern);
+                LibNvvmPath = nvvmFiles.FirstOrDefault()
+                    ?? throw new NotSupportedException(string.Format(
+                        RuntimeErrorMessages.NotSupportedLibDeviceNotFoundNvvmDll,
+                        nvvmBinDir));
+
+                // Find the LibDevice Bitcode.
+                var libDeviceDir = Path.Combine(nvvmRoot, "libdevice");
+                var libDeviceFiles = Directory.EnumerateFiles(
+                    libDeviceDir,
+                    "libdevice.*.bc");
+                LibDevicePath = libDeviceFiles.FirstOrDefault()
+                    ?? throw new NotSupportedException(string.Format(
+                        RuntimeErrorMessages.NotSupportedLibDeviceNotFoundBitCode,
+                        libDeviceDir));
+
+                return this;
+            }
+
+            /// <summary>
+            /// Turns on LibDevice support.
+            /// Explicitly specifies the LibDevice location.
+            /// </summary>
+            /// <param name="libNvvmPath">Path to LibNvvm DLL.</param>
+            /// <param name="libDevicePath">Path to LibDevice bitcode.</param>
+            /// <returns>The current builder instance.</returns>
+            public Builder LibDevice(string libNvvmPath, string libDevicePath)
+            {
+                LibNvvmPath = libNvvmPath;
+                LibDevicePath = libDevicePath;
                 return this;
             }
 

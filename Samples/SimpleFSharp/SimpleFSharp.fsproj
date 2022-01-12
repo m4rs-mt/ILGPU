@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net471;netcoreapp3.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>$(LibrarySamplesTargetFrameworks)</TargetFrameworks>
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
 

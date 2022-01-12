@@ -90,7 +90,7 @@ namespace ILGPU.Runtime.CPU
         {
             NativePtr = new IntPtr(1);
 
-            DefaultStream = CreateStream();
+            DefaultStream = CreateStreamInternal();
 
             NumThreads = description.NumThreads;
             Mode = mode;
@@ -108,7 +108,8 @@ namespace ILGPU.Runtime.CPU
                     UsesSequentialExecution);
             }
 
-            Bind();
+            if (!description.Equals(CPUDevice.Implicit))
+                Bind();
             Init(context.DefautltILBackend);
         }
 

@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net5.0;net471</TargetFrameworks>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
-    <VersionPrefix>1.1.0-beta1</VersionPrefix>
-    <AssemblyVersion>1.1.0.0</AssemblyVersion>
-    <FileVersion>1.1.0.0</FileVersion>
+    <VersionPrefix>$(LibraryVersionPrefix)</VersionPrefix>
+    <AssemblyVersion>$(LibraryAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(LibraryFileVersion)</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -101,6 +101,26 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
     </None>
+    <None Update="Runtime\Cuda\API\CuFFTAPI.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTAPI.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuFFTNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuFFTWAPI.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTWAPI.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuFFTWNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTWNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\NvJpegNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>NvJpegNativeMethods.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Cuda\API\NvmlNativeMethods.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>NvmlNativeMethods.cs</LastGenOutput>
@@ -124,6 +144,18 @@
     <None Update="Runtime\Cuda\API\CuRandNativeMethods.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuRandNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuFFTPlan.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTPlan.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuFFTW.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTW.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuFFTWPlan.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTWPlan.cs</LastGenOutput>
     </None>
     <None Update="ScanReduceOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -208,6 +240,31 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ErrorMessages.resx</DependentUpon>
     </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTAPI.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTAPI.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTWAPI.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTWAPI.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTWNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTWNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\NvJpegNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>NvJpegNativeMethods.tt</DependentUpon>
+    </Compile>
     <Compile Update="Runtime\Cuda\API\NvmlNativeMethods.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -237,6 +294,21 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuFFTPlan.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTPlan.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuFFTW.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTW.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuFFTWPlan.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTWPlan.tt</DependentUpon>
     </Compile>
     <Compile Update="ScanReduceOperations.cs">
       <DesignTime>True</DesignTime>

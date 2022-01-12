@@ -1,0 +1,41 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU Algorithms
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: CuFFTNativeMethods.tt/CuFFTNativeMethods.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ include file="../../../../ILGPU/Static/DllLibraryImporter.ttinclude" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using System;
+using System.Runtime.InteropServices;
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+<#
+string rootPath = Host.ResolvePath(".");
+var importLib = ImportLibrary.Load(rootPath, "CuFFTAPI.xml");
+
+// Remove 'cufft' prefix.
+// Rename 1d/2d/3d to 1D/2D/3D.
+SetMakeMethodNameFunc(methodName =>
+    {
+        methodName = Regex.Replace(methodName, "^cufft(.+)$", "$1");
+        return Regex.Replace(methodName, "(1|2|3)d$", "$1D");
+    });
+
+WriteLibrary(importLib);
+
+#>
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
