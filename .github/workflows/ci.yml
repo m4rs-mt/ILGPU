@@ -133,10 +133,18 @@ jobs:
         shell: bash
         run: echo ::set-output name=flavor::$([[ "${{ matrix.os }}" == "cuda" ]] && echo "Cuda" || echo "CPU")
 
+      - name: Set environment variables
+        id: env
+        shell: bash
+        run: |
+          echo "::set-output name=json::{\"ILGPU_CLEAN_TESTS\":\"false\", \"ILGPU_TEST_PARALLELIZATION_LEVEL\":\"1\"}"
+          if [[ ${{ github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }} ]]; then
+            echo "::set-output name=json::{\"ILGPU_CLEAN_TESTS\":\"true\", \"ILGPU_TEST_PARALLELIZATION_LEVEL\":\"4\"}"
+          fi
+
       - name: Build and test
         run: dotnet test --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger GitHubActions Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }}
-        env:
-          ILGPU_CLEAN_TESTS: ${{ github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }}
+        env: ${{ fromJson(steps.env.outputs.json) }}
 
   # Ensure that ILGPU libraries are built using the same version tag.
   check-version:
