@@ -134,7 +134,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             ref TVisitor visitor,
             in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
+            where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection;
     }
 
@@ -221,7 +221,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             BasicBlock entryBlock,
             in TSuccessorProvider successorProvider)
             where TOrder : struct, ITraversalOrder
-            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
+            where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
         {
             var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(count);
@@ -290,7 +290,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             ref TVisitor visitor,
             in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
+            where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
         {
             var visited = BasicBlockSet.Create(entryBlock);
@@ -367,7 +367,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             ref TVisitor visitor,
             in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
+            where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
         {
             var preOrder = new PreOrder();
@@ -425,7 +425,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             ref TVisitor visitor,
             in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
+            where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
         {
             var visited = BasicBlockSet.Create(entryBlock);
@@ -511,7 +511,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             ref TVisitor visitor,
             in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
+            where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
         {
             var postOrder = new PostOrder();
