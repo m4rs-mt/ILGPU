@@ -410,7 +410,9 @@ namespace ILGPU.IR
             TSuccessorProvider>(TSuccessorProvider successorProvider)
             where TOtherOrder : struct, ITraversalOrder
             where TOtherDirection : struct, IControlFlowDirection
-            where TSuccessorProvider : ITraversalSuccessorsProvider<TOtherDirection>
+            where TSuccessorProvider :
+                struct,
+                ITraversalSuccessorsProvider<TOtherDirection>
         {
             // Determine the new entry block
             TOtherDirection direction = default;
