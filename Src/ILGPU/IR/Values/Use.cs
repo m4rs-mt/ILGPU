@@ -161,7 +161,7 @@ namespace ILGPU.IR.Values
         public readonly struct HasPhiUsesPredicate : InlineList.IPredicate<Use>
         {
             /// <inheritdoc cref="InlineList.IPredicate{T}.Apply(T)"/>
-            public readonly bool Apply(Use item) => item.Resolve() is PhiValue;
+            public bool Apply(Use item) => item.Resolve() is PhiValue;
         }
 
         /// <summary>
@@ -170,12 +170,7 @@ namespace ILGPU.IR.Values
         public readonly struct HasSideEffectUses : InlineList.IPredicate<Use>
         {
             /// <inheritdoc cref="InlineList.IPredicate{T}.Apply(T)"/>
-            public readonly bool Apply(Use item) => item.Resolve() switch
-            {
-                MethodCall _ => true,
-                MemoryValue _ => true,
-                _ => false,
-            };
+            public bool Apply(Use item) => item.Resolve() is SideEffectValue;
         }
 
         /// <summary>

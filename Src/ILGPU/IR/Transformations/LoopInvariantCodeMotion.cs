@@ -92,8 +92,7 @@ namespace ILGPU.IR.Transformations
                                 return ReturnNotInvariant(phiValue);
                         }
                         break;
-                    case MethodCall _:
-                    case MemoryValue _:
+                    case SideEffectValue _:
                         // Values with side effects cannot be moved out of loops
                         return false;
                     default:
