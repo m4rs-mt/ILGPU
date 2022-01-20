@@ -15,9 +15,9 @@ using ILGPU.IR.Types;
 namespace ILGPU.IR.Values
 {
     /// <summary>
-    /// Represents an abstract value with side effects.
+    /// Represents an abstract value operating on memory.
     /// </summary>
-    public abstract class MemoryValue : Value
+    public abstract class MemoryValue : SideEffectValue
     {
         #region Instance
 
