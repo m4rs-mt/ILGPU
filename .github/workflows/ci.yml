@@ -133,13 +133,16 @@ jobs:
         shell: bash
         run: echo ::set-output name=flavor::$([[ "${{ matrix.os }}" == "cuda" ]] && echo "Cuda" || echo "CPU")
 
+      # Clean tests (kernel caching disabled) use more CPU and memory, so we only run them for
+      # scheduled runs, pushes to master, and pushes to tags.
+      # Parallelization also needs to be disabled to avoid Out of Memory errors.
       - name: Set environment variables
         id: env
         shell: bash
         run: |
-          echo "::set-output name=json::{\"ILGPU_CLEAN_TESTS\":\"false\", \"ILGPU_TEST_PARALLELIZATION_LEVEL\":\"1\"}"
+          echo "::set-output name=json::{}"
           if [[ ${{ github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }} ]]; then
-            echo "::set-output name=json::{\"ILGPU_CLEAN_TESTS\":\"true\", \"ILGPU_TEST_PARALLELIZATION_LEVEL\":\"4\"}"
+            echo "::set-output name=json::{\"ILGPU_CLEAN_TESTS\":\"true\", \"ILGPU_TEST_PARALLELIZATION_LEVEL\":\"1\"}"
           fi
 
       - name: Build and test
