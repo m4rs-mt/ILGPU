@@ -23,7 +23,7 @@ The sample projects demonstrate the basic usage of ILGPU to help you get started
 
 # Build Instructions
 
-ILGPU requires Visual Studio 2019 (or higher) and/or a DotNet Core/5.0 SDK toolchain.
+ILGPU requires Visual Studio 2022 (or higher) and/or a .NET 6.0 SDK toolchain.
 
 Use the provided Visual Studio solution to build the ILGPU libs
 in the desired configurations (Debug/Release).
@@ -57,7 +57,7 @@ Preview/Daily builds are distributed using https://feedz.io/. To pull preview ve
 
 # Symbols
 
-Symbols for ILGPU can be [loaded in VS2019](https://docs.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger).
+Symbols for ILGPU can be [loaded in VS2022](https://docs.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger).
 For official releases, ensure that the built-in `NuGet.org Symbol Server` is enabled. For preview release symbols, add the link:
 ```
 https://f.feedz.io/ilgpu/preview/symbols
@@ -65,7 +65,7 @@ https://f.feedz.io/ilgpu/preview/symbols
 
 # Source Link
 
-ILGPU also provides Source Link support for a better debugging experience. Make sure `Enable Source Link support` is activated in [VS2019 options](https://docs.microsoft.com/en-us/visualstudio/debugger/general-debugging-options-dialog-box).
+ILGPU also provides Source Link support for a better debugging experience. Make sure `Enable Source Link support` is activated in [VS2022 options](https://docs.microsoft.com/en-us/visualstudio/debugger/general-debugging-options-dialog-box).
 
 # General Contribution Guidelines
 
@@ -96,7 +96,7 @@ ILGPU also provides Source Link support for a better debugging experience. Make 
 ILGPU is licensed under the University of Illinois/NCSA Open Source License.
 Detailed license information can be found in LICENSE.txt.
 
-Copyright (c) 2016-2021 ILGPU Project. All rights reserved.
+Copyright (c) 2016-2022 ILGPU Project. All rights reserved.
 
 Originally developed by Marcel Koester.
 
