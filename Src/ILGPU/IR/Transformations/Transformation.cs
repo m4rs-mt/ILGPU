@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Transformation.cs
@@ -134,6 +134,7 @@ namespace ILGPU.IR.Transformations
                 {
                     using var builder = method.CreateBuilder();
                     ExecuteTransform(builder, executor);
+                    builder.Complete();
                 }
             };
         }
@@ -215,6 +216,7 @@ namespace ILGPU.IR.Transformations
                 {
                     using var builder = method.CreateBuilder();
                     ExecuteTransform(builder, executor);
+                    builder.Complete();
                 }
             };
         }
@@ -309,6 +311,7 @@ namespace ILGPU.IR.Transformations
                 {
                     using var builder = method.CreateBuilder();
                     ExecuteTransform(builder, executor);
+                    builder.Complete();
                 }
             }
         }
@@ -411,6 +414,7 @@ namespace ILGPU.IR.Transformations
                 {
                     using var builder = method.CreateBuilder();
                     ExecuteTransform(builder, executor);
+                    builder.Complete();
                 }
             }
 
@@ -552,6 +556,7 @@ namespace ILGPU.IR.Transformations
                 {
                     using var builder = entry.Method.CreateBuilder();
                     ExecuteTransform(builder, executor);
+                    builder.Complete();
                 }
             }
             FinishProcessing(intermediate);
