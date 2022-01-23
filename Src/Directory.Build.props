@@ -1,29 +1,25 @@
 ﻿<Project>
   <!-- Library Project Configuration -->
   <PropertyGroup>
-    <LibraryTargetFrameworks>net471;netstandard2.1;net5.0</LibraryTargetFrameworks>
+    <LibraryTargetFrameworks>net6.0</LibraryTargetFrameworks>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(MSBuildVersion)' &gt;= '17.0'">
-    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net6.0</LibraryTargetFrameworks>
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net471;netstandard2.1;net5.0</LibraryTargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
     <LibraryVersionPrefix>1.1.0-beta1</LibraryVersionPrefix>
     <LibraryAssemblyVersion>1.1.0.0</LibraryAssemblyVersion>
     <LibraryFileVersion>1.1.0.0</LibraryFileVersion>
+    <LibraryPackageValidationBaselineVersion>1.0.0</LibraryPackageValidationBaselineVersion>
   </PropertyGroup>
 
   <!-- Unit Test Project Configuration -->
   <PropertyGroup>
-    <LibraryUnitTestTargetFrameworks>net5.0</LibraryUnitTestTargetFrameworks>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(MSBuildVersion)' &gt;= '17.0'">
     <LibraryUnitTestTargetFrameworks>net6.0</LibraryUnitTestTargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibraryUnitTestTargetFrameworks Condition="'$(MSBuildVersion)' &gt;= '17.0'">$(LibraryUnitTestTargetFrameworks);net5.0</LibraryUnitTestTargetFrameworks>
-    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);netcoreapp3.1</LibraryUnitTestTargetFrameworks>
-    <LibraryUnitTestTargetFrameworks Condition="'$(OS)' == 'Windows_NT'">$(LibraryUnitTestTargetFrameworks);net471</LibraryUnitTestTargetFrameworks>
+    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net471;netcoreapp3.1;net5.0</LibraryUnitTestTargetFrameworks>
   </PropertyGroup>
 
 </Project>

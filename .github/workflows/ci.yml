@@ -111,12 +111,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup the latest .NET 6 SDK
-        if: matrix.framework == 'net6.0'
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: 6.0.x
-
       - name: Setup the latest .NET 5 SDK
         if: matrix.framework == 'net5.0'
         uses: actions/setup-dotnet@v1
@@ -128,6 +122,11 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 3.1.x
+
+      - name: Setup the latest .NET 6 SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
 
       - name: Set test flavor
         id: test-flavor
