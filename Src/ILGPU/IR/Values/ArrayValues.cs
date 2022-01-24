@@ -20,7 +20,7 @@ namespace ILGPU.IR.Values
     /// Represents an allocation operation of a new array in a particular address space.
     /// </summary>
     [ValueKind(ValueKind.Array)]
-    public sealed class NewArray : MemoryValue
+    public sealed class NewArray : ControlFlowValue
     {
         #region Nested Types
 

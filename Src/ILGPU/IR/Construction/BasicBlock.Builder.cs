@@ -241,7 +241,7 @@ namespace ILGPU.IR
             /// Applies all scheduled removal operations.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal void PerformRemoval()
+            private void PerformRemoval()
             {
                 if (toRemove.Count < 1)
                     return;
@@ -477,6 +477,33 @@ namespace ILGPU.IR
                 Remove(value);
 
                 InsertPosition = oldPosition;
+            }
+
+            /// <summary>
+            /// Tries to find the first value of the given type that fulfills the given
+            /// predicate in this block.
+            /// </summary>
+            /// <typeparam name="T">The value type.</typeparam>
+            /// <param name="predicate">The predicate.</param>
+            /// <param name="entry">
+            /// The result pair consisting of a value index and the matched value itself.
+            /// </param>
+            /// <returns>True, if a value could be matched.</returns>
+            public bool TryFindFirstValueOf<T>(
+                Predicate<T> predicate,
+                out (int Index, T Value) entry)
+                where T : Value
+            {
+                entry = default;
+                for (int i = 0, e = Values.Count; i < e; ++i)
+                {
+                    if (Values[i].Resolve() is T tValue && predicate(tValue))
+                    {
+                        entry = (i, tValue);
+                        return true;
+                    }
+                }
+                return false;
             }
 
             /// <summary cref="IRBuilder.CreateTerminator{T}(T)"/>

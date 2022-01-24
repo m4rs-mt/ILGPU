@@ -256,8 +256,7 @@ namespace ILGPU.IR
             /// Returns the terminator targets.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
-                BasicBlock basicBlock) =>
+            public ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock) =>
                 basicBlock.Terminator.Targets;
         }
 
@@ -272,11 +271,8 @@ namespace ILGPU.IR
             /// <summary>
             /// Returns registered successors or predecessors of a block.
             /// </summary>
-            /// <param name="basicBlock"></param>
-            /// <returns></returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
-                BasicBlock basicBlock) =>
+            public ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock) =>
                 basicBlock.GetSuccessors<TDirection>();
         }
 
@@ -453,7 +449,7 @@ namespace ILGPU.IR
         {
             foreach (Value value in this)
             {
-                if (value is MemoryValue || value is MethodCall)
+                if (value is SideEffectValue)
                     return true;
             }
             return false;

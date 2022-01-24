@@ -45,17 +45,11 @@ namespace ILGPU.IR.Transformations
             {
                 foreach (Value value in block)
                 {
-                    switch (value)
+                    // Mark all memory values as non dead (except dead loads)
+                    if (value is MemoryValue memoryValue &&
+                        memoryValue.ValueKind != ValueKind.Load)
                     {
-                        // Mark all memory values as non dead (except dead loads)
-                        case MemoryValue memoryValue:
-                            if (memoryValue.ValueKind != ValueKind.Load)
-                                toProcess.Add(memoryValue);
-                            break;
-                        // Mark all calls as non dead
-                        case MethodCall call:
-                            toProcess.Add(call);
-                            break;
+                        toProcess.Add(memoryValue);
                     }
                 }
 

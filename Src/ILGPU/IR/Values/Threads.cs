@@ -229,7 +229,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a value that is used for communicating values across all threads.
     /// </summary>
-    public abstract class ThreadValue : MemoryValue
+    public abstract class ThreadValue : ControlFlowValue
     {
         #region Instance
 
