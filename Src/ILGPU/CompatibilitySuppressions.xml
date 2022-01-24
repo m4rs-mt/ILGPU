@@ -22,6 +22,27 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.NewArray</Target>
+    <Left>lib/net471/ILGPU.dll</Left>
+    <Right>lib/net471/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.DebugAssertOperation</Target>
+    <Left>lib/net471/ILGPU.dll</Left>
+    <Right>lib/net471/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.IOValue</Target>
+    <Left>lib/net471/ILGPU.dll</Left>
+    <Right>lib/net471/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.IR.Values.IValueVisitor.Visit(ILGPU.IR.Values.AlignViewTo)</Target>
     <Left>lib/net471/ILGPU.dll</Left>
@@ -43,6 +64,13 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.ThreadValue</Target>
+    <Left>lib/net471/ILGPU.dll</Left>
+    <Right>lib/net471/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:ILGPU.IR.Values.AlignViewTo</Target>
     <Left>lib/net471/ILGPU.dll</Left>
@@ -52,6 +80,13 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.IR.Transformations.LowerViews.AddRewriters(ILGPU.IR.Rewriting.Rewriter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType}},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.NewView},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.GetViewLength},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.SubViewValue},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.AddressSpaceCast},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.ViewCast},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.LoadElementAddress},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.AlignViewTo})</Target>
+    <Left>lib/net471/ILGPU.dll</Left>
+    <Right>lib/net471/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.IR.Transformations.Optimizer.AddBackendOptimizations(ILGPU.IR.Transformations.Transformer.Builder,ILGPU.IR.Transformations.AcceleratorSpecializer,ILGPU.InliningMode,ILGPU.OptimizationLevel)</Target>
     <Left>lib/net471/ILGPU.dll</Left>
     <Right>lib/net471/ILGPU.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -113,6 +148,27 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.NewArray</Target>
+    <Left>lib/net5.0/ILGPU.dll</Left>
+    <Right>lib/net5.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.DebugAssertOperation</Target>
+    <Left>lib/net5.0/ILGPU.dll</Left>
+    <Right>lib/net5.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.IOValue</Target>
+    <Left>lib/net5.0/ILGPU.dll</Left>
+    <Right>lib/net5.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.IR.Values.IValueVisitor.Visit(ILGPU.IR.Values.AlignViewTo)</Target>
     <Left>lib/net5.0/ILGPU.dll</Left>
@@ -134,6 +190,13 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.ThreadValue</Target>
+    <Left>lib/net5.0/ILGPU.dll</Left>
+    <Right>lib/net5.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:ILGPU.IR.Values.AlignViewTo</Target>
     <Left>lib/net5.0/ILGPU.dll</Left>
@@ -143,6 +206,13 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.IR.Transformations.LowerViews.AddRewriters(ILGPU.IR.Rewriting.Rewriter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType}},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.NewView},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.GetViewLength},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.SubViewValue},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.AddressSpaceCast},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.ViewCast},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.LoadElementAddress},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.AlignViewTo})</Target>
+    <Left>lib/net5.0/ILGPU.dll</Left>
+    <Right>lib/net5.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.IR.Transformations.Optimizer.AddBackendOptimizations(ILGPU.IR.Transformations.Transformer.Builder,ILGPU.IR.Transformations.AcceleratorSpecializer,ILGPU.InliningMode,ILGPU.OptimizationLevel)</Target>
     <Left>lib/net5.0/ILGPU.dll</Left>
     <Right>lib/net5.0/ILGPU.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -204,6 +274,27 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.NewArray</Target>
+    <Left>lib/netstandard2.1/ILGPU.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.DebugAssertOperation</Target>
+    <Left>lib/netstandard2.1/ILGPU.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.IOValue</Target>
+    <Left>lib/netstandard2.1/ILGPU.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.IR.Values.IValueVisitor.Visit(ILGPU.IR.Values.AlignViewTo)</Target>
     <Left>lib/netstandard2.1/ILGPU.dll</Left>
@@ -225,6 +316,13 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0007</DiagnosticId>
+    <Target>T:ILGPU.IR.Values.ThreadValue</Target>
+    <Left>lib/netstandard2.1/ILGPU.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:ILGPU.IR.Values.AlignViewTo</Target>
     <Left>lib/netstandard2.1/ILGPU.dll</Left>
@@ -234,6 +332,13 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.IR.Transformations.LowerViews.AddRewriters(ILGPU.IR.Rewriting.Rewriter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType}},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.NewView},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.GetViewLength},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.SubViewValue},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.AddressSpaceCast},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.ViewCast},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.LoadElementAddress},ILGPU.IR.Rewriting.RewriteConverter{ILGPU.IR.Types.TypeLowering{ILGPU.IR.Types.ViewType},ILGPU.IR.Values.AlignViewTo})</Target>
+    <Left>lib/netstandard2.1/ILGPU.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.IR.Transformations.Optimizer.AddBackendOptimizations(ILGPU.IR.Transformations.Transformer.Builder,ILGPU.IR.Transformations.AcceleratorSpecializer,ILGPU.InliningMode,ILGPU.OptimizationLevel)</Target>
     <Left>lib/netstandard2.1/ILGPU.dll</Left>
     <Right>lib/netstandard2.1/ILGPU.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
