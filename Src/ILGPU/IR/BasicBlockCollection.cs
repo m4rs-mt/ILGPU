@@ -216,12 +216,12 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the parent method.
         /// </summary>
-        public readonly Method Method => EntryBlock.Method;
+        public Method Method => EntryBlock.Method;
 
         /// <summary>
         /// Returns the parent base context.
         /// </summary>
-        public readonly IRBaseContext BaseContext => Method.BaseContext;
+        public IRBaseContext BaseContext => Method.BaseContext;
 
         /// <summary>
         /// Returns the entry block.
@@ -231,12 +231,12 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the number of blocks.
         /// </summary>
-        public readonly int Count => blocks.Length;
+        public int Count => blocks.Length;
 
         /// <summary>
         /// Returns an abstract view on all values.
         /// </summary>
-        public readonly ValueCollection Values => new ValueCollection(this);
+        public ValueCollection Values => new ValueCollection(this);
 
         #endregion
 

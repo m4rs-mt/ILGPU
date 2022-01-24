@@ -135,11 +135,12 @@ namespace ILGPU.IR.Transformations
         /// </param>
         /// <param name="inliningMode">The inlining mode to use.</param>
         /// <param name="level">The desired optimization level.</param>
-        public static void AddBackendOptimizations(
+        public static void AddBackendOptimizations<TPlacementStrategy>(
             this Transformer.Builder builder,
             AcceleratorSpecializer acceleratorSpecializer,
             InliningMode inliningMode,
             OptimizationLevel level)
+            where TPlacementStrategy : struct, CodePlacement.IPlacementStrategy
         {
             // Specialize accelerator properties, arrays and views
             builder.Add(new LowerArrays(MemoryAddressSpace.Local));
@@ -190,6 +191,16 @@ namespace ILGPU.IR.Transformations
             // Final cleanup phases to improve performance
             builder.Add(new CleanupBlocks());
             builder.Add(new SimplifyControlFlow());
+
+            if (level > OptimizationLevel.O1)
+            {
+                // Add additional code placement optimizations to reduce register
+                // pressure and improve performance
+                builder.Add(new DeadCodeElimination());
+                builder.Add(new CodePlacement<TPlacementStrategy>(
+                    CodePlacementMode.Aggressive));
+                builder.Add(new LoopInvariantCodeMotion());
+            }
         }
 
         /// <summary>

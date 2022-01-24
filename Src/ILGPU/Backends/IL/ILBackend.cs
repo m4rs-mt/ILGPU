@@ -107,7 +107,7 @@ namespace ILGPU.Backends.IL
             {
                 var transformerBuilder = Transformer.CreateBuilder(
                     TransformerConfiguration.Empty);
-                transformerBuilder.AddBackendOptimizations(
+                transformerBuilder.AddBackendOptimizations<CodePlacement.GroupOperands>(
                     new ILAcceleratorSpecializer(
                         PointerType,
                         warpSize,

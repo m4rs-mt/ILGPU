@@ -104,7 +104,7 @@ namespace ILGPU.Backends.PTX
             {
                 var transformerBuilder = Transformer.CreateBuilder(
                     TransformerConfiguration.Empty);
-                transformerBuilder.AddBackendOptimizations(
+                transformerBuilder.AddBackendOptimizations<CodePlacement.GroupOperands>(
                     new PTXAcceleratorSpecializer(
                         PointerType,
                         Context.Properties.EnableAssertions,
