@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                           Copyright (c) 2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CodePlacement.cs
@@ -380,27 +380,10 @@ namespace ILGPU.IR.Transformations
             #region Instance
 
             /// <summary>
-            /// Maps side effect values to their original source blocks in which they
-            /// have been defined
+            /// The internal movement analysis instance used to move values during code
+            /// placement.
             /// </summary>
-            private readonly Dictionary<SideEffectValue, BasicBlock> valueBlocks;
-
-            /// <summary>
-            /// Stores all memory values according to the reverse post order.
-            /// </summary>
-            private readonly List<MemoryValue> values;
-
-            /// <summary>
-            /// Maps all memory values to their global indices in the <see cref="values"/>
-            /// list determined by a reverse-post-order search.
-            /// </summary>
-            private readonly Dictionary<MemoryValue, int> valueIndices;
-
-            /// <summary>
-            /// Stores all end indices of all blocks pointing to offsets in the
-            /// <see cref="values"/> list.
-            /// </summary>
-            private readonly BasicBlockMap<int> blockRanges;
+            private readonly Movement<Method.Builder> movement;
 
             /// <summary>
             /// Constructs a new mover.
@@ -413,37 +396,7 @@ namespace ILGPU.IR.Transformations
                 Justification = "There is no dead code in the method below")]
             public Mover(Method.Builder builder, CodePlacementMode mode)
             {
-                // Setup internal mappings to store value indices and block offsets
-                var blocks = builder.SourceBlocks;
-                values = new List<MemoryValue>(blocks.Count << 1);
-                valueBlocks = new Dictionary<SideEffectValue, BasicBlock>(
-                    values.Capacity);
-                valueIndices = new Dictionary<MemoryValue, int>(values.Capacity);
-                blockRanges = blocks.CreateMap<int>();
-
-                // Gather all side effect values in the order of their appearance
-                foreach (var block in blocks)
-                {
-                    foreach (Value value in block)
-                    {
-                        if (!(value is SideEffectValue sev))
-                            continue;
-
-                        valueBlocks[sev] = value.BasicBlock;
-                        if (value is MemoryValue memoryValue)
-                        {
-                            int index = values.Count;
-                            values.Add(memoryValue);
-                            valueIndices.Add(memoryValue, index);
-                        }
-                    }
-                    blockRanges[block] = values.Count - 1;
-                }
-
-                // Setup all properties and compute dominators and post dominators
-                Builder = builder;
-                Dominators = builder.SourceBlocks.CreateDominators();
-                PostDominators = builder.SourceBlocks.CreatePostDominators();
+                movement = new Movement<Method.Builder>(builder.SourceBlocks, builder);
                 Mode = mode;
             }
 
@@ -454,17 +407,12 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Returns the underlying method builder.
             /// </summary>
-            public Method.Builder Builder { get; }
+            public Method.Builder Builder => movement.Scope;
 
             /// <summary>
             /// Returns the dominators of the current method.
             /// </summary>
-            public Dominators Dominators { get; }
-
-            /// <summary>
-            /// Returns the post dominators of the current method.
-            /// </summary>
-            private PostDominators PostDominators { get; }
+            public Dominators Dominators => movement.Dominators;
 
             /// <summary>
             /// Returns the current placement mode.
@@ -474,80 +422,6 @@ namespace ILGPU.IR.Transformations
             #endregion
 
             #region Methods
-
-            /// <summary>
-            /// Returns true if the given generic value can be moved within the method.
-            /// </summary>
-            /// <param name="value">The value to test.</param>
-            /// <returns>
-            /// True, if the given value can be moved to a different block.
-            /// </returns>
-            private bool CanMoveGenericValue(Value value)
-            {
-                value.Assert(!(value is SideEffectValue));
-                return Builder.Method == value.Method;
-            }
-
-            /// <summary>
-            /// Tests whether the given value (with side effects) can be moved to the
-            /// specified target block.
-            /// </summary>
-            /// <param name="value">The value to move to the target block.</param>
-            /// <param name="targetBlock">The target block to move the value to.</param>
-            /// <returns>True, if we can move the value to the target block.</returns>
-            private bool CanMoveSideEffectValue(
-                SideEffectValue value,
-                BasicBlock targetBlock)
-            {
-                // Check the dominance relation between both blocks
-                var sourceBlock = valueBlocks[value];
-                bool lower = Dominators.Dominates(sourceBlock, targetBlock);
-                // Do not move side effect values into divergent regions
-                if (!lower || !PostDominators.Dominates(sourceBlock, targetBlock))
-                    return false;
-
-                // MemoryValues need specific handling as there might be other operations
-                // in between changing the behavior/results of the value
-                if (!(value is MemoryValue memoryValue))
-                    return true;
-
-                // Test whether might miss other memory operations in between
-                var valueIndex = valueIndices[memoryValue];
-                var targetBuilder = Builder[targetBlock];
-
-                // Find the first memory value in the target block (if any) to begin with
-                int startIndex = blockRanges[targetBlock];
-                if (targetBuilder.TryFindFirstValueOf<MemoryValue>(
-                    memValue => !(memValue is Load),
-                    out var entry))
-                {
-                    startIndex = valueIndices[entry.Value];
-                }
-
-                // Check for trivial cases
-                if (startIndex == valueIndex)
-                    return true;
-
-                // Sweep upwards or downwards and check whether we might break the program
-                // semantics by violating the order of load/store operations
-                bool skipLoads = memoryValue is Load;
-                int increment = startIndex > valueIndex ? -1 : 1;
-                for (int i = startIndex + increment;
-                    lower && i > valueIndex || i < valueIndex;
-                    i += increment)
-                {
-                    // Ignore loads
-                    if (skipLoads && values[i] is Load)
-                        continue;
-
-                    // Reject other modifications in between
-                    // TODO: make this smarter (e.g. based on alias information)
-                    return false;
-                }
-
-                // We can safely move the current memory value to the target block
-                return true;
-            }
 
             /// <summary>
             /// Returns true if the given value can be moved to a different block. This is
@@ -562,16 +436,10 @@ namespace ILGPU.IR.Transformations
             /// placement entry.
             /// </returns>
             public bool CanMove(in PlacementEntry entry) =>
-                entry.Value switch
-                {
-                    Parameter _ => false,
-                    SideEffectValue sev =>
-                        Mode == CodePlacementMode.Aggressive &&
-                        CanMoveSideEffectValue(sev, entry.Block),
-                    PhiValue _ => false,
-                    TerminatorValue _ => false,
-                    _ => CanMoveGenericValue(entry.Value),
-                };
+                entry.Value is SideEffectValue
+                ? Mode == CodePlacementMode.Aggressive &&
+                    movement.CanMoveTo(entry.Value, entry.Block)
+                : movement.CanMoveTo(entry.Value, entry.Block);
 
             #endregion
         }
@@ -584,6 +452,11 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// The strategy instance to manage the placement order.
             /// </summary>
+            [SuppressMessage(
+                "Style",
+                "IDE0044:Add readonly modifier",
+                Justification = "If this field is readonly, internal state updates " +
+                "cannot be represented as a TStrategy instance a struct value")]
             private TStrategy strategy;
 
             /// <summary>
