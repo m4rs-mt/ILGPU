@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Method.Builder.cs
@@ -151,6 +151,12 @@ namespace ILGPU.IR
             private int blockCounter;
             private bool updateControlFlow;
             private bool acceptControlFlowUpdates;
+
+            /// <summary>
+            /// Indicates if the builder completed successfully. If not, skip some of the
+            /// processing that occurs during disposal.
+            /// </summary>
+            private bool builderCompleted;
 
             /// <summary>
             /// All created basic block builders.
@@ -550,6 +556,15 @@ namespace ILGPU.IR
                 ScheduleControlFlowUpdate();
             }
 
+            /// <summary>
+            /// Marks this builder as completed.
+            /// </summary>
+            public void Complete()
+            {
+                Debug.Assert(!builderCompleted);
+                builderCompleted = true;
+            }
+
             #endregion
 
             #region IDisposable
@@ -607,18 +622,24 @@ namespace ILGPU.IR
             /// <summary cref="DisposeBase.Dispose(bool)"/>
             protected override void Dispose(bool disposing)
             {
+                Debug.Assert(builderCompleted);
+
                 // Update parameter bindings
-                UpdateParameters();
+                if (builderCompleted)
+                    UpdateParameters();
 
                 // Dispose all basic block builders
                 foreach (var builder in basicBlockBuilders)
                     builder.Dispose();
 
                 // Update control-flow
-                var newBlocks = UpdateControlFlow();
+                if (builderCompleted)
+                {
+                    var newBlocks = UpdateControlFlow();
 
-                // Ensure a unique exit block
-                newBlocks.AssertUniqueExitBlock();
+                    // Ensure a unique exit block
+                    newBlocks.AssertUniqueExitBlock();
+                }
 
                 // Release builder
                 Method.ReleaseBuilder(this);

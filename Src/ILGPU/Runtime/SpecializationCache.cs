@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SpecializationCache.cs
@@ -168,6 +168,7 @@ namespace ILGPU.Runtime
                 }
                 callBuilder.Seal();
                 blockBuilder.CreateReturn(location);
+                methodBuilder.Complete();
             }
             return targetMethod;
         }
