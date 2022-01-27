@@ -28,7 +28,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an abstract Input/Output (IO) value with side effects.
     /// </summary>
-    public abstract class IOValue : MemoryValue
+    public abstract class IOValue : ControlFlowValue
     {
         #region Instance
 

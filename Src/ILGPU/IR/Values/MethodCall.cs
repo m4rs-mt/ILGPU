@@ -21,7 +21,7 @@ namespace ILGPU.IR.Values
     /// x = f(a0, ..., an-1) or f(a0, ..., an-1)
     /// </summary>
     [ValueKind(ValueKind.MethodCall)]
-    public sealed class MethodCall : Value
+    public sealed class MethodCall : MemoryValue
     {
         #region Nested Types
 

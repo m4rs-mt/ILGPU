@@ -156,6 +156,24 @@ namespace ILGPU.IR.Values
         #region Nested Types
 
         /// <summary>
+        /// Checks whether a given use references a phi value.
+        /// </summary>
+        public readonly struct HasPhiUsesPredicate : InlineList.IPredicate<Use>
+        {
+            /// <inheritdoc cref="InlineList.IPredicate{T}.Apply(T)"/>
+            public bool Apply(Use item) => item.Resolve() is PhiValue;
+        }
+
+        /// <summary>
+        /// Checks whether a given use references a method call or memory value.
+        /// </summary>
+        public readonly struct HasSideEffectUses : InlineList.IPredicate<Use>
+        {
+            /// <inheritdoc cref="InlineList.IPredicate{T}.Apply(T)"/>
+            public bool Apply(Use item) => item.Resolve() is SideEffectValue;
+        }
+
+        /// <summary>
         /// Returns an enumerator to enumerate all uses in the context
         /// of the parent scope.
         /// </summary>
@@ -260,6 +278,23 @@ namespace ILGPU.IR.Values
                 return false;
             use = enumerator.Current;
             return !enumerator.MoveNext();
+        }
+
+        /// <summary>
+        /// Returns true if any of the uses fulfills the given predicate.
+        /// </summary>
+        /// <typeparam name="TPredicate">The predicate type.</typeparam>
+        /// <param name="predicate">The predicate to use.</param>
+        /// <returns>True, if any use fulfills the given predicate.</returns>
+        public readonly bool Any<TPredicate>(TPredicate predicate)
+            where TPredicate : InlineList.IPredicate<Use>
+        {
+            foreach (Use use in this)
+            {
+                if (predicate.Apply(use))
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>
