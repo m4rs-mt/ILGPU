@@ -14,7 +14,7 @@ Param (
     [Parameter(Mandatory=$True, HelpMessage="The ILGPU package version")]
     [string]$version,
 
-    [Parameter(Mandatory=$True, HelpMessage="The ILGPU package suffix")]
+    [Parameter(HelpMessage="The ILGPU package suffix")]
     [string]$suffix
 )
 
