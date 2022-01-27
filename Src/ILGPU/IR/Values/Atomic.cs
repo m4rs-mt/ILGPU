@@ -63,6 +63,12 @@ namespace ILGPU.IR.Values
         public ValueReference Target => this[0];
 
         /// <summary>
+        /// Returns the target address space this atomic operates on.
+        /// </summary>
+        public MemoryAddressSpace TargetAddressSpace =>
+            Target.Type.As<AddressSpaceType>(this).AddressSpace;
+
+        /// <summary>
         /// Returns the target value.
         /// </summary>
         public ValueReference Value => this[1];

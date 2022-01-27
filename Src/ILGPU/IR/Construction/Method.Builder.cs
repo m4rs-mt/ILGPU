@@ -9,12 +9,14 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -31,6 +33,7 @@ namespace ILGPU.IR
         /// </summary>
         public sealed class Builder :
             DisposeBase,
+            IMovementScope,
             IMethodMappingObject,
             ILocation,
             IDumpable
@@ -455,6 +458,16 @@ namespace ILGPU.IR
                 ScheduleControlFlowUpdate();
                 return this[block];
             }
+
+            /// <summary>
+            /// Implements the first value index search using all internally stored
+            /// basic block builders.
+            /// </summary>
+            bool IMovementScope.TryFindFirstValueOf<T>(
+                BasicBlock basicBlock,
+                Predicate<T> predicate,
+                out (int Index, T Value) entry) =>
+                this[basicBlock].TryFindFirstValueOf(predicate, out entry);
 
             /// <summary>
             /// Computes an updated block collection using the latest terminator
