@@ -41,6 +41,11 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: ubuntu-latest
     steps:
+      - name: Check if repo is fork
+        id: is-fork
+        run: echo "::set-output name=fork::$(gh api repos/${{ github.repository }} | jq .fork)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup OS matrix
         id: setup-os-matrix
         run: |
@@ -60,7 +65,7 @@ jobs:
             )
           ) && os+=("macos-latest")
 
-          [ "${{ github.event.repository.fork }}" == "false" ] && os+=("cuda")
+          [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda")
 
           echo "::set-output name=os::$(jq -cn '$ARGS.positional' --args ${os[@]})"
     outputs:
