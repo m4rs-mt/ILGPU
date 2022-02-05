@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Method.Builder.cs
@@ -9,12 +9,14 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -31,6 +33,7 @@ namespace ILGPU.IR
         /// </summary>
         public sealed class Builder :
             DisposeBase,
+            IMovementScope,
             IMethodMappingObject,
             ILocation,
             IDumpable
@@ -151,6 +154,12 @@ namespace ILGPU.IR
             private int blockCounter;
             private bool updateControlFlow;
             private bool acceptControlFlowUpdates;
+
+            /// <summary>
+            /// Indicates if the builder completed successfully. If not, skip some of the
+            /// processing that occurs during disposal.
+            /// </summary>
+            private bool builderCompleted;
 
             /// <summary>
             /// All created basic block builders.
@@ -451,6 +460,16 @@ namespace ILGPU.IR
             }
 
             /// <summary>
+            /// Implements the first value index search using all internally stored
+            /// basic block builders.
+            /// </summary>
+            bool IMovementScope.TryFindFirstValueOf<T>(
+                BasicBlock basicBlock,
+                Predicate<T> predicate,
+                out (int Index, T Value) entry) =>
+                this[basicBlock].TryFindFirstValueOf(predicate, out entry);
+
+            /// <summary>
             /// Computes an updated block collection using the latest terminator
             /// information.
             /// </summary>
@@ -550,6 +569,15 @@ namespace ILGPU.IR
                 ScheduleControlFlowUpdate();
             }
 
+            /// <summary>
+            /// Marks this builder as completed.
+            /// </summary>
+            public void Complete()
+            {
+                Debug.Assert(!builderCompleted);
+                builderCompleted = true;
+            }
+
             #endregion
 
             #region IDisposable
@@ -607,18 +635,24 @@ namespace ILGPU.IR
             /// <summary cref="DisposeBase.Dispose(bool)"/>
             protected override void Dispose(bool disposing)
             {
+                Debug.Assert(builderCompleted);
+
                 // Update parameter bindings
-                UpdateParameters();
+                if (builderCompleted)
+                    UpdateParameters();
 
                 // Dispose all basic block builders
                 foreach (var builder in basicBlockBuilders)
                     builder.Dispose();
 
                 // Update control-flow
-                var newBlocks = UpdateControlFlow();
+                if (builderCompleted)
+                {
+                    var newBlocks = UpdateControlFlow();
 
-                // Ensure a unique exit block
-                newBlocks.AssertUniqueExitBlock();
+                    // Ensure a unique exit block
+                    newBlocks.AssertUniqueExitBlock();
+                }
 
                 // Release builder
                 Method.ReleaseBuilder(this);

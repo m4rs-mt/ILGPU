@@ -650,8 +650,15 @@ namespace ILGPU
         /// <summary>
         /// Clears all internal caches.
         /// </summary>
-        /// <param name="mode">Not used.</param>
-        public void ClearCache(ClearCacheMode mode) => ReloadAssemblyBuilder();
+        /// <param name="mode">
+        /// Passing <see cref="ClearCacheMode.Everything"/>, causes a reload of the
+        /// CLR assembly builder, which is used internally.
+        /// </param>
+        public void ClearCache(ClearCacheMode mode)
+        {
+            if (mode == ClearCacheMode.Everything)
+                ReloadAssemblyBuilder();
+        }
 
         #endregion
 

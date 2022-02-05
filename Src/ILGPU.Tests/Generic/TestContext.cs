@@ -67,7 +67,7 @@ namespace ILGPU.Tests
         public void ClearCaches()
         {
             Accelerator.ClearCache(ClearCacheMode.Everything);
-            Context.ClearCache(ClearCacheMode.Everything);
+            Context.ClearCache(ClearCacheMode.Default);
         }
 
         /// <summary>

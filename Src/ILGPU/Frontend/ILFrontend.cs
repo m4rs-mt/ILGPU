@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILFrontend.cs
@@ -482,6 +482,7 @@ namespace ILGPU.Frontend
                         compilationStackLocation,
                         detectedMethods);
                     codeGenerator.GenerateCode();
+                    builder.Complete();
                 }
                 Verifier.Verify(generatedMethod);
 

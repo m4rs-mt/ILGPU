@@ -208,6 +208,14 @@ namespace ILGPU.IR.Construction
             var addressSpaceType = source.Type as AddressSpaceType;
             location.AssertNotNull(addressSpaceType);
 
+            // Fold nested conversion operations that do not change the semantics
+            if (elementIndex is ConvertValue convertValue &&
+                convertValue.Value.BasicValueType == BasicValueType.Int32 &&
+                convertValue.BasicValueType == BasicValueType.Int64)
+            {
+                elementIndex = convertValue.Value;
+            }
+
             // Fold primitive pointer arithmetic that does not change anything
             return source.Type is PointerType && elementIndex.IsPrimitive(0)
                 ? (ValueReference)source

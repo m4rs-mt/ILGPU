@@ -39,6 +39,7 @@ BasicJumps
 BasicCalls
 BasicIfs
 BasicLoops
+BasicMovement
 BasicSwitches
 BasicPhis
 

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRContext.cs
@@ -357,6 +357,7 @@ namespace ILGPU.IR
                 method.Location,
                 method.ReturnType);
             bbBuilder.CreateReturn(method.Location, returnValue);
+            builder.Complete();
         }
 
         /// <summary>
@@ -445,6 +446,7 @@ namespace ILGPU.IR
                     // Create an appropriate return instruction
                     var (exitBlock, exitValue) = rebuilder.Rebuild();
                     exitBlock.CreateReturn(exitValue.Location, exitValue);
+                    builder.Complete();
                 }
                 Verifier.Verify(targetMethod);
             }
