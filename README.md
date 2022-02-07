@@ -17,6 +17,16 @@ The ILGPU Algorithms library meets these requirements by offering a set of auxil
 All algorithms can be run on all supported accelerator types.
 The CPU accelerator support is especially useful for kernel debugging.
 
+# Community
+[![Discord](https://img.shields.io/discord/511598552179539988?label=ILGPU)](https://discord.gg/X6RBCff)
+
+The ILGPU community provides immediate help, feedback and suggestions via Discord ASAP.
+Log on to the server and you can get started right away.
+
+There are weekly *talk-to-dev* meetings on the Discord server.
+Don't hesitate to join the meeting if you have any questions or suggestions or just want to talk to one of the contributors.
+Check out the *welcome* channel on our Discord server for more information.
+
 # ILGPU Samples
 
 The sample projects demonstrate the basic usage of ILGPU to help you get started with high performance GPU programming.
