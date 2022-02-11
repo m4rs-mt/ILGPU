@@ -7,16 +7,6 @@ on:
       - completed
       - requested
 
-env:
-  PAT: ${{ secrets.PAT }}
-  GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-  PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-  GOOGLE_CREDENTIALS: ${{ secrets.GCE_SA_KEY }}
-  GOOGLE_REGION: ${{ secrets.GOOGLE_REGION }}
-  PULUMI_STACK_NAME: ilgpu_${{ github.event.workflow_run.id }}
-  GS_BUCKET: ${{ secrets.GS_BUCKET }}
-  GCE_SA_EMAIL: ${{ secrets.GCE_SA_EMAIL }}
-
 jobs:
   is-fork:
     runs-on: ubuntu-latest
@@ -28,11 +18,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       fork: ${{ steps.is-fork.outputs.fork }}
-  deploy-runners:
+  manage-runners:
     runs-on: ubuntu-latest
     needs: is-fork
-    if: ${{ github.event.action == 'requested' && needs.is-fork.outputs.fork == 'false' }}
     environment: cuda-test-infra
+    if: ${{ needs.is-fork.outputs.fork == 'false' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -51,39 +41,37 @@ jobs:
         with:
           node-version: '14'
 
-      - name: Execute Pulumi
+      - name: Setup Pulumi
         run: |
           cd pulumi
           curl -fsSL https://get.pulumi.com | sh
           npm install
-          pulumi login $GS_BUCKET
-          pulumi stack init -s $PULUMI_STACK_NAME
-          pulumi up --diff --config-file ../ilgpu/config.yaml -y
 
-  destroy-runners:
-    runs-on: ubuntu-latest
-    needs: is-fork
-    if: ${{ github.event.action == 'completed' && needs.is-fork.outputs.fork == 'false' }}
-    environment: cuda-test-infra
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          path: ilgpu
-
-      - name: Checkout Pulumi Ephemeral Github Runner project
-        uses: actions/checkout@v2
-        with:
-          repository: pavlovic-ivan/ephemeral-github-runner-gcp
-          ref: main
-          path: pulumi
+      - name: Pulumi login
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCE_SA_KEY }}
+        run: pulumi login ${{ secrets.GS_BUCKET }}
 
       - name: Execute Pulumi
+        env:
+          PAT: ${{ secrets.PAT }}
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GCE_SA_KEY }}
+          GOOGLE_REGION: ${{ secrets.GOOGLE_REGION }}
+          PULUMI_STACK_NAME: ilgpu_${{ github.event.workflow_run.id }}
+          GCE_SA_EMAIL: ${{ secrets.GCE_SA_EMAIL }}
         run: |
           cd pulumi
-          curl -fsSL https://get.pulumi.com | sh
-          npm install
-          pulumi login $GS_BUCKET
-          pulumi stack select $PULUMI_STACK_NAME
-          pulumi destroy --config-file artifacts/config.yaml -y
-          pulumi stack rm $PULUMI_STACK_NAME -y
+          if [[ ${{ github.event.action }} == 'requested' ]]; then
+            pulumi stack init -s $PULUMI_STACK_NAME
+            pulumi config set ephemeral-github-runner:repo ${{ github.repository }} --config-file ../ilgpu/config.yaml
+            pulumi up --diff --config-file ../ilgpu/config.yaml -y
+          elif [[ ${{ github.event.action }} == 'completed' ]]; then
+            pulumi stack select $PULUMI_STACK_NAME
+            pulumi destroy --config-file ../ilgpu/config.yaml -y
+            pulumi stack rm $PULUMI_STACK_NAME -y
+          else
+            echo "Workflow failed. Unrecognized workflow event received: github.event.action=${{ github.event.action }}"
+            exit 1
+          fi
