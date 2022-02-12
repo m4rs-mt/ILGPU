@@ -42,15 +42,17 @@ jobs:
           node-version: '14'
 
       - name: Setup Pulumi
+        working-directory: pulumi
         run: |
-          cd pulumi
           curl -fsSL https://get.pulumi.com | sh
           npm install
 
       - name: Pulumi login
+        working-directory: pulumi
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GCE_SA_KEY }}
-        run: pulumi login ${{ secrets.GS_BUCKET }}
+          GS_BUCKET: ${{ secrets.GS_BUCKET }}
+        run: make login
 
       - name: Execute Pulumi
         env:
@@ -61,16 +63,13 @@ jobs:
           GOOGLE_REGION: ${{ secrets.GOOGLE_REGION }}
           PULUMI_STACK_NAME: ilgpu_${{ github.event.workflow_run.id }}
           GCE_SA_EMAIL: ${{ secrets.GCE_SA_EMAIL }}
+          REPO: ${{ github.repository }}
+        working-directory: pulumi
         run: |
-          cd pulumi
           if [[ ${{ github.event.action }} == 'requested' ]]; then
-            pulumi stack init -s $PULUMI_STACK_NAME
-            pulumi config set ephemeral-github-runner:repo ${{ github.repository }} --config-file ../ilgpu/config.yaml
-            pulumi up --diff --config-file ../ilgpu/config.yaml -y
+            make up stack=$PULUMI_STACK_NAME config=../ilgpu/config.yaml auto-approve=-y
           elif [[ ${{ github.event.action }} == 'completed' ]]; then
-            pulumi stack select $PULUMI_STACK_NAME
-            pulumi destroy --config-file ../ilgpu/config.yaml -y
-            pulumi stack rm $PULUMI_STACK_NAME -y
+            make down stack=$PULUMI_STACK_NAME config=../ilgpu/config.yaml auto-approve=-y
           else
             echo "Workflow failed. Unrecognized workflow event received: github.event.action=${{ github.event.action }}"
             exit 1
