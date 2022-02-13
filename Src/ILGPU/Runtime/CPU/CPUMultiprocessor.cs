@@ -145,22 +145,23 @@ namespace ILGPU.Runtime.CPU
             if (maxNumLaunchedThreadsPerGroup >= groupSize)
                 return;
 
+            // Adjust number of threads per MP
+            processorBarrier.AddParticipants(
+                groupSize - maxNumLaunchedThreadsPerGroup);
+
             // Launch all threads that we need for processing
-            Parallel.For(maxNumLaunchedThreadsPerGroup, groupSize, threadIdx =>
+            for (
+                int threadIdx = maxNumLaunchedThreadsPerGroup;
+                threadIdx < groupSize;
+                ++threadIdx)
             {
                 int globalThreadIdx = ProcessorIndex * MaxNumThreadsPerMultiprocessor
                     + threadIdx;
                 threads[threadIdx].Start(globalThreadIdx);
-            });
-            maxNumLaunchedThreadsPerGroup = groupSize;
-
-            // Adjust number of threads per MP
-            if (processorBarrier.ParticipantCount < maxNumLaunchedThreadsPerGroup)
-            {
-                processorBarrier.AddParticipants(
-                    maxNumLaunchedThreadsPerGroup -
-                    processorBarrier.ParticipantCount);
             }
+
+            // Update the number of launched threads
+            maxNumLaunchedThreadsPerGroup = groupSize;
         }
 
         /// <summary>
@@ -237,7 +238,6 @@ namespace ILGPU.Runtime.CPU
             threadContext.MakeCurrent();
 
             // Setup the current warp context as it always stays the same
-            bool isMainWarpThread = threadIdx == 0;
             var warpContext = warpContexts[warpIdx];
             warpContext.MakeCurrent();
 
