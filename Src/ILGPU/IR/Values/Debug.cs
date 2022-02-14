@@ -18,7 +18,7 @@ namespace ILGPU.IR.Values
     /// Represents a debug assert operation.
     /// </summary>
     [ValueKind(ValueKind.DebugAssert)]
-    public sealed class DebugAssertOperation : ControlFlowValue
+    public sealed class DebugAssertOperation : MemoryValue
     {
         #region Instance
 
