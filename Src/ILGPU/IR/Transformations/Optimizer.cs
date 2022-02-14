@@ -197,9 +197,9 @@ namespace ILGPU.IR.Transformations
                 // Add additional code placement optimizations to reduce register
                 // pressure and improve performance
                 builder.Add(new DeadCodeElimination());
+                builder.Add(new LoopInvariantCodeMotion());
                 builder.Add(new CodePlacement<TPlacementStrategy>(
                     CodePlacementMode.Aggressive));
-                builder.Add(new LoopInvariantCodeMotion());
             }
         }
 
