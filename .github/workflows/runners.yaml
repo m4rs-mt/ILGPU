@@ -8,21 +8,10 @@ on:
       - requested
 
 jobs:
-  is-fork:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check if repo is fork
-        id: is-fork
-        run: echo "::set-output name=fork::$(gh api repos/${{ github.repository }} | jq .fork)"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    outputs:
-      fork: ${{ steps.is-fork.outputs.fork }}
   manage-runners:
     runs-on: ubuntu-latest
-    needs: is-fork
     environment: cuda-test-infra
-    if: ${{ needs.is-fork.outputs.fork == 'false' }}
+    if: ${{ !github.event.repository.fork }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -66,11 +55,13 @@ jobs:
           REPO: ${{ github.repository }}
         working-directory: pulumi
         run: |
-          if [[ ${{ github.event.action }} == 'requested' ]]; then
-            make up stack=$PULUMI_STACK_NAME config=../ilgpu/config.yaml auto-approve=-y
-          elif [[ ${{ github.event.action }} == 'completed' ]]; then
-            make down stack=$PULUMI_STACK_NAME config=../ilgpu/config.yaml auto-approve=-y
-          else
-            echo "Workflow failed. Unrecognized workflow event received: github.event.action=${{ github.event.action }}"
-            exit 1
-          fi
+          action=''
+          case ${{ github.event.action }} in
+            'requested')
+              action=up
+              ;;
+            'completed')
+              action=down
+              ;;
+          esac
+          make $action stack=$PULUMI_STACK_NAME config=../ilgpu/config.yaml auto-approve=-y
