@@ -55,7 +55,6 @@ jobs:
           REPO: ${{ github.repository }}
         working-directory: pulumi
         run: |
-          action=''
           case ${{ github.event.action }} in
             'requested')
               action=up
