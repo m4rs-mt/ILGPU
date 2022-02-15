@@ -50,6 +50,7 @@ jobs:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           GOOGLE_CREDENTIALS: ${{ secrets.GCE_SA_KEY }}
           GOOGLE_REGION: ${{ secrets.GOOGLE_REGION }}
+          GOOGLE_ZONE: ${{ secrets.GOOGLE_ZONE }}
           PULUMI_STACK_NAME: ilgpu_${{ github.event.workflow_run.id }}
           GCE_SA_EMAIL: ${{ secrets.GCE_SA_EMAIL }}
           REPO: ${{ github.repository }}

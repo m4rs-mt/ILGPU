@@ -6,4 +6,3 @@ config:
   ephemeral-github-runner:machineType: a2-highgpu-1g
   ephemeral-github-runner:runnersCount: 6
   ephemeral-github-runner:serviceAccountScopes: https://www.googleapis.com/auth/cloud-platform
-  ephemeral-github-runner:zone: europe-west4-a
