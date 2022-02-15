@@ -1,8 +1,7 @@
 config:
   ephemeral-github-runner:bootDiskSizeInGB: 200
   ephemeral-github-runner:bootDiskType: pd-balanced
-  ephemeral-github-runner:env: dev
-  ephemeral-github-runner:ghRunnerName: orville
+  ephemeral-github-runner:ghRunnerName: ilgpu-ghrunner
   ephemeral-github-runner:machineImage: projects/gr-oss-251320/global/images/ubuntu-2004-focal-v20211202-ghrv22851
   ephemeral-github-runner:machineType: a2-highgpu-1g
   ephemeral-github-runner:runnersCount: 6
