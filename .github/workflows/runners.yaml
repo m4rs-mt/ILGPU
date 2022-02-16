@@ -1,0 +1,67 @@
+name: Runners Deployment
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: 
+      - completed
+      - requested
+
+jobs:
+  manage-runners:
+    runs-on: ubuntu-latest
+    environment: cuda-test-infra
+    if: ${{ !github.event.repository.fork }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: ilgpu
+
+      - name: Checkout Pulumi Ephemeral Github Runner project
+        uses: actions/checkout@v2
+        with:
+          repository: pavlovic-ivan/ephemeral-github-runner-gcp
+          ref: main
+          path: pulumi
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Setup Pulumi
+        working-directory: pulumi
+        run: |
+          curl -fsSL https://get.pulumi.com | sh
+          npm install
+
+      - name: Pulumi login
+        working-directory: pulumi
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCE_SA_KEY }}
+          GS_BUCKET: ${{ secrets.GS_BUCKET }}
+        run: make login
+
+      - name: Execute Pulumi
+        env:
+          PAT: ${{ secrets.PAT }}
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GCE_SA_KEY }}
+          GOOGLE_REGION: ${{ secrets.GOOGLE_REGION }}
+          GOOGLE_ZONE: ${{ secrets.GOOGLE_ZONE }}
+          PULUMI_STACK_NAME: ilgpu_${{ github.event.workflow_run.id }}
+          GCE_SA_EMAIL: ${{ secrets.GCE_SA_EMAIL }}
+          REPO: ${{ github.repository }}
+        working-directory: pulumi
+        run: |
+          case ${{ github.event.action }} in
+            'requested')
+              action=up
+              ;;
+            'completed')
+              action=down
+              ;;
+          esac
+          make $action stack=$PULUMI_STACK_NAME config=../ilgpu/config.yaml auto-approve=-y
