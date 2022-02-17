@@ -66,7 +66,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="T4.Build" Version="0.2.3" PrivateAssets="All" />
+    <PackageReference Include="T4.Build" Version="0.2.4" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
