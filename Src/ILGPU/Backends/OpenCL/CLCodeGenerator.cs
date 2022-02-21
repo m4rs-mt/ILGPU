@@ -539,11 +539,18 @@ namespace ILGPU.Backends.OpenCL
                         // Check for an intermediate phi value
                         if (bindings.IsIntermediate(phiValue))
                         {
-                            var intermediateVariable = AllocateType(phiValue.Type);
-                            intermediatePhiVariables.Add(phiValue, intermediateVariable);
+                            if (!intermediatePhiVariables.TryGetValue(
+                                phiValue,
+                                out var intermediateVariable))
+                            {
+                                intermediateVariable = AllocateType(phiValue.Type);
+                                intermediatePhiVariables.Add(
+                                    phiValue,
+                                    intermediateVariable);
 
-                            // Move this phi value into a temporary variable for reuse
-                            Declare(intermediateVariable);
+                                // Move this phi value into a temporary variable for reuse
+                                Declare(intermediateVariable);
+                            }
                             Move(intermediateVariable, phiTargetVariable);
                         }
 
