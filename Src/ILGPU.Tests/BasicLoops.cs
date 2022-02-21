@@ -808,6 +808,61 @@ namespace ILGPU.Tests
             Verify(target2.View, expectedData2);
         }
 
+        private static void LoopPhiReuse_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> input,
+            ArrayView1D<ulong, Stride1D.Dense> output)
+        {
+            ulong accumulator = 1;
+            ulong result = 0;
+
+            var loop = 24;
+
+            while (true)
+            {
+                loop--;
+                if (loop == 0)
+                {
+                    break;
+                }
+
+                if (input[index] == loop * 2)
+                {
+                    accumulator += 4;
+                    continue;
+                }
+
+                if (input[index] == loop)
+                {
+                    accumulator += 2;
+                    continue;
+                }
+
+                result += accumulator;
+            }
+
+            output[index] = result;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopPhiReuse_Kernel))]
+        public void LoopPhiReuse()
+        {
+            var inputValues = new[] { 0, 5, 10, 15, 20 };
+            using var input = Accelerator.Allocate1D(inputValues);
+            using var output = Accelerator.Allocate1D<ulong>(inputValues.Length);
+            output.MemSetToZero();
+            Accelerator.Synchronize();
+
+            Execute(
+                inputValues.Length,
+                input.View,
+                output.View);
+
+            var expectedData = new ulong[] { 23, 30, 53, 50, 93 };
+            Verify(output.View, expectedData);
+        }
+
         /// <summary>
         /// Wrapper view required by <see cref="DoLoopWithoutEntryBlockKernel(Index1D,
         /// ArrayView{int}, ArrayView{int})"/>.
