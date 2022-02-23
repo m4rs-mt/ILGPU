@@ -66,6 +66,30 @@ namespace ILGPU.Algorithms.Tests
 
             Verify(input.View, expected, length: resultLength);
         }
+        
+        [Theory]
+        [InlineData(1)]
+        [InlineData(317)]
+        [InlineData(1025)]
+        public void Unique<#= type.Name #>_MultipleIterationsPerGroup(int repeat)
+        {
+            // Exceed the max number of groups to force a second iteration.
+            var length = (Accelerator.MaxNumGroupsExtent.Item1 + 1)
+                * Accelerator.MaxNumGroupsExtent.Item2;
+            var inputArray = Enumerable.Range(1, length)
+                .Select(x => Enumerable.Repeat((<#= type.Type #>)x, repeat))
+                .SelectMany(x => x)
+                .Take(length)
+                .ToArray();
+            var expected = RemoveConsecutiveDuplicates(inputArray);
+
+            using var input = Accelerator.Allocate1D(inputArray);
+            var result = Accelerator.Unique(Accelerator.DefaultStream, input.View);
+            Assert.True(result < int.MaxValue);
+            var resultLength = (int)result;
+
+            Verify(input.View, expected, length: resultLength);
+        }
 
 <# } #>
     }

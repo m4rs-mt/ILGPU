@@ -73,7 +73,7 @@ namespace ILGPU.Algorithms
             sequentialGroupExecutor.Wait();
 
             var temp = SharedMemory.Allocate<bool>(tileSize);
-            var startIdx = Grid.ComputeGlobalIndex(Grid.IdxX, 0);
+            var startIdx = Grid.ComputeGlobalIndex(Grid.IdxX * numIterationsPerGroup, 0);
 
             for (
                 int i = tileInfo.StartIndex;
