@@ -23,7 +23,9 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: windows-latest
+    # CodeQL does not yet support Windows Server 2022
+    # see https://github.com/github/codeql-action/issues/850
+    runs-on: windows-2019
     permissions:
       actions: read
       contents: read
