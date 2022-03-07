@@ -1,0 +1,97 @@
+name: Runners Deployment
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: 
+      - completed
+      - requested
+
+jobs:
+  check-skipped:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.repository.fork }}
+    outputs:
+      skipped: ${{ steps.check-skipped.outputs.skipped }}
+    steps:
+      - name: Check whether the workflow is skipped
+        id: check-skipped
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          url="/repos/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}/actions/runs/${{ github.event.workflow_run.id }}/attempts/${{ github.event.workflow_run.run_attempt }}"
+          skipped="false"
+          for i in $(seq 10); do
+            conclusion=$(gh api $url | jq -r .conclusion)
+            if [ "$conclusion" == "skipped" ]; then
+              skipped="true"
+              break
+            fi
+            sleep 1
+          done
+          echo ::set-output name=skipped::$skipped
+
+  manage-runners:
+    runs-on: ubuntu-latest
+    environment: cuda-test-infra
+    needs: check-skipped
+    if: ${{ needs.check-skipped.outputs.skipped == 'false' }}
+    steps:
+      - name: Checkout main repo for config
+        if: github.event.action == 'requested'
+        uses: actions/checkout@v3
+        with:
+          path: ilgpu
+
+      - name: Checkout Pulumi Ephemeral Github Runner project
+        uses: actions/checkout@v3
+        with:
+          repository: m4rs-mt/ILGPU-github-runner-gcp
+          ref: main
+          path: pulumi
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+
+      - name: Setup modules
+        env:
+          PULUMI_SKIP_UPDATE_CHECK: "true"
+        working-directory: pulumi
+        run: npm ci
+
+      - name: Create/destroy runners
+        env:
+          APP_ID: ${{ secrets.APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          GOOGLE_REGION: ${{ secrets.GOOGLE_REGION }}
+          GOOGLE_ZONE: ${{ secrets.GOOGLE_ZONE }}
+          PULUMI_BACKEND_URL: ${{ secrets.PULUMI_BACKEND_URL }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+          PULUMI_SKIP_CONFIRMATIONS: "true"
+          PULUMI_SKIP_UPDATE_CHECK: "true"
+          PULUMI_STACK_NAME: ilgpu-ghrunner-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          LABEL: cuda-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          OWNER: ${{ github.event.repository.owner.login }}
+          REPO: ${{ github.event.repository.name }}
+        working-directory: pulumi
+        run: |
+          case ${{ github.event.action }} in
+            'requested')
+              cp ../ilgpu/.github/workflows/runners/config.yaml Pulumi.$PULUMI_STACK_NAME.yaml
+              pulumi stack init $PULUMI_STACK_NAME
+              pulumi config set labels $LABEL
+              pulumi config set owner $OWNER
+              pulumi config set repo $REPO
+              pulumi update --diff
+              ;;
+            'completed')
+              pulumi stack select $PULUMI_STACK_NAME
+              pulumi destroy
+              pulumi stack rm
+              npm run cleanup-runners $OWNER $REPO $LABEL
+              ;;
+          esac
