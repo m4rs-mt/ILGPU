@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ConvertIntOperations.cs
@@ -73,6 +73,34 @@ namespace ILGPU.Tests
             using var output = Accelerator.Allocate1D<short>(input.Length);
             Execute(Length, input.View, output.View);
             Verify(output.View, expected);
+        }
+
+        internal static void ImplicitCastAdditionKernel(
+            Index1D index,
+            ArrayView1D<uint, Stride1D.Dense> input,
+            ArrayView1D<uint, Stride1D.Dense> output)
+        {
+            output[index] += (byte)input[index];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(ImplicitCastAdditionKernel))]
+        public void ImplicitCastAddition()
+        {
+            const int length = 32;
+            using var input = Accelerator.Allocate1D<uint>(length);
+            using var output = Accelerator.Allocate1D<uint>(length);
+            Initialize(input.View, (uint)byte.MaxValue);
+            Initialize(output.View, (uint)0);
+            Execute(length, input.View, output.View);
+
+            uint result;
+            unchecked
+            {
+                result = byte.MaxValue;
+            }
+            var reference = Enumerable.Repeat(result, length).ToArray();
+            Verify(output.View, reference);
         }
     }
 }
