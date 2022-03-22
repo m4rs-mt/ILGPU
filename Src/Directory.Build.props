@@ -22,4 +22,5 @@
     <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net471;netcoreapp3.1;net5.0</LibraryUnitTestTargetFrameworks>
   </PropertyGroup>
 
+  <Import Project="..\Tools\CheckStyles\ILGPU.CheckStyles.targets" />
 </Project>
