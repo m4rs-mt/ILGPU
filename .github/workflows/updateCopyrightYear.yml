@@ -1,0 +1,36 @@
+name: 'Update Copyright Year'
+
+on:
+  schedule:
+    - cron:  '0 0 * * *' # Run once per day, at midnight.
+
+jobs:
+  update-copyright-year:
+    # Only run on main repository
+    if: github.repository == 'm4rs-mt/ILGPU'
+    # WORKAROUND: LibGit2Sharp does not currently work on ubuntu-20.04
+    # https://github.com/libgit2/libgit2sharp/issues/1798
+    runs-on: ubuntu-18.04
+    steps:
+      # Checkout full history so that the copyright tool has the required information.
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup the latest .NET 6 SDK
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: 6.0.x
+
+      - name: Update copyright year
+        uses: technote-space/create-pr-action@v2
+        with:
+          EXECUTE_COMMANDS: |
+            dotnet run --configuration=Release -p:TreatWarningsAsErrors=true --project Tools/CopyrightUpdateTool
+          COMMIT_MESSAGE: 'Bump copyright year.'
+          COMMIT_NAME: 'ILGPU CLI'
+          COMMIT_EMAIL: 'contact@ilgpu.net'
+          PR_BRANCH_PREFIX: 'schedule/'
+          PR_BRANCH_NAME: 'update-copyright-year'
+          PR_TITLE: 'Bump copyright year.'
