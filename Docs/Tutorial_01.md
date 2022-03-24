@@ -21,7 +21,7 @@ For now all we need is a default context.
 
 ## Device
 Before version 1.0.0 ILGPU had no way to query device information without creating a full accelerator instance.
-ILGPU v 1.0.0 added in the Device class to fix this issue.
+ILGPU v1.0.0 added in the Device class to fix this issue.
 
 In ILGPU the Device represents the hardware in your computer.
 * requires: using ILGPU; and using ILGPU.Runtime;
@@ -49,7 +49,7 @@ public static class Program
 ## Accelerators
 In ILGPU the accelerator represents a hardware or software GPU.
 Every ILGPU program will require at least 1 Accelerator.
-Currently there are 3 Accelerator types CPU, Cuda, and OpenCL, 
+Currently there are 3 Accelerator types: CPU, Cuda, and OpenCL, 
 as well as an abstract Accelerator.
 
 ### Device Info Example [See Also Device Info Sample](https://github.com/m4rs-mt/ILGPU/tree/master/Samples/DeviceInfo)
@@ -133,7 +133,7 @@ public static class Program
 * requires: using ILGPU.CPU; and using ILGPU.Runtime;
 * basic constructing: Accelerator accelerator = context.CreateCPUAccelerator(0);
 
-The parameter of CreateCudaAccelerator denotes which cpu will be used if the context is constructed with multiple debug cpu acclerators.
+The parameter of CreateCPUAccelerator denotes which cpu will be used if the context is constructed with multiple debug cpu acclerators.
 
 In general the CPUAccelerator is best for debugging and as a fallback. While the
 CPUAccelerator is slow it is the only way to use much of the debugging features built
@@ -144,9 +144,9 @@ into C#. It is a good idea to write your program in such a way that you are able
 * imports: using ILGPU.Cuda; using ILGPU.Runtime;
 * basic constructing: Accelerator accelerator = context.CreateCudaAccelerator(0);
 
-The parameter of CreateCudaAccelerator denotes which gpu will be used in the case of multi-gpu system.
+The parameter of CreateCudaAccelerator denotes which gpu will be used in the case of a multi-gpu system.
 
-If you have one or more Nvida GPU's that are supported this is the accelerator for 
+If you have one or more Nvida GPUs that are supported, this is the accelerator for 
 you. What is supported is a complex question, but in general anything GTX 680 or 
 newer should work. Some features require newer cards. Feature support should<sup>0</sup> match CUDA.
 
@@ -155,17 +155,17 @@ newer should work. Some features require newer cards. Feature support should<sup
 * imports: using ILGPU.OpenCL, using ILGPU.Runtime;
 * basic constructing: Accelerator accelerator = context.CreateCLAccelerator(0);
 
-The parameter of CreateCudaAccelerator denotes which gpu will be used in the case of multi-gpu system.
+The parameter of CreateCLAccelerator denotes which gpu will be used in the case of a multi-gpu system.
 NOTE: This is the *1st* OpenCL device usable by ILGPU and *not* the 1st OpenCL device of your machine.
 
-If you have one or more AMD or Intel GPU's that are supported this is
-the accelerator for you. Technically Nvidia GPU's support OpenCL but 
+If you have one or more AMD or Intel GPUs that are supported this is
+the accelerator for you. Technically Nvidia GPUs support OpenCL but 
 they are limited to OpenCL 1.2 which is essentially useless. 
-Because of this these tutorials need a bit of a disclaimer: I do not 
+Because of this, these tutorials need a bit of a disclaimer: I do not 
 have an OpenCL 2.0 compatible GPU so most of the OpenCL stuff is untested. 
 Please let me know if there are any issues.
 
-NOTE: OpenCL 3.0 makes this far more complex but still doesn't fix the issue that Nvidia GPU's are unsupported.
+NOTE: OpenCL 3.0 makes this far more complex but still doesn't fix the issue that Nvidia GPUs are unsupported.
 
 ##### Accelerator
 Abstract class for storing and passing around more specific
@@ -174,7 +174,7 @@ accelerators.
 
 ### Sample 01|03
 There is no guaranteed way to find the most powerful accelerator. If you are programming for 
-known hardware you can, and should just hardcode it. However, if you do need a method, ILGPU provides two.
+known hardware you can, and should, just hardcode it. However, if you do need a method, ILGPU provides two.
 
 For a single device: context.GetPreferredDevice(preferCPU);
 
@@ -207,10 +207,10 @@ public static class Program
 }
 ```
 Don't forget to dispose the accelerator. We do not have to call dispose 
-of context because we used the using pattern. It is important to note 
+on context because we used the using pattern. It is important to note 
 that you must dispose objects in the reverse order from when you obtain them.
 
-As you can see in the above sample the context is obtained first and then 
+As you can see in the above sample, the context is obtained first and then 
 the accelerator. We dispose the accelerator explicitly by calling accelerator.Dispose();
 and then only afterwards dispose the context automatically via the using pattern.
 
@@ -230,7 +230,7 @@ Lets assume this is the structure of some program:
 
 Anything created by the CPU accelerator must be disposed before the CPU accelerator
 can be disposed. And then the CPU accelerator must be disposed before the context can
-be disposed. However before we can't dispose the context we must dispose the Cuda accelerator
+be disposed. However before we can dispose the context we must dispose the Cuda accelerator
  and everything that it owns.
 
 Ok, this tutorial covers most of the boiler plate code needed.

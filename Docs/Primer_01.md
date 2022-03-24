@@ -1,5 +1,5 @@
 ﻿# Primer 01: Code
-This page will provide a quick rundown the basics of how kernels (think GPU programs) run.
+This page will provide a quick rundown of the basics of how kernels (think GPU programs) run.
 If you are already familiar with CUDA or OpenCL programs you can probably skip this.
 
 To steal a quote from a very good [talk](https://www.youtube.com/watch?v=uvVy3CqpVbM) that you should *probably* watch.
@@ -29,11 +29,11 @@ doing its own fetch, decode, execute. You can spread the algorithm across all th
 in the end each core will still be running a stream of instructions, likely the *same* stream of instructions,
 but with *different* data.
 
-GPUs and CPUs both try to exploit this fact, but use very two different methods.
+GPUs and CPUs both try to exploit this fact, but use two very different methods.
 
 ##### CPU | SIMD: Single Instruction Multiple Data.
 CPUs have a trick for parallel programs called SIMD. These are a set of instructions
-that allow you to have one instuction do operations on multiple peices of data at once.
+that allow you to have one instuction do operations on multiple pieces of data at once.
 
 Lets say a CPU has an add instruction: 
 > ADD RegA RegB
@@ -69,7 +69,7 @@ if all 32 threads want to do the same instruction.
 
 ### Kernels
 With this knowledge we can now talk about kernels. Kernels are just GPU programs, but because
- a GPU program is not a single thread but many it works a little different. 
+ a GPU program is not a single thread, but many, it works a little different. 
 
 When I was first learning about kernels I had an observation that made kernels kinda *click*
 in my head. 
@@ -78,7 +78,7 @@ Kernels and Parallel.For have the same usage pattern.
 
 If you don't know about Parallel.For it is a function that provides a really easy way to run
  code on every core of the CPU. All you do is pass in the start index, an end index, and a function
-that takes an index. Then the function is called from some thread with an index. There are no guarentees
+that takes an index. Then the function is called from some thread with an index. There are no guarantees
 about what core an index is run on, or what order the threads are run, but you get a **very** simple
 interface for running parallel functions.
 ```C#
