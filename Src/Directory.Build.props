@@ -9,9 +9,9 @@
 
   <PropertyGroup>
     <LibraryVersionPrefix>1.2.0-beta1</LibraryVersionPrefix>
-    <LibraryAssemblyVersion>1.1.0.0</LibraryAssemblyVersion>
-    <LibraryFileVersion>1.1.0.0</LibraryFileVersion>
-    <LibraryPackageValidationBaselineVersion>1.0.0</LibraryPackageValidationBaselineVersion>
+    <LibraryAssemblyVersion>1.2.0.0</LibraryAssemblyVersion>
+    <LibraryFileVersion>1.2.0.0</LibraryFileVersion>
+    <LibraryPackageValidationBaselineVersion>1.1.0</LibraryPackageValidationBaselineVersion>
   </PropertyGroup>
 
   <!-- Unit Test Project Configuration -->
