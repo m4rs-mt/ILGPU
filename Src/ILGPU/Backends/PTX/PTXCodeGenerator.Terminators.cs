@@ -24,7 +24,10 @@ namespace ILGPU.Backends.PTX
                 var resultRegister = Load(returnTerminator.ReturnValue);
                 EmitStoreParam(ReturnParamName, resultRegister);
             }
-            Command(PTXInstructions.ReturnOperation);
+            Command(
+                Uniforms.IsUniform(returnTerminator)
+                    ? PTXInstructions.UniformReturnOperation
+                    : PTXInstructions.ReturnOperation);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(UnconditionalBranch)"/>
@@ -33,7 +36,12 @@ namespace ILGPU.Backends.PTX
             if (Schedule.IsImplicitSuccessor(branch.BasicBlock, branch.Target))
                 return;
 
-            using var command = BeginCommand(PTXInstructions.BranchOperation);
+            // Determine the branch operation to be used
+            var branchOperation = Uniforms.IsUniform(branch)
+                ? PTXInstructions.UniformBranchOperation
+                : PTXInstructions.BranchOperation;
+
+            using var command = BeginCommand(branchOperation);
             var targetLabel = blockLookup[branch.Target];
             command.AppendLabel(targetLabel);
         }
@@ -47,13 +55,18 @@ namespace ILGPU.Backends.PTX
             // Use the actual branch targets from the schedule
             var (trueTarget, falseTarget) = branch.NotInvertedBranchTargets;
 
+            // Determine the branch operation to be used
+            var branchOperation = Uniforms.IsUniform(branch)
+                ? PTXInstructions.UniformBranchOperation
+                : PTXInstructions.BranchOperation;
+
             // The current schedule has inverted all if conditions with implicit branch
             // targets to simplify the work of the PTX assembler
             if (Schedule.IsImplicitSuccessor(branch.BasicBlock, trueTarget))
             {
                 // Jump to false target in the else case
                 using var command = BeginCommand(
-                    PTXInstructions.BranchOperation,
+                    branchOperation,
                     new PredicateConfiguration(
                         condition,
                         isTrue: branch.IsInverted));
@@ -65,7 +78,7 @@ namespace ILGPU.Backends.PTX
                 if (branch.IsInverted)
                     Utilities.Swap(ref trueTarget, ref falseTarget);
                 using (var command = BeginCommand(
-                    PTXInstructions.BranchOperation,
+                    branchOperation,
                     new PredicateConfiguration(condition, isTrue: true)))
                 {
                     var targetLabel = blockLookup[trueTarget];
@@ -73,7 +86,7 @@ namespace ILGPU.Backends.PTX
                 }
 
                 // Jump to false target in the else case
-                using (var command = BeginCommand(PTXInstructions.BranchOperation))
+                using (var command = BeginCommand(PTXInstructions.UniformBranchOperation))
                 {
                     var targetLabel = blockLookup[falseTarget];
                     command.AppendLabel(targetLabel);
@@ -84,6 +97,7 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IBackendCodeGenerator.GenerateCode(SwitchBranch)"/>
         public void GenerateCode(SwitchBranch branch)
         {
+            bool isUniform = Uniforms.IsUniform(branch);
             var idx = LoadPrimitive(branch.Condition);
             using (var lowerBoundsScope = new PredicateScope(this))
             {
@@ -110,7 +124,9 @@ namespace ILGPU.Backends.PTX
                     command.AppendArgument(lowerBoundsScope.PredicateRegister);
                 }
                 using (var command = BeginCommand(
-                    PTXInstructions.BranchOperation,
+                    isUniform
+                        ? PTXInstructions.UniformBranchOperation
+                        : PTXInstructions.BranchOperation,
                     new PredicateConfiguration(
                         upperBoundsScope.PredicateRegister,
                         true)))
@@ -136,7 +152,9 @@ namespace ILGPU.Backends.PTX
             Builder.AppendLine(";");
 
             using (var command = BeginCommand(
-                PTXInstructions.BranchIndexOperation))
+                isUniform
+                    ? PTXInstructions.UniformBranchIndexOperation
+                    : PTXInstructions.BranchIndexOperation))
             {
                 command.AppendArgument(idx);
                 command.AppendLabel(targetLabel);
