@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaArchitecture.cs
@@ -97,6 +97,11 @@ namespace ILGPU.Runtime.Cuda
         /// The 8.6 architecture.
         /// </summary>
         public static readonly CudaArchitecture SM_86 = new CudaArchitecture(8, 6);
+
+        /// <summary>
+        /// The 8.7 architecture.
+        /// </summary>
+        public static readonly CudaArchitecture SM_87 = new CudaArchitecture(8, 7);
 
         #endregion
 
