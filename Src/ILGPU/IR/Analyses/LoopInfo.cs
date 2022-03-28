@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LoopInfo.cs
@@ -622,7 +622,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns the number of loop information objects.
         /// </summary>
-        public readonly int Count => mapping.Count;
+        public int Count => mapping.Count;
 
         /// <summary>
         /// Tries to get previously computed loop information for the given loop.
@@ -707,7 +707,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns true if the constant operand value is on the left.
         /// </summary>
-        public readonly bool IsLeft => Index == 0;
+        public bool IsLeft => Index == 0;
     }
 
     /// <summary>
@@ -715,7 +715,74 @@ namespace ILGPU.IR.Analyses
     /// </summary>
     public readonly struct InductionVariableBounds
     {
+        #region Nested Types
+
+        /// <summary>
+        /// The kind of an update operation.
+        /// </summary>
+        public enum UpdateOperationKind
+        {
+            /// <summary>
+            /// No known kind.
+            /// </summary>
+            None = 0,
+
+            /// <summary>
+            /// A subtract operation.
+            /// </summary>
+            Down = 1,
+
+            /// <summary>
+            /// An add operation.
+            /// </summary>
+            Up = 2,
+
+            /// <summary>
+            /// A divide operation.
+            /// </summary>
+            DownMultiplied = 3,
+
+            /// <summary>
+            /// A multiply operation.
+            /// </summary>
+            UpMultiplied = 4,
+
+            /// <summary>
+            /// A shift-right operation.
+            /// </summary>
+            DownMultiplied2 = 5,
+
+            /// <summary>
+            /// A shift-left operation.
+            /// </summary>
+            UpMultiplied2 = 6,
+        }
+
+        #endregion
+
         #region Static
+
+        private static bool IsLinearUpdate(UpdateOperationKind kind) =>
+            kind <= UpdateOperationKind.Up;
+
+        private static bool IsDownUpdate(UpdateOperationKind kind) =>
+            ((int)kind % 2) == 1;
+
+        private static bool IsMultiplied2Update(UpdateOperationKind kind) =>
+            kind >= UpdateOperationKind.DownMultiplied2;
+
+        private static UpdateOperationKind GetUpdateKind(BinaryArithmeticKind kind) =>
+            kind switch
+            {
+                BinaryArithmeticKind.Add => UpdateOperationKind.Up,
+                BinaryArithmeticKind.Mul => UpdateOperationKind.UpMultiplied,
+                BinaryArithmeticKind.Shl => UpdateOperationKind.UpMultiplied2,
+                BinaryArithmeticKind.Sub => UpdateOperationKind.Down,
+                BinaryArithmeticKind.Div => UpdateOperationKind.DownMultiplied,
+                BinaryArithmeticKind.Shr => UpdateOperationKind.DownMultiplied2,
+                _ => UpdateOperationKind.None,
+            };
+
 
         /// <summary>
         /// Tries to map a loop variable to an integer constant.
@@ -750,6 +817,7 @@ namespace ILGPU.IR.Analyses
             UpdateOperation = updateOperation;
             BreakOperation = breakOperation;
             IsDoWhileLoop = isDoWhileLoop;
+            UpdateKind = GetUpdateKind(updateOperation.Kind);
         }
 
         #endregion
@@ -782,6 +850,11 @@ namespace ILGPU.IR.Analyses
         public InductionVariableOperation<BinaryArithmeticKind> UpdateOperation { get; }
 
         /// <summary>
+        /// Returns the kind of the update operation.
+        /// </summary>
+        public UpdateOperationKind UpdateKind { get; }
+
+        /// <summary>
         /// The break kind.
         /// </summary>
         public InductionVariableOperation<CompareKind> BreakOperation { get; }
@@ -794,7 +867,7 @@ namespace ILGPU.IR.Analyses
         /// Tries to get integer bounds for all loop variables.
         /// </summary>
         /// <returns>The determined integer-based loop bounds.</returns>
-        public readonly (int? init, int? update, int? @break) GetIntegerBounds() =>
+        public (int? init, int? update, int? @break) GetIntegerBounds() =>
             (
                 TryGetIntegerBound(Init),
                 TryGetIntegerBound(UpdateValue),
@@ -802,14 +875,33 @@ namespace ILGPU.IR.Analyses
             );
 
         /// <summary>
+        /// Returns true if the current loop is entered using the initial and break
+        /// values provided while assuming it is while loop.
+        /// </summary>
+        /// <param name="initVal">The initial value.</param>
+        /// <param name="breakVal">The break-condition value.</param>
+        private bool IsWhileLoopEntered(int initVal, int breakVal) =>
+            BreakOperation.Kind switch
+            {
+                CompareKind.Equal => initVal == breakVal,
+                CompareKind.NotEqual => initVal != breakVal,
+                CompareKind.GreaterEqual => initVal >= breakVal,
+                CompareKind.GreaterThan => initVal > breakVal,
+                CompareKind.LessEqual => initVal <= breakVal,
+                CompareKind.LessThan => initVal < breakVal,
+                _ => false
+            };
+
+        /// <summary>
         /// Tries to compute the trip count of the loop.
         /// </summary>
         /// <param name="intBounds"></param>
         /// <returns></returns>
-        public readonly int? TryGetTripCount(
-            out (int? init, int? update, int? @break) intBounds)
+        public int? TryGetTripCount(out (int? init, int? update, int? @break) intBounds)
         {
             intBounds = GetIntegerBounds();
+            if (UpdateKind == UpdateOperationKind.None)
+                return null;
 
             // If there are some unknown bounds we cannot determine a simple trip count
             if (!intBounds.init.HasValue ||
@@ -820,49 +912,15 @@ namespace ILGPU.IR.Analyses
             }
 
             // Check for unsupported loops
-            if (UpdateOperation.Kind != BinaryArithmeticKind.Add &&
-                UpdateOperation.Kind != BinaryArithmeticKind.Sub ||
-                intBounds.update == 0)
-            {
+            if (intBounds.update == 0)
                 return null;
-            }
 
             int doWhileOffset = IsDoWhileLoop ? 1 : 0;
             int initVal = intBounds.init.Value;
             int breakVal = intBounds.@break.Value;
 
-            int update = intBounds.update.Value;
-            if (UpdateOperation.Kind == BinaryArithmeticKind.Sub)
-                update *= -1;
-
-            // Check if a while loop performs at least a single iteration
-            bool whileLoopIsEntered;
-            switch (BreakOperation.Kind)
-            {
-                case CompareKind.Equal:
-                    whileLoopIsEntered = initVal == breakVal;
-                    break;
-                case CompareKind.NotEqual:
-                    whileLoopIsEntered = initVal != breakVal;
-                    break;
-                case CompareKind.GreaterEqual:
-                    whileLoopIsEntered = initVal >= breakVal;
-                    break;
-                case CompareKind.GreaterThan:
-                    whileLoopIsEntered = initVal > breakVal;
-                    break;
-                case CompareKind.LessEqual:
-                    whileLoopIsEntered = initVal <= breakVal;
-                    break;
-                case CompareKind.LessThan:
-                    whileLoopIsEntered = initVal < breakVal;
-                    break;
-                default:
-                    return null;
-            }
-
             // If a while loop is not entered, it can still be a do-while loop
-            if (!whileLoopIsEntered)
+            if (!IsWhileLoopEntered(initVal, breakVal))
                 return doWhileOffset;
 
             // Special Case for CompareKind.Equal: can only be true, once
@@ -870,21 +928,61 @@ namespace ILGPU.IR.Analyses
                 return 1 + doWhileOffset;
 
             // Determine lastVal (might not be hit exactly)
+            bool isDown = IsDownUpdate(UpdateKind);
             int lastVal = BreakOperation.Kind == CompareKind.LessThan ||
                 BreakOperation.Kind == CompareKind.GreaterThan ||
                 BreakOperation.Kind == CompareKind.NotEqual
-                ? update > 0 ? breakVal - 1 : breakVal + 1
-                : breakVal;
+                    ? isDown ? breakVal + 1 : breakVal - 1
+                    : breakVal;
 
-            // Compute the number of steps
-            int stepCount = (lastVal - initVal) / update;
+            // Determine the update value
+            int update = intBounds.update.Value;
+            // Adjust the update value by multiplying it by 2
+            if (IsMultiplied2Update(UpdateKind)) update *= 2;
 
-            // If stepCount is less than zero, it's probably an infinite loop
-            if (stepCount < 0)
+            // Compute the number of steps based on the kind of the update operation
+            int stepCount = 0;
+            if (IsLinearUpdate(UpdateKind))
+            {
+                // If this is a linear update,
+                if (isDown) update = -update;
+                stepCount = (lastVal - initVal) / update;
+
+                // If stepCount is less than zero, it's probably an infinite loop
+                if (stepCount < 0)
+                    return null;
+
+                // The trip count is one more than the step count
+                return stepCount + 1 + doWhileOffset;
+            }
+
+            // Check for trivial endless loops
+            bool isNegativeUpdate = intBounds.update.Value < 0;
+            if (initVal == 0 ||
+                // Can we ever reach the end of the loop while multiplying
+                isDown && lastVal > initVal &&
+                (isNegativeUpdate && (BreakOperation.Kind == CompareKind.GreaterEqual ||
+                    BreakOperation.Kind == CompareKind.GreaterThan ||
+                    (!isNegativeUpdate && (BreakOperation.Kind == CompareKind.LessEqual ||
+                        BreakOperation.Kind == CompareKind.LessThan)))) ||
+                // Can we ever reach the end of the loop while dividing
+                !isDown && lastVal < initVal &&
+                (isNegativeUpdate && (BreakOperation.Kind == CompareKind.GreaterEqual ||
+                        BreakOperation.Kind == CompareKind.GreaterThan) ||
+                    (!isNegativeUpdate && (BreakOperation.Kind == CompareKind.LessEqual ||
+                        BreakOperation.Kind == CompareKind.LessThan))))
+            {
                 return null;
+            }
 
-            // The trip count is one more than the step count
-            return stepCount + 1 + doWhileOffset;
+            // Determine the length and the end offset
+            var (length, end) = isDown ? (initVal, lastVal) : (lastVal, initVal);
+            length = Math.Abs(length);
+            end = Math.Abs(end);
+            update = Math.Abs(update);
+            for (; length >= end; length /= update)
+                ++stepCount;
+            return stepCount + doWhileOffset;
         }
 
         #endregion
@@ -984,8 +1082,12 @@ namespace ILGPU.IR.Analyses
                 return false;
             }
 
+            // Limit ourselves to RHS constants
+            int stepValueIndex = updateValue.Left.Resolve() == Phi ? 1 : 0;
+            if (stepValueIndex != 1)
+                return false;
+
             // Determine the step value
-            int stepValueIndex = updateValue.Left.Resolve() == Init ? 1 : 1;
             var resolvedStepValue = updateValue[stepValueIndex].Resolve();
 
             // Resolve the update operation
@@ -1013,10 +1115,9 @@ namespace ILGPU.IR.Analyses
                 return false;
             }
 
+            // Resolve the break operation
             int endValueIndex = compareValue.Left.Resolve() == Phi ? 1 : 0;
             var resolvedEndValue = compareValue[endValueIndex].Resolve();
-
-            // Resolve the break operation
             breakOperation = new InductionVariableOperation<CompareKind>(
                 endValueIndex,
                 resolvedEndValue,
@@ -1046,7 +1147,7 @@ namespace ILGPU.IR.Analyses
                 updateOperation,
                 breakOperation,
                 IsDoWhileLoop);
-            return true;
+            return bounds.UpdateKind != InductionVariableBounds.UpdateOperationKind.None;
         }
 
         #endregion
