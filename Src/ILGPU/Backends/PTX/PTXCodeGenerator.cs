@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.cs
@@ -40,6 +40,8 @@ namespace ILGPU.Backends.PTX
             SupportedInstructionSets = ImmutableSortedSet.Create(
                 Comparer<CudaInstructionSet>.Create((first, second) =>
                     second.CompareTo(first)),
+                CudaInstructionSet.ISA_76,
+                CudaInstructionSet.ISA_75,
                 CudaInstructionSet.ISA_74,
                 CudaInstructionSet.ISA_73,
                 CudaInstructionSet.ISA_72,

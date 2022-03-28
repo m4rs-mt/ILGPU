@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaDriverVersion.cs
@@ -257,6 +257,7 @@ namespace ILGPU.Runtime.Cuda
 
             { CudaArchitecture.SM_80, CudaDriverVersion.FromMajorMinor(11, 0) },
             { CudaArchitecture.SM_86, CudaDriverVersion.FromMajorMinor(11, 1) },
+            { CudaArchitecture.SM_87, CudaDriverVersion.FromMajorMinor(11, 4) },
         };
 
         /// <summary>
@@ -290,6 +291,8 @@ namespace ILGPU.Runtime.Cuda
             { CudaInstructionSet.ISA_72, CudaDriverVersion.FromMajorMinor(11, 2) },
             { CudaInstructionSet.ISA_73, CudaDriverVersion.FromMajorMinor(11, 3) },
             { CudaInstructionSet.ISA_74, CudaDriverVersion.FromMajorMinor(11, 4) },
+            { CudaInstructionSet.ISA_75, CudaDriverVersion.FromMajorMinor(11, 5) },
+            { CudaInstructionSet.ISA_76, CudaDriverVersion.FromMajorMinor(11, 6) },
         };
 
         /// <summary>
