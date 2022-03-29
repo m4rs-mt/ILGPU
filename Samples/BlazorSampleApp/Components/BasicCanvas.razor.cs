@@ -142,9 +142,10 @@ namespace BlazorSampleApp.Components
             }
         }
 
-       
+#nullable enable       
         public async ValueTask SetValueBasicContext(string ValueName, params object?[]? args)
         {
+#nullable disable
             if (IsDisposing) return;
 
             if (module != null)
@@ -158,8 +159,10 @@ namespace BlazorSampleApp.Components
         }
 
 
+#nullable enable
         public async ValueTask<T> GetValueBasicContext<T>(string ValueName, params object?[]? args)
         {
+#nullable disable
             if (IsDisposing) return default(T);
 
             if (module != null)
@@ -173,9 +176,10 @@ namespace BlazorSampleApp.Components
         }
 
 
-
+#nullable enable 
         public async ValueTask SetFunctionBasicContext(string FunctionName, params object?[]? args)
         {
+#nullable disable
             if (IsDisposing) return;
 
             if (module != null)
@@ -188,9 +192,10 @@ namespace BlazorSampleApp.Components
             }
         }
 
-
+#nullable enable 
         public async ValueTask<T> GetFunctionBasicContext<T>(string FunctionName, params object?[]? args)
         {
+#nullable disable
             if (IsDisposing) return default(T);
 
             if (module != null)
@@ -203,9 +208,10 @@ namespace BlazorSampleApp.Components
             }
         }
 
-
+#nullable enable 
         public async ValueTask SetFunctionDrawingBasis(string FunctionName, params object?[]? args)
         {
+#nullable disable
             if (IsDisposing) return;
 
             if (module != null)
@@ -218,9 +224,10 @@ namespace BlazorSampleApp.Components
             }
         }
 
-
+#nullable enable 
         public async ValueTask<T> GetFunctionDrawingBasis<T>(string FunctionName, params object?[]? args)
         {
+#nullable disable
             if (IsDisposing) return default(T);
 
             if (module != null)
