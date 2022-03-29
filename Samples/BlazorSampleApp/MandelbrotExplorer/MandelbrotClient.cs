@@ -26,6 +26,8 @@ namespace BlazorSampleApp.MandelbrotExplorer
     /// 
     /// IDisposable is implemented to notify the a "hosted" compute session is no longer needed a user's razor page.
     /// </summary>
+    ///
+#nullable disable
     public class MandelbrotClient : IMandelbrotClient, IDisposable
     {
 

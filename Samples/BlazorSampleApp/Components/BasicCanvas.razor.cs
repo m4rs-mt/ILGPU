@@ -13,9 +13,11 @@ using Microsoft.JSInterop;
 
 namespace BlazorSampleApp.Components
 {
+
+#nullable disable
     public partial class BasicCanvas : ComponentBase, IAsyncDisposable
     {
-#nullable disable
+
         private IJSObjectReference asyncModule = null;
 
         private IJSInProcessObjectReference module = null;
@@ -26,7 +28,7 @@ namespace BlazorSampleApp.Components
 
         public event Action<BasicCanvas> CanvasInitComplete = null;
 
-#nullable enable
+
 
 
         [Parameter]
@@ -57,7 +59,7 @@ namespace BlazorSampleApp.Components
         private bool IsDisposing = false;
 
         [Inject]
-        public IJSRuntime jsRuntime
+        public IJSRuntime JS_Runtime
         {
             get
             {
@@ -96,7 +98,7 @@ namespace BlazorSampleApp.Components
                     }
                     else
                     {
-                        asyncModule = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./Scripts/BasicCanvas.js");
+                        asyncModule = await JS_Runtime.InvokeAsync<IJSObjectReference>("import", "./Scripts/BasicCanvas.js");
 
                         await asyncModule.InvokeVoidAsync("initializeBasicCanvas", CanvasId, IsWebAssembley, IsTransparent, IsDesyncronized);
 
@@ -156,7 +158,7 @@ namespace BlazorSampleApp.Components
         }
 
 
-        public async ValueTask<T?> GetValueBasicContext<T>(string ValueName, params object?[]? args)
+        public async ValueTask<T> GetValueBasicContext<T>(string ValueName, params object?[]? args)
         {
             if (IsDisposing) return default(T);
 
@@ -187,7 +189,7 @@ namespace BlazorSampleApp.Components
         }
 
 
-        public async ValueTask<T?> GetFunctionBasicContext<T>(string FunctionName, params object?[]? args)
+        public async ValueTask<T> GetFunctionBasicContext<T>(string FunctionName, params object?[]? args)
         {
             if (IsDisposing) return default(T);
 
@@ -217,7 +219,7 @@ namespace BlazorSampleApp.Components
         }
 
 
-        public async ValueTask<T?> GetFunctionDrawingBasis<T>(string FunctionName, params object?[]? args)
+        public async ValueTask<T> GetFunctionDrawingBasis<T>(string FunctionName, params object?[]? args)
         {
             if (IsDisposing) return default(T);
 

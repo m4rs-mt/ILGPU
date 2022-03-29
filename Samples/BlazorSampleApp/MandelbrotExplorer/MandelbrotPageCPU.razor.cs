@@ -27,6 +27,7 @@ using ILGPU.Runtime;
 
 namespace BlazorSampleApp.MandelbrotExplorer
 {
+#nullable disable
     public partial class MandelbrotPageCPU : IDisposable
     {
         public BasicCanvas Canvas2D { get; set; }

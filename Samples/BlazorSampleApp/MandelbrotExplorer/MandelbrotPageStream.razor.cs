@@ -22,6 +22,8 @@ using Microsoft.JSInterop;
 
 namespace BlazorSampleApp.MandelbrotExplorer
 {
+#nullable disable
+
     /// <summary>
     /// An example razor page calling a streamed accelerator via an injected IMandelbrotClient.
     /// </summary>
