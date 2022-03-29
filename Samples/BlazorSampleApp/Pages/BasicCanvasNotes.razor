@@ -1,0 +1,29 @@
+﻿@page "/JavaScriptNotes"
+
+
+<h3>Blazor JavaScript Notes</h3>
+<p>
+<img src="Images/Mandelbrot.png" />
+</p>
+<p>
+<strong>This sample shows how to properly wrap a JavaScript control as a Blazor component.</strong> 
+</p>
+<p>
+    Pros:
+<ul>
+    <li>Highly efficient "ValueTask" calls to JavaScript. </li>
+    <li>JavaScript objects are loaded together in a module to avoid naming conflicts to avoid polluting the JavaScript namespace.</li>
+    <li>JavaScript access from Blazor Server or Blazor WebAssembly using a single C# code base.</li>
+    <li>All JavaScript calls are wrapped in a single class of extension methods, avoids hours or days of "hard coding"
+        a wrapper for a JavaScript library.</li>
+    <li>Easily reuse existing JavaScript controls from Blazor.</li>    
+</ul>
+Cons:
+<ul>
+    
+    <li>This example repeatedly publishes bitmaps to a JavaScript canvas which is inefficient as each call
+        transmits 2 megabytes for a 800 x 600 canvas. A better way would be to host a video stream in HTML/JavaScript
+        and produce a video stream from a server based canvas.</li>
+    
+</ul>
+</p>

@@ -1,0 +1,61 @@
+﻿<style>
+
+
+    .tooltip-wrapper {
+        position: relative;
+        display: inline-block;
+        cursor: help;
+    }
+
+    #spanText {
+        visibility: hidden;
+        position: absolute;
+        width: 180px;
+        bottom: 100%;
+        left: 50%;
+        margin-left: -60px;
+        background-color: #a1b96c;
+        color: #fff;
+        text-align: center;
+        padding: 5px 0;
+        border-radius: 3px;
+        z-index: 1;
+        font-size:smaller;
+    }
+
+        #spanText::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+        }
+
+    .tooltip-wrapper:hover #spanText {
+        visibility: visible;
+    }
+
+</style>
+
+<div class="tooltip-wrapper">
+
+    <span id="spanText">@((MarkupString)Text)</span>
+
+    @ChildContent
+
+</div>
+
+@code {
+    /// <summary>
+    /// This is a simple way to show hints over buttons Blazor style.
+    /// </summary>
+
+    [Parameter] public RenderFragment ChildContent { get; set; }
+    [Parameter] public string Text { get; set; }
+
+    //similar to from https://bladeprogramming.blogspot.com/2021/03/blazor-tutorial-tooltip-component.html?m=1 by Blade Programming
+}
+
