@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicLoops.cs
@@ -918,6 +918,132 @@ namespace ILGPU.Tests
             Execute(length, target.View.AsContiguous(), source.View.AsContiguous());
             var expected = Enumerable.Repeat(0, length).ToArray();
             Verify(target.View, expected);
+        }
+
+        static void UnrollDivKernel(
+            Index1D index,
+            ArrayView<int> data1,
+            ArrayView<int> data2,
+            ArrayView<int> data3,
+            ArrayView<int> data4,
+            ArrayView<int> data5,
+            int value)
+        {
+            for (int laneOffset = Warp.WarpSize / 2; laneOffset > 0; laneOffset >>= 1)
+                value += Warp.ShuffleDown(value, laneOffset);
+            data1[index] = value;
+
+            // Simple skip loop
+            for (int i = 0; i > 0; i >>= 1)
+                value += 1;
+            data2[index] = value;
+
+            // Negative start value
+            for (int i = -1; i >= 0; i >>= 2)
+                value += i;
+            data3[index] = value;
+
+            // Trip count not a multiple of the divisor
+            for (int i = 17; i > 0; i /= 3)
+                value += i;
+            data4[index] = value;
+
+            // Loop down to 1
+            for (int i = 21; i >= 1; i /= 3)
+                value += 13;
+            data5[index] = value;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(UnrollDivKernel))]
+        public void UnrollDiv()
+        {
+            int length = Accelerator.WarpSize * 2;
+            using var data1 = Accelerator.Allocate1D<int>(length);
+            using var data2 = Accelerator.Allocate1D<int>(length);
+            using var data3 = Accelerator.Allocate1D<int>(length);
+            using var data4 = Accelerator.Allocate1D<int>(length);
+            using var data5 = Accelerator.Allocate1D<int>(length);
+            Accelerator.Synchronize();
+
+            Execute(
+                length,
+                data1.View.AsContiguous(),
+                data2.View.AsContiguous(),
+                data3.View.AsContiguous(),
+                data4.View.AsContiguous(),
+                data5.View.AsContiguous(),
+                1);
+
+            var expected = Enumerable.Repeat(length / 2, length).ToArray();
+            Verify(data1.View, expected);
+            Verify(data2.View, expected);
+            Verify(data3.View, expected);
+
+            var expected4 = Enumerable.Repeat(expected[0] + 23, length).ToArray();
+            Verify(data4.View, expected4);
+
+            var expected5 = Enumerable.Repeat(expected4[0] + 39, length).ToArray();
+            Verify(data5.View, expected5);
+        }
+
+        static void UnrollMulKernel(
+            Index1D index,
+            ArrayView<int> data1,
+            ArrayView<int> data2,
+            ArrayView<int> data3,
+            ArrayView<int> data4,
+            int value)
+        {
+            for (int laneOffset = 1; laneOffset < Warp.WarpSize; laneOffset <<= 1)
+                value += Warp.ShuffleUp(value, laneOffset);
+            data1[index] = value;
+
+            // Trip count not a multiple of the multiplier
+            for (int i = 1; i < 13; i *= 3)
+                value += 1;
+            data2[index] = value;
+
+            // Negative start value
+            for (int i = -1; i > -17; i *= 4)
+                value += 2;
+            data3[index] = value;
+
+            for (int i = 17; i < 51; i *= 2)
+                value += i;
+            data4[index] = value;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(UnrollMulKernel))]
+        public void UnrollMul()
+        {
+            int length = Accelerator.WarpSize * 2;
+            using var data1 = Accelerator.Allocate1D<int>(length);
+            using var data2 = Accelerator.Allocate1D<int>(length);
+            using var data3 = Accelerator.Allocate1D<int>(length);
+            using var data4 = Accelerator.Allocate1D<int>(length);
+            Accelerator.Synchronize();
+
+            Execute(
+                length,
+                data1.View.AsContiguous(),
+                data2.View.AsContiguous(),
+                data3.View.AsContiguous(),
+                data4.View.AsContiguous(),
+                1);
+
+            var expected = Enumerable.Repeat(length / 2, length).ToArray();
+            Verify(data1.View, expected);
+
+            var expected2 = Enumerable.Repeat(expected[0] + 3, length).ToArray();
+            Verify(data2.View, expected2);
+
+            var expected3 = Enumerable.Repeat(expected2[0] + 6, length).ToArray();
+            Verify(data3.View, expected3);
+
+            var expected4 = Enumerable.Repeat(expected3[0] + 17 * 3, length).ToArray();
+            Verify(data4.View, expected4);
         }
     }
 }
