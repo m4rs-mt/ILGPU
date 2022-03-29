@@ -41,6 +41,7 @@ namespace BlazorSampleApp.ILGPUWebHost
     /// therefor we should secure buffer allocation as part of the session. 
     /// </details>
 
+#nullable disable
     public class ComputeHost : IComputeHost, IDisposable
     {
         // the context for session and accelerator instantiation 

@@ -27,6 +27,7 @@ using BlazorSampleApp.Components;
 
 namespace BlazorSampleApp.MandelbrotExplorer
 {
+#nullable disable
     public partial class MandelbrotPageBasic : IDisposable
     {
         public BasicCanvas Canvas2D { get; set; }

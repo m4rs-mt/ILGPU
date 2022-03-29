@@ -29,7 +29,7 @@ namespace BlazorSampleApp.ILGPUWebHost
     /// 
     /// This object must implement IDisposable as it allocates dedicated non-movable GPU accessible buffers.
     /// </summary>
-
+#nullable disable
     public class ComputeSession : IDisposable
     {
 

@@ -29,6 +29,8 @@ namespace BlazorSampleApp.MandelbrotExplorer
     /// "services.AddScoped<ILGPU.BlazorSamples.MandelbrotExplorer.IMandelbrotBasic, ILGPU.BlazorSamples.MandelbrotExplorer.MandelbrotBasic>();"
     /// in the Blazor server startup file.
     /// </summary>
+    
+#nullable disable
     public class MandelbrotBasic : IMandelbrotBasic, IDisposable
     {
         private Context _context = null;
