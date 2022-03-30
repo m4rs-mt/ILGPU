@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaInstructionSet.cs
@@ -118,6 +118,16 @@ namespace ILGPU.Runtime.Cuda
         /// The 7.4 ISA.
         /// </summary>
         public static readonly CudaInstructionSet ISA_74 = new CudaInstructionSet(7, 4);
+
+        /// <summary>
+        /// The 7.5 ISA.
+        /// </summary>
+        public static readonly CudaInstructionSet ISA_75 = new CudaInstructionSet(7, 5);
+
+        /// <summary>
+        /// The 7.6 ISA.
+        /// </summary>
+        public static readonly CudaInstructionSet ISA_76 = new CudaInstructionSet(7, 6);
 
         #endregion
 
