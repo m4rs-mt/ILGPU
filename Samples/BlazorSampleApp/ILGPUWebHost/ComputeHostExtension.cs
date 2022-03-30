@@ -25,9 +25,9 @@ namespace BlazorSampleApp.ILGPUWebHost
     public static class ComputeHostExtension
     {
         /// <summary>
-        /// We rank accelerators by their maximium throughput.
+        /// We rank accelerators by their maximum throughput.
         /// 
-        /// Rank is approximated by clock rate * threads per processor * multiprocessors, for an integrated gpu 
+        /// Rank is approximated by clock rate * threads per processor * multiprocessors, for an integrated GPU 
         /// we assume the clock rate is 2GHz to avoid operating specific calls
         /// </summary>
         /// <param name="accelerator"></param>
