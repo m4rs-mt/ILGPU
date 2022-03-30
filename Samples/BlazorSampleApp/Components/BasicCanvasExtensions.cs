@@ -1,9 +1,11 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                        KilnGod.BlazorWebGL
-//             
-// File: BasicCanvas.razor.cs
+//                                    ILGPU Samples
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
 //
-// This file is part of KilnGod.BlazorWebGL and is distributed under the University of Illinois Open
+// File: BasicCanvasExtensions.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
