@@ -63,7 +63,7 @@ namespace BlazorSampleApp.ILGPUWebHost
 
 
         /// <summary>
-        /// This is used to establish the host as a singlton object on the web server
+        /// This is used to establish the host as a singleton object on the web server
         /// </summary>
         public ComputeHost()
         {
@@ -146,7 +146,7 @@ namespace BlazorSampleApp.ILGPUWebHost
 
         /// <summary>
         /// If for some reason a blazor compute session end without notice, we can attempt to 
-        /// connect back the our original session provided we stored the seesion ID in the 
+        /// connect back the our original session provided we stored the session ID in the 
         /// client browser. Note if we have a server farm, we may need to keep a server session map.
         /// </summary>
         /// <param name="sessionID"></param>
@@ -165,8 +165,8 @@ namespace BlazorSampleApp.ILGPUWebHost
         }
 
         /// <summary>
-        /// We are tracking all compute sessions on the host for GPU resource allowcation. Sessions must be removed 
-        /// from the host otherwise when disposed otherside we will take the GPU down on all sessions by overallocation
+        /// We are tracking all compute sessions on the host for GPU resource allocation. Sessions must be removed 
+        /// from the host otherwise when disposed otherwise we will take the GPU down on all sessions by overallocation
         /// or resources. 
         /// </summary>
         /// <param name="session"></param>
