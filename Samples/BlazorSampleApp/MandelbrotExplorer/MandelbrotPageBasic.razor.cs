@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                ILGPU Samples
-//                 Copyright (c) 2017-2021 ILGPU Samples Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                    ILGPU Samples
+//                           Copyright (c) 2022 ILGPU Project
+//                                    www.ilgpu.net
 //
 // File: MandelbrotPageBasic.razor.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details.
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
