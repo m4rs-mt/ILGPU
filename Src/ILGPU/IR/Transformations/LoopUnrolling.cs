@@ -461,19 +461,9 @@ namespace ILGPU.IR.Transformations
                 iterations < 2);
 
             // Unroll the loop until we reach the maximum unrolling factor
-            for (int i = 0; i < unrolls; ++i)
+            Value startValue = loopSpecializer.VariableInitValue;
+            for (int i = 0; i < unrolls;)
             {
-                // Setup a proper start value
-                Value startValue = current.CreatePrimitiveValue(
-                    bounds.Init.Location,
-                    bounds.Init.BasicValueType,
-                    i * update);
-                startValue = current.CreateArithmetic(
-                    bounds.UpdateValue.Location,
-                    loopSpecializer.VariableInitValue,
-                    startValue,
-                    bounds.UpdateOperation.Kind);
-
                 // Specialize the whole loop and wire the blocks
                 var (loopEntry, loopExit) = loopSpecializer.SpecializeLoop(
                     exitBlock,
@@ -482,6 +472,21 @@ namespace ILGPU.IR.Transformations
                 // Link to the new entry block
                 current.CreateBranch(loopEntry.BasicBlock.Location, loopEntry);
                 current = loopExit;
+
+                // Break the loop here (if necessary)
+                if (++i >= unrolls)
+                    break;
+
+                // Update the current start value
+                var iterationUpdate = current.CreatePrimitiveValue(
+                    bounds.Init.Location,
+                    bounds.Init.BasicValueType,
+                    update);
+                startValue = current.CreateArithmetic(
+                    bounds.UpdateValue.Location,
+                    startValue,
+                    iterationUpdate,
+                    bounds.UpdateOperation.Kind);
             }
 
             // Check whether we still need a loop
@@ -556,13 +561,8 @@ namespace ILGPU.IR.Transformations
 
             // Try to compute a constant (compile-time known) trip count
             var tripCount = bounds.TryGetTripCount(out var intBounds);
-            if (!tripCount.HasValue ||
-                !intBounds.update.HasValue ||
-                bounds.UpdateOperation.Kind != BinaryArithmeticKind.Add &&
-                bounds.UpdateOperation.Kind != BinaryArithmeticKind.Sub)
-            {
+            if (!tripCount.HasValue || !intBounds.update.HasValue)
                 return false;
-            }
 
             // If trip count is 0, leave out loop completely
             if (tripCount.Value == 0)

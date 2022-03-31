@@ -49,6 +49,37 @@ namespace ILGPU.IR.Construction
                 kind));
 
         /// <summary>
+        /// Returns true if the given variable is a constant with respect to a broadcast
+        /// or shuffle value operating on the warp or the group level.
+        /// </summary>
+        /// <param name="variable">The variable to test.</param>
+        /// <returns>
+        /// True, if the given variable is a constant in the parent broadcast or shuffle
+        /// context.
+        /// </returns>
+        private static bool IsShuffleOrBroadcastConstant(Value variable) =>
+            variable switch
+            {
+                // Entry-point parameters can be considered uniform
+                Parameter param => param.Method.HasFlags(MethodFlags.EntryPoint),
+                PrimitiveValue _ => true,
+                WarpSizeValue _ => true,
+                GroupDimensionValue _ => true,
+                GridDimensionValue _ => true,
+                GridIndexValue _ => true,
+                UnaryArithmeticValue unary =>
+                    IsShuffleOrBroadcastConstant(unary.Value),
+                BinaryArithmeticValue binary =>
+                    IsShuffleOrBroadcastConstant(binary.Left) &&
+                    IsShuffleOrBroadcastConstant(binary.Right),
+                TernaryArithmeticValue ternary =>
+                    IsShuffleOrBroadcastConstant(ternary.First) &&
+                    IsShuffleOrBroadcastConstant(ternary.Second) &&
+                    IsShuffleOrBroadcastConstant(ternary.Third),
+                _ => false
+            };
+
+        /// <summary>
         /// Creates a new broadcast operation.
         /// </summary>
         /// <param name="location">The current location.</param>
@@ -63,14 +94,16 @@ namespace ILGPU.IR.Construction
             Value variable,
             Value origin,
             BroadcastKind kind) =>
-            Append(new Broadcast(
-                GetInitializer(location),
-                variable,
-                origin,
-                kind));
+            IsShuffleOrBroadcastConstant(variable)
+                ? variable
+                : Append(new Broadcast(
+                    GetInitializer(location),
+                    variable,
+                    origin,
+                    kind));
 
         /// <summary>
-        /// Creates a new shuffle operation.
+        /// Creates a new shuffle operation involving all lanes of a warp.
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <param name="variable">The variable.</param>
@@ -82,11 +115,13 @@ namespace ILGPU.IR.Construction
             Value variable,
             Value origin,
             ShuffleKind kind) =>
-            Append(new WarpShuffle(
-                GetInitializer(location),
-                variable,
-                origin,
-                kind));
+            IsShuffleOrBroadcastConstant(variable)
+                ? variable
+                : Append(new WarpShuffle(
+                    GetInitializer(location),
+                    variable,
+                    origin,
+                    kind));
 
         /// <summary>
         /// Creates a new sub-warp shuffle operation that operates
@@ -104,17 +139,19 @@ namespace ILGPU.IR.Construction
             Value origin,
             Value width,
             ShuffleKind kind) =>
-            width is WarpSizeValue
-            ? CreateShuffle(
-                location,
-                variable,
-                origin,
-                kind)
-            : Append(new SubWarpShuffle(
-                GetInitializer(location),
-                variable,
-                origin,
-                width,
-                kind));
+            IsShuffleOrBroadcastConstant(variable)
+                ? (ValueReference)variable
+                : width is WarpSizeValue
+                    ? CreateShuffle(
+                        location,
+                        variable,
+                        origin,
+                        kind)
+                    : Append(new SubWarpShuffle(
+                        GetInitializer(location),
+                        variable,
+                        origin,
+                        width,
+                        kind));
     }
 }
