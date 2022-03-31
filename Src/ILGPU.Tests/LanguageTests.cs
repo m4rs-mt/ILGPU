@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LanguageTests.cs
@@ -269,6 +269,107 @@ namespace ILGPU.Tests
                 .ToArray();
 
             using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(Length, buffer.View);
+            Verify(buffer.View, expected);
+        }
+
+        internal static void EmitRefUsingOutputParamsKernel(
+            Index1D index,
+            ArrayView1D<long, Stride1D.Dense> buffer)
+        {
+            if (CudaAsm.IsSupported)
+            {
+                Input<int> input = index.X;
+                Input<int> length = buffer.IntLength;
+                Output<long> result = default;
+
+                CudaAsm.EmitRef(
+                    "{\n\t" +
+                    "   .reg .s64 t0;\n\t" +
+                    "   .reg .s64 t2;\n\t" +
+                    "   cvt.s64.s32 t0, %0;\n\t" +
+                    "   cvt.s64.s32 t2, %2;\n\t" +
+                    "   sub.s64 %1, t2, t0;\n\t" +
+                    "}",
+                    ref input,
+                    ref result,
+                    ref length);
+                buffer[index] = result.Value;
+            }
+            else
+            {
+                buffer[index] = index;
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(EmitRefUsingOutputParamsKernel))]
+        public void EmitRefUsingOutputParams()
+        {
+            const int Length = 512;
+            var expected = Enumerable.Range(0, Length)
+                .Select(x =>
+                {
+                    if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                    {
+                        return (long)(Length - x);
+                    }
+                    else
+                    {
+                        return x;
+                    }
+                })
+                .ToArray();
+
+            using var buffer = Accelerator.Allocate1D<long>(Length);
+            Execute(Length, buffer.View);
+            Verify(buffer.View, expected);
+        }
+        internal static void EmitRefUsingRefParamsKernel(
+            Index1D index,
+            ArrayView1D<long, Stride1D.Dense> buffer)
+        {
+            if (CudaAsm.IsSupported)
+            {
+                Ref<long> result = buffer.IntLength;
+                Input<int> input = index.X;
+
+                CudaAsm.EmitRef(
+                    "{\n\t" +
+                    "   .reg .s64 t1;\n\t" +
+                    "   cvt.s64.s32 t1, %1;\n\t" +
+                    "   sub.s64 %0, %0, t1;\n\t" +
+                    "}",
+                    ref result,
+                    ref input);
+                buffer[index] = result.Value;
+            }
+            else
+            {
+                buffer[index] = index;
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(EmitRefUsingRefParamsKernel))]
+        public void EmitRefUsingRefParams()
+        {
+            const int Length = 512;
+            var expected = Enumerable.Range(0, Length)
+                .Select(x =>
+                {
+                    if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                    {
+                        return (long)(Length - x);
+                    }
+                    else
+                    {
+                        return x;
+                    }
+                })
+                .ToArray();
+
+            using var buffer = Accelerator.Allocate1D<long>(Length);
             Execute(Length, buffer.View);
             Verify(buffer.View, expected);
         }

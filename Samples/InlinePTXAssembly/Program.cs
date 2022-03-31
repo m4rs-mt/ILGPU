@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -111,6 +111,39 @@ namespace InlinePTXAssembly
                 Console.WriteLine($"[{i}] = {results[i]}");
         }
 
+        public static void SubtractEmitRefKernel(Index1D index, ArrayView<long> view)
+        {
+            Output<long> result = default;
+            Input<long> input = index.X;
+            Input<long> constant = 42;
+
+            CudaAsm.EmitRef(
+                "{\n\t" +
+                "   .reg .s64 t1;\n\t" +       // Declare temp register
+                "   sub.s64 t1, %1, %2;\n\t" + // Subtract index with constant into temp register
+                "   sub.s64 %0, t1, %2;\n\t" + // Subtract temp register with constant into result
+                "}",
+                ref result,
+                ref input,
+                ref constant);
+
+            view[index] = result.Value;
+        }
+
+        /// <summary>
+        /// Demonstrates using EmitRef.
+        /// </summary>
+        static void SubtractUsingEmitRef(CudaAccelerator accelerator)
+        {
+            using var buffer = accelerator.Allocate1D<long>(32);
+            var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<long>>(SubtractEmitRefKernel);
+            kernel((int)buffer.Length, buffer.View);
+
+            var results = buffer.GetAsArray1D();
+            for (var i = 0; i < results.Length; i++)
+                Console.WriteLine($"[{i}] = {results[i]}");
+        }
+
         /// <summary>
         /// Demonstrates some examples of using inline PTX assembly.
         /// </summary>
@@ -125,6 +158,7 @@ namespace InlinePTXAssembly
 
                 MultiplyUInt128(accelerator);
                 AddUsingTempRegister(accelerator);
+                SubtractUsingEmitRef(accelerator);
             }
         }
     }

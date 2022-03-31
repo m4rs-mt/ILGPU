@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ValueKind.cs
@@ -360,6 +360,11 @@ namespace ILGPU.IR
         /// A <see cref="Values.LanguageEmitValue"/> value.
         /// </summary>
         LanguageEmit,
+
+        /// <summary>
+        /// Placeholder for the last value kind.
+        /// </summary>
+        MaxValue
     }
 
     /// <summary>
@@ -391,7 +396,7 @@ namespace ILGPU.IR
         /// <summary>
         /// The number of different value kinds.
         /// </summary>
-        public const int NumValueKinds = (int)ValueKind.LanguageEmit + 1;
+        public const int NumValueKinds = (int)ValueKind.MaxValue;
 
         /// <summary>
         /// Gets the value kind of the value type specified.
