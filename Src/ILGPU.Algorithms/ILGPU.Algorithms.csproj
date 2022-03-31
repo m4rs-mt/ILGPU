@@ -369,5 +369,4 @@
   </ItemGroup>
 
   <Import Project="Properties\ILGPU.Algorithms.nuspec.targets" />
-  <Import Project="..\ILGPU\Properties\ILGPU.CheckStyles.targets" />
 </Project>
