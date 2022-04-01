@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Values.cs
@@ -1235,17 +1235,42 @@ namespace ILGPU.Backends.PTX
                 return;
 
             // Load argument registers.
-            // If there is an output, allocate a new register to store the value.
             var registers = InlineList<PrimitiveRegister>.Create(emit.Nodes.Length);
 
             for (var argumentIdx = 0; argumentIdx < emit.Count; argumentIdx++)
             {
                 var argument = emit.Nodes[argumentIdx];
-                registers.Add(
-                    argumentIdx == 0 && emit.HasOutput
-                    ? AllocateRegister(ResolveRegisterDescription(
-                        (argument.Type as PointerType).ElementType))
-                    : LoadPrimitive(argument));
+
+                if (emit.UsingRefParams)
+                {
+                    // If there is an input, initialize with the supplied argument value.
+                    var pointerType = argument.Type as PointerType;
+                    var pointerElementType = pointerType.ElementType;
+
+                    var targetRegister = AllocateRegister(
+                        ResolveRegisterDescription(pointerElementType));
+                    registers.Add(targetRegister);
+
+                    if (emit.IsInputArgument(argumentIdx))
+                    {
+                        var address = LoadHardware(argument);
+                        EmitVectorizedCommand(
+                            argument,
+                            pointerElementType.Alignment,
+                            PTXInstructions.LoadOperation,
+                            new LoadEmitter(pointerType, address),
+                            targetRegister);
+                    }
+                }
+                else
+                {
+                    // If there is an output, allocate a new register to store the value.
+                    registers.Add(
+                        emit.IsOutputArgument(argumentIdx)
+                        ? AllocateRegister(ResolveRegisterDescription(
+                            (argument.Type as PointerType).ElementType))
+                        : LoadPrimitive(argument));
+                }
             }
 
             // Emit the PTX assembly string
@@ -1266,22 +1291,23 @@ namespace ILGPU.Backends.PTX
                 }
             }
 
-            // If there is an output register, write the value to the address.
-            // NB: Assumes that the output argument must be at index 0.
-            if (emit.HasOutput)
+            // For each output argument, write the value to the address.
+            for (var argumentIdx = 0; argumentIdx < emit.Count; argumentIdx++)
             {
-                const int outputArgumentIdx = 0;
-                var outputArgument = emit.Nodes[outputArgumentIdx];
-                var address = LoadHardware(outputArgument);
-                var targetType = outputArgument.Type as PointerType;
-                var newValue = registers[outputArgumentIdx];
+                if (emit.IsOutputArgument(argumentIdx))
+                {
+                    var outputArgument = emit.Nodes[argumentIdx];
+                    var address = LoadHardware(outputArgument);
+                    var targetType = outputArgument.Type as PointerType;
+                    var newValue = registers[argumentIdx];
 
-                EmitVectorizedCommand(
-                    outputArgument,
-                    targetType.ElementType.Alignment,
-                    PTXInstructions.StoreOperation,
-                    new StoreEmitter(targetType, address),
-                    newValue);
+                    EmitVectorizedCommand(
+                        outputArgument,
+                        targetType.ElementType.Alignment,
+                        PTXInstructions.StoreOperation,
+                        new StoreEmitter(targetType, address),
+                        newValue);
+                }
             }
         }
     }
