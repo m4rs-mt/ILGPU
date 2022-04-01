@@ -10,18 +10,18 @@ Should be refers to the fact that all memory buffers will be automatically relea
 ```c#
 class ...
 {
-    public static void MyKernel(Index index, ...)
+    public static void MyKernel(Index1D index, ...)
     {
         // ...
     }
 
     static void Main(string[] args)
     {
-        using var context = new Context();
+        using var context = Context.CreateDefault();
         using var accelerator = ...;
 
         // Allocate a memory buffer on the current accelerator device.
-        using (var buffer = accelerator.Allocat<int>(1024))
+        using (var buffer = accelerator.Allocate1D<int>(1024))
         {
             ...
         } // Dispose the buffer after performing all operations
@@ -45,7 +45,7 @@ You can even enable bounds checks in `Release` builds by specifying the context 
 ```c#
 class ...
 {
-    static void MyKernel(Index index, ArrayView<int> view1, ArrayView<float> view2)
+    static void MyKernel(Index1D index, ArrayView<int> view1, ArrayView<float> view2)
     {
         ConvertToFloatSample(
             view1.GetSubView(0, view1.Length / 2),
@@ -61,10 +61,10 @@ class ...
     static void Main(string[] args)
     {
         ...
-        using (var buffer = accelerator.Allocat&lt...&gt(...))
+        using (var buffer = accelerator.Allocate1D&lt...&gt(...))
         {
             var mainView = buffer.View;
-            var subView = mainView.GetSubView(0, 1024);
+            var subView = mainView.SubView(0, 1024);
         }
     }
 }
@@ -86,7 +86,7 @@ mad.lo.u64    %rd4, %rd3, 4, %rd1;
 ```
 
 When accessing views using 32-bit indices, the resulting index operation will be performed on 32-bit offsets for performance reasons.
-As a result, this operation can overflow when using a 2D 32-bit based `Index2`, for instance.
+As a result, this operation can overflow when using a 2D 32-bit based `Index2D`, for instance.
 If you already know, that your offsets will not fit into a 32-bit integer, you have to use 64-bit offsets in your kernel.
 
 If you rely on 64-bit offsets, the emitted indexing operating will be slightly more expensive in terms of register usage and computational overhead (at least conceptually). The actual runtime difference depends on your kernel program.
@@ -104,7 +104,7 @@ class ...
         public VariableView<int> Variable;
     }
 
-    static void MyKernel(Index index, DataView view)
+    static void MyKernel(Index1D index, DataView view)
     {
         // ...
     }
@@ -112,10 +112,10 @@ class ...
     static void Main(string[] args)
     {
         // ...
-        using (var buffer = accelerator.Allocat<...>(...))
+        using (var buffer = accelerator.Allocate1D<...>(...))
         {
             var mainView = buffer.View;
-            var firstElementView = mainView.GetVariableView(0);
+            var firstElementView = mainView.VariableView(0);
         }
     }
 }

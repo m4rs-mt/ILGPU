@@ -66,7 +66,7 @@ Creates an Accelerator using GetPreferredDevice to hopefully get the "best" devi
 
 #### [Some kind of data and output device memory](Tutorial_02.md)
 ```C#
-MemoryBuffer1D<int, Stride1D.Dense> deviceData = accelerator.Allocate1D(new int[] { 0, 1, 2, 4, 5, 6, 7, 8, 9 });
+MemoryBuffer1D<int, Stride1D.Dense> deviceData = accelerator.Allocate1D(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
 MemoryBuffer1D<int, Stride1D.Dense> deviceOutput = accelerator.Allocate1D<int>(10_000);
 ```
 
@@ -83,13 +83,13 @@ Ok now we get to the juicy bits.
 
 #### The kernel function definition.
 ```C#
-static void Kernel(Index1 i, ArrayView<int> data, ArrayView<int> output)
+static void Kernel(Index1D i, ArrayView<int> data, ArrayView<int> output)
 {
     output[i] = data[i % data.Length];
 }
 ```
 Kernels have a few limitations, but basically anything simple works like you would expect.
-Primatives and like math operations all work with no issues and as shown above ArrayViews 
+Primitives and math operations all work with no issues and as shown above ArrayViews 
 take the place of arrays.
 
 The main limitation comes down to memory. You can only allocate and pass non-nullable value 
@@ -153,7 +153,7 @@ So if you call kernel A then kernel B you are guaranteed that A is done before B
 from the same stream. 
 
 Then when you call accelerator.Synchronize(); or stream.Synchronize(); your current thread will wait until
-the accelerator (all the steams), or the stream in the case of stream.Synchronize(); is finished executing your kernels.
+the accelerator (all the streams), or the stream in the case of stream.Synchronize(); is finished executing your kernels.
 
 See Also:
 
@@ -170,5 +170,5 @@ See Also:
 
 > <sup>1</sup>
 > This is general advice that everyone gives for programming now, and I take a bit of issue with it. Branches are NOT slow.
-> For the CPU branches that are unpredictable are slow, and for the GPU branches that are divergent across the same warp are slow.
+> For the CPU, branches that are unpredictable are slow, and for the GPU, branches that are divergent across the same warp are slow.
 > Figuring out if that is the case is hard, which is why the general advice is avoid branches. [Matt Godbolt ran into this issue and describes it well in this talk](https://youtu.be/HG6c4Kwbv4I?t=2532)

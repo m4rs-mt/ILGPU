@@ -24,8 +24,8 @@ class ...
 
     static void ...(...)
     {
-        using var context = new Context();
-        using var accl = new CudaAccelerator(context);
+        using var context = Context.CreateDefault();
+        using var accl = context.CreateCudaAccelerator(0);
 
         // Create shared memory configuration using a custom element type.
         // Note that this does not need to be the same type that is used in the scope of the kernel.
