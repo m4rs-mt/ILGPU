@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LibDevice.tt/LibDevice.cs
@@ -37,8 +37,10 @@ namespace ILGPU.Runtime.Cuda
     /// Provides bindings for Cuda LibDevice functions.
     /// </summary>
     /// <remarks>
-    /// Deals with thunking the Cuda LibDevice functions, because the compiled PTX uses
-    /// u32/u64 registers rather than f32/f64 registers.
+    /// Deals with thunking the Cuda LibDevice functions, because the compiled PTX uses:
+    /// - b32 registers rather than f16 registers (Half type).
+    /// - b32 registers rather than f32 registers (float type).
+    /// - b64 registers rather than f64 registers (double type).
     /// </remarks>
     public static class LibDevice
     {
@@ -98,14 +100,16 @@ void WriteLibDeviceInterop(LibDeviceFunction func)
         var param = func.Parameters[i];
         if (string.IsNullOrEmpty(param.Flags))
         {
-            if (param.Type == "float" || param.Type == "double")
+            if (param.Type == "Half")
+                WriteLine($"var arg{i} = (uint){param.Name};");
+            else if (param.Type == "float" || param.Type == "double")
                 WriteLine($"var arg{i} = Interop.FloatAsInt({param.Name});");
             else
                 WriteLine($"var arg{i} = {param.Name};");
         }
         else
         {
-            if (param.Type == "float")
+            if (param.Type == "Half" || param.Type == "float")
                 WriteLine($"uint arg{i};");
             else if (param.Type == "double")
                 WriteLine($"ulong arg{i};");
@@ -140,14 +144,18 @@ void WriteLibDeviceInterop(LibDeviceFunction func)
         var param = func.Parameters[i];
         if (!string.IsNullOrEmpty(param.Flags))
         {
-            if (param.Type == "float" || param.Type == "double")
+            if (param.Type == "Half")
+                WriteLine($"{param.Name} = (Half)arg{i};");
+            else if (param.Type == "float" || param.Type == "double")
                 WriteLine($"{param.Name} = Interop.IntAsFloat(arg{i});");
             else
                 WriteLine($"{param.Name} = arg{i};");
         }
     }
 
-    if (func.ReturnType == "float" || func.ReturnType == "double")
+    if (func.ReturnType == "Half")
+        WriteLine("return (Half)result;");
+    else if (func.ReturnType == "float" || func.ReturnType == "double")
         WriteLine("return Interop.IntAsFloat(result);");
     else if (func.ReturnType != "void")
         WriteLine("return result;");

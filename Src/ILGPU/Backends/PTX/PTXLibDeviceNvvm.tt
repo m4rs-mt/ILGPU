@@ -164,6 +164,8 @@ void WriteNvvmType(string type)
     // Map .NET types to the equivalent NNVM types.
     if (type == "string")
         Write("i8*");
+    else if (type == "Half")
+        Write("i16");
     else if (type == "int" || type == "uint")
         Write("i32");
     else if (type == "long" || type == "ulong")
