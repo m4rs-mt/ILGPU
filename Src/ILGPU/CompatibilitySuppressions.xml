@@ -56,4 +56,32 @@
     <Right>lib/netstandard2.1/ILGPU.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.PTX.PTXInstructions.LoadLocalOperation</Target>
+    <Left>lib/net471/ILGPU.dll</Left>
+    <Right>lib/net471/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.PTX.PTXInstructions.LoadLocalOperation</Target>
+    <Left>lib/net5.0/ILGPU.dll</Left>
+    <Right>lib/net5.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.PTX.PTXInstructions.LoadLocalOperation</Target>
+    <Left>lib/netstandard2.1/ILGPU.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.PTX.PTXInstructions.LoadLocalOperation</Target>
+    <Left>lib/net6.0/ILGPU.dll</Left>
+    <Right>lib/net6.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>

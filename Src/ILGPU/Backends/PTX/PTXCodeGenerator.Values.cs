@@ -49,19 +49,26 @@ namespace ILGPU.Backends.PTX
 
             // Reserve a sufficient amount of memory
             var returnType = target.ReturnType;
+            string callCommand = Uniforms.IsUniform(methodCall)
+                ? PTXInstructions.UniformMethodCall
+                : PTXInstructions.MethodCall;
             if (!returnType.IsVoidType)
             {
                 Builder.Append('\t');
                 AppendParamDeclaration(Builder, returnType, ReturnValueName);
                 Builder.AppendLine(";");
-                Builder.Append("\tcall ");
+                Builder.Append('\t');
+                Builder.Append(callCommand);
+                Builder.Append(' ');
                 Builder.Append('(');
                 Builder.Append(ReturnValueName);
                 Builder.Append("), ");
             }
             else
             {
-                Builder.Append("\tcall ");
+                Builder.Append('\t');
+                Builder.Append(callCommand);
+                Builder.Append(' ');
             }
             Builder.Append(GetMethodName(target));
             Builder.AppendLine(", (");
