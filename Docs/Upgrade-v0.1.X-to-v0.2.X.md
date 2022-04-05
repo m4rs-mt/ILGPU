@@ -1,3 +1,7 @@
+---
+layout: wiki
+---
+
 ## General Upgrade
 
 If you rely on the `LightningContext` class (of `ILGPU.Lightning` v0.1.X) for high-level kernel loading or other high-level operations, you will have to adapt your projects to the API changes.

@@ -1,3 +1,7 @@
+---
+layout: wiki
+---
+
 ## General Notes
 
 A new OpenCL backend has been added that supports OpenCL C 2.0 (or higher) compatible GPUs.

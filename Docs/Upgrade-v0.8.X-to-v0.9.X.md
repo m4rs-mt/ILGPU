@@ -1,3 +1,7 @@
+---
+layout: wiki
+---
+
 ## General
 
 In order to support 64-bit memory buffers and array views, we have introduced the `LongIndexX` types that represent (multidimensional) 64-bit index value.

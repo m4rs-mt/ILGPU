@@ -1,3 +1,7 @@
+---
+layout: wiki
+---
+
 ## ArrayViews and VariableViews
 
 The `ArrayView` and `VariableView` structures have been adapted to the C# 'ref' features.

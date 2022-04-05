@@ -1,9 +1,13 @@
-﻿# Tutorial 02 MemoryBuffers and ArrayViews
+﻿---
+layout: wiki
+---
+
+# Tutorial 02 MemoryBuffers and ArrayViews
 
 Welcome to the seccond ILGPU tutorial. In this tutorial we will cover the basics
- of the Memory in ILGPU. In the best case, C# programmers will think of memory 
+ of the Memory in ILGPU. In the best case C# programmers will think of memory 
 in terms of stack and heap objects, ref / in / out parameters, and GC. Once you
-introduce a coprocessor like a GPU, memory gets a little more complex. 
+introduce a coprocessor like a GPU memory gets a little more complex. 
 
 Starting in this tutorial we need a bit of jargon:
 
@@ -15,7 +19,7 @@ Each side can also have memory, to help keep it straight I will refer to it as:
 * Device Memory: the GPU memory
 * Host Memory: the CPU memory
 
-In most computers, the host and device each have there own seperate memory. There are some ways
+In most computers the host and device each have there own seperate memory. There are some ways
 to pretend that they share memory in ILGPU, like ExchangeBuffers (more on that in a more advanced 
 memory tutorial), but for now I will manage both sides manually.
 
@@ -28,10 +32,10 @@ NOTE: You will notice that all the memory is talked about in terms of arrays. If
 a single value into the GPU you can allocate an array of size 1 or pass it into the kernel as a 
 parameter, more on this in the Kernel tutorial and the Structs tutorial.
 
-NOTE 2 (Return of the note): ILGPU v1.0 adds stride data to MemoryBuffer and ArrayView to fix 
+NOTE 2 (Return of the note): ILGPU 1.0 adds stride data to MemoryBuffer and ArrayView to fix 
 some issues. *IMPORTANT:* When in doubt use Stride1D.Dense, Stride2D.DenseY, or Stride2D.DenseZY.
 I will go over this better in a striding tutorial, but these should be your defaults because they 
-match how C# strides 1D, 2D, and 3D arrays.
+require they match how C# strides 1D, 2D, and 3D arrays.
 
 # MemoryBuffer1D\<T\>
 The MemoryBuffer is the host side copy of memory allocated on the device. It is essentially just a 
@@ -49,7 +53,7 @@ Basic usage, copying everything from IntArray to OnDeviceInts
 * OnDeviceInts.CopyFromCPU(IntArray)
 
 #### CopyToCPU
-To copy memory out of a MemoyBuffer and into an array on host you use CopyToCPU.
+To copy memory out of a MemoyView and into an array on device you use CopyToCPU.
 
 Basic usage, copying everything from OnDeviceInts to IntArray
 * OnDeviceInts.CopyToCPU(IntArray)
@@ -70,7 +74,7 @@ All device side memory management happens in the host code through the MemoryBuf
 The sample goes over the basics of managing memory via MemoryBuffers. There will be far more
 in depth memory management in the later tutorials.
 
-```C#
+```c#
 using System;
 
 using ILGPU;

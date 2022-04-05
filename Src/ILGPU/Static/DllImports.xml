@@ -1,8 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<ImportFiles>
-    <!-- The Cuda API -->
-    <File>../Runtime/Cuda/CudaAPI.xml</File>
-
-    <!-- The OpenCL API -->
-    <File>../Runtime/OpenCL/CLAPI.xml</File>
-</ImportFiles>

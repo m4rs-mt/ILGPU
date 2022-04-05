@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: "en-US" }}">
+  {% include header.html %}
+  <body class="news">
+    {% include wiki-navbar.html %}
+    {{ content }}
+    <section id="related" class="pricing">
+  <div class="container" data-aos="fade-up">
+    <div class="related row">
+      <div class="section-title">
+        <h2>More News</h2>
+      </div>
+      {% for post in site.posts limit: 3 %}
+          <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
+            <div class="box">
+              
+              <h5>{{ post.title }}</h5>
+              <p class="excerpt">{{ post.excerpt }}</p>
+              <br><br>
+              <a href="{{ post.url }}" class="buy-btn">Full Article</a>
+              
+            </div>
+          </div>
+          {% endfor %}
+    </div>
+  </div>
+  </section>
+<div style="flex-grow:1"></div>
+    {% include footer.html %}
+  </body>
+</html>

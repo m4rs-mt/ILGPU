@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project=".\CheckStyles\ILGPU.CheckStyles.targets" />
-</Project>

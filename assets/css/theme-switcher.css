@@ -1,0 +1,153 @@
+:root {
+    --transition: all .5s;
+  }
+
+* {
+    transition: var(--transition);
+  }
+
+.light, body[color-theme="light"] {
+    --bg: #fff;
+    --header-bg: #fff;
+    --bg-light: #fafafa;
+    --clr-text: #182227;
+    --clr-text-light: #182227bb;
+    --clr-element: #34506e;
+    --clr-element-hover: #34506ebb;
+    --clr-shadow: rgba(0, 0, 0, .15);
+    --nav-color: ;
+    --icon: #fff;
+  }
+
+.dark, body[color-theme="dark"] {
+    --bg: #182227;
+    --header-bg: #07141A;
+    --bg-light: rgba(255, 255, 255, .15);
+    --clr-text: #FCE8Ec;
+    --clr-text-light: #FCE8Ecbb;
+    --clr-element: #FFABC2;
+    --clr-element-hover: #FFABC2bb;
+    --clr-shadow: rgba(0, 0, 0, .2);
+    --nav-color: #fff;
+    --icon: #FCE8Ec;
+  }
+
+body {
+    background: var(--bg);
+    transition: var(--transition);
+  }
+
+.light .logo:after {
+    content: url("/assets/img/ilgpu-logo-light.svg")
+}
+
+.dark .logo:after {
+    content: url("/assets/img/ilgpu-logo-dark.svg")
+}
+
+h1, h2, h3, h4, h5 {
+    color: var(--clr-text);
+  }
+
+p {
+      color: var(--clr-text-light);
+}
+
+ol li {
+    color: var(--clr-text-light);
+}
+
+#header {
+    background: var(--header-bg);
+}
+
+#header.header-scrolled {
+    background: var(--header-bg);
+}
+
+.light .navbar li a {
+    color: #00458D;
+}
+
+.dark .navbar li a {
+    color: #fff;
+}
+
+.dropdown ul {
+    background: var(--header-bg) !important;
+}
+
+.highlight pre {
+    background-color: var(--bg-light);
+}
+
+pre code {
+    color: var(--clr-text-light);
+}
+
+.dark .contribution {
+  background-color: var(--bg-light);
+}
+
+.dark .contribution .btn {
+  color: #47b2e4;
+}
+
+/* THEME SWITCHER */
+
+.box {
+    padding: 0 20px;
+}
+
+.dd-icon {
+    stroke: var(--icon);
+  }
+  .dd-theme__switcher {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+  }
+  .dd-theme__switcher .dd-theme__switcher-btn {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    transition: var(--transition);
+    top: 0;
+  }
+  body.light .dd-theme__switcher .dd-theme__switcher-btn {
+    top: -24px;
+  }
+  .theme--label {
+    display: flex;
+    align-items: center;
+    border: 2px solid var(--clr-element);
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin: 0 10px;
+    cursor: pointer;
+  }
+  .theme--label span {
+    position: relative;
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    border-radius: 25px;
+    margin-right: 10px;
+  }
+
+.theme--label[dd-theme].active {
+    color: var(--bg);
+    background: var(--clr-element);
+  }
+.theme--label[dd-theme].active span { background: var(--bg); }
+
+.box-lbl {
+    color: var(--icon);
+}
+
+.box-lbl:hover {
+      cursor: pointer;
+  }

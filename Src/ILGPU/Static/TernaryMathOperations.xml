@@ -1,8 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<Operations>
-    <Operation Name="MultiplyAdd">
-        <Summary>The FMA operation.</Summary>
-        <Flags>IntsAndFloats</Flags>
-        <Call>IntrinsicMath.CPUOnly.FMA</Call>
-    </Operation>
-</Operations>

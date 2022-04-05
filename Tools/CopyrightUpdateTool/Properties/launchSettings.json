@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "CopyrightUpdateTool": {
-      "commandName": "Project",
-      "workingDirectory": "..\\.."
-    }
-  }
-}

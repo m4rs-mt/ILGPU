@@ -1,3 +1,7 @@
+---
+layout: wiki
+---
+
 ## General Notes
 
 All implicitly grouped kernel launchers have been updated with additional overloads.

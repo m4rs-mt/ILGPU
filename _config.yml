@@ -1,0 +1,17 @@
+url: "https://ericjohnsohnisc.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+baseurl: "" # the subpath of your site, e.g. /blog
+title: "ILGPU" # the name of your site, e.g. ACME Corp.
+
+# Build settings
+sass:
+  sass_dir: css
+  style: compressed
+
+collections:
+ pages:
+    output: true
+    permalink: /:name
+
+include:
+ - _pages
+

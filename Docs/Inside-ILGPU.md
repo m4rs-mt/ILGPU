@@ -1,10 +1,17 @@
+---
+layout: wiki
+---
+
 ## Optimizations and Compile Time
 
 ILGPU features a modern parallel processing, transformation and compilation model.
 It allows parallel code generation and transformation phases to reduce compile time and improve overall performance.
 
+However, parallel code generation in the frontend module is disabled by default.
+It can be enabled via the enumeration flag `ContextFlags.EnableParallelCodeGenerationInFrontend`.
+
 The global optimization process can be controlled with the enumeration `OptimizationLevel`.
-This level can be specified by passing the desired level to the `Optimize` method of `Context.Builder`.
+This level can be specified by passing the desired level to the `ILGPU.Context` constructor.
 If the optimization level is not explicitly specified, the level is automatically set to `OptimizationLevel.O1`.
 
 The `OptimizationLevel.O2` level uses additional transformations that increase compile time but yield potentially better GPU code.
@@ -32,6 +39,32 @@ It can be used to manually compile kernels for a specific platform.
 Note that **you do not have to create custom backend instances** on your own when using the ILGPU runtime.
 Accelerators already carry associated and configured backends that are used for high-level kernel loading.
 
+```c#
+class ...
+{
+    static void Main(string[] args)
+    {
+        using (var context = new Context())
+        {
+            // Creats a user-defined MSIL backend for .Net code generation
+            using (var cpuBackend = new DefaultILBackend(context))
+            {
+                // Use custom backend
+            }
+
+            // Creates a user-defined backend for NVIDIA GPUs using compute capability 5.0
+            using (var ptxBackend = new PTXBackend(
+                context,
+                PTXArchitecture.SM_50,
+                TargetPlatform.X64))
+            {
+                // Use custom backend
+            }
+        }
+    }
+}
+```
+
 ## IRContext
 
 An `IRContext` manages and caches intermediate-representation (IR) code, which can be reused during the compilation process.
@@ -40,6 +73,19 @@ An `IRContext` is not tied to a specific `Backend` instance and can be reused ac
 
 Note that the main ILGPU `Context` already has an associated `IRContext` that is used for all high-level kernel-loading functions.
 Consequently, users are not required to manage their own contexts in general.
+
+```c#
+class ...
+{
+    static void Main(string[] args)
+    {
+        var context = new Context();
+
+        var irContext = new IRContext(context);
+        // ...
+    }
+}
+```
 
 ## Compiling Kernels
 
@@ -50,6 +96,30 @@ Alternatively, you can cast a `CompiledKernel` object to its appropriate backend
 *Note that the default MSIL backend does not provide additional insights, since the `ILBackend` does not require custom assembly code.*
 
 We recommend that you use the [high-level kernel-loading concepts of ILGPU](ILGPU-Kernels) instead of the low-level interface.
+
+```c#
+class ...
+{
+    public static void MyKernel(Index index, ...)
+    {
+        // ...
+    }
+
+    static void Main(string[] args)
+    {
+        using var context = new Context();
+        using var b = new PTXBackend(context, ...);
+        // Compile kernel using no specific KernelSpecialization settings
+        var compiledKernel = b.Compile(
+            typeof(...).GetMethod(nameof(MyKernel), BindingFlags.Public | BindingFlags.Static),
+            default);
+
+        // Cast kernel to backend-specific PTXCompiledKernel to access the PTX assembly
+        var ptxKernel = compiledKernel as PTXCompiledKernel;
+        System.IO.File.WriteAllBytes("MyKernel.ptx", ptxKernel.PTXAssembly);
+    }
+}
+```
 
 ## Loading Compiled Kernels
 
@@ -65,6 +135,35 @@ An accelerator object offers different functions to load and configure kernels:
 * `LoadKernel`
    Loads explicitly and implicitly grouped kernels. However, implicitly grouped kernels will be launched with a group size that is equal to the warp size
 
+```c#
+class ...
+{
+    static void Main(string[] args)
+    {
+        ...
+        var compiledKernel = backend.Compile(...);
+
+        // Load implicitly grouped kernel with an automatically determined group size
+        var k1 = accelerator.LoadAutoGroupedKernel(compiledKernel);
+
+        // Load implicitly grouped kernel with custom group size
+        var k2 = accelerator.LoadImplicitlyGroupedKernel(compiledKernel);
+
+        // Load any kernel (explicitly and implicitly grouped kernels).
+        // However, implicitly grouped kernels will be dispatched with a group size
+        // that is equal to the warp size of its associated accelerator
+        var k3 = accelerator.LoadKernel(compiledKernel);
+
+        ...
+
+        k1.Dispose();
+        k2.Dispose();
+        // Leave K3 to the GC
+        // ...
+    }
+}
+```
+
 ## Direct Kernel Launching
 
 A loaded kernel can be dispatched using the `Launch` method.
@@ -74,7 +173,7 @@ For performance reasons, we strongly recommend the use of typed kernel launchers
 ```c#
 class ...
 {
-    static void MyKernel(Index1D index, ArrayView<int> data, int c)
+    static void MyKernel(Index index, ArrayView<int> data, int c)
     {
         data[index] = index + c;
     }
@@ -115,7 +214,7 @@ These loading methods work similarly to the these versions, e.g. `LoadAutoGroupe
 ```c#
 class ...
 {
-    static void MyKernel(Index1D index, ArrayView<int> data, int c)
+    static void MyKernel(Index index, ArrayView<int> data, int c)
     {
         data[index] = index + c;
     }
@@ -130,7 +229,7 @@ class ...
         using (var k = accelerator.LoadAutoGroupedKernel(compiledKernel))
         {
             var launcherWithCustomAcceleratorStream =
-                k.CreateLauncherDelegate<AcceleratorStream, Index1D, ArrayView<int>>();
+                k.CreateLauncherDelegate<AcceleratorStream, Index, ArrayView<int>>();
             launcherWithCustomAcceleratorStream(someStream, buffer.Extent, buffer.View, 1);
 
             ...

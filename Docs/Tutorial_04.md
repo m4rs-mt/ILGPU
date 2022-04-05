@@ -1,3 +1,7 @@
+---
+layout: wiki
+---
+
 # Structs
 
 As we saw in the [memory tutorial](Tutorial_02.md) programs need data.
@@ -269,7 +273,7 @@ There is nothing wrong with this but I think it leads to messy code. My attempt 
 
 ### ParticleSystem && HostParticleSystem
 
-You need to manage both sides of memory, Host and Device. IDisposable allows you to use the super convenient "using" patterns but requires a class.
+You need to manage both sides of memory, Host and Device. IDisposable allows you to use the super convient "using" patterns but requires a class.
 The solution is simple, have a host side class that creates a device side struct.
 
 ## This sample code works... BUT

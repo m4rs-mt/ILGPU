@@ -1,0 +1,602 @@
+---
+layout: default
+---
+
+  <!-- ======= Hero Section ======= -->
+  <section id="hero" class="d-flex align-items-center">
+
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-6 d-flex flex-column justify-content-center pt-4 pt-lg-0 order-2 order-lg-1" data-aos="fade-up" data-aos-delay="200">
+          <h1>A Modern GPU Compiler for .NET Programs</h1>
+          <h2>Developed by Marcel K<span id="easter-egg" onclick="easteregg()">ö</span>ster</h2>
+          <div class="d-flex justify-content-center justify-content-lg-start">
+            <a href="#learn-more" class="btn-get-started btn-hero-1 scrollto">Learn More</a>
+            <a href="#cta" class="btn-get-started scrollto">Get Started</a>
+          </div>
+        </div>
+        <div class="col-lg-6 order-1 order-lg-2 hero-img" data-aos="zoom-in" data-aos-delay="200">
+          <img src="assets/img/hero-img.png" class="img-fluid animated" alt="graphics cpu">
+        </div>
+      </div>
+    </div>
+
+  </section><!-- End Hero -->
+
+  <main id="main">
+
+    <!-- ======= Why Us Section ======= -->
+    <section id="learn-more" class="why-us section-bg">
+      <div class="container-fluid" data-aos="fade-up">
+
+        <div class="row" style="min-height: 553.55px !important;">
+
+          
+         <div class="col-lg-6 d-flex flex-column align-items-center order-2 order-lg-1 img" data-aos="zoom-in" data-aos-delay="150" >
+           <div class="image-holder">
+          <img src="assets/img/why-us.png" class="" alt="graphics cpu">
+          </div>
+        </div>
+        
+
+        <div class="col-lg-6 d-flex flex-column justify-content-center align-items-stretch order-1 order-lg-2">
+
+          <div class="content">
+            <h3>Learn more about ILGPU</h3>
+            <p>
+              A modern, lightweight & fast GPU compiler for high-performance .Net programs
+            </p>
+          </div>
+
+          <div class="accordion-list">
+            <ul>
+              <li>
+                <a data-bs-toggle="collapse" class="collapse" data-bs-target="#accordion-list-1"><span>•</span> What is ILGPU?<i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+                <div id="accordion-list-1" class="collapse show" data-bs-parent=".accordion-list">
+                  <p>
+                    ILGPU is a new JIT (just-in-time) compiler for high-performance GPU programs (also known as kernels) written in .Net-based languages. ILGPU is completely written in C# without any native dependencies which allows you to write GPU programs that are truly portable.
+                  </p>
+                </div>
+              </li>
+
+              <li>
+                <a data-bs-toggle="collapse" data-bs-target="#accordion-list-2" class="collapsed"><span>•</span> What does ILGPU do? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+                <div id="accordion-list-2" class="collapse" data-bs-parent=".accordion-list">
+                  <p>
+                    It combines the convenience of C++ AMP with the high performance of CUDA. Functions in the scope of kernels do not have to be annotated (e.g. default C# functions) and are allowed to work on value types. All kernels (including all hardware features like shared memory, atomics and warp shuffles) can be executed and debugged on the CPU using the integrated multi-threaded CPU accelerator.
+                  </p>
+                </div>
+              </li>
+
+              <li>
+                <a data-bs-toggle="collapse" data-bs-target="#accordion-list-3" class="collapsed"><span>•</span> Do I need to pay for ILGPU? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+                <div id="accordion-list-3" class="collapse" data-bs-parent=".accordion-list">
+                  <p>
+                    Nope! ILGPU is released under the University of Illinois/NCSA Open Source License. It's a free and non-sponsored project being developed by a professional and passionate compiler, GPU and computer graphics developer. Support the project with contributions or a small donation in order to speed up the development process and to keep the project alive.
+                  </p>
+                </div>
+              </li>
+
+            </ul>
+          </div>
+        </div>
+
+        </div>
+
+      </div>
+    </section><!-- End Why Us Section -->
+
+    <!-- ======= Services Section ======= -->
+    <section id="highlights" class="services">
+      <div class="container" data-aos="fade-up">
+
+        <div class="section-title">
+          <h2>Highlights</h2>
+        </div>
+
+        <div class="row" data-aos="fade-up">
+          <div class="col-xl-3 col-md-6 d-flex align-items-stretch">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bxs-zap"></i></div>
+              <h4><a href="">High Performance</a></h4>
+              <p>High performance kernel compilation, dispatch and execution times. Furthermore, type-safe kernel delegates avoid boxing.</p>
+            </div>
+          </div>
+
+          <div class="col-xl-3 col-md-6 d-flex align-items-stretch mt-4 mt-md-0">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bx-sort-alt-2"></i></div>
+              <h4><a href="">High Convenience</a></h4>
+              <p>Use the power of C# or VB.Net to write high-level kernels and execute them on the GPU. No need to program C++, Cuda or OpenCL.</p>
+            </div>
+          </div>
+
+          <div class="col-xl-3 col-md-6 d-flex align-items-stretch mt-4 mt-xl-0">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bx-tachometer"></i></div>
+              <h4><a href="">CPU Accelerator</a></h4>
+              <p>Single- or multi-threaded execution of kernels on the CPU. This is also useful for debugging or emulation of specific target platforms.</p>
+            </div>
+          </div>
+
+          <div class="col-xl-3 col-md-6 d-flex align-items-stretch mt-4 mt-xl-0">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bxs-bug-alt"></i></div>
+              <h4><a href="">Advanced Debugging</a></h4>
+              <p>High-level kernel debugging using your favorite .Net debugger. Furthermore, the single-threaded execution feature allows to focus on the algorithm instead of the parallelism.</p>
+            </div>
+          </div>
+          </div>
+
+          <div class="row">
+            <div class="col-xl-3 col-md-6 d-flex align-items-stretch">
+              <div class="icon-box">
+                <div class="icon"><i class="bx bxs-no-entry"></i></div>
+                <h4><a href="">No Function Annotations</a></h4>
+                <p>Functions do not have to be annotated in order to use them in the scope of kernels.</p>
+              </div>
+            </div>
+  
+            <div class="col-xl-3 col-md-6 d-flex align-items-stretch mt-4 mt-md-0">
+              <div class="icon-box">
+                <div class="icon"><i class="bx bxs-chip"></i></div>
+                <h4><a href="">Any-CPU Builds</a></h4>
+                <p>Compile your applications for any CPU. ILGPU will automatically adjust everything else for X86 or X64 platforms.</p>
+              </div>
+            </div>
+  
+            <div class="col-xl-3 col-md-6 d-flex align-items-stretch mt-4 mt-xl-0">
+              <div class="icon-box">
+                <div class="icon"><i class="bx bx-outline"></i></div>
+                <h4><a href="">Implicitly Grouped Kernels</a></h4>
+                <p>Implicitly grouped kernels let you implement high-level kernels without paying attention to low-level index computations or tiling.</p>
+              </div>
+            </div>
+  
+            <div class="col-xl-3 col-md-6 d-flex align-items-stretch mt-4 mt-xl-0">
+              <div class="icon-box">
+                <div class="icon"><i class="bx bx-layer"></i></div>
+                <h4><a href="">Multi-dimensional Indices</a></h4>
+                <p>Multi-dimensional index types simplify address computations and kernel writing.</p>
+              </div>
+            </div>
+            </div>
+
+            <div class="row">
+              <div class="col-xl-3 col-md-6 d-flex align-items-stretch">
+                <div class="icon-box">
+                  <div class="icon"><i class="bx bxs-coin-stack"></i></div>
+                  <h4><a href="">Array Views</a></h4>
+                  <p>No pointer arithmetic and dramatically simplified index computations due to views to memory regions.</p>
+                </div>
+              </div>
+    
+              <div class="col-xl-3 col-md-6 d-flex align-items-stretch mt-4 mt-md-0">
+                <div class="icon-box">
+                  <div class="icon"><i class="bx bxs-microchip"></i></div>
+                  <h4><a href="">Shared Memory</a></h4>
+                  <p>Support for shared (scratch-pad) memory in kernels via array views. Static or dynamic allocation of shared memory is supported.</p>
+                </div>
+              </div>
+    
+              <div class="col-xl-3 col-md-6 d-flex align-items-stretch mt-4 mt-xl-0">
+                <div class="icon-box">
+                  <div class="icon"><i class="bx bx-atom"></i></div>
+                  <h4><a href="">Atomics and Low-Level Intrinsics</a></h4>
+                  <p>Easy access to atomic functions and low-level-intrinsics like warp shuffles. All functions are supported during CPU debugging.</p>
+                </div>
+              </div>
+    
+              <div class="col-xl-3 col-md-6 d-flex align-items-stretch mt-4 mt-xl-0">
+                <div class="icon-box">
+                  <div class="icon"><i class="bx bx-list-plus"></i></div>
+                  <h4><a href="">High-Performance Math Functions</a></h4>
+                  <p>Default math functions and operations are mapped to high-performance math functions. Furthermore, there is support for fast math and forced 32bit math to avoid doubles.</p>
+                </div>
+              </div>
+              </div>
+
+        </div>
+
+      </div>
+    </section><!-- End Services Section -->
+
+    <!-- ======= Features Comparison Section ======= -->
+    <section id="features" class="section-bg">
+      <div class="container" data-aos="fade-up">
+
+        <div class="section-title">
+          <h2>Features Comparison</h2>
+        </div>
+
+            <div id="chart-option">
+              <div class="container">
+                <div class="row">
+                  <div class="col-md-12"><div class="divider"></div></div>
+                </div>
+                <div class="row header">
+                </div>
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="chart">
+                      <div class="features-col">
+                        <div class="header">
+                          Features
+                        </div>
+                        <div class="spec">
+                          <h4>.Net Code</h4>
+                        </div>
+                        <div class="spec">
+                          <span class="icon brankic-notice2"></span>
+                          <h4>C++ Code</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>Function Annotations Required</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>NVIDIA GPUs</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>AMD GPUs</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>Intel GPUs</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>High-Level Abstractions (Implicitly Grouped Kernels, ...)</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>Low-Level Intrinsics</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>High-Performance Math Functions</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>Cross-Platform Support</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>Single-Compilation Cross-Platform Support</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>Direct Multi-GPU Support</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>Convenient Algorithm Debugging</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>Debugging on GPU Hardware</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>Kernel Profiling</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>CPU Runtime</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>CPU Runtime with Shared Memory and Low-Level Intrinsics</h4>
+                        </div>
+                        <div class="spec">
+                          <h4>SIMD CPU Runtime</h4>
+                        </div>
+                      </div>
+                      <div class="plan-col col-sm-2">
+                        <div class="header">
+                          ILGPU
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check partial'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check scheduled'></i>
+                        </div>
+                      </div>
+                      <div class="plan-col col-sm-2">
+                        <div class="header">
+                          C++ AMP
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check partial'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                      </div>
+                      <div class="plan-col last col-sm-2">
+                        <div class="header">
+                          Cuda
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          <i class='bx bx-check'></i>
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                        <div class="spec">
+                          
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="row future-support">
+                  <p>
+                    <span class="partial">Yellow checkmarks</span> indicate partial or limited support.<br />
+                    Features marked with an <span class="scheduled">orange checkmark</span> will be available in the future. Check the <a href="/Home/Roadmap">Roadmap</a> for details.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <!-- End Features Section -->
+
+
+    <!-- ======= Cta Section ======= -->
+    <section id="cta" class="cta">
+      <div class="container" data-aos="zoom-in">
+
+        <div class="row">
+          <div class="text-center text-lg-start">
+            <h3>Ready to get started?</h3>
+            <p>Take a look through the documentation, create your first ILGPU project, and join the community on Discord!</p>
+          </div>
+        </div>
+
+        <div class="row">
+        <div class="col-lg-6">
+          <a class="cta-btn cta-btn-1" href="/docs/ReadMe"> Documentation</a>
+          <a class="cta-btn" href="https://github.com/m4rs-mt/ILGPU/" target="_blank"><i class="bx bxl-github"></i> Github </a>
+          <a class="cta-btn" href="https://discord.com/invite/X6RBCff" target="_blank"><i class="bx bxl-discord"></i> Discord </a>
+        </div>
+        </div>
+
+      </div>
+    </section><!-- End Cta Section -->
+
+    <!-- ======= News Section ======= -->
+    <section id="news" class="pricing">
+      <div class="container" data-aos="fade-up">
+
+        <div class="section-title">
+          <h2>News</h2>
+          <p>Updates and news related to ILGPU and the community.</p>
+        </div>
+
+        <div class="row">
+          {% for post in site.posts limit: 3 %}
+          <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
+            <div class="box">
+              
+              <h5>{{ post.title }}</h5>
+              <p class="excerpt">{{ post.excerpt }}</p>
+              <a href="{{ post.url }}" class="buy-btn">Full Article</a>
+              
+            </div>
+          </div>
+          {% endfor %}
+
+      </div>
+
+      </div>
+    </section><!-- End Pricing Section -->
+
+    <!-- ======= Frequently Asked Questions Section ======= -->
+    <section id="faq" class="faq section-bg">
+      <div class="container" data-aos="fade-up">
+
+        <div class="section-title">
+          <h2>Frequently Asked Questions</h2>
+        </div>
+
+        <div class="faq-list">
+          <ul>
+            <li>
+              <i class="bx bx-help-circle icon-help"></i> <a data-bs-toggle="collapse" class="collapse" data-bs-target="#faq-list-1">Are exceptions supported? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+              <div id="faq-list-1" class="collapse show" data-bs-parent=".faq-list">
+                <p>
+                  Exceptions require support for exception handlers and a limited support for reference types. Changes of the "intended" control flow (which can be caused by exceptions) are currently not supported. However, there might be a conversion phase in the future that converts several exceptions into debug assertions. 
+                </p>
+              </div>
+            </li>
+
+            <li>
+              <i class="bx bx-help-circle icon-help"></i> <a data-bs-toggle="collapse" data-bs-target="#faq-list-2" class="collapsed">What about debug assertions? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+              <div id="faq-list-2" class="collapse" data-bs-parent=".faq-list">
+                <p>
+                  Debug assertions are supported on all accelerators and can be enabled via one of the Context flags. 
+                </p>
+              </div>
+            </li>
+
+            <li>
+              <i class="bx bx-help-circle icon-help"></i> <a data-bs-toggle="collapse" data-bs-target="#faq-list-3" class="collapsed">Are class types supported? And what about lambda functions? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+              <div id="faq-list-3" class="collapse" data-bs-parent=".faq-list">
+                <p>
+                  Reference types are currently not supported. However, a limited support for reference types will be added in the future. This will also allow the implementation of delegates.
+
+                  Lambda functions (or delegates in general) are currently not supported since they require a limited support for reference types and custom code-transformation passes. Support for lambda functions will be added in the future. 
+                </p>
+              </div>
+            </li>
+
+            <li>
+              <i class="bx bx-help-circle icon-help"></i> <a data-bs-toggle="collapse" data-bs-target="#faq-list-4" class="collapsed">Can I debug a kernel on the GPU? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+              <div id="faq-list-4" class="collapse" data-bs-parent=".faq-list">
+                <p>
+                  There is basic support for hardware-based kernel debugging and profiling. However, CPU-based kernel debugging is recommended in all cases due to the advanced debugging and testing capabilities.
+                </p>
+              </div>
+            </li>
+
+            <li>
+              <i class="bx bx-help-circle icon-help"></i> <a data-bs-toggle="collapse" data-bs-target="#faq-list-5" class="collapsed">What about .Net Standard support? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+              <div id="faq-list-5" class="collapse" data-bs-parent=".faq-list">
+                <p>
+                  The new ILGPU version supports .Net 4.7 and .Net Standard 2.1 (e.g. .Net Core 3.1/.Net 5.0).
+                </p>
+              </div>
+            </li>
+
+            <li>
+              <i class="bx bx-help-circle icon-help"></i> <a data-bs-toggle="collapse" data-bs-target="#faq-list-6" class="collapsed">What about Linux and Mac support? <i class="bx bx-chevron-down icon-show"></i><i class="bx bx-chevron-up icon-close"></i></a>
+              <div id="faq-list-6" class="collapse" data-bs-parent=".faq-list">
+                <p>
+                  ILGPU supports .Net Core, which allows writing portable .Net applications. Since ILGPU is written in C# and does not rely on native libraries in the current version, kernels can be run on all .Net Core/.Net 5 compatible platforms. This allows you to compile your application (including GPU code) only once. 
+                </p>
+              </div>
+            </li>
+
+          </ul>
+        </div>
+
+      </div>
+    </section><!-- End Frequently Asked Questions Section -->
+
+  </main><!-- End #main -->
+
+
+
+</body>
+
+</html>

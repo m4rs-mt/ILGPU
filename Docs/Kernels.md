@@ -1,3 +1,7 @@
+---
+layout: wiki
+---
+
 ## General Information
 
 Kernels are `static` functions that can work on value types and can invoke other functions that work on value types.
@@ -28,7 +32,7 @@ Use explicitly grouped kernels for full control over GPU-kernel dispatching.
 class ...
 {
     static void ImplicitlyGrouped_Kernel(
-        [Index1D|Index2D|Index3D] index,
+        [Index|Index2|Index3] index,
         [Kernel Parameters]...)
     {
         // Kernel code
@@ -93,7 +97,7 @@ In contrast to older versions of ILGPU, all kernels loaded with these functions 
 ```c#
 class ...
 {
-    static void MyKernel(Index1D index, ArrayView<int> data, int c)
+    static void MyKernel(Index index, ArrayView<int> data, int c)
     {
         data[index] = index + c;
     }
@@ -101,16 +105,16 @@ class ...
     static void Main(string[] args)
     {
         ...
-        var buffer = accelerator.Allocate1D<int>(1024);
+        var buffer = accelerator.Allocate<int>(1024);
 
          // Load a sample kernel MyKernel using one of the available overloads
         var kernelWithDefaultStream = accelerator.LoadAutoGroupedStreamKernel<
-                     Index1D, ArrayView<int>, int>(MyKernel);
+                     Index, ArrayView<int>, int>(MyKernel);
         kernelWithDefaultStream(buffer.Extent, buffer.View, 1);
 
          // Load a sample kernel MyKernel using one of the available overloads
         var kernelWithStream = accelerator.LoadAutoGroupedKernel<
-                     Index1D, ArrayView<int>, int>(MyKernel);
+                     Index, ArrayView<int>, int>(MyKernel);
         kernelWithStream(someStream, buffer.Extent, buffer.View, 1);
 
         ...
@@ -126,7 +130,7 @@ However, if you require custom control over the low-level kernel-compilation pro
 
 Starting with version [v0.10.0](https://github.com/m4rs-mt/ILGPU/releases/tag/v0.10.0), ILGPU offers the ability to immediately compile and launch kernels via the accelerator methods (similar to those provided by other frameworks).
 ILGPU exposes direct `Launch` and `LaunchAutoGrouped` methods via the `Accelerator` class using a new strong-reference based kernel cache.
-This cache is used for the new launch methods only and can be disabled via the `Caching(CachingMode.NoKernelCaching)` method of `ContextBuilder`.
+This cache is used for the new launch methods only and can be disabled via the flag `ContextFlags.DisableKernelLaunchCaching`.
 
 ```c#
 class ...
@@ -136,7 +140,7 @@ class ...
 
     }
 
-    static void MyImplicitKernel(Index1D index, ...)
+    static void MyImplicitKernel(Index1 index, ...)
     {
 
     }
@@ -152,10 +156,10 @@ class ...
         accl.Launch(stream, MyKernel, < MyKernelConfig >, ...);
 
         // Launch implicitly grouped MyKernel using the default stream
-        accl.LaunchAutoGrouped(MyImplicitKernel, new Index1D(...), ...);
+        accl.LaunchAutoGrouped(MyImplicitKernel, new Index1(...), ...);
 
         // Launch implicitly grouped MyKernel using the given stream
-        accl.LaunchAutoGrouped(stream, MyImplicitKernel, new Index1D(...), ...);
+        accl.LaunchAutoGrouped(stream, MyImplicitKernel, new Index1(...), ...);
     }
 }
 ```
@@ -173,9 +177,9 @@ var ptxKernel = launcher.GetCompiledKernel() as PTXCompiledKernel;
 System.IO.File.WriteAllText("Kernel.ptx", ptxKernel.PTXAssembly);
 ```
 
-You can use the `DebugSymbols()` method of `Context.Builder` to enable additional information about compiled kernels.
+You can specify the context flag `ContextFlags.EnableKernelStatistics` to query additional information about compiled kernels.
 This includes local functions and consumed local and shared memory.
-After enabling, you can get the information from a compiled kernel launcher delegate instance via:
+After enabling the flag, you can get the information from a compiled kernel launcher delegate instance via:
 ```c#
 // Get kernel information from a kernel launcher instance
 var information = launcher.GetKernelInfo();

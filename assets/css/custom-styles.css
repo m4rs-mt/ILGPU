@@ -1,0 +1,351 @@
+/* HEADER */
+
+#header {
+    padding-top: 23px !important;
+    padding-bottom: 23px !important;
+    background-color: #fff;
+}
+
+#header.header-scrolled {
+    background: #fff;
+    box-shadow: 0px 0 25px 0 rgba(0, 0, 0, 0.1);
+}
+
+.logo:after {
+    content: url("/assets/img/ilgpu-logo-light.svg");
+}
+
+.navbar a {
+    color: #00458D !important;
+}
+
+.navbar a:hover {
+    color: #00AAE1 !important;
+}
+
+.navbar li a {
+    color: #00458D !important;
+}
+
+.navbar li a:hover {
+    color: #00AAE1 !important;
+}
+
+.navbar li a.getstarted {
+    color: #00458D !important;
+}
+
+
+.navbar li a.getstarted:hover {
+    color: #fff !important;
+}
+
+/* LOGO */
+
+.logo img {
+    max-height: unset !important;
+    width: 200px !important;
+}
+
+/* HOME PAGE */
+
+/* HERO SECTION */
+
+#hero {
+    background: #00458D !important;
+}
+
+#easter-egg:hover {
+    cursor: pointer !important;
+    cursor: hand !important;
+}
+
+.btn-hero-1 {
+    margin-right: 30px !important;
+}
+
+/* HIGHLIGHTS SECTION */
+
+#services .row {
+    margin-bottom: 30px !important;
+}
+
+.image-holder {
+    margin-left: 15%;
+    margin-top: 4%;
+}
+
+.image-holder img {
+    max-width: 85%;
+}
+
+/* CHARTS SECTION */
+
+#chart-option {
+    background-color: #fff;
+    box-shadow: 0px 0 25px 0 rgba(0, 0, 0, 0.1);
+    padding: 50px 30px;
+}
+
+
+.features-col {
+    float: left !important;
+    width: 50% !important;
+}
+
+.features-col .header {
+    font-size: 28px !important;
+    margin-bottom: 12px !important;
+    background-color: #F3F5FA;
+    min-height: 60px !important;
+    padding-top: 6px !important;
+    text-align: center !important;
+}
+
+.features-col .spec {
+    border-right: 1px solid #37517e !important;
+    min-height: 48px !important;
+}
+
+.plan-col {
+    float: left !important;
+    text-align: center !important;
+}
+
+.plan-col .header {
+    font-size: 28px !important;
+    margin-bottom: 12px !important;
+    background-color: #F3F5FA;
+    min-height: 60px !important;
+    padding-top: 6px !important;
+}
+
+.plan-col .spec {
+    min-height: 48px !important;
+    border-right: 1px solid #37517e;
+}
+
+.spec h4 {
+    color: #37517e !important;
+    margin-bottom: 0px !important;
+    font-size: 22px;
+}
+
+.spec .bx-check { 
+    color: #37517e;
+    font-size: 30px;
+}
+
+.spec .bx-check.partial {
+    color: #D9A700 !important;
+}
+
+.spec .bx-check.scheduled {
+    color: #D94900 !important;
+}
+
+.partial {
+    color: #D9A700 !important;
+}
+
+.scheduled {
+    color: #D94900 !important;
+}
+
+.future-support {
+    margin-top: 48px;
+    text-align: center;
+}
+
+.why-us .content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.why-us .accordion-list {
+    padding-left: 0 !important;
+}
+
+.why-us .img {
+    background-size: 70% 70%;
+}
+
+/* GET STARTED */
+
+.cta {
+    background: linear-gradient(rgba(0, 69, 141, 0.9), rgba(0, 69, 141, 0.9)), url("../img/cta-bg.jpg") fixed center center;
+}
+
+.cta-btn-1 {
+    margin-left: 0 !important;
+}
+
+.bxl-discord {
+    font-size: 24px !important;
+}
+
+.bxl-discord:before {
+    position: relative;
+    top: 3px;
+}
+
+.pricing h5 {
+    font-size: 30px;
+    color: #37517e;
+    font-weight: 400;
+    font-family: "Jost", sans-serif;
+    margin-bottom: 25px;
+}
+
+/* NEWS */
+
+.excerpt {
+    min-height: 168px;
+}
+
+/* FOOTER */
+
+#footer {
+    background-color: #00458D !important;
+}
+
+/* WIKI */
+
+.light header {
+    box-shadow: 0px 0 25px 0 rgba(0, 0, 0, 0.1);
+}
+
+#sidebar {
+    position: fixed;
+    top: 100px;
+    bottom: 0;
+    left: 0;
+    padding-bottom: 2em;
+    width: 300px;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    height: 100%;
+    background: #002C5A;
+    z-index: 200;
+    padding: 0;
+}
+
+#sidebar h5 {
+    color: #fff !important;
+}
+
+#sidebar-header {
+    background-color: #00458D;
+    padding: 20px 20px 10px;
+    margin-bottom: 20px;
+}
+
+#sidebar-header h4 {   
+    margin: 0 0 10px 0;
+    font-weight: 700;
+    color: #fff;
+}
+
+#wiki-nav {
+    padding: 0 20px;
+}
+
+#wiki-nav ul {
+    list-style-type: none;
+}
+
+#wiki-main {
+    margin-left: 300px;
+    padding: 130px 50px;
+    min-height: 92vh;
+}
+
+#wiki-main h2 {
+    margin-bottom: 20px !important;
+}
+
+#wiki-main h3 {
+    margin-bottom: 16px !important;
+}
+
+.highlight pre {
+    padding: 30px !important;
+    background-color: #F6F8FA;
+    border-radius: 6px !important;
+}
+
+.nc, .n {
+    color: #d63384 !important;
+}
+
+.nf {
+    color: #222ECF !important;
+}
+
+.contribution {
+    margin-top: 60px;
+    box-shadow: 0px 0 25px 0 rgba(0, 0, 0, 0.1);
+    width: 50%;
+    padding: 50px 30px;
+    border-radius: 6px;
+}
+
+.wiki a.btn {
+    padding: 8px 20px;
+    border-radius: 50px;
+    color: #00458D;
+    font-size: 14px;
+    border: 2px solid #47b2e4;
+    font-weight: 600;
+}
+
+.wiki a.btn:hover {
+    color: #fff !important;
+    background-color: #47b2e4;;
+}
+
+.contribution a.btn {
+    padding: 8px 20px;
+    border-radius: 50px;
+    color: #00458D;
+    font-size: 14px;
+    border: 2px solid #47b2e4;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.contribution a.btn:hover {
+    color: #fff !important;
+    background-color: #47b2e4;;
+}
+
+.octicon {
+    margin-right: 4px;
+}
+
+.wiki #footer {
+    z-index: 300;
+    position: relative;
+}
+
+/* NEWS */
+
+.news {
+    min-height: 100vh; 
+    display: flex; 
+    flex-direction: column;
+}
+
+.news header {
+    box-shadow: 0px 0 25px 0 rgba(0, 0, 0, 0.1);
+}
+
+.news .inner-page {
+    margin-top: 90px;
+    padding-bottom: 10px;
+}
+
+#related {
+    padding-top: 0;
+    padding-bottom: 90px;
+}
