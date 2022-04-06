@@ -42,7 +42,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// to enable https: support uncomment the following line.
+//app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
