@@ -445,12 +445,9 @@ namespace ILGPU.IR.Analyses
                     if (!valueMapping.ContainsKey(value))
                         valueMapping[value] = CreateData(value);
                 }
-                // Register return terminators
-                if (block.Terminator is ReturnTerminator terminator &&
-                    !valueMapping.ContainsKey(terminator))
-                {
-                    valueMapping[terminator] = CreateData(terminator);
-                }
+                // Register terminators
+                if (!valueMapping.ContainsKey(block.Terminator))
+                    valueMapping[block.Terminator] = CreateData(block.Terminator);
             }
 
             // Create the analysis context and perform the analysis
@@ -468,8 +465,8 @@ namespace ILGPU.IR.Analyses
                 foreach (Value value in block)
                     changed |= Update(value, context);
                 // Check for a return terminator
-                if (block.Terminator is ReturnTerminator terminator)
-                    Update(terminator, context);
+                if (block.Terminator != null)
+                    changed |= Update(block.Terminator, context);
                 if (!changed)
                     return;
 

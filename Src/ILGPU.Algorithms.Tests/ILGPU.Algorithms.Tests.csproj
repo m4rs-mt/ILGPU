@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <PackageReference Include="GitHubActionsTestLogger" Version="1.3.0" />
-    <PackageReference Include="FluentAssertions" Version="6.5.1" />
+    <PackageReference Include="FluentAssertions" Version="6.6.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="T4.Build" Version="0.2.4" PrivateAssets="All" />
@@ -318,6 +318,4 @@
       <DependentUpon>XMathTests.Trig.tt</DependentUpon>
     </Compile>
   </ItemGroup>
-
-  <Import Project="..\ILGPU\Properties\ILGPU.CheckStyles.targets" />
 </Project>

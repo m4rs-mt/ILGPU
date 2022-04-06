@@ -67,6 +67,4 @@
       <DependentUpon>Configurations.tt</DependentUpon>
     </Compile>
   </ItemGroup>
-
-  <Import Project="..\ILGPU\Properties\ILGPU.CheckStyles.targets" />
 </Project>

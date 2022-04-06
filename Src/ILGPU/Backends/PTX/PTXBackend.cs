@@ -216,19 +216,29 @@ namespace ILGPU.Backends.PTX
 
             GenerateLibDeviceCode(backendContext, builder);
 
+            // Check whether we are running in the O1 or O2 pipeline
+            bool o1Enabled = Context.Properties.OptimizationLevel >= OptimizationLevel.O1;
+            bool o2Enabled = Context.Properties.OptimizationLevel > OptimizationLevel.O1;
+
             // Creates pointer alignment information in the context of O1 or higher
-            var alignments = Context.Properties.OptimizationLevel >= OptimizationLevel.O1
+            var alignments = o1Enabled
                 ? PointerAlignments.Apply(
                     backendContext.KernelMethod,
                     DefaultGlobalMemoryAlignment)
                 : PointerAlignments.AlignmentInfo.Empty;
+
+            // Create detailed uniform information in O2 builds
+            var uniforms = o2Enabled
+                ? Uniforms.Apply(backendContext.KernelMethod)
+                : Uniforms.Info.Empty;
 
             data = new PTXCodeGenerator.GeneratorArgs(
                 this,
                 entryPoint,
                 Context.Properties,
                 debugInfoGenerator,
-                alignments);
+                alignments,
+                uniforms);
 
             return builder;
         }

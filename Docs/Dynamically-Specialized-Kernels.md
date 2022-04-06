@@ -29,8 +29,8 @@ class ...
 
     static void ...(...)
     {
-        using var context = new Context();
-        using var accl = new CudaAccelerator(context);
+        using var context = Context.CreateDefault();
+        using var accl = context.CreateCudaAccelerator(0);
 
         var genericKernel = accl.LoadStreamKernel<ArrayView<int>, int>(GenericKernel);
         ...

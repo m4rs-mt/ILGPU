@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Convert.cs
@@ -152,18 +152,21 @@ namespace ILGPU.IR.Construction
                         targetBasicType < sourceBasicType;
                 }
 
-                if (canSimplify)
-                {
-                    ConvertFlags newFlags =
-                        (convert.Flags & ~ConvertFlags.TargetUnsigned) |
-                        flags & ~(ConvertFlags.SourceUnsigned |
-                            ConvertFlags.OverflowSourceUnsigned);
-                    return CreateConvert(
+                ConvertFlags newFlags =
+                    (convert.Flags & ~ConvertFlags.TargetUnsigned) |
+                    flags & ~(ConvertFlags.SourceUnsigned |
+                        ConvertFlags.OverflowSourceUnsigned);
+                return canSimplify
+                    ? CreateConvert(
                         location,
                         convert.Value,
                         targetType,
-                        newFlags);
-                }
+                        newFlags)
+                    : (ValueReference)Append(new ConvertValue(
+                        GetInitializer(location),
+                        node,
+                        targetType,
+                        newFlags));
             }
 
             // Match X to bool

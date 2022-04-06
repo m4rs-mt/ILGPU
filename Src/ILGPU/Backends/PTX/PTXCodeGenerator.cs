@@ -78,13 +78,15 @@ namespace ILGPU.Backends.PTX
                 EntryPoint entryPoint,
                 ContextProperties contextProperties,
                 PTXDebugInfoGenerator debugInfoGenerator,
-                PointerAlignments.AlignmentInfo pointerAlignments)
+                PointerAlignments.AlignmentInfo pointerAlignments,
+                Uniforms.Info uniforms)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
                 Properties = contextProperties;
                 DebugInfoGenerator = debugInfoGenerator;
                 PointerAlignments = pointerAlignments;
+                Uniforms = uniforms;
             }
 
             /// <summary>
@@ -111,6 +113,12 @@ namespace ILGPU.Backends.PTX
             /// Returns detailed information about all pointer alignments.
             /// </summary>
             public PointerAlignments.AlignmentInfo PointerAlignments { get; }
+
+            /// <summary>
+            /// Returns detailed information about uniform values, terminators in
+            /// particular.
+            /// </summary>
+            public Uniforms.Info Uniforms { get; }
         }
 
         /// <summary>
@@ -335,6 +343,7 @@ namespace ILGPU.Backends.PTX
             DebugInfoGenerator = args.DebugInfoGenerator.BeginScope();
             ImplementationProvider = Backend.IntrinsicProvider;
             Allocas = allocas;
+            Uniforms = args.Uniforms;
 
             Architecture = args.Backend.Architecture;
             FastMath = args.Properties.MathMode >= MathMode.Fast;
@@ -407,6 +416,11 @@ namespace ILGPU.Backends.PTX
         /// Returns detailed information about all pointer alignments.
         /// </summary>
         public PointerAlignments.AlignmentInfo PointerAlignments { get; }
+
+        /// <summary>
+        /// Returns information about whether a branch is a uniform control-flow branch.
+        /// </summary>
+        public Uniforms.Info Uniforms { get; }
 
         /// <summary>
         /// Returns all blocks in an appropriate schedule.

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LanguageIntrinsics.cs
@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
@@ -25,6 +26,7 @@ namespace ILGPU.Frontend.Intrinsic
     enum LanguageIntrinsicKind
     {
         EmitPTX,
+        EmitRefPTX,
     }
 
     /// <summary>
@@ -67,7 +69,9 @@ namespace ILGPU.Frontend.Intrinsic
             attribute.IntrinsicKind switch
             {
                 LanguageIntrinsicKind.EmitPTX =>
-                    CreateLanguageEmitPTX(ref context),
+                    CreateLanguageEmitPTX(ref context, usingRefParams: false),
+                LanguageIntrinsicKind.EmitRefPTX =>
+                    CreateLanguageEmitPTX(ref context, usingRefParams: true),
                 _ => throw context.Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedLanguageIntrinsic,
                     attribute.IntrinsicKind.ToString()),
@@ -77,9 +81,11 @@ namespace ILGPU.Frontend.Intrinsic
         /// Creates a new inline PTX instruction.
         /// </summary>
         /// <param name="ptxExpression">The PTX expression string.</param>
+        /// <param name="usingRefParams">True, if passing parameters by reference.</param>
         /// <param name="context">The current invocation context.</param>
         private static ValueReference CreateLanguageEmitPTX(
             string ptxExpression,
+            bool usingRefParams,
             ref InvocationContext context)
         {
             // Parse PTX expression and ensure valid argument references
@@ -107,9 +113,54 @@ namespace ILGPU.Frontend.Intrinsic
             }
 
             // Gather all arguments
-            var arguments = InlineList<ValueReference>.Empty;
-            context.Arguments.CopyTo(ref arguments);
-            arguments.RemoveAt(0);
+            // The method parameter at position 0 is the PTX string.
+            // The method parameter at position 1 is the first argument to the PTX string.
+            var capacity = context.Arguments.Count - 1;
+            var arguments = InlineList<ValueReference>.Create(capacity);
+            var directions = ImmutableArray.CreateBuilder<CudaEmitParameterDirection>(
+                capacity);
+            var methodParams = context.Method.GetParameters();
+            var genericArgs = context.Method.GetGenericArguments();
+
+            for (int i = 1; i < context.Arguments.Count; i++)
+            {
+                var argument = context.Arguments[i];
+                arguments.Add(argument);
+
+                CudaEmitParameterDirection direction;
+                if (usingRefParams)
+                {
+                    var genericArg = genericArgs[i - 1];
+                    var genericArgType = genericArg.GetGenericTypeDefinition();
+
+                    if (typeof(Input<>).IsAssignableFrom(genericArgType))
+                    {
+                        direction = CudaEmitParameterDirection.In;
+                    }
+                    else if (typeof(Output<>).IsAssignableFrom(genericArgType))
+                    {
+                        direction = CudaEmitParameterDirection.Out;
+                    }
+                    else if (typeof(Ref<>).IsAssignableFrom(genericArgType))
+                    {
+                        direction = CudaEmitParameterDirection.Both;
+                    }
+                    else
+                    {
+                        throw location.GetNotSupportedException(
+                            ErrorMessages.NotSupportedInlinePTXFormatArgumentType,
+                            ptxExpression,
+                            genericArg.ToString());
+                    }
+                }
+                else
+                {
+                    direction = methodParams[i].IsOut
+                        ? CudaEmitParameterDirection.Out
+                        : CudaEmitParameterDirection.In;
+                }
+                directions.Add(direction);
+            }
 
             // Valid all argument types
             foreach (var arg in arguments)
@@ -122,16 +173,12 @@ namespace ILGPU.Frontend.Intrinsic
                     arg.Type.ToString());
             }
 
-            // The method parameter at position 0 is the PTX string.
-            // The method parameter at position 1 is the first argument to the PTX string.
-            var methodParams = context.Method.GetParameters();
-            var hasOutput = methodParams.Length >= 2 && methodParams[1].IsOut;
-
             // Create the language statement
             return context.Builder.CreateLanguageEmitPTX(
                 location,
+                usingRefParams,
                 expressions,
-                hasOutput,
+                directions.ToImmutable(),
                 ref arguments);
         }
 
@@ -139,10 +186,13 @@ namespace ILGPU.Frontend.Intrinsic
         /// Creates a new inline PTX instruction to the standard output stream.
         /// </summary>
         /// <param name="context">The current invocation context.</param>
+        /// <param name="usingRefParams">True, if passing parameters by reference.</param>
         private static ValueReference CreateLanguageEmitPTX(
-            ref InvocationContext context) =>
+            ref InvocationContext context,
+            bool usingRefParams) =>
             CreateLanguageEmitPTX(
                 GetEmitPTXExpression(ref context),
+                usingRefParams,
                 ref context);
 
         /// <summary>

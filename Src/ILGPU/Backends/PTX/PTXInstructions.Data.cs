@@ -25,6 +25,11 @@ namespace ILGPU.Backends.PTX
         public const string ReturnOperation = "ret";
 
         /// <summary>
+        /// A uniform return operation.
+        /// </summary>
+        public const string UniformReturnOperation = "ret.uni";
+
+        /// <summary>
         /// A general move operation.
         /// </summary>
         public const string MoveOperation = "mov";
@@ -38,11 +43,6 @@ namespace ILGPU.Backends.PTX
         /// A general load operation that loads parameter values.
         /// </summary>
         public const string LoadParamOperation = "ld.param";
-
-        /// <summary>
-        /// A general load operation that loads local values.
-        /// </summary>
-        public const string LoadLocalOperation = "ld.local";
 
         /// <summary>
         /// A general store operation.
@@ -60,9 +60,19 @@ namespace ILGPU.Backends.PTX
         public const string BranchOperation = "bra";
 
         /// <summary>
+        /// A uniform branch operation.
+        /// </summary>
+        public const string UniformBranchOperation = "bra.uni";
+
+        /// <summary>
         /// An indexed branch operation.
         /// </summary>
         public const string BranchIndexOperation = "brx.idx";
+
+        /// <summary>
+        /// A unified indexed branch operation.
+        /// </summary>
+        public const string UniformBranchIndexOperation = "brx.idx.uni";
 
         /// <summary>
         /// An indexed branch range comparison.
@@ -78,6 +88,16 @@ namespace ILGPU.Backends.PTX
         /// An index FMA operation.
         /// </summary>
         public const string IndexFMAOperationLo = "mad.lo.s32";
+
+        /// <summary>
+        /// A uniform method call.
+        /// </summary>
+        public const string UniformMethodCall = "call.uni";
+
+        /// <summary>
+        /// A method call.
+        /// </summary>
+        public const string MethodCall = "call.uni";
 
         /// <summary>
         /// An atomic CAS operation.
@@ -377,7 +397,7 @@ namespace ILGPU.Backends.PTX
             new Dictionary<(UnaryArithmeticKind, ArithmeticBasicValueType), string>()
             {
                 // Basic arithmetic
-                
+
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Int8), "neg.s16" },
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Int16), "neg.s16" },
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Int32), "neg.s32" },
@@ -473,7 +493,7 @@ namespace ILGPU.Backends.PTX
             new Dictionary<(BinaryArithmeticKind, ArithmeticBasicValueType), string>()
             {
                 // Basic arithmetic
-                
+
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Int8), "add.s16" },
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Int16), "add.s16" },
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Int32), "add.s32" },
@@ -616,7 +636,7 @@ namespace ILGPU.Backends.PTX
             new Dictionary<(BinaryArithmeticKind, ArithmeticBasicValueType), string>()
             {
                 // Basic arithmetic
-                
+
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Float16), "add.ftz.f16" },
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Float32), "add.ftz.f32" },
 
