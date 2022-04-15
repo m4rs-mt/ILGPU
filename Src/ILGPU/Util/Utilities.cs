@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Utilities.cs

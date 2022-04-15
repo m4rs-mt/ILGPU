@@ -4,7 +4,7 @@
         <PackageVersion>$(Version)</PackageVersion>
 
         <Title>ILGPU</Title>
-        <Copyright>Copyright (c) 2016-2021 ILGPU Project. All rights reserved.</Copyright>
+        <Copyright>Copyright (c) 2016-2022 ILGPU Project. All rights reserved.</Copyright>
         <Company />
         <Authors>Marcel Koester</Authors>
         <Description>ILGPU Just-In-Time Compiler</Description>

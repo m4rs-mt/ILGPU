@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2022 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Uniforms.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
