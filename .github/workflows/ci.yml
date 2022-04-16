@@ -209,7 +209,7 @@ jobs:
         run: .github/workflows/Scripts/FixNugetSymbolPackages.ps1 -version "${{ needs.check-version.outputs.version }}"
 
       - name: Upload NuGet package artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: nuget-packages
           path: ./Bin/Release/ILGPU*.${{ needs.check-version.outputs.version }}.*nupkg
@@ -268,7 +268,7 @@ jobs:
 
       # Upload samples artifact (for version tags and master branch only)
       - name: Upload Samples artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: github.event_name == 'push' && !github.event.repository.fork && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
         with:
           name: samples
