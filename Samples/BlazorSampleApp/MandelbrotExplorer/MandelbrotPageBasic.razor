@@ -1,0 +1,44 @@
+﻿@page "/mandelbrotPageBasic"
+
+<h3>Basic Mandelbrot ILGPU Example</h3>
+
+
+<p>Blazor Demo of Mandelbrot set with ILGPU objects injected in current scope.</p>
+<p>
+    <table>
+        <tr><td rowspan="5"><BasicCanvas @ref="Canvas2D"></BasicCanvas></td><td rowspan="5">&nbsp;</td><td>&nbsp;</td></tr>
+        <tr><td>@ExecutionsDetails1</td></tr>
+        <tr><td>@ExecutionsDetails2</td></tr>
+        <tr><td>@ExecutionsDetails3</td></tr>
+        <tr><td>&nbsp;</td></tr>
+    </table>
+</p>
+<p>
+    In this example we inject ILGPU objects scoped to a razor page session. Individual ILGPU compute sessions<br />
+    are unaware of other ILGPU compute sessions hosted in a Blazor server application. Every kernel will have to<br />
+	be recompiled in every session resulting in lower productivity.
+    <br /> 
+    This demonstrates ILGPU objects work in complex multi-threaded environments.
+    
+<br />
+    <Tooltip Text="Select Accelerator">
+    <select id="ItemToRender" @onchange="@UpdateSelected" disabled="@DisabledButtons">
+        @foreach (var device in SystemDevices)
+            {
+               <option valuse = "@device">@device</option>
+            }
+        </select>
+    </Tooltip>
+
+
+    <Tooltip Text="Open additional windows and start more animations.">
+        <button class="btn btn-primary m-1" onclick="window.open('mandelbrotPageBasic')" disabled="@DisabledButtons">Open New Window</button>
+    </Tooltip>
+    
+    <Tooltip Text="Mandelbrot Animation Demo">
+        <button class="btn btn-primary m-1" @onclick="AnimateMandelbrot" disabled="@DisabledButtons">Mandelbrot Animation</button>
+    </Tooltip>
+
+    
+    
+    </p>
