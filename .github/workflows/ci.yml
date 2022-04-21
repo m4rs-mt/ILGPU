@@ -20,6 +20,16 @@ jobs:
     # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
     # run the CI for each branch push to a fork, and for each pull request originating from a fork.
     if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs:
+      - check-style-line-lengths
+      - check-style-line-endings
+      - check-style-copyright-headers
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All style checks done"
+
+  check-style-line-lengths:
+    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -28,8 +38,35 @@ jobs:
       - name: Check line length
         run: .github/workflows/Scripts/CheckLineLength.ps1 -path Src
 
+  check-style-line-endings:
+    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Check T4 line endings
         run: .github/workflows/Scripts/CheckT4LineEndings.ps1 -path Src
+
+  check-style-copyright-headers:
+    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    # WORKAROUND: LibGit2Sharp does not currently work on ubuntu-20.04
+    # https://github.com/libgit2/libgit2sharp/issues/1798
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check Copyright Headers
+        run: |
+          dotnet run --configuration=Release -p:TreatWarningsAsErrors=true --project Tools/CopyrightUpdateTool
+          if [[ -z "$(git status --porcelain)" ]]; then
+            exit 0
+          else
+            exit 1
+          fi
 
   # Setup the OS matrix so that CUDA tests do not run on forks, as it needs self-hosted runners.
   # Skip running on macOS in most cases.
