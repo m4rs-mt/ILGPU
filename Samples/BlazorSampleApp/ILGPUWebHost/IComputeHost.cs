@@ -40,10 +40,10 @@ namespace BlazorSampleApp.ILGPUWebHost
         /// determine the minium specifications for an accelerator 
         /// </summary>
         /// <param name="allowedAcceleratorTypes"></param>
-        /// <param name="miniumMemory"></param>
+        /// <param name="minimumMemory"></param>
         /// <param name="multiProcessors"></param>
         /// <returns></returns>
-        bool ConfigureAcceleration(AcceleratorType[] allowedAcceleratorTypes, long miniumMemory,int multiProcessors);
+        bool ConfigureAcceleration(AcceleratorType[] allowedAcceleratorTypes, long minimumMemory,int multiProcessors);
 
         /// <summary>
         /// request a new compute session

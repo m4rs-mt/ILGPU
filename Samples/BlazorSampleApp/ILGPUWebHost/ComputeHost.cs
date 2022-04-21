@@ -81,9 +81,9 @@ namespace BlazorSampleApp.ILGPUWebHost
         /// Each application must specify what are the requirements for accelerators on the host server
         /// </summary>
         /// <param name="allowedAcceleratorTypes"></param>
-        /// <param name="miniumMemory"></param>
+        /// <param name="minimumMemory"></param>
         /// <returns></returns>
-        public bool ConfigureAcceleration(AcceleratorType[] allowedAcceleratorTypes, long miniumMemory, int multiProcessors)
+        public bool ConfigureAcceleration(AcceleratorType[] allowedAcceleratorTypes, long minimumMemory, int multiProcessors)
         {
             bool result = false;
 
@@ -100,7 +100,7 @@ namespace BlazorSampleApp.ILGPUWebHost
 
                         var accelerator = device.CreateAccelerator(_context);
 
-                        if (accelerator.MemorySize >= miniumMemory && accelerator.NumMultiprocessors >= multiProcessors)
+                        if (accelerator.MemorySize >= minimumMemory && accelerator.NumMultiprocessors >= multiProcessors)
                         {
 
                             result = true;
@@ -175,7 +175,7 @@ namespace BlazorSampleApp.ILGPUWebHost
         {
             if (session != null)
             {
-                session.IsActive = false;
+                session.InActivate();
 
                 _computeSessions.Remove(session);
 
@@ -195,7 +195,7 @@ namespace BlazorSampleApp.ILGPUWebHost
             foreach(var session in _computeSessions)
             {
                 // stop all new compute
-                session.IsActive = false;
+                session.InActivate();
             }
 
             foreach (var session in _computeSessions)

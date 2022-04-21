@@ -41,8 +41,8 @@ namespace BlazorSampleApp.ILGPUWebHost
         
         public string SessionID { get; set; }
 
-        private bool _active = true;
-        public bool IsActive { get { return _active; } set { _active = value; } }
+        public bool _isActive = true;
+        public bool IsActive { get { return _isActive; } }
 
 
         // do we have an active process? If so we wait until the process is finished to avoid blowing up GPU
@@ -116,13 +116,18 @@ namespace BlazorSampleApp.ILGPUWebHost
             return (iCount < 1000);
         }
 
+        public void InActivate()
+        {
+            _isActive = false;
+        }
+
         /// <summary>
         /// Clean up all compute resources
         /// </summary>
         public async void Dispose()
         {
             _disposing = true;
-            _active = false; // do not allow any new computation.
+            _isActive = false; // do not allow any new computation.
 
             // the host will dispose of this stream
             _host?.ReturnSession(this);
