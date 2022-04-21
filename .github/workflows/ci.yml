@@ -65,7 +65,7 @@ jobs:
             )
           ) && os+=("macos-latest")
 
-          [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda")
+          [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda-${{ github.run_id }}-${{ github.run_attempt }}")
 
           echo "::set-output name=os::$(jq -cn '$ARGS.positional' --args ${os[@]})"
     outputs:
@@ -136,7 +136,7 @@ jobs:
       - name: Set test flavor
         id: test-flavor
         shell: bash
-        run: echo ::set-output name=flavor::$([[ "${{ matrix.os }}" == "cuda" ]] && echo "Cuda" || echo "CPU")
+        run: echo ::set-output name=flavor::$([[ "${{ matrix.os }}" == cuda-* ]] && echo "Cuda" || echo "CPU")
 
       - name: Build and test
         run: dotnet test --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger GitHubActions Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }}
