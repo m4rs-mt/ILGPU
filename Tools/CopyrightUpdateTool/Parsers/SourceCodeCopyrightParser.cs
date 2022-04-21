@@ -35,7 +35,7 @@ namespace CopyrightUpdateTool.Parsers
         private readonly ImmutableHashSet<string> SupportedExtensions =
             ImmutableHashSet.CreateRange(
                 StringComparer.OrdinalIgnoreCase,
-                new[] { ".cs", ".fs", ".tt", ".ttinclude", ".ps1" });
+                new[] { ".cs", ".fs", ".tt", ".ttinclude", ".ps1", ".js" });
 
         /// <summary>
         /// The delimeter used for padding the line.
