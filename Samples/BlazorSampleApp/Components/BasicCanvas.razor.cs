@@ -1,7 +1,7 @@
 ﻿
 // ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicCanvas.razor.cs
