@@ -1,21 +1,10 @@
-# For most projects, this workflow file will not need changing; you simply need
-# to commit it to your repository.
-#
-# You may wish to alter this file to override the set of languages analyzed,
-# or to provide custom queries or build logic.
-#
-# ******** NOTE ********
-# We have attempted to detect the languages in your repository. Please check
-# the `language` matrix defined below to confirm you have the correct set of
-# supported CodeQL languages.
-#
 name: "CodeQL"
 
 on:
   push:
     branches: [ master ]
   pull_request:
-    # The branches below must be a subset of the branches above
+    # The branches below must be a subset of the branches above.
     branches: [ master ]
   schedule:
     - cron: '41 18 * * 1'
@@ -23,21 +12,22 @@ on:
 jobs:
   analyze:
     name: Analyze
-    # CodeQL does not yet support Windows Server 2022
-    # see https://github.com/github/codeql-action/issues/850
-    runs-on: windows-2019
     permissions:
       actions: read
       contents: read
       security-events: write
 
+    # GUI samples can only be built on Windows.
+    # CodeQL does not yet support Windows Server 2022.
+    # (see https://github.com/github/codeql-action/issues/850)
+    runs-on: windows-2019
+
+    # Parallelize CodeQL building and analysis for performance reasons.
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'csharp' ]
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
-        # Learn more:
-        # https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#changing-the-languages-that-are-analyzed
+        solution: [Src/ILGPU.sln, Samples/ILGPU.Samples.sln]
+        framework: [net471, netcoreapp3.1, net5.0, net6.0]
 
     steps:
     - name: Checkout repository
@@ -50,29 +40,33 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
-        languages: ${{ matrix.language }}
+        languages: csharp
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
-    # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
-    # If this step fails, then you should remove it and run the build manually (see below)
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v1
-
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 https://git.io/JvXDl
-
-    # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
-    #    and modify them (or add more) to build your code if your project
-    #    uses a compiled language
-
-    #- run: |
-    #   make bootstrap
-    #   make release
+    # Build solution 'manually' in order to parallelize.
+    # Shared compilation has to be disabled for CodeQL to properly trace the build.
+    # We use project-level properties to trick the build into building for a given TFM.
+    - name: Build solution
+      shell: pwsh
+      run: |
+        $LibraryTargetFrameworks=$LibraryUnitTestTargetFrameworks=$LibrarySamplesTargetFrameworks=$LibrarySamplesTargetFrameworksWindows="${{ matrix.framework }}"
+        Switch($LibrarySamplesTargetFrameworks)
+        {
+          "netcoreapp3.1" { $LibraryTargetFrameworks="netstandard2.1" }
+          "net5.0" { $LibrarySamplesTargetFrameworksWindows="net5.0-windows" }
+          "net6.0" { $LibrarySamplesTargetFrameworksWindows="net6.0-windows" }
+        }
+        dotnet build -p:UseSharedCompilation=false `
+                     -p:LibraryTargetFrameworks=$LibraryTargetFrameworks `
+                     -p:LibraryUnitTestTargetFrameworks=$LibraryUnitTestTargetFrameworks `
+                     -p:LibrarySamplesTargetFrameworks=$LibrarySamplesTargetFrameworks `
+                     -p:LibrarySamplesTargetFrameworksWindows=$LibrarySamplesTargetFrameworksWindows `
+                     ${{ matrix.solution }}
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
