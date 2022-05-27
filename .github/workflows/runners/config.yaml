@@ -1,6 +1,6 @@
 config:
   ephemeral-github-runner-gcp:bootDiskSizeInGB: "100"
   ephemeral-github-runner-gcp:bootDiskType: pd-balanced
-  ephemeral-github-runner-gcp:machineImage: ubuntu-2004-focal-v20220308-ghr22920-nv47010301
+  ephemeral-github-runner-gcp:machineImage: ubuntu-2004-focal-v20220419-ghr22920-nv47012906-20220527
   ephemeral-github-runner-gcp:machineType: a2-highgpu-1g
   ephemeral-github-runner-gcp:runnersCount: "6"
