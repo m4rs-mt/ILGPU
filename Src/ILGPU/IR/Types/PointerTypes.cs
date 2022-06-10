@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PointerTypes.cs
@@ -165,15 +165,15 @@ namespace ILGPU.IR.Types
             MemoryAddressSpace addressSpace)
             : base(typeContext, elementType, addressSpace)
         {
-            if (typeContext.TargetPlatform == TargetPlatform.X86)
-            {
-                Size = Alignment = 4;
-                BasicValueType = BasicValueType.Int32;
-            }
-            else
+            if (typeContext.TargetPlatform.Is64Bit())
             {
                 Size = Alignment = 8;
                 BasicValueType = BasicValueType.Int64;
+            }
+            else
+            {
+                Size = Alignment = 4;
+                BasicValueType = BasicValueType.Int32;
             }
             AddFlags(TypeFlags.PointerDependent);
         }

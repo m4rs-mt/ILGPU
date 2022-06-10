@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Backend.cs
@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ILGPU.Backends
 {
@@ -41,6 +42,35 @@ namespace ILGPU.Backends
         /// The X64 target platform.
         /// </summary>
         X64,
+
+        /// <summary>
+        /// The Arm target platform.
+        /// </summary>
+        Arm,
+
+        /// <summary>
+        /// The Arm64 target platform.
+        /// </summary>
+        Arm64,
+    }
+
+    /// <summary>
+    /// Extension methods for TargetPlatform related objects.
+    /// </summary>
+    public static class TargetPlatformExtensions
+    {
+        /// <summary>
+        /// Returns true if the current runtime platform is 64-bit.
+        /// </summary>
+        public static bool Is64Bit(this TargetPlatform targetPlatform) =>
+                targetPlatform switch
+                {
+                    TargetPlatform.X86 => false,
+                    TargetPlatform.X64 => true,
+                    TargetPlatform.Arm => false,
+                    TargetPlatform.Arm64 => true,
+                    _ => throw new NotSupportedException(),
+                };
     }
 
     /// <summary>
@@ -375,13 +405,27 @@ namespace ILGPU.Backends
         /// Returns the current execution platform.
         /// </summary>
         public static TargetPlatform RuntimePlatform =>
-            IntPtr.Size == 8 ? TargetPlatform.X64 : TargetPlatform.X86;
+            RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X86 => TargetPlatform.X86,
+                Architecture.X64 => TargetPlatform.X64,
+                Architecture.Arm => TargetPlatform.Arm,
+                Architecture.Arm64 => TargetPlatform.Arm64,
+                _ => throw new NotSupportedException(),
+            };
 
         /// <summary>
         /// Returns the native OS platform.
         /// </summary>
         public static TargetPlatform OSPlatform =>
-            Environment.Is64BitOperatingSystem ? TargetPlatform.X64 : TargetPlatform.X86;
+            RuntimeInformation.OSArchitecture switch
+            {
+                Architecture.X86 => TargetPlatform.X86,
+                Architecture.X64 => TargetPlatform.X64,
+                Architecture.Arm => TargetPlatform.Arm,
+                Architecture.Arm64 => TargetPlatform.Arm64,
+                _ => throw new NotSupportedException(),
+            };
 
         /// <summary>
         /// Returns true if the current runtime platform is equal to the OS platform.

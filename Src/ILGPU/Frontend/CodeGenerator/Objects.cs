@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Objects.cs
@@ -148,12 +148,7 @@ namespace ILGPU.Frontend
             }
             else
             {
-                var pointerSize = TypeContext.TargetPlatform switch
-                {
-                    TargetPlatform.X86 => 4,
-                    TargetPlatform.X64 => 8,
-                    _ => throw new NotImplementedException()
-                };
+                var pointerSize = TypeContext.TargetPlatform.Is64Bit() ? 8 : 4;
                 Load(pointerSize);
             }
         }
