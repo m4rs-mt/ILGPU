@@ -307,14 +307,17 @@ namespace ILGPU.Backends.PTX
             try
             {
                 // Add custom NVVM module.
-                var nvvmModuleBytes = Encoding.ASCII.GetBytes(nvvmModule);
-                fixed (byte* nvvmPtr = nvvmModuleBytes)
+                if (result == NvvmResult.NVVM_SUCCESS)
                 {
-                    result = NvvmAPI.AddModuleToProgram(
-                        program,
-                        new IntPtr(nvvmPtr),
-                        new IntPtr(nvvmModuleBytes.Length),
-                        null);
+                    var nvvmModuleBytes = Encoding.ASCII.GetBytes(nvvmModule);
+                    fixed (byte* nvvmPtr = nvvmModuleBytes)
+                    {
+                        result = NvvmAPI.AddModuleToProgram(
+                            program,
+                            new IntPtr(nvvmPtr),
+                            new IntPtr(nvvmModuleBytes.Length),
+                            null);
+                    }
                 }
 
                 // Add the LibDevice bit code.
@@ -355,12 +358,15 @@ namespace ILGPU.Backends.PTX
                 if (result == NvvmResult.NVVM_SUCCESS)
                 {
                     result = NvvmAPI.GetCompiledResult(program, out var compiledPTX);
-                    var compiledString =
-                        compiledPTX
-                        .Replace(".version", "//.version")
-                        .Replace(".target", "//.target")
-                        .Replace(".address_size", "//.address_size");
-                    builder.Append(compiledString);
+                    if (result == NvvmResult.NVVM_SUCCESS)
+                    {
+                        var compiledString =
+                            compiledPTX
+                            .Replace(".version", "//.version")
+                            .Replace(".target", "//.target")
+                            .Replace(".address_size", "//.address_size");
+                        builder.Append(compiledString);
+                    }
                 }
             }
             finally

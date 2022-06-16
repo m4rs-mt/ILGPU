@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ScanExtensions.cs
@@ -664,7 +664,6 @@ namespace ILGPU.Algorithms
 
             long numIntTElementsLong = ComputeNumIntElementsForSinglePassScan<T>();
             IndexTypeExtensions.AssertIntIndexRange(numIntTElementsLong);
-            int numIntTElements = (int)numIntTElementsLong;
 
             return (stream, input, output, temp) =>
             {

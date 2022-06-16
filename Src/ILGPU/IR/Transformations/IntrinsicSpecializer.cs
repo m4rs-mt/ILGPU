@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicSpecializer.cs
@@ -108,8 +108,6 @@ namespace ILGPU.IR.Transformations
             // Analyze intrinsic nodes
             foreach (Value value in blocks.Values)
             {
-                var blockBuilder = builder[value.BasicBlock];
-
                 // Check intrinsic implementations
                 if (provider.TryGetImplementation(value, out var implementation))
                 {

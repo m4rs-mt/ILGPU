@@ -872,7 +872,6 @@ namespace ILGPU.Runtime
 
                 // Reorder the input elements and store them in the result buffer
                 var extent = (Index1D)view.Extent;
-                var stride = view.Stride;
                 for (int x = 0; x < extent.X; ++x)
                 {
                     int targetElementIndex = view.Stride.ComputeElementIndex(x);
@@ -937,7 +936,6 @@ namespace ILGPU.Runtime
 
                 // Reorder the input elements and store them in the result buffer
                 var extent = (Index2D)view.Extent;
-                var stride = view.Stride;
                 for (int x = 0; x < extent.X; ++x)
                 {
                     for (int y = 0; y < extent.Y; ++y)
@@ -1012,7 +1010,6 @@ namespace ILGPU.Runtime
 
                 // Reorder the input elements and store them in the result buffer
                 var extent = (Index3D)view.Extent;
-                var stride = view.Stride;
                 for (int x = 0; x < extent.X; ++x)
                 {
                     for (int y = 0; y < extent.Y; ++y)

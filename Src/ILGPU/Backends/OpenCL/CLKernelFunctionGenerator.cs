@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLKernelFunctionGenerator.cs
@@ -465,7 +465,7 @@ namespace ILGPU.Backends.OpenCL
             Builder.Append(tempCondition.ToString());
             Builder.AppendLine(")");
             PushIndent();
-            using (var statement = BeginStatement(CLInstructions.ReturnStatement)) { }
+            using (BeginStatement(CLInstructions.ReturnStatement)) { }
             PopIndent();
         }
 

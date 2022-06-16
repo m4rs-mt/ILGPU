@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLMemoryBuffer.cs
@@ -81,7 +81,6 @@ namespace ILGPU.Runtime.OpenCL
 
             var source = sourceView.Buffer;
             var target = targetView.Buffer;
-            var length = new IntPtr(targetView.LengthInBytes);
 
             if (sourceType == AcceleratorType.CPU &&
                 targetType == AcceleratorType.OpenCL)

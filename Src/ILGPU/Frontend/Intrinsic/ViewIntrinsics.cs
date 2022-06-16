@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ViewIntrinsics.cs
@@ -93,7 +93,7 @@ namespace ILGPU.Frontend.Intrinsic
                     location,
                     instanceValue,
                     context[paramOffset++],
-                    context[paramOffset++]),
+                    context[paramOffset]),
                 ViewIntrinsicKind.GetSubViewImplicitLength =>
                     builder.CreateSubViewValue(
                         location,
@@ -108,7 +108,7 @@ namespace ILGPU.Frontend.Intrinsic
                     GetViewElementAddress(
                         ref context,
                         instanceValue,
-                        context[paramOffset++]),
+                        context[paramOffset]),
                 ViewIntrinsicKind.CastView => builder.CreateViewCast(
                     location,
                     instanceValue,
@@ -133,18 +133,18 @@ namespace ILGPU.Frontend.Intrinsic
                         instanceValue,
                         builder.CreateGetField(
                             location,
-                            context[paramOffset++],
+                            context[paramOffset],
                             new FieldAccess(0))),
                 ViewIntrinsicKind.AlignTo =>
                     builder.CreateAlignTo(
                         location,
                         instanceValue,
-                        context[paramOffset++]),
+                        context[paramOffset]),
                 ViewIntrinsicKind.AsAligned =>
                     builder.CreateAsAligned(
                         location,
                         instanceValue,
-                        context[paramOffset++]),
+                        context[paramOffset]),
                 _ => throw context.Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedViewIntrinsic,
                     attribute.IntrinsicKind.ToString()),
