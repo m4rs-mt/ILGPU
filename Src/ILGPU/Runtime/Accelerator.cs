@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.cs
@@ -389,7 +389,7 @@ namespace ILGPU.Runtime
                 kernel,
                 groupSize,
                 dynamicSharedMemorySizeInBytes);
-            return (maxActiveGroups * groupSize) / (float)MaxNumThreadsPerGroup;
+            return (float)(maxActiveGroups * groupSize) / MaxNumThreadsPerGroup;
         }
 
         /// <summary>
