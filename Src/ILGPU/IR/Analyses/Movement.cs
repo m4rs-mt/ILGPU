@@ -290,7 +290,7 @@ namespace ILGPU.IR.Analyses
             // semantics by violating the order of load/store operations
             int increment = startIndex > valueIndex ? -1 : 1;
             for (int i = startIndex + increment;
-                lower && i > valueIndex || i < valueIndex;
+                i > valueIndex || i < valueIndex;
                 i += increment)
             {
                 if (!CanSkip(memoryValue, values[i]))
