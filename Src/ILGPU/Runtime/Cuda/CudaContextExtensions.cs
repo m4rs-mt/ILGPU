@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaContextExtensions.cs
@@ -47,10 +47,10 @@ namespace ILGPU.Runtime.Cuda
             this Context.Builder builder,
             Predicate<CudaDevice> predicate)
         {
-            if (Backend.RuntimePlatform != TargetPlatform.X64)
+            if (!Backend.RuntimePlatform.Is64Bit())
             {
                 throw new NotSupportedException(string.Format(
-                    RuntimeErrorMessages.CudaPlatformX64,
+                    RuntimeErrorMessages.CudaPlatform64,
                     Backend.RuntimePlatform));
             }
 

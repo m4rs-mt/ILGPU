@@ -99,9 +99,9 @@ namespace ILGPU.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Cuda accelerator requires 64-bit application ({0} not supported). Ensure Prefer32Bit is set to &apos;false&apos;..
         /// </summary>
-        internal static string CudaPlatformX64 {
+        internal static string CudaPlatform64 {
             get {
-                return ResourceManager.GetString("CudaPlatformX64", resourceCulture);
+                return ResourceManager.GetString("CudaPlatform64", resourceCulture);
             }
         }
         

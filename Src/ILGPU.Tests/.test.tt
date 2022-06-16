@@ -1,14 +1,11 @@
 ﻿<#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ assembly name="System.Core" #>
 <#@ output extension=".runsettings" #>
+<#@ import namespace="System.Runtime.InteropServices" #>
 <?xml version="1.0" encoding="utf-8"?>
 <RunSettings>
   <RunConfiguration>
     <!-- Run on native platform architecture. -->
-<# if (Environment.Is64BitOperatingSystem) { #>
-    <TargetPlatform>x64</TargetPlatform>
-<# } else { #>
-    <TargetPlatform>x86</TargetPlatform>
-<# } #>
+    <TargetPlatform><#= RuntimeInformation.ProcessArchitecture #></TargetPlatform>
   </RunConfiguration>
 </RunSettings>
