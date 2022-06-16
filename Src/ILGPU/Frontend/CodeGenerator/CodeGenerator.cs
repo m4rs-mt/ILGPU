@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CodeGenerator.cs
@@ -417,7 +417,7 @@ namespace ILGPU.Frontend
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void VerifyStaticFieldLoad(FieldInfo field)
         {
-            Debug.Assert(field != null || !field.IsStatic, "Invalid field");
+            Debug.Assert(field != null && field.IsStatic, "Invalid field");
 
             bool isInitOnly = (field.Attributes & FieldAttributes.InitOnly) !=
                 FieldAttributes.InitOnly;
@@ -437,7 +437,7 @@ namespace ILGPU.Frontend
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void VerifyStaticFieldStore(FieldInfo field)
         {
-            Debug.Assert(field != null || !field.IsStatic, "Invalid field");
+            Debug.Assert(field != null && field.IsStatic, "Invalid field");
 
             if (Context.Properties.StaticFieldMode
                 < StaticFieldMode.IgnoreStaticFieldStores)
