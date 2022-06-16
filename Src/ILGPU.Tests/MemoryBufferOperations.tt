@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MemoryBufferOperations.tt/MemoryBufferOperations.cs
@@ -14,6 +14,7 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -112,7 +113,7 @@ namespace ILGPU.Tests
             ArrayView1D<T, Stride1D.Dense> output)
             where T : unmanaged
         {
-            if (index < input.Length & index < output.Length)
+            if (Bitwise.And(index < input.Length, index < output.Length))
                 output[index] = input[index];
         }
 

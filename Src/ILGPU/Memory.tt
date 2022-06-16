@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Memory.tt/Memory.cs
@@ -24,6 +24,7 @@ var classes = new (string, string)[]
 };
 #>
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System.Diagnostics;
 
 namespace ILGPU
@@ -65,10 +66,14 @@ namespace ILGPU
             where TStride : struct, IStride<#= dimension #>D
         {
             Trace.Assert(
-                <#= string.Join(
-                    " & ",
+<# if (dimension == 1) { #>
+                <#= $"extent.{IndexDimensions[0].PropertyName} >= 0" #>,
+<# } else { #>
+                Bitwise.And(<#= string.Join(
+                    ", ",
                     Enumerable.Range(0, dimension).
-                    Select(t => $"extent.{IndexDimensions[t].PropertyName} >= 0")) #>,
+                    Select(t => $"extent.{IndexDimensions[t].PropertyName} >= 0")) #>),
+<# } #>
                 "Extent out of bounds");
 
             var baseView = Allocate<T>((int)stride.ComputeBufferLength(extent));

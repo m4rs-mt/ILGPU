@@ -118,7 +118,7 @@
     <Operation Name="And" IsCommutative="true">
         <Summary>The logical and operation.</Summary>
         <Flags>BoolsAndInts</Flags>
-        <Op>{Value0} &amp; {Value1}</Op>
+        <Op>Bitwise.And({Value0}, {Value1})</Op>
         <Rewriter>
             <Source>{Value0} == {Value1}</Source>
             <Target>{Value0}</Target>
@@ -138,7 +138,7 @@
     <Operation Name="Or" IsCommutative="true">
         <Summary>The logical or operation.</Summary>
         <Flags>BoolsAndInts</Flags>
-        <Op>{Value0} | {Value1}</Op>
+        <Op>Bitwise.Or({Value0}, {Value1})</Op>
         <Rewriter>
             <Source>{Value0} == {Value1}</Source>
             <Target>{Value0}</Target>

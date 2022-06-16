@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StrideTypes.tt/StrideTypes.cs
@@ -17,6 +17,7 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 
+using ILGPU.Util;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -133,7 +134,7 @@ namespace ILGPU
                     "Reconstruction of general strides is not supported");
                 return <#= indexName #>.Invalid;
             }
-            
+
             /// <summary>
             /// Reconstructs a 64-bit index from a linear element index.
             /// </summary>
@@ -270,7 +271,7 @@ namespace ILGPU
             public readonly <#= indexName #> ReconstructFromElementIndex(
                 int elementIndex) =>
                 elementIndex;
-            
+
             /// <summary>
             /// Reconstructs a 64-bit index from a linear element index.
             /// </summary>
@@ -557,10 +558,13 @@ namespace ILGPU
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
             Trace.Assert(
-                // Default bound checks
-                index.<#= iName #> >= 0 & index.<#= iName #> < extent.<#= iName #> |
-                // Zero length views
-                index.<#= iName #> == 0 & extent.<#= iName #> == 0,
+                Bitwise.Or(
+                    // Default bound checks
+                    Bitwise.And(
+                        index.<#= iName #> >= 0,
+                        index.<#= iName #> < extent.<#= iName #>),
+                    // Zero length views
+                    Bitwise.And(index.<#= iName #> == 0, extent.<#= iName #> == 0)),
                 "<#= iName #> index out of bounds");
 <#      } #>
             return stride.ComputeElementIndex(index);
@@ -584,8 +588,9 @@ namespace ILGPU
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
             Trace.Assert(
-                index.<#= iName #> >= 0 &
-                index.<#= iName #> < extent.<#= iName #>,
+                Bitwise.And(
+                    index.<#= iName #> >= 0,
+                    index.<#= iName #> < extent.<#= iName #>),
                 "<#= iName #> index out of bounds");
 <#      } #>
             return stride.ComputeElementIndex(index);
@@ -601,7 +606,8 @@ namespace ILGPU
         public static int ComputeBufferLength<TStride>(
             this TStride stride,
             <#= indexName #> extent)
-            where TStride : <#= strideName #> {
+            where TStride : <#= strideName #>
+        {
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
             if (extent.<#= iName #> == 0)
@@ -620,7 +626,8 @@ namespace ILGPU
         public static long ComputeBufferLength<TStride>(
             this TStride stride,
             <#= longIndexName #> extent)
-            where TStride : <#= strideName #> {
+            where TStride : <#= strideName #>
+        {
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
             if (extent.<#= iName #> == 0L)

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayViewExtensions.cs
@@ -229,7 +229,7 @@ namespace ILGPU.Runtime
         /// <returns>True, this view has a least one valid data element.</returns>
         public static bool HasData<TView>(this TView view)
             where TView : IArrayView =>
-            view.IsValid & view.Length > 0;
+            Bitwise.And(view.IsValid, view.Length > 0);
 
         /// <summary>
         /// Returns the associated accelerator of the current view.

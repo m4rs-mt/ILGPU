@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: UnaryFloatOperations.cs
@@ -10,6 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+#if NETFRAMEWORK
+using ILGPU.Util;
+#endif
 using Xunit;
 using Xunit.Abstractions;
 
@@ -76,7 +79,10 @@ namespace ILGPU.Tests
             float value)
         {
 #if NETFRAMEWORK
-            data[index + 0] = (!float.IsNaN(value) & !float.IsInfinity(value)) ? 1 : 0;
+            data[index + 0] =
+                Bitwise.And(!float.IsNaN(value), !float.IsInfinity(value))
+                ? 1
+                : 0;
 #else
             data[index + 0] = float.IsFinite(value) ? 1 : 0;
 #endif
@@ -121,7 +127,10 @@ namespace ILGPU.Tests
             double value)
         {
 #if NETFRAMEWORK
-            data[index + 0] = (!double.IsNaN(value) & !double.IsInfinity(value)) ? 1 : 0;
+            data[index + 0] =
+                Bitwise.And(!double.IsNaN(value), !double.IsInfinity(value))
+                ? 1
+                : 0;
 #else
             data[index + 0] = double.IsFinite(value) ? 1 : 0;
 #endif

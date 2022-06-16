@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayViews.tt/ArrayViews.cs
@@ -18,6 +18,7 @@
 <#@ output extension=".cs" #>
 <# var alignmentValues = new int[] { 16, 32, 64, 128, 256, 512 }; #>
 
+using ILGPU.Util;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -298,9 +299,11 @@ namespace ILGPU.Runtime
 <#          var iName = IndexDimensions[i].PropertyName; #>
 <#          var thisExtent = $"({baseType})Extent.{iName}"; #>
             Trace.Assert(
-                index.<#= iName #> >= 0 &
-                (index.<#= iName #> + extent.<#= iName #> <= <#= thisExtent #>
-                 | (index.<#= iName #> == 0 & extent.<#= iName #> == 0)),
+                Bitwise.And(
+                    index.<#= iName #> >= 0,
+                    Bitwise.Or(
+                        index.<#= iName #> + extent.<#= iName #> <= <#= thisExtent #>,
+                        Bitwise.And(index.<#= iName #> == 0, extent.<#= iName #> == 0))),
                 "Index/Extent <#= iName #> out of bounds");
 <#      } #>
             <#= baseType #> offset = ComputeLinearIndex(index);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRTypeContext.cs
@@ -52,8 +52,9 @@ namespace ILGPU.IR.Types
         /// True if the given value type is a compatible view index type.
         /// </returns>
         internal static bool IsViewIndexType(BasicValueType basicValueType) =>
-            basicValueType == BasicValueType.Int32 |
-            basicValueType == BasicValueType.Int64;
+            Bitwise.Or(
+                basicValueType == BasicValueType.Int32,
+                basicValueType == BasicValueType.Int64);
 
         #endregion
 

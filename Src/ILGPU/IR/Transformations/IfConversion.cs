@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IfConversion.cs
@@ -1319,7 +1319,7 @@ namespace ILGPU.IR.Transformations
             /// Returns true if the given block should be maintained.
             /// </summary>
             private readonly bool IsBlockToKeep(BasicBlock block) =>
-                block == EntryBlock | CaseBlocks.Contains(block);
+                Bitwise.Or(block == EntryBlock, CaseBlocks.Contains(block));
 
             /// <summary>
             /// Returns true if the given block is an exit block.
