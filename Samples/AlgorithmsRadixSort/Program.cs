@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -56,7 +56,7 @@ namespace AlgorithmsRadixSort
                 Console.WriteLine($"Performing operations on {accelerator}");
 
                 // Allocate the source buffer that will be sorted later on.
-                var sourceBuffer = accelerator.Allocate1D<int>(32);
+                using var sourceBuffer = accelerator.Allocate1D<int>(32);
                 accelerator.Sequence(
                     accelerator.DefaultStream,
                     sourceBuffer.View,
@@ -111,8 +111,6 @@ namespace AlgorithmsRadixSort
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");
                 }
-
-                sourceBuffer.Dispose();
             }
         }
     }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -29,7 +29,7 @@ namespace AlgorithmsScan
                 using var accelerator = device.CreateAccelerator(context);
                 Console.WriteLine($"Performing operations on {accelerator}");
 
-                var sourceBuffer = accelerator.Allocate1D<int>(32);
+                using var sourceBuffer = accelerator.Allocate1D<int>(32);
                 accelerator.Initialize(accelerator.DefaultStream, sourceBuffer.View, 2);
 
                 // The parallel scan implementation needs temporary storage.
@@ -126,8 +126,6 @@ namespace AlgorithmsScan
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");
                 }
-
-                sourceBuffer.Dispose();
             }
         }
     }

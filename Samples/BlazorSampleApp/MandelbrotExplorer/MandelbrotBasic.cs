@@ -128,9 +128,9 @@ namespace BlazorSampleApp.MandelbrotExplorer
         {
             _computing = true;
             int num_values = buffer.Length;
-            var dev_out = _accelerator.Allocate1D<int>(num_values);
-            var displayParams = _accelerator.Allocate1D<int>(dispayPort);
-            var viewAreaParams = _accelerator.Allocate1D<float>(viewArea);
+            using var dev_out = _accelerator.Allocate1D<int>(num_values);
+            using var displayParams = _accelerator.Allocate1D<int>(dispayPort);
+            using var viewAreaParams = _accelerator.Allocate1D<float>(viewArea);
 
 
             if (!_disposing)
@@ -142,14 +142,10 @@ namespace BlazorSampleApp.MandelbrotExplorer
             // Reads data from the GPU buffer into a new CPU array.
             // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
             // the kernel computation is complete.
-
-            displayParams.Dispose();
-            viewAreaParams.Dispose();
             if (!_disposing)
             {
                 dev_out.CopyToCPU(buffer);
             }
-            dev_out.Dispose();
             _computing = false;
 
             return;
