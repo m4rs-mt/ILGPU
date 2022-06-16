@@ -312,6 +312,9 @@ namespace ILGPU.IR
 
         #region Properties
 
+        /// <inheritdoc/>
+        public override bool IsBasicBlock => true;
+
         /// <summary>
         /// Returns the parent IR method.
         /// </summary>

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VoidType.cs
@@ -27,6 +27,13 @@ namespace ILGPU.IR.Types
         internal VoidType(IRTypeContext typeContext)
             : base(typeContext)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsVoidType => true;
 
         #endregion
 

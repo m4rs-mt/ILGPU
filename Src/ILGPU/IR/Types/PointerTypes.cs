@@ -182,6 +182,9 @@ namespace ILGPU.IR.Types
 
         #region Properties
 
+        /// <inheritdoc/>
+        public override bool IsPointerType => true;
+
         /// <summary>
         /// Returns the associated basic value type.
         /// </summary>
@@ -237,6 +240,13 @@ namespace ILGPU.IR.Types
             Size = Alignment = 4;
             AddFlags(TypeFlags.ViewDependent);
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsViewType => true;
 
         #endregion
 
