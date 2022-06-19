@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArithmeticEnums.tt/ArithmeticEnums.cs
@@ -93,13 +93,17 @@ namespace ILGPU.IR.Values
         /// <param name="kind">The kind to test.</param>
         /// <returns>True, if the given kind is commutative.</returns>
         public static bool IsCommutative(this TernaryArithmeticKind kind) =>
+<# if (ternaryOps.Where(t => t.IsCommutative).Any()) { #>
             kind switch
             {
-<# foreach (var op in ternaryOps.Where(t => t.IsCommutative)) { #>
+<#      foreach (var op in ternaryOps.Where(t => t.IsCommutative)) { #>
                 TernaryArithmeticKind.<#= op.Name #> => true,
-<# } #>
+<#      } #>
                 _ => false
             };
+<# } else { #>
+            false;
+<# } #>
     }
 }
 

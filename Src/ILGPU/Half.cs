@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Half.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 #if !DEBUG
 using System.Diagnostics;
@@ -396,7 +397,8 @@ namespace ILGPU
         /// <param name="half">The half value.</param>
         /// <returns>True, if the given half value represents a finite number.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsFinite(Half half) => !IsNaN(half) & !IsInfinity(half);
+        public static bool IsFinite(Half half) =>
+            Bitwise.And(!IsNaN(half), !IsInfinity(half));
 
         /// <summary>
         /// Implements a FP16 addition using FP32.

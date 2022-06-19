@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelConfig.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -194,8 +195,8 @@ namespace ILGPU
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get =>
-                GridDim.X > 0 & GridDim.Y > 0 & GridDim.Z > 0 &&
-                GroupDim.X > 0 & GroupDim.Y > 0 & GroupDim.Z > 0;
+                Bitwise.And(GridDim.X > 0, GridDim.Y > 0, GridDim.Z > 0) &&
+                Bitwise.And(GroupDim.X > 0, GroupDim.Y > 0, GroupDim.Z > 0);
         }
 
         /// <summary>
@@ -408,7 +409,8 @@ namespace ILGPU
         /// <summary>
         /// Returns true if this configuration uses dynamic shared memory.
         /// </summary>
-        public bool UsesDynamicSharedMemory => NumElements > 0 & ElementSize > 0;
+        public bool UsesDynamicSharedMemory =>
+            Bitwise.And(NumElements > 0, ElementSize > 0);
 
         #endregion
     }
@@ -548,8 +550,8 @@ namespace ILGPU
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get =>
-                GridDim.X > 0 & GridDim.Y > 0 & GridDim.Z > 0 &&
-                GroupDim.X > 0 & GroupDim.Y > 0 & GroupDim.Z > 0;
+                Bitwise.And(GridDim.X > 0, GridDim.Y > 0, GridDim.Z > 0) &&
+                Bitwise.And(GroupDim.X > 0, GroupDim.Y > 0, GroupDim.Z > 0);
         }
 
         #endregion

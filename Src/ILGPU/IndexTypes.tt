@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IndexTypes.tt/IndexTypes.cs
@@ -17,6 +17,7 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -152,7 +153,11 @@ namespace ILGPU
         /// Returns true if this is the first index.
         /// </summary>
         public readonly bool IsFirst =>
-            <#= def.Expression(" & ", dim => $"{dim} == 0") #>;
+<# if (dimension == 1) { #>
+            <#= def.Expression(", ", dim => $"{dim} == 0") #>;
+<# } else { #>
+            Bitwise.And(<#= def.Expression(", ", dim => $"{dim} == 0") #>);
+<# } #>
 
         /// <summary>
         /// Returns the size represented by this index.
@@ -228,7 +233,19 @@ namespace ILGPU
         /// <param name="dimension">The dimension bounds.</param>
         /// <returns>True if the current index is inside the given bounds.</returns>
         public readonly bool InBounds(<#= name #> dimension) =>
-            <#= def.Expression(" & ", p => $"{p} >= 0 & {p} < dimension.{p}") #>;
+<# if (dimension == 1) { #>
+            <#=
+                def.Expression(
+                    ", ",
+                    p => $"Bitwise.And({p} >= 0, {p} < dimension.{p})")
+            #>;
+<# } else { #>
+            Bitwise.And(<#=
+                def.Expression(
+                    ", ",
+                    p => $"Bitwise.And({p} >= 0, {p} < dimension.{p})")
+                #>);
+<# } #>
 
         /// <summary>
         /// Returns true if the current index is greater than or equal to 0 and
@@ -237,7 +254,19 @@ namespace ILGPU
         /// <param name="dimension">The dimension bounds.</param>
         /// <returns>True if the current index is inside the given bounds.</returns>
         public readonly bool InBoundsInclusive(<#= name #> dimension) =>
-            <#= def.Expression(" & ", p => $"{p} >= 0 & {p} <= dimension.{p}") #>;
+<# if (dimension == 1) { #>
+            <#=
+                def.Expression(
+                    ", ",
+                    p => $"Bitwise.And({p} >= 0, {p} <= dimension.{p})")
+            #>;
+<# } else { #>
+            Bitwise.And(<#=
+                def.Expression(
+                    ", ",
+                    p => $"Bitwise.And({p} >= 0, {p} <= dimension.{p})")
+            #>);
+<# } #>
 
         /// <summary>
         /// Computes this + right-hand side.
@@ -442,7 +471,11 @@ namespace ILGPU
         /// <param name="second">The second index.</param>
         /// <returns>True, if the first and second index are the same.</returns>
         public static bool operator ==(<#= name #> first, <#= name #> second) =>
-            <#= def.Expression(" & ", p => $"first.{p} == second.{p}") #>;
+<# if (dimension == 1) { #>
+            <#= def.Expression(", ", p => $"first.{p} == second.{p}") #>;
+<# } else { #>
+            Bitwise.And(<#= def.Expression(", ", p => $"first.{p} == second.{p}") #>);
+<# } #>
 
         /// <summary>
         /// Returns true if the first and second index are not the same.
@@ -451,7 +484,11 @@ namespace ILGPU
         /// <param name="second">The second index.</param>
         /// <returns>True, if the first and second index are not the same.</returns>
         public static bool operator !=(<#= name #> first, <#= name #> second) =>
-            <#= def.Expression(" | ", p => $"first.{p} != second.{p}") #>;
+<# if (dimension == 1) { #>
+            <#= def.Expression(", ", p => $"first.{p} == second.{p}") #>;
+<# } else { #>
+            Bitwise.Or(<#= def.Expression(", ", p => $"first.{p} != second.{p}") #>);
+<# } #>
 
         #endregion
     }

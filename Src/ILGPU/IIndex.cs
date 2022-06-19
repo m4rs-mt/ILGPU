@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IIndex.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -110,7 +111,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AssertIntIndex(long index) =>
             Trace.Assert(
-                index >= int.MinValue & index <= int.MaxValue,
+                Bitwise.And(index >= int.MinValue, index <= int.MaxValue),
                 "32-bit index expected");
 
         /// <summary>
@@ -120,7 +121,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AssertIntIndexRange(long range) =>
             Trace.Assert(
-                range >= int.MinValue & range <= int.MaxValue,
+                Bitwise.And(range >= int.MinValue, range <= int.MaxValue),
                 "32-bit index out of range");
 
         /// <summary>

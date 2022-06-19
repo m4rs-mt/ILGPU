@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayViewExtensions.cs
@@ -229,7 +229,7 @@ namespace ILGPU.Runtime
         /// <returns>True, this view has a least one valid data element.</returns>
         public static bool HasData<TView>(this TView view)
             where TView : IArrayView =>
-            view.IsValid & view.Length > 0;
+            Bitwise.And(view.IsValid, view.Length > 0);
 
         /// <summary>
         /// Returns the associated accelerator of the current view.
@@ -872,7 +872,6 @@ namespace ILGPU.Runtime
 
                 // Reorder the input elements and store them in the result buffer
                 var extent = (Index1D)view.Extent;
-                var stride = view.Stride;
                 for (int x = 0; x < extent.X; ++x)
                 {
                     int targetElementIndex = view.Stride.ComputeElementIndex(x);
@@ -937,7 +936,6 @@ namespace ILGPU.Runtime
 
                 // Reorder the input elements and store them in the result buffer
                 var extent = (Index2D)view.Extent;
-                var stride = view.Stride;
                 for (int x = 0; x < extent.X; ++x)
                 {
                     for (int y = 0; y < extent.Y; ++y)
@@ -1012,7 +1010,6 @@ namespace ILGPU.Runtime
 
                 // Reorder the input elements and store them in the result buffer
                 var extent = (Index3D)view.Extent;
-                var stride = view.Stride;
                 for (int x = 0; x < extent.X; ++x)
                 {
                     for (int y = 0; y < extent.Y; ++y)

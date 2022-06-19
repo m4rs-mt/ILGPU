@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeNode.cs
@@ -143,60 +143,58 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns true if the current type is a <see cref="VoidType"/>.
         /// </summary>
-        public bool IsVoidType => this is VoidType;
+        public virtual bool IsVoidType => false;
 
         /// <summary>
         /// Returns true if the current type is a <see cref="StringType"/>.
         /// </summary>
-        public bool IsStringType => this is StringType;
+        public virtual bool IsStringType => false;
 
         /// <summary>
         /// Returns true if the current type is a <see cref="PrimitiveType"/>.
         /// </summary>
-        public bool IsPrimitiveType => this is PrimitiveType;
+        public virtual bool IsPrimitiveType => false;
 
         /// <summary>
-        /// Returns true if the current type is a <see cref="PointerType"/>
+        /// Returns true if the current type is a <see cref="AddressSpaceType"/>
         /// or a <see cref="ViewType"/>.
         /// </summary>
-        public bool IsViewOrPointerType => this is AddressSpaceType;
+        public bool IsViewOrPointerType => IsViewType || IsPointerType;
 
         /// <summary>
         /// Returns true if the current type is a <see cref="PointerType"/>.
         /// </summary>
-        public bool IsPointerType => this is PointerType;
+        public virtual bool IsPointerType => false;
 
         /// <summary>
         /// Returns true if the current type is a <see cref="ViewType"/>.
         /// </summary>
-        public bool IsViewType => this is ViewType;
+        public virtual bool IsViewType => false;
 
         /// <summary>
         /// Returns true if the current type is a <see cref="ArrayType"/>.
         /// </summary>
-        public bool IsArrayType => this is ArrayType;
+        public virtual bool IsArrayType => false;
 
         /// <summary>
         /// Returns true if the current type is an <see cref="ObjectType"/>.
         /// </summary>
-        public bool IsObjectType => this is ObjectType;
+        public virtual bool IsObjectType => false;
 
         /// <summary>
         /// Returns true if the current type is a <see cref="StructureType"/>.
         /// </summary>
-        public bool IsStructureType => this is StructureType;
+        public virtual bool IsStructureType => false;
 
         /// <summary>
         /// Returns true if the current type is a <see cref="PaddingType"/>.
         /// </summary>
-        public bool IsPaddingType => this is PaddingType;
+        public virtual bool IsPaddingType => false;
 
         /// <summary>
         /// Returns true if this type is a root object type.
         /// </summary>
-        public bool IsRootType =>
-            this is StructureType structureType &&
-            structureType.NumFields < 1;
+        public virtual bool IsRootType => false;
 
         /// <summary>
         /// Returns the basic value type.

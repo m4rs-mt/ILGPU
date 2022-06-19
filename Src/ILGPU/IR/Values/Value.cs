@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Value.cs
@@ -769,12 +769,12 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns true if this parent container is a block.
         /// </summary>
-        public bool IsBasicBlock => this is BasicBlock;
+        public virtual bool IsBasicBlock => false;
 
         /// <summary>
         /// Returns true if this container is method.
         /// </summary>
-        public bool IsMethod => this is Method;
+        public virtual bool IsMethod => false;
 
         #endregion
     }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RadixSortExtensions.cs
@@ -683,7 +683,8 @@ namespace ILGPU.Algorithms
                     for (int j = 0; j < specialization.UnrollFactor; ++j)
                     {
                         ref var newOffset = ref scanMemory[Group.IdxX + groupSize * j];
-                        newOffset += Utilities.Select(inRange & j == bits, 1, 0);
+                        newOffset += Utilities.Select(
+                            Bitwise.And(inRange, j == bits), 1, 0);
                         counter[j * numGroups + gridIdx] = newOffset;
                     }
                 }
@@ -691,7 +692,8 @@ namespace ILGPU.Algorithms
 
                 var gridSize = gridIdx * Group.DimX;
                 Index1D pos = gridSize + scanMemory[Group.IdxX + groupSize * bits] -
-                    Utilities.Select(inRange & Group.IdxX == Group.DimX - 1, 1, 0);
+                    Utilities.Select(
+                        Bitwise.And(inRange, Group.IdxX == Group.DimX - 1), 1, 0);
                 for (int j = 1; j <= bits; ++j)
                 {
                     pos += scanMemory[groupSize * j - 1] +

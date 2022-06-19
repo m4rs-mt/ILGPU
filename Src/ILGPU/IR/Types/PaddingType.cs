@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PaddingType.cs
@@ -37,6 +37,9 @@ namespace ILGPU.IR.Types
         #endregion
 
         #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsPaddingType => true;
 
         /// <summary>
         /// Returns the associated basic value type.

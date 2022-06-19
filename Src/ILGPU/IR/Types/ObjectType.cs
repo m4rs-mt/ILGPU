@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ObjectType.cs
@@ -25,6 +25,13 @@ namespace ILGPU.IR.Types
         protected ObjectType(IRTypeContext typeContext)
             : base(typeContext)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsObjectType => true;
 
         #endregion
     }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RemappedIntrinsics.cs
@@ -47,8 +47,6 @@ namespace ILGPU.Frontend.Intrinsic
 
         static RemappedIntrinsics()
         {
-            var remappedType = typeof(RemappedIntrinsics);
-
             AddRemapping(
                 typeof(float),
                 CPUMathType,

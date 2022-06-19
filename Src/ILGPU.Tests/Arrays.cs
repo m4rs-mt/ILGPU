@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Arrays.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -891,7 +892,7 @@ namespace ILGPU.Tests
         {
             int[] values = new[] { 0, 1 };
 
-            if (index == values[1] & constant == values[0])
+            if (Bitwise.And(index == values[1], constant == values[0]))
                 buffer[index] = 42;
             else
                 buffer[index] = 24;

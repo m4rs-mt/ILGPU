@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StructureType.cs
@@ -731,6 +731,12 @@ namespace ILGPU.IR.Types
         #endregion
 
         #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsStructureType => true;
+
+        /// <inheritdoc/>
+        public override bool IsRootType => NumFields < 1;
 
         /// <summary>
         /// Returns the high-level fields stored in this structure type.

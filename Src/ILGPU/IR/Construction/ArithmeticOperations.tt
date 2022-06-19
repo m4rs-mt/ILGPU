@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArithmeticOperations.tt/ArithmeticOperations.cs
@@ -140,8 +140,18 @@ namespace ILGPU.IR.Construction
 <#          foreach (var rewriter in op.Rewriters) { #>
 <#              if (rewriter.Mode == MathOpRewriterMode.CombineOperation) { #>
                     {
-                        if (value is <#= rewriter.Type #> nested &&
-                            <#= rewriter.MakeSourceExpr("value", "nested") #>)
+                        if (value is <#= rewriter.Type #> nested
+                            <#
+                                var sourceExpr =
+                                    rewriter.MakeSourceExpr("value", "nested");
+                                if (!sourceExpr.Equals(
+                                    "true",
+                                    StringComparison.OrdinalIgnoreCase))
+                                {
+                                    Write(" && ");
+                                    Write(sourceExpr);
+                                }
+                            #>)
                         {
                             return <#= rewriter.MakeTargetExpr("value", "nested") #>;
                         }

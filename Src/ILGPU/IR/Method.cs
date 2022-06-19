@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Method.cs
@@ -416,6 +416,9 @@ namespace ILGPU.IR
         #endregion
 
         #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsMethod => true;
 
         /// <summary>
         /// Returns the associated IR context reference.

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayType.cs
@@ -43,6 +43,9 @@ namespace ILGPU.IR.Types
         #endregion
 
         #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsArrayType => true;
 
         /// <summary>
         /// Returns the underlying element type.

@@ -97,19 +97,11 @@ namespace BlazorSampleApp.ILGPUWebHost
                     
                     if (types.Exists(x => x == device.AcceleratorType))
                     {
-
-                        var accelerator = device.CreateAccelerator(_context);
-
-                        if (accelerator.MemorySize >= minimumMemory && accelerator.NumMultiprocessors >= multiProcessors)
+                        if (device.MemorySize > minimumMemory && device.NumMultiprocessors >= multiProcessors)
                         {
-
-                            result = true;
-
+                            var accelerator = device.CreateAccelerator(_context);
                             _accelerators.Add(accelerator);
-                        }
-                        else
-                        {
-                            accelerator.Dispose();
+                            result = true;
                         }
                     }
                 }

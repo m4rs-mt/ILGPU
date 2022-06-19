@@ -153,7 +153,7 @@ namespace ILGPU.Backends.IL
                 out ImmutableArray<FieldInfo> taskArgumentMapping);
 
             MethodInfo kernelMethod;
-            using (var scopedLock = RuntimeSystem.DefineRuntimeMethod(
+            using (RuntimeSystem.DefineRuntimeMethod(
                 typeof(void),
                 CPUAcceleratorTask.ExecuteParameterTypes,
                 out var methodEmitter))

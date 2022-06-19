@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -63,9 +63,9 @@ namespace SimpleMath
                 var kernel = accelerator.LoadAutoGroupedStreamKernel<
                     Index1D, ArrayView<float>, ArrayView<double>, ArrayView<double>>(MathKernel);
 
-                var buffer = accelerator.Allocate1D<float>(128);
-                var buffer2 = accelerator.Allocate1D<double>(128);
-                var buffer3 = accelerator.Allocate1D<double>(128);
+                using var buffer = accelerator.Allocate1D<float>(128);
+                using var buffer2 = accelerator.Allocate1D<double>(128);
+                using var buffer3 = accelerator.Allocate1D<double>(128);
 
                 // Launch buffer.Length many threads
                 kernel((int)buffer.Length, buffer.View, buffer2.View, buffer3.View);
@@ -78,10 +78,6 @@ namespace SimpleMath
                 var data3 = buffer3.GetAsArray1D();
                 for (int i = 0, e = data.Length; i < e; ++i)
                     Console.WriteLine($"Math results: {data[i]} (float) {data2[i]} (double [GPUMath]) {data3[i]} (double [.Net Math])");
-
-                buffer.Dispose();
-                buffer2.Dispose();
-                buffer3.Dispose();
             }
         }
     }
