@@ -29,3 +29,5 @@ This string can be formatted to `Test output 1.0 and test output -45` using:
 ```c#
 Interop.Write("Test output {0} and test output {1}", 1.0, -45);
 ```
+Note that this functionality must be enabled using the `.IOOperations()` method of the `Context.Builder`. (This is disabled by default when a `Debugger` is not attached to the application). Note that enabling IO Operations using this flag will cause it to be enabled in `Release` builds as well.
+Be sure to disable this flag if you want to get the best runtime performance.
