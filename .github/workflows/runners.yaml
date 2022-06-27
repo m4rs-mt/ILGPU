@@ -1,11 +1,27 @@
 name: Runners Deployment
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: 
-      - completed
-      - requested
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Whether workflows is requested or completed'
+        required: true
+        type: choice
+        options:
+        - requested
+        - completed
+      run_id:
+        description: 'Id of the job that triggered the run'
+        required: true
+      job_id:
+        description: 'Id of the job that triggered the run'
+        required: true
+      run_attempt:
+        description: 'Run attempt'
+        required: true
+      label:
+        description: 'Job label'
+        required: true
 
 jobs:
   check-skipped:
@@ -38,7 +54,7 @@ jobs:
     if: ${{ needs.check-skipped.outputs.skipped == 'false' }}
     steps:
       - name: Checkout main repo for config
-        if: github.event.action == 'requested'
+        if: github.event.inputs.action == 'requested'
         uses: actions/checkout@v3
         with:
           path: ilgpu
@@ -73,13 +89,13 @@ jobs:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           PULUMI_SKIP_CONFIRMATIONS: "true"
           PULUMI_SKIP_UPDATE_CHECK: "true"
-          PULUMI_STACK_NAME: ilgpu-ghrunner-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
-          LABEL: cuda-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          PULUMI_STACK_NAME: ilgpu-ghrunner-${{ github.event.inputs.job_id }}
+          LABEL: ${{ github.event.inputs.label }}
           OWNER: ${{ github.event.repository.owner.login }}
           REPO: ${{ github.event.repository.name }}
         working-directory: pulumi
         run: |
-          case ${{ github.event.action }} in
+          case ${{ github.event.inputs.action }} in
             'requested')
               cp ../ilgpu/.github/workflows/runners/config.yaml Pulumi.$PULUMI_STACK_NAME.yaml
               pulumi stack init $PULUMI_STACK_NAME
