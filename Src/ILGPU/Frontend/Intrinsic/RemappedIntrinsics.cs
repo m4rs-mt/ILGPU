@@ -85,6 +85,7 @@ namespace ILGPU.Frontend.Intrinsic
 
             RegisterMathRemappings();
             RegisterBitConverterRemappings();
+            RegisterBitOperationsRemappings();
             RegisterCopySignRemappings();
             RegisterInterlockedRemappings();
         }
@@ -298,5 +299,73 @@ namespace ILGPU.Frontend.Intrinsic
         }
 
         #endregion
+
+        #region BitOperations remappings
+
+        private static void RegisterBitOperationsRemappings()
+        {
+#if NETFRAMEWORK
+            // NB: net471 does not support System.Numerics.BitOperations.
+#elif NETSTANDARD
+            // NB: System.Numerics.BitOperations is available from netcoreapp3.1 onwards,
+            // but because we are using netstandard2.1 (which does not have support), we
+            // have to find the type at runtime.
+            var sourceType = Type.GetType("System.Numerics.BitOperations");
+            if (sourceType == null)
+                return;
+#else
+            var sourceType = typeof(System.Numerics.BitOperations);
+#endif
+
+#if !NETFRAMEWORK
+            var targetType = typeof(IntrinsicMath.BitOperations);
+
+            AddRemapping(
+                sourceType,
+                targetType,
+                "LeadingZeroCount",
+                typeof(uint));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "LeadingZeroCount",
+                typeof(ulong));
+
+            AddRemapping(
+                sourceType,
+                targetType,
+                "PopCount",
+                typeof(uint));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "PopCount",
+                typeof(ulong));
+
+            AddRemapping(
+                sourceType,
+                targetType,
+                "TrailingZeroCount",
+                typeof(int));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "TrailingZeroCount",
+                typeof(long));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "TrailingZeroCount",
+                typeof(uint));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "TrailingZeroCount",
+                typeof(ulong));
+#endif
+        }
+
+        #endregion
+
     }
 }
