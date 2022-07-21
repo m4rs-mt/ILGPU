@@ -147,7 +147,7 @@ jobs:
           - os: windows-latest
             library: ILGPU.Algorithms
             framework: net471
-      fail-fast: true
+      fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
