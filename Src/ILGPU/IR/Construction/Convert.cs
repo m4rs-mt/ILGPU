@@ -152,10 +152,11 @@ namespace ILGPU.IR.Construction
                         targetBasicType < sourceBasicType;
                 }
 
+                // If the existing conversion produces an unsigned result, mark that
+                // the source of the new conversion is unsigned.
                 ConvertFlags newFlags =
-                    (convert.Flags & ~ConvertFlags.TargetUnsigned) |
-                    flags & ~(ConvertFlags.SourceUnsigned |
-                        ConvertFlags.OverflowSourceUnsigned);
+                    convert.Flags.ToSourceUnsignedFlags() |
+                    flags & ~ConvertFlags.SourceUnsigned;
                 return canSimplify
                     ? CreateConvert(
                         location,

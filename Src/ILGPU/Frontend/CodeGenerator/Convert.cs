@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Convert.cs
@@ -32,8 +32,6 @@ namespace ILGPU.Frontend
             var convertFlags = ConvertFlags.None;
             if (instructionFlags.HasFlags(ILInstructionFlags.Unsigned))
                 convertFlags |= ConvertFlags.SourceUnsigned;
-            if (instructionFlags.HasFlags(ILInstructionFlags.Overflow))
-                convertFlags |= ConvertFlags.Overflow;
             if (targetType.IsUnsignedInt())
             {
                 convertFlags |= ConvertFlags.SourceUnsigned;
