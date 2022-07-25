@@ -148,7 +148,7 @@ jobs:
             library: ILGPU.Algorithms
             framework: net471
       fail-fast: false
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ contains(matrix.os, 'cuda') && format('{0}-{1}-{2}', matrix.os, matrix.library, matrix.framework) || matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
