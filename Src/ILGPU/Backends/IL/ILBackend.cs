@@ -193,7 +193,10 @@ namespace ILGPU.Backends.IL
                 kernelMethod,
                 taskType,
                 taskConstructor,
-                taskArgumentMapping);
+                taskArgumentMapping,
+                backendContext.SharedAllocations.Length +
+                    backendContext.DynamicSharedAllocations.Length,
+                backendContext.SharedMemorySpecification.StaticSize);
         }
 
         /// <summary>

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILCompiledKernel.cs
@@ -35,13 +35,21 @@ namespace ILGPU.Backends.IL
         /// <param name="taskArgumentMapping">
         /// Mapping of argument indices to fields.
         /// </param>
+        /// <param name="numSharedMemoryAllocations">
+        /// The number of shared-memory allocations.
+        /// </param>
+        /// <param name="allocatedSharedMemorySize">
+        /// The amount of statically allocated bytes of shared memory.
+        /// </param>
         internal ILCompiledKernel(
             Context context,
             EntryPoint entryPoint,
             MethodInfo kernelMethod,
             Type taskType,
             ConstructorInfo taskConstructor,
-            ImmutableArray<FieldInfo> taskArgumentMapping)
+            ImmutableArray<FieldInfo> taskArgumentMapping,
+            int numSharedMemoryAllocations,
+            int allocatedSharedMemorySize)
             : base(context, entryPoint, null)
         {
             KernelMethod = kernelMethod;
@@ -50,6 +58,8 @@ namespace ILGPU.Backends.IL
             TaskType = taskType;
             TaskConstructor = taskConstructor;
             TaskArgumentMapping = taskArgumentMapping;
+            NumSharedMemoryAllocations = numSharedMemoryAllocations;
+            AllocatedSharedMemorySize = allocatedSharedMemorySize;
         }
 
         #endregion
@@ -80,6 +90,16 @@ namespace ILGPU.Backends.IL
         /// Returns a mapping of argument indices to fields.
         /// </summary>
         internal ImmutableArray<FieldInfo> TaskArgumentMapping { get; }
+
+        /// <summary>
+        /// Returns the number of shared-memory allocations.
+        /// </summary>
+        public int NumSharedMemoryAllocations { get; }
+
+        /// <summary>
+        /// Returns the size of statically allocated shared memory in bytes.
+        /// </summary>
+        public int AllocatedSharedMemorySize { get; }
 
         #endregion
     }
