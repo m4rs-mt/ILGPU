@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILWarpExtensions.cs
@@ -9,65 +9,18 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Algorithms.PTX;
 using ILGPU.Algorithms.ScanReduceOperations;
 using System.Runtime.CompilerServices;
-using static ILGPU.Algorithms.IL.ILFunctions;
 
 namespace ILGPU.Algorithms.IL
 {
     /// <summary>
-    /// Custom IL-specific implementations.
+    /// Custom IL-specific implementations that fall back to PTX-specific implementations
+    /// as the CPU runtime is fully compatible with the PTX runtime.
     /// </summary>
     static class ILWarpExtensions
     {
-        #region Nested Types
-
-        /// <summary>
-        /// Implements ILFunctions for warps.
-        /// </summary>
-        private readonly struct WarpImplementation : IILFunctionImplementation
-        {
-            /// <summary>
-            /// Returns 256.
-            /// </summary>
-            /// <remarks>
-            /// TODO: refine the implementation to avoid a hard-coded constant.
-            /// </remarks>
-            public readonly int MaxNumThreads => 256;
-
-            /// <summary>
-            /// Returns true if this is the first warp thread.
-            /// </summary>
-            public readonly bool IsFirstThread => Warp.IsFirstLane;
-
-            /// <summary>
-            /// Returns current lane index.
-            /// </summary>
-            public readonly int ThreadIndex => Warp.LaneIdx;
-
-            /// <summary>
-            /// Returns the warp size.
-            /// </summary>
-            public readonly int ThreadDimension => Warp.WarpSize;
-
-            /// <summary>
-            /// Returns the number of warps per group.
-            /// </summary>
-            public readonly int ReduceSegments => MaxNumThreads / Warp.WarpSize;
-
-            /// <summary>
-            /// Returns the current warp index.
-            /// </summary>
-            public readonly int ReduceSegmentIndex => Warp.WarpIdx;
-
-            /// <summary>
-            /// Performs a warp-wide barrier.
-            /// </summary>
-            public readonly void Barrier() => Warp.Barrier();
-        }
-
-        #endregion
-
         #region Reduce
 
         /// <summary cref="WarpExtensions.Reduce{T, TReduction}(T)"/>
@@ -75,14 +28,14 @@ namespace ILGPU.Algorithms.IL
         public static T Reduce<T, TReduction>(T value)
             where T : unmanaged
             where TReduction : IScanReduceOperation<T> =>
-            AllReduce<T, TReduction>(value);
+            PTXWarpExtensions.Reduce<T, TReduction>(value);
 
         /// <summary cref="WarpExtensions.AllReduce{T, TReduction}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T AllReduce<T, TReduction>(T value)
             where T : unmanaged
             where TReduction : IScanReduceOperation<T> =>
-            AllReduce<T, TReduction, WarpImplementation>(value);
+            PTXWarpExtensions.AllReduce<T, TReduction>(value);
 
         #endregion
 
@@ -93,14 +46,14 @@ namespace ILGPU.Algorithms.IL
         public static T ExclusiveScan<T, TScanOperation>(T value)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            ExclusiveScan<T, TScanOperation, WarpImplementation>(value);
+            PTXWarpExtensions.ExclusiveScan<T, TScanOperation>(value);
 
         /// <summary cref="WarpExtensions.InclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T InclusiveScan<T, TScanOperation>(T value)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            InclusiveScan<T, TScanOperation, WarpImplementation>(value);
+            PTXWarpExtensions.InclusiveScan<T, TScanOperation>(value);
 
         #endregion
     }
