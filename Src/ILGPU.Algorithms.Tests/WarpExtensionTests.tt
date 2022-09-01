@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: WarpExtensionTests.tt/WarpExtensionTests.cs
@@ -22,7 +22,7 @@ using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
-#pragma warning disable xUnit1026 
+#pragma warning disable xUnit1026
 
 namespace ILGPU.Algorithms.Tests
 {
@@ -120,7 +120,7 @@ namespace ILGPU.Algorithms.Tests
 
             var sequence = sequencer.ComputeSequence(start, stepSize, size);
             input.CopyFromCPU(stream, sequence);
-            
+
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
 
             T expected = CalcValue(sequence, func);
@@ -151,9 +151,9 @@ namespace ILGPU.Algorithms.Tests
 
             var sequence = sequencer.ComputeSequence(start, stepSize, size);
             input.CopyFromCPU(stream, sequence);
-            
+
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
-            
+
             var expected = Enumerable.Repeat(CalcValue(sequence, func), size).ToArray();
             Verify(output.View, expected);
         }
@@ -179,7 +179,7 @@ namespace ILGPU.Algorithms.Tests
 
             var sequence = sequencer.ComputeSequence(start, stepSize, size);
             input.CopyFromCPU(stream, sequence);
-            
+
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
 
             T[] expected = CalcValues(sequence, func, ScanKind.Exclusive);
@@ -208,7 +208,7 @@ namespace ILGPU.Algorithms.Tests
 
             var sequence = sequencer.ComputeSequence(start, stepSize, size);
             input.CopyFromCPU(stream, sequence);
-            
+
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
 
             T[] expected = CalcValues(sequence, func, ScanKind.Exclusive);
@@ -238,13 +238,13 @@ namespace ILGPU.Algorithms.Tests
 
             var sequence = sequencer.ComputeSequence(start, stepSize, size);
             input.CopyFromCPU(stream, sequence);
-            
+
             Execute<KernelConfig, T, TFunction>((1, size), input.View, output.View);
-            
+
             T[] expected = CalcValues(sequence, func, ScanKind.Inclusive);
             Verify(output.View, expected);
         }
-        
+
         #region Helper Methods
 
         private static T CalcValue<T, TFunction>(T[] values, TFunction func)
@@ -272,7 +272,7 @@ namespace ILGPU.Algorithms.Tests
 
             if (kind == ScanKind.Exclusive)
             {
-                T[] zero = { default }; 
+                T[] zero = { default };
                 result = zero.Concat(result.Take(result.Length - 1)).ToArray();
             }
             return result;
