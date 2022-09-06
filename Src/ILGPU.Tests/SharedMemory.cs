@@ -245,13 +245,79 @@ namespace ILGPU.Tests
             var expected = Enumerable.Repeat(42, groupSize).ToArray();
             Verify(buffer.View, expected);
         }
+        
+        internal static void MultiDimensionalSharedMemoryKernel2DDenseX(
+            ArrayView1D<int, Stride1D.Dense> output)
+        {
+            var sharedMemory = ILGPU.SharedMemory.Allocate2DDenseX<int>(
+                new Index2D(20, 100));
+            if (Group.IsFirstThread) {
+                sharedMemory[0, 0] = 0;
+                sharedMemory[1, 0] = 0;
+            }
+            if (Grid.GlobalIndex.X < 100) {
+                sharedMemory[0, Grid.GlobalIndex.X] = Grid.GlobalIndex.X;
+                sharedMemory[1, Grid.GlobalIndex.X] = 7*Grid.GlobalIndex.X;
+            }
+            Group.Barrier();
+            if (Grid.GlobalIndex.X < 100)
+                output[Grid.GlobalIndex.X] = sharedMemory[1, Grid.GlobalIndex.X];
+            else
+                output[Grid.GlobalIndex.X] = sharedMemory[0, 0];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(MultiDimensionalSharedMemoryKernel2DDenseX))]
+        public void MultiDimensionalSharedMemory2DDenseX()
+        {
+            int groupSize = Accelerator.MaxNumThreadsPerGroup;
+            using var buffer = Accelerator.Allocate1D<int>(groupSize);
+            Execute(new KernelConfig(1, groupSize), buffer.View);
+            var expected = 
+                Enumerable.Range(0, groupSize).Select(
+                    x => x < 100 ? 7*x : 0).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void MultiDimensionalSharedMemoryKernel2DDenseY(
+            ArrayView1D<int, Stride1D.Dense> output)
+        {
+            var sharedMemory = ILGPU.SharedMemory.Allocate2DDenseY<int>(
+                new Index2D(100, 20));
+            if (Group.IsFirstThread) {
+                sharedMemory[0, 0] = 0;
+                sharedMemory[0, 1] = 0;
+            }
+            if (Grid.GlobalIndex.X < 100) {
+                sharedMemory[Grid.GlobalIndex.X, 0] = Grid.GlobalIndex.X;
+                sharedMemory[Grid.GlobalIndex.X, 1] = 7*Grid.GlobalIndex.X;
+            }
+            Group.Barrier();
+            if (Grid.GlobalIndex.X < 100)
+                output[Grid.GlobalIndex.X] = sharedMemory[Grid.GlobalIndex.X, 1];
+            else
+                output[Grid.GlobalIndex.X] = sharedMemory[0, 0];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(MultiDimensionalSharedMemoryKernel2DDenseY))]
+        public void MultiDimensionalSharedMemory2DDenseY()
+        {
+            int groupSize = Accelerator.MaxNumThreadsPerGroup;
+            using var buffer = Accelerator.Allocate1D<int>(groupSize);
+            Execute(new KernelConfig(1, groupSize), buffer.View);
+            var expected = 
+                Enumerable.Range(0, groupSize).Select(
+                    x => x < 100 ? 7*x : 0).ToArray();
+            Verify(buffer.View, expected);
+        }
 
         internal static void MultiDimensionalSharedMemoryKernel3D(
             ArrayView1D<int, Stride1D.Dense> output)
         {
             var sharedMemory = ILGPU.SharedMemory.Allocate3D<int, Stride3D.DenseZY>(
                 new Index3D(5, 7, 3),
-                new Stride3D.DenseZY(5 * 7, 7));
+                new Stride3D.DenseZY(3 * 7, 3));
             if (Group.IsFirstThread)
                 sharedMemory[2, 6, 1] = 42;
             Group.Barrier();
@@ -261,6 +327,52 @@ namespace ILGPU.Tests
         [Fact]
         [KernelMethod(nameof(MultiDimensionalSharedMemoryKernel3D))]
         public void MultiDimensionalSharedMemory3D()
+        {
+            int groupSize = Accelerator.MaxNumThreadsPerGroup;
+            using var buffer = Accelerator.Allocate1D<int>(groupSize);
+            Execute(new KernelConfig(1, groupSize), buffer.View);
+
+            var expected = Enumerable.Repeat(42, groupSize).ToArray();
+            Verify(buffer.View, expected);
+        }
+        
+        internal static void MultiDimensionalSharedMemoryKernel3DDenseXY(
+            ArrayView1D<int, Stride1D.Dense> output)
+        {
+            var sharedMemory = ILGPU.SharedMemory.Allocate3DDenseXY<int>(
+                new Index3D(11, 17, 13));
+            if (Group.IsFirstThread)
+                sharedMemory[4, 5, 2] = 42;
+            Group.Barrier();
+            output[Grid.GlobalIndex.X] = sharedMemory[4, 5, 2];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(MultiDimensionalSharedMemoryKernel3DDenseXY))]
+        public void MultiDimensionalSharedMemory3DDenseXY()
+        {
+            int groupSize = Accelerator.MaxNumThreadsPerGroup;
+            using var buffer = Accelerator.Allocate1D<int>(groupSize);
+            Execute(new KernelConfig(1, groupSize), buffer.View);
+
+            var expected = Enumerable.Repeat(42, groupSize).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void MultiDimensionalSharedMemoryKernel3DDenseZY(
+            ArrayView1D<int, Stride1D.Dense> output)
+        {
+            var sharedMemory = ILGPU.SharedMemory.Allocate3DDenseZY<int>(
+                new Index3D(11, 17, 13));
+            if (Group.IsFirstThread)
+                sharedMemory[4, 5, 2] = 42;
+            Group.Barrier();
+            output[Grid.GlobalIndex.X] = sharedMemory[4, 5, 2];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(MultiDimensionalSharedMemoryKernel3DDenseZY))]
+        public void MultiDimensionalSharedMemory3DDenseZY()
         {
             int groupSize = Accelerator.MaxNumThreadsPerGroup;
             using var buffer = Accelerator.Allocate1D<int>(groupSize);
