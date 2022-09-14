@@ -51,10 +51,7 @@ function findMatches(query, callback) {
     callback(matches);
 }
 
-// https://github.com/twitter/typeahead.js/blob/master/doc/jquery_typeahead.md
 $('#search .typeahead').typeahead({
-        // hint: true,
-        // highlight: true,
         minLength: 1,
         classNames: {
             menu: 'bg-white',
