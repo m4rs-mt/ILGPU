@@ -1,4 +1,4 @@
-﻿# Primer 02: Memory
+# Primer 02: Memory
 
 The following is my understanding of the performance quirks with GPUs due to memory and cache and coalescent memory access.
 Just like with Primer 01, if you have a decent understanding of CUDA or OpenCL you can skip this.

@@ -1,4 +1,4 @@
-﻿# What is ILGPU
+# What is ILGPU
 
 ILGPU provides an interface for programming GPUs that uses a sane programming language, C#. 
 ILGPU takes your normal C# code (perhaps with a few small changes) and transforms it into either

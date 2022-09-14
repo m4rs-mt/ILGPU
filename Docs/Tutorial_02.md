@@ -1,4 +1,4 @@
-﻿# Tutorial 02 MemoryBuffers and ArrayViews
+# Tutorial 02 MemoryBuffers and ArrayViews
 
 Welcome to the seccond ILGPU tutorial. In this tutorial we will cover the basics
  of the Memory in ILGPU. In the best case, C# programmers will think of memory 

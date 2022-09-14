@@ -1,4 +1,4 @@
-﻿# Tutorial 01 Context, Device, and Accelerators
+# Tutorial 01 Context, Device, and Accelerators
 
 Welcome to the first ILGPU tutorial! In this tutorial we will cover the basics of the Context, Device, and Accelerator objects.
 

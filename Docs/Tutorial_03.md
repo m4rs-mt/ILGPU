@@ -1,4 +1,4 @@
-﻿# Tutorial 03 Kernels and Simple Programs.
+# Tutorial 03 Kernels and Simple Programs.
 In this tutorial we actually do work on the GPU! 
 
 ## Lets start with an example.

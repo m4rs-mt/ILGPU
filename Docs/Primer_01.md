@@ -1,4 +1,4 @@
-﻿# Primer 01: Code
+# Primer 01: Code
 This page will provide a quick rundown of the basics of how kernels (think GPU programs) run.
 If you are already familiar with CUDA or OpenCL programs you can probably skip this.
 
