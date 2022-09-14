@@ -1,0 +1,52 @@
+{% assign page_url = page.url | relative_url %}
+{% capture url %}{% link index.html %}{% endcapture %}
+{% assign index_url = url | relative_url %}
+{% assign its = site.docs | where: "path", site.data.sidebar.main.path %}
+{% for it in its %}
+    {% assign docs_url = it.url | relative_url %}
+{% endfor %}
+{% capture url %}{% link milestones.html %}{% endcapture %}
+{% assign milestones_url = url | relative_url %}
+{% capture url %}{% link releases.html %}{% endcapture %}
+{% assign releases_url = url | relative_url %}
+
+{% comment %}<header id="header" class="fixed-top {% if page_url != index_url %}header-inner-pages{% endif %}">{% endcomment %}
+<header id="header" class="fixed-top">
+    <div class="container d-flex align-items-center">
+
+        <a href="{{ index_url }}" class="logo me-auto"></a>
+
+        <nav id="navbar" class="navbar">
+            <ul>
+                <li class="dropdown">
+                    <a href="#" class="{% if page_url == index_url %}active{% endif %}"><span>About</span> <i
+                                class="bi bi-chevron-down"></i></a>
+                    <ul>
+                        <li><a href="{{ '#learn-more' | relative_url }}" class="scrollto">Learn More</a></li>
+                        <li><a href="{{ '#highlights' | relative_url }}" class="scrollto">Highlights</a></li>
+                        <li><a href="{{ '#features' | relative_url }}" class="scrollto">Features</a></li>
+                        <li><a href="{{ '#news' | relative_url }}" class="scrollto">News</a></li>
+                        <li><a href="{{ '#faq' | relative_url }}" class="scrollto">FAQ</a></li>
+                    </ul>
+                </li>
+
+                <li class="dropdown">
+                    <a href="#"
+                       class="{% if page_url == releases_url or page_url == milestones_url %}active{% endif %}"><span>Project</span>
+                        <i class="bi bi-chevron-down"></i></a>
+                    <ul>
+                        <li><a target="_blank" href="{{ site.social_links.github }}">Sourcecode</a></li>
+                        <li><a href="{{ releases_url }}">Releases</a></li>
+                        <li><a href="{{ milestones_url }}">Milestones</a></li>
+                    </ul>
+                </li>
+
+                <li><a class="nav-link {% if page_url contains "docs/" %}active{% endif %}"
+                       href="{{ docs_url }}">Documentation</a></li>
+                <li><a class="nav-link" target="_blank" href="{{ site.social_links.discord }}">Discord</a></li>
+                <li><a class="getstarted scrollto" href="{{ '#cta' | relative_url }}">Get Started</a></li>
+            </ul>
+            <i class="bi bi-list mobile-nav-toggle"></i>
+        </nav>
+    </div>
+</header><!-- End Header -->

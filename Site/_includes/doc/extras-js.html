@@ -1,0 +1,24 @@
+<!-- Dark Theme -->
+{% if site.dark_mode.enabled %}
+    <script defer src="{{ "assets/js/theme-switcher.js" | relative_url }}"></script>
+{% endif %}
+<!-- Dark Theme -->
+
+<!-- Search Feature -->
+{% if site.search.enabled %}
+    <script defer src="{{ "assets/vendor/jquery/jquery-3.6.0.min.js" | relative_url }}"></script>
+    <script defer src="{{ "assets/vendor/typeahead/typeahead.bundle.js" | relative_url }}"></script>
+    <script defer src="{{ "assets/vendor/lunr/lunr.js" | relative_url }}"></script>
+    <script defer src="{{ "assets/js/search.js" | relative_url }}"></script>
+{% endif %}
+<!-- Search Feature -->
+
+<!-- Code Highlighting -->
+<script defer src="{{ "assets/vendor/highlight/highlight.min.js" | relative_url }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        hljs.highlightAll();
+    })
+</script>
+<script defer src="{{ "assets/vendor/prism/prism.js" | relative_url }}"></script>
+<!-- Code Highlighting -->
