@@ -7,7 +7,8 @@ The global optimization process can be controlled with the enumeration `Optimiza
 This level can be specified by passing the desired level to the `Optimize` method of `Context.Builder`.
 If the optimization level is not explicitly specified, the level is automatically set to `OptimizationLevel.O1`.
 
-The `OptimizationLevel.O2` level uses additional transformations that increase compile time but yield potentially better GPU code.
+The `OptimizationLevel.O2` level uses additional transformations that increase compile time but yield potentially better
+GPU code.
 For best performance, it is recommended using this mode in `Release` builds only.
 
 ## Internal Caches
@@ -22,7 +23,8 @@ If you do not use the corresponding `MemoryBufferCache`s, you should not get int
 Use `Context.ClearCache(ClearCacheMode.Everything)` to clear all internal caches to recover allocated memory.
 In addition, each accelerator has its own cache for type information and kernel arguments.
 Use `Accelerator.ClearCache(ClearCacheMode.Everything)` to clear the cache on the desired accelerator.
-**Note that clearing the caches is not thread-safe in general; you have to ensure** that there are **no running background threads** trying to compile/load/allocate ILGPU related objects while clearing the caches.
+**Note that clearing the caches is not thread-safe in general; you have to ensure** that there are **no running
+background threads** trying to compile/load/allocate ILGPU related objects while clearing the caches.
 
 ## Backends
 
@@ -34,41 +36,53 @@ Accelerators already carry associated and configured backends that are used for 
 
 ## IRContext
 
-An `IRContext` manages and caches intermediate-representation (IR) code, which can be reused during the compilation process.
+An `IRContext` manages and caches intermediate-representation (IR) code, which can be reused during the compilation
+process.
 It can be created using a general ILGPU `Context` instance.
 An `IRContext` is not tied to a specific `Backend` instance and can be reused across different hardware architectures.
 
-Note that the main ILGPU `Context` already has an associated `IRContext` that is used for all high-level kernel-loading functions.
+Note that the main ILGPU `Context` already has an associated `IRContext` that is used for all high-level kernel-loading
+functions.
 Consequently, users are not required to manage their own contexts in general.
 
 ## Compiling Kernels
 
-Kernels can be compiled manually by requesting a code-generation operation from the backend yielding a `CompiledKernel` object.
+Kernels can be compiled manually by requesting a code-generation operation from the backend yielding a `CompiledKernel`
+object.
 The resulting kernel object can be loaded by an `Accelerator` instance from the runtime system.
-Alternatively, you can cast a `CompiledKernel` object to its appropriate backend-specific counterpart method in order to access the generated and target-specific assembly code.
+Alternatively, you can cast a `CompiledKernel` object to its appropriate backend-specific counterpart method in order to
+access the generated and target-specific assembly code.
 
-*Note that the default MSIL backend does not provide additional insights, since the `ILBackend` does not require custom assembly code.*
+*Note that the default MSIL backend does not provide additional insights, since the `ILBackend` does not require custom
+assembly code.*
 
-We recommend that you use the [high-level kernel-loading concepts of ILGPU](ILGPU-Kernels) instead of the low-level interface.
+We recommend that you use the [high-level kernel-loading concepts of ILGPU](02_Kernels.md) instead of the low-level
+interface.
 
 ## Loading Compiled Kernels
 
 Compiled kernels have to be loaded by an accelerator first before they can be executed.
-See the [ILGPU low-level kernel sample](https://github.com/m4rs-mt/ILGPU.Samples/tree/master/Src/LowLevelKernelCompilation) for details.
-**Note: manually loaded kernels should be disposed manually to have full control over the lifetime of the kernel function in driver memory. You can also rely on the .Net GC to dispose kernels in the background.**
+See
+the [ILGPU low-level kernel sample](https://github.com/m4rs-mt/ILGPU.Samples/tree/master/Src/LowLevelKernelCompilation)
+for details.
+**Note: manually loaded kernels should be disposed manually to have full control over the lifetime of the kernel
+function in driver memory. You can also rely on the .Net GC to dispose kernels in the background.**
 
 An accelerator object offers different functions to load and configure kernels:
+
 * `LoadAutoGroupedKernel`
-   Loads an implicitly grouped kernel with an automatically determined group size
+  Loads an implicitly grouped kernel with an automatically determined group size
 * `LoadImplicitlyGroupedKernel`
-   Loads an implicitly grouped kernel with a custom group size
+  Loads an implicitly grouped kernel with a custom group size
 * `LoadKernel`
-   Loads explicitly and implicitly grouped kernels. However, implicitly grouped kernels will be launched with a group size that is equal to the warp size
+  Loads explicitly and implicitly grouped kernels. However, implicitly grouped kernels will be launched with a group
+  size that is equal to the warp size
 
 ## Direct Kernel Launching
 
 A loaded kernel can be dispatched using the `Launch` method.
-However, the dispatch method takes an object-array as an argument, all arguments are boxed upon invocation and there is not type-safety at this point.
+However, the dispatch method takes an object-array as an argument, all arguments are boxed upon invocation and there is
+not type-safety at this point.
 For performance reasons, we strongly recommend the use of typed kernel launchers that avoid boxing.
 
 ```c#
@@ -104,13 +118,17 @@ class ...
 
 Kernel launchers are delegates that provide an alternative to direct kernel invocations.
 These launchers are specialized methods that are dynamically generated and specialized for every kernel.
-They avoid boxing and realize [high-performance kernel dispatching](https://github.com/m4rs-mt/ILGPU.Samples/blob/master/Src/SimpleKernelDelegate).
+They avoid boxing and
+realize [high-performance kernel dispatching](https://github.com/m4rs-mt/ILGPU.Samples/blob/master/Src/SimpleKernelDelegate)
+.
 You can create a custom kernel launcher using the `CreateLauncherDelegate` method.
 It Creates a specialized launcher for the associated kernel.
 Besides all required kernel parameters, it also receives a parameter of type `AcceleratorStream` as an argument.
 
-Note that high-level API kernel loading functionality that simply returns a launcher delegate instead of a kernel object.
-These loading methods work similarly to the these versions, e.g. `LoadAutoGroupedStreamKernel` loads a kernel with a custom delegate type that is linked to the default accelerator stream.
+Note that high-level API kernel loading functionality that simply returns a launcher delegate instead of a kernel
+object.
+These loading methods work similarly to the these versions, e.g. `LoadAutoGroupedStreamKernel` loads a kernel with a
+custom delegate type that is linked to the default accelerator stream.
 
 ```c#
 class ...

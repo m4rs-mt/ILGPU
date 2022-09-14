@@ -1,6 +1,8 @@
 Dynamic specialization allows the definition of kernels that will be `specialized/optimized` during runtime.
-This allows you to define kernels with `constant values` that are not known at compile time of the kernel or application.
-Without knowing the exact values (or ranges of values) of certain parameters, the compiler's optimization capabilities are limited, e.g. with regard to constant propagation and loop unrolling.
+This allows you to define kernels with `constant values` that are not known at compile time of the kernel or
+application.
+Without knowing the exact values (or ranges of values) of certain parameters, the compiler's optimization capabilities
+are limited, e.g. with regard to constant propagation and loop unrolling.
 
 Similar functionality can be achieved by using generic types in a clever way.
 However, dynamic specialization is much more convenient and easier to use.
