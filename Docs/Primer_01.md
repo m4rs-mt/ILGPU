@@ -81,7 +81,7 @@ If you don't know about Parallel.For it is a function that provides a really eas
 that takes an index. Then the function is called from some thread with an index. There are no guarantees
 about what core an index is run on, or what order the threads are run, but you get a **very** simple
 interface for running parallel functions.
-```C#
+```c#
 using System;
 using System.Threading.Tasks;
 
@@ -103,7 +103,7 @@ public static class Program
 }
 ```
 Running the same program as a kernel is **very** similar:
-```C#
+```c#
 using ILGPU;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
