@@ -5,7 +5,7 @@ In this tutorial we actually do work on the GPU!
 I think the easiest way to explain this is taking the simplest example I can think of and decomposing it. 
 
 This is a modified version of the sample from Primer 01.
-```C#
+```c#
 using ILGPU;
 using ILGPU.Runtime;
 using System;
@@ -57,7 +57,7 @@ public static class Program
 ## The following parts already have detailed explainations in other tutorials:
 
 #### [Context and an accelerator.](Tutorial_01.md)
-```C#
+```c#
 Context context = Context.CreateDefault();
 Accelerator accelerator = context.GetPreferredDevice(preferCPU: false)
                             .CreateAccelerator(context);
@@ -65,14 +65,14 @@ Accelerator accelerator = context.GetPreferredDevice(preferCPU: false)
 Creates an Accelerator using GetPreferredDevice to hopefully get the "best" device.
 
 #### [Some kind of data and output device memory](Tutorial_02.md)
-```C#
+```c#
 MemoryBuffer1D<int, Stride1D.Dense> deviceData = accelerator.Allocate1D(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
 MemoryBuffer1D<int, Stride1D.Dense> deviceOutput = accelerator.Allocate1D<int>(10_000);
 ```
 
 Loads some example data into the device memory, using dense striding.
 
-```C#
+```c#
 int[] hostOutput = deviceOutput.GetAsArray1D();
 ```
 
@@ -82,7 +82,7 @@ After we run the kernel we need to get the data as host memory to use it in CPU 
 Ok now we get to the juicy bits.
 
 #### The kernel function definition.
-```C#
+```c#
 static void Kernel(Index1D i, ArrayView<int> data, ArrayView<int> output)
 {
     output[i] = data[i % data.Length];
@@ -122,7 +122,7 @@ try to avoid branches<sup>1</sup> and code that would change in different kernel
 to avoid is threads that are running different instructions, this is called divergence.
 
 #### The loaded instance of a kernel.
-```C#
+```c#
 Action<Index1D, ArrayView<int>, ArrayView<int>> loadedKernel = 
     accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<int>, ArrayView<int>>(Kernel);
 ```
@@ -136,7 +136,7 @@ explicitly compile it.
 If you are having issues compiling code try testing with the CPUAccelerator.
 
 #### The actual kernel call and device synchronize.
-```C#
+```c#
 loadedKernel((int)deviceOutput.Length, deviceData.View, deviceOutput.View);
 accelerator.Synchronize();
 ```

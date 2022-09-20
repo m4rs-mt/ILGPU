@@ -180,7 +180,7 @@ For a single device: context.GetPreferredDevice(preferCPU);
 
 For multiple devices: context.GetPreferredDevices(preferCPU, matchingDevicesOnly);
 
-```C#
+```c#
 using System;
 using ILGPU;
 using ILGPU.Runtime;
