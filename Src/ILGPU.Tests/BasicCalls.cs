@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicCalls.cs
@@ -12,6 +12,7 @@
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
@@ -301,7 +302,7 @@ namespace ILGPU.Tests
         {
             using var buffer = Accelerator.Allocate1D<int>(length);
             var sourceData = Enumerable.Range(0, length).Select(t =>
-                new Int2(t, t + 1 )).ToArray();
+                new Int2(t, t + 1)).ToArray();
             var expected = Enumerable.Range(1, length).ToArray();
             using (var source = Accelerator.Allocate1D<Int2>(length))
             {
@@ -310,6 +311,34 @@ namespace ILGPU.Tests
             }
 
             Verify(buffer.View, expected);
+        }
+
+        internal static void ConstructorCallKernel(
+            Index1D index,
+            ArrayView1D<Vector4, Stride1D.Dense> output)
+        {
+            output[index] = index.X switch
+            {
+                0 => new Vector4(0),
+                1 => new Vector4(1),
+                2 => new Vector4(2),
+                _ => new Vector4(index.X),
+            };
+        }
+
+        [Fact]
+        [KernelMethod(nameof(ConstructorCallKernel))]
+        public void ConstructorCall()
+        {
+            using var output = Accelerator.Allocate1D<Vector4>(Length);
+            output.MemSetToZero(Accelerator.DefaultStream);
+            Execute(Length, output.View);
+
+            var expected =
+                Enumerable.Range(0, Length)
+                .Select(x => new Vector4(x))
+                .ToArray();
+            Verify(output.View, expected);
         }
     }
 }
