@@ -241,9 +241,21 @@ namespace ILGPU.Backends.OpenCL
         protected static string GetMethodName(Method method)
         {
             var handleName = method.Handle.Name;
-            return method.HasFlags(MethodFlags.External)
-                ? handleName
-                : handleName + "_" + method.Id;
+            if (method.HasFlags(MethodFlags.External))
+            {
+                return handleName;
+            }
+            else
+            {
+                // Constructor names in MSIL start with a dot. This is a reserved
+                // character that cannot be used in the OpenCL function name. Replace
+                // the dot with an underscore, assuming that the rest of the name is
+                // using valid characters. Appending the IR node identifier will ensure
+                // that there are no conflicts.
+                return handleName.StartsWith(".", System.StringComparison.Ordinal)
+                    ? handleName.Substring(1) + "_" + method.Id
+                    : handleName + "_" + method.Id;
+            }
         }
 
         /// <summary>
