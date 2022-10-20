@@ -26,7 +26,9 @@ namespace ILGPU.Runtime.Cuda
         /// Performs a Cuda memset operation.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="stream">The Cuda stream to use (must not be null)</param>
+        /// <param name="stream">
+        /// The Cuda stream to use (can be null to preserve backwards compatibility).
+        /// </param>
         /// <param name="value">The value to write into the buffer.</param>
         /// <param name="targetView">The target view to write to.</param>
         public static void CudaMemSet<T>(
@@ -41,7 +43,7 @@ namespace ILGPU.Runtime.Cuda
                     RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
 
-            using var binding = stream.Accelerator.BindScoped();
+            using var binding = stream?.Accelerator.BindScoped();
             CudaException.ThrowIfFailed(
                 CurrentAPI.Memset(
                     targetView.LoadEffectiveAddressAsPtr(),
@@ -54,7 +56,9 @@ namespace ILGPU.Runtime.Cuda
         /// Performs a Cuda copy operation.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="stream">The Cuda stream to use (must not be null)</param>
+        /// <param name="stream">
+        /// The Cuda stream to use (can be null to preserve backwards compatibility).
+        /// </param>
         /// <param name="sourceView">The source view to copy from.</param>
         /// <param name="targetView">The target view to copy to.</param>
         public static void CudaCopy<T>(
@@ -80,7 +84,7 @@ namespace ILGPU.Runtime.Cuda
             // a) Copy from CPU to GPU
             // b) Copy from GPU to CPU
             // c) Copy from GPU to GPU
-            using var binding = stream.Accelerator.BindScoped();
+            using var binding = stream?.Accelerator.BindScoped();
             CudaException.ThrowIfFailed(
                 CurrentAPI.MemcpyAsync(
                     targetAddress,
