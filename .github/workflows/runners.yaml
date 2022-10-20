@@ -45,7 +45,7 @@ jobs:
             fi
             sleep 1
           done
-          echo ::set-output name=skipped::$skipped
+          echo "skipped=$skipped" >> $GITHUB_OUTPUT
 
   manage-runners:
     runs-on: ubuntu-latest
