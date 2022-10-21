@@ -1,0 +1,19 @@
+name: Nudge
+
+on:
+  workflow_run:
+    workflows: ['CI','CodeQL','Update Copyright Year']
+    types: [completed]
+    branches: [master]
+
+
+jobs:
+  nudge:
+    runs-on: ubuntu-latest
+    environment: nudge
+    if: (!(github.event.workflow_run.name == 'Update Copyright Year' && github.event.workflow_run.event == 'push'))
+    steps:
+      - name: Send notification
+        uses: pavlovic-ivan/octo-nudge@v1
+        with:
+          webhooks: ${{ secrets.NUDGE_WEBHOOKS }}
