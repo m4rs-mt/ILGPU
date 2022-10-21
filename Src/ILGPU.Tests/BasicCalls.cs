@@ -336,9 +336,41 @@ namespace ILGPU.Tests
 
             var expected =
                 Enumerable.Range(0, Length)
-                .Select(x => new Vector4(x))
-                .ToArray();
+                    .Select(x => new Vector4(x))
+                    .ToArray();
             Verify(output.View, expected);
+        }
+
+        internal static void SwitchInlineKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> input,
+            ArrayView1D<int, Stride1D.Dense> output)
+        {
+            switch (input[index])
+            {
+                case 0:
+                    output[index] = 11;
+                    break;
+                case 1:
+                    output[index] = 22;
+                    break;
+                case 2:
+                    output[index] = 33;
+                    break;
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(SwitchInlineKernel))]
+        public void SwitchInline()
+        {
+            var sourceData = new int[] { 0, 1, 2 };
+            using var buffer = Accelerator.Allocate1D(sourceData);
+            using var target = Accelerator.Allocate1D<int>(sourceData.Length);
+
+            Execute(sourceData.Length, buffer.View, target.View);
+            var expected = new int[] { 11, 22, 33 };
+            Verify(target.View, expected);
         }
     }
 }
