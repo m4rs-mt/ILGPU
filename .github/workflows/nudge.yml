@@ -11,7 +11,7 @@ jobs:
   nudge:
     runs-on: ubuntu-latest
     environment: nudge
-    if: (!(github.event.workflow_run.name == 'Update Copyright Year' && github.event.workflow_run.event == 'push'))
+    if: (!github.event.repository.fork && !(github.event.workflow_run.name == 'Update Copyright Year' && github.event.workflow_run.event == 'push'))
     steps:
       - name: Send notification
         uses: pavlovic-ivan/octo-nudge@v1
