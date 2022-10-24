@@ -31,7 +31,7 @@ class ...
         // Create shared memory configuration using a custom element type.
         // Note that this does not need to be the same type that is used in the scope of the kernel.
         // Therefore, the following two configurations will allocate the same amount of shared memory:
-        var config = SharedMemoryConfig.RequestDynamic<byte>(<GroupSize> * sizeof(byte));
+        var config = SharedMemoryConfig.RequestDynamic<byte>(<GroupSize> * sizeof(int));
         var config2 = SharedMemoryConfig.RequestDynamic<int>(<GroupSize>);
 
         ...

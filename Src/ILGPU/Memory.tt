@@ -86,4 +86,65 @@ namespace ILGPU
 
 <#      } #>
 <#  } #>
+
+
+<#
+var axes = new string[]
+{
+    "X",
+    "Y",
+};
+#>
+
+<#  foreach (var axis in axes) { #>
+    partial class SharedMemory
+    {
+        /// <summary>
+        /// Allocates a 2D chunk of shared memory with <#= axis #>
+        /// as the leading dimension.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="extent">The number of elements to allocate.</param>
+        /// <returns>An allocated 2D buffer on shared memory.</returns>
+        public static ArrayView2D<T, Stride2D.Dense<#= axis #>> 
+            Allocate2DDense<#= axis #><T>(
+            in Index2D extent)
+            where T : unmanaged =>
+            Allocate2D<T, Stride2D.Dense<#= axis #>> (
+                extent,
+                new Stride2D.Dense<#= axis #>(extent.<#= axis #>));
+    }
+<#  } #>
+
+<#
+var twoaxes = new (string, string, string)[]
+{
+    ("XY", "extent.X", "extent.X * extent.Y"),
+    ("ZY", "extent.Z * extent.Y", "extent.Z")
+};
+#>
+
+<#  foreach (var (axis, axis1, axis2) in twoaxes) { #>
+    partial class SharedMemory
+    {
+        /// <summary>
+        /// Allocates a 3D chunk of shared memory with <#= axis #> 
+        /// as the leading dimensions.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="extent">The number of elements to allocate.</param>
+        /// <returns>An allocated 3D buffer on shared memory.</returns>
+        /// <remarks>
+        /// Since <#= axis #> are the leading dimension, combined dimension 
+        /// (multiplied sizes) must be less or equal to <see cref="int.MaxValue"/>.
+        /// </remarks>
+        public static ArrayView3D<T, Stride3D.Dense<#= axis #>> 
+            Allocate3DDense<#= axis #><T>(
+            in Index3D extent)
+            where T : unmanaged =>
+            Allocate3D<T, Stride3D.Dense<#= axis #>> (
+                extent,
+                new Stride3D.Dense<#= axis #>(<#= axis1 #>, <#= axis2 #>));
+    }
+<#  } #>
 }

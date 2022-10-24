@@ -4,6 +4,7 @@ DebugTests
 DisassemblerTests
 EnumValues
 FixedBuffers
+GetKernelTests
 Indices
 KernelEntryPoints
 MemoryBufferOperations
