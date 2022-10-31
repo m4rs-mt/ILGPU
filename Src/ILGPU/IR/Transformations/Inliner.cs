@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Inliner.cs
@@ -147,7 +147,7 @@ namespace ILGPU.IR.Transformations
                     {
                         currentBlock = successors[0];
                         for (int i = 1, e = successors.Length; i < e; ++i)
-                            toProcess.Push(successors[1]);
+                            toProcess.Push(successors[i]);
                         continue;
                     }
                 }

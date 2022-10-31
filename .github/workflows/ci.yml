@@ -80,7 +80,7 @@ jobs:
     steps:
       - name: Check if repo is fork
         id: is-fork
-        run: echo "::set-output name=fork::$(gh api repos/${{ github.repository }} | jq .fork)"
+        run: echo "fork=$(gh api repos/${{ github.repository }} | jq .fork)" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup OS matrix
@@ -104,7 +104,7 @@ jobs:
 
           [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda-${{ github.run_id }}-${{ github.run_attempt }}")
 
-          echo "::set-output name=os::$(jq -cn '$ARGS.positional' --args ${os[@]})"
+          echo "os=$(jq -cn '$ARGS.positional' --args ${os[@]})" >> $GITHUB_OUTPUT
     outputs:
       os: ${{ steps.setup-os-matrix.outputs.os }}
 
@@ -173,7 +173,7 @@ jobs:
       - name: Set test flavor
         id: test-flavor
         shell: bash
-        run: echo ::set-output name=flavor::$([[ "${{ matrix.os }}" == cuda-* ]] && echo "Cuda" || echo "CPU")
+        run: echo "flavor=$([[ "${{ matrix.os }}" == cuda-* ]] && echo "Cuda" || echo "CPU")" >> $GITHUB_OUTPUT
 
       - name: Build and test
         run: dotnet test --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger GitHubActions Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }}
@@ -212,8 +212,8 @@ jobs:
             $main_version = "$main_version-$suffix"
           }
 
-          echo "::set-output name=version::$main_version"
-          echo "::set-output name=suffix::$suffix"
+          echo "version=$main_version" >> $env:GITHUB_OUTPUT
+          echo "suffix=$suffix" >> $env:GITHUB_OUTPUT
 
     outputs:
       version: ${{ steps.version.outputs.version }}
