@@ -1,16 +1,18 @@
 # Structs
 
-As we saw in the [memory tutorial](Tutorial_02.md) programs need data.
+As we saw in the [memory tutorial](02_MemoryBuffers-and-ArrayViews.md) programs need data.
 However a problem arises when we use ILGPU because it restricts how you can store, move, allocate, and access data.
 This is mostly due to the fact that ILGPU is turning C# code into lower level languages.
 
 ## How do we deal with this?
+
 *Data is data is data.*
 
 > Note: this example is a console version of the N-body template of my ILGPUView project.
 > When this is more ready I will include a link, but ILGPUView will allow you to see the result in realtime.
 
 ### N-Body Example
+
 ```c#
 using ILGPU;
 using ILGPU.Algorithms;
@@ -253,30 +255,37 @@ public struct Vec3
 ```
 
 ## Ok, this is a long one.
+
 I am not going to explain every line like I did with the kernel example.
 
 I will however explain each struct. Lets start with the easy ones.
 
 ### Vec3 && Particle
 
-These are just simple data structures. C# is super nice lets you create member functions and 
+These are just simple data structures. C# is super nice lets you create member functions and
 constructors for structs.
 
 ### CanvasData
 
-You can just create a struct that holds ArrayViews and pass them to kernels. The issue with this is it seperates the MemoryBuffer and ArrayView into two different places.
-There is nothing wrong with this but I think it leads to messy code. My attempt to fix this is the pattern that HostParticleSystem uses.
+You can just create a struct that holds ArrayViews and pass them to kernels. The issue with this is it seperates the
+MemoryBuffer and ArrayView into two different places.
+There is nothing wrong with this but I think it leads to messy code. My attempt to fix this is the pattern that
+HostParticleSystem uses.
 
 ### ParticleSystem && HostParticleSystem
 
-You need to manage both sides of memory, Host and Device. IDisposable allows you to use the super convenient "using" patterns but requires a class.
+You need to manage both sides of memory, Host and Device. IDisposable allows you to use the super convenient "using"
+patterns but requires a class.
 The solution is simple, have a host side class that creates a device side struct.
 
 ## This sample code works... BUT
-This code can be MUCH faster. 
+
+This code can be MUCH faster.
 
 # Array of Structs VS Struct of Arrays
-The ParticleSystem struct follows a pattern called an array of structs, because its data is stored in an array of structs.
+
+The ParticleSystem struct follows a pattern called an array of structs, because its data is stored in an array of
+structs.
 In RAM the array of structs(Particles) looks like this:
 
 ```
@@ -290,10 +299,12 @@ p1:
     accel
 ```
 
-Consider what happens when the GPU loads the pos value from memory. The GPU is loading multiple pieces of data at a time. 
+Consider what happens when the GPU loads the pos value from memory. The GPU is loading multiple pieces of data at a
+time.
 If the loads are "coherent" or how I think of it "chunked together" they will be MUCH faster.
 
 We can do this my simply having 3 arrays. This causes memory to look like this:
+
 ```
 pos0
 pos1
@@ -306,9 +317,10 @@ accel1
 
 ```
 
-This pattern is called a struct of arrays. 
+This pattern is called a struct of arrays.
 
-As you can see from the example it is much more complex to deal with, but at a particle count of 50,000 it is 5 times faster.
+As you can see from the example it is much more complex to deal with, but at a particle count of 50,000 it is 5 times
+faster.
 
 ```c#
 public class HostParticleSystemStructOfArrays : IDisposable

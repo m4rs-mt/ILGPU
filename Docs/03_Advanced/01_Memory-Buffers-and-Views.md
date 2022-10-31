@@ -2,10 +2,14 @@
 
 `MemoryBuffer` represent allocated memory regions (allocated arrays) of a given value type on specific accelerators.
 Data can be copied to and from any accelerator using sync or async copy operations [using Streams](Streams).
-ILGPU supports linear, 2D and 3D buffers out of the box, whereas nD-buffers can also be allocated and managed using custom index types.
+ILGPU supports linear, 2D and 3D buffers out of the box, whereas nD-buffers can also be allocated and managed using
+custom index types.
 
-Note that `MemoryBuffers` *should be* disposed manually and cannot be passed to kernels; only views to memory regions can be passed to kernels.
-Should be refers to the fact that all memory buffers will be automatically released by either the `GC` or disposing the parent `Accelerator` instance in ILGPU. However, it is **highly recommended** to dispose buffer instances manually in order to have explicit and immediate control over all memory allocations on a GPU device.
+Note that `MemoryBuffers` *should be* disposed manually and cannot be passed to kernels; only views to memory regions
+can be passed to kernels.
+Should be refers to the fact that all memory buffers will be automatically released by either the `GC` or disposing the
+parent `Accelerator` instance in ILGPU. However, it is **highly recommended** to dispose buffer instances manually in
+order to have explicit and immediate control over all memory allocations on a GPU device.
 
 ```c#
 class ...
@@ -71,25 +75,36 @@ class ...
 ```
 
 ### Optimized 32-bit and 64-bit Memory Accesses
+
 All addresses on a 64-bit GPU system will be represented using 64-bit addresses under the hood.
 The only difference between the accesses is whether you use a 32-bit or a 64-bit offset.
-ILGPU differentiates between both scenarios: it uses 32-bit integer math in the case of 32-bit offsets in your program and 64-bit integer math to compute the offsets in the 64-bit world. However, the actual address computation uses 64-bit integer math.
+ILGPU differentiates between both scenarios: it uses 32-bit integer math in the case of 32-bit offsets in your program
+and 64-bit integer math to compute the offsets in the 64-bit world. However, the actual address computation uses 64-bit
+integer math.
 
 In the case of 32-bit offsets it uses ASM sequences like:
+
 ```asm
 mul.wide.u32 %rd4, %r1, 4;
 add.u64      %rd3, %rd1, %rd4;
 ```
-where `r1` is the 32-bit offset computed in your kernel program, `4` is the constant size in bytes of your access (an integer in this case) and `rd1` is the source buffer address in your GPU memory in a 64-bit register. However, if the offset is a 64-bit integer, ILGPU uses an efficient multiply-add operation working on 64-bit integers like:
+
+where `r1` is the 32-bit offset computed in your kernel program, `4` is the constant size in bytes of your access (an
+integer in this case) and `rd1` is the source buffer address in your GPU memory in a 64-bit register. However, if the
+offset is a 64-bit integer, ILGPU uses an efficient multiply-add operation working on 64-bit integers like:
+
 ```asm
 mad.lo.u64    %rd4, %rd3, 4, %rd1;
 ```
 
-When accessing views using 32-bit indices, the resulting index operation will be performed on 32-bit offsets for performance reasons.
+When accessing views using 32-bit indices, the resulting index operation will be performed on 32-bit offsets for
+performance reasons.
 As a result, this operation can overflow when using a 2D 32-bit based `Index2D`, for instance.
-If you already know, that your offsets will not fit into a 32-bit integer, you have to use 64-bit offsets in your kernel.
+If you already know, that your offsets will not fit into a 32-bit integer, you have to use 64-bit offsets in your
+kernel.
 
-If you rely on 64-bit offsets, the emitted indexing operating will be slightly more expensive in terms of register usage and computational overhead (at least conceptually). The actual runtime difference depends on your kernel program.
+If you rely on 64-bit offsets, the emitted indexing operating will be slightly more expensive in terms of register usage
+and computational overhead (at least conceptually). The actual runtime difference depends on your kernel program.
 
 ## Variable Views
 

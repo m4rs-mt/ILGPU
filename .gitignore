@@ -246,6 +246,9 @@ ModelManifest.xml
 # Rider
 .idea/
 
+# macOS
+.DS_Store
+
 # Ignore specific template outputs
 Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
