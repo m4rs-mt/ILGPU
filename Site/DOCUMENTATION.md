@@ -93,7 +93,7 @@ cd ./Site
 
 The first step is to generate the `_docs/` and `_data/` folders.
 
-> This step requires Python 3.7+.
+> This step requires Python 3.9+.
 
 ```shell
 # 1. install requirements
