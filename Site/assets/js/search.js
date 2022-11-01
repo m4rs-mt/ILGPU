@@ -2,6 +2,17 @@
 # Add this header to tell Jekyll to process the file
 ---
 
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2022 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: search.js
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 {% if site.search.enabled %}
 /***** Lunr Index *****/
 const searchDocuments = [
