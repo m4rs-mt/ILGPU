@@ -1,0 +1,26 @@
+---
+layout: default
+---
+
+{% assign extension = page.path | split: '.' | last %}
+
+<main id="main">
+    {% include arsha/breadcrumbs.html subpage=page.title title=page.title %}
+
+    {% if extension == "html" %}
+        {{ content }}
+    {% else %}
+        <!-- ======= Inner Page Section ======= -->
+        <section class="inner-page">
+            <div class="container">
+                {{ content }}
+            </div>
+        </section><!-- End Inner Page Section -->
+    {% endif %}
+
+    {% include latest-news.html title="More News" %}
+</main><!-- End #main -->
+
+{%- if jekyll.environment == 'production' and site.disqus.shortname -%}
+    {%- include addons/disqus.html -%}
+{%- endif -%}

@@ -1,0 +1,13 @@
+---
+# Add this header to tell Jekyll to process the file
+---
+
+<?xml version="1.0" encoding="utf-8"?>
+<browserconfig>
+    <msapplication>
+        <tile>
+            <square150x150logo src="{{ 'assets/img/favicon/mstile-150x150.png' | relative_url }}"/>
+            <TileColor>#2b5797</TileColor>
+        </tile>
+    </msapplication>
+</browserconfig>

@@ -1,0 +1,80 @@
+########################################################################################################################
+# ENV VARS:
+# - GITHUB_TOKEN (default), usage: ${{ secrets.GITHUB_TOKEN }}
+########################################################################################################################
+
+name: Deploy Site with Jekyll, GitHub Pages
+
+on:
+  workflow_dispatch:   # Allows you to run this workflow manually from the Actions tab
+  push: # Runs on pushes targeting the default branch
+    branches:
+      - main
+      - master
+    paths:
+      - 'Docs/**'
+      - 'Site/**'
+  milestone:
+    types: [ created, closed, opened, edited, deleted ]
+  release:
+    types: [ published, unpublished, created, edited, deleted, prereleased, released ]
+
+permissions: # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency: # Allow one concurrent deployment
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build: # Build job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      ##### Python #####
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+      - name: Install Dependencies
+        run: python -m pip install -r Site/scripts/requirements.txt
+      - name: Generate _data/ and _docs/ folders
+        run: |
+          python --version
+          echo "Generating _data/milestones.yml ..."
+          python Site/scripts/generate_milestones.py
+          echo "Generating _data/releases.yml ..."
+          python Site/scripts/generate_releases.py
+          echo "Generating _docs/ and _data/sidebar.yml ..."
+          python Site/scripts/generate_docs.py
+          echo "Generated successfully!"
+        shell: bash
+      ##### Python #####
+      ##### GitHub Pages #####
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./Site
+          destination: ./_site
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+      ##### GitHub Pages #####
+
+  deploy: # Deployment job
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1

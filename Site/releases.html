@@ -1,0 +1,20 @@
+---
+layout: page
+title: Releases
+---
+
+<!-- ======= Inner Page Section ======= -->
+<section class="inner-page">
+    <div class="container">
+        <ul>
+            {% for release in site.data.releases %}
+                <li>
+                    <a href="{{ release.html_url }}" target="_blank">
+                        <h2>{{ release.name }}</h2>
+                    </a>
+                    <p>{{ release.body | markdownify }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</section><!-- End Inner Page Section -->
