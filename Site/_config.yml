@@ -1,5 +1,5 @@
-url: "https://m4rs-mt.github.io"
-baseurl: "/ILGPU"
+url: "https://ilgpu.net"
+baseurl: ""
 
 title: ILGPU - A Modern GPU Compiler for .Net Programs
 name: ILGPU
