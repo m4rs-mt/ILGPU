@@ -258,6 +258,9 @@ namespace ILGPU.Runtime.Cuda
             { CudaArchitecture.SM_80, CudaDriverVersion.FromMajorMinor(11, 0) },
             { CudaArchitecture.SM_86, CudaDriverVersion.FromMajorMinor(11, 1) },
             { CudaArchitecture.SM_87, CudaDriverVersion.FromMajorMinor(11, 4) },
+            { CudaArchitecture.SM_89, CudaDriverVersion.FromMajorMinor(11, 8) },
+
+            { CudaArchitecture.SM_90, CudaDriverVersion.FromMajorMinor(11, 8) },
         };
 
         /// <summary>
@@ -293,6 +296,8 @@ namespace ILGPU.Runtime.Cuda
             { CudaInstructionSet.ISA_74, CudaDriverVersion.FromMajorMinor(11, 4) },
             { CudaInstructionSet.ISA_75, CudaDriverVersion.FromMajorMinor(11, 5) },
             { CudaInstructionSet.ISA_76, CudaDriverVersion.FromMajorMinor(11, 6) },
+            { CudaInstructionSet.ISA_77, CudaDriverVersion.FromMajorMinor(11, 7) },
+            { CudaInstructionSet.ISA_78, CudaDriverVersion.FromMajorMinor(11, 8) },
         };
 
         /// <summary>
