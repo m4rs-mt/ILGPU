@@ -129,6 +129,16 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         public static readonly CudaInstructionSet ISA_76 = new CudaInstructionSet(7, 6);
 
+        /// <summary>
+        /// The 7.7 ISA.
+        /// </summary>
+        public static readonly CudaInstructionSet ISA_77 = new CudaInstructionSet(7, 7);
+
+        /// <summary>
+        /// The 7.8 ISA.
+        /// </summary>
+        public static readonly CudaInstructionSet ISA_78 = new CudaInstructionSet(7, 8);
+
         #endregion
 
         #region Instance
