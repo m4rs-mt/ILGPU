@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                           Copyright (c) 2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ISPIRVType.cs
