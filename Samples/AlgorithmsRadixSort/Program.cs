@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                ILGPU Samples
-//                 Copyright (c) 2017-2019 ILGPU Samples Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                    ILGPU Samples
+//                        Copyright (c) 2021-2022 ILGPU Project
+//                                    www.ilgpu.net
 //
 // File: Program.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details.
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 
 using ILGPU;
 using ILGPU.Algorithms;
@@ -56,7 +56,7 @@ namespace AlgorithmsRadixSort
                 Console.WriteLine($"Performing operations on {accelerator}");
 
                 // Allocate the source buffer that will be sorted later on.
-                var sourceBuffer = accelerator.Allocate1D<int>(32);
+                using var sourceBuffer = accelerator.Allocate1D<int>(32);
                 accelerator.Sequence(
                     accelerator.DefaultStream,
                     sourceBuffer.View,
@@ -67,7 +67,7 @@ namespace AlgorithmsRadixSort
                 // for operations that require a temporary cache.
 
                 // Create a new radix sort instance using a descending int sorting.
-                var radixSort = accelerator.CreateRadixSort<int, AscendingInt32>();
+                var radixSort = accelerator.CreateRadixSort<int, Stride1D.Dense, AscendingInt32>();
 
                 // Compute the required amount of temporary memory
                 var tempMemSize = accelerator.ComputeRadixSortTempStorageSize<int, AscendingInt32>((Index1D)sourceBuffer.Length);
@@ -95,7 +95,7 @@ namespace AlgorithmsRadixSort
                 using (var radixSortProvider = accelerator.CreateRadixSortProvider<int, DescendingInt32>((Index1D)sourceBuffer.Length))
                 {
                     // Create a new radix sort instance using an ascending int sorting.
-                    var radixSortUsingSortProvider = radixSortProvider.CreateRadixSort<int, DescendingInt32>();
+                    var radixSortUsingSortProvider = radixSortProvider.CreateRadixSort<int, Stride1D.Dense, DescendingInt32>();
 
                     // Performs an ascending radix-sort operation
                     radixSortUsingSortProvider(
@@ -111,8 +111,6 @@ namespace AlgorithmsRadixSort
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");
                 }
-
-                sourceBuffer.Dispose();
             }
         }
     }

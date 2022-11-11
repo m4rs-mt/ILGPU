@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPURuntimeContext.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
@@ -171,19 +171,19 @@ namespace ILGPU.Runtime.CPU
         /// <param name="operation">The operation to perform.</param>
         /// <returns>The determined result value for all threads.</returns>
         /// <remarks>
-        /// It internally acquires a lock using <see cref="AquireLock"/> and determines
+        /// It internally acquires a lock using <see cref="AcquireLock"/> and determines
         /// a "main thread" that can execute the given operation in sync with all
         /// other threads. Afterwards, all threads continue and query the result of
         /// the synchronized operation and the main thread releases its lock.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected T PerformLocked<TParent, TOperation, T>(
+        protected T PerformLockStep<TParent, TOperation, T>(
             TParent parent,
             TOperation operation)
             where TParent : IParent
             where TOperation : ILockedOperation<T>
         {
-            bool isMainThread = AquireLock();
+            bool isMainThread = AcquireLock();
             if (isMainThread)
                 operation.ApplySyncInMainThread();
             parent.Barrier();
@@ -198,7 +198,7 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         /// <returns>True, if the current thread is the main thread.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool AquireLock() =>
+        protected bool AcquireLock() =>
             Interlocked.CompareExchange(ref memoryLock, 1, 0) == 0;
 
         /// <summary>
@@ -240,7 +240,7 @@ namespace ILGPU.Runtime.CPU
             where T : unmanaged
         {
             // Allocate a compatible view to perform the actual broadcast operation
-            var view = PerformLocked<
+            var view = PerformLockStep<
                 TParent,
                 GetBroadcastMemory<T>,
                 ArrayView<T>>(

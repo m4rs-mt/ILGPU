@@ -1,17 +1,18 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2019 ILGPU Algorithms Project
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILGroupExtensions.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.ScanReduceOperations;
+using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using static ILGPU.Algorithms.IL.ILFunctions;
 
 namespace ILGPU.Algorithms.IL
 {
@@ -20,44 +21,6 @@ namespace ILGPU.Algorithms.IL
     /// </summary>
     static class ILGroupExtensions
     {
-        #region Nested Types
-
-        /// <summary>
-        /// Implements ILFunctions for groups.
-        /// </summary>
-        private readonly struct GroupImplementation : IILFunctionImplementation
-        {
-            /// <summary>
-            /// Returns 1024.
-            /// </summary>
-            /// <remarks>
-            /// TODO: refine the implementation to avoid a hard-coded constant.
-            /// </remarks>
-            public readonly int MaxNumThreads => 1024;
-
-            /// <summary>
-            /// Returns true if this is the first group thread.
-            /// </summary>
-            public readonly bool IsFirstThread => Group.IsFirstThread;
-
-            /// <summary>
-            /// Returns current linear group index.
-            /// </summary>
-            public readonly int ThreadIndex => Group.LinearIndex;
-
-            /// <summary>
-            /// Returns the linear group dimension.
-            /// </summary>
-            public readonly int ThreadDimension => Group.Dimension.Size;
-
-            /// <summary>
-            /// Performs a group-wide barrier.
-            /// </summary>
-            public readonly void Barrier() => Group.Barrier();
-        }
-
-        #endregion
-
         #region Reduce
 
         /// <summary cref="GroupExtensions.Reduce{T, TReduction}(T)"/>
@@ -71,8 +34,23 @@ namespace ILGPU.Algorithms.IL
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T AllReduce<T, TReduction>(T value)
             where T : unmanaged
-            where TReduction : IScanReduceOperation<T> =>
-            AllReduce<T, TReduction, GroupImplementation>(value);
+            where TReduction : IScanReduceOperation<T>
+        {
+            TReduction reduction = default;
+
+            ref var sharedMemory = ref SharedMemory.Allocate<T>();
+            if (Group.IsFirstThread)
+                sharedMemory = reduction.Identity;
+            Group.Barrier();
+
+            // Reduce inside all warps first
+            var firstLaneReduced = ILWarpExtensions.Reduce<T, TReduction>(value);
+            if (Warp.IsFirstLane)
+                reduction.AtomicApply(ref sharedMemory, firstLaneReduced);
+
+            Group.Barrier();
+            return sharedMemory;
+        }
 
         #endregion
 
@@ -83,14 +61,14 @@ namespace ILGPU.Algorithms.IL
         public static T ExclusiveScan<T, TScanOperation>(T value)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            ExclusiveScan<T, TScanOperation, GroupImplementation>(value);
+            ExclusiveScanWithBoundaries<T, TScanOperation>(value, out var _);
 
         /// <summary cref="GroupExtensions.InclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T InclusiveScan<T, TScanOperation>(T value)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            InclusiveScan<T, TScanOperation, GroupImplementation>(value);
+            InclusiveScanWithBoundaries<T, TScanOperation>(value, out var _);
 
         /// <summary cref="GroupExtensions.ExclusiveScanWithBoundaries{T, TScanOperation}(
         /// T, out ScanBoundaries{T})"/>
@@ -99,10 +77,16 @@ namespace ILGPU.Algorithms.IL
             T value,
             out ScanBoundaries<T> boundaries)
             where T : unmanaged
-            where TScanOperation : struct, IScanReduceOperation<T> =>
-            ExclusiveScanWithBoundaries<T, TScanOperation, GroupImplementation>(
-                value,
-                out boundaries);
+            where TScanOperation : struct, IScanReduceOperation<T>
+        {
+            var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(value);
+            boundaries = new ScanBoundaries<T>(
+                sharedMemory[0],
+                sharedMemory[Math.Max(0, Group.Dimension.Size - 2)]);
+            return Group.IsFirstThread
+                ? default(TScanOperation).Identity
+                : sharedMemory[Group.LinearIndex - 1];
+        }
 
         /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(
         /// T, out ScanBoundaries{T})"/>
@@ -111,10 +95,54 @@ namespace ILGPU.Algorithms.IL
             T value,
             out ScanBoundaries<T> boundaries)
             where T : unmanaged
-            where TScanOperation : struct, IScanReduceOperation<T> =>
-            InclusiveScanWithBoundaries<T, TScanOperation, GroupImplementation>(
-                value,
-                out boundaries);
+            where TScanOperation : struct, IScanReduceOperation<T>
+        {
+            var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(
+                value);
+            boundaries = new ScanBoundaries<T>(
+                sharedMemory[0],
+                sharedMemory[Group.Dimension.Size - 1]);
+            return sharedMemory[Group.LinearIndex];
+        }
+
+        /// <summary>
+        /// Performs a group-wide inclusive scan.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
+        /// <param name="value">The value to scan.</param>
+        /// <returns>The resulting value for the current lane.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ArrayView<T> InclusiveScanImplementation<T, TScanOperation>(
+            T value)
+            where T : unmanaged
+            where TScanOperation : struct, IScanReduceOperation<T>
+        {
+            const int MaxNumThreads = 2048;
+
+            // Load values into shared memory
+            var sharedMemory = SharedMemory.Allocate<T>(MaxNumThreads);
+            Debug.Assert(
+                Group.Dimension.Size <= MaxNumThreads,
+                "Invalid group/warp size");
+            sharedMemory[Group.LinearIndex] = value;
+            Group.Barrier();
+
+            // First thread performs all operations
+            if (Group.IsFirstThread)
+            {
+                TScanOperation scanOperation = default;
+                for (int i = 1; i < Group.Dimension.Size; ++i)
+                {
+                    sharedMemory[i] = scanOperation.Apply(
+                        sharedMemory[i - 1],
+                        sharedMemory[i]);
+                }
+            }
+            Group.Barrier();
+
+            return sharedMemory;
+        }
 
         /// <summary>
         /// Prepares for the next iteration of a group-wide exclusive scan within the

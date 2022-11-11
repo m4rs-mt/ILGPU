@@ -1,4 +1,15 @@
-﻿using ILGPU.Frontend;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: DisassemblerTests.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.Frontend;
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.Runtime;
 using System;

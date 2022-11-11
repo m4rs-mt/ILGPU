@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                           Copyright (c) 2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUProfilingMarker.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
@@ -21,7 +21,8 @@ namespace ILGPU.Runtime.CPU
     {
         #region Instance
 
-        internal CPUProfilingMarker()
+        internal CPUProfilingMarker(Accelerator accelerator)
+            : base(accelerator)
         {
             Timestamp = DateTime.UtcNow;
         }
@@ -43,8 +44,11 @@ namespace ILGPU.Runtime.CPU
         public override void Synchronize() { }
 
         /// <inheritdoc/>
-        public override TimeSpan MeasureFrom(ProfilingMarker marker) =>
-            (marker is CPUProfilingMarker startMarker)
+        public override TimeSpan MeasureFrom(ProfilingMarker marker)
+        {
+            using var binding = Accelerator.BindScoped();
+
+            return (marker is CPUProfilingMarker startMarker)
                 ? Timestamp - startMarker.Timestamp
                 : throw new ArgumentException(
                     string.Format(
@@ -52,6 +56,7 @@ namespace ILGPU.Runtime.CPU
                         GetType().Name,
                         marker.GetType().Name),
                     nameof(marker));
+        }
 
         /// <inheritdoc/>
         protected override void DisposeAcceleratorObject(bool disposing) { }

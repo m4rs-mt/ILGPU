@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
@@ -40,6 +40,10 @@ namespace ILGPU.Backends.PTX
             SupportedInstructionSets = ImmutableSortedSet.Create(
                 Comparer<CudaInstructionSet>.Create((first, second) =>
                     second.CompareTo(first)),
+                CudaInstructionSet.ISA_78,
+                CudaInstructionSet.ISA_77,
+                CudaInstructionSet.ISA_76,
+                CudaInstructionSet.ISA_75,
                 CudaInstructionSet.ISA_74,
                 CudaInstructionSet.ISA_73,
                 CudaInstructionSet.ISA_72,
@@ -76,13 +80,15 @@ namespace ILGPU.Backends.PTX
                 EntryPoint entryPoint,
                 ContextProperties contextProperties,
                 PTXDebugInfoGenerator debugInfoGenerator,
-                PointerAlignments.AlignmentInfo pointerAlignments)
+                PointerAlignments.AlignmentInfo pointerAlignments,
+                Uniforms.Info uniforms)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
                 Properties = contextProperties;
                 DebugInfoGenerator = debugInfoGenerator;
                 PointerAlignments = pointerAlignments;
+                Uniforms = uniforms;
             }
 
             /// <summary>
@@ -109,6 +115,12 @@ namespace ILGPU.Backends.PTX
             /// Returns detailed information about all pointer alignments.
             /// </summary>
             public PointerAlignments.AlignmentInfo PointerAlignments { get; }
+
+            /// <summary>
+            /// Returns detailed information about uniform values, terminators in
+            /// particular.
+            /// </summary>
+            public Uniforms.Info Uniforms { get; }
         }
 
         /// <summary>
@@ -333,10 +345,10 @@ namespace ILGPU.Backends.PTX
             DebugInfoGenerator = args.DebugInfoGenerator.BeginScope();
             ImplementationProvider = Backend.IntrinsicProvider;
             Allocas = allocas;
+            Uniforms = args.Uniforms;
 
             Architecture = args.Backend.Architecture;
             FastMath = args.Properties.MathMode >= MathMode.Fast;
-            EnableAssertions = args.Properties.EnableAssertions;
 
             labelPrefix = "L_" + Method.Id.ToString();
             ReturnParamName = "retval_" + Method.Id;
@@ -393,11 +405,6 @@ namespace ILGPU.Backends.PTX
         public bool FastMath { get; }
 
         /// <summary>
-        /// Returns true if assertions are enabled.
-        /// </summary>
-        public bool EnableAssertions { get; }
-
-        /// <summary>
         /// Returns the associated string builder.
         /// </summary>
         public StringBuilder Builder { get; }
@@ -411,6 +418,11 @@ namespace ILGPU.Backends.PTX
         /// Returns detailed information about all pointer alignments.
         /// </summary>
         public PointerAlignments.AlignmentInfo PointerAlignments { get; }
+
+        /// <summary>
+        /// Returns information about whether a branch is a uniform control-flow branch.
+        /// </summary>
+        public Uniforms.Info Uniforms { get; }
 
         /// <summary>
         /// Returns all blocks in an appropriate schedule.

@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILBackend.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
@@ -69,14 +69,14 @@ namespace ILGPU.Backends.IL
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Index2D Reconstruct2DIndex(Index2D totalDim, int linearIndex) =>
-            totalDim.ReconstructIndex(linearIndex);
+            Stride2D.DenseX.ReconstructFromElementIndex(linearIndex, totalDim);
 
         /// <summary>
         /// Helper method to reconstruct 3D indices.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Index3D Reconstruct3DIndex(Index3D totalDim, int linearIndex) =>
-            totalDim.ReconstructIndex(linearIndex);
+            Stride3D.DenseXY.ReconstructFromElementIndex(linearIndex, totalDim);
 
         #endregion
 
@@ -107,11 +107,12 @@ namespace ILGPU.Backends.IL
             {
                 var transformerBuilder = Transformer.CreateBuilder(
                     TransformerConfiguration.Empty);
-                transformerBuilder.AddBackendOptimizations(
+                transformerBuilder.AddBackendOptimizations<CodePlacement.GroupOperands>(
                     new ILAcceleratorSpecializer(
                         PointerType,
                         warpSize,
-                        Context.Properties.EnableAssertions),
+                        Context.Properties.EnableAssertions,
+                        Context.Properties.EnableIOOperations),
                     context.Properties.InliningMode,
                     context.Properties.OptimizationLevel);
                 builder.Add(transformerBuilder.ToTransformer());
@@ -152,7 +153,7 @@ namespace ILGPU.Backends.IL
                 out ImmutableArray<FieldInfo> taskArgumentMapping);
 
             MethodInfo kernelMethod;
-            using (var scopedLock = RuntimeSystem.DefineRuntimeMethod(
+            using (RuntimeSystem.DefineRuntimeMethod(
                 typeof(void),
                 CPUAcceleratorTask.ExecuteParameterTypes,
                 out var methodEmitter))
@@ -192,7 +193,10 @@ namespace ILGPU.Backends.IL
                 kernelMethod,
                 taskType,
                 taskConstructor,
-                taskArgumentMapping);
+                taskArgumentMapping,
+                backendContext.SharedAllocations.Length +
+                    backendContext.DynamicSharedAllocations.Length,
+                backendContext.SharedMemorySpecification.StaticSize);
         }
 
         /// <summary>

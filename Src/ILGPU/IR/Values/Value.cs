@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Value.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -353,7 +353,7 @@ namespace ILGPU.IR
             get => parent as BasicBlock;
             internal set
             {
-                this.Assert(parent.IsBasicBlock);
+                this.Assert(value.IsBasicBlock);
                 parent = value;
             }
         }
@@ -769,12 +769,12 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns true if this parent container is a block.
         /// </summary>
-        public bool IsBasicBlock => this is BasicBlock;
+        public virtual bool IsBasicBlock => false;
 
         /// <summary>
         /// Returns true if this container is method.
         /// </summary>
-        public bool IsMethod => this is Method;
+        public virtual bool IsMethod => false;
 
         #endregion
     }

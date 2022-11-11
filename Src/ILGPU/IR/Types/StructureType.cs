@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StructureType.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
@@ -725,11 +725,18 @@ namespace ILGPU.IR.Types
                 hashCode ^= type.GetHashCode() ^ offsets[i];
                 AddFlags(type.Flags);
             }
+            AddFlags(TypeFlags.StructureDependent);
         }
 
         #endregion
 
         #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsStructureType => true;
+
+        /// <inheritdoc/>
+        public override bool IsRootType => NumFields < 1;
 
         /// <summary>
         /// Returns the high-level fields stored in this structure type.

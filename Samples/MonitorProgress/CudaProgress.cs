@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                ILGPU Samples
-//                 Copyright (c) 2017-2019 ILGPU Samples Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                    ILGPU Samples
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
 //
 // File: CudaProgress.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details.
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 
 using ILGPU;
 using ILGPU.Runtime;
@@ -50,23 +50,22 @@ namespace MonitorProgress
                 NativePtr = IntPtr.Zero;
             }
 
-            public override void CopyFrom(
+            protected override void CopyFrom(
                 AcceleratorStream stream,
                 in ArrayView<byte> sourceView,
-                long targetOffsetInBytes) =>
-                throw new NotSupportedException();
+                in ArrayView<byte> targetView) =>
+                throw new NotImplementedException();
 
-            public override void CopyTo(
+            protected override void CopyTo(
                 AcceleratorStream stream,
-                long sourceOffsetInBytes,
+                in ArrayView<byte> sourceView,
                 in ArrayView<byte> targetView) =>
                 throw new NotSupportedException();
 
-            public override void MemSet(
+            protected override void MemSet(
                 AcceleratorStream stream,
                 byte value,
-                long targetOffsetInBytes,
-                long length) =>
+                in ArrayView<byte> targetView) =>
                 throw new NotSupportedException();
         }
 

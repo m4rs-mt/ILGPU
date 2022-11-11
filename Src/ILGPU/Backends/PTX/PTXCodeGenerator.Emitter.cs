@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Emitter.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
@@ -714,16 +714,18 @@ namespace ILGPU.Backends.PTX
                 register is CompoundRegister compoundRegister)
             {
                 // Check the provided alignment value to create vectorized instructions
-                int alignment = PointerAlignments.GetAlignment(
+                int alignmentInBytes = PointerAlignments.GetAlignment(
                     pointerValue,
                     safeAlignment);
-                var ranges = compoundRegister.Type.GetVectorizableFields(
-                    MaxVectorSizeInBytes);
+                // Determine the maximum vector length which cannot be larger than the
+                // actual alignment in bytes (in order to issue aligned loads/stores)
+                int maxVectorLength = Math.Min(MaxVectorSizeInBytes, alignmentInBytes);
+                var ranges = compoundRegister.Type.GetVectorizableFields(maxVectorLength);
                 for (int i = 0, e = ranges.Count; i < e; ++i)
                 {
                     var rangeEntry = ranges[i];
                     // Check for a valid vectorizable configuration
-                    if (rangeEntry.Count > 1 && rangeEntry.IsAligned(alignment))
+                    if (rangeEntry.Count > 1 && rangeEntry.IsAligned(alignmentInBytes))
                     {
                         var registers = compoundRegister.SliceAs<PrimitiveRegister>(
                             rangeEntry.Index,

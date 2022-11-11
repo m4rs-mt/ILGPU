@@ -17,13 +17,23 @@ The ILGPU Algorithms library meets these requirements by offering a set of auxil
 All algorithms can be run on all supported accelerator types.
 The CPU accelerator support is especially useful for kernel debugging.
 
+# Community
+[![Discord](https://img.shields.io/discord/511598552179539988?label=ILGPU)](https://discord.gg/X6RBCff)
+
+The ILGPU community provides immediate help, feedback and suggestions via Discord ASAP.
+Log on to the server and you can get started right away.
+
+There are weekly *talk-to-dev* meetings on the Discord server.
+Don't hesitate to join the meeting if you have any questions or suggestions or just want to talk to one of the contributors.
+Check out the *welcome* channel on our Discord server for more information.
+
 # ILGPU Samples
 
 The sample projects demonstrate the basic usage of ILGPU to help you get started with high performance GPU programming.
 
 # Build Instructions
 
-ILGPU requires Visual Studio 2019 (Community edition or higher).
+ILGPU requires Visual Studio 2022 (or higher) and/or a .NET 6.0 SDK toolchain.
 
 Use the provided Visual Studio solution to build the ILGPU libs
 in the desired configurations (Debug/Release).
@@ -39,12 +49,10 @@ execute the Cuda test cases.
 
 # Related Information
 * ILGPU Homepage (www.ilgpu.net)
-* ILGPU Algorithms (https://github.com/m4rs-mt/ILGPU.Algorithms)
-* ILGPU Samples (https://github.com/m4rs-mt/ILGPU.Samples)
-* ILGPU Class Reference (http://www.ilgpu.net/Documentation/LatestReference)
-* ILGPU Documentation (http://www.ilgpu.net/Documentation)
+* Latest ILGPU Samples (https://github.com/m4rs-mt/ILGPU/tree/master/Samples)
+* Latest ILGPU Documentation (https://github.com/m4rs-mt/ILGPU/tree/master/Docs)
 * Nuget (https://www.nuget.org/packages/ILGPU)
-* Release Notes (http://www.ilgpu.net/ReleaseVersions)
+* Release (https://github.com/m4rs-mt/ILGPU/releases/)
 
 # Preview versions
 Preview/Daily builds are distributed using https://feedz.io/. To pull preview versions into your project, use the following NuGet.config file:
@@ -59,7 +67,7 @@ Preview/Daily builds are distributed using https://feedz.io/. To pull preview ve
 
 # Symbols
 
-Symbols for ILGPU can be [loaded in VS2019](https://docs.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger).
+Symbols for ILGPU can be [loaded in VS2022](https://docs.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger).
 For official releases, ensure that the built-in `NuGet.org Symbol Server` is enabled. For preview release symbols, add the link:
 ```
 https://f.feedz.io/ilgpu/preview/symbols
@@ -67,7 +75,7 @@ https://f.feedz.io/ilgpu/preview/symbols
 
 # Source Link
 
-ILGPU also provides Source Link support for a better debugging experience. Make sure `Enable Source Link support` is activated in [VS2019 options](https://docs.microsoft.com/en-us/visualstudio/debugger/general-debugging-options-dialog-box).
+ILGPU also provides Source Link support for a better debugging experience. Make sure `Enable Source Link support` is activated in [VS2022 options](https://docs.microsoft.com/en-us/visualstudio/debugger/general-debugging-options-dialog-box).
 
 # General Contribution Guidelines
 
@@ -98,7 +106,9 @@ ILGPU also provides Source Link support for a better debugging experience. Make 
 ILGPU is licensed under the University of Illinois/NCSA Open Source License.
 Detailed license information can be found in LICENSE.txt.
 
-Copyright (c) 2016-2020 Marcel Koester (www.ilgpu.net). All rights reserved.
+Copyright (c) 2016-2022 ILGPU Project. All rights reserved.
+
+Originally developed by Marcel Koester.
 
 ## License information of required dependencies
 

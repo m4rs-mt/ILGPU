@@ -1,4 +1,15 @@
-﻿using System.Collections.Generic;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: ContextProperties.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
@@ -11,6 +22,10 @@ namespace ILGPU
         "Design",
         "CA1027:Mark enums with FlagsAttribute",
         Justification = "This no flags enumeration")]
+    [SuppressMessage(
+        "Design",
+        "CA1069:Enums values should not be duplicated",
+        Justification = "This is required to be backwards compatible")]
     public enum InliningMode
     {
         /// <summary>
@@ -84,6 +99,10 @@ namespace ILGPU
         "Design",
         "CA1027:Mark enums with FlagsAttribute",
         Justification = "This no flags enumeration")]
+    [SuppressMessage(
+        "Design",
+        "CA1069:Enums values should not be duplicated",
+        Justification = "This is required to be backwards compatible")]
     public enum OptimizationLevel
     {
         /// <summary>
@@ -304,6 +323,12 @@ namespace ILGPU
         public bool EnableAssertions { get; protected set; }
 
         /// <summary>
+        /// Returns true if IO is enabled.
+        /// </summary>
+        /// <remarks>Disabled by default.</remarks>
+        public bool EnableIOOperations { get; protected set; }
+
+        /// <summary>
         /// Returns true if additional kernel information is enabled.
         /// </summary>
         /// <remarks>Disabled by default.</remarks>
@@ -375,6 +400,16 @@ namespace ILGPU
         /// <remarks>Disabled by default.</remarks>
         public bool EnableProfiling { get; protected set; }
 
+        /// <summary>
+        /// Returns the path to LibNVVM DLL.
+        /// </summary>
+        public string LibNvvmPath { get; protected set; }
+
+        /// <summary>
+        /// Returns the path to LibDevice bitcode.
+        /// </summary>
+        public string LibDevicePath { get; protected set; }
+
         #endregion
 
         #region Methods
@@ -417,6 +452,7 @@ namespace ILGPU
                             : DebugSymbolsMode.Disabled
                         : DebugSymbolsMode,
                 EnableAssertions = EnableAssertions,
+                EnableIOOperations = EnableIOOperations,
                 EnableKernelInformation = EnableKernelInformation,
                 EnableVerifier = EnableVerifier,
                 EnableParallelCodeGenerationInFrontend =
@@ -429,6 +465,8 @@ namespace ILGPU
                 CachingMode = CachingMode,
                 PageLockingMode = PageLockingMode,
                 EnableProfiling = EnableProfiling,
+                LibNvvmPath = LibNvvmPath,
+                LibDevicePath = LibDevicePath,
             };
 
         #endregion

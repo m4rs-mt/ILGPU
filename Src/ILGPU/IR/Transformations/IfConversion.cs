@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IfConversion.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
@@ -1319,7 +1319,7 @@ namespace ILGPU.IR.Transformations
             /// Returns true if the given block should be maintained.
             /// </summary>
             private readonly bool IsBlockToKeep(BasicBlock block) =>
-                block == EntryBlock | CaseBlocks.Contains(block);
+                Bitwise.Or(block == EntryBlock, CaseBlocks.Contains(block));
 
             /// <summary>
             /// Returns true if the given block is an exit block.
@@ -1357,6 +1357,9 @@ namespace ILGPU.IR.Transformations
 
                 // Clear all other blocks to remove all obsolete uses
                 ClearBlocks();
+
+                // Replace the original terminator
+                terminator.Replace(BlockBuilder.CreateUndefined());
             }
 
             /// <summary>

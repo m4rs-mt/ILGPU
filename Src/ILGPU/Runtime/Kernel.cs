@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Kernel.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
@@ -408,8 +408,49 @@ namespace ILGPU.Runtime
         public static bool TryGetKernel<TDelegate>(
             this TDelegate kernelDelegate,
             out Kernel kernel)
-            where TDelegate : Delegate =>
-            (kernel = kernelDelegate.Target as Kernel) != null;
+            where TDelegate : Delegate
+        {
+            // Try to resolve the kernel object from the delegate directly.
+            if (kernelDelegate.Target is Kernel targetKernel)
+            {
+                kernel = targetKernel;
+                return true;
+            }
+            else
+            {
+                // Kernel delegates that implicitly use the default accelerator stream
+                // are actually a lambda that calls an inner delegate. The kernel object
+                // needs to be extracted from this inner delegate using reflection.
+                var displayClass = kernelDelegate.Method.DeclaringType;
+
+                if (displayClass.IsDefined(typeof(CompilerGeneratedAttribute), false))
+                {
+                    var capturedFields = displayClass.GetFields(
+                        BindingFlags.Instance
+                        | BindingFlags.Public
+                        | BindingFlags.NonPublic);
+
+                    foreach (var field in capturedFields)
+                    {
+                        if (typeof(Delegate).IsAssignableFrom(field.FieldType))
+                        {
+                            var fieldValue = field.GetValue(kernelDelegate.Target);
+                            if (fieldValue is Delegate innerDelegate)
+                            {
+                                if (innerDelegate.Target is Kernel innerKernel)
+                                {
+                                    kernel = innerKernel;
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                kernel = null;
+                return false;
+            }
+        }
 
         /// <summary>
         /// Resolves a kernel object from a previously created kernel delegate.

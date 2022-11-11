@@ -1,14 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net5.0</TargetFrameworks>
-    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">$(TargetFrameworks);net471</TargetFrameworks>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
-    <VersionPrefix>1.0.0-beta4</VersionPrefix>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <VersionPrefix>$(LibraryVersionPrefix)</VersionPrefix>
+    <AssemblyVersion>$(LibraryAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(LibraryFileVersion)</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -39,12 +38,21 @@
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>$(LibraryPackageValidationBaselineVersion)</PackageValidationBaselineVersion>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="System.Collections.Immutable" Version="5.0.0" />
-    <PackageReference Include="System.Memory" Version="4.5.4" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
-    <PackageReference Include="System.Reflection.Metadata" Version="5.0.0" />
-    <PackageReference Include="T4.Build" Version="0.2.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
+    <PackageReference Include="System.Memory" Version="4.5.5" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Include="System.Reflection.Metadata" Version="6.0.1" />
+    <PackageReference Include="T4.Build" Version="0.2.4" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
@@ -151,6 +159,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Backends\PTX\PTXLibDeviceMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PTXLibDeviceMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Backends\PTX\PTXLibDeviceNvvm.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PTXLibDeviceNvvm.tt</DependentUpon>
+    </Compile>
     <Compile Update="Memory.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -215,6 +233,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\LibDevice.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>LibDevice.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\MemoryBuffers.cs">
       <DesignTime>True</DesignTime>
@@ -283,6 +306,14 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <None Update="Backends\PTX\PTXLibDeviceNvvm.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PTXLibDeviceNvvm.cs</LastGenOutput>
+    </None>
+    <None Update="Backends\PTX\PTXLibDeviceMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PTXLibDeviceMethods.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\ArrayViews.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ArrayViews.cs</LastGenOutput>
@@ -338,6 +369,10 @@
     <None Update="Runtime\Cuda\CudaAsm.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CudaAsm.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\LibDevice.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>LibDevice.cs</LastGenOutput>
     </None>
     <None Update="Runtime\ExchangeBufferExtensions.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -402,5 +437,4 @@
   </ItemGroup>
 
   <Import Project="Properties\ILGPU.nuspec.targets" />
-  <Import Project="Properties\ILGPU.CheckStyles.targets" />
 </Project>

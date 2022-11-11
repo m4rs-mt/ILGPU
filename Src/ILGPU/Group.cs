@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Group.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
@@ -109,7 +109,8 @@ namespace ILGPU
         /// Returns the linear thread index of the current thread within the current
         /// thread group.
         /// </summary>
-        public static int LinearIndex => Index.ComputeLinearIndex(Dimension);
+        public static int LinearIndex =>
+            Stride3D.DenseXY.ComputeElementIndex(Index, Dimension);
 
         /// <summary>
         /// Returns true if the current thread is the first in the group.

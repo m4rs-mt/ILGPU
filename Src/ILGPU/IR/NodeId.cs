@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NodeId.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using System;
@@ -49,6 +49,17 @@ namespace ILGPU.IR
         /// Returns the encapsulated id.
         /// </summary>
         private InstanceId Id { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Returns true if the given id is equal to this node id.
+        /// </summary>
+        /// <param name="id">The id to test.</param>
+        /// <returns>True if the given id is equal to this node id.</returns>
+        public readonly bool Is(long id) => Id.Value == id;
 
         #endregion
 

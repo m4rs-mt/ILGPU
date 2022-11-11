@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InferAddressSpaces.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
@@ -231,7 +231,8 @@ namespace ILGPU.IR.Transformations
                     return false;
                 case NewView _:
                 case SubViewValue _:
-                case PointerCast _:
+                case BaseAddressSpaceCast _:
+                case BaseAlignOperationValue _:
                 case LoadElementAddress _:
                 case LoadFieldAddress _:
                     data.Push(value);
@@ -376,6 +377,9 @@ namespace ILGPU.IR.Transformations
 
             // Invalidate types of affected values
             rewriter.Add<PointerCast>(InvalidateType);
+            rewriter.Add<ViewCast>(InvalidateType);
+            rewriter.Add<AlignTo>(InvalidateType);
+            rewriter.Add<AsAligned>(InvalidateType);
             rewriter.Add<LoadFieldAddress>(InvalidateType);
             rewriter.Add<LoadElementAddress>(InvalidateType);
             rewriter.Add<ReturnTerminator>(InvalidateType);
@@ -902,6 +906,7 @@ namespace ILGPU.IR.Transformations
                 var targetAddressSpace = intermediate[builder.Method];
                 builder.UpdateReturnType(
                     GetAddressSpaceConverter(targetAddressSpace));
+                applied = true;
             }
 
             // Adjust all method calls

@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Objects.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
@@ -148,12 +148,7 @@ namespace ILGPU.Frontend
             }
             else
             {
-                var pointerSize = TypeContext.TargetPlatform switch
-                {
-                    TargetPlatform.X86 => 4,
-                    TargetPlatform.X64 => 8,
-                    _ => throw new NotImplementedException()
-                };
+                var pointerSize = TypeContext.TargetPlatform.Is64Bit() ? 8 : 4;
                 Load(pointerSize);
             }
         }

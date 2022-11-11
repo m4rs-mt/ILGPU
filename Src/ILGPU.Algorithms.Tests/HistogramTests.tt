@@ -1,14 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                             ILGPU.Algorithms
-//                  Copyright (c) 2020 ILGPU Algorithms Project
-//                Copyright(c) 2016-2018 ILGPU Lightning Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2020-2021 ILGPU Project
+//                                    www.ilgpu.net
 //
 // File: HistogramTests.tt/HistogramTests.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="../ILGPU/Static/TypeInformation.ttinclude" #>
 <#@ assembly name="System.Core" #>

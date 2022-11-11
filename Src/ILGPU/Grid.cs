@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Grid.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
@@ -102,6 +102,13 @@ namespace ILGPU
         public static Index3D Dimension => new Index3D(DimX, DimY, DimZ);
 
         /// <summary>
+        /// Returns the linear grid index of the current group within the current
+        /// thread grid.
+        /// </summary>
+        public static int LinearIndex =>
+            Stride3D.DenseXY.ComputeElementIndex(Index, Dimension);
+
+        /// <summary>
         /// Returns the global index.
         /// </summary>
         public static Index3D GlobalIndex => ComputeGlobalIndex(
@@ -114,6 +121,13 @@ namespace ILGPU
         public static LongIndex3D LongGlobalIndex => ComputeLongGlobalIndex(
             Index,
             Group.Index);
+
+        /// <summary>
+        /// Returns the linear thread index of the current thread within the current
+        /// thread grid.
+        /// </summary>
+        public static int GlobalLinearIndex =>
+            LinearIndex * Group.Dimension.Size + Group.LinearIndex;
 
         #endregion
 

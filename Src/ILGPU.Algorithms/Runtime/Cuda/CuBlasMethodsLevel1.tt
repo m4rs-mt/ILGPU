@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2020-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuBlasMethodsLevel1.tt/CuBlasMethodsLevel1.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
@@ -35,8 +35,9 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="input">The input view.</param>
         /// <returns>The computed value.</returns>
-        public unsafe int <#= entry #>(ArrayView<<#= type #>> input)
+        public unsafe int <#= entry #>(ArrayView1D<<#= type #>, Stride1D.General> input)
         {
+            EnsureAcceleratorBinding();
             EnsurePointerMode(CuBlasPointerMode.Host);
 
             int result;
@@ -44,8 +45,8 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     input.IntLength,
-                    LoadCuBlasAddress(input),
-                    1,
+                    LoadCuBlasAddress(input.BaseView),
+                    input.Stride.XStride,
                     &result));
             return result;
         }
@@ -55,16 +56,19 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="input">The input view.</param>
         /// <param name="output">The output view.</param>
-        public unsafe void <#= entry #>(ArrayView<<#= type #>> input, ArrayView<int> output)
+        public unsafe void <#= entry #>(
+            ArrayView1D<<#= type #>, Stride1D.General> input,
+            ArrayView<int> output)
         {
+            EnsureAcceleratorBinding();
             EnsurePointerMode(CuBlasPointerMode.Device);
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
                     input.IntLength,
-                    LoadCuBlasAddress(input),
-                    1,
+                    LoadCuBlasAddress(input.BaseView),
+                    input.Stride.XStride,
                     LoadCuBlasAddress(output)));
         }
 
@@ -78,8 +82,10 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="input">The input view.</param>
         /// <returns>The computed value.</returns>
-        public unsafe <#= type #> <#= entry #>(ArrayView<<#= type #>> input)
+        public unsafe <#= type #> <#= entry #>(
+            ArrayView1D<<#= type #>, Stride1D.General> input)
         {
+            EnsureAcceleratorBinding();
             EnsurePointerMode(CuBlasPointerMode.Host);
 
             <#= type #> result = default;
@@ -87,8 +93,8 @@ namespace ILGPU.Runtime.Cuda
                 API.<#= func #>(
                     Handle,
                     input.IntLength,
-                    LoadCuBlasAddress(input),
-                    1,
+                    LoadCuBlasAddress(input.BaseView),
+                    input.Stride.XStride,
                     Unsafe.AsPointer(ref result)));
             return result;
         }
@@ -98,16 +104,19 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="input">The input view.</param>
         /// <param name="output">The output view.</param>
-        public unsafe void <#= entry #>(ArrayView<<#= type #>> input, ArrayView<<#= type #>> output)
+        public unsafe void <#= entry #>(
+            ArrayView1D<<#= type #>, Stride1D.General> input,
+            ArrayView<<#= type #>> output)
         {
+            EnsureAcceleratorBinding();
             EnsurePointerMode(CuBlasPointerMode.Device);
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
                     input.IntLength,
-                    LoadCuBlasAddress(input),
-                    1,
+                    LoadCuBlasAddress(input.BaseView),
+                    input.Stride.XStride,
                     LoadCuBlasAddress(output)));
         }
 
@@ -123,21 +132,22 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="y">The y vector.</param>
         public unsafe void <#= entry #>(
             <#= paramType #> alpha,
-            ArrayView<<#= type #>> x,
-            ArrayView<<#= type #>> y)
+            ArrayView1D<<#= type #>, Stride1D.General> x,
+            ArrayView1D<<#= type #>, Stride1D.General> y)
         {
-            <#= paramVerifier #>;
             Debug.Assert(x.Length == y.Length, "Invalid length");
+            EnsureAcceleratorBinding();
+            <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
                     <#= paramGetter("alpha") #>,
-                    LoadCuBlasAddress(x),
-                    1,
-                    LoadCuBlasAddress(y),
-                    1));
+                    LoadCuBlasAddress(x.BaseView),
+                    x.Stride.XStride,
+                    LoadCuBlasAddress(y.BaseView),
+                    y.Stride.XStride));
         }
 
 <# } #>
@@ -151,21 +161,22 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="y">The y vector.</param>
         /// <returns>The computed value.</returns>
         public unsafe <#= type #> <#= entry #>(
-            ArrayView<<#= type #>> x,
-            ArrayView<<#= type #>> y)
+            ArrayView1D<<#= type #>, Stride1D.General> x,
+            ArrayView1D<<#= type #>, Stride1D.General> y)
         {
-            EnsurePointerMode(CuBlasPointerMode.Host);
             Debug.Assert(x.Length == y.Length, "Invalid length");
+            EnsureAcceleratorBinding();
+            EnsurePointerMode(CuBlasPointerMode.Host);
 
             <#= type #> result = default;
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    LoadCuBlasAddress(x),
-                    1,
-                    LoadCuBlasAddress(y),
-                    1,
+                    LoadCuBlasAddress(x.BaseView),
+                    x.Stride.XStride,
+                    LoadCuBlasAddress(y.BaseView),
+                    y.Stride.XStride,
                     Unsafe.AsPointer(ref result)));
             return result;
         }
@@ -177,21 +188,22 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="y">The y vector.</param>
         /// <param name="output">The output view.</param>
         public unsafe void <#= entry #>(
-            ArrayView<<#= type #>> x,
-            ArrayView<<#= type #>> y,
+            ArrayView1D<<#= type #>, Stride1D.General> x,
+            ArrayView1D<<#= type #>, Stride1D.General> y,
             ArrayView<<#= type #>> output)
         {
-            EnsurePointerMode(CuBlasPointerMode.Device);
             Debug.Assert(x.Length == y.Length, "Invalid length");
+            EnsureAcceleratorBinding();
+            EnsurePointerMode(CuBlasPointerMode.Device);
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    LoadCuBlasAddress(x),
-                    1,
-                    LoadCuBlasAddress(y),
-                    1,
+                    LoadCuBlasAddress(x.BaseView),
+                    x.Stride.XStride,
+                    LoadCuBlasAddress(y.BaseView),
+                    y.Stride.XStride,
                     LoadCuBlasAddress(output)));
         }
 
@@ -207,21 +219,22 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="c">The cos angle.</param>
         /// <param name="s">The sin angle.</param>
         public unsafe void <#= entry #>(
-            ArrayView<<#= type #>> x,
-            ArrayView<<#= type #>> y,
+            ArrayView1D<<#= type #>, Stride1D.General> x,
+            ArrayView1D<<#= type #>, Stride1D.General> y,
             <#= paramType #> c,
             <#= paramType #> s)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    LoadCuBlasAddress(x),
-                    1,
-                    LoadCuBlasAddress(y),
-                    1,
+                    LoadCuBlasAddress(x.BaseView),
+                    x.Stride.XStride,
+                    LoadCuBlasAddress(y.BaseView),
+                    y.Stride.XStride,
                     <#= paramGetter("c") #>,
                     <#= paramGetter("s") #>));
         }
@@ -243,6 +256,8 @@ namespace ILGPU.Runtime.Cuda
             <#= elemType #> c,
             <#= type #> s)
         {
+            EnsureAcceleratorBinding();
+
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
@@ -265,6 +280,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= elemType #>> c,
             ArrayView<<#= type #>> s)
         {
+            EnsureAcceleratorBinding();
+
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
@@ -286,20 +303,21 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="y">The y vector.</param>
         /// <param name="param">The Givens param.</param>
         public unsafe void <#= entry #>(
-            ArrayView<<#= type #>> x,
-            ArrayView<<#= type #>> y,
+            ArrayView1D<<#= type #>, Stride1D.General> x,
+            ArrayView1D<<#= type #>, Stride1D.General> y,
             <#= paramType #> param)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    LoadCuBlasAddress(x),
-                    1,
-                    LoadCuBlasAddress(y),
-                    1,
+                    LoadCuBlasAddress(x.BaseView),
+                    x.Stride.XStride,
+                    LoadCuBlasAddress(y.BaseView),
+                    y.Stride.XStride,
                     <#= paramGetter("param") #>));
         }
 
@@ -314,8 +332,9 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="x">The x vector.</param>
         public unsafe void <#= entry #>(
             <#= paramType #> alpha,
-            ArrayView<<#= type #>> x)
+            ArrayView1D<<#= type #>, Stride1D.General> x)
         {
+            EnsureAcceleratorBinding();
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
@@ -323,8 +342,8 @@ namespace ILGPU.Runtime.Cuda
                     Handle,
                     x.IntLength,
                     <#= paramGetter("alpha") #>,
-                    LoadCuBlasAddress(x),
-                    1));
+                    LoadCuBlasAddress(x.BaseView),
+                    x.Stride.XStride));
         }
 
 <# } #>
@@ -337,19 +356,20 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="x">The x vector.</param>
         /// <param name="y">The y vector.</param>
         public unsafe void <#= entry #>(
-            ArrayView<<#= type #>> x,
-            ArrayView<<#= type #>> y)
+            ArrayView1D<<#= type #>, Stride1D.General> x,
+            ArrayView1D<<#= type #>, Stride1D.General> y)
         {
             Debug.Assert(x.Length == y.Length, "Invalid length");
+            EnsureAcceleratorBinding();
 
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
                     x.IntLength,
-                    LoadCuBlasAddress(x),
-                    1,
-                    LoadCuBlasAddress(y),
-                    1));
+                    LoadCuBlasAddress(x.BaseView),
+                    x.Stride.XStride,
+                    LoadCuBlasAddress(y.BaseView),
+                    y.Stride.XStride));
         }
 
 <# } #>

@@ -1,0 +1,31 @@
+---
+# Add this header to tell Jekyll to process the file
+---
+
+// loading partials from _sass/
+@import 'colors';
+@import 'override-colors';
+
+.logo:after{
+  content: url('{{ "assets/img/logo.svg" | relative_url }}');
+}
+
+.cta{
+  background: linear-gradient($headerColor, $headerColor), url('{{ "assets/img/cpu-bg.jpg" | relative_url }}') fixed center center;
+}
+
+body{
+  position:relative;
+  min-height:100vh;
+}
+
+footer{
+  position:absolute;
+  bottom:0;
+  width:100vw;
+}
+
+main{
+    padding-top: 28px;
+    padding-bottom:72px;
+}

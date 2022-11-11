@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayViews.tt/ArrayViews.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="true" language="C#" #>
@@ -16,8 +16,9 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
-<# var alignmentValues = new int[] { 32, 64, 128, 256, 512 }; #>
+<# var alignmentValues = new int[] { 16, 32, 64, 128, 256, 512 }; #>
 
+using ILGPU.Util;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -37,7 +38,7 @@ namespace ILGPU.Runtime
         /// The prefix and main views pointing to non-aligned and aligned sub-views of
         /// the given view.
         /// </returns>
-        public static (ArrayView<T> prefix, ArrayView<T> main) AlignTo<#= alignment #><T>(
+        public static (ArrayView<T> Prefix, ArrayView<T> Main) AlignTo<#= alignment #><T>(
             this ArrayView<T> view)
             where T : unmanaged =>
             AlignTo(view, <#= alignment #>);
@@ -52,10 +53,41 @@ namespace ILGPU.Runtime
         /// The prefix and main views pointing to non-aligned and aligned sub-views of
         /// the given view.
         /// </returns>
-        public static (ArrayView<T> prefix, ArrayView<T> main) AlignTo<#= alignment #><T>(
+        public static (ArrayView<T> Prefix, ArrayView<T> Main) AlignTo<#= alignment #><T>(
             this ArrayView1D<T, Stride1D.Dense> view)
             where T : unmanaged =>
             AlignTo(view.BaseView, <#= alignment #>);
+
+        /// <summary>
+        /// Ensures that the array view is aligned to <#= alignment #> of bytes
+        /// and returns the input view. Note that this operation explicitly generates an
+        /// operation in the ILGPU IR that preserves these semantics. This enables the
+        /// generation of debug assertions and guides the internal vectorization analysis
+        /// to assume the given alignment even though it might not be able to prove that
+        /// the given alignment is valid.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <returns>The validated input view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView<T> AsAligned<#= alignment #><T>(this ArrayView<T> view)
+            where T : unmanaged =>
+            AsAligned(view, <#= alignment #>);
+
+        /// <summary>
+        /// Ensures that the array view is aligned to <#= alignment #> of bytes
+        /// and returns the input view. Note that this operation explicitly generates an
+        /// operation in the ILGPU IR that preserves these semantics. This enables the
+        /// generation of debug assertions and guides the internal vectorization analysis
+        /// to assume the given alignment even though it might not be able to prove that
+        /// the given alignment is valid.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <returns>The validated input view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.Dense> AsAligned<#= alignment #><T>(
+            this ArrayView1D<T, Stride1D.Dense> view)
+            where T : unmanaged =>
+            AsAligned(view.BaseView, <#= alignment #>);
 
 <#  } #>
     }
@@ -77,7 +109,8 @@ namespace ILGPU.Runtime
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TStride">The <#= dimension #>D stride type.</typeparam>
-    [DebuggerDisplay("{BaseView}")]
+    [DebuggerTypeProxy(typeof(DebugArrayView<#= dimension #>D<,>))]
+    [DebuggerDisplay("Extent = {Extent}, Stride = {Stride}, Length = {Length}")]
     [StructLayout(LayoutKind.Sequential)]
     public readonly partial struct <#= typeName #><T, TStride> :
         IArrayView<T, <#= intIndexType #>, <#= indexType #>, TStride>
@@ -243,18 +276,12 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="index">The element index.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly <#= baseType #> ComputeLinearIndex(<#= index #> index)
-        {
-<#      for (int i = 0; i < dim.Dimension; ++i) { #>
-<#          var iName = IndexDimensions[i].PropertyName; #>
-            Trace.Assert(
-                index.<#= iName #> >= 0 & (
-                    index.<#= iName #> < Extent.<#= iName #>
-                    | index.<#= iName #> == 0),
-                "Index <#= iName #> out of bounds");
-<#      } #>
-            return Stride.ComputeElementIndex(index);
-        }
+        public readonly <#= baseType #> ComputeLinearIndex(<#= index #> index) =>
+<#          if (size == "32") { #>
+            Stride.ComputeElementIndexChecked(index, IntExtent);
+<#          } else { #>
+            Stride.ComputeElementIndexChecked(index, Extent);
+<#          } #>
 
         /// <summary>
         /// Returns a sub view of the current view starting at the given
@@ -272,9 +299,11 @@ namespace ILGPU.Runtime
 <#          var iName = IndexDimensions[i].PropertyName; #>
 <#          var thisExtent = $"({baseType})Extent.{iName}"; #>
             Trace.Assert(
-                index.<#= iName #> >= 0 &
-                (index.<#= iName #> + extent.<#= iName #> <= <#= thisExtent #>
-                 | (index.<#= iName #> == 0 & extent.<#= iName #> == 0)),
+                Bitwise.And(
+                    index.<#= iName #> >= 0,
+                    Bitwise.Or(
+                        index.<#= iName #> + extent.<#= iName #> <= <#= thisExtent #>,
+                        Bitwise.And(index.<#= iName #> == 0, extent.<#= iName #> == 0))),
                 "Index/Extent <#= iName #> out of bounds");
 <#      } #>
             <#= baseType #> offset = ComputeLinearIndex(index);

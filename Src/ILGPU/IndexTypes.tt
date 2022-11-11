@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IndexTypes.tt/IndexTypes.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="true" language="C#" #>
@@ -17,6 +17,7 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -152,7 +153,11 @@ namespace ILGPU
         /// Returns true if this is the first index.
         /// </summary>
         public readonly bool IsFirst =>
-            <#= def.Expression(" & ", dim => $"{dim} == 0") #>;
+<# if (dimension == 1) { #>
+            <#= def.Expression(", ", dim => $"{dim} == 0") #>;
+<# } else { #>
+            Bitwise.And(<#= def.Expression(", ", dim => $"{dim} == 0") #>);
+<# } #>
 
         /// <summary>
         /// Returns the size represented by this index.
@@ -219,60 +224,6 @@ namespace ILGPU
 
         #endregion
 
-        #region ILinearizableIndex
-
-        /// <summary>
-        /// Computes the linear index of this index by using the provided n-D dimension.
-        /// </summary>
-        /// <param name="dimension">The dimension for index computation.</param>
-        /// <returns>The computed linear index of this index.</returns>
-<# if (def.IsIntIndex) { #>
-        public readonly int ComputeLinearIndex(<#= name #> dimension) =>
-            ComputeLinearIndex(dimension, this);
-<# } else { #>
-        readonly int ILinearizableIndex<<#= name #>>.ComputeLinearIndex(
-            <#= name #> dimension)
-        {
-            long linearIndex = ComputeLinearIndex(dimension, this);
-            IndexTypeExtensions.AssertIntIndexRange(linearIndex);
-            return (int)linearIndex;
-        }
-
-        /// <summary>
-        /// Computes the linear index of this index by using the provided n-D dimension.
-        /// </summary>
-        /// <param name="dimension">The dimension for index computation.</param>
-        /// <returns>The computed linear index of this index.</returns>
-        public readonly long ComputeLinearIndex(<#= name #> dimension) =>
-            ComputeLongLinearIndex(dimension);
-<# } #>
-
-        /// <summary>
-        /// Computes the linear index of this index by using the provided n-D dimension.
-        /// </summary>
-        /// <param name="dimension">The dimension for index computation.</param>
-        /// <returns>The computed linear index of this index.</returns>
-        public readonly long ComputeLongLinearIndex(<#= name #> dimension) =>
-            ComputeLinearIndex(dimension, this);
-
-        /// <summary>
-        /// Reconstructs an index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <returns>The reconstructed index.</returns>
-        public readonly <#= name #> ReconstructIndex(int linearIndex) =>
-            ReconstructIndex(linearIndex, this);
-
-        /// <summary>
-        /// Reconstructs an index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <returns>The reconstructed index.</returns>
-        public readonly <#= name #> ReconstructIndex(long linearIndex) =>
-            ReconstructIndex(linearIndex, this);
-
-        #endregion
-
         #region IGenericIndex
 
         /// <summary>
@@ -282,7 +233,19 @@ namespace ILGPU
         /// <param name="dimension">The dimension bounds.</param>
         /// <returns>True if the current index is inside the given bounds.</returns>
         public readonly bool InBounds(<#= name #> dimension) =>
-            <#= def.Expression(" & ", p => $"{p} >= 0 & {p} < dimension.{p}") #>;
+<# if (dimension == 1) { #>
+            <#=
+                def.Expression(
+                    ", ",
+                    p => $"Bitwise.And({p} >= 0, {p} < dimension.{p})")
+            #>;
+<# } else { #>
+            Bitwise.And(<#=
+                def.Expression(
+                    ", ",
+                    p => $"Bitwise.And({p} >= 0, {p} < dimension.{p})")
+                #>);
+<# } #>
 
         /// <summary>
         /// Returns true if the current index is greater than or equal to 0 and
@@ -291,7 +254,19 @@ namespace ILGPU
         /// <param name="dimension">The dimension bounds.</param>
         /// <returns>True if the current index is inside the given bounds.</returns>
         public readonly bool InBoundsInclusive(<#= name #> dimension) =>
-            <#= def.Expression(" & ", p => $"{p} >= 0 & {p} <= dimension.{p}") #>;
+<# if (dimension == 1) { #>
+            <#=
+                def.Expression(
+                    ", ",
+                    p => $"Bitwise.And({p} >= 0, {p} <= dimension.{p})")
+            #>;
+<# } else { #>
+            Bitwise.And(<#=
+                def.Expression(
+                    ", ",
+                    p => $"Bitwise.And({p} >= 0, {p} <= dimension.{p})")
+            #>);
+<# } #>
 
         /// <summary>
         /// Computes this + right-hand side.
@@ -363,11 +338,11 @@ namespace ILGPU
         /// </summary>
         /// <returns>The hash code of this index.</returns>
         public readonly override int GetHashCode() =>
-<# if (dimension == 1) { #>
-            <#= def.Expression(", ", p => $"{p}") #>.GetHashCode();
-<# } else { #>
-            (<#= def.Expression(", ", p => $"{p}") #>).GetHashCode();
-<# } #>
+#if NETFRAMEWORK
+            <#= def.Expression(" ^ ", p => $"{p}.GetHashCode()") #>;
+#else
+            HashCode.Combine(<#= def.Expression(", ", p => $"{p}") #>);
+#endif
 
         /// <summary>
         /// Returns the string representation of this index.
@@ -496,7 +471,11 @@ namespace ILGPU
         /// <param name="second">The second index.</param>
         /// <returns>True, if the first and second index are the same.</returns>
         public static bool operator ==(<#= name #> first, <#= name #> second) =>
-            <#= def.Expression(" & ", p => $"first.{p} == second.{p}") #>;
+<# if (dimension == 1) { #>
+            <#= def.Expression(", ", p => $"first.{p} == second.{p}") #>;
+<# } else { #>
+            Bitwise.And(<#= def.Expression(", ", p => $"first.{p} == second.{p}") #>);
+<# } #>
 
         /// <summary>
         /// Returns true if the first and second index are not the same.
@@ -505,7 +484,11 @@ namespace ILGPU
         /// <param name="second">The second index.</param>
         /// <returns>True, if the first and second index are not the same.</returns>
         public static bool operator !=(<#= name #> first, <#= name #> second) =>
-            <#= def.Expression(" | ", p => $"first.{p} != second.{p}") #>;
+<# if (dimension == 1) { #>
+            <#= def.Expression(", ", p => $"first.{p} == second.{p}") #>;
+<# } else { #>
+            Bitwise.Or(<#= def.Expression(", ", p => $"first.{p} != second.{p}") #>);
+<# } #>
 
         #endregion
     }
@@ -519,46 +502,6 @@ namespace ILGPU
 <#      var baseType = def.BaseTypeName; #>
     partial struct <#= name #>
     {
-        /// <summary>
-        /// Computes the linear index of this 1D index by using the provided 1D dimension.
-        /// </summary>
-        /// <param name="dimension">The dimension for index computation.</param>
-        /// <param name="index">The base index.</param>
-        /// <returns>The computed linear index of this 1D index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= baseType #> ComputeLinearIndex(
-            <#= name #> dimension,
-            <#= name #> index) =>
-            index;
-
-        /// <summary>
-        /// Reconstructs a 1D index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <param name="dimension">The 1D dimension for reconstruction.</param>
-        /// <returns>The reconstructed 1D index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= name #> ReconstructIndex(
-            <#= baseType #> linearIndex,
-            <#= name #> dimension) =>
-            linearIndex;
-
-<# if (def.IsIntIndex) { #>
-        /// <summary>
-        /// Reconstructs a 1D index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <param name="dimension">The 1D dimension for reconstruction.</param>
-        /// <returns>The reconstructed 1D index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= name #> ReconstructIndex(
-            long linearIndex,
-            <#= name #> dimension) {
-            IndexTypeExtensions.AssertIntIndexRange(linearIndex);
-            return (<#= name #>)linearIndex;
-        }
-<# } #>
-
         /// <summary>
         /// Implicitly converts an index to an int.
         /// </summary>
@@ -579,118 +522,6 @@ namespace ILGPU
         [CLSCompliant(false)]
         public static explicit operator u<#= baseType #>(<#= name #> idx) =>
             (u<#= baseType #>)idx.X;
-    }
-
-<#  } #>
-<#  foreach (var def in IndexDefinitions2D) { #>
-<#      var name = def.Name; #>
-<#      var baseType = def.BaseTypeName; #>
-    partial struct <#= name #>
-    {
-        /// <summary>
-        /// Computes the linear index of this 2D index by using the provided 2D dimension.
-        /// </summary>
-        /// <param name="dimension">The dimension for index computation.</param>
-        /// <param name="index">The base index.</param>
-        /// <returns>The computed linear index of this 2D index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= baseType #> ComputeLinearIndex(
-            <#= name #> dimension,
-            <#= name #> index) =>
-            index.Y * dimension.X + index.X;
-
-        /// <summary>
-        /// Reconstructs a 2D index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <param name="dimension">The 2D dimension for reconstruction.</param>
-        /// <returns>The reconstructed 2D index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= name #> ReconstructIndex(
-            <#= baseType #> linearIndex,
-            <#= name #> dimension)
-        {
-            <#= baseType #> x = linearIndex % dimension.X;
-            <#= baseType #> y = linearIndex / dimension.X;
-            return new <#= name #>(x, y);
-        }
-
-<# if (def.IsIntIndex) { #>
-        /// <summary>
-        /// Reconstructs a 2D index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <param name="dimension">The 2D dimension for reconstruction.</param>
-        /// <returns>The reconstructed 2D index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= name #> ReconstructIndex(
-            long linearIndex,
-            <#= name #> dimension)
-        {
-            long x = linearIndex % dimension.X;
-            long y = linearIndex / dimension.X;
-            IndexTypeExtensions.AssertIntIndexRange(y);
-            return new <#= name #>((int)x, (int)y);
-        }
-<# } #>
-    }
-
-<#  } #>
-<#  foreach (var def in IndexDefinitions3D) { #>
-<#      var name = def.Name; #>
-<#      var baseType = def.BaseTypeName; #>
-    partial struct <#= name #>
-    {
-        /// <summary>
-        /// Computes the linear index of this 3D index by using the provided 3D dimension.
-        /// </summary>
-        /// <param name="dimension">The dimension for index computation.</param>
-        /// <param name="index">The base index.</param>
-        /// <returns>The computed linear index of this 3D index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= baseType #> ComputeLinearIndex(
-            <#= name #> dimension,
-            <#= name #> index) =>
-            ((index.Z * dimension.Y) + index.Y) * dimension.X + index.X;
-
-        /// <summary>
-        /// Reconstructs a 3D index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <param name="dimension">The 3D dimension for reconstruction.</param>
-        /// <returns>The reconstructed 3D index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= name #> ReconstructIndex(
-            <#= baseType #> linearIndex,
-            <#= name #> dimension)
-        {
-            <#= baseType #> x = linearIndex % dimension.X;
-            <#= baseType #> yz = linearIndex / dimension.X;
-            <#= baseType #> y = yz % dimension.Y;
-            <#= baseType #> z = yz / dimension.Y;
-            return new <#= name #>(x, y, z);
-        }
-
-<# if (def.IsIntIndex) { #>
-        /// <summary>
-        /// Reconstructs a 3D index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <param name="dimension">The 3D dimension for reconstruction.</param>
-        /// <returns>The reconstructed 3D index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= name #> ReconstructIndex(
-            long linearIndex,
-            <#= name #> dimension)
-        {
-            long x = linearIndex % dimension.X;
-            long yz = linearIndex / dimension.X;
-            long y = yz % dimension.Y;
-            long z = yz / dimension.Y;
-            IndexTypeExtensions.AssertIntIndexRange(z);
-            return new <#= name #>((int)x, (int)y, (int)z);
-        }
-<# } #>
     }
 
 <#  } #>

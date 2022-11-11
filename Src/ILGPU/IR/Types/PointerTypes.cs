@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: PointerType.cs
+// File: PointerTypes.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
@@ -165,15 +165,15 @@ namespace ILGPU.IR.Types
             MemoryAddressSpace addressSpace)
             : base(typeContext, elementType, addressSpace)
         {
-            if (typeContext.TargetPlatform == TargetPlatform.X86)
-            {
-                Size = Alignment = 4;
-                BasicValueType = BasicValueType.Int32;
-            }
-            else
+            if (typeContext.TargetPlatform.Is64Bit())
             {
                 Size = Alignment = 8;
                 BasicValueType = BasicValueType.Int64;
+            }
+            else
+            {
+                Size = Alignment = 4;
+                BasicValueType = BasicValueType.Int32;
             }
             AddFlags(TypeFlags.PointerDependent);
         }
@@ -181,6 +181,9 @@ namespace ILGPU.IR.Types
         #endregion
 
         #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsPointerType => true;
 
         /// <summary>
         /// Returns the associated basic value type.
@@ -237,6 +240,13 @@ namespace ILGPU.IR.Types
             Size = Alignment = 4;
             AddFlags(TypeFlags.ViewDependent);
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsViewType => true;
 
         #endregion
 

@@ -1,4 +1,16 @@
-﻿using ILGPU.Runtime;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: ArrayViews.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -510,6 +522,50 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
+        internal static void ArrayViewCastLoopKernel(
+            ArrayView<Int2> data,
+            int value)
+        {
+            ArrayView1D<int, Stride1D.Dense> shared =
+                ILGPU.SharedMemory.Allocate1D<int>(1024);
+            var reinterpreted = shared.Cast<int, Int2>();
+
+            // Fill shared memory
+            for (int t = Group.Index.X;
+                t < reinterpreted.Extent.Size;
+                t += Group.Dimension.X)
+            {
+                reinterpreted[t] = t + value;
+            }
+            Group.Barrier();
+
+            // Store to main memory
+            for (int t = Group.Index.X;
+                t < reinterpreted.Extent.Size;
+                t += Group.Dimension.X)
+            {
+                data[t] = reinterpreted[t];
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(ArrayViewCastLoopKernel))]
+        public void ArrayViewCastLoop()
+        {
+            const int MaxLength = 1024;
+            int length = Math.Min(MaxLength, Accelerator.MaxNumThreadsPerGroup);
+            using var buffer = Accelerator.Allocate1D<Int2>(MaxLength / 2);
+            Execute(
+                new KernelConfig(1, length),
+                buffer.View.AsContiguous(),
+                length);
+
+            var expected = new Int2[MaxLength / 2];
+            for (int i = 0; i < expected.Length; ++i)
+                expected[i] = i + length;
+            Verify(buffer.View, expected);
+        }
+
         internal static void ArrayViewLinearViewKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data,
@@ -668,7 +724,7 @@ namespace ILGPU.Tests
             ArrayView3D<int, Stride3D.DenseXY> data,
             ArrayView3D<int, Stride3D.DenseXY> source)
         {
-            var reconstructedIndex = data.Extent.ReconstructIndex(index);
+            var reconstructedIndex = data.Stride.ReconstructFromElementIndex(index);
             data[reconstructedIndex] = source[reconstructedIndex];
         }
 
@@ -785,16 +841,26 @@ namespace ILGPU.Tests
             T element)
             where T : unmanaged
         {
-            var (prefix, main) = data.AlignTo(alignmentInBytes);
+            var sourceAlignment = data.AsAligned(Interop.SizeOf<T>());
+            var (prefix, main) = sourceAlignment.AlignTo(alignmentInBytes);
 
             prefixLength[index] = prefix.Length;
             mainLength[index] = main.Length;
 
             if (index < prefix.Length)
-                prefix[index] = element;
+            {
+                var unalignedPrefix = prefix.AsAligned(1);
+                unalignedPrefix[index] = element;
+            }
 
             Trace.Assert(main.Length > 0);
-            main[index] = element;
+
+            // Ensure that the main view is aligned
+            if (index < main.Length)
+            {
+                var mainAligned = main.AsAligned(alignmentInBytes);
+                mainAligned[index] = element;
+            }
         }
 
         public static TheoryData<object, object> AlignToData =>

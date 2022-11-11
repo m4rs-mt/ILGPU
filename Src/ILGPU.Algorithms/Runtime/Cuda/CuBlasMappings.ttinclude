@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2020-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuBlasMappings.ttinclude
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 <#@ include file="../../TypeInformation.ttinclude"#>
@@ -19,7 +19,8 @@ public static readonly (string, string)[] CuBlasTypes = new (string, string)[]
     ("float", "float"),
     ("double", "double"),
     ("Float2", "float"),
-    ("Double2", "double")
+    ("Double2", "double"),
+    ("Half", "half"),
 };
 
 // Level 1
@@ -248,6 +249,7 @@ public static readonly string[] Gemm = new string[]
     "Dgemm_v2",
     "Cgemm_v2",
     "Zgemm_v2",
+    "Hgemm",
 };
 
 public static readonly string[] Symm = new string[]

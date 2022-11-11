@@ -1,0 +1,23 @@
+<!-- ======= News Section ======= -->
+<section id="related" class="pricing">
+    <div class="container" data-aos="fade-up">
+        <div class="section-title">
+            <h2>{{ include.title | default: "News" }}</h2>
+            {% if include.subtitle %}
+                <p>{{ include.subtitle }}</p>
+            {% endif %}
+        </div>
+        <div class="row">
+            {% for post in site.posts limit: 3 %}
+                <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="box">
+                        <h5>{{ post.title }}</h5>
+                        <p class="excerpt">{{ post.excerpt | strip_html }}</p>
+                        {% comment %}<br/><br/>{% endcomment %}
+                        <a href="{{ post.url | relative_url }}" class="buy-btn">Full Article</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section><!-- End News Section -->

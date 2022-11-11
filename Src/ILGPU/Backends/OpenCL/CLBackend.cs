@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLBackend.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
@@ -72,8 +72,10 @@ namespace ILGPU.Backends.OpenCL
             {
                 var transformerBuilder = Transformer.CreateBuilder(
                     TransformerConfiguration.Empty);
-                transformerBuilder.AddBackendOptimizations(
-                    new CLAcceleratorSpecializer(PointerType),
+                transformerBuilder.AddBackendOptimizations<CodePlacement.GroupOperands>(
+                    new CLAcceleratorSpecializer(
+                        PointerType,
+                        Context.Properties.EnableIOOperations),
                     context.Properties.InliningMode,
                     context.Properties.OptimizationLevel);
                 builder.Add(transformerBuilder.ToTransformer());

@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PrimitiveTypes.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
@@ -84,6 +84,9 @@ namespace ILGPU.IR.Types
 
         #region Properties
 
+        /// <inheritdoc/>
+        public override bool IsPrimitiveType => true;
+
         /// <summary>
         /// Returns the associated basic value type.
         /// </summary>
@@ -151,6 +154,13 @@ namespace ILGPU.IR.Types
         internal StringType(IRTypeContext typeContext)
             : base(typeContext)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsStringType => true;
 
         #endregion
 

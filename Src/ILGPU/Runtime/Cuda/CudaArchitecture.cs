@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaArchitecture.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using System;
@@ -97,6 +97,21 @@ namespace ILGPU.Runtime.Cuda
         /// The 8.6 architecture.
         /// </summary>
         public static readonly CudaArchitecture SM_86 = new CudaArchitecture(8, 6);
+
+        /// <summary>
+        /// The 8.7 architecture.
+        /// </summary>
+        public static readonly CudaArchitecture SM_87 = new CudaArchitecture(8, 7);
+
+        /// <summary>
+        /// The 8.9 architecture.
+        /// </summary>
+        public static readonly CudaArchitecture SM_89 = new CudaArchitecture(8, 9);
+
+        /// <summary>
+        /// The 9.0 architecture.
+        /// </summary>
+        public static readonly CudaArchitecture SM_90 = new CudaArchitecture(9, 0);
 
         #endregion
 

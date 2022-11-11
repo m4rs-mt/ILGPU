@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2019 ILGPU Algorithms Project
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2019-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLContext.Generated.tt/CLContext.Generated.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>

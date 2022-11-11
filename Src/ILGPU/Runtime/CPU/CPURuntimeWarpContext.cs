@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPURuntimeWarpContext.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
@@ -237,7 +237,7 @@ namespace ILGPU.Runtime.CPU
             config.Validate(WarpSize);
 
             // Allocate a compatible view
-            var view = PerformLocked<
+            var view = PerformLockStep<
                 CPURuntimeWarpContext,
                 GetShuffleMemory<T>,
                 ArrayView<T>>(

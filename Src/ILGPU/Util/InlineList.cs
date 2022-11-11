@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2020-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InlineList.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using System;
@@ -318,6 +318,16 @@ namespace ILGPU.Util
             for (int i = index, e = Count - 1; i < e; ++i)
                 items[i] = items[i + 1];
             --Count;
+        }
+
+        /// <summary>
+        /// Pops an element from the back of this list.
+        /// </summary>
+        public T Pop()
+        {
+            var element = items[Count - 1];
+            --Count;
+            return element;
         }
 
         /// <summary>

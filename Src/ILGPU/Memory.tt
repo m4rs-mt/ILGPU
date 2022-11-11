@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Memory.tt/Memory.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="true" language="C#" #>
@@ -24,6 +24,7 @@ var classes = new (string, string)[]
 };
 #>
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System.Diagnostics;
 
 namespace ILGPU
@@ -65,10 +66,14 @@ namespace ILGPU
             where TStride : struct, IStride<#= dimension #>D
         {
             Trace.Assert(
-                <#= string.Join(
-                    " & ",
+<# if (dimension == 1) { #>
+                <#= $"extent.{IndexDimensions[0].PropertyName} >= 0" #>,
+<# } else { #>
+                Bitwise.And(<#= string.Join(
+                    ", ",
                     Enumerable.Range(0, dimension).
-                    Select(t => $"extent.{IndexDimensions[t].PropertyName} >= 0")) #>,
+                    Select(t => $"extent.{IndexDimensions[t].PropertyName} >= 0")) #>),
+<# } #>
                 "Extent out of bounds");
 
             var baseView = Allocate<T>((int)stride.ComputeBufferLength(extent));
@@ -80,5 +85,66 @@ namespace ILGPU
     }
 
 <#      } #>
+<#  } #>
+
+
+<#
+var axes = new string[]
+{
+    "X",
+    "Y",
+};
+#>
+
+<#  foreach (var axis in axes) { #>
+    partial class SharedMemory
+    {
+        /// <summary>
+        /// Allocates a 2D chunk of shared memory with <#= axis #>
+        /// as the leading dimension.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="extent">The number of elements to allocate.</param>
+        /// <returns>An allocated 2D buffer on shared memory.</returns>
+        public static ArrayView2D<T, Stride2D.Dense<#= axis #>> 
+            Allocate2DDense<#= axis #><T>(
+            in Index2D extent)
+            where T : unmanaged =>
+            Allocate2D<T, Stride2D.Dense<#= axis #>> (
+                extent,
+                new Stride2D.Dense<#= axis #>(extent.<#= axis #>));
+    }
+<#  } #>
+
+<#
+var twoaxes = new (string, string, string)[]
+{
+    ("XY", "extent.X", "extent.X * extent.Y"),
+    ("ZY", "extent.Z * extent.Y", "extent.Z")
+};
+#>
+
+<#  foreach (var (axis, axis1, axis2) in twoaxes) { #>
+    partial class SharedMemory
+    {
+        /// <summary>
+        /// Allocates a 3D chunk of shared memory with <#= axis #> 
+        /// as the leading dimensions.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="extent">The number of elements to allocate.</param>
+        /// <returns>An allocated 3D buffer on shared memory.</returns>
+        /// <remarks>
+        /// Since <#= axis #> are the leading dimension, combined dimension 
+        /// (multiplied sizes) must be less or equal to <see cref="int.MaxValue"/>.
+        /// </remarks>
+        public static ArrayView3D<T, Stride3D.Dense<#= axis #>> 
+            Allocate3DDense<#= axis #><T>(
+            in Index3D extent)
+            where T : unmanaged =>
+            Allocate3D<T, Stride3D.Dense<#= axis #>> (
+                extent,
+                new Stride3D.Dense<#= axis #>(<#= axis1 #>, <#= axis2 #>));
+    }
 <#  } #>
 }

@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayType.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using System;
@@ -43,6 +43,9 @@ namespace ILGPU.IR.Types
         #endregion
 
         #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsArrayType => true;
 
         /// <summary>
         /// Returns the underlying element type.

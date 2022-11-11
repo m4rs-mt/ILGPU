@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Convert.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -28,25 +28,14 @@ namespace ILGPU.IR.Values
         None,
 
         /// <summary>
-        /// The convert operation has overflow semantics.
-        /// </summary>
-        Overflow = 1,
-
-        /// <summary>
         /// The convert operation treats the input value as unsigned.
         /// </summary>
-        SourceUnsigned = 2,
-
-        /// <summary>
-        /// The convert operation has overflow semantics and the
-        /// overflow check is based on unsigned semantics.
-        /// </summary>
-        OverflowSourceUnsigned = 3,
+        SourceUnsigned = 1,
 
         /// <summary>
         /// The convert operation results in an unsigned value.
         /// </summary>
-        TargetUnsigned = 4,
+        TargetUnsigned = 2,
     }
 
     /// <summary>
@@ -120,12 +109,6 @@ namespace ILGPU.IR.Values
         /// </summary>
         public ArithmeticBasicValueType TargetType =>
             BasicValueType.GetArithmeticBasicValueType(IsResultUnsigned);
-
-        /// <summary>
-        /// Returns true if the operation has enabled overflow semantics.
-        /// </summary>
-        public bool CanOverflow => (Flags & ConvertFlags.Overflow) ==
-            ConvertFlags.Overflow;
 
         /// <summary>
         /// Returns true if the operation has enabled unsigned semantics.

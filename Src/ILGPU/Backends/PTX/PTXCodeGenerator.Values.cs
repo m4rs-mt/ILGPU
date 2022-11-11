@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Values.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
@@ -49,19 +49,26 @@ namespace ILGPU.Backends.PTX
 
             // Reserve a sufficient amount of memory
             var returnType = target.ReturnType;
+            string callCommand = Uniforms.IsUniform(methodCall)
+                ? PTXInstructions.UniformMethodCall
+                : PTXInstructions.MethodCall;
             if (!returnType.IsVoidType)
             {
                 Builder.Append('\t');
                 AppendParamDeclaration(Builder, returnType, ReturnValueName);
                 Builder.AppendLine(";");
-                Builder.Append("\tcall ");
+                Builder.Append('\t');
+                Builder.Append(callCommand);
+                Builder.Append(' ');
                 Builder.Append('(');
                 Builder.Append(ReturnValueName);
                 Builder.Append("), ");
             }
             else
             {
-                Builder.Append("\tcall ");
+                Builder.Append('\t');
+                Builder.Append(callCommand);
+                Builder.Append(' ');
             }
             Builder.Append(GetMethodName(target));
             Builder.AppendLine(", (");
@@ -628,6 +635,154 @@ namespace ILGPU.Backends.PTX
             }
         }
 
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(AlignTo)"/>
+        public void GenerateCode(AlignTo value)
+        {
+            // Load the 32-bit or 64-bit base pointer
+            var ptr = LoadHardware(value.Source);
+            var arithmeticBasicValueType =
+                value.Source.BasicValueType.GetArithmeticBasicValueType(true);
+
+            // Load the alignment value into a register
+            var alignment = LoadPrimitive(value.AlignmentInBytes);
+
+            // var baseOffset = (int)ptr & (alignmentInBytes - 1);
+            var tempRegister = AllocateRegister(ptr.Description);
+
+            // Get the specialized and and convert operations
+            var andOperation = PTXInstructions.GetArithmeticOperation(
+                BinaryArithmeticKind.And,
+                arithmeticBasicValueType,
+                Backend.Capabilities,
+                FastMath);
+            var convertOperation = PTXInstructions.GetConvertOperation(
+                alignment.BasicValueType.GetArithmeticBasicValueType(
+                    isUnsigned: false),
+                tempRegister.BasicValueType.GetArithmeticBasicValueType(
+                    isUnsigned: true));
+
+            // Check for a predefined alignment constant
+            bool hasConstantAlignment;
+            if (hasConstantAlignment = value.TryGetAlignmentConstant(
+                out int alignmentConstant))
+            {
+                // Emit a specialized instruction using an inline constant
+                using var command = BeginCommand(andOperation);
+                command.AppendArgument(tempRegister);
+                command.AppendArgument(ptr);
+                command.AppendConstant(alignmentConstant);
+            }
+            else
+            {
+                // Convert the alignment information if necessary
+                if (tempRegister.Kind != alignment.Kind)
+                {
+                    using var convert = BeginCommand(convertOperation);
+                    convert.AppendArgument(tempRegister);
+                    convert.AppendArgument(alignment);
+                }
+
+                // Compute the actual alignment mask
+                using (var alignmentMinusOne = BeginCommand(
+                    PTXInstructions.GetArithmeticOperation(
+                        BinaryArithmeticKind.Sub,
+                        arithmeticBasicValueType,
+                        Backend.Capabilities,
+                        FastMath)))
+                {
+                    alignmentMinusOne.AppendArgument(tempRegister);
+                    alignmentMinusOne.AppendArgument(tempRegister);
+                    alignmentMinusOne.AppendConstant(1);
+                }
+
+                // Compute the actual temp register contents
+                using var command = BeginCommand(andOperation);
+                command.AppendArgument(tempRegister);
+                command.AppendArgument(ptr);
+                command.AppendArgument(tempRegister);
+            }
+
+            // if (baseOffset == 0) ...
+            using var predicate = new PredicateScope(this);
+            using (var command = BeginCommand(
+                PTXInstructions.GetCompareOperation(
+                    CompareKind.Equal,
+                    CompareFlags.None,
+                    arithmeticBasicValueType)))
+            {
+                command.AppendArgument(predicate.PredicateRegister);
+                command.AppendArgument(tempRegister);
+                command.AppendConstant(0);
+            }
+
+            // Allocate the target register
+            var targetRegister = AllocateHardware(value);
+
+            // Use the same value as before the case of baseOffset = 0
+            Move(
+                ptr,
+                targetRegister,
+                predicate: predicate.GetConfiguration(true));
+
+            // We need a temporary register to store the converted alignment
+            var alignmentOffsetRegister = AllocateRegister(ptr.Description);
+            if (!hasConstantAlignment && alignmentOffsetRegister.Kind != alignment.Kind)
+            {
+                using var convert = BeginCommand(
+                    convertOperation,
+                    predicate: predicate.GetConfiguration(false));
+                convert.AppendArgument(alignmentOffsetRegister);
+                convert.AppendArgument(alignment);
+            }
+            else
+            {
+                // Move the alignment constant into the offset register
+                using var move = BeginMove(
+                    predicate: predicate.GetConfiguration(false));
+                move.AppendArgument(alignmentOffsetRegister);
+                move.AppendConstant(alignmentConstant);
+            }
+
+            // Compute the alignment offset:
+            // baseOffset = alignment - baseOffset
+            using (var command = BeginCommand(
+                PTXInstructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.Sub,
+                    arithmeticBasicValueType,
+                    Backend.Capabilities,
+                    FastMath),
+                predicate: predicate.GetConfiguration(false)))
+            {
+                command.AppendArgument(tempRegister);
+                command.AppendArgument(alignmentOffsetRegister);
+                command.AppendArgument(tempRegister);
+            }
+
+            // Adjust the given pointer if baseOffset != 0
+            using (var command = BeginCommand(
+                PTXInstructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.Add,
+                    arithmeticBasicValueType,
+                    Backend.Capabilities,
+                    FastMath),
+                predicate: predicate.GetConfiguration(false)))
+            {
+                command.AppendArgument(targetRegister);
+                command.AppendArgument(ptr);
+                command.AppendArgument(tempRegister);
+            }
+
+            Free(tempRegister);
+            Free(alignmentOffsetRegister);
+        }
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(AsAligned)"/>
+        public void GenerateCode(AsAligned value)
+        {
+            var source = LoadPrimitive(value.Source);
+            Bind(value, source);
+        }
+
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PrimitiveValue)"/>
         public void GenerateCode(PrimitiveValue value)
         {
@@ -653,26 +808,22 @@ namespace ILGPU.Backends.PTX
                 stringConstants.Add(key, stringBinding);
             }
 
-            // Move the value into a register
-            var tempValueRegister = AllocatePlatformRegister(
-                out RegisterDescription description);
+            // Move the value into the target register
+            var register = AllocateHardware(value);
             using (var command = BeginMove())
             {
-                command.AppendSuffix(description.BasicValueType);
-                command.AppendArgument(tempValueRegister);
+                command.AppendSuffix(register.Description.BasicValueType);
+                command.AppendArgument(register);
                 command.AppendRawValueReference(stringBinding);
             }
 
             // Convert the string value into the generic address space
-            // string (global) -> string (generic)
-            var register = AllocateHardware(value);
+            // string (global) -> string (generic) (in place conversion)
             CreateAddressSpaceCast(
-                tempValueRegister,
+                register,
                 register,
                 MemoryAddressSpace.Global,
                 MemoryAddressSpace.Generic);
-
-            FreeRegister(tempValueRegister);
         }
 
         /// <summary>
@@ -1091,17 +1242,42 @@ namespace ILGPU.Backends.PTX
                 return;
 
             // Load argument registers.
-            // If there is an output, allocate a new register to store the value.
             var registers = InlineList<PrimitiveRegister>.Create(emit.Nodes.Length);
 
             for (var argumentIdx = 0; argumentIdx < emit.Count; argumentIdx++)
             {
                 var argument = emit.Nodes[argumentIdx];
-                registers.Add(
-                    argumentIdx == 0 && emit.HasOutput
-                    ? AllocateRegister(ResolveRegisterDescription(
-                        (argument.Type as PointerType).ElementType))
-                    : LoadPrimitive(argument));
+
+                if (emit.UsingRefParams)
+                {
+                    // If there is an input, initialize with the supplied argument value.
+                    var pointerType = argument.Type as PointerType;
+                    var pointerElementType = pointerType.ElementType;
+
+                    var targetRegister = AllocateRegister(
+                        ResolveRegisterDescription(pointerElementType));
+                    registers.Add(targetRegister);
+
+                    if (emit.IsInputArgument(argumentIdx))
+                    {
+                        var address = LoadHardware(argument);
+                        EmitVectorizedCommand(
+                            argument,
+                            pointerElementType.Alignment,
+                            PTXInstructions.LoadOperation,
+                            new LoadEmitter(pointerType, address),
+                            targetRegister);
+                    }
+                }
+                else
+                {
+                    // If there is an output, allocate a new register to store the value.
+                    registers.Add(
+                        emit.IsOutputArgument(argumentIdx)
+                        ? AllocateRegister(ResolveRegisterDescription(
+                            (argument.Type as PointerType).ElementType))
+                        : LoadPrimitive(argument));
+                }
             }
 
             // Emit the PTX assembly string
@@ -1122,22 +1298,23 @@ namespace ILGPU.Backends.PTX
                 }
             }
 
-            // If there is an output register, write the value to the address.
-            // NB: Assumes that the output argument must be at index 0.
-            if (emit.HasOutput)
+            // For each output argument, write the value to the address.
+            for (var argumentIdx = 0; argumentIdx < emit.Count; argumentIdx++)
             {
-                const int outputArgumentIdx = 0;
-                var outputArgument = emit.Nodes[outputArgumentIdx];
-                var address = LoadHardware(outputArgument);
-                var targetType = outputArgument.Type as PointerType;
-                var newValue = registers[outputArgumentIdx];
+                if (emit.IsOutputArgument(argumentIdx))
+                {
+                    var outputArgument = emit.Nodes[argumentIdx];
+                    var address = LoadHardware(outputArgument);
+                    var targetType = outputArgument.Type as PointerType;
+                    var newValue = registers[argumentIdx];
 
-                EmitVectorizedCommand(
-                    outputArgument,
-                    targetType.ElementType.Alignment,
-                    PTXInstructions.StoreOperation,
-                    new StoreEmitter(targetType, address),
-                    newValue);
+                    EmitVectorizedCommand(
+                        outputArgument,
+                        targetType.ElementType.Alignment,
+                        PTXInstructions.StoreOperation,
+                        new StoreEmitter(targetType, address),
+                        newValue);
+                }
             }
         }
     }

@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Utilities.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
@@ -26,12 +26,8 @@ namespace ILGPU.Util
         /// <typeparam name="T">The type of the values.</typeparam>
         /// <param name="first">The first value to swap with the second one.</param>
         /// <param name="second">The second value to swap with the first one.</param>
-        public static void Swap<T>(ref T first, ref T second)
-        {
-            T temp = first;
-            first = second;
-            second = temp;
-        }
+        public static void Swap<T>(ref T first, ref T second) =>
+            (first, second) = (second, first);
 
         /// <summary>
         /// Swaps the given values if swap is true.

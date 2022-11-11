@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
@@ -241,9 +241,21 @@ namespace ILGPU.Backends.OpenCL
         protected static string GetMethodName(Method method)
         {
             var handleName = method.Handle.Name;
-            return method.HasFlags(MethodFlags.External)
-                ? handleName
-                : handleName + "_" + method.Id;
+            if (method.HasFlags(MethodFlags.External))
+            {
+                return handleName;
+            }
+            else
+            {
+                // Constructor names in MSIL start with a dot. This is a reserved
+                // character that cannot be used in the OpenCL function name. Replace
+                // the dot with an underscore, assuming that the rest of the name is
+                // using valid characters. Appending the IR node identifier will ensure
+                // that there are no conflicts.
+                return handleName.StartsWith(".", System.StringComparison.Ordinal)
+                    ? handleName.Substring(1) + "_" + method.Id
+                    : handleName + "_" + method.Id;
+            }
         }
 
         /// <summary>
@@ -539,11 +551,18 @@ namespace ILGPU.Backends.OpenCL
                         // Check for an intermediate phi value
                         if (bindings.IsIntermediate(phiValue))
                         {
-                            var intermediateVariable = AllocateType(phiValue.Type);
-                            intermediatePhiVariables.Add(phiValue, intermediateVariable);
+                            if (!intermediatePhiVariables.TryGetValue(
+                                phiValue,
+                                out var intermediateVariable))
+                            {
+                                intermediateVariable = AllocateType(phiValue.Type);
+                                intermediatePhiVariables.Add(
+                                    phiValue,
+                                    intermediateVariable);
 
-                            // Move this phi value into a temporary variable for reuse
-                            Declare(intermediateVariable);
+                                // Move this phi value into a temporary variable for reuse
+                                Declare(intermediateVariable);
+                            }
                             Move(intermediateVariable, phiTargetVariable);
                         }
 

@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Memory.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
@@ -207,6 +207,14 @@ namespace ILGPU.IR.Construction
                 IRTypeContext.IsViewIndexType(elementIndex.BasicValueType));
             var addressSpaceType = source.Type as AddressSpaceType;
             location.AssertNotNull(addressSpaceType);
+
+            // Fold nested conversion operations that do not change the semantics
+            if (elementIndex is ConvertValue convertValue &&
+                convertValue.Value.BasicValueType == BasicValueType.Int32 &&
+                convertValue.BasicValueType == BasicValueType.Int64)
+            {
+                elementIndex = convertValue.Value;
+            }
 
             // Fold primitive pointer arithmetic that does not change anything
             return source.Type is PointerType && elementIndex.IsPrimitive(0)

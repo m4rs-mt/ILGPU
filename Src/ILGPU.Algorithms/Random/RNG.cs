@@ -1,13 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2019 ILGPU Algorithms Project
-//                     Copyright (c) 2017-2018 ILGPU Samples Project
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RNG.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.Random.Operations;
@@ -159,17 +158,17 @@ namespace ILGPU.Algorithms.Random
         /// <summary>
         /// The maximum number of parallel groups.
         /// </summary>
-        private readonly int groupSize;
+        private readonly int maxNumParallelWarps;
 
         /// <summary>
         /// Initializes the RNG view.
         /// </summary>
         /// <param name="providers">The random providers.</param>
-        /// <param name="numParallelGroups">The maximum number of parallel groups.</param>
-        internal RNGView(ArrayView<TRandomProvider> providers, int numParallelGroups)
+        /// <param name="numParallelWarps">The maximum number of parallel warps.</param>
+        internal RNGView(ArrayView<TRandomProvider> providers, int numParallelWarps)
         {
             randomProviders = providers;
-            groupSize = numParallelGroups;
+            maxNumParallelWarps = numParallelWarps;
         }
 
         #endregion
@@ -184,15 +183,17 @@ namespace ILGPU.Algorithms.Random
         private readonly ref TRandomProvider GetRandomProvider()
         {
             // Compute the global warp index
-            int groupOffset = Grid.Index.ComputeLinearIndex(Grid.Dimension) % groupSize;
-            int warpOffset = Group.LinearIndex;
-            int warpIdx = groupOffset * Warp.WarpSize + warpOffset / Warp.WarpSize;
+            int groupIndex = Group.LinearIndex;
+            int warpIndex = Warp.ComputeWarpIdx(groupIndex);
+            int groupStride = XMath.DivRoundUp(Group.Dimension.Size, Warp.WarpSize);
+            int groupOffset = Grid.LinearIndex * groupStride;
+            int providerIndex = groupOffset + warpIndex;
 
             // Access the underlying provider
             Trace.Assert(
-                warpIdx < randomProviders.Length,
+                providerIndex < randomProviders.Length,
                 "Current warp does not have a valid RNG provider");
-            return ref randomProviders[warpIdx];
+            return ref randomProviders[providerIndex];
         }
 
         /// <summary>
@@ -402,14 +403,11 @@ namespace ILGPU.Algorithms.Random
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public RNGView<TRandomProvider> GetView(int numWarps)
         {
-            // Ensure that the number of warps is a multiple of the warp size.
-            int numGroups = XMath.DivRoundUp(numWarps, Accelerator.WarpSize);
-            numWarps = numGroups * Accelerator.WarpSize;
             Trace.Assert(
                 numWarps > 0 && numWarps <= randomProvidersPerWarp.Length,
                 "Invalid number of warps");
             var subView = randomProvidersPerWarp.View.SubView(0, numWarps);
-            return new RNGView<TRandomProvider>(subView, numGroups);
+            return new RNGView<TRandomProvider>(subView, numWarps);
         }
 
         /// <summary>

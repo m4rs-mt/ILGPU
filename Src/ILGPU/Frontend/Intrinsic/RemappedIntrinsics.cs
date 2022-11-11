@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RemappedIntrinsics.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using System;
@@ -47,8 +47,6 @@ namespace ILGPU.Frontend.Intrinsic
 
         static RemappedIntrinsics()
         {
-            var remappedType = typeof(RemappedIntrinsics);
-
             AddRemapping(
                 typeof(float),
                 CPUMathType,
@@ -71,8 +69,23 @@ namespace ILGPU.Frontend.Intrinsic
                 nameof(double.IsInfinity),
                 typeof(double));
 
+#if !NETFRAMEWORK
+            AddRemapping(
+                typeof(float),
+                CPUMathType,
+                nameof(float.IsFinite),
+                typeof(float));
+
+            AddRemapping(
+                typeof(double),
+                CPUMathType,
+                nameof(double.IsFinite),
+                typeof(double));
+#endif
+
             RegisterMathRemappings();
             RegisterBitConverterRemappings();
+            RegisterBitOperationsRemappings();
             RegisterCopySignRemappings();
             RegisterInterlockedRemappings();
         }
@@ -286,5 +299,73 @@ namespace ILGPU.Frontend.Intrinsic
         }
 
         #endregion
+
+        #region BitOperations remappings
+
+        private static void RegisterBitOperationsRemappings()
+        {
+#if NETFRAMEWORK
+            // NB: net471 does not support System.Numerics.BitOperations.
+#elif NETSTANDARD
+            // NB: System.Numerics.BitOperations is available from netcoreapp3.1 onwards,
+            // but because we are using netstandard2.1 (which does not have support), we
+            // have to find the type at runtime.
+            var sourceType = Type.GetType("System.Numerics.BitOperations");
+            if (sourceType == null)
+                return;
+#else
+            var sourceType = typeof(System.Numerics.BitOperations);
+#endif
+
+#if !NETFRAMEWORK
+            var targetType = typeof(IntrinsicMath.BitOperations);
+
+            AddRemapping(
+                sourceType,
+                targetType,
+                "LeadingZeroCount",
+                typeof(uint));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "LeadingZeroCount",
+                typeof(ulong));
+
+            AddRemapping(
+                sourceType,
+                targetType,
+                "PopCount",
+                typeof(uint));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "PopCount",
+                typeof(ulong));
+
+            AddRemapping(
+                sourceType,
+                targetType,
+                "TrailingZeroCount",
+                typeof(int));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "TrailingZeroCount",
+                typeof(long));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "TrailingZeroCount",
+                typeof(uint));
+            AddRemapping(
+                sourceType,
+                targetType,
+                "TrailingZeroCount",
+                typeof(ulong));
+#endif
+        }
+
+        #endregion
+
     }
 }

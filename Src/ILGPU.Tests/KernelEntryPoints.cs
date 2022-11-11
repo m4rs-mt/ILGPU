@@ -1,4 +1,15 @@
-﻿using ILGPU.Backends.EntryPoints;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: KernelEntryPoints.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -50,7 +61,7 @@ namespace ILGPU.Tests
             ArrayView1D<int, Stride1D.Dense> output,
             Index2D extent)
         {
-            var linearIndex = index.ComputeLinearIndex(extent);
+            var linearIndex = Stride2D.DenseX.ComputeElementIndex(index, extent);
             output[linearIndex] = linearIndex;
         }
 
@@ -73,7 +84,7 @@ namespace ILGPU.Tests
             ArrayView1D<int, Stride1D.Dense> output,
             Index3D extent)
         {
-            var linearIndex = index.ComputeLinearIndex(extent);
+            var linearIndex = Stride3D.DenseXY.ComputeElementIndex(index, extent);
             output[linearIndex] = linearIndex;
         }
 
@@ -156,11 +167,16 @@ namespace ILGPU.Tests
                 var expected = new int[extent.Size];
                 for (int j = 0; j < length * length; ++j)
                 {
-                    var gridIdx = Index2D.ReconstructIndex(j, extent.GridDim.XY);
+                    var gridIdx = Stride2D.DenseX.ReconstructFromElementIndex(
+                        j,
+                        extent.GridDim.XY);
                     for (int k = 0; k < i * i; ++k)
                     {
-                        var groupIdx = Index2D.ReconstructIndex(k, extent.GroupDim.XY);
-                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(
+                        var groupIdx = Stride2D.DenseX.ReconstructFromElementIndex(
+                            k,
+                            extent.GroupDim.XY);
+                        var idx = Stride2D.DenseX.ComputeElementIndex(
+                            gridIdx * stride + groupIdx,
                             extent.GridDim.XY);
                         expected[idx] = idx;
                     }
@@ -200,11 +216,16 @@ namespace ILGPU.Tests
                 var expected = new int[extent.Size];
                 for (int j = 0; j < length * length * length; ++j)
                 {
-                    var gridIdx = Index3D.ReconstructIndex(j, extent.GridDim);
+                    var gridIdx = Stride3D.DenseXY.ReconstructFromElementIndex(
+                        j,
+                        extent.GridDim);
                     for (int k = 0; k < i * i * i; ++k)
                     {
-                        var groupIdx = Index3D.ReconstructIndex(k, extent.GroupDim);
-                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(
+                        var groupIdx = Stride3D.DenseXY.ReconstructFromElementIndex(
+                            k,
+                            extent.GroupDim);
+                        var idx = Stride3D.DenseXY.ComputeElementIndex(
+                            gridIdx * stride + groupIdx,
                             extent.GridDim);
                         expected[idx] = idx;
                     }
@@ -242,7 +263,7 @@ namespace ILGPU.Tests
                 ArrayView1D<int, Stride1D.Dense> output,
                 Index2D extent)
             {
-                var linearIndex = index.ComputeLinearIndex(extent);
+                var linearIndex = Stride2D.DenseX.ComputeElementIndex(index, extent);
                 output[linearIndex] = NestedFunction(linearIndex);
             }
 
@@ -251,7 +272,7 @@ namespace ILGPU.Tests
                 ArrayView1D<int, Stride1D.Dense> output,
                 Index3D extent)
             {
-                var linearIndex = index.ComputeLinearIndex(extent);
+                var linearIndex = Stride3D.DenseXY.ComputeElementIndex(index, extent);
                 output[linearIndex] = NestedFunction(linearIndex);
             }
         }
@@ -288,7 +309,7 @@ namespace ILGPU.Tests
             Action<Index2D, ArrayView1D<int, Stride1D.Dense>, Index2D> kernel =
                 (index, output, extent) =>
                 {
-                    var linearIndex = index.ComputeLinearIndex(extent);
+                    var linearIndex = Stride2D.DenseX.ComputeElementIndex(index, extent);
                     output[linearIndex] = linearIndex;
                 };
 
@@ -308,7 +329,7 @@ namespace ILGPU.Tests
             Action<Index3D, ArrayView1D<int, Stride1D.Dense>, Index3D> kernel =
                 (index, output, extent) =>
                 {
-                    var linearIndex = index.ComputeLinearIndex(extent);
+                    var linearIndex = Stride3D.DenseXY.ComputeElementIndex(index, extent);
                     output[linearIndex] = linearIndex;
                 };
 
@@ -400,7 +421,7 @@ namespace ILGPU.Tests
             Action<Index2D, ArrayView1D<int, Stride1D.Dense>, Index2D> kernel =
                 (index, output, extent) =>
                 {
-                    var linearIndex = index.ComputeLinearIndex(extent);
+                    var linearIndex = Stride2D.DenseX.ComputeElementIndex(index, extent);
                     output[linearIndex] = linearIndex + CaptureHost.CaptureProperty;
                 };
 
@@ -421,7 +442,7 @@ namespace ILGPU.Tests
             Action<Index3D, ArrayView1D<int, Stride1D.Dense>, Index3D> kernel =
                 (index, output, extent) =>
                 {
-                    var linearIndex = index.ComputeLinearIndex(extent);
+                    var linearIndex = Stride3D.DenseXY.ComputeElementIndex(index, extent);
                     output[linearIndex] = linearIndex + CaptureHost.CaptureProperty;
                 };
 
@@ -460,7 +481,7 @@ namespace ILGPU.Tests
             Action<Index2D, ArrayView1D<int, Stride1D.Dense>, Index2D> kernel =
                 (index, output, extent) =>
                 {
-                    var linearIndex = index.ComputeLinearIndex(extent);
+                    var linearIndex = Stride2D.DenseX.ComputeElementIndex(index, extent);
                     output[linearIndex] = linearIndex + capturedVariable;
                 };
 
@@ -479,7 +500,7 @@ namespace ILGPU.Tests
             Action<Index3D, ArrayView1D<int, Stride1D.Dense>, Index3D> kernel =
                 (index, output, extent) =>
                 {
-                    var linearIndex = index.ComputeLinearIndex(extent);
+                    var linearIndex = Stride3D.DenseXY.ComputeElementIndex(index, extent);
                     output[linearIndex] = linearIndex + capturedVariable;
                 };
 
@@ -514,7 +535,7 @@ namespace ILGPU.Tests
             Action<Index2D, ArrayView1D<int, Stride1D.Dense>, Index2D> kernel =
                 (index, output, extent) =>
                 {
-                    var linearIndex = index.ComputeLinearIndex(extent);
+                    var linearIndex = Stride2D.DenseX.ComputeElementIndex(index, extent);
                     output[linearIndex] = linearIndex + CaptureHost.CaptureField;
                 };
 
@@ -533,7 +554,7 @@ namespace ILGPU.Tests
             Action<Index3D, ArrayView1D<int, Stride1D.Dense>, Index3D> kernel =
                 (index, output, extent) =>
                 {
-                    var linearIndex = index.ComputeLinearIndex(extent);
+                    var linearIndex = Stride3D.DenseXY.ComputeElementIndex(index, extent);
                     output[linearIndex] = linearIndex + CaptureHost.CaptureField;
                 };
 

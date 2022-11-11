@@ -1,0 +1,40 @@
+﻿@page "/"
+
+<h1>Welcome to ILGPU samples with Blazor</h1>
+
+<img src="Images/Mandelbrot.png" />
+
+<p>
+	<br />
+	This sample demonstrates ILGPU GPU compute in a Blazor server application. 
+</p>
+<p> Sharing a GPU resources across Blazor server sessions is a demonstration of ILGPU multi-threaded prowess. <br />
+    Two approaches can be taken; one is instantiating an accelerator context in each Blazor page session, <br />
+    second is to instantiate ILGPU as a singleton in Blazor server and share accelerator streams.
+</p>
+<p>
+	<h3>Example Applications Ideas</h3>
+	<ul>
+		<li>Intelligent Machine Control <p>One could use low cost tablets to operate a machine tool with a centralized Blazor server.</p></li>
+		<li>Compute Studio Service <p>Proprietary code is sometimes best as a service. For example thermal or electrodynamic analysis as a service.</p></li>
+		<li>Shared Rendering Studio <p>Loading workstations with cutting edge GPUs may not be the optimal use of capital. </p></li>
+	</ul>
+
+</p>
+<p>
+	<br />
+	<h3>Notes</h3>
+    <ul>
+        <li>OpenCL or Cuda compatible accelerator required. </li>
+	<li>This sample includes two custom Blazor component; these give flavor to Blazor coding as compare to traditional<br />
+	ASP.Net coding. First is a Blazor wrapper around HTML canvas WebGL 2D context with JavaScript inter-operation. <br />
+	Second is a simple "tool tip" flyover component.</li>
+	<li>This animation pushes the limits with 32 bit floats while displaying progressively smaller subsections of the<br />
+	Mandelbrot set.	Pushing the animation button a second time will block up the display as the limit of 32 bit floating<br />
+	point is reached.</li>
+	
+	<li>No attempt is made to operate in WebAssembly as shader compute support is experimental or not supported in all browsers.</li>
+    </ul>
+
+</p>
+

@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Atomic.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -61,6 +61,12 @@ namespace ILGPU.IR.Values
         /// Returns the target view.
         /// </summary>
         public ValueReference Target => this[0];
+
+        /// <summary>
+        /// Returns the target address space this atomic operates on.
+        /// </summary>
+        public MemoryAddressSpace TargetAddressSpace =>
+            Target.Type.As<AddressSpaceType>(this).AddressSpace;
 
         /// <summary>
         /// Returns the target value.

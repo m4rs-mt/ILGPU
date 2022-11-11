@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: UniqueExtensions.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.ComparisonOperations;
@@ -67,13 +67,13 @@ namespace ILGPU.Algorithms
         {
             TComparisonOperation comparison = default;
             var isFirstGrid = Grid.IdxX == 0;
-            var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
+            var tileInfo = new TileInfo(input.IntLength, numIterationsPerGroup);
 
             // Sync groups and wait for the current one to become active
             sequentialGroupExecutor.Wait();
 
             var temp = SharedMemory.Allocate<bool>(tileSize);
-            var startIdx = Grid.ComputeGlobalIndex(Grid.IdxX, 0);
+            var startIdx = Grid.ComputeGlobalIndex(Grid.IdxX * numIterationsPerGroup, 0);
 
             for (
                 int i = tileInfo.StartIndex;

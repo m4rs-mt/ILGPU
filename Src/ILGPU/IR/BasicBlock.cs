@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlock.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses.ControlFlowDirection;
@@ -256,8 +256,7 @@ namespace ILGPU.IR
             /// Returns the terminator targets.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
-                BasicBlock basicBlock) =>
+            public ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock) =>
                 basicBlock.Terminator.Targets;
         }
 
@@ -272,11 +271,8 @@ namespace ILGPU.IR
             /// <summary>
             /// Returns registered successors or predecessors of a block.
             /// </summary>
-            /// <param name="basicBlock"></param>
-            /// <returns></returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
-                BasicBlock basicBlock) =>
+            public ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock) =>
                 basicBlock.GetSuccessors<TDirection>();
         }
 
@@ -315,6 +311,9 @@ namespace ILGPU.IR
         #endregion
 
         #region Properties
+
+        /// <inheritdoc/>
+        public override bool IsBasicBlock => true;
 
         /// <summary>
         /// Returns the parent IR method.
@@ -453,7 +452,7 @@ namespace ILGPU.IR
         {
             foreach (Value value in this)
             {
-                if (value is MemoryValue || value is MethodCall)
+                if (value is SideEffectValue)
                     return true;
             }
             return false;

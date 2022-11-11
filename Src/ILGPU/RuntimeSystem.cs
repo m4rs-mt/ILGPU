@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RuntimeSystem.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.IL;
@@ -650,8 +650,15 @@ namespace ILGPU
         /// <summary>
         /// Clears all internal caches.
         /// </summary>
-        /// <param name="mode">Not used.</param>
-        public void ClearCache(ClearCacheMode mode) => ReloadAssemblyBuilder();
+        /// <param name="mode">
+        /// Passing <see cref="ClearCacheMode.Everything"/>, causes a reload of the
+        /// CLR assembly builder, which is used internally.
+        /// </param>
+        public void ClearCache(ClearCacheMode mode)
+        {
+            if (mode == ClearCacheMode.Everything)
+                ReloadAssemblyBuilder();
+        }
 
         #endregion
 

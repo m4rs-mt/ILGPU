@@ -1,5 +1,18 @@
-﻿using ILGPU.Runtime;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2021-2022 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BasicCalls.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.Runtime;
+using ILGPU.Util;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
@@ -248,6 +261,116 @@ namespace ILGPU.Tests
 
             var expected = Enumerable.Repeat(res, Length).ToArray();
             Verify(buffer.View, expected);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static VariableView<Int2> GetVariableViewNested(
+            Index1D index,
+            ArrayView1D<Int2, Stride1D.Dense> source) =>
+            source.VariableView(index);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static VariableView<int> GetVariableSubViewNested(
+            VariableView<Int2> source) =>
+            source.SubView<int>(sizeof(int));
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static VariableView<int> GetVariableSubViewRoot(
+            Index1D index,
+            ArrayView1D<Int2, Stride1D.Dense> source)
+        {
+            var variableView = GetVariableViewNested(index, source);
+            return GetVariableSubViewNested(variableView);
+        }
+
+        internal static void GetSubVariableViewKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<Int2, Stride1D.Dense> source)
+        {
+            var view = GetVariableSubViewRoot(index, source);
+            data[index] = view.Value;
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(17)]
+        [InlineData(1025)]
+        [InlineData(8197)]
+        [KernelMethod(nameof(GetSubVariableViewKernel))]
+        public void GetSubVariableView(int length)
+        {
+            using var buffer = Accelerator.Allocate1D<int>(length);
+            var sourceData = Enumerable.Range(0, length).Select(t =>
+                new Int2(t, t + 1)).ToArray();
+            var expected = Enumerable.Range(1, length).ToArray();
+            using (var source = Accelerator.Allocate1D<Int2>(length))
+            {
+                source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
+                Execute(length, buffer.View, source.View);
+            }
+
+            Verify(buffer.View, expected);
+        }
+
+        internal static void ConstructorCallKernel(
+            Index1D index,
+            ArrayView1D<Vector4, Stride1D.Dense> output)
+        {
+            output[index] = index.X switch
+            {
+                0 => new Vector4(0),
+                1 => new Vector4(1),
+                2 => new Vector4(2),
+                _ => new Vector4(index.X),
+            };
+        }
+
+        [Fact]
+        [KernelMethod(nameof(ConstructorCallKernel))]
+        public void ConstructorCall()
+        {
+            using var output = Accelerator.Allocate1D<Vector4>(Length);
+            output.MemSetToZero(Accelerator.DefaultStream);
+            Execute(Length, output.View);
+
+            var expected =
+                Enumerable.Range(0, Length)
+                    .Select(x => new Vector4(x))
+                    .ToArray();
+            Verify(output.View, expected);
+        }
+
+        internal static void SwitchInlineKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> input,
+            ArrayView1D<int, Stride1D.Dense> output)
+        {
+            switch (input[index])
+            {
+                case 0:
+                    output[index] = 11;
+                    break;
+                case 1:
+                    output[index] = 22;
+                    break;
+                case 2:
+                    output[index] = 33;
+                    break;
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(SwitchInlineKernel))]
+        public void SwitchInline()
+        {
+            var sourceData = new int[] { 0, 1, 2 };
+            using var buffer = Accelerator.Allocate1D(sourceData);
+            using var target = Accelerator.Allocate1D<int>(sourceData.Length);
+
+            Execute(sourceData.Length, buffer.View, target.View);
+            var expected = new int[] { 11, 22, 33 };
+            Verify(target.View, expected);
         }
     }
 }

@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlock.Builder.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -219,7 +219,7 @@ namespace ILGPU.IR
             /// <summary>
             /// Clears all attached values (except the terminator).
             /// </summary>
-            private void ClearLists()
+            internal void ClearLists()
             {
                 Values.Clear();
                 toRemove.Clear();
@@ -241,7 +241,7 @@ namespace ILGPU.IR
             /// Applies all scheduled removal operations.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal void PerformRemoval()
+            private void PerformRemoval()
             {
                 if (toRemove.Count < 1)
                     return;
@@ -276,6 +276,14 @@ namespace ILGPU.IR
                         continue;
                     }
                     targetCollection.Add(valueRef);
+                }
+
+                // Check whether we can replace this terminator
+                if (Terminator != null &&
+                    !Terminator.IsReplaced &&
+                    toRemove.Contains(Terminator))
+                {
+                    Terminator.Replace(CreateUndefined());
                 }
 
                 toRemove.Clear();
@@ -343,7 +351,7 @@ namespace ILGPU.IR
             {
                 // Perform local rebuilding step
                 var callTarget = call.Target;
-                var tempBlock = SplitBlock(call, false);
+                var tempBlock = SplitBlock(call);
                 var mapping = callTarget.CreateParameterMapping(call.Nodes);
                 var rebuilder = MethodBuilder.CreateRebuilder<IRRebuilder.InlineMode>(
                     mapping,
@@ -371,25 +379,21 @@ namespace ILGPU.IR
             /// Splits the current block at the given value.
             /// </summary>
             /// <param name="splitPoint">The split point.</param>
-            /// <param name="keepSplitPoint">
-            /// True, if you want to keep the split point.
-            /// </param>
             /// <returns>The created temporary block.</returns>
-            public Builder SplitBlock(Value splitPoint, bool keepSplitPoint)
+            public Builder SplitBlock(Value splitPoint)
             {
                 PerformRemoval();
                 this.AssertNotNull(splitPoint);
 
                 // Create a new basic block to jump to
                 var valueIndex = Values.IndexOf(splitPoint);
-                var splitPointOffset = keepSplitPoint ? 0 : 1;
                 this.Assert(valueIndex >= 0);
 
                 // Create temp block and move instructions
                 var tempBlock = MethodBuilder.CreateBasicBlock(
                     splitPoint.Location,
                     BasicBlock.Name + "'");
-                for (int i = valueIndex + splitPointOffset, e = Count; i < e; ++i)
+                for (int i = valueIndex + 1, e = Count; i < e; ++i)
                 {
                     Value valueToMove = Values[i];
                     valueToMove.BasicBlock = tempBlock.BasicBlock;
@@ -473,6 +477,33 @@ namespace ILGPU.IR
                 Remove(value);
 
                 InsertPosition = oldPosition;
+            }
+
+            /// <summary>
+            /// Tries to find the first value of the given type that fulfills the given
+            /// predicate in this block.
+            /// </summary>
+            /// <typeparam name="T">The value type.</typeparam>
+            /// <param name="predicate">The predicate.</param>
+            /// <param name="entry">
+            /// The result pair consisting of a value index and the matched value itself.
+            /// </param>
+            /// <returns>True, if a value could be matched.</returns>
+            public bool TryFindFirstValueOf<T>(
+                Predicate<T> predicate,
+                out (int Index, T Value) entry)
+                where T : Value
+            {
+                entry = default;
+                for (int i = 0, e = Values.Count; i < e; ++i)
+                {
+                    if (Values[i].Resolve() is T tValue && predicate(tValue))
+                    {
+                        entry = (i, tValue);
+                        return true;
+                    }
+                }
+                return false;
             }
 
             /// <summary cref="IRBuilder.CreateTerminator{T}(T)"/>

@@ -1,0 +1,72 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    # The branches below must be a subset of the branches above.
+    branches: [ master ]
+  schedule:
+    - cron: '41 18 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    # GUI samples can only be built on Windows.
+    # CodeQL does not yet support Windows Server 2022.
+    # (see https://github.com/github/codeql-action/issues/850)
+    runs-on: windows-2019
+
+    # Parallelize CodeQL building and analysis for performance reasons.
+    strategy:
+      fail-fast: false
+      matrix:
+        solution: [Src/ILGPU.sln, Samples/ILGPU.Samples.sln]
+        framework: [net471, netcoreapp3.1, net5.0, net6.0]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup the latest .NET 6 SDK
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '6.0.x'
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: csharp
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
+        # queries: ./path/to/local/query, your-org/your-repo/queries@main
+
+    # Build solution 'manually' in order to parallelize.
+    # Shared compilation has to be disabled for CodeQL to properly trace the build.
+    # We use project-level properties to trick the build into building for a given TFM.
+    - name: Build solution
+      shell: pwsh
+      run: |
+        $LibraryTargetFrameworks=$LibraryUnitTestTargetFrameworks=$LibrarySamplesTargetFrameworks=$LibrarySamplesTargetFrameworksWindows="${{ matrix.framework }}"
+        Switch($LibrarySamplesTargetFrameworks)
+        {
+          "netcoreapp3.1" { $LibraryTargetFrameworks="netstandard2.1" }
+          "net5.0" { $LibrarySamplesTargetFrameworksWindows="net5.0-windows" }
+          "net6.0" { $LibrarySamplesTargetFrameworksWindows="net6.0-windows" }
+        }
+        dotnet build -p:UseSharedCompilation=false `
+                     -p:LibraryTargetFrameworks=$LibraryTargetFrameworks `
+                     -p:LibraryUnitTestTargetFrameworks=$LibraryUnitTestTargetFrameworks `
+                     -p:LibrarySamplesTargetFrameworks=$LibrarySamplesTargetFrameworks `
+                     -p:LibrarySamplesTargetFrameworksWindows=$LibrarySamplesTargetFrameworksWindows `
+                     ${{ matrix.solution }}
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2

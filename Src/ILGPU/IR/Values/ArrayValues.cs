@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayValues.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -20,7 +20,7 @@ namespace ILGPU.IR.Values
     /// Represents an allocation operation of a new array in a particular address space.
     /// </summary>
     [ValueKind(ValueKind.Array)]
-    public sealed class NewArray : MemoryValue
+    public sealed class NewArray : ControlFlowValue
     {
         #region Nested Types
 

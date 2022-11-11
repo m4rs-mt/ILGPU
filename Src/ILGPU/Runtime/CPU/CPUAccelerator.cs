@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2016-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUAccelerator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
@@ -90,7 +90,7 @@ namespace ILGPU.Runtime.CPU
         {
             NativePtr = new IntPtr(1);
 
-            DefaultStream = CreateStream();
+            DefaultStream = CreateStreamInternal();
 
             NumThreads = description.NumThreads;
             Mode = mode;
@@ -108,7 +108,8 @@ namespace ILGPU.Runtime.CPU
                     UsesSequentialExecution);
             }
 
-            Bind();
+            if (!description.Equals(CPUDevice.Implicit))
+                Bind();
             Init(context.DefautltILBackend);
         }
 
@@ -251,7 +252,7 @@ namespace ILGPU.Runtime.CPU
             }
         }
 
-        /// <summary cref="Accelerator.DisablePeerAccess(Accelerator)"/>
+        /// <summary cref="Accelerator.DisablePeerAccessInternal(Accelerator)"/>
         protected override void DisablePeerAccessInternal(
             Accelerator otherAccelerator) =>
             Debug.Assert(

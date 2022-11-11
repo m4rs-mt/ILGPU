@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
@@ -333,7 +333,7 @@ namespace ILGPU.Runtime
             throw new NotSupportedException(
                 string.Format(
                     RuntimeErrorMessages.NotSupportedNonBlittableType,
-                    elementType.GetStringRepresentation()));
+                    elementType.FullName));
         }
 
         #endregion
@@ -389,7 +389,7 @@ namespace ILGPU.Runtime
                 kernel,
                 groupSize,
                 dynamicSharedMemorySizeInBytes);
-            return (maxActiveGroups * groupSize) / (float)MaxNumThreadsPerGroup;
+            return (float)(maxActiveGroups * groupSize) / MaxNumThreadsPerGroup;
         }
 
         /// <summary>

@@ -1,0 +1,58 @@
+url: "https://ilgpu.net"
+baseurl: ""
+
+title: ILGPU - A Modern GPU Compiler for .Net Programs
+name: ILGPU
+email: ilgpucompiler@gmail.com
+description: >-
+  A modern, lightweight & fast GPU compiler for high-performance .NET programs.
+
+social_links:
+  github: https://github.com/m4rs-mt/ILGPU
+  discord: https://discord.com/invite/X6RBCff
+
+gh_contribute: 'master'
+
+permalink: pretty # remove .html extension from permalinks
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:title/
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "doc"
+
+
+remote_theme: m4rs-mt/ILGPU.WebTheme
+
+relative_links: # resolve links in Markdown
+  enabled: true
+  collections: true
+
+plugins: # installed in Gemfile
+  - jekyll-remote-theme
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-relative-links
+  - jekyll-sitemap
+
+exclude: # exclude files from processing
+  - Gemfile
+  - Gemfile.lock
+  - scripts/
+  - .gitignore
+  - DOCUMENTATION.md
+
+dark_mode: # not supported yet
+  enabled: false
+
+search:
+  enabled: true

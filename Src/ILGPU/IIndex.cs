@@ -1,14 +1,15 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IIndex.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -104,30 +105,14 @@ namespace ILGPU
         };
 
         /// <summary>
-        /// A reference to the 32-bit index linearization method.
-        /// </summary>
-        private static readonly MethodInfo ViewLinearIndex32Method =
-            typeof(IndexTypeExtensions).GetMethod(
-                nameof(ViewLinearIndex32),
-                BindingFlags.NonPublic | BindingFlags.Static);
-
-        /// <summary>
-        /// A reference to the 64-bit index linearization method.
-        /// </summary>
-        private static readonly MethodInfo ViewLinearIndex64Method =
-            typeof(IndexTypeExtensions).GetMethod(
-                nameof(ViewLinearIndex64),
-                BindingFlags.NonPublic | BindingFlags.Static);
-
-        /// <summary>
         /// Asserts that the given long range can be accessed using a 32-bit integer.
         /// </summary>
         /// <param name="index">The long value range.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AssertIntIndex(long index) =>
             Trace.Assert(
-                index >= int.MinValue & index <= int.MaxValue,
-                "64-bit index expected");
+                Bitwise.And(index >= int.MinValue, index <= int.MaxValue),
+                "32-bit index expected");
 
         /// <summary>
         /// Asserts that the given long range can be expressed by using a 32-bit integer.
@@ -136,7 +121,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AssertIntIndexRange(long range) =>
             Trace.Assert(
-                range >= int.MinValue & range <= int.MaxValue,
+                Bitwise.And(range >= int.MinValue, range <= int.MaxValue),
                 "32-bit index out of range");
 
         /// <summary>
@@ -207,73 +192,6 @@ namespace ILGPU
         public static bool IsLongIndex<TIndex>()
             where TIndex : struct, IIndex =>
             typeof(TIndex).IsLongIndex();
-
-        /// <summary>
-        /// Gets the index linearization method that works either on 32-bit or on 64-bit
-        /// values depending on the index type.
-        /// </summary>
-        /// <param name="indexType">The managed index type.</param>
-        /// <param name="elementType">
-        /// The managed element type of a particular view.
-        /// </param>
-        /// <returns>The managed 32-bit or 64-bit linearization method.</returns>
-        public static MethodBase GetViewLinearIndexMethod(
-            this Type indexType,
-            Type elementType)
-        {
-            var genericTypeArgs = new Type[] { elementType, indexType };
-            return indexType.IsLongIndex()
-                ? ViewLinearIndex64Method.MakeGenericMethod(genericTypeArgs)
-                : ViewLinearIndex32Method.MakeGenericMethod(genericTypeArgs);
-        }
-
-        /// <summary>
-        /// Loads a linear element address using the given multi-dimensional indices.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TIndex">The index type.</typeparam>
-        /// <param name="view">The source view.</param>
-        /// <param name="index">The element index.</param>
-        /// <param name="dimension">The dimension specifications.</param>
-        /// <returns>A reference to the i-th element.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ref T ViewLinearIndex32<T, TIndex>(
-            ArrayView<T> view,
-            TIndex index,
-            TIndex dimension)
-            where T : unmanaged
-            where TIndex : struct, IGenericIndex<TIndex>
-        {
-            Trace.Assert(
-                index.InBounds(dimension),
-                "Multidimensional index out of range");
-            int linearIndex = index.ComputeLinearIndex(dimension);
-            return ref view[linearIndex];
-        }
-
-        /// <summary>
-        /// Loads a linear element address using the given multi-dimensional indices.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TIndex">The index type.</typeparam>
-        /// <param name="view">The source view.</param>
-        /// <param name="index">The element index.</param>
-        /// <param name="dimension">The dimension specifications.</param>
-        /// <returns>A reference to the i-th element.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ref T ViewLinearIndex64<T, TIndex>(
-            ArrayView<T> view,
-            TIndex index,
-            TIndex dimension)
-            where T : unmanaged
-            where TIndex : struct, IGenericIndex<TIndex>
-        {
-            Trace.Assert(
-                index.InBounds(dimension),
-                "Multidimensional index out of range");
-            long linearIndex = index.ComputeLongLinearIndex(dimension);
-            return ref view[linearIndex];
-        }
     }
 
     /// <summary>
@@ -299,42 +217,6 @@ namespace ILGPU
     }
 
     /// <summary>
-    /// An abstract index that can be converted to or reconstructed from a linear value.
-    /// </summary>
-    /// <typeparam name="TIndex">The underlying index type.</typeparam>
-    public interface ILinearizableIndex<TIndex> : IIndex
-        where TIndex : struct, IIndex
-    {
-        /// <summary>
-        /// Computes the linear index of this index by using the provided n-D dimension.
-        /// </summary>
-        /// <param name="dimension">The dimension for index computation.</param>
-        /// <returns>The computed linear index of this index.</returns>
-        int ComputeLinearIndex(TIndex dimension);
-
-        /// <summary>
-        /// Computes the linear index of this index by using the provided n-D dimension.
-        /// </summary>
-        /// <param name="dimension">The dimension for index computation.</param>
-        /// <returns>The computed linear index of this index.</returns>
-        long ComputeLongLinearIndex(TIndex dimension);
-
-        /// <summary>
-        /// Reconstructs an index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <returns>The reconstructed index.</returns>
-        TIndex ReconstructIndex(int linearIndex);
-
-        /// <summary>
-        /// Reconstructs an index from a linear index.
-        /// </summary>
-        /// <param name="linearIndex">The linear index.</param>
-        /// <returns>The reconstructed index.</returns>
-        TIndex ReconstructIndex(long linearIndex);
-    }
-
-    /// <summary>
     /// Represents an intrinsic index type.
     /// </summary>
     public interface IIntrinsicIndex : IIndex
@@ -350,7 +232,7 @@ namespace ILGPU
     /// </summary>
     /// <typeparam name="TIndex">The type of the generic index.</typeparam>
     public interface IGenericIndex<TIndex> :
-        ILinearizableIndex<TIndex>,
+        IIndex,
         IEquatable<TIndex>
         where TIndex : struct, IIndex
     {

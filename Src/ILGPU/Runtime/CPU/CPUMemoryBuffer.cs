@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUMemoryBuffer.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
@@ -258,47 +258,29 @@ namespace ILGPU.Runtime.CPU
         #region Methods
 
         /// <inheritdoc/>
-        public override unsafe void MemSet(
+        protected internal override unsafe void MemSet(
             AcceleratorStream stream,
             byte value,
-            long targetOffsetInBytes,
-            long length)
-        {
-            if (length == 0)
-                return;
-
-            var targetView = AsRawArrayView(targetOffsetInBytes, length);
-            // Perform the memory set operation
+            in ArrayView<byte> targetView) =>
             CPUMemSet(
                 targetView.LoadEffectiveAddressAsPtr(),
                 value,
                 0L,
                 targetView.LengthInBytes);
-        }
 
         /// <inheritdoc/>
-        public override void CopyFrom(
+        protected internal override void CopyFrom(
             AcceleratorStream stream,
             in ArrayView<byte> sourceView,
-            long targetOffsetInBytes)
-        {
-            var targetView = AsRawArrayView(
-                targetOffsetInBytes,
-                sourceView.LengthInBytes);
+            in ArrayView<byte> targetView) =>
             CPUCopyFrom(stream, sourceView, targetView);
-        }
 
         /// <inheritdoc/>
-        public override unsafe void CopyTo(
+        protected internal override unsafe void CopyTo(
             AcceleratorStream stream,
-            long sourceOffsetInBytes,
-            in ArrayView<byte> targetView)
-        {
-            var sourceView = AsRawArrayView(
-                sourceOffsetInBytes,
-                targetView.LengthInBytes);
+            in ArrayView<byte> sourceView,
+            in ArrayView<byte> targetView) =>
             CPUCopyTo(stream, sourceView, targetView);
-        }
 
         #endregion
     }

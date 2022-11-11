@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                ILGPU Samples
-//                 Copyright (c) 2017-2019 ILGPU Samples Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                    ILGPU Samples
+//                        Copyright (c) 2021-2022 ILGPU Project
+//                                    www.ilgpu.net
 //
 // File: Program.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details.
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 
 using ILGPU;
 using ILGPU.Algorithms;
@@ -61,7 +61,7 @@ namespace AlgorithmsTransform
                 using var accelerator = device.CreateAccelerator(context);
                 Console.WriteLine($"Performing operations on {accelerator}");
 
-                var sourceBuffer = accelerator.Allocate1D<int>(64);
+                using var sourceBuffer = accelerator.Allocate1D<int>(64);
                 accelerator.Initialize(accelerator.DefaultStream, sourceBuffer.View, 2);
 
                 using (var targetBuffer = accelerator.Allocate1D<CustomStruct>(64))
@@ -104,8 +104,6 @@ namespace AlgorithmsTransform
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");
                 }
-
-                sourceBuffer.Dispose();
             }
         }
     }

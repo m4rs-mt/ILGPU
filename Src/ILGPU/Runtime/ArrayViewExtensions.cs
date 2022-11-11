@@ -1,18 +1,19 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayViewExtensions.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Types;
 using ILGPU.Resources;
 using ILGPU.Runtime.CPU;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -49,6 +50,18 @@ namespace ILGPU.Runtime
             view.LoadEffectiveAddressAsPtr();
 
         /// <summary>
+        /// Verifies the given alignment in bytes.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="alignmentInBytes">The alignment in bytes.</param>
+        private static void VerifyAlignmentInBytes<T>(int alignmentInBytes)
+            where T : unmanaged =>
+            Trace.Assert(
+                alignmentInBytes > 0 &
+                (alignmentInBytes % 2 == 0 | alignmentInBytes == 1),
+                "Invalid alignment in bytes");
+
+        /// <summary>
         /// Aligns the given array view to the specified alignment in bytes and returns a
         /// view spanning the initial unaligned parts of the given view and another
         /// view (main) spanning the remaining aligned elements of the given view.
@@ -60,16 +73,12 @@ namespace ILGPU.Runtime
         /// the given view.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static (ArrayView<T> prefix, ArrayView<T> main) AlignTo<T>(
+        public static (ArrayView<T> Prefix, ArrayView<T> Main) AlignTo<T>(
             this ArrayView<T> view,
             int alignmentInBytes)
             where T : unmanaged
         {
-            Trace.Assert(
-                alignmentInBytes > 0 &
-                (alignmentInBytes % Interop.SizeOf<T>() == 0),
-                "Invalid alignment in bytes");
-
+            VerifyAlignmentInBytes<T>(alignmentInBytes);
             return view.AlignToInternal(alignmentInBytes);
         }
 
@@ -85,11 +94,50 @@ namespace ILGPU.Runtime
         /// the given view.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static (ArrayView<T> prefix, ArrayView<T> main) AlignTo<T>(
+        public static (ArrayView<T> Prefix, ArrayView<T> Main) AlignTo<T>(
             this ArrayView1D<T, Stride1D.Dense> view,
             int alignmentInBytes)
             where T : unmanaged =>
             view.BaseView.AlignTo(alignmentInBytes);
+
+        /// <summary>
+        /// Ensures that the array view is aligned to the specified alignment in bytes
+        /// and returns the input view. Note that this operation explicitly generates an
+        /// operation in the ILGPU IR that preserves these semantics. This enables the
+        /// generation of debug assertions and guides the internal vectorization analysis
+        /// to assume the given alignment even though it might not be able to prove that
+        /// the given alignment is valid.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="alignmentInBytes">The basic alignment in bytes.</param>
+        /// <returns>The validated input view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView<T> AsAligned<T>(
+            this ArrayView<T> view,
+            int alignmentInBytes)
+            where T : unmanaged
+        {
+            VerifyAlignmentInBytes<T>(alignmentInBytes);
+            return view.AsAlignedInternal(alignmentInBytes);
+        }
+
+        /// <summary>
+        /// Ensures that the array view is aligned to the specified alignment in bytes
+        /// and returns the input view. Note that this operation explicitly generates an
+        /// operation in the ILGPU IR that preserves these semantics. This enables the
+        /// generation of debug assertions and guides the internal vectorization analysis
+        /// to assume the given alignment even though it might not be able to prove that
+        /// the given alignment is valid.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="alignmentInBytes">The basic alignment in bytes.</param>
+        /// <returns>The validated input view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.Dense> AsAligned<T>(
+            this ArrayView1D<T, Stride1D.Dense> view,
+            int alignmentInBytes)
+            where T : unmanaged =>
+            view.BaseView.AsAligned(alignmentInBytes);
 
         /// <summary>
         /// Returns a variable view to the given element.
@@ -119,6 +167,44 @@ namespace ILGPU.Runtime
             where T : unmanaged =>
             new VariableView<T>(view.SubView(element, 1L));
 
+        /// <summary>
+        /// Converts this array view into a dense version.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.Dense> AsDense<T>(
+            this ArrayView<T> view)
+            where T : unmanaged =>
+            view;
+
+        /// <summary>
+        /// Converts this array view into a general version.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
+        /// <param name="stride">The generic stride information to use.</param>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.General> AsGeneral<T>(
+            this ArrayView<T> view,
+            Stride1D.General stride)
+            where T : unmanaged =>
+            view.AsDense().AsGeneral(stride);
+
+        /// <summary>
+        /// Converts this array view into a general version.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
+        /// <returns>The updated array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ArrayView1D<T, Stride1D.General> AsGeneral<T>(
+            this ArrayView<T> view)
+            where T : unmanaged =>
+            view.AsDense().AsGeneral();
+
         #endregion
 
         #region Base Methods
@@ -143,7 +229,7 @@ namespace ILGPU.Runtime
         /// <returns>True, this view has a least one valid data element.</returns>
         public static bool HasData<TView>(this TView view)
             where TView : IArrayView =>
-            view.IsValid & view.Length > 0;
+            Bitwise.And(view.IsValid, view.Length > 0);
 
         /// <summary>
         /// Returns the associated accelerator of the current view.
@@ -343,6 +429,7 @@ namespace ILGPU.Runtime
         /// <typeparam name="TView">The view type.</typeparam>
         /// <param name="view">The view instance.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
         public static void MemSetToZero<TView>(this TView view)
             where TView : IContiguousArrayView =>
             view.MemSetToZero(view.GetDefaultStream());
@@ -354,6 +441,7 @@ namespace ILGPU.Runtime
         /// <param name="view">The view instance.</param>
         /// <param name="stream">The used accelerator stream.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
         public static void MemSetToZero<TView>(
             this TView view,
             AcceleratorStream stream)
@@ -368,6 +456,7 @@ namespace ILGPU.Runtime
         /// <param name="view">The view instance.</param>
         /// <param name="value">The value to write into the memory buffer.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
         public static void MemSet<TView>(
             this TView view,
             byte value)
@@ -382,6 +471,7 @@ namespace ILGPU.Runtime
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="value">The value to write into the memory buffer.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
+        [NotInsideKernel]
         public static void MemSet<TView>(
             this TView view,
             AcceleratorStream stream,
@@ -782,7 +872,6 @@ namespace ILGPU.Runtime
 
                 // Reorder the input elements and store them in the result buffer
                 var extent = (Index1D)view.Extent;
-                var stride = view.Stride;
                 for (int x = 0; x < extent.X; ++x)
                 {
                     int targetElementIndex = view.Stride.ComputeElementIndex(x);
@@ -847,7 +936,6 @@ namespace ILGPU.Runtime
 
                 // Reorder the input elements and store them in the result buffer
                 var extent = (Index2D)view.Extent;
-                var stride = view.Stride;
                 for (int x = 0; x < extent.X; ++x)
                 {
                     for (int y = 0; y < extent.Y; ++y)
@@ -922,7 +1010,6 @@ namespace ILGPU.Runtime
 
                 // Reorder the input elements and store them in the result buffer
                 var extent = (Index3D)view.Extent;
-                var stride = view.Stride;
                 for (int x = 0; x < extent.X; ++x)
                 {
                     for (int y = 0; y < extent.Y; ++y)

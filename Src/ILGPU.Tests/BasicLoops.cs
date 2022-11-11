@@ -1,4 +1,15 @@
-﻿using ILGPU.Runtime;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2021-2022 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BasicLoops.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Linq;
@@ -178,10 +189,10 @@ namespace ILGPU.Tests
 
         internal static void DoWhileKernel(
             Index1D index,
-            ArrayView1D<int, Stride1D.Dense> data,
-            int counter)
+            ArrayView1D<int, Stride1D.Dense> data)
         {
-            int value = 3;
+            int counter = 4;
+            int value = 13;
             do
             {
                 ++value;
@@ -195,10 +206,65 @@ namespace ILGPU.Tests
         public void DoWhile()
         {
             using var buffer = Accelerator.Allocate1D<int>(Length);
-            Execute(buffer.Length, buffer.View, 38);
+            Execute(buffer.Length, buffer.View);
 
-            var expected = Enumerable.Repeat(42, Length).ToArray();
+            var expected = Enumerable.Repeat(18, Length).ToArray();
             Verify(buffer.View, expected);
+        }
+
+        internal static void DoWhileIncrementKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<int, Stride1D.Dense> data2,
+            ArrayView1D<int, Stride1D.Dense> data3)
+        {
+            int value = 3;
+            int counter = 0;
+            do
+            {
+                ++value;
+            }
+            while (counter++ < 3);
+            data[index] = value;
+
+            int value2 = 1;
+            do
+            {
+                value2 *= 3;
+            }
+            while (counter++ == 5);
+            data2[index] = value2;
+
+            int value3 = 13;
+            do
+            {
+                --value3;
+            }
+            while (counter++ != 8);
+            data3[index] = value3;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(DoWhileIncrementKernel))]
+        public void DoWhileIncrement()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            using var buffer2 = Accelerator.Allocate1D<int>(Length);
+            using var buffer3 = Accelerator.Allocate1D<int>(Length);
+            Execute(
+                buffer.Length,
+                buffer.View,
+                buffer2.View,
+                buffer3.View);
+
+            var expected = Enumerable.Repeat(7, Length).ToArray();
+            Verify(buffer.View, expected);
+
+            var expected2 = Enumerable.Repeat(3, Length).ToArray();
+            Verify(buffer2.View, expected2);
+
+            var expected3 = Enumerable.Repeat(9, Length).ToArray();
+            Verify(buffer3.View, expected3);
         }
 
         internal static void DoWhileConstantKernel(
@@ -379,6 +445,25 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
+        internal static void LoopUnrollingLessEqualKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            for (int i = 0; i <= 2; i++)
+                data[index] = i;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrollingLessEqualKernel))]
+        public void LoopUnrollingLessEqual()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(2, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
         internal static void LoopUnrollingBreakKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -396,6 +481,31 @@ namespace ILGPU.Tests
         [Fact]
         [KernelMethod(nameof(LoopUnrollingBreakKernel))]
         public void LoopUnrollingBreak()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(5, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void LoopUnrollingBreakLessEqualKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int j = 0;
+            for (int i = 0; i <= 4; ++i)
+            {
+                ++j;
+                if (i == 2) break;
+                ++j;
+            }
+            data[index] = j;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrollingBreakLessEqualKernel))]
+        public void LoopUnrollingBreakLessEqual()
         {
             using var buffer = Accelerator.Allocate1D<int>(Length);
             Execute(buffer.Length, buffer.View);
@@ -546,6 +656,92 @@ namespace ILGPU.Tests
             Verify(source.View, expected);
         }
 
+        internal static void LoopUnrolling_ForNotMultipleBounds_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> dataView)
+        {
+            dataView[index] = 0;
+            for (int i = 0; i < 3; i += 2)
+                dataView[index]++;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_ForNotMultipleBounds_Kernel))]
+        public void LoopUnrolling_ForNotMultipleBounds()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(2, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void LoopUnrolling_ForEqualCheck_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> dataView)
+        {
+            dataView[index] = 0;
+            for (int i = 0; i == 6; i++)
+                dataView[index]++;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_ForEqualCheck_Kernel))]
+        public void LoopUnrolling_ForEqualCheck()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(0, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void LoopUnrolling_NotMultipleUpdateValue_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> dataView)
+        {
+            dataView[index] = 0;
+            for (int i = 0; i < 4; i += 2)
+                dataView[index] += i;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_NotMultipleUpdateValue_Kernel))]
+        public void LoopUnrolling_NotMultipleUpdateValue()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(2, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void LoopUnrolling_ModifiedValueUpdate_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> dataView)
+        {
+            dataView[index] = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                dataView[index]++;
+                if (dataView[index] == 2)
+                {
+                    i++;
+                }
+            }
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrolling_ModifiedValueUpdate_Kernel))]
+        public void LoopUnrolling_ModifiedValueUpdate()
+        {
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(4, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
         private static void LoopViewSwap_Kernel(
             Index1D index,
             ArrayView1D<(int, int), Stride1D.Dense> target1,
@@ -612,6 +808,61 @@ namespace ILGPU.Tests
             Verify(target2.View, expectedData2);
         }
 
+        private static void LoopPhiReuse_Kernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> input,
+            ArrayView1D<ulong, Stride1D.Dense> output)
+        {
+            ulong accumulator = 1;
+            ulong result = 0;
+
+            var loop = 24;
+
+            while (true)
+            {
+                loop--;
+                if (loop == 0)
+                {
+                    break;
+                }
+
+                if (input[index] == loop * 2)
+                {
+                    accumulator += 4;
+                    continue;
+                }
+
+                if (input[index] == loop)
+                {
+                    accumulator += 2;
+                    continue;
+                }
+
+                result += accumulator;
+            }
+
+            output[index] = result;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopPhiReuse_Kernel))]
+        public void LoopPhiReuse()
+        {
+            var inputValues = new[] { 0, 5, 10, 15, 20 };
+            using var input = Accelerator.Allocate1D(inputValues);
+            using var output = Accelerator.Allocate1D<ulong>(inputValues.Length);
+            output.MemSetToZero();
+            Accelerator.Synchronize();
+
+            Execute(
+                inputValues.Length,
+                input.View,
+                output.View);
+
+            var expectedData = new ulong[] { 23, 30, 53, 50, 93 };
+            Verify(output.View, expectedData);
+        }
+
         /// <summary>
         /// Wrapper view required by <see cref="DoLoopWithoutEntryBlockKernel(Index1D,
         /// ArrayView{int}, ArrayView{int})"/>.
@@ -667,6 +918,132 @@ namespace ILGPU.Tests
             Execute(length, target.View.AsContiguous(), source.View.AsContiguous());
             var expected = Enumerable.Repeat(0, length).ToArray();
             Verify(target.View, expected);
+        }
+
+        static void UnrollDivKernel(
+            Index1D index,
+            ArrayView<int> data1,
+            ArrayView<int> data2,
+            ArrayView<int> data3,
+            ArrayView<int> data4,
+            ArrayView<int> data5,
+            int value)
+        {
+            for (int laneOffset = Warp.WarpSize / 2; laneOffset > 0; laneOffset >>= 1)
+                value += Warp.ShuffleDown(value, laneOffset);
+            data1[index] = value;
+
+            // Simple skip loop
+            for (int i = 0; i > 0; i >>= 1)
+                value += 1;
+            data2[index] = value;
+
+            // Negative start value
+            for (int i = -1; i >= 0; i >>= 2)
+                value += i;
+            data3[index] = value;
+
+            // Trip count not a multiple of the divisor
+            for (int i = 17; i > 0; i /= 3)
+                value += i;
+            data4[index] = value;
+
+            // Loop down to 1
+            for (int i = 21; i >= 1; i /= 3)
+                value += 13;
+            data5[index] = value;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(UnrollDivKernel))]
+        public void UnrollDiv()
+        {
+            int length = Accelerator.WarpSize * 2;
+            using var data1 = Accelerator.Allocate1D<int>(length);
+            using var data2 = Accelerator.Allocate1D<int>(length);
+            using var data3 = Accelerator.Allocate1D<int>(length);
+            using var data4 = Accelerator.Allocate1D<int>(length);
+            using var data5 = Accelerator.Allocate1D<int>(length);
+            Accelerator.Synchronize();
+
+            Execute(
+                length,
+                data1.View.AsContiguous(),
+                data2.View.AsContiguous(),
+                data3.View.AsContiguous(),
+                data4.View.AsContiguous(),
+                data5.View.AsContiguous(),
+                1);
+
+            var expected = Enumerable.Repeat(length / 2, length).ToArray();
+            Verify(data1.View, expected);
+            Verify(data2.View, expected);
+            Verify(data3.View, expected);
+
+            var expected4 = Enumerable.Repeat(expected[0] + 23, length).ToArray();
+            Verify(data4.View, expected4);
+
+            var expected5 = Enumerable.Repeat(expected4[0] + 39, length).ToArray();
+            Verify(data5.View, expected5);
+        }
+
+        static void UnrollMulKernel(
+            Index1D index,
+            ArrayView<int> data1,
+            ArrayView<int> data2,
+            ArrayView<int> data3,
+            ArrayView<int> data4,
+            int value)
+        {
+            for (int laneOffset = 1; laneOffset < Warp.WarpSize; laneOffset <<= 1)
+                value += Warp.ShuffleUp(value, laneOffset);
+            data1[index] = value;
+
+            // Trip count not a multiple of the multiplier
+            for (int i = 1; i < 13; i *= 3)
+                value += 1;
+            data2[index] = value;
+
+            // Negative start value
+            for (int i = -1; i > -17; i *= 4)
+                value += 2;
+            data3[index] = value;
+
+            for (int i = 17; i < 51; i *= 2)
+                value += i;
+            data4[index] = value;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(UnrollMulKernel))]
+        public void UnrollMul()
+        {
+            int length = Accelerator.WarpSize * 2;
+            using var data1 = Accelerator.Allocate1D<int>(length);
+            using var data2 = Accelerator.Allocate1D<int>(length);
+            using var data3 = Accelerator.Allocate1D<int>(length);
+            using var data4 = Accelerator.Allocate1D<int>(length);
+            Accelerator.Synchronize();
+
+            Execute(
+                length,
+                data1.View.AsContiguous(),
+                data2.View.AsContiguous(),
+                data3.View.AsContiguous(),
+                data4.View.AsContiguous(),
+                1);
+
+            var expected = Enumerable.Repeat(length / 2, length).ToArray();
+            Verify(data1.View, expected);
+
+            var expected2 = Enumerable.Repeat(expected[0] + 3, length).ToArray();
+            Verify(data2.View, expected2);
+
+            var expected3 = Enumerable.Repeat(expected2[0] + 6, length).ToArray();
+            Verify(data3.View, expected3);
+
+            var expected4 = Enumerable.Repeat(expected3[0] + 17 * 3, length).ToArray();
+            Verify(data4.View, expected4);
         }
     }
 }

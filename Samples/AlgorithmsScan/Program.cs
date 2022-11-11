@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                ILGPU Samples
-//                 Copyright (c) 2017-2019 ILGPU Samples Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                    ILGPU Samples
+//                        Copyright (c) 2021-2022 ILGPU Project
+//                                    www.ilgpu.net
 //
 // File: Program.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details.
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 
 using ILGPU;
 using ILGPU.Algorithms;
@@ -29,7 +29,7 @@ namespace AlgorithmsScan
                 using var accelerator = device.CreateAccelerator(context);
                 Console.WriteLine($"Performing operations on {accelerator}");
 
-                var sourceBuffer = accelerator.Allocate1D<int>(32);
+                using var sourceBuffer = accelerator.Allocate1D<int>(32);
                 accelerator.Initialize(accelerator.DefaultStream, sourceBuffer.View, 2);
 
                 // The parallel scan implementation needs temporary storage.
@@ -41,7 +41,11 @@ namespace AlgorithmsScan
                 {
                     // Create a new inclusive scan using the AddInt32 scan operation
                     // Use the available scan operations in the namespace ILGPU.Algorithms.ScanReduceOperations.
-                    var scan = accelerator.CreateInclusiveScan<int, AddInt32>();
+                    var scan = accelerator.CreateScan<
+                        int,
+                        Stride1D.Dense,
+                        Stride1D.Dense,
+                        AddInt32>(ScanKind.Inclusive);
 
                     // Compute the required amount of temporary memory
                     var tempMemSize = accelerator.ComputeScanTempStorageSize<int>(targetBuffer.Length);
@@ -69,7 +73,11 @@ namespace AlgorithmsScan
                 {
                     // Create a new exclusive scan using the AddInt32 scan operation
                     // Use the available scan operations in the namespace ILGPU.Algorithms.ScanReduceOperations.
-                    var scan = accelerator.CreateExclusiveScan<int, AddInt32>();
+                    var scan = accelerator.CreateScan<
+                        int,
+                        Stride1D.Dense,
+                        Stride1D.Dense,
+                        AddInt32>(ScanKind.Exclusive);
 
                     // Compute the required amount of temporary memory
                     var tempMemSize = accelerator.ComputeScanTempStorageSize<int>(targetBuffer.Length);
@@ -97,7 +105,11 @@ namespace AlgorithmsScan
                 // an extra cache.
                 using (var scanProvider = accelerator.CreateScanProvider<int>(sourceBuffer.Length))
                 {
-                    var scanUsingScanProvider = scanProvider.CreateInclusiveScan<int, AddInt32>();
+                    var scanUsingScanProvider = scanProvider.CreateScan<
+                        int,
+                        Stride1D.Dense,
+                        Stride1D.Dense,
+                        AddInt32>(ScanKind.Inclusive);
 
                     // Please note that the create scan does not need additional temporary memory
                     // allocations as they will be automatically managed by the ScanProvider instance.
@@ -114,8 +126,6 @@ namespace AlgorithmsScan
                     for (int i = 0, e = data.Length; i < e; ++i)
                         Console.WriteLine($"Data[{i}] = {data[i]}");
                 }
-
-                sourceBuffer.Dispose();
             }
         }
     }

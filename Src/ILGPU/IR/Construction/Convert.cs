@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Convert.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
@@ -152,18 +152,22 @@ namespace ILGPU.IR.Construction
                         targetBasicType < sourceBasicType;
                 }
 
-                if (canSimplify)
-                {
-                    ConvertFlags newFlags =
-                        (convert.Flags & ~ConvertFlags.TargetUnsigned) |
-                        flags & ~(ConvertFlags.SourceUnsigned |
-                            ConvertFlags.OverflowSourceUnsigned);
-                    return CreateConvert(
+                // If the existing conversion produces an unsigned result, mark that
+                // the source of the new conversion is unsigned.
+                ConvertFlags newFlags =
+                    convert.Flags.ToSourceUnsignedFlags() |
+                    flags & ~ConvertFlags.SourceUnsigned;
+                return canSimplify
+                    ? CreateConvert(
                         location,
                         convert.Value,
                         targetType,
-                        newFlags);
-                }
+                        newFlags)
+                    : (ValueReference)Append(new ConvertValue(
+                        GetInitializer(location),
+                        node,
+                        targetType,
+                        newFlags));
             }
 
             // Match X to bool

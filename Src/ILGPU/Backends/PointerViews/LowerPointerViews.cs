@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2020-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerPointerViews.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
@@ -242,7 +242,7 @@ namespace ILGPU.Backends.PointerViews
         private static void Lower(
             RewriterContext context,
             TypeLowering<ViewType> typeLowering,
-            AlignViewTo value)
+            AlignTo value)
         {
             var builder = context.Builder;
             var location = value.Location;
@@ -250,41 +250,48 @@ namespace ILGPU.Backends.PointerViews
             // Extract basic view information from the converted structure
             var pointer = builder.CreateGetField(
                 location,
-                value.View,
+                value.Source,
                 new FieldSpan(0));
             var length = builder.CreateGetField(
                 location,
-                value.View,
+                value.Source,
                 new FieldSpan(1));
-
-            // Create IR code that represents the required operations to create aligned
-            // views (see ArrayView.AlignToInternal for more information).
-            var viewType = typeLowering[value].As<ViewType>(value);
-
-            // long elementsToSkip = Min(
-            //      AlignmentOffset(ptr, alignmentInBytes) / elementSize,
-            //      Length);
-
-            var elementsToSkip = builder.CreateArithmetic(
-                location,
-                builder.CreateAlignmentOffset(
-                    location,
-                    builder.CreatePointerAsIntCast(
-                        location,
-                        pointer,
-                        BasicValueType.Int64),
-                    value.AlignmentInBytes),
-                builder.CreateSizeOf(location, viewType.ElementType),
-                BinaryArithmeticKind.Div);
-
-            elementsToSkip = builder.CreateArithmetic(
-                location,
-                elementsToSkip,
-                length,
-                BinaryArithmeticKind.Min);
 
             // Build the final result structure instance
             var resultBuilder = builder.CreateDynamicStructure(location);
+
+            // Convert the current input pointer to a 64-bit integer value
+            var pointerAsInt = builder.CreatePointerAsIntCast(
+                location,
+                pointer,
+                BasicValueType.Int64);
+
+            // Compute the aligned pointer and convert it to an integer value
+            var aligned = builder.CreateAlignTo(
+                location,
+                pointer,
+                value.AlignmentInBytes);
+            var alignedAsInt = builder.CreatePointerAsIntCast(
+                location,
+                aligned,
+                BasicValueType.Int64);
+
+            // Compute the number of elements to skip:
+            // Min((aligned - ptr) / SizeOf(ElementType), length)
+            var viewType = typeLowering[value].As<ViewType>(location);
+            var elementsToSkip = builder.CreateArithmetic(
+                location,
+                builder.CreateArithmetic(
+                    location,
+                    builder.CreateArithmetic(
+                        location,
+                        alignedAsInt,
+                        pointerAsInt,
+                        BinaryArithmeticKind.Sub),
+                    builder.CreateSizeOf(location, viewType.ElementType),
+                    BinaryArithmeticKind.Div),
+                length,
+                BinaryArithmeticKind.Min);
 
             // Create the prefix view that starts at the original pointer offset and
             // includes elementsToSkip many elements.
@@ -293,14 +300,10 @@ namespace ILGPU.Backends.PointerViews
                 resultBuilder.Add(elementsToSkip);
             }
 
-            // Create the main view that starts at the original pointer offset +
-            // elementsToSkip and has a length of remainingLength
+            // Create the main view that starts at the aligned pointer offset and has a
+            // length of remainingLength
             {
-                var mainPointer = builder.CreateLoadElementAddress(
-                    location,
-                    pointer,
-                    elementsToSkip);
-                resultBuilder.Add(mainPointer);
+                resultBuilder.Add(aligned);
                 var remainingLength = builder.CreateArithmetic(
                     location,
                     length,
@@ -311,6 +314,41 @@ namespace ILGPU.Backends.PointerViews
 
             var result = resultBuilder.Seal();
             context.ReplaceAndRemove(value, result);
+        }
+
+        /// <summary>
+        /// Lowers an as-aligned-view operation.
+        /// </summary>
+        private static void Lower(
+            RewriterContext context,
+            TypeLowering<ViewType> typeLowering,
+            AsAligned value)
+        {
+            var builder = context.Builder;
+            var location = value.Location;
+
+            // Extract basic view information from the converted structure
+            var pointer = builder.CreateGetField(
+                location,
+                value.Source,
+                new FieldSpan(0));
+            var length = builder.CreateGetField(
+                location,
+                value.Source,
+                new FieldSpan(1));
+
+            // Ensure that the underyling pointer is aligned
+            var aligned = builder.CreateAsAligned(
+                location,
+                pointer,
+                value.AlignmentInBytes);
+
+            // Create a new wrapped instance
+            var newInstance = builder.CreateDynamicStructure(
+                location,
+                aligned,
+                length);
+            context.ReplaceAndRemove(value, newInstance);
         }
 
         #endregion
@@ -330,6 +368,7 @@ namespace ILGPU.Backends.PointerViews
         {
             AddRewriters(
                 Rewriter,
+                Lower,
                 Lower,
                 Lower,
                 Lower,

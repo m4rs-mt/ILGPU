@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2019-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ValueKind.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using System;
@@ -221,9 +221,14 @@ namespace ILGPU.IR
         GetViewLength,
 
         /// <summary>
-        /// A <see cref="Values.AlignViewTo"/> value.
+        /// A <see cref="Values.AlignTo"/> value.
         /// </summary>
-        AlignViewTo,
+        AlignTo,
+
+        /// <summary>
+        /// A <see cref="Values.AsAligned"/> value.
+        /// </summary>
+        AsAligned,
 
         /// <summary>
         /// A <see cref="Values.SubViewValue"/> value.
@@ -355,6 +360,11 @@ namespace ILGPU.IR
         /// A <see cref="Values.LanguageEmitValue"/> value.
         /// </summary>
         LanguageEmit,
+
+        /// <summary>
+        /// Placeholder for the last value kind.
+        /// </summary>
+        MaxValue
     }
 
     /// <summary>
@@ -386,7 +396,7 @@ namespace ILGPU.IR
         /// <summary>
         /// The number of different value kinds.
         /// </summary>
-        public const int NumValueKinds = (int)ValueKind.LanguageEmit + 1;
+        public const int NumValueKinds = (int)ValueKind.MaxValue;
 
         /// <summary>
         /// Gets the value kind of the value type specified.

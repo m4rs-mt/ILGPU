@@ -1,4 +1,15 @@
-﻿using ILGPU.Runtime;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2021-2022 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: TestContext.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 
@@ -56,7 +67,7 @@ namespace ILGPU.Tests
         public void ClearCaches()
         {
             Accelerator.ClearCache(ClearCacheMode.Everything);
-            Context.ClearCache(ClearCacheMode.Everything);
+            Context.ClearCache(ClearCacheMode.Default);
         }
 
         /// <summary>

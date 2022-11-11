@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILEmitter.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
@@ -525,7 +525,7 @@ namespace ILGPU.Backends.IL
         {
             EmitPrefix();
             Writer.Write(target.IsVirtual ? "callvirt " : "call ");
-            Writer.Write(target.DeclaringType.GetStringRepresentation());
+            Writer.Write(target.DeclaringType.FullName);
             Writer.Write('.');
             Writer.WriteLine(target.Name);
         }
@@ -535,7 +535,7 @@ namespace ILGPU.Backends.IL
         {
             EmitPrefix();
             Writer.Write("newobj ");
-            Writer.Write(info.DeclaringType.GetStringRepresentation());
+            Writer.Write(info.DeclaringType.FullName);
             Writer.Write('.');
             Writer.WriteLine(info.Name);
         }
@@ -562,7 +562,7 @@ namespace ILGPU.Backends.IL
             EmitPrefix();
             Writer.Write(opCode.Name);
             Writer.Write(' ');
-            Writer.WriteLine(type.GetStringRepresentation());
+            Writer.WriteLine(type.FullName);
         }
 
         /// <summary cref="IILEmitter.Emit(OpCode, FieldInfo)"/>
@@ -646,10 +646,79 @@ namespace ILGPU.Backends.IL
                 Writer.Write("  local ");
                 Writer.Write(local.Index);
                 Writer.Write(": ");
-                Writer.WriteLine(
-                    local.VariableType.GetStringRepresentation());
+                Writer.WriteLine(local.VariableType.FullName);
             }
         }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a no-operation IL emitter.
+    /// </summary>
+    public readonly struct NopILEmitter : IILEmitter
+    {
+        #region Methods
+
+        /// <summary cref="IILEmitter.DeclareLocal(Type)"/>
+        public ILLocal DeclareLocal(Type type) => new ILLocal(0, type);
+
+        /// <summary cref="IILEmitter.DeclarePinnedLocal(Type)"/>
+        public ILLocal DeclarePinnedLocal(Type type) => new ILLocal(0, type);
+
+        /// <summary cref="IILEmitter.DeclareLabel"/>
+        public ILLabel DeclareLabel() => new ILLabel(-1);
+
+        /// <summary cref="IILEmitter.MarkLabel(ILLabel)"/>
+        public void MarkLabel(ILLabel label) { }
+
+        /// <summary cref="IILEmitter.Emit(LocalOperation, ILLocal)"/>
+        public void Emit(LocalOperation operation, ILLocal local) { }
+
+        /// <summary cref="IILEmitter.Emit(ArgumentOperation, int)"/>
+        public void Emit(ArgumentOperation operation, int argumentIndex) { }
+
+        /// <summary cref="IILEmitter.EmitCall(MethodInfo)"/>
+        public void EmitCall(MethodInfo target) { }
+
+        /// <summary cref="IILEmitter.EmitNewObject(ConstructorInfo)"/>
+        public void EmitNewObject(ConstructorInfo info) { }
+
+        /// <summary cref="IILEmitter.Emit(OpCode)"/>
+        public void Emit(OpCode opCode) { }
+
+        /// <summary cref="IILEmitter.Emit(OpCode, ILLabel)"/>
+        public void Emit(OpCode opCode, ILLabel label) { }
+
+        /// <summary cref="IILEmitter.Emit(OpCode, Type)"/>
+        public void Emit(OpCode opCode, Type type) { }
+
+        /// <summary cref="IILEmitter.Emit(OpCode, FieldInfo)"/>
+        public void Emit(OpCode opCode, FieldInfo field) { }
+
+        /// <summary cref="IILEmitter.EmitAlloca(int)"/>
+        public void EmitAlloca(int size) { }
+
+        /// <summary cref="IILEmitter.EmitConstant(string)"/>
+        public void EmitConstant(string constant) { }
+
+        /// <summary cref="IILEmitter.EmitConstant(int)"/>
+        public void EmitConstant(int constant) { }
+
+        /// <summary cref="IILEmitter.EmitConstant(long)"/>
+        public void EmitConstant(long constant) { }
+
+        /// <summary cref="IILEmitter.EmitConstant(float)"/>
+        public void EmitConstant(float constant) { }
+
+        /// <summary cref="IILEmitter.EmitConstant(double)"/>
+        public void EmitConstant(double constant) { }
+
+        /// <summary cref="IILEmitter.EmitSwitch(ILLabel[])"/>
+        public void EmitSwitch(params ILLabel[] labels) { }
+
+        /// <summary cref="IILEmitter.Finish"/>
+        public void Finish() { }
 
         #endregion
     }

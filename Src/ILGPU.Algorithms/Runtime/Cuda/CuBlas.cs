@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2020-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuBlas.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.Cuda.API;
@@ -266,6 +266,13 @@ namespace ILGPU.Runtime.Cuda
             TPointerModeHandler pointerModeHandler = default;
             pointerModeHandler.UpdatePointerMode(this, pointerMode);
         }
+
+        /// <summary>
+        /// Ensures that the accelerator for this CuBlas instance is made current.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void EnsureAcceleratorBinding() =>
+            Stream.Accelerator.Bind();
 
         #endregion
 

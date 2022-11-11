@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRRebuilder.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
@@ -342,11 +342,8 @@ namespace ILGPU.IR.Construction
                 var newBlock = blockMapping[block];
                 foreach (Value value in block)
                 {
-                    if (value is PhiValue phiValue)
+                    if (value is PhiValue phiValue && !valueMapping.ContainsKey(value))
                     {
-                        // Phi must not be defined at this point
-                        phiValue.Assert(!valueMapping.ContainsKey(value));
-
                         // Setup debug information for the current value
                         var phiBuilder = newBlock.CreatePhi(
                             value.Location,

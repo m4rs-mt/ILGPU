@@ -1,0 +1,70 @@
+<!-- ======= Sidebar Section ======= -->
+<section id="sidebar">
+    <div id="sidebar-header">
+        {% assign its = site.docs | where: "path", site.data.sidebar.main.path %}
+        {% for it in its %}
+            <a href="{{ it.url | relative_url }}"><h4>Documentation</h4></a>
+        {% endfor %}
+    </div>
+
+    {% if site.search.enabled %}
+        <div id="search" class="ms-4 mb-4">
+            <input type="search" class="typeahead form-control" placeholder="Search..." aria-label="Search" />
+        </div>
+    {% endif %}
+
+    <nav id="wiki-nav">
+        {% assign sections = site.data.sidebar.sections %}
+        {% for section in sections %}
+            <div class="section">
+                <h5>{{ section.title }}</h5>
+                <ul>
+                    {% for item in section.items %}
+                        {% assign its = site.docs | where: "path", item.path %}
+                        {% for it in its %}
+                            {% assign it_url = it.url | relative_url %}
+                            {% assign page_url = page.url | relative_url %}
+                            <li><a href="{{ it_url }}"
+                                   {% if it_url == page_url %}class="text-white"{% endif %}>{{ it.title }}</a></li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+        <ul>
+            {% for item in site.data.sidebar.toplevel %}
+                {% assign its = site.docs | where: "path", item.path %}
+                {% for it in its %}
+                    {% assign it_url = it.url | relative_url %}
+                    {% assign page_url = page.url | relative_url %}
+                    <li><a href="{{ it.url | relative_url }}"
+                           {% if it_url == page_url %}class="text-white"{% endif %}>{{ it.title }}</a></li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </nav>
+
+    {% if site.dark_mode.enabled %}
+        <div class="box">
+        <span dd-toggle="theme" class="df">
+          <div id="toggle_theme" class="dd-theme__switcher">
+            <span class="dd-theme__switcher-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" class="dd-icon icon-tabler icon-tabler-sun" width="24" height="24"
+                   viewBox="0 0 24 24" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z"/>
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M3 12h1M12 3v1M20 12h1M12 20v1M5.6 5.6l.7 .7M18.4 5.6l-.7 .7M17.7 17.7l.7 .7M6.3 17.7l-.7 .7"/>
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="dd-icon icon-tabler icon-tabler-moon" width="24"
+                   height="24"
+                   viewBox="0 0 24 24" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z"/>
+                <path d="M16.2 4a9.03 9.03 0 1 0 3.9 12a6.5 6.5 0 1 1 -3.9 -12"/>
+              </svg>
+            </span>
+          </div>
+          &nbsp;<label class="box-lbl" for="toggle_theme"><strong>Toggle Light/Dark Theme</strong></label>
+        </span>
+        </div>
+    {% endif %}
+</section><!-- End Sidebar Section -->

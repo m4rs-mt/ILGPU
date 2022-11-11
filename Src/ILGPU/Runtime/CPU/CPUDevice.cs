@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                           Copyright (c) 2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUDevice.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
@@ -85,7 +85,7 @@ namespace ILGPU.Runtime.CPU
         /// purposes. Instead, it acts as a placeholder accelerator for buffers that
         /// are implicitly associated with a parent CPU accelerator.
         /// </summary>
-        public static readonly CPUDevice Implicit =
+        internal static readonly CPUDevice Implicit =
             new CPUDevice(
                 numThreadsPerWarp: 0,
                 numWarpsPerMultiprocessor: 0,
@@ -253,7 +253,7 @@ namespace ILGPU.Runtime.CPU
             MaxGridSize = new Index3D(int.MaxValue, ushort.MaxValue, ushort.MaxValue);
             MaxSharedMemoryPerGroup = int.MaxValue;
             MaxConstantMemory = int.MaxValue;
-            NumThreads = MaxNumThreads * numMultiprocessors;
+            NumThreads = MaxNumThreads;
         }
 
         /// <summary>

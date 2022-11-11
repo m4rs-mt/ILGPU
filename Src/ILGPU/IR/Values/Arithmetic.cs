@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Arithmetic.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -163,8 +163,9 @@ namespace ILGPU.IR.Values
             var type = Value.Type;
             switch (Kind)
             {
-                case UnaryArithmeticKind.IsInfF:
                 case UnaryArithmeticKind.IsNaNF:
+                case UnaryArithmeticKind.IsInfF:
+                case UnaryArithmeticKind.IsFinF:
                     type = initializer.Context.GetPrimitiveType(
                         BasicValueType.Int1);
                     break;

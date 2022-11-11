@@ -1,15 +1,16 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DeadCodeElimination.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -37,27 +38,25 @@ namespace ILGPU.IR.Transformations
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var blocks = builder.SourceBlocks;
-            var toProcess = new Stack<Value>();
+            var toProcess = InlineList<Value>.Create(blocks.Count << 2);
 
             // Mark all terminators and their values as non dead
-            blocks.ForEachTerminator<TerminatorValue>(terminator =>
+            foreach (var block in blocks)
             {
-                foreach (var node in terminator.Nodes)
-                    toProcess.Push(node);
-            });
+                foreach (Value value in block)
+                {
+                    // Mark all memory values as non dead (except dead loads)
+                    if (value is MemoryValue memoryValue &&
+                        memoryValue.ValueKind != ValueKind.Load)
+                    {
+                        toProcess.Add(memoryValue);
+                    }
+                }
 
-            // Mark all memory values as non dead (except dead loads)
-            blocks.ForEachValue<MemoryValue>(value =>
-            {
-                if (value.ValueKind != ValueKind.Load)
-                    toProcess.Push(value);
-            });
-
-            // Mark all calls as non dead
-            blocks.ForEachValue<MethodCall>(call => toProcess.Push(call));
-
-            // Mark all inline language statements as non dead
-            blocks.ForEachValue<LanguageEmitValue>(emit => toProcess.Push(emit));
+                // Register all terminator value dependencies
+                foreach (Value node in block.Terminator)
+                    toProcess.Add(node);
+            }
 
             // Mark all nodes as live
             var liveValues = new HashSet<Value>();
@@ -68,7 +67,7 @@ namespace ILGPU.IR.Transformations
                     continue;
 
                 foreach (var node in current.Nodes)
-                    toProcess.Push(node.Resolve());
+                    toProcess.Add(node.Resolve());
             }
 
             // Remove all dead values

@@ -1,14 +1,15 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2019 ILGPU Algorithms Project
-//                     Copyright(c) 2016-2018 ILGPU Lightning Project
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2019-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Sequencer.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
+
+using ILGPU.Runtime;
 
 namespace ILGPU.Algorithms.Sequencers
 {
@@ -74,14 +75,16 @@ namespace ILGPU.Algorithms.Sequencers
     /// Represents a sequencer that wraps an array view in a sequencer.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    public readonly struct ViewSourceSequencer<T> : ISequencer<T>
+    /// <typeparam name="TStride">The stride of the underlying view.</typeparam>
+    public readonly struct ViewSourceSequencer<T, TStride> : ISequencer<T>
         where T : unmanaged
+        where TStride : struct, IStride1D
     {
         /// <summary>
         /// Constructs a new sequencer.
         /// </summary>
         /// <param name="viewSource">The underlying view source.</param>
-        public ViewSourceSequencer(ArrayView<T> viewSource)
+        public ViewSourceSequencer(ArrayView1D<T, TStride> viewSource)
         {
             ViewSource = viewSource;
         }
@@ -89,7 +92,7 @@ namespace ILGPU.Algorithms.Sequencers
         /// <summary>
         /// Returns the data source of this sequence.
         /// </summary>
-        public ArrayView<T> ViewSource { get; }
+        public ArrayView1D<T, TStride> ViewSource { get; }
 
         /// <summary>
         /// Returns the i-th element of the attached <see cref="ViewSource"/>.

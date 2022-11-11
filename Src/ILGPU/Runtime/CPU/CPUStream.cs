@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUStream.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 namespace ILGPU.Runtime.CPU
@@ -50,8 +50,11 @@ namespace ILGPU.Runtime.CPU
         public override void Synchronize() { }
 
         /// <inheritdoc/>
-        protected unsafe override ProfilingMarker AddProfilingMarkerInternal() =>
-            new CPUProfilingMarker();
+        protected unsafe override ProfilingMarker AddProfilingMarkerInternal()
+        {
+            using var binding = Accelerator.BindScoped();
+            return new CPUProfilingMarker(Accelerator);
+        }
 
         #endregion
 

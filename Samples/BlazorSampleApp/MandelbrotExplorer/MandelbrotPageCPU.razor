@@ -1,0 +1,39 @@
+﻿@page "/mandelbrotPageCPU"
+
+<h3>Mandelbrot CPU Demo</h3>
+
+
+<p>Example of Mandelbrot set using Blazor and CPU resources.</p>
+<p>
+    <table>
+        <tr><td rowspan="6"><BasicCanvas @ref="Canvas2D"></BasicCanvas></td><td rowspan="6">&nbsp;</td><td>&nbsp;</td></tr>
+        <tr><td>@ExecutionsDetails1</td></tr>
+        <tr><td>@ExecutionsDetails2</td></tr>
+        <tr><td>@ExecutionsDetails3</td></tr>
+        <tr><td>@ExecutionsDetails4</td></tr>
+        <tr><td>&nbsp;</td></tr>
+    </table>
+</p>
+
+<p>
+    Currently the CPU accelerator is intended for GPU kernel development/debugging rather than CPU kernel performance.<br /> 
+    Optimized CPU kernel performance will likely be added back in an upcoming release of ILGPU. <br />
+    
+<br />
+    <Tooltip Text="Select Accelerator">
+    <select id="ItemToRender" @onchange="@UpdateSelected" disabled="@DisabledButtons">
+        @foreach (var device in SystemDevices)
+            {
+               <option valuse = "@device">@device</option>
+            }
+        </select>
+    </Tooltip>
+
+    
+    <Tooltip Text='CPU based "slow motion" Mandelbrot animation'>
+        <button class="btn btn-primary m-1" @onclick="AnimateMandelbrot" disabled="@DisabledButtons">Mandelbrot Animation</button>
+    </Tooltip>
+
+    
+    
+    </p>

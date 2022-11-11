@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRContext.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend;
@@ -357,6 +357,7 @@ namespace ILGPU.IR
                 method.Location,
                 method.ReturnType);
             bbBuilder.CreateReturn(method.Location, returnValue);
+            builder.Complete();
         }
 
         /// <summary>
@@ -445,6 +446,7 @@ namespace ILGPU.IR
                     // Create an appropriate return instruction
                     var (exitBlock, exitValue) = rebuilder.Rebuild();
                     exitBlock.CreateReturn(exitValue.Location, exitValue);
+                    builder.Complete();
                 }
                 Verifier.Verify(targetMethod);
             }

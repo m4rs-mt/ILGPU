@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUMultiprocessor.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
@@ -145,22 +145,23 @@ namespace ILGPU.Runtime.CPU
             if (maxNumLaunchedThreadsPerGroup >= groupSize)
                 return;
 
+            // Adjust number of threads per MP
+            processorBarrier.AddParticipants(
+                groupSize - maxNumLaunchedThreadsPerGroup);
+
             // Launch all threads that we need for processing
-            Parallel.For(maxNumLaunchedThreadsPerGroup, groupSize, threadIdx =>
+            for (
+                int threadIdx = maxNumLaunchedThreadsPerGroup;
+                threadIdx < groupSize;
+                ++threadIdx)
             {
                 int globalThreadIdx = ProcessorIndex * MaxNumThreadsPerMultiprocessor
                     + threadIdx;
-                threads[globalThreadIdx].Start(globalThreadIdx);
-            });
-            maxNumLaunchedThreadsPerGroup = groupSize;
-
-            // Adjust number of threads per MP
-            if (processorBarrier.ParticipantCount < maxNumLaunchedThreadsPerGroup)
-            {
-                processorBarrier.AddParticipants(
-                    maxNumLaunchedThreadsPerGroup -
-                    processorBarrier.ParticipantCount);
+                threads[threadIdx].Start(globalThreadIdx);
             }
+
+            // Update the number of launched threads
+            maxNumLaunchedThreadsPerGroup = groupSize;
         }
 
         /// <summary>
@@ -237,7 +238,6 @@ namespace ILGPU.Runtime.CPU
             threadContext.MakeCurrent();
 
             // Setup the current warp context as it always stays the same
-            bool isMainWarpThread = threadIdx == 0;
             var warpContext = warpContexts[warpIdx];
             warpContext.MakeCurrent();
 
@@ -252,7 +252,7 @@ namespace ILGPU.Runtime.CPU
                     break;
 
                 // Setup the current group index
-                threadContext.GroupIndex = Index3D.ReconstructIndex(
+                threadContext.GroupIndex = Stride3D.DenseXY.ReconstructFromElementIndex(
                     threadIdx,
                     task.GroupDim);
 
@@ -287,7 +287,8 @@ namespace ILGPU.Runtime.CPU
                                 try
                                 {
                                     // Setup the current grid index
-                                    threadContext.GridIndex = Index3D.ReconstructIndex(
+                                    threadContext.GridIndex = Stride3D.DenseXY
+                                        .ReconstructFromElementIndex(
                                         i,
                                         task.GridDim);
 

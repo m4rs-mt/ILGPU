@@ -1,16 +1,17 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Half.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 #if !DEBUG
 using System.Diagnostics;
@@ -76,8 +77,16 @@ namespace ILGPU
         /// </summary>
         /// <param name="half">The half value.</param>
         /// <returns>True, if the given half value represents infinity.</returns>
-        [MathIntrinsic(MathIntrinsicKind.IsInfF)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsInfinity(Half half) => HalfExtensions.IsInfinity(half);
+
+        /// <summary>
+        /// Returns true if the given half value represents a finite number.
+        /// </summary>
+        /// <param name="half">The half value.</param>
+        /// <returns>True, if the given half value represents a finite number.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFinite(Half half) => HalfExtensions.IsFinite(half);
 
         #endregion
 
@@ -381,6 +390,15 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsInfinity(Half half) =>
             (half.RawValue & ExponentMantissaMask) == ExponentMask;
+
+        /// <summary>
+        /// Returns true if the given half value represents a finite number.
+        /// </summary>
+        /// <param name="half">The half value.</param>
+        /// <returns>True, if the given half value represents a finite number.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFinite(Half half) =>
+            Bitwise.And(!IsNaN(half), !IsInfinity(half));
 
         /// <summary>
         /// Implements a FP16 addition using FP32.

@@ -1,15 +1,16 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Dominators.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Values;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -212,6 +213,63 @@ namespace ILGPU.IR.Analyses
             for (int i = 1, e = blocks.Length; i < e; ++i)
                 result = GetImmediateCommonDominator(result, blocks[i]);
             return result;
+        }
+
+        /// <summary>
+        /// Determines a dominator block of all phi-value uses.
+        /// </summary>
+        /// <param name="dominatorBlock">The current dominator block.</param>
+        /// <param name="uses">The collection of all uses.</param>
+        /// <returns>The dominator block given by all phi-value uses.</returns>
+        private BasicBlock GetPhiParent(BasicBlock dominatorBlock, UseCollection uses)
+        {
+            // Check for phi-value references
+            BasicBlock phiParent = null;
+            foreach (Use use in uses)
+            {
+                if (!(use.Resolve() is PhiValue phiValue))
+                    continue;
+
+                // If we encounter a phi value we have to check whether our value occurs
+                // in one of the predecessors. In this case, we have to adjust our
+                // current dominator.
+                var newParent = phiValue.Sources[use.Index];
+                phiParent = phiParent == null
+                    ? newParent
+                    : GetImmediateCommonDominator(phiParent, newParent);
+            }
+
+            // If we have found a new parent dominator block for all phi values, use this
+            // block instead of the given dominator
+            return phiParent ?? dominatorBlock;
+        }
+
+        /// <summary>
+        /// Gets the immediate common dominator of all given uses.
+        /// </summary>
+        /// <param name="dominatorBlock">The initial dominator block.</param>
+        /// <param name="uses">The uses to get the common dominator for.</param>
+        /// <returns>The common dominator block of all uses.</returns>
+        public BasicBlock GetImmediateCommonDominatorOfUses(
+            BasicBlock dominatorBlock,
+            UseCollection uses)
+        {
+            // Check for phi-value uses
+            dominatorBlock = GetPhiParent(dominatorBlock, uses);
+
+            // Initialize the parent dominator block using the given uses
+            foreach (Use use in uses)
+            {
+                Value value = use;
+                var valueBlock = value.BasicBlock;
+                if (value is PhiValue)
+                    continue;
+
+                // Get the immediate common dominator of the current dominator block and
+                // the block of the use reference
+                dominatorBlock = GetImmediateCommonDominator(dominatorBlock, valueBlock);
+            }
+            return dominatorBlock;
         }
 
         #endregion

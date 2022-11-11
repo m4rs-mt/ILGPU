@@ -1,0 +1,19 @@
+---
+layout: page
+title: Milestones
+---
+
+<!-- ======= Inner Page Section ======= -->
+<section class="inner-page">
+    <div class="container">
+        <ul>
+            {% for milestone in site.data.milestones %}
+                <li>
+                    <a href="{{ milestone.html_url }}" target="_blank">
+                        {{ milestone.title }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</section><!-- End Inner Page Section -->

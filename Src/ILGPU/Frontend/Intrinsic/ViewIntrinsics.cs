@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ViewIntrinsics.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
@@ -32,7 +32,8 @@ namespace ILGPU.Frontend.Intrinsic
         GetViewLongExtent,
         GetStride,
         GetViewElementAddressByIndex,
-        AlignTo
+        AlignTo,
+        AsAligned
     }
 
     /// <summary>
@@ -92,7 +93,7 @@ namespace ILGPU.Frontend.Intrinsic
                     location,
                     instanceValue,
                     context[paramOffset++],
-                    context[paramOffset++]),
+                    context[paramOffset]),
                 ViewIntrinsicKind.GetSubViewImplicitLength =>
                     builder.CreateSubViewValue(
                         location,
@@ -107,7 +108,7 @@ namespace ILGPU.Frontend.Intrinsic
                     GetViewElementAddress(
                         ref context,
                         instanceValue,
-                        context[paramOffset++]),
+                        context[paramOffset]),
                 ViewIntrinsicKind.CastView => builder.CreateViewCast(
                     location,
                     instanceValue,
@@ -132,13 +133,18 @@ namespace ILGPU.Frontend.Intrinsic
                         instanceValue,
                         builder.CreateGetField(
                             location,
-                            context[paramOffset++],
+                            context[paramOffset],
                             new FieldAccess(0))),
                 ViewIntrinsicKind.AlignTo =>
-                    builder.CreateAlignViewTo(
+                    builder.CreateAlignTo(
                         location,
                         instanceValue,
-                        context[paramOffset++]),
+                        context[paramOffset]),
+                ViewIntrinsicKind.AsAligned =>
+                    builder.CreateAsAligned(
+                        location,
+                        instanceValue,
+                        context[paramOffset]),
                 _ => throw context.Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedViewIntrinsic,
                     attribute.IntrinsicKind.ToString()),

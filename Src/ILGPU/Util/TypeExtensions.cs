@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeExtensions.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
@@ -455,47 +455,5 @@ namespace ILGPU.Util
         /// <returns>The required conversion flags.</returns>
         internal static ConvertFlags ToTargetUnsignedFlags(this Type type) =>
             type.IsUnsignedInt() ? ConvertFlags.TargetUnsigned : ConvertFlags.None;
-
-        /// <summary>
-        /// Returns the string representation of the given type.
-        /// </summary>
-        /// <param name="type">The type to convert to a string.</param>
-        /// <returns>The string representation of the given type.</returns>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "string.IndexOf(char, StringComparison) not " +
-            "available in net471")]
-        public static string GetStringRepresentation(this Type type)
-        {
-            var result = new StringBuilder();
-            result.Append(type.Namespace);
-            result.Append('.');
-            if (type.IsGenericType)
-            {
-                var args = type.GetGenericArguments();
-                if (args.Length < 1)
-                {
-                    result.Append(type.Name);
-                }
-                else
-                {
-                    result.Append(type.Name.Substring(0, type.Name.IndexOf('`')));
-                    result.Append('<');
-                    result.Append(GetStringRepresentation(args[0]));
-                    for (int i = 1; i < args.Length; ++i)
-                    {
-                        result.Append(", ");
-                        result.Append(GetStringRepresentation(args[i]));
-                    }
-                    result.Append('>');
-                }
-            }
-            else
-            {
-                result.Append(type.Name);
-            }
-            return result.ToString();
-        }
     }
 }

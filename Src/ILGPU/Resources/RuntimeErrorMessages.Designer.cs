@@ -19,7 +19,7 @@ namespace ILGPU.Resources {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class RuntimeErrorMessages {
@@ -99,9 +99,9 @@ namespace ILGPU.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Cuda accelerator requires 64-bit application ({0} not supported). Ensure Prefer32Bit is set to &apos;false&apos;..
         /// </summary>
-        internal static string CudaPlatformX64 {
+        internal static string CudaPlatform64 {
             get {
-                return ResourceManager.GetString("CudaPlatformX64", resourceCulture);
+                return ResourceManager.GetString("CudaPlatform64", resourceCulture);
             }
         }
         
@@ -205,6 +205,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalidly assumed pointer or view orientation.
+        /// </summary>
+        internal static string InvalidlyAssumedPointerOrViewAlignment {
+            get {
+                return ResourceManager.GetString("InvalidlyAssumedPointerOrViewAlignment", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The number of provided arguments does not match the required length.
         /// </summary>
         internal static string InvalidNumberOfUniformArgs {
@@ -291,6 +300,33 @@ namespace ILGPU.Resources {
         internal static string NotSupportedKernelSpecialization {
             get {
                 return ResourceManager.GetString("NotSupportedKernelSpecialization", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find environment variable &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedLibDeviceEnvironmentVariable {
+            get {
+                return ResourceManager.GetString("NotSupportedLibDeviceEnvironmentVariable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find LibDevice BitCode in &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedLibDeviceNotFoundBitCode {
+            get {
+                return ResourceManager.GetString("NotSupportedLibDeviceNotFoundBitCode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find NVVM DLL in &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedLibDeviceNotFoundNvvmDll {
+            get {
+                return ResourceManager.GetString("NotSupportedLibDeviceNotFoundNvvmDll", resourceCulture);
             }
         }
         

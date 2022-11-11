@@ -1,4 +1,15 @@
-﻿using System;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: TestData.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using System;
 using System.Runtime.InteropServices;
 using Xunit.Abstractions;
 
@@ -81,6 +92,22 @@ namespace ILGPU.Tests
             obj is EmptyStruct other && Equals(other);
 
         public override int GetHashCode() => 0;
+    }
+
+    [Serializable]
+    // warning disabled intentionally for testing this scenario
+    #pragma warning disable CS0659 // Type does not override Object.GetHashCode()
+    public struct NoHashCodeStruct : IXunitSerializable, IEquatable<NoHashCodeStruct>
+    #pragma warning restore CS0659 // Type does not override Object.GetHashCode()
+    {
+        public void Deserialize(IXunitSerializationInfo info) { }
+
+        public void Serialize(IXunitSerializationInfo info) { }
+
+        public bool Equals(NoHashCodeStruct other) => true;
+
+        public override bool Equals(object obj) =>
+            obj is NoHashCodeStruct other && Equals(other);
     }
 
     public static class PairStruct

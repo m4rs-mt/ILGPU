@@ -1,0 +1,29 @@
+---
+layout: default
+extras-head: doc/extras-head.html
+extras-js: doc/extras-js.html
+---
+
+{% assign extension = page.path | split: '.' | last %}
+
+{% include doc/sidebar.html %}
+
+<main id="main">
+    {% include arsha/breadcrumbs.html subpage=page.title title=page.title %}
+
+    {% if extension == "html" %}
+        {{ content }}
+    {% else %}
+        <!-- ======= Inner Page Section ======= -->
+        <section id="wiki-main" class="inner-page">
+            <div class="container-fluid">
+                {{ content }}
+                {% include doc/contribute.html %}
+            </div>
+        </section><!-- End Inner Page Section -->
+    {% endif %}
+</main><!-- End #main -->
+
+{%- if jekyll.environment == 'production' and site.disqus.shortname -%}
+    {%- include addons/disqus.html -%}
+{%- endif -%}

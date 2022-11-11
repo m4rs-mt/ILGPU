@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2020-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerStructures.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -601,7 +601,7 @@ namespace ILGPU.IR.Transformations
         {
             // Keep particular values that cannot be rewritten by this pass
             rewriter.Add<Parameter>((_, value) => value.Type.IsStructureType, Keep);
-            rewriter.Add<AlignViewTo>(Keep);
+            rewriter.Add<AlignTo>((_, value) => value.Type.IsStructureType, Keep);
 
             // Rewrite known values
             rewriter.Add<NullValue>((_, value) => value.Type.IsStructureType, Lower);
@@ -644,7 +644,16 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new structure conversion pass.
         /// </summary>
-        public LowerStructures() { }
+        public LowerStructures() : this(LowerStructureFlags.None) { }
+
+        /// <summary>
+        /// Constructs a new structure conversion pass.
+        /// </summary>
+        /// <param name="flags">The transformation flags.</param>
+        public LowerStructures(LowerStructureFlags flags)
+        {
+            Flags = flags;
+        }
 
         #endregion
 

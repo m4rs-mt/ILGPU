@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2019-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLStream.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using System;
@@ -76,6 +76,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <inheritdoc/>
         protected unsafe override ProfilingMarker AddProfilingMarkerInternal()
         {
+            using var binding = Accelerator.BindScoped();
+
             IntPtr* profilingEvent = stackalloc IntPtr[1];
             CLException.ThrowIfFailed(
                 CurrentAPI.EnqueueBarrierWithWaitList(
@@ -86,7 +88,7 @@ namespace ILGPU.Runtime.OpenCL
             // WORKAROUND: The OpenCL event needs to be awaited now, otherwise
             // it does not contain the correct timing - it appears to have the timing
             // of whenever it gets awaited.
-            var marker = new CLProfilingMarker(*profilingEvent);
+            var marker = new CLProfilingMarker(Accelerator, *profilingEvent);
             marker.Synchronize();
             return marker;
         }

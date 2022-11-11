@@ -1,4 +1,15 @@
-﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU Algorithms
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: RadixSortExtensionTests.tt/RadixSortExtensionTests.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
 <#@ include file="Generic/ConfigurationBase.tt" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
@@ -30,7 +41,7 @@ namespace ILGPU.Algorithms.Tests
             // Type, RadixSortOperation, Sequencer, Start of Sequencer,
             // StepSize of Sequencer, BufferLength
 <#
-        var types = AtomicIntTypes;
+        var types = AtomicNumericTypes;
         foreach (var type in types) {
             foreach (var size in ArraySizes) {
 #>
@@ -161,7 +172,10 @@ namespace ILGPU.Algorithms.Tests
 #>
             input.CopyFromCPU(stream, sequence);
 
-            var radixSort = Accelerator.CreateRadixSort<T, TRadixSortOp>();
+            var radixSort = Accelerator.CreateRadixSort<
+                T,
+                Stride1D.Dense,
+                TRadixSortOp>();
             var tempMemSize =
                 Accelerator.ComputeRadixSortTempStorageSize<T, TRadixSortOp>(length);
             using var tmpBuffer = Accelerator.Allocate1D<int>(tempMemSize);
@@ -201,7 +215,10 @@ namespace ILGPU.Algorithms.Tests
 #>
             input.CopyFromCPU(stream, sequence);
 
-            var radixSort = Accelerator.CreateRadixSort<T, TRadixSortOp>();
+            var radixSort = Accelerator.CreateRadixSort<
+                T,
+                Stride1D.Dense,
+                TRadixSortOp>();
             var tempMemSize =
                 Accelerator.ComputeRadixSortTempStorageSize<T, TRadixSortOp>(length);
             using var tmpBuffer = Accelerator.Allocate1D<int>(tempMemSize);
@@ -247,9 +264,10 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFromCPU(stream, sequence);
             
             using var radixSortProvider =
-                Accelerator.CreateRadixSortProvider<T, TRadixSortOp>(length);
+                Accelerator.CreateRadixSortProvider<T, Stride1D.Dense, TRadixSortOp>(
+                length);
             var radixSortUsingSortProvider =
-                radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
+                radixSortProvider.CreateRadixSort<T, Stride1D.Dense, TRadixSortOp>();
 
             radixSortUsingSortProvider(stream, input.View);
             stream.Synchronize();
@@ -287,9 +305,10 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFromCPU(stream, sequence);
             
             using var radixSortProvider =
-                Accelerator.CreateRadixSortProvider<T, TRadixSortOp>(length);
+                Accelerator.CreateRadixSortProvider<T, Stride1D.Dense, TRadixSortOp>(
+                length);
             var radixSortUsingSortProvider =
-                radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
+                radixSortProvider.CreateRadixSort<T, Stride1D.Dense, TRadixSortOp>();
 
             radixSortUsingSortProvider(stream, input.View);
             stream.Synchronize();
@@ -327,7 +346,12 @@ namespace ILGPU.Algorithms.Tests
             keys.CopyFromCPU(stream, sourceSequence);
             values.CopyFromCPU(stream, sourceSequence);
 
-            var radixSort = Accelerator.CreateRadixSortPairs<T, T, TRadixSortOp>();
+            var radixSort = Accelerator.CreateRadixSortPairs<
+                T,
+                Stride1D.Dense,
+                T,
+                Stride1D.Dense,
+                TRadixSortOp>();
             var tempMemSize =
                 Accelerator.ComputeRadixSortPairsTempStorageSize<T, T, TRadixSortOp>(
                     length);
@@ -362,7 +386,10 @@ namespace ILGPU.Algorithms.Tests
             var sequence = sequencer.ComputeSequence(start, stepSize, length);
             input.CopyFromCPU(stream, sequence);
 
-            var radixSort = Accelerator.CreateRadixSort<T, TRadixSortOp>();
+            var radixSort = Accelerator.CreateRadixSort<
+                T,
+                Stride1D.Dense,
+                TRadixSortOp>();
             var tempMemSize =
                 Accelerator.ComputeRadixSortTempStorageSize<T, TRadixSortOp>(length);
             using var tmpBuffer = Accelerator.Allocate1D<int>(tempMemSize);
@@ -393,9 +420,10 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFromCPU(stream, sequence);
 
             using var radixSortProvider =
-                Accelerator.CreateRadixSortProvider<T, TRadixSortOp>(length);
+                Accelerator.CreateRadixSortProvider<T, Stride1D.Dense, TRadixSortOp>(
+                length);
             var radixSortUsingSortProvider =
-                radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
+                radixSortProvider.CreateRadixSort<T, Stride1D.Dense, TRadixSortOp>();
 
             radixSortUsingSortProvider(stream, input.View);
             stream.Synchronize();

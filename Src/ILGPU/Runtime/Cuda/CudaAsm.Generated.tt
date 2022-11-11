@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAsm.Generated.tt/CudaAsm.Generated.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ assembly name="System.Core" #>
@@ -15,9 +15,9 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 <#
-    int numArguments = 10;
-    var cfgs =
-        from argNum in Enumerable.Range(1, numArguments)
+    int numEmitArguments = 10;
+    var emitCfgs =
+        from argNum in Enumerable.Range(1, numEmitArguments)
         let range = Enumerable.Range(0, argNum)
         select new
         {
@@ -26,6 +26,23 @@
                 $"{Environment.NewLine}            ",
                 from r in range select $"where T{r} : struct"),
             MethodParams = string.Join(", ", from r in range select $"T{r} arg{r}"),
+            MethodParamsDocumentation = string.Join(
+                $"{Environment.NewLine}        /// ",
+                from r in range select
+                $"<param name=\"arg{r}\">Argument %{r} of the PTX instruction.</param>"),
+        };
+
+    int numEmitRefArguments = 44;
+    var emitRefCfgs =
+        from argNum in Enumerable.Range(1, numEmitRefArguments)
+        let range = Enumerable.Range(0, argNum)
+        select new
+        {
+            TypeParams = string.Join(", ", from r in range select $"T{r}"),
+            TypeRestrictions = string.Join(
+                $"{Environment.NewLine}            ",
+                from r in range select $"where T{r} : struct, ICudaAsmEmitParameter"),
+            MethodParams = string.Join(", ", from r in range select $"ref T{r} arg{r}"),
             MethodParamsDocumentation = string.Join(
                 $"{Environment.NewLine}        /// ",
                 from r in range select
@@ -43,7 +60,7 @@ namespace ILGPU.Runtime.Cuda
     /// </summary>
     partial class CudaAsm
     {
-<# foreach (var cfg in cfgs) { #>
+<# foreach (var cfg in emitCfgs) { #>
         /// <summary>
         /// Writes the inline PTX assembly instructions into the kernel.
         /// </summary>
@@ -65,6 +82,20 @@ namespace ILGPU.Runtime.Cuda
         public static void Emit<<#= cfg.TypeParams #>>(
             string asm,
             out <#= cfg.MethodParams #>)
+            <#= cfg.TypeRestrictions #> =>
+            throw new NotImplementedException();
+
+<# } #>
+<# foreach (var cfg in emitRefCfgs) { #>
+        /// <summary>
+        /// Writes the inline PTX assembly instructions into the kernel.
+        /// </summary>
+        /// <param name="asm">The PTX assembly instruction string.</param>
+        /// <#= cfg.MethodParamsDocumentation #>
+        [LanguageIntrinsic(LanguageIntrinsicKind.EmitRefPTX)]
+        public static void EmitRef<<#= cfg.TypeParams #>>(
+            string asm,
+            <#= cfg.MethodParams #>)
             <#= cfg.TypeRestrictions #> =>
             throw new NotImplementedException();
 

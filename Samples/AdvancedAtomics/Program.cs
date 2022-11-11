@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                ILGPU Samples
-//                 Copyright (c) 2017-2019 ILGPU Samples Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                    ILGPU Samples
+//                           Copyright (c) 2021 ILGPU Project
+//                                    www.ilgpu.net
 //
 // File: Program.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details.
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 
 using ILGPU;
 using ILGPU.AtomicOperations;
@@ -42,6 +42,17 @@ namespace AdvancedAtomics
         public double CompareExchange(ref double target, double compare, double value)
         {
             return Atomic.CompareExchange(ref target, compare, value);
+        }
+
+        /// <summary>
+        /// Returns true if both operands represent the same value.
+        /// </summary>
+        /// <param name="left">The left operand.</param>
+        /// <param name="right">The right operand.</param>
+        /// <returns>True, if both operands represent the same value.</returns>
+        public bool IsSame(double first, double second)
+        {
+            return first == second;
         }
     }
 

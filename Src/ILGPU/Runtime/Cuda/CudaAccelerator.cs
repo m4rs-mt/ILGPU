@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2016-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAccelerator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
@@ -178,11 +178,18 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetCacheConfig(out cacheConfiguration));
 
+            var nvvmAPI = !string.IsNullOrEmpty(context.Properties.LibNvvmPath)
+                ? NvvmAPI.Create(
+                    context.Properties.LibNvvmPath,
+                    context.Properties.LibDevicePath)
+                : default;
+
             Init(new PTXBackend(
                 Context,
                 Capabilities,
                 Architecture,
-                InstructionSet));
+                InstructionSet,
+                nvvmAPI));
         }
 
         #endregion
@@ -491,9 +498,6 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="Accelerator.EnablePeerAccessInternal(Accelerator)"/>
         protected override void EnablePeerAccessInternal(Accelerator otherAccelerator)
         {
-            if (HasPeerAccess(otherAccelerator))
-                return;
-
             if (!(otherAccelerator is CudaAccelerator cudaAccelerator))
             {
                 throw new InvalidOperationException(
@@ -507,9 +511,6 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="Accelerator.DisablePeerAccessInternal(Accelerator)"/>
         protected override void DisablePeerAccessInternal(Accelerator otherAccelerator)
         {
-            if (!HasPeerAccess(otherAccelerator))
-                return;
-
             var cudaAccelerator = otherAccelerator as CudaAccelerator;
             Debug.Assert(cudaAccelerator != null, "Invalid EnablePeerAccess method");
 
@@ -667,7 +668,7 @@ namespace ILGPU.Runtime.Cuda
         protected unsafe override PageLockScope<T> CreatePageLockFromPinnedInternal<T>(
             IntPtr pinned,
             long numElements) =>
-            Device.SupportsMappingHostMemory
+            Device.SupportsMappingHostMemory && numElements > 0
             ? new CudaPageLockScope<T>(this, pinned, numElements)
             : new NullPageLockScope<T>(this, pinned, numElements) as PageLockScope<T>;
 

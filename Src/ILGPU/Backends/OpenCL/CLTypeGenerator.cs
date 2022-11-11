@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2019-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLTypeGenerator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
@@ -200,6 +200,11 @@ namespace ILGPU.Backends.OpenCL
                 }
                 else if (basicValueType == BasicValueType.Float16
                     && !capabilities.Float16)
+                {
+                    continue;
+                }
+                else if (basicValueType == BasicValueType.Float64
+                    && !capabilities.Float64)
                 {
                     continue;
                 }

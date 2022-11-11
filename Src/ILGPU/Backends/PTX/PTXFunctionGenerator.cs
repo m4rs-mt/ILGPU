@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXFunctionGenerator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
@@ -80,6 +80,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public override void GenerateHeader(StringBuilder builder)
         {
+            if (PTXLibDeviceMethods.IsLibDeviceMethod(Method))
+                return;
+
             GenerateHeaderDeclaration(builder);
             builder.AppendLine(";");
         }

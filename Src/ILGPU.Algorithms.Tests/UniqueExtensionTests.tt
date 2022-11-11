@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                             ILGPU.Algorithms
-//                  Copyright (c) 2020 ILGPU Algorithms Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2020-2022 ILGPU Project
+//                                    www.ilgpu.net
 //
 // File: UniqueExtensionTests.tt/UniqueExtensionTests.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="../ILGPU/Static/TypeInformation.ttinclude" #>
 <#@ assembly name="System.Core" #>
@@ -52,6 +52,30 @@ namespace ILGPU.Algorithms.Tests
         [InlineData(1025, 1025)]
         public void Unique<#= type.Name #>(int repeat, int length)
         {
+            var inputArray = Enumerable.Range(1, length)
+                .Select(x => Enumerable.Repeat((<#= type.Type #>)x, repeat))
+                .SelectMany(x => x)
+                .Take(length)
+                .ToArray();
+            var expected = RemoveConsecutiveDuplicates(inputArray);
+
+            using var input = Accelerator.Allocate1D(inputArray);
+            var result = Accelerator.Unique(Accelerator.DefaultStream, input.View);
+            Assert.True(result < int.MaxValue);
+            var resultLength = (int)result;
+
+            Verify(input.View, expected, length: resultLength);
+        }
+        
+        [Theory]
+        [InlineData(1)]
+        [InlineData(317)]
+        [InlineData(1025)]
+        public void Unique<#= type.Name #>_MultipleIterationsPerGroup(int repeat)
+        {
+            // Exceed the max number of groups to force a second iteration.
+            var length = (Accelerator.MaxNumGroupsExtent.Item1 + 1)
+                * Accelerator.MaxNumGroupsExtent.Item2;
             var inputArray = Enumerable.Range(1, length)
                 .Select(x => Enumerable.Repeat((<#= type.Type #>)x, repeat))
                 .SelectMany(x => x)

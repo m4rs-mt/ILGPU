@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlockCollection.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses.ControlFlowDirection;
@@ -216,12 +216,12 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the parent method.
         /// </summary>
-        public readonly Method Method => EntryBlock.Method;
+        public Method Method => EntryBlock.Method;
 
         /// <summary>
         /// Returns the parent base context.
         /// </summary>
-        public readonly IRBaseContext BaseContext => Method.BaseContext;
+        public IRBaseContext BaseContext => Method.BaseContext;
 
         /// <summary>
         /// Returns the entry block.
@@ -231,12 +231,12 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the number of blocks.
         /// </summary>
-        public readonly int Count => blocks.Length;
+        public int Count => blocks.Length;
 
         /// <summary>
         /// Returns an abstract view on all values.
         /// </summary>
-        public readonly ValueCollection Values => new ValueCollection(this);
+        public ValueCollection Values => new ValueCollection(this);
 
         #endregion
 
@@ -410,7 +410,9 @@ namespace ILGPU.IR
             TSuccessorProvider>(TSuccessorProvider successorProvider)
             where TOtherOrder : struct, ITraversalOrder
             where TOtherDirection : struct, IControlFlowDirection
-            where TSuccessorProvider : ITraversalSuccessorsProvider<TOtherDirection>
+            where TSuccessorProvider :
+                struct,
+                ITraversalSuccessorsProvider<TOtherDirection>
         {
             // Determine the new entry block
             TOtherDirection direction = default;

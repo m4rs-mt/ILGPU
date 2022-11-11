@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaStream.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using System;
@@ -87,7 +87,8 @@ namespace ILGPU.Runtime.Cuda
         /// <inheritdoc/>
         protected override ProfilingMarker AddProfilingMarkerInternal()
         {
-            var profilingMarker = new CudaProfilingMarker();
+            using var binding = Accelerator.BindScoped();
+            var profilingMarker = new CudaProfilingMarker(Accelerator);
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.RecordEvent(profilingMarker.EventPtr, StreamPtr));

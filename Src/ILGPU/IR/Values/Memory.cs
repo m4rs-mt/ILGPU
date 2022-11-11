@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Memory.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -15,9 +15,9 @@ using ILGPU.IR.Types;
 namespace ILGPU.IR.Values
 {
     /// <summary>
-    /// Represents an abstract value with side effects.
+    /// Represents an abstract value operating on memory.
     /// </summary>
-    public abstract class MemoryValue : Value
+    public abstract class MemoryValue : SideEffectValue
     {
         #region Instance
 
@@ -275,6 +275,12 @@ namespace ILGPU.IR.Values
         /// </summary>
         public ValueReference Source => this[0];
 
+        /// <summary>
+        /// Returns the source address space this load reads from.
+        /// </summary>
+        public MemoryAddressSpace SourceAddressSpace =>
+            Source.Type.As<AddressSpaceType>(this).AddressSpace;
+
         #endregion
 
         #region Methods
@@ -341,6 +347,12 @@ namespace ILGPU.IR.Values
         /// Returns the target view.
         /// </summary>
         public ValueReference Target => this[0];
+
+        /// <summary>
+        /// Returns the target address space this store writes to.
+        /// </summary>
+        public MemoryAddressSpace TargetAddressSpace =>
+            Target.Type.As<AddressSpaceType>(this).AddressSpace;
 
         /// <summary>
         /// Returns the value to store.

@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXBackend.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
@@ -16,6 +16,9 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -79,11 +82,13 @@ namespace ILGPU.Backends.PTX
         /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="architecture">The target GPU architecture.</param>
         /// <param name="instructionSet">The target GPU instruction set.</param>
+        /// <param name="nvvmAPI">Optional NVVM API instance.</param>
         public PTXBackend(
             Context context,
             CudaCapabilityContext capabilities,
             CudaArchitecture architecture,
-            CudaInstructionSet instructionSet)
+            CudaInstructionSet instructionSet,
+            NvvmAPI nvvmAPI)
             : base(
                   context,
                   capabilities,
@@ -92,16 +97,18 @@ namespace ILGPU.Backends.PTX
         {
             Architecture = architecture;
             InstructionSet = instructionSet;
+            NvvmAPI = nvvmAPI;
 
             InitIntrinsicProvider();
             InitializeKernelTransformers(builder =>
             {
                 var transformerBuilder = Transformer.CreateBuilder(
                     TransformerConfiguration.Empty);
-                transformerBuilder.AddBackendOptimizations(
+                transformerBuilder.AddBackendOptimizations<CodePlacement.GroupOperands>(
                     new PTXAcceleratorSpecializer(
                         PointerType,
-                        Context.Properties.EnableAssertions),
+                        Context.Properties.EnableAssertions,
+                        Context.Properties.EnableIOOperations),
                     context.Properties.InliningMode,
                     context.Properties.OptimizationLevel);
 
@@ -114,6 +121,18 @@ namespace ILGPU.Backends.PTX
 
                 builder.Add(transformerBuilder.ToTransformer());
             });
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            if (NvvmAPI != null)
+            {
+                NvvmAPI.Dispose();
+                NvvmAPI = null;
+            }
+
+            base.Dispose(disposing);
         }
 
         #endregion
@@ -141,6 +160,11 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public new CudaCapabilityContext Capabilities =>
             base.Capabilities as CudaCapabilityContext;
+
+        /// <summary>
+        /// Returns the NVVM API instance (if available).
+        /// </summary>
+        public NvvmAPI NvvmAPI { get; private set; }
 
         #endregion
 
@@ -190,19 +214,31 @@ namespace ILGPU.Backends.PTX
             builder.AppendLine((PointerSize * 8).ToString());
             builder.AppendLine();
 
+            GenerateLibDeviceCode(backendContext, builder);
+
+            // Check whether we are running in the O1 or O2 pipeline
+            bool o1Enabled = Context.Properties.OptimizationLevel >= OptimizationLevel.O1;
+            bool o2Enabled = Context.Properties.OptimizationLevel > OptimizationLevel.O1;
+
             // Creates pointer alignment information in the context of O1 or higher
-            var alignments = Context.Properties.OptimizationLevel >= OptimizationLevel.O1
+            var alignments = o1Enabled
                 ? PointerAlignments.Apply(
                     backendContext.KernelMethod,
                     DefaultGlobalMemoryAlignment)
                 : PointerAlignments.AlignmentInfo.Empty;
+
+            // Create detailed uniform information in O2 builds
+            var uniforms = o2Enabled
+                ? Uniforms.Apply(backendContext.KernelMethod)
+                : Uniforms.Info.Empty;
 
             data = new PTXCodeGenerator.GeneratorArgs(
                 this,
                 entryPoint,
                 Context.Properties,
                 debugInfoGenerator,
-                alignments);
+                alignments,
+                uniforms);
 
             return builder;
         }
@@ -246,6 +282,99 @@ namespace ILGPU.Backends.PTX
                 ptxAssembly);
         }
 
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "string.Replace(string, string, StringComparison) not " +
+            "available in net471")]
+        private unsafe void GenerateLibDeviceCode(
+            in BackendContext backendContext,
+            StringBuilder builder)
+        {
+            if (NvvmAPI == null || backendContext.Count == 0)
+                return;
+
+            // Convert the methods in the context into NVVM.
+            var methods = backendContext.GetEnumerator().AsEnumerable();
+            var nvvmModule = PTXLibDeviceNvvm.GenerateNvvm(methods);
+
+            if (string.IsNullOrEmpty(nvvmModule))
+                return;
+
+            // Create a new NVVM program.
+            var result = NvvmAPI.CreateProgram(out var program);
+
+            try
+            {
+                // Add custom NVVM module.
+                if (result == NvvmResult.NVVM_SUCCESS)
+                {
+                    var nvvmModuleBytes = Encoding.ASCII.GetBytes(nvvmModule);
+                    fixed (byte* nvvmPtr = nvvmModuleBytes)
+                    {
+                        result = NvvmAPI.AddModuleToProgram(
+                            program,
+                            new IntPtr(nvvmPtr),
+                            new IntPtr(nvvmModuleBytes.Length),
+                            null);
+                    }
+                }
+
+                // Add the LibDevice bit code.
+                if (result == NvvmResult.NVVM_SUCCESS)
+                {
+                    fixed (byte* ptr = NvvmAPI.LibDeviceBytes)
+                    {
+                        result = NvvmAPI.LazyAddModuleToProgram(
+                            program,
+                            new IntPtr(ptr),
+                            new IntPtr(NvvmAPI.LibDeviceBytes.Length),
+                            null);
+                    }
+                }
+
+                // Compile the NVVM into PTX for the backend architecture.
+                if (result == NvvmResult.NVVM_SUCCESS)
+                {
+                    var major = Architecture.Major;
+                    var minor = Architecture.Minor;
+                    var archOption = $"-arch=compute_{major}{minor}";
+                    var archOptionAscii = Encoding.ASCII.GetBytes(archOption);
+                    fixed (byte* archOptionPtr = archOptionAscii)
+                    {
+                        var numOptions = 1;
+                        var optionValues = stackalloc byte[sizeof(void*) * numOptions];
+                        var values = (void**)optionValues;
+                        values[0] = archOptionPtr;
+
+                        result = NvvmAPI.CompileProgram(
+                            program,
+                            numOptions,
+                            new IntPtr(values));
+                    }
+                }
+
+                // Extract the PTX result and comment out the initial declarations.
+                if (result == NvvmResult.NVVM_SUCCESS)
+                {
+                    result = NvvmAPI.GetCompiledResult(program, out var compiledPTX);
+                    if (result == NvvmResult.NVVM_SUCCESS)
+                    {
+                        var compiledString =
+                            compiledPTX
+                            .Replace(".version", "//.version")
+                            .Replace(".target", "//.target")
+                            .Replace(".address_size", "//.address_size");
+                        builder.Append(compiledString);
+                    }
+                }
+            }
+            finally
+            {
+                NvvmAPI.DestroyProgram(ref program);
+            }
+        }
+
         #endregion
     }
 
@@ -281,5 +410,15 @@ namespace ILGPU.Backends.PTX
                 properties.OptimizationLevel > OptimizationLevel.O1
                 ? PTXBackendMode.Enhanced
                 : PTXBackendMode.Default);
+
+        /// <summary>
+        /// Convenience method to get an IEnumerable of Method.
+        /// </summary>
+        public static IEnumerable<Method> AsEnumerable(
+            this IEnumerator<(Method, Allocas)> enumerator)
+        {
+            while (enumerator.MoveNext())
+                yield return enumerator.Current.Item1;
+        }
     }
 }

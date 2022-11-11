@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RegisterAllocator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
@@ -132,12 +132,12 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns true if this register is a primitive register.
             /// </summary>
-            public bool IsPrimitive => this is PrimitiveRegister;
+            public virtual bool IsPrimitive => false;
 
             /// <summary>
             /// Returns true if this register is a compound register.
             /// </summary>
-            public bool IsCompound => this is CompoundRegister;
+            public virtual bool IsCompound => false;
 
             /// <summary>
             /// Returns the input error messages for assertion purposes.
@@ -160,6 +160,9 @@ namespace ILGPU.Backends
             {
                 Kind = description.Kind;
             }
+
+            /// <inheritdoc/>
+            public override bool IsPrimitive => true;
 
             /// <summary>
             /// Returns the actual register kind.
@@ -256,6 +259,9 @@ namespace ILGPU.Backends
             #endregion
 
             #region Properties
+
+            /// <inheritdoc/>
+            public override bool IsCompound => true;
 
             /// <summary>
             /// Returns the underlying type.

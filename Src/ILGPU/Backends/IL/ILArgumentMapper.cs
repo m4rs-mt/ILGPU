@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                           Copyright (c) 2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILArgumentMapper.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
@@ -46,11 +46,6 @@ namespace ILGPU.Backends.IL
         #region Instance
 
         /// <summary>
-        /// No-op emitter used to mimic a real IL emitter.
-        /// </summary>
-        private readonly DebugILEmitter emitter = new DebugILEmitter(TextWriter.Null);
-
-        /// <summary>
         /// Constructs a new IL argument mapper.
         /// </summary>
         /// <param name="context">The current context.</param>
@@ -74,7 +69,7 @@ namespace ILGPU.Backends.IL
             // Map all arguments
             var mappingHandler = new MappingHandler();
             MapArguments(
-                emitter,
+                new NopILEmitter(),
                 mappingHandler,
                 entryPoint.Parameters);
         }

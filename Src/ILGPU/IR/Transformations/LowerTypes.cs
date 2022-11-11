@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2020-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerTypes.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Rewriting;
@@ -23,7 +23,7 @@ namespace ILGPU.IR.Transformations
     /// This transformation does not change function parameters and calls to other
     /// functions.
     /// </remarks>
-    public abstract class LowerTypes<TType> : UnorderedTransformation
+    public abstract class LowerTypes<TType> : UnorderedTransformationWithPrePass
         where TType : TypeNode
     {
         #region Rewriter Methods
@@ -297,6 +297,8 @@ namespace ILGPU.IR.Transformations
                 (typeConverter, value) =>
                     IsTypeDependent(typeConverter, value, value.AllocaType),
                 Lower);
+            rewriter.Add<Load>(IsTypeDependent, InvalidateType);
+            rewriter.Add<AddressSpaceCast>(IsTypeDependent, InvalidateType);
             rewriter.Add<PointerCast>(
                 (typeConverter, value) =>
                     IsTypeDependent(typeConverter, value, value.TargetType),
@@ -309,6 +311,10 @@ namespace ILGPU.IR.Transformations
                 (typeConverter, value) =>
                     IsTypeDependent(typeConverter, value, value.PhiType),
                 Lower);
+
+            rewriter.Add<Broadcast>(IsTypeDependent, InvalidateType);
+            rewriter.Add<WarpShuffle>(IsTypeDependent, InvalidateType);
+            rewriter.Add<SubWarpShuffle>(IsTypeDependent, InvalidateType);
 
             rewriter.Add<Predicate>(IsTypeDependent, InvalidateType);
             rewriter.Add<MethodCall>(IsTypeDependent, InvalidateType);
@@ -337,6 +343,19 @@ namespace ILGPU.IR.Transformations
             Method.Builder builder);
 
         /// <summary>
+        /// Updates all return types of all affected methods.
+        /// </summary>
+        /// <param name="builder">The current builder.</param>
+        protected sealed override void PrePerformTransformation(Method.Builder builder)
+        {
+            var typeConverter = CreateLoweringConverter(builder);
+
+            // Update return type
+            if (typeConverter.IsTypeDependent(builder.Method.ReturnType))
+                builder.UpdateReturnType(typeConverter);
+        }
+
+        /// <summary>
         /// Performs a complete type lowering transformation.
         /// </summary>
         /// <param name="builder">The current builder.</param>
@@ -354,10 +373,6 @@ namespace ILGPU.IR.Transformations
                 builder,
                 typeConverter,
                 out var rewriting);
-
-            // Update return type
-            if (typeConverter.IsTypeDependent(builder.Method.ReturnType))
-                builder.UpdateReturnType(typeConverter);
 
             // Update parameter types
             builder.UpdateParameterTypes(typeConverter);

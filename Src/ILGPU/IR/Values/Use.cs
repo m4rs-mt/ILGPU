@@ -1,17 +1,18 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Use.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using UseList = ILGPU.Util.InlineList<ILGPU.IR.Values.Use>;
@@ -155,6 +156,24 @@ namespace ILGPU.IR.Values
         #region Nested Types
 
         /// <summary>
+        /// Checks whether a given use references a phi value.
+        /// </summary>
+        public readonly struct HasPhiUsesPredicate : InlineList.IPredicate<Use>
+        {
+            /// <inheritdoc cref="InlineList.IPredicate{T}.Apply(T)"/>
+            public bool Apply(Use item) => item.Resolve() is PhiValue;
+        }
+
+        /// <summary>
+        /// Checks whether a given use references a method call or memory value.
+        /// </summary>
+        public readonly struct HasSideEffectUses : InlineList.IPredicate<Use>
+        {
+            /// <inheritdoc cref="InlineList.IPredicate{T}.Apply(T)"/>
+            public bool Apply(Use item) => item.Resolve() is SideEffectValue;
+        }
+
+        /// <summary>
         /// Returns an enumerator to enumerate all uses in the context
         /// of the parent scope.
         /// </summary>
@@ -259,6 +278,38 @@ namespace ILGPU.IR.Values
                 return false;
             use = enumerator.Current;
             return !enumerator.MoveNext();
+        }
+
+        /// <summary>
+        /// Returns true if any of the uses fulfills the given predicate.
+        /// </summary>
+        /// <typeparam name="TPredicate">The predicate type.</typeparam>
+        /// <param name="predicate">The predicate to use.</param>
+        /// <returns>True, if any use fulfills the given predicate.</returns>
+        public readonly bool Any<TPredicate>(TPredicate predicate)
+            where TPredicate : InlineList.IPredicate<Use>
+        {
+            foreach (Use use in this)
+            {
+                if (predicate.Apply(use))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true if all uses reference values in the given block set.
+        /// </summary>
+        /// <param name="blocks">The block set to which all uses must refer to.</param>
+        /// <returns>True, if all uses reference values in the given block set.</returns>
+        public readonly bool AllIn(HashSet<BasicBlock> blocks)
+        {
+            foreach (Value use in this)
+            {
+                if (!blocks.Contains(use.BasicBlock))
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>

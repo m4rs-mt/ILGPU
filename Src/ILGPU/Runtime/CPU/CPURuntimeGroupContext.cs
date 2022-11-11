@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPURuntimeGroupContext.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
@@ -48,63 +48,22 @@ namespace ILGPU.Runtime.CPU
 
         #endregion
 
-        #region Nested Types
-
-        /// <summary>
-        /// Represents an operation that allocates and managed shared memory.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        private readonly struct GetSharedMemory<T> : ILockedOperation<ArrayView<T>>
-            where T : unmanaged
-        {
-            public GetSharedMemory(CPURuntimeGroupContext parent, long extent)
-            {
-                Parent = parent;
-                Extent = extent;
-            }
-
-            /// <summary>
-            /// Returns the parent context.
-            /// </summary>
-            public CPURuntimeGroupContext Parent { get; }
-
-            /// <summary>
-            /// Returns the number of elements to allocate.
-            /// </summary>
-            public long Extent { get; }
-
-            /// <summary>
-            /// Allocates a new chunk of shared memory.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly void ApplySyncInMainThread()
-            {
-                // Allocate the requested amount of elements
-                var allocation = CPUMemoryBuffer.Create(
-                    Parent.Multiprocessor.Accelerator,
-                    Extent,
-                    Interop.SizeOf<T>());
-
-                // Publish the allocated shared memory source
-                Parent.currentSharedMemorySource = allocation;
-                Parent.sharedMemory.Add(allocation);
-            }
-
-            /// <summary>
-            /// Returns the least recently allocated chunk of shared memory.
-            /// </summary>
-            public readonly ArrayView<T> Result =>
-                new ArrayView<T>(Parent.currentSharedMemorySource, 0, Extent);
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// A counter for the computation of interlocked group counters.
         /// </summary>
         private volatile int groupCounter;
+
+        /// <summary>
+        /// Group-wide accumulator for group allocation indices.
+        /// </summary>
+        private int groupAllocationIndexAccumulator;
+
+        /// <summary>
+        /// Internal storage to track group-wide allocation indices
+        /// </summary>
+        private readonly int[] groupAllocationIndices;
 
         /// <summary>
         /// The current dynamic shared memory array size in bytes.
@@ -115,7 +74,7 @@ namespace ILGPU.Runtime.CPU
         /// A temporary cache for additional shared memory requirements.
         /// </summary>
         /// <remarks>
-        /// Note that this buffer is only required for debug CPU builds. In
+        /// Note that these buffers are only required for debug CPU builds. In
         /// these cases, we cannot move nested
         /// <see cref="SharedMemory.Allocate{T}(int)"/> instructions out of nested loops
         /// to provide the best debugging experience.
@@ -124,9 +83,10 @@ namespace ILGPU.Runtime.CPU
             InlineList<CPUMemoryBuffer>.Create(16);
 
         /// <summary>
-        /// A currently active unmanaged memory source.
+        /// Shared-memory allocation lock object for synchronizing accesses to the
+        /// <see cref="sharedMemory" /> list.
         /// </summary>
-        private volatile CPUMemoryBuffer currentSharedMemorySource;
+        private readonly object sharedMemoryLock = new object();
 
         /// <summary>
         /// Constructs a new CPU-based runtime context for parallel processing.
@@ -134,7 +94,9 @@ namespace ILGPU.Runtime.CPU
         /// <param name="multiprocessor">The target CPU multiprocessor.</param>
         public CPURuntimeGroupContext(CPUMultiprocessor multiprocessor)
             : base(multiprocessor)
-        { }
+        {
+            groupAllocationIndices = new int[multiprocessor.MaxNumThreadsPerGroup];
+        }
 
         #endregion
 
@@ -164,7 +126,49 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         /// <returns>The number of participating threads.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Barrier() => Multiprocessor.GroupBarrier();
+        private int BlockBarrier() => Multiprocessor.GroupBarrier();
+
+        /// <summary>
+        /// The internal implementation of a group barrier that takes current allocation
+        /// indices into account.
+        /// </summary>
+        /// <returns>The number of participating threads.</returns>
+        private int GroupAllocationSynchronizedBarrier()
+        {
+            // Determine current index and maximize across all threads in the group
+            var context = CPURuntimeThreadContext.Current;
+            ref int currentIndex = ref groupAllocationIndices[context.LinearGroupIndex];
+
+            // Accumulate results and perform the actual barrier
+            Atomic.Max(ref groupAllocationIndexAccumulator, currentIndex);
+            int count1 = BlockBarrier();
+
+            // Get the actual result as long as it is available and update our own counter
+            currentIndex = Atomic.CompareExchange(
+                ref groupAllocationIndexAccumulator,
+                -1,
+                -1);
+
+            // Wait for all threads to get to this point in order to avoid disturbances
+            // that may affect the group accumulation counter
+            int count2 = BlockBarrier();
+            Debug.Assert(count1 == count2, "Lost threads within group barriers");
+            return count2;
+        }
+
+        /// <summary>
+        /// Executes a thread barrier.
+        /// </summary>
+        /// <returns>The number of participating threads.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int Barrier()
+        {
+            // Wait without any modifications
+            BlockBarrier();
+
+            // Perform the actual group sync barrier
+            return GroupAllocationSynchronizedBarrier();
+        }
 
         /// <summary>
         /// Performs a local-memory allocation.
@@ -197,13 +201,33 @@ namespace ILGPU.Runtime.CPU
         /// <returns>The resolved shared-memory array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T> AllocateSharedMemory<T>(int extent)
-            where T : unmanaged =>
-            PerformLocked<
-                CPURuntimeGroupContext,
-                GetSharedMemory<T>,
-                ArrayView<T>>(
-                this,
-                new GetSharedMemory<T>(this, extent));
+            where T : unmanaged
+        {
+            var context = CPURuntimeThreadContext.Current;
+            int nextIndex = groupAllocationIndices[context.LinearGroupIndex]++;
+
+            // Perform synchronized
+            lock (sharedMemoryLock)
+            {
+                // Register buffers
+                while (sharedMemory.Count <= nextIndex)
+                    sharedMemory.Add(null);
+
+                // Allocate the requested amount of elements
+                ref var buffer = ref sharedMemory[nextIndex];
+                if (buffer is null)
+                {
+                    buffer = CPUMemoryBuffer.Create(
+                        Multiprocessor.Accelerator,
+                        extent,
+                        Interop.SizeOf<T>());
+                }
+
+                Thread.MemoryBarrier();
+                // Publish the allocated shared memory source
+                return new ArrayView<T>(buffer, 0, extent);
+            }
+        }
 
         /// <summary>
         /// Executes a thread barrier and returns the number of threads for which
@@ -218,12 +242,12 @@ namespace ILGPU.Runtime.CPU
         private int BarrierPopCount(bool predicate, out int numParticipants)
         {
             Interlocked.Exchange(ref groupCounter, 0);
-            Barrier();
+            BlockBarrier();
             if (predicate)
                 Interlocked.Increment(ref groupCounter);
-            Barrier();
+            GroupAllocationSynchronizedBarrier();
             var result = Interlocked.CompareExchange(ref groupCounter, 0, 0);
-            numParticipants = Barrier();
+            numParticipants = BlockBarrier();
             return result;
         }
 
@@ -307,10 +331,11 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         private void ClearSharedMemoryAllocations()
         {
-            currentSharedMemorySource = null;
             foreach (var entry in sharedMemory)
                 entry.Dispose();
             sharedMemory.Clear();
+            Array.Clear(groupAllocationIndices, 0, groupAllocationIndices.Length);
+            Atomic.Exchange(ref groupAllocationIndexAccumulator, 0);
         }
 
         /// <summary>

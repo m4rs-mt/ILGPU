@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2019-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLInstructions.Data.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
@@ -306,6 +306,10 @@ namespace ILGPU.Backends.OpenCL
 
                 { (UnaryArithmeticKind.IsNaNF, CLUnaryCategory.Float), ("isnan", true) },
                 { (UnaryArithmeticKind.IsInfF, CLUnaryCategory.Float), ("isinf", true) },
+                {
+                    (UnaryArithmeticKind.IsFinF, CLUnaryCategory.Float),
+                    ("isfinite", true)
+                },
 
                 { (UnaryArithmeticKind.SqrtF, CLUnaryCategory.Float), ("sqrt", true) },
                 { (UnaryArithmeticKind.RsqrtF, CLUnaryCategory.Float), ("rsqrt", true) },

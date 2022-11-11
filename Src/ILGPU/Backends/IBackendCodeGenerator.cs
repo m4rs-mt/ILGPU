@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2020-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IBackendCodeGenerator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
@@ -188,6 +188,18 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="value">The node.</param>
         void GenerateCode(LoadFieldAddress value);
+
+        /// <summary>
+        /// Generates code for the given value.
+        /// </summary>
+        /// <param name="value">The node.</param>
+        void GenerateCode(AlignTo value);
+
+        /// <summary>
+        /// Generates code for the given value.
+        /// </summary>
+        /// <param name="value">The node.</param>
+        void GenerateCode(AsAligned value);
 
         /// <summary>
         /// Generates code for the given value.
@@ -480,9 +492,13 @@ namespace ILGPU.Backends
             public void Visit(NewView value) =>
                 throw new InvalidCodeGenerationException();
 
-            /// <summary cref="IValueVisitor.Visit(AlignViewTo)"/>
-            public void Visit(AlignViewTo value) =>
-                throw new InvalidCodeGenerationException();
+            /// <summary cref="IValueVisitor.Visit(AlignTo)"/>
+            public void Visit(AlignTo value) =>
+                CodeGenerator.GenerateCode(value);
+
+            /// <summary cref="IValueVisitor.Visit(AsAligned)"/>
+            public void Visit(AsAligned value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(GetViewLength)"/>
             public void Visit(GetViewLength value) =>

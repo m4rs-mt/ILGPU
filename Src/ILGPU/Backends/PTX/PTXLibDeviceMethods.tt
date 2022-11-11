@@ -1,0 +1,124 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2021-2022 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: PTXLibDeviceMethods.tt/PTXLibDeviceMethods.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="../../Static/TextTransformHelpers.ttinclude" #>
+<#@ include file="../../Static/TypeInformation.ttinclude" #>
+<#@ include file="../../Static/CudaLibDevice.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath(".");
+var functions = LibDeviceFunctions.Load(rootPath, "../../Static/CudaLibDevice.xml");
+#>
+
+using ILGPU.Frontend;
+using ILGPU.IR;
+using System.Runtime.CompilerServices;
+
+#pragma warning disable IDE1006 // Naming Styles
+
+namespace ILGPU.Backends.PTX
+{
+    /// <summary>
+    /// Contains methods for matching the signature of the Cuda LibDevice functions when
+    /// compiled to PTX.
+    /// </summary>
+    internal static class PTXLibDeviceMethods
+    {
+        internal static bool IsLibDeviceMethod(Method method) =>
+            method.HasSource &&
+            method.Source.DeclaringType == typeof(PTXLibDeviceMethods);
+
+<#
+    foreach (var func in functions)
+    {
+        PushIndent(2);
+        WriteLibDeviceFunction(func);
+        PopIndent();
+    }
+
+#>
+    }
+}
+
+#pragma warning restore IDE1006 // Naming Styles
+<#+
+
+void WriteLibDeviceFunction(LibDeviceFunction func)
+{
+    WriteLine($"[External(\"{LibDeviceConstants.Prefix}{func.Name}\")]");
+    WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]");
+    Write($"internal static ");
+    WriteBinaryType(func.ReturnType);
+    Write(" ");
+    Write(func.Name);
+    WriteLine("(");
+    PushIndent();
+
+    // Write function signature
+    for (int i = 0; i < func.Parameters.Length; i++)
+    {
+        var param = func.Parameters[i];
+        Write(param.FlagsExpression);
+        WriteBinaryType(param.Type);
+        Write($" {param.Name}");
+        if (i < func.Parameters.Length - 1)
+            WriteLine(",");
+    }
+
+    // Write function body
+    var useDefault = func.Parameters.All(x => string.IsNullOrEmpty(x.Flags));
+    if (useDefault)
+    {
+        WriteLine(") => default;");
+        PopIndent();
+        WriteLine();
+    }
+    else
+    {
+        WriteLine(")");
+        PopIndent();
+
+        WriteLine("{");
+        PushIndent();
+
+        for (int j = 0; j < func.Parameters.Length; j++)
+        {
+            var altParam = func.Parameters[j];
+            if (!string.IsNullOrEmpty(altParam.Flags))
+                WriteLine($"{altParam.Name} = default;");
+        }
+
+        if (func.ReturnType != "void")
+            WriteLine("return default;");
+
+        PopIndent();
+        WriteLine("}");
+        WriteLine();
+    }
+}
+
+void WriteBinaryType(string type)
+{
+    // Map .NET types to the .NET type used by PTX to represent the register.
+    if (type == "Half" || type == "float")
+        Write("uint");
+    else if (type == "double")
+        Write("ulong");
+    else
+        Write(type);
+}
+
+#>

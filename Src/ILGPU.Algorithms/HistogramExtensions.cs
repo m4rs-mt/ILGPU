@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU.Algorithms
-//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: HistogramExtensions.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.HistogramOperations;
@@ -337,7 +337,6 @@ namespace ILGPU.Algorithms
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
                        numElements,
                        out int numIterationsPerGroup);
-                int numVirtualGroups = gridDim * numIterationsPerGroup;
                 int lengthInformation =
                     XMath.DivRoundUp(numElements, groupDim) * groupDim;
 
@@ -412,7 +411,6 @@ namespace ILGPU.Algorithms
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
                        numElements,
                        out int numIterationsPerGroup);
-                int numVirtualGroups = gridDim * numIterationsPerGroup;
                 int lengthInformation =
                     XMath.DivRoundUp(numElements, groupDim) * groupDim;
 

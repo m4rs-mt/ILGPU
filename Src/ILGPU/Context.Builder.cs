@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                           Copyright (c) 2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Context.Builder.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.OpenCL;
@@ -19,6 +19,9 @@ using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.OpenCL;
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace ILGPU
 {
@@ -69,10 +72,12 @@ namespace ILGPU
 
             /// <summary>
             /// Enables all supported accelerators and puts the context into
-            /// auto-assertion mode via <see cref="AutoAssertions"/>.
+            /// auto-assertion mode via <see cref="AutoAssertions"/> and
+            /// auto-IO-operations mode via <see cref="AutoIOOperations"/>.
             /// </summary>
             /// <returns>The current builder instance.</returns>
-            public Builder Default() => AllAccelerators().AutoAssertions();
+            public Builder Default() =>
+                AllAccelerators().AutoAssertions().AutoIOOperations();
 
             /// <summary>
             /// Enables all supported accelerators.
@@ -120,7 +125,7 @@ namespace ILGPU
 
             /// <summary>
             /// Turns on all assertion checks (including out-of-bounds checks) for view
-            /// accesses.
+            /// and array accesses.
             /// </summary>
             /// <remarks>
             /// Note that calling this function automatically switches the debug mode
@@ -130,6 +135,21 @@ namespace ILGPU
             public Builder Assertions()
             {
                 EnableAssertions = true;
+                return DebugSymbols(DebugSymbolsMode.Basic);
+            }
+
+            /// <summary>
+            /// Turns on all IO operations checks.
+            /// accesses.
+            /// </summary>
+            /// <remarks>
+            /// Note that calling this function automatically switches the debug mode
+            /// to at least <see cref="DebugSymbolsMode.Basic"/>.
+            /// </remarks>
+            /// <returns>The current builder instance.</returns>
+            public Builder IOOperations()
+            {
+                EnableIOOperations = true;
                 return DebugSymbols(DebugSymbolsMode.Basic);
             }
 
@@ -194,6 +214,13 @@ namespace ILGPU
             public Builder AutoAssertions() => Debugger.IsAttached ? Assertions() : this;
 
             /// <summary>
+            /// Automatically enables all IO operations as soon as a debugger is attached.
+            /// </summary>
+            /// <returns>The current builder instance.</returns>
+            public Builder AutoIOOperations() =>
+                Debugger.IsAttached ? IOOperations() : this;
+
+            /// <summary>
             /// Automatically switches to <see cref="Debug()"/> mode if a debugger is
             /// attached.
             /// </summary>
@@ -201,13 +228,15 @@ namespace ILGPU
             public Builder AutoDebug() => Debugger.IsAttached ? Debug() : this;
 
             /// <summary>
-            /// Sets the optimization level to <see cref="OptimizationLevel.Debug"/> and
-            /// call <see cref="Assertions()"/> to turn on all debug assertion checks.
+            /// Sets the optimization level to <see cref="OptimizationLevel.Debug"/>,
+            /// calls <see cref="Assertions()"/> to turn on all debug assertion checks
+            /// and calls <see cref="IOOperations"/> to turn on all debug outputs.
             /// </summary>
             /// <returns>The current builder instance.</returns>
             public Builder Debug() =>
                 Optimize(OptimizationLevel.Debug).
                 Assertions().
+                IOOperations().
                 DebugSymbols(DebugSymbolsMode.Kernel);
 
             /// <summary>
@@ -246,6 +275,68 @@ namespace ILGPU
             public Builder Profiling()
             {
                 EnableProfiling = true;
+                return this;
+            }
+
+            /// <summary>
+            /// Turns on LibDevice support.
+            /// Automatically detects the CUDA SDK location.
+            /// </summary>
+            /// <returns>The current builder instance.</returns>
+            public Builder LibDevice()
+            {
+                // Find the CUDA installation path.
+                var cudaEnvName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "CUDA_PATH"
+                    : "CUDA_HOME";
+                var cudaPath = Environment.GetEnvironmentVariable(cudaEnvName);
+                if (string.IsNullOrEmpty(cudaPath))
+                {
+                    throw new NotSupportedException(string.Format(
+                        RuntimeErrorMessages.NotSupportedLibDeviceEnvironmentVariable,
+                        cudaEnvName));
+                }
+                var nvvmRoot = Path.Combine(cudaPath, "nvvm");
+
+                // Find the NVVM DLL.
+                var nvvmBinName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "bin"
+                    : "lib64";
+                var nvvmBinDir = Path.Combine(nvvmRoot, nvvmBinName);
+                var nvvmSearchPattern =
+                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "nvvm*.dll"
+                    : "libnvvm*.so";
+                var nvvmFiles = Directory.EnumerateFiles(nvvmBinDir, nvvmSearchPattern);
+                LibNvvmPath = nvvmFiles.FirstOrDefault()
+                    ?? throw new NotSupportedException(string.Format(
+                        RuntimeErrorMessages.NotSupportedLibDeviceNotFoundNvvmDll,
+                        nvvmBinDir));
+
+                // Find the LibDevice Bitcode.
+                var libDeviceDir = Path.Combine(nvvmRoot, "libdevice");
+                var libDeviceFiles = Directory.EnumerateFiles(
+                    libDeviceDir,
+                    "libdevice.*.bc");
+                LibDevicePath = libDeviceFiles.FirstOrDefault()
+                    ?? throw new NotSupportedException(string.Format(
+                        RuntimeErrorMessages.NotSupportedLibDeviceNotFoundBitCode,
+                        libDeviceDir));
+
+                return this;
+            }
+
+            /// <summary>
+            /// Turns on LibDevice support.
+            /// Explicitly specifies the LibDevice location.
+            /// </summary>
+            /// <param name="libNvvmPath">Path to LibNvvm DLL.</param>
+            /// <param name="libDevicePath">Path to LibDevice bitcode.</param>
+            /// <returns>The current builder instance.</returns>
+            public Builder LibDevice(string libNvvmPath, string libDevicePath)
+            {
+                LibNvvmPath = libNvvmPath;
+                LibDevicePath = libDevicePath;
                 return this;
             }
 

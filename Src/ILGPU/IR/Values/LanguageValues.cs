@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LanguageValues.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -14,6 +14,9 @@ using ILGPU.IR.Types;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using DirectionList =
+    System.Collections.Immutable.ImmutableArray<
+        ILGPU.IR.Values.CudaEmitParameterDirection>;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
     ILGPU.Util.FormatString.FormatExpression>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
@@ -32,6 +35,33 @@ namespace ILGPU.IR.Values
     }
 
     /// <summary>
+    /// Indicates the direction of the emit parameter.
+    /// </summary>
+    [Flags]
+    public enum CudaEmitParameterDirection
+    {
+        /// <summary>
+        /// The parameter is not used in either direction.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// The parameter is used for passing input values.
+        /// </summary>
+        In = 0x1,
+
+        /// <summary>
+        /// The parameter is used for passing output values.
+        /// </summary>
+        Out = 0x2,
+
+        /// <summary>
+        /// The parameter is used for both input and output.
+        /// </summary>
+        Both = In | Out,
+    }
+
+    /// <summary>
     /// Represents an inline lanaguage statement.
     /// </summary>
     [ValueKind(ValueKind.LanguageEmit)]
@@ -44,15 +74,17 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
         /// <param name="languageKind">The language kind.</param>
+        /// <param name="usingRefParams">True, if passing parameters by reference.</param>
         /// <param name="expressions">The list of all format expressions.</param>
-        /// <param name="hasOutput">Indicates if the first argument is output.</param>
+        /// <param name="directions">Indicates the direction of the arguments.</param>
         /// <param name="arguments">The arguments to format.</param>
         /// <param name="voidType">The void type.</param>
         internal LanguageEmitValue(
             in ValueInitializer initializer,
             LanguageKind languageKind,
+            bool usingRefParams,
             FormatArray expressions,
-            bool hasOutput,
+            DirectionList directions,
             ref ValueList arguments,
             VoidType voidType)
             : base(initializer, voidType)
@@ -69,7 +101,8 @@ namespace ILGPU.IR.Values
 #endif
 
             LanguageKind = languageKind;
-            HasOutput = hasOutput;
+            UsingRefParams = usingRefParams;
+            Directions = directions;
             Expressions = expressions;
             Seal(ref arguments);
         }
@@ -89,16 +122,32 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns true if the first argument is an output argument.
         /// </summary>
-        public bool HasOutput { get; }
+        public DirectionList Directions { get; }
 
         /// <summary>
         /// Returns the underlying native format expressions.
         /// </summary>
         public FormatArray Expressions { get; }
 
+        /// <summary>
+        /// Returns true if passing parameters by reference
+        /// </summary>
+        public bool UsingRefParams { get; }
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns true if the argument is an input parameter.
+        /// </summary>
+        public bool IsInputArgument(int argumentIndex) =>
+            Directions[argumentIndex].HasFlag(CudaEmitParameterDirection.In);
+
+        /// <summary>
+        /// Returns true if the argument is an ouput parameter.
+        /// </summary>
+        public bool IsOutputArgument(int argumentIndex) =>
+            Directions[argumentIndex].HasFlag(CudaEmitParameterDirection.Out);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -110,8 +159,9 @@ namespace ILGPU.IR.Values
                 arguments.Add(rebuilder[argument]);
             return builder.CreateLanguageEmitPTX(
                 Location,
+                UsingRefParams,
                 Expressions,
-                HasOutput,
+                Directions,
                 ref arguments);
         }
 

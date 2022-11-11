@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Allocas.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses.ControlFlowDirection;
@@ -86,7 +86,7 @@ namespace ILGPU.IR.Analyses
         public bool IsDynamicArray => ArraySize < 0;
 
         /// <summary>
-        /// Returns the number 
+        /// Returns the number of array elements.
         /// </summary>
         public int ArraySize { get; }
 
@@ -370,9 +370,9 @@ namespace ILGPU.IR.Analyses
                 SubViewValue subView => subView.ElementType,
                 LoadElementAddress lea when lea.IsPointerAccess || lea.IsViewAccess =>
                     lea.ElementType,
-                // AlignViewTo values cannot be mapped to a supported analysis type since
+                // Alignment values cannot be mapped to a supported analysis type since
                 // this value specifies the alignment in bytes explicitly
-                AlignViewTo _ => null,
+                BaseAlignOperationValue _ => null,
                 _ => null
             };
 
@@ -397,7 +397,7 @@ namespace ILGPU.IR.Analyses
         private readonly Stack<Value> toProcess;
 
         /// <summary>
-        /// Constructs a new alloca allignment analysis.
+        /// Constructs a new alloca alignment analysis.
         /// </summary>
         /// <param name="capacity">The initial stack capacity.</param>
         private AllocaAlignments(int capacity)
@@ -413,7 +413,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Computes detailed allocation alignment information using all aliases.
         /// </summary>
-        /// <returns>The maximium alignment of the allocation.</returns>
+        /// <returns>The maximum alignment of the allocation.</returns>
         public readonly int ComputeAllocaAlignment(Alloca alloca)
         {
             alloca.AssertNotNull(alloca);
@@ -433,12 +433,12 @@ namespace ILGPU.IR.Analyses
                 if (!visited.Add(current))
                     continue;
 
-                if (current is AlignViewTo alignTo)
+                if (current is BaseAlignOperationValue align)
                 {
                     // If this is a view alignment value that explicitly specifies
                     // an alignment, you this alignment value instead of an automatically
                     // determined alignment based on type information
-                    alignment = Math.Max(alignment, alignTo.GetAlignmentConstant());
+                    alignment = Math.Max(alignment, align.GetAlignmentConstant());
                 }
                 else if ((type = TryGetAnalysisType(current)) != null)
                 {

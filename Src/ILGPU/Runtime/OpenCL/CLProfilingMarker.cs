@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                           Copyright (c) 2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLProfilingMarker.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
@@ -23,7 +23,8 @@ namespace ILGPU.Runtime.OpenCL
     {
         #region Instance
 
-        internal CLProfilingMarker(IntPtr eventPtr)
+        internal CLProfilingMarker(Accelerator accelerator, IntPtr eventPtr)
+            : base(accelerator)
         {
             EventPtr = eventPtr;
         }
@@ -44,6 +45,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <inheritdoc/>
         public unsafe override void Synchronize()
         {
+            using var binding = Accelerator.BindScoped();
+
             ReadOnlySpan<IntPtr> events = stackalloc[] { EventPtr };
             CLException.ThrowIfFailed(
                 CurrentAPI.WaitForEvents(events));
@@ -52,6 +55,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <inheritdoc/>
         public override TimeSpan MeasureFrom(ProfilingMarker marker)
         {
+            using var binding = Accelerator.BindScoped();
+
             if (!(marker is CLProfilingMarker startMarker))
             {
                 throw new ArgumentException(

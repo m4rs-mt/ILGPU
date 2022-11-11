@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Threads.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
@@ -229,7 +229,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a value that is used for communicating values across all threads.
     /// </summary>
-    public abstract class ThreadValue : MemoryValue
+    public abstract class ThreadValue : ControlFlowValue
     {
         #region Instance
 

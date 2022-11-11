@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Inliner.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend;
@@ -147,7 +147,7 @@ namespace ILGPU.IR.Transformations
                     {
                         currentBlock = successors[0];
                         for (int i = 1, e = successors.Length; i < e; ++i)
-                            toProcess.Push(successors[1]);
+                            toProcess.Push(successors[i]);
                         continue;
                     }
                 }

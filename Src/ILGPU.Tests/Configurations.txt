@@ -4,6 +4,7 @@ DebugTests
 DisassemblerTests
 EnumValues
 FixedBuffers
+GetKernelTests
 Indices
 KernelEntryPoints
 MemoryBufferOperations
@@ -18,6 +19,7 @@ InteropTests
 
 BinaryIntOperations
 UnaryIntOperations
+UnaryFloatOperations
 
 CompareIntOperations
 CompareFloatOperations
@@ -38,6 +40,7 @@ BasicJumps
 BasicCalls
 BasicIfs
 BasicLoops
+BasicMovement
 BasicSwitches
 BasicPhis
 

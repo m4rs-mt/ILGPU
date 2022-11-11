@@ -1,12 +1,12 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2020 Marcel Koester
+//                           Copyright (c) 2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaProfilingMarker.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details
+// Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
@@ -22,7 +22,8 @@ namespace ILGPU.Runtime.Cuda
     {
         #region Instance
 
-        internal CudaProfilingMarker()
+        internal CudaProfilingMarker(Accelerator accelerator)
+            : base (accelerator)
         {
             CudaException.ThrowIfFailed(
                 CurrentAPI.CreateEvent(
@@ -47,6 +48,8 @@ namespace ILGPU.Runtime.Cuda
         /// <inheritdoc/>
         public override void Synchronize()
         {
+            using var binding = Accelerator.BindScoped();
+
             var errorStatus = CurrentAPI.QueryEvent(EventPtr);
             if (errorStatus == CudaError.CUDA_ERROR_NOT_READY)
                 CudaException.ThrowIfFailed(CurrentAPI.SynchronizeEvent(EventPtr));
@@ -57,6 +60,8 @@ namespace ILGPU.Runtime.Cuda
         /// <inheritdoc/>
         public override TimeSpan MeasureFrom(ProfilingMarker marker)
         {
+            using var binding = Accelerator.BindScoped();
+
             if (!(marker is CudaProfilingMarker startMarker))
             {
                 throw new ArgumentException(
