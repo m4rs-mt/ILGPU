@@ -1,7 +1,20 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2018-2022 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BinarySPIRVBuilder.cs  
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using ILGPU.Backends.SPIRV.Types;
+
+// disable: max_line_length
 
 #nullable enable
 
