@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CapabilitiesImporter.ttinclude
@@ -49,6 +49,9 @@ public class Capability
 
     public bool IsCudaOnly => Cuda != null && OpenCL == null;
     public bool IsOpenCLOnly => Cuda == null && OpenCL != null;
+
+    [XmlIgnore]
+    public string ParameterName => char.ToLower(Name[0]).ToString() + Name.Substring(1);
 }
 
 public class CudaEntry

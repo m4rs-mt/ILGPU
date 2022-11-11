@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CapabilityContext.tt/CapabilityContext.cs
@@ -28,7 +28,6 @@ var clCapabilities = capabilities.Where(x => x.IsOpenCLOnly).ToArray();
 #>
 using System;
 using System.Collections.Immutable;
-using ILGPU.Backends;
 using ILGPU.Resources;
 
 namespace ILGPU.Runtime
@@ -93,7 +92,10 @@ namespace ILGPU.Runtime.Cuda
     {
         #region Instance
 
-        internal CudaCapabilityContext(CudaArchitecture arch)
+        /// <summary>
+        /// Create a new capability context of Cuda accelerators.
+        /// </summary>
+        public CudaCapabilityContext(CudaArchitecture arch)
         {
 <# foreach (var c in commonCapabilities.Concat(cudaCapabilities)) { #>
             <#= c.Name #> = arch >= CudaArchitecture.<#= c.Cuda.MinPTX #>;
@@ -140,7 +142,8 @@ namespace ILGPU.Runtime.OpenCL
         #region Static
 
 <#
-    foreach (var c in commonCapabilities.Concat(clCapabilities)) {
+    var allClCapabilities = commonCapabilities.Concat(clCapabilities).ToArray();
+    foreach (var c in allClCapabilities) {
         if (!c.OpenCL.Manual) {
             var extensionList = string.Join(
                 ", ",
@@ -160,11 +163,40 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Instance
 
+        /// <summary>
+        /// Create a new capability context of OpenCL accelerators.
+        /// </summary>
+        public CLCapabilityContext(
+<#
+    for (int i = 0, e = allClCapabilities.Length; i < e; ++i) {
+        string spacer = i + 1 < e ? "," : string.Empty;
+#>
+            bool <#= allClCapabilities[i].ParameterName #><#= spacer #>
+<#
+    }
+#>
+            )
+        {
+            var extensions = ImmutableArray.CreateBuilder<string>();
+<#
+    foreach (var c in allClCapabilities) {
+#>
+            <#= c.Name #> = <#= c.ParameterName #>;
+<#      if (!c.OpenCL.Manual) { #>
+            if (<#= c.Name #>)
+                extensions.AddRange(<#= c.Name #>Extensions);
+<#
+        }
+    }
+#>
+            Extensions = extensions.ToImmutable();
+        }
+
         internal CLCapabilityContext(CLDevice device)
         {
             var extensions = ImmutableArray.CreateBuilder<string>();
 <#
-    foreach (var c in commonCapabilities.Concat(clCapabilities)) {
+    foreach (var c in allClCapabilities) {
         if (c.OpenCL.Manual) {
 #>
             <#= c.Name #> = false;
