@@ -34,24 +34,14 @@ namespace ILGPU.Backends
     public enum TargetPlatform
     {
         /// <summary>
-        /// The X86 target platform.
+        /// The target platform is 32-bit.
         /// </summary>
-        X86,
+        Platform32Bit,
 
         /// <summary>
-        /// The X64 target platform.
+        /// The target platform is 64-bit.
         /// </summary>
-        X64,
-
-        /// <summary>
-        /// The Arm target platform.
-        /// </summary>
-        Arm,
-
-        /// <summary>
-        /// The Arm64 target platform.
-        /// </summary>
-        Arm64,
+        Platform64Bit,
     }
 
     /// <summary>
@@ -63,14 +53,7 @@ namespace ILGPU.Backends
         /// Returns true if the current runtime platform is 64-bit.
         /// </summary>
         public static bool Is64Bit(this TargetPlatform targetPlatform) =>
-                targetPlatform switch
-                {
-                    TargetPlatform.X86 => false,
-                    TargetPlatform.X64 => true,
-                    TargetPlatform.Arm => false,
-                    TargetPlatform.Arm64 => true,
-                    _ => throw new NotSupportedException(),
-                };
+            targetPlatform == TargetPlatform.Platform64Bit;
     }
 
     /// <summary>
@@ -407,10 +390,10 @@ namespace ILGPU.Backends
         public static TargetPlatform RuntimePlatform =>
             RuntimeInformation.ProcessArchitecture switch
             {
-                Architecture.X86 => TargetPlatform.X86,
-                Architecture.X64 => TargetPlatform.X64,
-                Architecture.Arm => TargetPlatform.Arm,
-                Architecture.Arm64 => TargetPlatform.Arm64,
+                Architecture.X86 => TargetPlatform.Platform32Bit,
+                Architecture.X64 => TargetPlatform.Platform64Bit,
+                Architecture.Arm => TargetPlatform.Platform32Bit,
+                Architecture.Arm64 => TargetPlatform.Platform64Bit,
                 _ => throw new NotSupportedException(),
             };
 
@@ -420,10 +403,10 @@ namespace ILGPU.Backends
         public static TargetPlatform OSPlatform =>
             RuntimeInformation.OSArchitecture switch
             {
-                Architecture.X86 => TargetPlatform.X86,
-                Architecture.X64 => TargetPlatform.X64,
-                Architecture.Arm => TargetPlatform.Arm,
-                Architecture.Arm64 => TargetPlatform.Arm64,
+                Architecture.X86 => TargetPlatform.Platform32Bit,
+                Architecture.X64 => TargetPlatform.Platform64Bit,
+                Architecture.Arm => TargetPlatform.Platform32Bit,
+                Architecture.Arm64 => TargetPlatform.Platform64Bit,
                 _ => throw new NotSupportedException(),
             };
 
@@ -495,7 +478,7 @@ namespace ILGPU.Backends
 
             // Setup custom pointer types
             PointerArithmeticType =
-                Context.TargetPlatform == TargetPlatform.X64
+                Context.TargetPlatform.Is64Bit()
                 ? ArithmeticBasicValueType.UInt64
                 : ArithmeticBasicValueType.UInt32;
             PointerType = context.TypeContext.GetPrimitiveType(

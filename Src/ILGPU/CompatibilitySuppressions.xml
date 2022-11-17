@@ -23,6 +23,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.TargetPlatform.X86</Target>
+    <Left>lib/net471/ILGPU.dll</Left>
+    <Right>lib/net471/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.TargetPlatform.X64</Target>
+    <Left>lib/net471/ILGPU.dll</Left>
+    <Right>lib/net471/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>F:ILGPU.IR.Values.ConvertFlags.Overflow</Target>
     <Left>lib/net5.0/ILGPU.dll</Left>
     <Right>lib/net5.0/ILGPU.dll</Right>
@@ -44,6 +58,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.TargetPlatform.X86</Target>
+    <Left>lib/net5.0/ILGPU.dll</Left>
+    <Right>lib/net5.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.TargetPlatform.X64</Target>
+    <Left>lib/net5.0/ILGPU.dll</Left>
+    <Right>lib/net5.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>F:ILGPU.IR.Values.ConvertFlags.Overflow</Target>
     <Left>lib/net6.0/ILGPU.dll</Left>
     <Right>lib/net6.0/ILGPU.dll</Right>
@@ -59,6 +87,20 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.IR.Values.ConvertValue.get_CanOverflow</Target>
+    <Left>lib/net6.0/ILGPU.dll</Left>
+    <Right>lib/net6.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.TargetPlatform.X86</Target>
+    <Left>lib/net6.0/ILGPU.dll</Left>
+    <Right>lib/net6.0/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.TargetPlatform.X64</Target>
     <Left>lib/net6.0/ILGPU.dll</Left>
     <Right>lib/net6.0/ILGPU.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -80,6 +122,20 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.IR.Values.ConvertValue.get_CanOverflow</Target>
+    <Left>lib/netstandard2.1/ILGPU.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.TargetPlatform.X86</Target>
+    <Left>lib/netstandard2.1/ILGPU.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:ILGPU.Backends.TargetPlatform.X64</Target>
     <Left>lib/netstandard2.1/ILGPU.dll</Left>
     <Right>lib/netstandard2.1/ILGPU.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
