@@ -76,6 +76,27 @@ namespace ILGPU.Backends.PTX
         #region Instance
 
         /// <summary>
+        /// Constructs a new Cuda backend using an implicitly given capability context
+        /// that is derived from the specified architecture.
+        /// </summary>
+        /// <param name="context">The context to use.</param>
+        /// <param name="architecture">The target GPU architecture.</param>
+        /// <param name="instructionSet">The target GPU instruction set.</param>
+        /// <param name="nvvmAPI">Optional NVVM API instance.</param>
+        public PTXBackend(
+            Context context,
+            CudaArchitecture architecture,
+            CudaInstructionSet instructionSet,
+            NvvmAPI nvvmAPI)
+            : this(
+                context,
+                new CudaCapabilityContext(architecture),
+                architecture,
+                instructionSet,
+                nvvmAPI)
+        { }
+
+        /// <summary>
         /// Constructs a new Cuda backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
