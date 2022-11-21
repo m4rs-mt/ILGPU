@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUMemoryBufferCache.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.Runtime.CPU;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Runtime
 {
@@ -25,6 +26,10 @@ namespace ILGPU.Runtime
         /// This represents the actual memory cache.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [SuppressMessage(
+            "Microsoft.Usage",
+            "CA2213: Disposable fields should be disposed",
+            Justification = "This is disposed in DisposeAcceleratorObject")]
         private MemoryBuffer<ArrayView1D<byte, Stride1D.Dense>> cache;
 
         /// <summary>

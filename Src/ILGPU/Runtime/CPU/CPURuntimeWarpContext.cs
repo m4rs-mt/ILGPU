@@ -12,6 +12,7 @@
 using ILGPU.Resources;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.CPU
@@ -179,6 +180,10 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// A temporary location for shuffle values.
         /// </summary>
+        [SuppressMessage(
+            "Microsoft.Usage",
+            "CA2213: Disposable fields should be disposed",
+            Justification = "This is disposed in DisposeAcceleratorObject")]
         private readonly CPUMemoryBufferCache shuffleBuffer;
 
         /// <summary>

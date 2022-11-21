@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CFG.cs
@@ -41,6 +41,10 @@ namespace ILGPU.IR.Analyses
     /// </summary>
     /// <typeparam name="TOrder">The underlying block order.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710: IdentifiersShouldHaveCorrectSuffix",
+        Justification = "This is the correct name of the current entity")]
     public sealed class CFG<TOrder, TDirection> :
         IReadOnlyCollection<CFG<TOrder, TDirection>.Node>
         where TOrder : struct, ITraversalOrder

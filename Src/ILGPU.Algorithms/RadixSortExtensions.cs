@@ -17,6 +17,7 @@ using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -168,6 +169,10 @@ namespace ILGPU.Algorithms
     {
         #region Instance
 
+        [SuppressMessage(
+            "Microsoft.Usage",
+            "CA2213: Disposable fields should be disposed",
+            Justification = "This is disposed in DisposeAccelerator")]
         private readonly MemoryBuffer1D<int, Stride1D.Dense> tempBuffer;
 
         internal RadixSortProvider(Accelerator accelerator, int tempSize)

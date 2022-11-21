@@ -13,6 +13,7 @@ using ILGPU.Algorithms.Resources;
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using static ILGPU.Algorithms.GroupExtensions;
 
@@ -84,6 +85,10 @@ namespace ILGPU.Algorithms
     {
         #region Instance
 
+        [SuppressMessage(
+            "Microsoft.Usage",
+            "CA2213: Disposable fields should be disposed",
+            Justification = "This is disposed in DisposeAccelerator")]
         private readonly MemoryBuffer1D<int, Stride1D.Dense> tempBuffer;
 
         internal ScanProvider(Accelerator accelerator, LongIndex1D dataLength)

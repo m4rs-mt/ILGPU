@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTWStructs.cs
@@ -13,6 +13,7 @@ using System;
 
 #pragma warning disable CA1051 // Do not declare visible instance fields
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning disable CS8981 // The type name only contains lower-cased ascii characters
 #pragma warning disable IDE1006 // Naming Styles
 
 namespace ILGPU.Runtime.Cuda
@@ -34,4 +35,5 @@ namespace ILGPU.Runtime.Cuda
 
 #pragma warning restore CA1051 // Do not declare visible instance fields
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning restore CS8981 // The type name only contains lower-cased ascii characters
 #pragma warning restore IDE1006 // Naming Styles
