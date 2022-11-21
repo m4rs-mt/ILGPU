@@ -70,6 +70,7 @@ jobs:
           if [[ -z "$(git status --porcelain)" ]]; then
             exit 0
           else
+            git status --porcelain
             exit 1
           fi
 
