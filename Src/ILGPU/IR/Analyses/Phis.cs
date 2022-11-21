@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Phis.cs
@@ -112,7 +112,7 @@ namespace ILGPU.IR.Analyses
             /// Seals the current builder and creates a <see cref="Phis"/> instance.
             /// </summary>
             /// <returns>The created <see cref="Phis"/> instance.</returns>
-            public Phis Seal() => new Phis(Method, ref phiValues);
+            public Phis Seal() => new Phis(Method, phiValues.AsReadOnlySpan());
 
             #endregion
         }
@@ -165,11 +165,11 @@ namespace ILGPU.IR.Analyses
         /// Constructs a new Phis instance.
         /// </summary>
         /// <param name="method">The parent method.</param>
-        /// <param name="phis">All detected phi values.</param>
-        private Phis(Method method, ref PhiValueList phis)
+        /// <param name="phiValues">All detected phi values.</param>
+        private Phis(Method method, ReadOnlySpan<PhiValue> phiValues)
         {
             Method = method;
-            Values = phis.AsReadOnlySpan();
+            Values = phiValues;
         }
 
         #endregion

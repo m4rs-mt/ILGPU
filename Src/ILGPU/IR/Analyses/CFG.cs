@@ -102,7 +102,7 @@ namespace ILGPU.IR.Analyses
 
                 internal NodeCollection(
                     CFG<TOrder, TDirection> cfg,
-                    in ReadOnlySpan<BasicBlock> collection)
+                    ReadOnlySpan<BasicBlock> collection)
                 {
                     CFG = cfg;
                     links = collection;

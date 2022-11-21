@@ -1038,7 +1038,7 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="blocks">The current block collection.</param>
             /// <param name="maxBlockSize">The maximum block size.</param>
-            public ConditionalAnalyzer(in BlockCollection blocks, int maxBlockSize)
+            public ConditionalAnalyzer(BlockCollection blocks, int maxBlockSize)
             {
                 kinds = blocks.CreateMap<BlockKind>();
 
@@ -1257,10 +1257,10 @@ namespace ILGPU.IR.Transformations
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal ConditionalConverter(
                 Method.Builder builder,
-                in BasicBlockMap<BlockKind> kinds,
-                in BlockCollection blocks,
+                BasicBlockMap<BlockKind> kinds,
+                BlockCollection blocks,
                 ReadOnlySpan<ValueReference> phis,
-                in CaseBlocks caseBlocks)
+                CaseBlocks caseBlocks)
             {
                 Blocks = blocks;
                 Kinds = kinds;
