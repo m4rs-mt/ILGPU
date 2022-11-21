@@ -1341,8 +1341,7 @@ namespace ILGPU.IR.Transformations
                 BlockBuilder.SetupInsertPositionToEnd();
 
                 // Emit the actual condition
-                Value condition = null;
-                CreateInnerCondition(terminator, null, ref condition);
+                CreateInnerCondition(terminator, null, null, out Value condition);
                 EntryBlock.AssertNotNull(condition);
 
                 // Create the actual branch condition
@@ -1400,17 +1399,19 @@ namespace ILGPU.IR.Transformations
 
             /// <summary>
             /// Creates a merge intermediate condition that will be passed to the
-            /// <see cref="CreateCondition(BasicBlock, Value, ref Value)"/> method.
+            /// <see cref="CreateCondition(BasicBlock, Value, Value, out Value)"/> method.
             /// </summary>
             /// <param name="current">The current block.</param>
             /// <param name="condition">The source condition (may be null).</param>
             /// <param name="newCondition">The new condition to merge.</param>
+            /// <param name="initialExitCondition">The current exit condition.</param>
             /// <param name="exitCondition">The exit condition to be updated.</param>
             private void CreateMergedCondition(
                 BasicBlock current,
                 Value condition,
                 Value newCondition,
-                ref Value exitCondition)
+                Value initialExitCondition,
+                out Value exitCondition)
             {
                 var merged = MergeCondition(
                     condition,
@@ -1421,7 +1422,8 @@ namespace ILGPU.IR.Transformations
                 CreateCondition(
                     current,
                     merged,
-                    ref exitCondition);
+                    initialExitCondition,
+                    out exitCondition);
             }
 
             /// <summary>
@@ -1430,23 +1432,28 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="current">The current block.</param>
             /// <param name="condition">The source condition (may be null).</param>
+            /// <param name="initialExitCondition">The current exit condition.</param>
             /// <param name="exitCondition">The exit condition to be updated.</param>
             private void CreateExitCondition(
                 BasicBlock current,
                 Value condition,
-                ref Value exitCondition)
+                Value initialExitCondition,
+                out Value exitCondition)
             {
                 current.Assert(IsExit(current));
 
                 // Skip non-true blocks since they will not contribute to the conditional
                 // branch that will be emitted in the end
                 if (!CaseBlocks.IsTrueBlock(current))
+                {
+                    exitCondition = initialExitCondition;
                     return;
+                }
 
                 // Append the current condition using a logical or to form clauses of
                 // the form: (a & b & c) | (d & e & f) | ...
                 exitCondition = MergeCondition(
-                    exitCondition,
+                    initialExitCondition,
                     condition,
                     BinaryArithmeticKind.Or);
             }
@@ -1456,11 +1463,13 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="terminator">The current terminator.</param>
             /// <param name="condition">The source condition (may be null).</param>
+            /// <param name="initialExitCondition">The current exit condition.</param>
             /// <param name="exitCondition">The exit condition to be updated.</param>
             private void CreateInnerCondition(
                 IfBranch terminator,
                 Value condition,
-                ref Value exitCondition)
+                Value initialExitCondition,
+                out Value exitCondition)
             {
                 // Determine the true and false conditions, as well as the different
                 // branch targets
@@ -1496,17 +1505,21 @@ namespace ILGPU.IR.Transformations
                     trueTarget,
                     condition,
                     trueCondition,
-                    ref exitCondition);
+                    initialExitCondition,
+                    out exitCondition);
 
                 // If we have to emit a false target, continue with a recursive emission
                 if (emitFalseTarget)
                 {
                     // Merge the false condition and continue with the false target
+                    initialExitCondition = exitCondition;
+
                     CreateMergedCondition(
                         falseTarget,
                         condition,
                         falseCondition,
-                        ref exitCondition);
+                        initialExitCondition,
+                        out exitCondition);
                 }
             }
 
@@ -1515,22 +1528,32 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="current">The current block.</param>
             /// <param name="condition">The source condition (may be null).</param>
+            /// <param name="initialExitCondition">The current exit condition.</param>
             /// <param name="exitCondition">The exit condition to be updated.</param>
             private void CreateCondition(
                 BasicBlock current,
                 Value condition,
-                ref Value exitCondition)
+                Value initialExitCondition,
+                out Value exitCondition)
             {
                 if (IsExit(current))
                 {
                     // Create an exit-block condition
-                    CreateExitCondition(current, condition, ref exitCondition);
+                    CreateExitCondition(
+                        current,
+                        condition,
+                        initialExitCondition,
+                        out exitCondition);
                 }
                 else
                 {
                     // Create an inner-block condition
                     var terminator = GetIfBranch(current);
-                    CreateInnerCondition(terminator, condition, ref exitCondition);
+                    CreateInnerCondition(
+                        terminator,
+                        condition,
+                        initialExitCondition,
+                        out exitCondition);
                 }
             }
 
