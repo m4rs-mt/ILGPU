@@ -680,6 +680,14 @@ namespace ILGPU.IR.Types
             ? structureType.NumFields
             : 1;
 
+        /// <summary>
+        /// Gets the field name of a managed structure type.
+        /// </summary>
+        /// <param name="fieldIndex">The field index.</param>
+        /// <returns>The managed field name within a structure type.</returns>
+        public static string GetFieldName(int fieldIndex) =>
+            "Field" + fieldIndex;
+
         #endregion
 
         #region Instance
