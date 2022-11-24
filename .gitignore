@@ -249,6 +249,9 @@ ModelManifest.xml
 # macOS
 .DS_Store
 
+# VSCode
+.vscode/
+
 # Ignore specific template outputs
 Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
