@@ -14,6 +14,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -293,6 +294,8 @@ namespace ILGPU.Backends
         {
             var mapping = collection.CreateMap(new InfoProvider());
 
+            var allPhiValues = InlineList<PhiValue>.Create(
+                collection.Count);
             foreach (var block in collection)
             {
                 // Resolve phis
@@ -302,6 +305,9 @@ namespace ILGPU.Backends
                 // Map all phi arguments
                 foreach (var phi in phis)
                 {
+                    // Remember the current phi value
+                    allPhiValues.Add(phi);
+
                     // Allocate phi for further processing
                     allocator.Allocate(block, phi);
 
@@ -326,7 +332,10 @@ namespace ILGPU.Backends
                     info.IntermediatePhis.Count);
             }
 
-            return new PhiBindings(mapping, maxNumIntermediatePhis);
+            return new PhiBindings(
+                mapping,
+                maxNumIntermediatePhis,
+                ref allPhiValues);
         }
 
         #endregion
@@ -334,6 +343,7 @@ namespace ILGPU.Backends
         #region Instance
 
         private readonly BasicBlockMap<BlockInfo> phiMapping;
+        private readonly InlineList<PhiValue> allPhiValues;
 
         /// <summary>
         /// Constructs new phi bindings.
@@ -342,11 +352,17 @@ namespace ILGPU.Backends
         /// <param name="maxNumIntermediatePhis">
         /// The maximum number of intermediate phi values.
         /// </param>
+        /// <param name="phiValues">The list of all phi values.</param>
         private PhiBindings(
             in BasicBlockMap<BlockInfo> mapping,
-            int maxNumIntermediatePhis)
+            int maxNumIntermediatePhis,
+            ref InlineList<PhiValue> phiValues)
         {
             phiMapping = mapping;
+
+            allPhiValues = InlineList<PhiValue>.Empty;
+            phiValues.MoveTo(ref allPhiValues);
+
             MaxNumIntermediatePhis = maxNumIntermediatePhis;
         }
 
@@ -359,6 +375,11 @@ namespace ILGPU.Backends
         /// </summary>
         public int MaxNumIntermediatePhis { get; }
 
+        /// <summary>
+        /// Returns a span including all phi values.
+        /// </summary>
+        public ReadOnlySpan<PhiValue> PhiValues => allPhiValues;
+
         #endregion
 
         #region Methods
@@ -370,7 +391,7 @@ namespace ILGPU.Backends
         /// <param name="bindings">The resolved bindings (if any)</param>
         /// <returns>True, if phi bindings could be resolved.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool TryGetBindings(
+        public bool TryGetBindings(
             BasicBlock block,
             out PhiBindingCollection bindings)
         {
