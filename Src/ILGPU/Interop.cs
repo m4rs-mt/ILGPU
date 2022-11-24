@@ -246,7 +246,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="format">The expression format to write.</param>
         /// <param name="elements">All elements to write in string format.</param>
-        private static void WriteImplementation(
+        internal static void WriteImplementation(
             string format,
             params string[] elements) =>
             Console.Write(format, elements);
