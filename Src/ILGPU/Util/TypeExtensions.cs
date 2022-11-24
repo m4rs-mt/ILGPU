@@ -249,6 +249,29 @@ namespace ILGPU.Util
             };
 
         /// <summary>
+        /// Resolves the managed type for the given basic-value type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>The resolved managed type.</returns>
+        public static Type GetManagedType(this ArithmeticBasicValueType type) =>
+            type switch
+            {
+                ArithmeticBasicValueType.UInt1 => typeof(bool),
+                ArithmeticBasicValueType.Int8 => typeof(byte),
+                ArithmeticBasicValueType.Int16 => typeof(short),
+                ArithmeticBasicValueType.Int32 => typeof(int),
+                ArithmeticBasicValueType.Int64 => typeof(long),
+                ArithmeticBasicValueType.Float16 => typeof(Half),
+                ArithmeticBasicValueType.Float32 => typeof(float),
+                ArithmeticBasicValueType.Float64 => typeof(double),
+                ArithmeticBasicValueType.UInt8 => typeof(byte),
+                ArithmeticBasicValueType.UInt16 => typeof(short),
+                ArithmeticBasicValueType.UInt32 => typeof(int),
+                ArithmeticBasicValueType.UInt64 => typeof(long),
+                _ => null,
+            };
+
+        /// <summary>
         /// Resolves the basic-value type for the given managed type.
         /// </summary>
         /// <param name="type">The source type.</param>
