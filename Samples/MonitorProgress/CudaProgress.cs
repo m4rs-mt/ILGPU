@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaProgress.cs
@@ -13,6 +13,8 @@ using ILGPU;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 using System;
+
+#pragma warning disable CA2213
 
 namespace MonitorProgress
 {
