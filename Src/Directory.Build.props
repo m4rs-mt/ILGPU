@@ -8,10 +8,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <LibraryVersionPrefix>1.3.0</LibraryVersionPrefix>
-    <LibraryAssemblyVersion>1.3.0.0</LibraryAssemblyVersion>
-    <LibraryFileVersion>1.3.0.0</LibraryFileVersion>
-    <LibraryPackageValidationBaselineVersion>1.2.0</LibraryPackageValidationBaselineVersion>
+    <LibraryVersionPrefix>1.4.0-beta1</LibraryVersionPrefix>
+    <LibraryAssemblyVersion>1.4.0.0</LibraryAssemblyVersion>
+    <LibraryFileVersion>1.4.0.0</LibraryFileVersion>
+    <LibraryPackageValidationBaselineVersion>1.3.0</LibraryPackageValidationBaselineVersion>
   </PropertyGroup>
 
   <!-- Unit Test Project Configuration -->
