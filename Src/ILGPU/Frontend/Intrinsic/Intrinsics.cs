@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Intrinsics.cs
@@ -13,6 +13,7 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -85,6 +86,7 @@ namespace ILGPU.Frontend.Intrinsic
                 { typeof(Debug), HandleDebugAndTrace },
                 { typeof(Trace), HandleDebugAndTrace },
                 { typeof(RuntimeHelpers), HandleRuntimeHelper },
+                { typeof(Unsafe), HandleUnsafe }
             };
 
         private static readonly DeviceFunctionHandler<IntrinsicAttribute>[]
@@ -297,6 +299,42 @@ namespace ILGPU.Frontend.Intrinsic
                         targetIndex),
                     irValue);
             }
+        }
+
+        /// <summary>
+        /// Handles unsafe runtime operations.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        /// <returns>The resulting value.</returns>
+        private static Value HandleUnsafe(ref InvocationContext context)
+        {
+            switch (context.Method.Name)
+            {
+                case nameof(Unsafe.As):
+                    return ConvertUnsafeAs(ref context);
+            }
+            throw context.Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
+        }
+
+        /// <summary>
+        /// Converts basic reinterpret casts.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        private static Value ConvertUnsafeAs(ref InvocationContext context)
+        {
+            var codeGenerator = context.CodeGenerator;
+            var location = context.Location;
+            var sourceValue = context[0];
+            var methodReturnType = context.TypeContext.CreateType(
+                context.Method.GetReturnType()).As<PointerType>(location);
+
+            return sourceValue.Type == methodReturnType || methodReturnType.IsRootType
+                ? sourceValue.Resolve()
+                : codeGenerator.CreateConversion(
+                    sourceValue,
+                    methodReturnType,
+                    ConvertFlags.None);
         }
 
         #endregion
