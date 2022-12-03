@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUMemoryBuffer.cs
@@ -13,6 +13,7 @@ using ILGPU.Resources;
 using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.OpenCL;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -374,6 +375,10 @@ namespace ILGPU.Runtime.CPU
         {
             #region Instance
 
+            [SuppressMessage(
+                "Microsoft.Usage",
+                "CA2213: Disposable fields should be disposed",
+                Justification = "This is disposed in DisposeAcceleratorObject")]
             private readonly PageLockScope<byte> pageLockScope;
 
             /// <summary>

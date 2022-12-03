@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlockMapping.cs
@@ -14,6 +14,7 @@ using ILGPU.IR.Analyses.TraversalOrders;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable CS0282 // There is no defined ordering between fields in
@@ -384,6 +385,10 @@ namespace ILGPU.IR
     /// A mapping of basic block to values.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710: IdentifiersShouldHaveCorrectSuffix",
+        Justification = "This is the correct name of the current entity")]
     public partial struct BasicBlockMap<T> : IReadOnlyCollection<(BasicBlock, T)>
     {
         #region Nested Types

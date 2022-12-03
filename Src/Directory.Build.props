@@ -1,10 +1,11 @@
 ﻿<Project>
   <!-- Library Project Configuration -->
   <PropertyGroup>
-    <LibraryTargetFrameworks>net6.0</LibraryTargetFrameworks>
+    <LibraryTargetFrameworks>net7.0</LibraryTargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net471;netstandard2.1;net5.0</LibraryTargetFrameworks>
+    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net471;netstandard2.1;net5.0;net6.0</LibraryTargetFrameworks>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -16,10 +17,11 @@
 
   <!-- Unit Test Project Configuration -->
   <PropertyGroup>
-    <LibraryUnitTestTargetFrameworks>net6.0</LibraryUnitTestTargetFrameworks>
+    <LibraryUnitTestTargetFrameworks>net7.0</LibraryUnitTestTargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net471;netcoreapp3.1;net5.0</LibraryUnitTestTargetFrameworks>
+    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net471;netcoreapp3.1;net5.0;net6.0</LibraryUnitTestTargetFrameworks>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 
   <Import Project="..\Tools\CheckStyles\ILGPU.CheckStyles.targets" />

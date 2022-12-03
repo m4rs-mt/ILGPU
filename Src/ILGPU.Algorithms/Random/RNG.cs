@@ -13,6 +13,7 @@ using ILGPU.Algorithms.Random.Operations;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms.Random
@@ -327,6 +328,10 @@ namespace ILGPU.Algorithms.Random
         /// <summary>
         /// Stores a single RNG instance per warp.
         /// </summary>
+        [SuppressMessage(
+            "Microsoft.Usage",
+            "CA2213: Disposable fields should be disposed",
+            Justification = "This is disposed in DisposeAccelerator")]
         private readonly MemoryBuffer1D<
             TRandomProvider,
             Stride1D.Dense> randomProvidersPerWarp;

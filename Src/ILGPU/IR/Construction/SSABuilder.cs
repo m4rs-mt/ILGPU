@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SSABuilder.cs
@@ -368,7 +368,7 @@ namespace ILGPU.IR.Construction
             /// <param name="incompletePhi">An incomplete phi node to complete.</param>
             /// <param name="markerProvider">A provider of new marker values.</param>
             private Value SetupPhiArguments(
-                in IncompletePhi incompletePhi,
+                IncompletePhi incompletePhi,
                 ref MarkerProvider markerProvider)
             {
                 var phiBuilder = incompletePhi.PhiBuilder;
