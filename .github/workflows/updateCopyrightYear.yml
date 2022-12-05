@@ -18,10 +18,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup the latest .NET 6 SDK
-        uses: actions/setup-dotnet@v2
+      - name: Setup the latest .NET 7 SDK
+        uses: actions/setup-dotnet@v3.0.3
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
 
       - name: Update copyright year
         uses: technote-space/create-pr-action@v2
