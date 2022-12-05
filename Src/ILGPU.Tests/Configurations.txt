@@ -5,6 +5,7 @@ DisassemblerTests
 EnumValues
 FixedBuffers
 GetKernelTests
+GenericMath
 Indices
 KernelEntryPoints
 MemoryBufferOperations
