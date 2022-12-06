@@ -142,7 +142,8 @@ namespace ILGPU.Frontend
             }
 
             // Initialize locals
-            var localVariables = Method.GetMethodBody().LocalVariables;
+            var methodBody = Disassembler.ExtractMethodBody(Method);
+            var localVariables = methodBody.LocalVariables;
             for (int i = 0, e = localVariables.Count; i < e; ++i)
             {
                 var variable = localVariables[i];
