@@ -1,0 +1,15 @@
+.btn-compile {
+    padding: 8px 20px;
+    margin-left: 30px;
+    border-radius: 50px;
+    color: #ffffff;
+    font-size: 14px;
+    border: 2px solid #47b2e4;
+    font-weight: 600;
+    color: #00458D;
+}
+
+    .btn-compile:hover {
+        color: #ffffff;
+        background: #31a9e1;
+    }
