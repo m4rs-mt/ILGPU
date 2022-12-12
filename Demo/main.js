@@ -1,5 +1,5 @@
 import { dotnet } from './dotnet.js';
-import { Gui } from './js/gui.js';
+import { Gui } from './gui.js';
 
 const is_browser = typeof window != "undefined";
 if (!is_browser) throw new Error(`Expected to be running in a browser`);
