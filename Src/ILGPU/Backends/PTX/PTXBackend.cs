@@ -195,6 +195,7 @@ namespace ILGPU.Backends.PTX
         /// Creates a new PTX-compatible kernel builder and initializes a
         /// <see cref="PTXCodeGenerator.GeneratorArgs"/> instance.
         /// </summary>
+        [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
         protected override StringBuilder CreateKernelBuilder(
             EntryPoint entryPoint,
             in BackendContext backendContext,
@@ -226,7 +227,7 @@ namespace ILGPU.Backends.PTX
             builder.Append(".version ");
             builder.AppendLine(InstructionSet.ToString());
             builder.Append(".target ");
-            builder.Append(Architecture.ToString().ToLower());
+            builder.Append(Architecture.ToString().ToLowerInvariant());
             if (useDebugInfo)
                 builder.AppendLine(", debug");
             else
