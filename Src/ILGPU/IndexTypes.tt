@@ -485,7 +485,7 @@ namespace ILGPU
         /// <returns>True, if the first and second index are not the same.</returns>
         public static bool operator !=(<#= name #> first, <#= name #> second) =>
 <# if (dimension == 1) { #>
-            <#= def.Expression(", ", p => $"first.{p} == second.{p}") #>;
+            <#= def.Expression(", ", p => $"first.{p} != second.{p}") #>;
 <# } else { #>
             Bitwise.Or(<#= def.Expression(", ", p => $"first.{p} != second.{p}") #>);
 <# } #>
