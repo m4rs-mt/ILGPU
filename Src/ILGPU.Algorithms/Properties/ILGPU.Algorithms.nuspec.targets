@@ -4,7 +4,7 @@
     <PackageVersion>$(Version)</PackageVersion>
 
     <Title>ILGPU Algorithms Library</Title>
-    <Copyright>Copyright (c) 2016-2022 ILGPU Project. All rights reserved.</Copyright>
+    <Copyright>Copyright (c) 2016-2023 ILGPU Project. All rights reserved.</Copyright>
     <Company />
     <Authors>ILGPU Algorithms Project</Authors>
     <Description>ILGPU Algorithms library for high-level GPU programming.</Description>
