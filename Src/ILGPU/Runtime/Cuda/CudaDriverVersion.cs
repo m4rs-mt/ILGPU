@@ -266,7 +266,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Maps PTX ISA to their corresponding minimum CUDA driver version.
         /// </summary>
-        private static readonly Dictionary<
+        internal static readonly Dictionary<
             CudaInstructionSet,
             CudaDriverVersion> InstructionSetLookup =
             new Dictionary<CudaInstructionSet, CudaDriverVersion>
@@ -298,6 +298,8 @@ namespace ILGPU.Runtime.Cuda
             { CudaInstructionSet.ISA_76, CudaDriverVersion.FromMajorMinor(11, 6) },
             { CudaInstructionSet.ISA_77, CudaDriverVersion.FromMajorMinor(11, 7) },
             { CudaInstructionSet.ISA_78, CudaDriverVersion.FromMajorMinor(11, 8) },
+
+            { CudaInstructionSet.ISA_80, CudaDriverVersion.FromMajorMinor(12, 0) },
         };
 
         /// <summary>
