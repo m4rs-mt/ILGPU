@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXRegisterAllocator.cs
@@ -13,6 +13,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -154,8 +155,11 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="register">The primitive register.</param>
         /// <returns>The corresponding device constant string value.</returns>
+        [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
         private static string ResolveDeviceConstantValue(HardwareRegister register) =>
-            ((DeviceConstantDimension3D)register.RegisterValue).ToString().ToLower();
+            ((DeviceConstantDimension3D)register.RegisterValue)
+                .ToString()
+                .ToLowerInvariant();
 
         /// <summary>
         /// Returns the string representation of the given hardware register.
