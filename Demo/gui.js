@@ -1,4 +1,15 @@
-﻿export class Gui {
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2022 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: gui.js
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+export class Gui {
     constructor() {
     }
 
