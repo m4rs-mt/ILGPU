@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityArgumentMapper.cs
