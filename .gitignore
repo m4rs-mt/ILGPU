@@ -277,6 +277,7 @@ Src/ILGPU/Runtime/Cuda/LibDevice.cs
 Src/ILGPU/Runtime/KernelLoaders.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/PageLockedArrays.Generated.cs
+Src/ILGPU/Runtime/Velocity/VelocityWarps.cs
 Src/ILGPU/Static/ArithmeticEnums.cs
 Src/ILGPU/Static/CapabilityContext.cs
 Src/ILGPU/Static/DllImports.cs
@@ -365,3 +366,4 @@ Src/ILGPU.Algorithms.Tests/XMathTests.Trig.cs
 Src/ILGPU.Algorithms.Tests.CPU/Configurations.cs
 Src/ILGPU.Algorithms.Tests.Cuda/Configurations.cs
 Src/ILGPU.Algorithms.Tests.OpenCL/Configurations.cs
+
