@@ -36,11 +36,6 @@ namespace ILGPU.Backends.EntryPoints
         #region Constants
 
         /// <summary>
-        /// The internal prefix name for all runtime fields.
-        /// </summary>
-        private const string FieldPrefixName = "Field";
-
-        /// <summary>
         /// The intrinsic kernel length parameter field name.
         /// </summary>
         private const string KernelLengthField = "KernelLength";
@@ -520,7 +515,7 @@ namespace ILGPU.Backends.EntryPoints
         private static string GetFieldName(int index)
         {
             Debug.Assert(index >= 0, "Invalid field index");
-            return FieldPrefixName + index;
+            return StructureType.GetFieldName(index);
         }
 
         #endregion
