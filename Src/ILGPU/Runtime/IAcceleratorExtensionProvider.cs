@@ -12,6 +12,7 @@
 using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.OpenCL;
+using ILGPU.Runtime.Velocity;
 
 namespace ILGPU.Runtime
 {
@@ -27,6 +28,13 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">The target accelerator.</param>
         /// <returns>The created extension.</returns>
         TExtension CreateCPUExtension(CPUAccelerator accelerator);
+
+        /// <summary>
+        /// Creates an extension for a Velocity accelerator.
+        /// </summary>
+        /// <param name="accelerator">The target accelerator.</param>
+        /// <returns>The created extension.</returns>
+        TExtension CreateVelocityExtension(VelocityAccelerator accelerator);
 
         /// <summary>
         /// Creates an extension for a Cuda accelerator.
