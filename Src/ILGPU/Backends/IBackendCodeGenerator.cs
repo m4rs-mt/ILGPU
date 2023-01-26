@@ -317,6 +317,12 @@ namespace ILGPU.Backends
         /// <param name="debug">The node.</param>
         void GenerateCode(DebugAssertOperation debug);
 
+        /// <summary>
+        /// Generates code for the output writer.
+        /// </summary>
+        /// <param name="writeToOutput">The node.</param>
+        void GenerateCode(WriteToOutput writeToOutput);
+
         // Terminators
 
         /// <summary>
@@ -594,7 +600,7 @@ namespace ILGPU.Backends
 
             /// <summary cref="IValueVisitor.Visit(WriteToOutput)"/>
             public void Visit(WriteToOutput writeToOutput) =>
-                throw new InvalidCodeGenerationException();
+                CodeGenerator.GenerateCode(writeToOutput);
 
             /// <summary cref="IValueVisitor.Visit(ReturnTerminator)"/>
             public void Visit(ReturnTerminator returnTerminator) =>
