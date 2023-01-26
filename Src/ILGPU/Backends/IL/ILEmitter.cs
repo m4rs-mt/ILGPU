@@ -235,6 +235,12 @@ namespace ILGPU.Backends.IL
         void EmitSwitch(ILLabel[] labels);
 
         /// <summary>
+        /// Emits code to write something to the console.
+        /// </summary>
+        /// <param name="message">The message to write.</param>
+        void EmitWriteLine(string message);
+
+        /// <summary>
         /// Finishes the code generation process.
         /// </summary>
         void Finish();
@@ -404,6 +410,10 @@ namespace ILGPU.Backends.IL
                 switchLabels[i] = declaredLabels[labels[i].Index];
             Generator.Emit(OpCodes.Switch, switchLabels);
         }
+
+        /// <summary cref="IILEmitter.EmitWriteLine"/>
+        public void EmitWriteLine(string message) =>
+            Generator.EmitWriteLine(message);
 
         /// <summary cref="IILEmitter.Finish"/>
         public void Finish() { }
@@ -635,6 +645,10 @@ namespace ILGPU.Backends.IL
             }
         }
 
+        /// <summary cref="IILEmitter.EmitWriteLine"/>
+        public void EmitWriteLine(string message) =>
+            Writer.WriteLine($" => Write('{message}')");
+
         /// <summary cref="IILEmitter.Finish"/>
         public void Finish()
         {
@@ -716,6 +730,9 @@ namespace ILGPU.Backends.IL
 
         /// <summary cref="IILEmitter.EmitSwitch(ILLabel[])"/>
         public void EmitSwitch(params ILLabel[] labels) { }
+
+        /// <summary cref="IILEmitter.EmitWriteLine"/>
+        public void EmitWriteLine(string message) { }
 
         /// <summary cref="IILEmitter.Finish"/>
         public void Finish() { }
