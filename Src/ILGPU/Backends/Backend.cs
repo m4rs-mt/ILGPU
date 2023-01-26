@@ -67,6 +67,11 @@ namespace ILGPU.Backends
         IL,
 
         /// <summary>
+        /// A Velocity backend.
+        /// </summary>
+        Velocity,
+
+        /// <summary>
         /// A PTX backend.
         /// </summary>
         PTX,
@@ -123,7 +128,7 @@ namespace ILGPU.Backends
         /// <summary>
         /// Represents the current kernel context in scope of a backend instance.
         /// </summary>
-        protected readonly ref struct BackendContext
+        protected internal readonly ref struct BackendContext
         {
             #region Nested Types
 
