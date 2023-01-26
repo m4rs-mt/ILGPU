@@ -274,7 +274,7 @@ namespace ILGPU.Util
                 ArithmeticBasicValueType.UInt16 => typeof(short),
                 ArithmeticBasicValueType.UInt32 => typeof(int),
                 ArithmeticBasicValueType.UInt64 => typeof(long),
-                _ => null,
+                _ => throw new ArgumentOutOfRangeException(nameof(type)),
             };
 
         /// <summary>
