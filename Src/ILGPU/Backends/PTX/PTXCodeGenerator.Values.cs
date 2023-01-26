@@ -1227,7 +1227,13 @@ namespace ILGPU.Backends.PTX
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugAssertOperation)"/>
         public void GenerateCode(DebugAssertOperation debug) =>
-            Debug.Assert(false, "Invalid debug node -> should have been removed");
+            // Invalid debug node -> should have been removed
+            debug.Assert(false);
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(WriteToOutput)"/>
+        public void GenerateCode(WriteToOutput writeToOutput) =>
+            // Invalid write node -> should have been removed
+            writeToOutput.Assert(false);
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(LanguageEmitValue)"/>
         [SuppressMessage(
