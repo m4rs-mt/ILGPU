@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AtomicFunctions.tt/AtomicFunctions.cs
@@ -17,8 +17,6 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 <#
-var atomicSignedIntAndFloatTypes = AtomicSignedIntTypes.
-    Concat(AtomicFloatTypes).ToArray();
 var atomicUnsignedIntAndFloatTypes = AtomicUnsignedIntTypes.
     Concat(AtomicFloatTypes).ToArray();
 #>
@@ -27,6 +25,8 @@ using ILGPU.IR.Values;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
+
+// disable: max_line_length
 
 namespace ILGPU
 {
@@ -49,7 +49,7 @@ namespace ILGPU
             /// <param name="compare">The expected comparison value.</param>
             /// <param name="value">The target value.</param>
             /// <returns>The old value.</returns>
-            public readonly <#= type.Type #> CompareExchange(
+            public <#= type.Type #> CompareExchange(
                 ref <#= type.Type #> target,
                 <#= type.Type #> compare,
                 <#= type.Type #> value) =>
@@ -61,7 +61,7 @@ namespace ILGPU
             /// <param name="left">The left operand.</param>
             /// <param name="right">The right operand.</param>
             /// <returns>True, if both operands represent the same value.</returns>
-            public readonly bool IsSame(
+            public bool IsSame(
                 <#= type.Type #> left,
                 <#= type.Type #> right) => left == right;
         }
@@ -91,9 +91,9 @@ namespace ILGPU
 <#      } #>
 
 <#      foreach (var type in atomicUnsignedIntAndFloatTypes) { #>
-        struct Add<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        readonly struct Add<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public readonly <#= type.Type #> Operation(
+            public <#= type.Type #> Operation(
                 <#= type.Type #> current,
                 <#= type.Type #> value) =>
                 current + value;
@@ -150,9 +150,9 @@ namespace ILGPU
         #region Max
 
 <#      foreach (var type in AtomicNumericTypes) { #>
-        struct Max<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        readonly struct Max<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public readonly <#= type.Type #> Operation(
+            public <#= type.Type #> Operation(
                 <#= type.Type #> current,
                 <#= type.Type #> value) =>
                 IntrinsicMath.Max(current, value);
@@ -188,9 +188,9 @@ namespace ILGPU
         #region Min
 
 <#      foreach (var type in AtomicNumericTypes) { #>
-        struct Min<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        readonly struct Min<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public readonly <#= type.Type #> Operation(
+            public <#= type.Type #> Operation(
                 <#= type.Type #> current,
                 <#= type.Type #> value) =>
                 IntrinsicMath.Min(current, value);
@@ -226,9 +226,9 @@ namespace ILGPU
         #region And
 
 <#      foreach (var type in AtomicIntTypes) { #>
-        struct And<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        readonly struct And<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public readonly <#= type.Type #> Operation(
+            public <#= type.Type #> Operation(
                 <#= type.Type #> current,
                 <#= type.Type #> value) =>
                 current & value;
@@ -265,9 +265,9 @@ namespace ILGPU
         #region Or
 
 <#      foreach (var type in AtomicIntTypes) { #>
-        struct Or<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        readonly struct Or<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public readonly <#= type.Type #> Operation(
+            public <#= type.Type #> Operation(
                 <#= type.Type #> current,
                 <#= type.Type #> value) =>
                 current | value;
@@ -304,9 +304,9 @@ namespace ILGPU
         #region Xor
 
 <#      foreach (var type in AtomicIntTypes) { #>
-        struct Xor<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        readonly struct Xor<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public readonly <#= type.Type #> Operation(
+            public <#= type.Type #> Operation(
                 <#= type.Type #> current,
                 <#= type.Type #> value) =>
                 current ^ value;
