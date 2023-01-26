@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DefaultILBackend.cs
@@ -51,7 +51,7 @@ namespace ILGPU.Backends.IL
             if (entryPoint.MethodInfo.IsNotCapturingLambda())
                 emitter.Emit(OpCodes.Ldnull);
 
-            if (entryPoint.IsImplictlyGrouped)
+            if (entryPoint.IsImplicitlyGrouped)
             {
                 // Load index
                 emitter.Emit(LocalOperation.Load, index);
