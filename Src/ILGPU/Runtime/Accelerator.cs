@@ -31,6 +31,11 @@ namespace ILGPU.Runtime
         CPU,
 
         /// <summary>
+        /// Represents a SIMD CPU performance accelerator.
+        /// </summary>
+        Velocity,
+
+        /// <summary>
         /// Represents a Cuda accelerator.
         /// </summary>
         Cuda,
