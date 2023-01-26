@@ -1,6 +1,6 @@
 config:
   ephemeral-github-runner:bootDiskSizeInGB: "100"
   ephemeral-github-runner:bootDiskType: gp2
-  ephemeral-github-runner:machineImage: gross-cuda-nvidia-ghrunner-23002-amd64
+  ephemeral-github-runner:machineImage: gross-cuda-nvidia-ghrunner-23011-amd64
   ephemeral-github-runner:machineType: g4dn.xlarge
   ephemeral-github-runner:runnersCount: "1"
