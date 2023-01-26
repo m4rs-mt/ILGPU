@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXArgumentMapper.cs
@@ -48,7 +48,7 @@ namespace ILGPU.Backends.PTX
             public bool CanMapKernelLength(out Type indexType)
             {
                 indexType = EntryPoint.KernelIndexType;
-                return EntryPoint.IsImplictlyGrouped;
+                return EntryPoint.IsImplicitlyGrouped;
             }
 
             public void MapKernelLength<TILEmitter, TTarget>(
@@ -57,7 +57,7 @@ namespace ILGPU.Backends.PTX
                 where TILEmitter : struct, IILEmitter
                 where TTarget : struct, ITarget
             {
-                Debug.Assert(EntryPoint.IsImplictlyGrouped);
+                Debug.Assert(EntryPoint.IsImplicitlyGrouped);
 
                 var argumentSource = new ArgumentSource(
                     kernelLengthTarget.TargetType,

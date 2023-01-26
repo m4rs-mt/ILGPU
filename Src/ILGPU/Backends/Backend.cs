@@ -696,7 +696,7 @@ namespace ILGPU.Backends
                     entry,
                     backendContext,
                     specialization);
-                if (entryPoint.IsImplictlyGrouped &&
+                if (entryPoint.IsImplicitlyGrouped &&
                     backendContext.SharedMemorySpecification.HasSharedMemory)
                 {
                     throw new NotSupportedException(
