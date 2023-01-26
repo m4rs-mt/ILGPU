@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StructureType.cs
@@ -913,7 +913,8 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Creates a managed type that corresponds to this structure type.
         /// </summary>
-        protected override Type GetManagedType()
+        internal Type GetDefaultManagedType<TTypeProvider>(TTypeProvider typeProvider)
+            where TTypeProvider : IManagedTypeProvider
         {
             using var scopedLock = RuntimeSystem.DefineRuntimeStruct(
                 out var typeBuilder);
@@ -921,13 +922,20 @@ namespace ILGPU.IR.Types
             foreach (var type in DirectFields)
             {
                 typeBuilder.DefineField(
-                    "Field" + index++,
-                    type.LoadManagedType(),
+                    GetFieldName(index++),
+                    type.LoadManagedType(typeProvider),
                     FieldAttributes.Public);
 
             }
             return typeBuilder.CreateType();
         }
+
+        /// <summary>
+        /// Creates a managed type that corresponds to this structure type.
+        /// </summary>
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeProvider.GetStructureType(this);
 
         #endregion
 

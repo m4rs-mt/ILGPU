@@ -58,7 +58,9 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the corresponding managed basic value type.
         /// </summary>
-        protected override Type GetManagedType() => BasicValueType.GetManagedType();
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeProvider.GetPrimitiveType(PrimitiveType);
 
         #endregion
 

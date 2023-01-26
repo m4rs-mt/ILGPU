@@ -12,6 +12,7 @@
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Types
 {
@@ -118,7 +119,9 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the corresponding managed basic value type.
         /// </summary>
-        protected override Type GetManagedType() => BasicValueType.GetManagedType();
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeProvider.GetPrimitiveType(this);
 
         #endregion
 
@@ -169,7 +172,9 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the corresponding managed basic value type.
         /// </summary>
-        protected override Type GetManagedType() => typeof(string);
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeof(string);
 
         #endregion
 

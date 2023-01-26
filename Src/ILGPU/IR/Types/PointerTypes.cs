@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PointerTypes.cs
@@ -195,10 +195,19 @@ namespace ILGPU.IR.Types
         #region Methods
 
         /// <summary>
+        /// Creates a default managed view type.
+        /// </summary>
+        internal Type GetDefaultManagedPointerType<TTypeProvider>(
+            TTypeProvider typeProvider)
+            where TTypeProvider : IManagedTypeProvider =>
+            ElementType.LoadManagedType(typeProvider).MakePointerType();
+
+        /// <summary>
         /// Creates a managed pointer type.
         /// </summary>
-        protected override Type GetManagedType() =>
-            ElementType.LoadManagedType().MakePointerType();
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeProvider.GetPointerType(this);
 
         #endregion
 
@@ -253,11 +262,20 @@ namespace ILGPU.IR.Types
         #region Methods
 
         /// <summary>
+        /// Creates a default managed view type.
+        /// </summary>
+        internal Type GetDefaultManagedViewType<TTypeProvider>(
+            TTypeProvider typeProvider)
+            where TTypeProvider : IManagedTypeProvider =>
+            typeof(ArrayView<>).MakeGenericType(
+                ElementType.LoadManagedType(typeProvider));
+
+        /// <summary>
         /// Creates a managed view type.
         /// </summary>
-        protected override Type GetManagedType() =>
-            typeof(ArrayView<>).MakeGenericType(
-                ElementType.LoadManagedType());
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeProvider.GetViewType(this);
 
         #endregion
 

@@ -42,7 +42,9 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the void type.
         /// </summary>
-        protected override Type GetManagedType() => typeof(void);
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeof(void);
 
         #endregion
 

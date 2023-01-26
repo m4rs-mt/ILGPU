@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeNode.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -61,7 +62,50 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// The type representation in the managed world.
         /// </summary>
-        Type LoadManagedType();
+        /// <param name="typeProvider">The type provider to use.</param>
+        Type LoadManagedType<TTypeProvider>(TTypeProvider typeProvider)
+            where TTypeProvider : IManagedTypeProvider;
+    }
+
+    /// <summary>
+    /// An abstract type provider to convert IR types to managed types.
+    /// </summary>
+    public interface IManagedTypeProvider
+    {
+        /// <summary>
+        /// Gets the managed type for the given primitive type.
+        /// </summary>
+        /// <param name="primitiveType">The current primitive type.</param>
+        /// <returns>The managed primitive representation.</returns>
+        Type GetPrimitiveType(PrimitiveType primitiveType);
+
+        /// <summary>
+        /// Converts the given view type to a managed array representation.
+        /// </summary>
+        /// <param name="arrayType">The current array type.</param>
+        /// <returns>The managed array representation.</returns>
+        Type GetArrayType(ArrayType arrayType);
+
+        /// <summary>
+        /// Converts the given view type to a managed pointer representation.
+        /// </summary>
+        /// <param name="pointerType">The current pointer type.</param>
+        /// <returns>The managed pointer representation.</returns>
+        Type GetPointerType(PointerType pointerType);
+
+        /// <summary>
+        /// Converts the given view type to a managed view representation.
+        /// </summary>
+        /// <param name="viewType">The current view type.</param>
+        /// <returns>The managed view representation.</returns>
+        Type GetViewType(ViewType viewType);
+
+        /// <summary>
+        /// Converts the given structure type to a managed view representation.
+        /// </summary>
+        /// <param name="structureType">The current structure type.</param>
+        /// <returns>The managed structure representation.</returns>
+        Type GetStructureType(StructureType structureType);
     }
 
     /// <summary>
@@ -96,6 +140,47 @@ namespace ILGPU.IR.Types
 
         #endregion
 
+        #region Nested Types
+
+        /// <summary>
+        /// A simple loop-back type provider.
+        /// </summary>
+        public readonly struct ScalarManagedTypeProvider : IManagedTypeProvider
+        {
+            /// <summary>
+            /// Returns the default managed type for the given primitive one.
+            /// </summary>
+            public Type GetPrimitiveType(PrimitiveType primitiveType) =>
+                primitiveType.BasicValueType.GetManagedType();
+
+            /// <summary>
+            /// Returns the default managed array type for the given array type.
+            /// </summary>
+            public Type GetArrayType(ArrayType arrayType) =>
+                arrayType.GetDefaultManagedType(this);
+
+            /// <summary>
+            /// Returns the default pointer type implementation.
+            /// </summary>
+            public Type GetPointerType(PointerType pointerType) =>
+                pointerType.GetDefaultManagedPointerType(this);
+
+            /// <summary>
+            /// Returns the default view type implementation.
+            /// </summary>
+            public Type GetViewType(ViewType viewType) =>
+                viewType.GetDefaultManagedViewType(this);
+
+            /// <summary>
+            /// Returns the default structure type implementation reflecting the basic
+            /// type hierarchy.
+            /// </summary>
+            public Type GetStructureType(StructureType structureType) =>
+                structureType.GetDefaultManagedType(this);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -126,7 +211,7 @@ namespace ILGPU.IR.Types
         public IRTypeContext TypeContext { get; }
 
         /// <summary>
-        /// Returns the urrent runtime system.
+        /// Returns the current runtime system.
         /// </summary>
         public RuntimeSystem RuntimeSystem => TypeContext.RuntimeSystem;
 
@@ -223,9 +308,19 @@ namespace ILGPU.IR.Types
         #region Methods
 
         /// <summary>
+        /// The type representation in the managed world by using the default type
+        /// provider instance that emits scalar managed types.
+        /// </summary>
+        public Type LoadManagedType() =>
+            managedType ??= LoadManagedType(new ScalarManagedTypeProvider());
+
+        /// <summary>
         /// The type representation in the managed world.
         /// </summary>
-        public Type LoadManagedType() => managedType ??= GetManagedType();
+        public Type LoadManagedType<TTypeProvider>(
+            TTypeProvider typeProvider)
+            where TTypeProvider : IManagedTypeProvider =>
+            GetManagedType(typeProvider);
 
         /// <summary>
         /// Returns true if the given flags are set.
@@ -245,7 +340,8 @@ namespace ILGPU.IR.Types
         /// Creates a managed type that corresponds to this IR type.
         /// </summary>
         /// <returns>The created managed type.</returns>
-        protected abstract Type GetManagedType();
+        protected abstract Type GetManagedType<TTypeProvider>(TTypeProvider typeProvider)
+            where TTypeProvider : IManagedTypeProvider;
 
         /// <summary>
         /// Converts the current type to the given type <typeparamref name="T"/>.
