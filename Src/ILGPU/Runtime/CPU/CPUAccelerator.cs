@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Resources;
+using ILGPU.Runtime.Velocity;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -250,12 +251,13 @@ namespace ILGPU.Runtime.CPU
 
         /// <summary cref="Accelerator.CanAccessPeerInternal(Accelerator)"/>
         protected override bool CanAccessPeerInternal(Accelerator otherAccelerator) =>
-            otherAccelerator as CPUAccelerator != null;
+            otherAccelerator is CPUAccelerator ||
+            otherAccelerator is VelocityAccelerator;
 
         /// <summary cref="Accelerator.EnablePeerAccessInternal(Accelerator)"/>
         protected override void EnablePeerAccessInternal(Accelerator otherAccelerator)
         {
-            if (otherAccelerator as CPUAccelerator == null)
+            if (!CanAccessPeerInternal(otherAccelerator))
             {
                 throw new InvalidOperationException(
                     RuntimeErrorMessages.CannotEnablePeerAccessToOtherAccelerator);
@@ -266,7 +268,7 @@ namespace ILGPU.Runtime.CPU
         protected override void DisablePeerAccessInternal(
             Accelerator otherAccelerator) =>
             Debug.Assert(
-                otherAccelerator is CPUAccelerator,
+                CanAccessPeerInternal(otherAccelerator),
                 "Invalid EnablePeerAccess method");
 
         #endregion
@@ -482,7 +484,7 @@ namespace ILGPU.Runtime.CPU
         #region Page Lock Scope
 
         /// <inheritdoc/>
-        protected unsafe override PageLockScope<T> CreatePageLockFromPinnedInternal<T>(
+        protected override PageLockScope<T> CreatePageLockFromPinnedInternal<T>(
             IntPtr pinned,
             long numElements)
         {
