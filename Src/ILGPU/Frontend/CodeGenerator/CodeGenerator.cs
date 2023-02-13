@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CodeGenerator.cs
@@ -142,8 +142,7 @@ namespace ILGPU.Frontend
             }
 
             // Initialize locals
-            var methodBody = Disassembler.ExtractMethodBody(Method);
-            var localVariables = methodBody.LocalVariables;
+            var localVariables = Method.GetMethodBody().LocalVariables;
             for (int i = 0, e = localVariables.Count; i < e; ++i)
             {
                 var variable = localVariables[i];

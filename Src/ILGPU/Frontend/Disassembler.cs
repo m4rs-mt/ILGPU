@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Disassembler.cs
@@ -15,7 +15,6 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -28,60 +27,7 @@ namespace ILGPU.Frontend
     /// <remarks>Members of this class are not thread safe.</remarks>
     public sealed partial class Disassembler : ILocation
     {
-        #region Static
-
-        /// <summary>
-        /// Indicates whether the .NET runtime has support for Static Abstract methods
-        /// in Interfaces.
-        /// </summary>
-        [SuppressMessage("Performance", "CA1802:Use literals where appropriate")]
-        private static readonly bool UsingStaticAbstractMethodsInInterfaces =
-#if NET7_0_OR_GREATER
-            RuntimeFeature.IsSupported(RuntimeFeature.VirtualStaticsInInterfaces);
-#else
-            false;
-#endif
-
-        /// <summary>
-        /// Extracts the method body for the given method.
-        /// </summary>
-        /// <param name="method">The method.</param>
-        /// <returns>The method body.</returns>
-        public static MethodBody ExtractMethodBody(MethodBase method)
-        {
-            var methodBody = method.GetMethodBody();
-            if (methodBody == null &&
-                UsingStaticAbstractMethodsInInterfaces &&
-                method.DeclaringType.IsInterface &&
-                method.IsStatic &&
-                method.IsAbstract)
-            {
-                // Support for Static Abstract methods in Interfaces was introduced in
-                // C# 11, in particular, adding support for Generic Math. The interface
-                // itself does not contain the method implementation itself. Instead, we
-                // need to find the concrete type that implements the interface, and find
-                // the matching method.
-                var concreteType = method.DeclaringType.GetGenericArguments()[0];
-                var interfaceMap = concreteType.GetInterfaceMap(method.DeclaringType);
-
-                for (int i = 0; i < interfaceMap.InterfaceMethods.Length; i++)
-                {
-                    if (interfaceMap.InterfaceMethods[i].Name.Equals(
-                        method.Name,
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        methodBody = interfaceMap.TargetMethods[i].GetMethodBody();
-                        break;
-                    }
-                }
-            }
-
-            return methodBody;
-        }
-
-#endregion
-
-#region Constants
+        #region Constants
 
         /// <summary>
         /// Represents the native pointer type that is used during the
@@ -152,7 +98,7 @@ namespace ILGPU.Frontend
                 ? MethodBase.GetGenericArguments()
                 : Array.Empty<Type>();
             TypeGenericArguments = MethodBase.DeclaringType.GetGenericArguments();
-            MethodBody = ExtractMethodBody(MethodBase);
+            MethodBody = MethodBase.GetMethodBody();
             if (MethodBody == null)
             {
                 throw new NotSupportedException(string.Format(
