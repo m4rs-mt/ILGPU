@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaDevice.cs
@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Backends;
 using ILGPU.Resources;
 using System;
 using System.Collections.Immutable;
@@ -39,14 +38,16 @@ namespace ILGPU.Runtime.Cuda
             Predicate<CudaDevice> predicate)
         {
             var registry = new DeviceRegistry();
-            GetDevices(predicate, registry);
+            GetDevices(@override => { }, predicate, registry);
             return registry.ToImmutable();
         }
-
 
         /// <summary>
         /// Detects Cuda devices.
         /// </summary>
+        /// <param name="configure">
+        /// The action to configure a given device.
+        /// </param>
         /// <param name="predicate">
         /// The predicate to include a given device.
         /// </param>
@@ -56,9 +57,12 @@ namespace ILGPU.Runtime.Cuda
             "CA1031:Do not catch general exception types",
             Justification = "We want to hide all exceptions at this level")]
         internal static void GetDevices(
+            Action<CudaDeviceOverride> configure,
             Predicate<CudaDevice> predicate,
             DeviceRegistry registry)
         {
+            if (configure is null)
+                throw new ArgumentNullException(nameof(configure));
             if (registry is null)
                 throw new ArgumentNullException(nameof(registry));
             if (predicate is null)
@@ -66,7 +70,7 @@ namespace ILGPU.Runtime.Cuda
 
             try
             {
-                GetDevicesInternal(predicate, registry);
+                GetDevicesInternal(configure, predicate, registry);
             }
             catch (Exception)
             {
@@ -77,11 +81,15 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Detects Cuda devices.
         /// </summary>
+        /// <param name="configure">
+        /// The action to configure a given device.
+        /// </param>
         /// <param name="predicate">
         /// The predicate to include a given device.
         /// </param>
         /// <param name="registry">The registry to add all devices to.</param>
         private static void GetDevicesInternal(
+            Action<CudaDeviceOverride> configure,
             Predicate<CudaDevice> predicate,
             DeviceRegistry registry)
         {
@@ -99,6 +107,10 @@ namespace ILGPU.Runtime.Cuda
                     continue;
 
                 var desc = new CudaDevice(device);
+                var deviceOverride = new CudaDeviceOverride(desc);
+                configure(deviceOverride);
+                deviceOverride.ApplyOverrides();
+
                 if (predicate(desc))
                     registry.Register(desc);
             }
@@ -376,7 +388,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Returns the PTX instruction set (if supported).
         /// </summary>
-        public CudaInstructionSet? InstructionSet { get; private set; }
+        public CudaInstructionSet? InstructionSet { get; internal set; }
 
         /// <summary>
         /// Returns the clock rate.

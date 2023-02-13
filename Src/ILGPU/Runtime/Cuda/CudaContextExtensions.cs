@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaContextExtensions.cs
@@ -29,11 +29,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="builder">The builder instance.</param>
         /// <returns>The updated builder instance.</returns>
         public static Context.Builder Cuda(this Context.Builder builder) =>
-            builder.Cuda(desc =>
-                desc.Architecture.HasValue &&
-                desc.InstructionSet.HasValue &&
-                PTXCodeGenerator.SupportedInstructionSets.Contains(
-                    desc.InstructionSet.Value));
+            builder.Cuda(@override => { });
 
         /// <summary>
         /// Enables all Cuda devices.
@@ -45,6 +41,42 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The updated builder instance.</returns>
         public static Context.Builder Cuda(
             this Context.Builder builder,
+            Predicate<CudaDevice> predicate) =>
+            builder.CudaInternal(@override => { }, predicate);
+
+        /// <summary>
+        /// Enables and configures all Cuda devices.
+        /// </summary>
+        /// <param name="builder">The builder instance.</param>
+        /// <param name="configure">
+        /// The action to configure a given device.
+        /// </param>
+        /// <returns>The updated builder instance.</returns>
+        public static Context.Builder Cuda(
+            this Context.Builder builder,
+            Action<CudaDeviceOverride> configure) =>
+            builder.CudaInternal(
+                configure,
+                desc =>
+                    desc.Architecture.HasValue &&
+                    desc.InstructionSet.HasValue &&
+                    PTXCodeGenerator.SupportedInstructionSets.Contains(
+                        desc.InstructionSet.Value));
+
+        /// <summary>
+        /// Enables and configures all Cuda devices.
+        /// </summary>
+        /// <param name="builder">The builder instance.</param>
+        /// <param name="configure">
+        /// The action to configure a given device.
+        /// </param>
+        /// <param name="predicate">
+        /// The predicate to include a given device.
+        /// </param>
+        /// <returns>The updated builder instance.</returns>
+        public static Context.Builder CudaInternal(
+            this Context.Builder builder,
+            Action<CudaDeviceOverride> configure,
             Predicate<CudaDevice> predicate)
         {
             if (!Backend.RuntimePlatform.Is64Bit())
@@ -55,6 +87,7 @@ namespace ILGPU.Runtime.Cuda
             }
 
             CudaDevice.GetDevices(
+                configure,
                 predicate,
                 builder.DeviceRegistry);
             return builder;
