@@ -1,6 +1,6 @@
 ## ---------------------------------------------------------------------------------------
 ##                                        ILGPU
-##                           Copyright (c) 2021 ILGPU Project
+##                        Copyright (c) 2021-2023 ILGPU Project
 ##                                    www.ilgpu.net
 ##
 ## File: CheckLineLength.ps1
@@ -16,7 +16,7 @@ Param (
 )
 
 $found = $false
-Foreach ($pattern in "*.cs","*.tt") {
+Foreach ($pattern in "*.cs","*.tt","*.ttinclude") {
   Foreach ($file in Get-ChildItem -Path $path -Filter $pattern -Recurse -File) {
     If (-Not (($file.Directory.Name -Eq "Resources") -Or (Select-String -Path $file -Pattern "^// disable: max_line_length" -Quiet))) {
       $index = 1
