@@ -97,10 +97,25 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
     </None>
+    <None Include="Runtime\Cuda\CudaArchitecture.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaArchitecture.Generated.tt</DependentUpon>
+    </None>
     <None Include="Runtime\Cuda\CudaAsm.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
+    </None>
+    <None Include="Runtime\Cuda\CudaDriverVersion.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaDriverVersion.Generated.tt</DependentUpon>
+    </None>
+    <None Include="Runtime\Cuda\CudaInstructionSet.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaInstructionSet.Generated.tt</DependentUpon>
     </None>
     <None Include="Runtime\PageLockedArrays.Generated.cs">
       <DesignTime>True</DesignTime>
@@ -156,6 +171,18 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
+    </None>
+    <None Update="Runtime\Cuda\CudaArchitecture.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaArchitecture.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CudaDriverVersion.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaDriverVersion.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CudaInstructionSet.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaInstructionSet.Generated.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -230,10 +257,25 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ValueTuples.tt</DependentUpon>
     </Compile>
+    <Compile Update="Runtime\Cuda\CudaArchitecture.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaArchitecture.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="Runtime\Cuda\CudaAsm.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CudaDriverVersion.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaDriverVersion.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CudaInstructionSet.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaInstructionSet.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\Cuda\LibDevice.cs">
       <DesignTime>True</DesignTime>
