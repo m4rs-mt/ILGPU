@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: HistogramExtensions.cs
@@ -38,7 +38,7 @@ namespace ILGPU.Algorithms
         ArrayView<int> histogramOverflow)
         where T : unmanaged
         where TBinType : unmanaged
-        where TStride : unmanaged, IStride1D;
+        where TStride : struct, IStride1D;
 
     /// <summary>
     /// Represents a histogram operation on the given view.
@@ -54,7 +54,7 @@ namespace ILGPU.Algorithms
         ArrayView1D<T, TStride> view,
         ArrayView<TBinType> histogram)
         where T : unmanaged
-        where TStride : unmanaged, IStride1D
+        where TStride : struct, IStride1D
         where TBinType : unmanaged;
 
     #endregion
@@ -99,7 +99,7 @@ namespace ILGPU.Algorithms
             ArrayView<int> histogramOverflow,
             int paddedLength)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>;
@@ -133,7 +133,7 @@ namespace ILGPU.Algorithms
             ArrayView<TBinType> histogram,
             int paddedLength)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>;
@@ -181,7 +181,7 @@ namespace ILGPU.Algorithms
             ArrayView<int> histogramOverflow,
             int paddedLength)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
@@ -219,7 +219,7 @@ namespace ILGPU.Algorithms
             ArrayView<TBinType> histogram,
             int paddedLength)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
@@ -242,7 +242,7 @@ namespace ILGPU.Algorithms
             out bool histogramOverflow,
             int paddedLength)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
@@ -295,7 +295,7 @@ namespace ILGPU.Algorithms
             TLocator>(
             this Accelerator accelerator)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
@@ -373,7 +373,7 @@ namespace ILGPU.Algorithms
             TLocator>(
             this Accelerator accelerator)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
@@ -449,7 +449,7 @@ namespace ILGPU.Algorithms
             ArrayView<TBinType> histogram,
             ArrayView<int> histogramOverflow)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
@@ -488,7 +488,7 @@ namespace ILGPU.Algorithms
             ArrayView1D<T, TStride> view,
             ArrayView<TBinType> histogram)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TBinType : unmanaged
             where TIncrementor : struct, IIncrementOperation<TBinType>
             where TLocator : struct, IComputeMultiBinOperation<T, TBinType, TIncrementor>
