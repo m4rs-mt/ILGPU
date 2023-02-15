@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: HistogramLaunchers.tt/HistogramLaunchers.cs
@@ -59,7 +59,7 @@ namespace ILGPU.Algorithms
             ArrayView<<#= type.Type #>> histogram,
             ArrayView<int> histogramOverflow)
             where T : unmanaged
-            where TStride : unmanaged, IStride1D
+            where TStride : struct, IStride1D
             where TLocator : struct, IComputeSingleBinOperation<T, Index1D>
         {
             var kernel = accelerator.CreateHistogram<
