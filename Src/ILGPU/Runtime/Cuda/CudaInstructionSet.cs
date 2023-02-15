@@ -148,7 +148,12 @@ namespace ILGPU.Runtime.Cuda
 
         #region Instance
 
-        private CudaInstructionSet(int major, int minor)
+        /// <summary>
+        /// Creates the instruction set from major/minor values.
+        /// </summary>
+        /// <param name="major">The major version.</param>
+        /// <param name="minor">The minor version.</param>
+        public CudaInstructionSet(int major, int minor)
         {
             Major = major;
             Minor = minor;

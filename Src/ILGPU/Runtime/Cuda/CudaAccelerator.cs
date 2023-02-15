@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAccelerator.cs
@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PTX;
 using ILGPU.Resources;
@@ -188,7 +187,7 @@ namespace ILGPU.Runtime.Cuda
                 Context,
                 Capabilities,
                 Architecture,
-                InstructionSet,
+                (CudaInstructionSet)Device.InstructionSet,
                 nvvmAPI));
         }
 
@@ -220,8 +219,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Returns the PTX instruction set.
         /// </summary>
-        public CudaInstructionSet InstructionSet =>
-            (CudaInstructionSet)Device.InstructionSet;
+        public CudaInstructionSet InstructionSet => Backend.InstructionSet;
 
         /// <summary>
         /// Returns the clock rate.
