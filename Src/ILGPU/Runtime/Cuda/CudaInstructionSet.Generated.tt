@@ -1,0 +1,48 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2023 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: CudaInstructionSet.Generated.tt/CudaInstructionSet.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="../../Static/TypeInformation.ttinclude" #>
+<#@ include file="../../Static/CudaVersions.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath("../../Static");
+var versions = CudaVersions.Load(rootPath, "CudaVersions.xml");
+
+var instructionSets =
+    versions
+    .Select(x => x.InstructionSetVersion)
+    .Distinct()
+    .OrderBy(x => x)
+    .ToArray();
+#>
+
+namespace ILGPU.Runtime.Cuda
+{
+    partial struct CudaInstructionSet
+    {
+        #region Constants
+
+<# foreach (var isa in instructionSets) { #>
+        /// <summary>
+        /// The <#= isa.Major #>.<#= isa.Minor #> ISA.
+        /// </summary>
+        public static readonly CudaInstructionSet ISA_<#= isa.Major #><#= isa.Minor #> =
+            new CudaInstructionSet(<#= isa.Major #>, <#= isa.Minor #>);
+
+<# } #>
+        #endregion
+    }
+}

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaArchitecture.cs
@@ -17,104 +17,10 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Represents a Cuda architecture.
     /// </summary>
-    public readonly struct CudaArchitecture :
+    public readonly partial struct CudaArchitecture :
         IEquatable<CudaArchitecture>,
         IComparable<CudaArchitecture>
     {
-        #region Constants
-
-        /// <summary>
-        /// The 3.0 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_30 = new CudaArchitecture(3, 0);
-
-        /// <summary>
-        /// The 3.2 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_32 = new CudaArchitecture(3, 2);
-
-        /// <summary>
-        /// The 3.5 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_35 = new CudaArchitecture(3, 5);
-
-        /// <summary>
-        /// The 3.7 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_37 = new CudaArchitecture(3, 7);
-
-        /// <summary>
-        /// The 5.0 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_50 = new CudaArchitecture(5, 0);
-
-        /// <summary>
-        /// The 5.2 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_52 = new CudaArchitecture(5, 2);
-
-        /// <summary>
-        /// The 5.3 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_53 = new CudaArchitecture(5, 3);
-
-        /// <summary>
-        /// The 6.0 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_60 = new CudaArchitecture(6, 0);
-
-        /// <summary>
-        /// The 6.1 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_61 = new CudaArchitecture(6, 1);
-
-        /// <summary>
-        /// The 6.2 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_62 = new CudaArchitecture(6, 2);
-
-        /// <summary>
-        /// The 7.0 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_70 = new CudaArchitecture(7, 0);
-
-        /// <summary>
-        /// The 7.2 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_72 = new CudaArchitecture(7, 2);
-
-        /// <summary>
-        /// The 7.5 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_75 = new CudaArchitecture(7, 5);
-
-        /// <summary>
-        /// The 8.0 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_80 = new CudaArchitecture(8, 0);
-
-        /// <summary>
-        /// The 8.6 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_86 = new CudaArchitecture(8, 6);
-
-        /// <summary>
-        /// The 8.7 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_87 = new CudaArchitecture(8, 7);
-
-        /// <summary>
-        /// The 8.9 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_89 = new CudaArchitecture(8, 9);
-
-        /// <summary>
-        /// The 9.0 architecture.
-        /// </summary>
-        public static readonly CudaArchitecture SM_90 = new CudaArchitecture(9, 0);
-
-        #endregion
-
         #region Instance
 
         /// <summary>

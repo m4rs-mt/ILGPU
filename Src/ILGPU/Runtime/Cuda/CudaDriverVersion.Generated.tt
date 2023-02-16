@@ -1,0 +1,86 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2023 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: CudaDriverVersion.Generated.tt/CudaDriverVersion.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="../../Static/TypeInformation.ttinclude" #>
+<#@ include file="../../Static/CudaVersions.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath("../../Static");
+var versions = CudaVersions.Load(rootPath, "CudaVersions.xml");
+
+var architectures =
+    versions
+    .GroupBy(x => x.ArchitectureVersion)
+    .OrderBy(x => x.Key)
+    .Select(g => (g.Key, g.Min(x => x.DriverVersion)))
+    .ToArray();
+
+var instructionSets =
+    versions
+    .GroupBy(x => x.InstructionSetVersion)
+    .OrderBy(x => x.Key)
+    .Select(g => (g.Key, g.Min(x => x.DriverVersion)))
+    .ToArray();
+#>
+
+using System.Collections.Generic;
+
+namespace ILGPU.Runtime.Cuda
+{
+    partial class CudaDriverVersionUtils
+    {
+        #region Static
+
+        /// <summary>
+        /// Maps PTX architecture to their corresponding minimum CUDA driver version.
+        /// </summary>
+        private static readonly Dictionary<
+            CudaArchitecture,
+            CudaDriverVersion> ArchitectureLookup =
+            new Dictionary<CudaArchitecture, CudaDriverVersion>
+        {
+<# foreach (var architecture in architectures) { #>
+<#      var arch = architecture.Item1; #>
+<#      var drv = architecture.Item2; #>
+            {
+                CudaArchitecture.SM_<#= arch.Major #><#= arch.Minor #>,
+                CudaDriverVersion.FromMajorMinor(<#= drv.Major #>, <#= drv.Minor #>)
+            },
+<# } #>
+        };
+
+        /// <summary>
+        /// Maps PTX ISA to their corresponding minimum CUDA driver version.
+        /// </summary>
+        internal static readonly Dictionary<
+            CudaInstructionSet,
+            CudaDriverVersion> InstructionSetLookup =
+            new Dictionary<CudaInstructionSet, CudaDriverVersion>
+        {
+<# foreach (var instructionSet in instructionSets) { #>
+<#      var isa = instructionSet.Item1; #>
+<#      var drv = instructionSet.Item2; #>
+            {
+                CudaInstructionSet.ISA_<#= isa.Major #><#= isa.Minor #>,
+                CudaDriverVersion.FromMajorMinor(<#= drv.Major #>, <#= drv.Minor #>)
+            },
+<# } #>
+        };
+
+
+        #endregion
+    }
+}

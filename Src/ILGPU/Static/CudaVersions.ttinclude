@@ -1,0 +1,49 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2023 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: CudaVersions.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.ComponentModel" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Runtime.InteropServices" #>
+<#@ import namespace="System.Xml.Serialization" #>
+<#+
+[XmlRoot("Versions")]
+public class CudaVersions
+{
+    internal static CudaVersion[] Load(string rootPath, string fileName) =>
+        XmlHelper.Load<CudaVersions>(rootPath, fileName).CudaVersionList;
+
+    [XmlElement("Version")]
+    public CudaVersion[] CudaVersionList { get; set; }
+}
+
+[XmlRoot("CudaVersion")]
+public class CudaVersion
+{
+    [XmlAttribute]
+    public string InstructionSet { get; set; }
+
+    [XmlAttribute]
+    public string Driver { get; set; }
+
+    [XmlAttribute]
+    public string Architecture { get; set; }
+
+    public Version InstructionSetVersion => new Version(InstructionSet);
+    public Version DriverVersion => new Version(Driver);
+    public Version ArchitectureVersion => new Version(Architecture);
+}
+
+#>

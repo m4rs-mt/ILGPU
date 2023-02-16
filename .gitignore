@@ -266,7 +266,10 @@ Src/ILGPU/IntrinsicMath.CPUOnly.cs
 Src/ILGPU/Memory.cs
 Src/ILGPU/Runtime/ArrayViewExtensions.Generated.cs
 Src/ILGPU/Runtime/ArrayViews.cs
+Src/ILGPU/Runtime/Cuda/CudaArchitecture.Generated.cs
 Src/ILGPU/Runtime/Cuda/CudaAsm.Generated.cs
+Src/ILGPU/Runtime/Cuda/CudaDriverVersion.Generated.cs
+Src/ILGPU/Runtime/Cuda/CudaInstructionSet.Generated.cs
 Src/ILGPU/Runtime/Cuda/LibDevice.cs
 Src/ILGPU/Runtime/KernelLoaders.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
