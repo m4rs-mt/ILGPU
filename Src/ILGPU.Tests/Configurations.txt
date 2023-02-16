@@ -5,7 +5,6 @@ DisassemblerTests
 EnumValues
 FixedBuffers
 GetKernelTests
-GenericMath
 Indices
 KernelEntryPoints
 MemoryBufferOperations
@@ -14,6 +13,7 @@ ProfilingMarkers
 SharedMemory
 SizeOfValues
 SpecializedKernels
+StaticAbstractInterfaceMembers
 StructureValues
 ValueTuples
 InteropTests

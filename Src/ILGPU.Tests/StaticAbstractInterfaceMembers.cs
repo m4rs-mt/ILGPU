@@ -3,7 +3,7 @@
 //                        Copyright (c) 2022-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: GenericMath.cs
+// File: StaticAbstractInterfaceMembers.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -17,9 +17,11 @@ using Xunit.Abstractions;
 
 namespace ILGPU.Tests
 {
-    public abstract class GenericMath : TestBase
+    public abstract class StaticAbstractInterfaceMembers : TestBase
     {
-        protected GenericMath(ITestOutputHelper output, TestContext testContext)
+        protected StaticAbstractInterfaceMembers(
+            ITestOutputHelper output,
+            TestContext testContext)
             : base(output, testContext)
         { }
 
@@ -33,6 +35,8 @@ namespace ILGPU.Tests
                 return T.Zero;
             return value;
         }
+
+        #region Generic math
 
         internal static void GenericMathKernel<T>(
             Index1D index,
@@ -94,6 +98,56 @@ namespace ILGPU.Tests
             TestGenericMathKernel(input, expected, MaxValue);
         }
 
+        #endregion
+
+        internal static void IncrementingKernel<T>(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> input,
+            ArrayView1D<int, Stride1D.Dense> output)
+            where T : IStaticAbstract
+        {
+            output[index] = T.Inc(input[index]);
+        }
+
+        private void TestIncrementingKernel<T>(int[] inputValues, int[] expected)
+            where T : IStaticAbstract
+        {
+            using var input = Accelerator.Allocate1D<int>(inputValues);
+            using var output = Accelerator.Allocate1D<int>(Length);
+
+            using var start = Accelerator.DefaultStream.AddProfilingMarker();
+            Accelerator.LaunchAutoGrouped<
+                Index1D,
+                ArrayView1D<int, Stride1D.Dense>,
+                ArrayView1D<int, Stride1D.Dense>>(
+                IncrementingKernel<T>,
+                Accelerator.DefaultStream,
+                (int)input.Length,
+                input.View,
+                output.View);
+
+            Verify(output.View, expected);
+        }
+
+        public interface IStaticAbstract
+        {
+            static abstract int Inc(int x);
+        }
+
+        public class Incrementer: IStaticAbstract
+        {
+            public static int Inc(int x) => x + 1;
+        }
+
+        [Fact]
+        public void StaticInterfaceTest()
+        {
+            int[] input = Enumerable.Range(0, Length).ToArray();
+
+            int[] expected = input.Select(Incrementer.Inc).ToArray();
+
+            TestIncrementingKernel<Incrementer>(input, expected);
+        }
 #endif
     }
 }

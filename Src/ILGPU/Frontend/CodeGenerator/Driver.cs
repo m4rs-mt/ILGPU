@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Driver.cs
@@ -129,7 +129,7 @@ namespace ILGPU.Frontend
                     MakeReturn();
                     return true;
                 case ILInstructionType.Call:
-                    MakeCall(instruction.GetArgumentAs<MethodBase>());
+                    MakeCall(instruction);
                     return true;
                 case ILInstructionType.Callvirt:
                     MakeVirtualCall(instruction);
