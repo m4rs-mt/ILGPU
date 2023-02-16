@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Rewriter.cs
@@ -324,7 +324,7 @@ namespace ILGPU.IR.Rewriting
             Method.Builder builder,
             TProcessor processor,
             out HashSet<Value> converted)
-            where TProcessor : IProcessor
+            where TProcessor : struct, IProcessor
         {
             converted = new HashSet<Value>();
             bool applied = false;
@@ -357,7 +357,7 @@ namespace ILGPU.IR.Rewriting
             in BlockCollection blocks,
             Method.Builder builder,
             TProcessor processor)
-            where TProcessor : IProcessor
+            where TProcessor : struct, IProcessor
         {
             // Init processing
             bool applied = InitProcessing(

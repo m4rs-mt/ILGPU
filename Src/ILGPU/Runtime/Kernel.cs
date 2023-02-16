@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2022 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Kernel.cs
@@ -341,7 +341,7 @@ namespace ILGPU.Runtime
             T dimension,
             AcceleratorStream stream,
             object[] args)
-            where T : IIndex
+            where T : struct, IIndex
         {
             if (NumParameters != args.Length)
             {

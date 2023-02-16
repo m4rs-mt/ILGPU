@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRewriterContext.cs
@@ -86,7 +86,7 @@ namespace ILGPU.IR.Rewriting
             this T context,
             Value value,
             ValueReference newValue)
-            where T : IRewriterContext =>
+            where T : struct, IRewriterContext =>
             context.Replace(value, newValue.Resolve());
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace ILGPU.IR.Rewriting
             this T context,
             Value value,
             ValueReference newValue)
-            where T : IRewriterContext =>
+            where T : struct, IRewriterContext =>
             context.ReplaceAndRemove(value, newValue.Resolve());
 
         /// <summary>
@@ -111,7 +111,7 @@ namespace ILGPU.IR.Rewriting
         /// <param name="context">The context instance.</param>
         /// <returns>The parent method.</returns>
         public static Method GetMethod<T>(this T context)
-            where T : IRewriterContext => context.Block.Method;
+            where T : struct, IRewriterContext => context.Block.Method;
 
         /// <summary>
         /// Returns the parent method builder.
@@ -120,6 +120,6 @@ namespace ILGPU.IR.Rewriting
         /// <param name="context">The context instance.</param>
         /// <returns>The parent method builder.</returns>
         public static Method.Builder GetMethodBuilder<T>(this T context)
-            where T : IRewriterContext => context.Builder.MethodBuilder;
+            where T : struct, IRewriterContext => context.Builder.MethodBuilder;
     }
 }

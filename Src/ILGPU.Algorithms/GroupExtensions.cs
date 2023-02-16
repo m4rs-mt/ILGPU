@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: GroupExtensions.cs
@@ -33,7 +33,7 @@ namespace ILGPU.Algorithms
         [IntrinsicImplementation]
         public static T Reduce<T, TReduction>(T value)
             where T : unmanaged
-            where TReduction : IScanReduceOperation<T> =>
+            where TReduction : struct, IScanReduceOperation<T> =>
             ILGroupExtensions.Reduce<T, TReduction>(value);
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace ILGPU.Algorithms
         [IntrinsicImplementation]
         public static T AllReduce<T, TReduction>(T value)
             where T : unmanaged
-            where TReduction : IScanReduceOperation<T> =>
+            where TReduction : struct, IScanReduceOperation<T> =>
             ILGroupExtensions.AllReduce<T, TReduction>(value);
 
         #endregion

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlock.cs
@@ -168,7 +168,7 @@ namespace ILGPU.IR
             /// <typeparam name="T">The type of the visitor.</typeparam>
             /// <param name="visitor">The visitor.</param>
             public void Accept<T>(T visitor)
-                where T : IValueVisitor =>
+                where T : struct, IValueVisitor =>
                 ValueReference.Accept(visitor);
 
             /// <summary>

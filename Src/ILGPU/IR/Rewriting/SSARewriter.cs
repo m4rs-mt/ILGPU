@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SSARewriter.cs
@@ -248,7 +248,7 @@ namespace ILGPU.IR.Rewriting
         protected static bool ProcessSSA<TProcessor>(
             SSABuilder<TVariable> ssaBuilder,
             TProcessor processor)
-            where TProcessor : IProcessor
+            where TProcessor : struct, IProcessor
         {
             // Init processing
             bool applied = InitProcessing(

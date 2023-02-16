@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SSAConstruction.cs
@@ -139,7 +139,7 @@ namespace ILGPU.IR.Transformations
             Alloca alloca,
             Value initValue,
             in TData allocaData)
-            where TConstructionData : IConstructionData<TData>
+            where TConstructionData : struct, IConstructionData<TData>
             where TData : struct, IConstructionDataType<TData>
         {
             alloca.Assert(data.ContainsAlloca(alloca));
@@ -213,7 +213,7 @@ namespace ILGPU.IR.Transformations
             SSARewriterContext<Value> context,
             TConstructionData data,
             LoadFieldAddress loadFieldAddress)
-            where TConstructionData : IConstructionData<TData>
+            where TConstructionData : struct, IConstructionData<TData>
             where TData : struct, IConstructionDataType<TData>
         {
             if (!data.TryGetConverted(loadFieldAddress.Source, out var lfaData))
@@ -251,7 +251,7 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected static void RegisterRewriters<TConstructionData, TData>(
             SSARewriter<Value, TConstructionData> rewriter)
-            where TConstructionData : IConstructionData<TData>
+            where TConstructionData : struct, IConstructionData<TData>
             where TData : struct, IConstructionDataType<TData>
         {
             rewriter.Add<LoadFieldAddress>(Convert<TConstructionData, TData>);

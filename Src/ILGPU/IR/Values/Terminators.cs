@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Terminators.cs
@@ -131,7 +131,7 @@ namespace ILGPU.IR.Values
         public TerminatorValue RemapTargets<TTargetRemapper>(
             Method.Builder methodBuilder,
             TTargetRemapper remapper)
-            where TTargetRemapper : ITargetRemapper
+            where TTargetRemapper : struct, ITargetRemapper
         {
             var blockBuilder = methodBuilder[BasicBlock];
             return RemapTargets(blockBuilder, remapper);
@@ -147,7 +147,7 @@ namespace ILGPU.IR.Values
         public TerminatorValue RemapTargets<TTargetRemapper>(
             BasicBlock.Builder blockBuilder,
             TTargetRemapper remapper)
-            where TTargetRemapper : ITargetRemapper
+            where TTargetRemapper : struct, ITargetRemapper
         {
             this.Assert(blockBuilder.BasicBlock == BasicBlock);
             if (!remapper.CanRemap(Targets))

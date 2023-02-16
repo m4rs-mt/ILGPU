@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ControlFlowDirection.cs
@@ -19,7 +19,7 @@ namespace ILGPU.IR.Analyses.ControlFlowDirection
     /// </summary>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
     public interface IControlFlowAnalysisSource<TDirection>
-        where TDirection : IControlFlowDirection
+        where TDirection : struct, IControlFlowDirection
     {
         /// <summary>
         /// Returns the entry block.
@@ -51,7 +51,7 @@ namespace ILGPU.IR.Analyses.ControlFlowDirection
         /// <param name="source">The source.</param>
         /// <returns>The entry block.</returns>
         BasicBlock GetEntryBlock<TSource, TDirection>(in TSource source)
-            where TSource : IControlFlowAnalysisSource<TDirection>
+            where TSource : struct, IControlFlowAnalysisSource<TDirection>
             where TDirection : struct, IControlFlowDirection;
     }
 
@@ -71,7 +71,7 @@ namespace ILGPU.IR.Analyses.ControlFlowDirection
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly BasicBlock GetEntryBlock<TSource, TDirection>(
             in TSource source)
-            where TSource : IControlFlowAnalysisSource<TDirection>
+            where TSource : struct, IControlFlowAnalysisSource<TDirection>
             where TDirection : struct, IControlFlowDirection
         {
             TDirection direction = default;
@@ -96,7 +96,7 @@ namespace ILGPU.IR.Analyses.ControlFlowDirection
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly BasicBlock GetEntryBlock<TSource, TDirection>(
             in TSource source)
-            where TSource : IControlFlowAnalysisSource<TDirection>
+            where TSource : struct, IControlFlowAnalysisSource<TDirection>
             where TDirection : struct, IControlFlowDirection
         {
             TDirection direction = default;

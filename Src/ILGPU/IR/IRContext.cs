@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRContext.cs
@@ -130,7 +130,7 @@ namespace ILGPU.IR
         /// <returns>The resolved function view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public MethodCollection GetMethodCollection<TPredicate>(TPredicate predicate)
-            where TPredicate : IMethodCollectionPredicate
+            where TPredicate : struct, IMethodCollectionPredicate
         {
             // Synchronize all accesses below using a read scope
             using var readScope = irLock.EnterReadScope();
@@ -147,7 +147,7 @@ namespace ILGPU.IR
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private MethodCollection GetMethodCollection_Sync<TPredicate>(
             TPredicate predicate)
-            where TPredicate : IMethodCollectionPredicate
+            where TPredicate : struct, IMethodCollectionPredicate
         {
             var builder = ImmutableArray.CreateBuilder<Method>(
                 methods.Count);

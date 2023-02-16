@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILGroupExtensions.cs
@@ -27,14 +27,14 @@ namespace ILGPU.Algorithms.IL
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Reduce<T, TReduction>(T value)
             where T : unmanaged
-            where TReduction : IScanReduceOperation<T> =>
+            where TReduction : struct, IScanReduceOperation<T> =>
             AllReduce<T, TReduction>(value);
 
         /// <summary cref="GroupExtensions.AllReduce{T, TReduction}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T AllReduce<T, TReduction>(T value)
             where T : unmanaged
-            where TReduction : IScanReduceOperation<T>
+            where TReduction : struct, IScanReduceOperation<T>
         {
             TReduction reduction = default;
 

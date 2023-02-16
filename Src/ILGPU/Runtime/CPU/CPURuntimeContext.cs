@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPURuntimeContext.cs
@@ -181,7 +181,7 @@ namespace ILGPU.Runtime.CPU
             TParent parent,
             TOperation operation)
             where TParent : IParent
-            where TOperation : ILockedOperation<T>
+            where TOperation : struct, ILockedOperation<T>
         {
             bool isMainThread = AcquireLock();
             if (isMainThread)
