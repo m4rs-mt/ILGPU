@@ -14,6 +14,13 @@ on:
     paths:
       - 'Docs/**'
       - 'Site/**'
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'Docs/**'
+      - 'Site/**'
   milestone:
     types: [ created, closed, opened, edited, deleted ]
   release:
@@ -69,6 +76,7 @@ jobs:
       ##### GitHub Pages #####
 
   deploy: # Deployment job
+    if: github.event_name != 'pull_request' # Skip deployment when building pull requests.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
