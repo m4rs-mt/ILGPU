@@ -103,48 +103,44 @@
   padding: 50px 30px;
 }
 
-
-.features-col {
-  float: left !important;
-  width: 50% !important;
-}
-
-.features-col .header {
-  font-size: 28px !important;
-  margin-bottom: 12px !important;
+.features-header {
   background-color: #F3F5FA;
-  min-height: 60px !important;
-  padding-top: 6px !important;
-  text-align: center !important;
 }
 
-.features-col .spec {
-  border-right: 1px solid #37517e !important;
-  min-height: 48px !important;
+.features-header-col {
+  text-align: center;
+  vertical-align: middle;
+  height: 4rem;
+  font-weight: normal;
+
+  @media (min-width: 576px) {
+    font-size: 1.5rem;
+  }
 }
 
-.plan-col {
-  float: left !important;
-  text-align: center !important;
+.features-header-name {
+  @extend .features-header-col;
 }
 
-.plan-col .header {
-  font-size: 28px !important;
-  margin-bottom: 12px !important;
-  background-color: #F3F5FA;
-  min-height: 60px !important;
-  padding-top: 6px !important;
+.features-body > tr:nth-child(even) {
+   background-color: #00000004;
 }
 
-.plan-col .spec {
-  min-height: 48px !important;
-  border-right: 1px solid #37517e;
+.features-body-col {
+  border-left: 1px solid #37517e40;
 }
 
-.spec h4 {
-  color: #37517e !important;
-  margin-bottom: 0 !important;
-  font-size: 22px;
+.features-body-name {
+  color: #37517e;
+  height: 3rem;
+
+  @media (min-width: 576px) {
+    font-size: 1.25rem;
+  }
+}
+
+.spec {
+  text-align: center;
 }
 
 .spec .bx-check {
