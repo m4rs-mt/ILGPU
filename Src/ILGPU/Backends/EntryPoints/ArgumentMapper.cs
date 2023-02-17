@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArgumentMapper.cs
@@ -119,7 +119,7 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <typeparam name="TParentTarget">The parent source type.</typeparam>
         protected readonly struct StructureTarget<TParentTarget> : ITarget
-            where TParentTarget : ITarget
+            where TParentTarget : struct, ITarget
         {
             /// <summary>
             /// Constructs a new structure target.
@@ -295,7 +295,7 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <typeparam name="TParentSource">The parent source type.</typeparam>
         protected readonly struct StructureSource<TParentSource> : ISource
-            where TParentSource : ISource
+            where TParentSource : struct, ISource
         {
             /// <summary>
             /// Construct a new structure source.
@@ -346,7 +346,7 @@ namespace ILGPU.Backends.EntryPoints
         /// A view-parameter source.
         /// </summary>
         protected readonly struct ViewSource<TSource> : ISource
-            where TSource : ISource
+            where TSource : struct, ISource
         {
             /// <summary>
             /// Constructs a new view source.

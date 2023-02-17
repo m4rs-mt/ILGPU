@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Value.cs
@@ -77,7 +77,7 @@ namespace ILGPU.IR
         /// <typeparam name="T">The type of the visitor.</typeparam>
         /// <param name="visitor">The visitor.</param>
         void Accept<T>(T visitor)
-            where T : IValueVisitor;
+            where T : struct, IValueVisitor;
 
         /// <summary>
         /// Replaces this value with the given value.
@@ -532,7 +532,7 @@ namespace ILGPU.IR
         /// <typeparam name="T">The type of the visitor.</typeparam>
         /// <param name="visitor">The visitor.</param>
         public abstract void Accept<T>(T visitor)
-            where T : IValueVisitor;
+            where T : struct, IValueVisitor;
 
         /// <summary>
         /// Rebuilds the current value in the scope of the given rebuilder.

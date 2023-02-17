@@ -681,7 +681,7 @@ namespace ILGPU.Backends.PTX
             StringBuilder targetBuilder,
             ref TSetupLogic logic,
             int paramOffset)
-            where TSetupLogic : IParameterSetupLogic
+            where TSetupLogic : struct, IParameterSetupLogic
         {
             var parameters = new List<MappedParameter>(
                 Method.NumParameters - paramOffset);

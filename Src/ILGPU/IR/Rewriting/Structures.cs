@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Structures.cs
@@ -37,7 +37,7 @@ namespace ILGPU.IR.Rewriting
             StructureType structureType,
             TValue value,
             Func<T, TValue, FieldAccess, Value> lowering)
-            where T : IRewriterContext
+            where T : struct, IRewriterContext
             where TValue : Value
         {
             var instance = context.Builder.CreateStructure(
@@ -69,7 +69,7 @@ namespace ILGPU.IR.Rewriting
             StructureType structureType,
             TValue value,
             Action<T, TValue, Value, FieldAccess> lowering)
-            where T : IRewriterContext
+            where T : struct, IRewriterContext
             where TValue : Value
         {
             // Invoke the lowering implementation for all fields
@@ -106,7 +106,7 @@ namespace ILGPU.IR.Rewriting
             TValue source,
             Value variable,
             Func<T, TValue, Value, Value> lowering)
-            where T : IRewriterContext
+            where T : struct, IRewriterContext
             where TValue : Value
         {
             if (source.Type is PrimitiveType)

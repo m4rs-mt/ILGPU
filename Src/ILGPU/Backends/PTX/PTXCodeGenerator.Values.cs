@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Values.cs
@@ -1067,7 +1067,7 @@ namespace ILGPU.Backends.PTX
         private void EmitShuffleOperation<TShuffleEmitter>(
             ShuffleOperation shuffle,
             in TShuffleEmitter shuffleEmitter)
-            where TShuffleEmitter : IShuffleEmitter
+            where TShuffleEmitter : struct, IShuffleEmitter
         {
             var variable = LoadPrimitive(shuffle.Variable);
             var delta = LoadPrimitive(shuffle.Origin);

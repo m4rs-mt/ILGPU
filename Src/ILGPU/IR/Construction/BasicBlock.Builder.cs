@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlock.Builder.cs
@@ -297,7 +297,7 @@ namespace ILGPU.IR
             /// <param name="remapper">The remapper to use.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void RemapPhiArguments<TArgumentRemapper>(TArgumentRemapper remapper)
-                where TArgumentRemapper : PhiValue.IArgumentRemapper
+                where TArgumentRemapper : struct, PhiValue.IArgumentRemapper
             {
                 foreach (ValueEntry value in this)
                 {
@@ -321,7 +321,7 @@ namespace ILGPU.IR
             public void RemapPhiArguments<TArgumentRemapper>(
                 ReadOnlySpan<BasicBlock> blocks,
                 TArgumentRemapper remapper)
-                where TArgumentRemapper : PhiValue.IArgumentRemapper
+                where TArgumentRemapper : struct, PhiValue.IArgumentRemapper
             {
                 foreach (var block in blocks)
                 {
