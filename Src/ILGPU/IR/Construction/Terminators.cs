@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Terminators.cs
@@ -87,13 +87,20 @@ namespace ILGPU.IR.Construction
             Value condition,
             BasicBlock trueTarget,
             BasicBlock falseTarget,
-            IfBranchFlags flags) =>
-            CreateTerminator(new IfBranch(
+            IfBranchFlags flags)
+        {
+            // Simplify unnecessary if branches and fold them to unconditional branches
+            if (trueTarget == falseTarget)
+                return CreateBranch(location, trueTarget);
+
+            // Create an if branch in all other cases
+            return CreateTerminator(new IfBranch(
                 GetInitializer(location),
                 condition,
                 trueTarget,
                 falseTarget,
                 flags));
+        }
 
         /// <summary>
         /// Creates a switch terminator builder.
