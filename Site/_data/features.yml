@@ -1,0 +1,86 @@
+- name: .Net Code
+  ilgpu: "yes"
+  cppamp: "no"
+  cuda: "no"
+  
+- name: C++ Code
+  ilgpu: "no"
+  cppamp: "yes"
+  cuda: "yes"
+  
+- name: Function Annotations Required
+  ilgpu: "no"
+  cppamp: "yes"
+  cuda: "yes"
+  
+- name: NVIDIA GPUs
+  ilgpu: "yes"
+  cppamp: "yes"
+  cuda: "yes"
+  
+- name: AMD GPUs
+  ilgpu: "yes"
+  cppamp: "yes"
+  cuda: "no"
+  
+- name: Intel GPUs
+  ilgpu: "yes"
+  cppamp: "yes"
+  cuda: "no"
+  
+- name: High-Level Abstractions (Implicitly Grouped Kernels, ...)
+  ilgpu: "yes"
+  cppamp: "yes"
+  cuda: "no"
+  
+- name: Low-Level Intrinsics
+  ilgpu: "yes"
+  cppamp: "no"
+  cuda: "yes"
+  
+- name: High-Performance Math Functions
+  ilgpu: "yes"
+  cppamp: "no"
+  cuda: "yes"
+  
+- name: Cross-Platform Support
+  ilgpu: "yes"
+  cppamp: "yes"
+  cuda: "yes"
+  
+- name: Single-Compilation Cross-Platform Support
+  ilgpu: "yes"
+  cppamp: "no"
+  cuda: "no"
+  
+- name: Direct Multi-GPU Support
+  ilgpu: "yes"
+  cppamp: "partial"
+  cuda: "yes"
+  
+- name: Convenient Algorithm Debugging
+  ilgpu: "yes"
+  cppamp: "yes"
+  cuda: "no"
+  
+- name: Debugging on GPU Hardware
+  ilgpu: "partial"
+  cuda: "yes"
+  
+- name: Kernel Profiling
+  ilgpu: "yes"
+  cppamp: "yes"
+  cuda: "yes"
+  
+- name: CPU Runtime
+  ilgpu: "yes"
+  cppamp: "yes"
+  cuda: "no"
+- name: CPU Runtime with Shared Memory and Low-Level Intrinsics
+  ilgpu: "yes"
+  cuda: "no"
+  
+- name: SIMD CPU Runtime
+  ilgpu: "scheduled"
+  cppamp: "yes"
+  cuda: "no"
