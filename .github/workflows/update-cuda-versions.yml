@@ -1,6 +1,7 @@
 name: 'Update Cuda Versions'
 
 on:
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
   schedule:
     - cron:  '0 0 * * 5' # Run once every Friday, at midnight.
 

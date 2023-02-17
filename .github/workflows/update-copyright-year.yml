@@ -1,6 +1,7 @@
 name: 'Update Copyright Year'
 
 on:
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
   schedule:
     - cron:  '0 0 * * *' # Run once per day, at midnight.
 
