@@ -203,23 +203,17 @@
             <Parameter Name="device" Type="IntPtr" Flags="Out" />
         </Import>
         <Import Name="nvmlDeviceGetHandleByPciBusId_v2"
-                BestFitMapping="false"
-                CharSet="Ansi"
-                ThrowOnUnmappableChar="true">
+                StringMarshalling="Utf8">
             <Parameter Name="pciBusId" Type="string" />
             <Parameter Name="device" Type="IntPtr" Flags="Out" />
         </Import>
         <Import Name="nvmlDeviceGetHandleBySerial"
-                BestFitMapping="false"
-                CharSet="Ansi"
-                ThrowOnUnmappableChar="true">
+                StringMarshalling="Utf8">
             <Parameter Name="serial" Type="string" />
             <Parameter Name="device" Type="IntPtr" Flags="Out" />
         </Import>
         <Import Name="nvmlDeviceGetHandleByUUID"
-                BestFitMapping="false"
-                CharSet="Ansi"
-                ThrowOnUnmappableChar="true">
+                StringMarshalling="Utf8">
             <Parameter Name="uuid" Type="string" />
             <Parameter Name="device" Type="IntPtr" Flags="Out" />
         </Import>

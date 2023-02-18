@@ -126,7 +126,11 @@ public void WriteLibrary(ImportLibrary importLib)
     // Write the library version implementations
     foreach (var libVer in importLib.LibraryVersions)
     {
-        WriteLine($"internal sealed class {libVer.ClassName} : {importLib.ClassName}");
+        WriteLine("[System.Diagnostics.CodeAnalysis.SuppressMessage(");
+        WriteLine("    \"Security\",");
+        WriteLine("    \"CA5393:Do not use unsafe DllImportSearchPath value\")]");
+        Write($"internal sealed partial class ");
+        WriteLine($"{libVer.ClassName} : {importLib.ClassName}");
         WriteLine("{");
         PushIndent();
 

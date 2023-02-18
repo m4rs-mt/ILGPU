@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DllImports.tt/DllImports.cs
@@ -27,7 +27,6 @@ using ILGPU.Resources;
 using System;
 using System.Runtime.InteropServices;
 
-#pragma warning disable CA5393 // Do not use unsafe DllImportSearchPath value
 #pragma warning disable IDE1006 // Naming
 #pragma warning disable CA2101 // Specify marshaling for P/Invoke string arguments
 
@@ -80,7 +79,11 @@ namespace <#= imports.Namespace #>
     // Platform implementations
 
 <#      foreach (var (id, platformName) in platformMapping.Distinct()) { #>
-    sealed unsafe class <#= className #>_<#= id #> : <#= className #>
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Security",
+        "CA5393:Do not use unsafe DllImportSearchPath value")]
+    sealed unsafe partial class <#= className #>_<#= id #> : <#= className #>
     {
         #region Native Methods
 
@@ -146,7 +149,6 @@ namespace <#= imports.Namespace #>
 <# } #>
 
 #pragma warning restore CA2101 // Specify marshaling for P/Invoke string arguments
-#pragma warning restore CA5393 // Do not use unsafe DllImportSearchPath value
 #pragma warning restore IDE1006 // Naming
 
 <#+

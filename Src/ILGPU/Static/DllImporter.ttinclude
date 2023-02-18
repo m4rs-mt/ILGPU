@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DllImporter.ttinclude
@@ -46,14 +46,8 @@ public class EntryPoint
     public bool Unsafe { get; set; } = false;
 
     [XmlAttribute]
-    public CharSet CharSet { get; set; } = CharSet.Auto;
-
-    [XmlAttribute]
-    public bool BestFitMapping { get; set; } = true;
-
-    [XmlAttribute]
-    public bool ThrowOnUnmappableChar { get; set; } = false;
-
+    public string StringMarshalling { get; set; }
+    
     [XmlElement("Parameter")]
     public Parameter[] Parameters { get; set; }
 
@@ -104,6 +98,9 @@ public class Parameter
 
     [XmlAttribute]
     public ParameterDllFlags DllFlags { get; set; }
+    
+    [XmlAttribute]
+    public string MarshalAs { get; set; }
 
     [XmlAttribute]
     public ParameterFlags Flags { get; set; }
@@ -131,9 +128,20 @@ public class Parameter
                 ? "[Out]"
                 : "[In]"
         };
+        
+    [XmlIgnore]
+    public string MarshalAsExpression =>
+        string.IsNullOrWhiteSpace(MarshalAs)
+        ? ""
+        : $"[MarshalAs(UnmanagedType.{MarshalAs})]";
 
     public override string ToString() =>
         $"{DllFlagsExpression} {FlagsExpression}{Type} {Name}";
+
+    public string ToParamString(bool usingLibraryImport) =>
+        usingLibraryImport
+        ? $"{MarshalAsExpression} {FlagsExpression}{Type} {Name}"
+        : $"{DllFlagsExpression} {FlagsExpression}{Type} {Name}";
 
     public string ToExprString() =>
         $"{FlagsExpression}{Name}";
@@ -158,15 +166,40 @@ public void SetMakeMethodNameFunc(Func<string, string> func) =>
 /// </summary>
 public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
 {
-    WriteLine($"[DllImport({libName},");
+    WriteLine($"#if NET7_0_OR_GREATER");
+    WriteMethodNativeImportInternal(libName, entryPoint, true);
+    WriteLine($"#else");
+    WriteMethodNativeImportInternal(libName, entryPoint, false);
+    WriteLine($"#endif");
+}
+
+/// <summary>
+/// Writes the native import declaration.
+/// </summary>
+private void WriteMethodNativeImportInternal(
+    string libName,
+    EntryPoint entryPoint,
+    bool usingLibraryImport)
+{
+    if (usingLibraryImport)
+        WriteLine($"[LibraryImport({libName},");
+    else
+        WriteLine($"[DllImport({libName},");
     PushIndent();
     WriteLine($"EntryPoint = \"{entryPoint.Name}\"");
-    if (!entryPoint.BestFitMapping)
-        WriteLine(", BestFitMapping = false");
-    if (entryPoint.CharSet != CharSet.Auto)
-        WriteLine($", CharSet = CharSet.{entryPoint.CharSet}");
-    if (entryPoint.ThrowOnUnmappableChar)
-        WriteLine(", ThrowOnUnmappableChar = true");
+    if (entryPoint.StringMarshalling == "Utf8")
+    {
+        if (usingLibraryImport)
+        {
+            WriteLine(", StringMarshalling = StringMarshalling.Utf8");
+        }
+        else
+        {
+            WriteLine(", CharSet = CharSet.Ansi");
+            WriteLine(", BestFitMapping = false");
+            WriteLine(", ThrowOnUnmappableChar = true");
+        }
+    }
     WriteLine(")]");
     PopIndent();
 
@@ -176,12 +209,17 @@ public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
     Write("internal");
     if (entryPoint.Unsafe)
         Write(" unsafe");
-    Write($" static extern {entryPoint.ReturnType}");
+    Write(" static");
+    if (usingLibraryImport)
+        WriteLine($" partial");
+    else
+        WriteLine($" extern");
+    Write($" {entryPoint.ReturnType}");
     WriteLine($" {_makeImportName(entryPoint.Name)}(");
 
     PushIndent();
     foreach (var (param, suffix) in entryPoint.ParamExpressions)
-        WriteLine($"{param}{suffix}");
+        WriteLine($"{param.ToParamString(usingLibraryImport)}{suffix}");
     PopIndent();
 
     WriteLine();
