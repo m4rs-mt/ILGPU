@@ -103,7 +103,7 @@ jobs:
           # pushed, we do this since macOS builds last too long and ILGPU
           # is rarely used on a macOS
           (
-            [ "${{ github.event_name }}" == "workflow_dispatch" ] ||
+            [ "${{ github.event_name }}" == "workflow_dispatch" ||
               "${{ github.event_name }}" == "schedule" ] ||
             (
               [ "${{ github.event_name }}" == "push" ] &&
