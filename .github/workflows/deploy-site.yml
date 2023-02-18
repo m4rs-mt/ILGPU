@@ -12,6 +12,7 @@ on:
       - main
       - master
     paths:
+      - '.github/workflows/deploy-site.yml'
       - 'Docs/**'
       - 'Site/**'
   pull_request:
@@ -19,6 +20,7 @@ on:
       - main
       - master
     paths:
+      - '.github/workflows/deploy-site.yml'
       - 'Docs/**'
       - 'Site/**'
   milestone:
