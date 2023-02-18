@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuRand.cs
@@ -434,7 +434,7 @@ namespace ILGPU.Runtime.Cuda
         /// <inheritdoc cref="AcceleratorObject.DisposeAcceleratorObject(bool)"/>
         protected override void DisposeAcceleratorObject(bool disposing)
         {
-            var statusCode = API.DestoryGenerator(GeneratorPtr);
+            var statusCode = API.DestroyGenerator(GeneratorPtr);
             if (disposing)
                 CuRandException.ThrowIfFailed(statusCode);
             GeneratorPtr = IntPtr.Zero;
@@ -672,7 +672,7 @@ namespace ILGPU.Runtime.Cuda
         /// <inheritdoc cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            var statusCode = API.DestoryGenerator(GeneratorPtr);
+            var statusCode = API.DestroyGenerator(GeneratorPtr);
             if (disposing)
                 CuRandException.ThrowIfFailed(statusCode);
             GeneratorPtr = IntPtr.Zero;
