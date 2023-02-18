@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DllLibraryImporter.ttinclude
@@ -28,22 +28,26 @@ public class ImportLibrary
     {
         var importLib = XmlHelper.Load<ImportLibrary>(rootPath, fileName);
 
+        importLib.ApplyDefaults();
+        return importLib;
+    }
+
+    public void ApplyDefaults()
+    {
         // Setup default return types and access modifiers.
-        foreach (var region in importLib.Regions)
+        foreach (var region in Regions)
         {
             foreach (var entryPoint in region.EntryPoints)
             {
-                entryPoint.ReturnType ??= importLib.DefaultReturnType;
-                entryPoint.AccessModifier ??= importLib.DefaultMethodAccessModifier;
-                entryPoint.DllImportSearchPath ??= importLib.DefaultDllImportSearchPath;
+                entryPoint.ReturnType ??= DefaultReturnType;
+                entryPoint.AccessModifier ??= DefaultMethodAccessModifier;
+                entryPoint.DllImportSearchPath ??= DefaultDllImportSearchPath;
             }
         }
 
         // Setup library class names.
-        foreach (var ver in importLib.LibraryVersions)
-            ver.ClassName = $"{importLib.ClassName}_{ver.Platform}_{ver.Name}";
-
-        return importLib;
+        foreach (var ver in LibraryVersions)
+            ver.ClassName ??= $"{ClassName}_{ver.Platform}_{ver.Name}";
     }
 
     [XmlAttribute]

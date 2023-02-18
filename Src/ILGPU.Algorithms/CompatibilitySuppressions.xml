@@ -3,9 +3,23 @@
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:ILGPU.Runtime.Cuda.CuBlasAPIVersion</Target>
+    <Left>lib/net471/ILGPU.Algorithms.dll</Left>
+    <Right>lib/net471/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:ILGPU.Runtime.Cuda.CuRandAPIVersion</Target>
     <Left>lib/net471/ILGPU.Algorithms.dll</Left>
     <Right>lib/net471/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:ILGPU.Runtime.Cuda.CuBlasAPIVersion</Target>
+    <Left>lib/net5.0/ILGPU.Algorithms.dll</Left>
+    <Right>lib/net5.0/ILGPU.Algorithms.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -17,9 +31,23 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:ILGPU.Runtime.Cuda.CuBlasAPIVersion</Target>
+    <Left>lib/net6.0/ILGPU.Algorithms.dll</Left>
+    <Right>lib/net6.0/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:ILGPU.Runtime.Cuda.CuRandAPIVersion</Target>
     <Left>lib/net6.0/ILGPU.Algorithms.dll</Left>
     <Right>lib/net6.0/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:ILGPU.Runtime.Cuda.CuBlasAPIVersion</Target>
+    <Left>lib/netstandard2.1/ILGPU.Algorithms.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.Algorithms.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -46,6 +74,20 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.Runtime.Cuda.CPUCuRand.#ctor(ILGPU.Context,ILGPU.Runtime.Cuda.CuRandRngType,ILGPU.Runtime.Cuda.CuRandAPIVersion)</Target>
+    <Left>lib/net471/ILGPU.Algorithms.dll</Left>
+    <Right>lib/net471/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.Runtime.Cuda.CuBlas.#ctor(ILGPU.Runtime.Cuda.CudaAccelerator,ILGPU.Runtime.Cuda.CuBlasAPIVersion)</Target>
+    <Left>lib/net471/ILGPU.Algorithms.dll</Left>
+    <Right>lib/net471/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.Runtime.Cuda.CuBlas`1.#ctor(ILGPU.Runtime.Cuda.CudaAccelerator,ILGPU.Runtime.Cuda.CuBlasAPIVersion)</Target>
     <Left>lib/net471/ILGPU.Algorithms.dll</Left>
     <Right>lib/net471/ILGPU.Algorithms.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -94,6 +136,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.Runtime.Cuda.CuBlas.#ctor(ILGPU.Runtime.Cuda.CudaAccelerator,ILGPU.Runtime.Cuda.CuBlasAPIVersion)</Target>
+    <Left>lib/net5.0/ILGPU.Algorithms.dll</Left>
+    <Right>lib/net5.0/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.Runtime.Cuda.CuBlas`1.#ctor(ILGPU.Runtime.Cuda.CudaAccelerator,ILGPU.Runtime.Cuda.CuBlasAPIVersion)</Target>
+    <Left>lib/net5.0/ILGPU.Algorithms.dll</Left>
+    <Right>lib/net5.0/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.Runtime.Cuda.CuRand.CreateCPU(ILGPU.Context,ILGPU.Runtime.Cuda.CuRandRngType,ILGPU.Runtime.Cuda.CuRandAPIVersion)</Target>
     <Left>lib/net5.0/ILGPU.Algorithms.dll</Left>
     <Right>lib/net5.0/ILGPU.Algorithms.dll</Right>
@@ -136,6 +192,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.Runtime.Cuda.CuBlas.#ctor(ILGPU.Runtime.Cuda.CudaAccelerator,ILGPU.Runtime.Cuda.CuBlasAPIVersion)</Target>
+    <Left>lib/net6.0/ILGPU.Algorithms.dll</Left>
+    <Right>lib/net6.0/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.Runtime.Cuda.CuBlas`1.#ctor(ILGPU.Runtime.Cuda.CudaAccelerator,ILGPU.Runtime.Cuda.CuBlasAPIVersion)</Target>
+    <Left>lib/net6.0/ILGPU.Algorithms.dll</Left>
+    <Right>lib/net6.0/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.Runtime.Cuda.CuRand.CreateCPU(ILGPU.Context,ILGPU.Runtime.Cuda.CuRandRngType,ILGPU.Runtime.Cuda.CuRandAPIVersion)</Target>
     <Left>lib/net6.0/ILGPU.Algorithms.dll</Left>
     <Right>lib/net6.0/ILGPU.Algorithms.dll</Right>
@@ -172,6 +242,20 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ILGPU.Runtime.Cuda.CPUCuRand.#ctor(ILGPU.Context,ILGPU.Runtime.Cuda.CuRandRngType,ILGPU.Runtime.Cuda.CuRandAPIVersion)</Target>
+    <Left>lib/netstandard2.1/ILGPU.Algorithms.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.Runtime.Cuda.CuBlas.#ctor(ILGPU.Runtime.Cuda.CudaAccelerator,ILGPU.Runtime.Cuda.CuBlasAPIVersion)</Target>
+    <Left>lib/netstandard2.1/ILGPU.Algorithms.dll</Left>
+    <Right>lib/netstandard2.1/ILGPU.Algorithms.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:ILGPU.Runtime.Cuda.CuBlas`1.#ctor(ILGPU.Runtime.Cuda.CudaAccelerator,ILGPU.Runtime.Cuda.CuBlasAPIVersion)</Target>
     <Left>lib/netstandard2.1/ILGPU.Algorithms.dll</Left>
     <Right>lib/netstandard2.1/ILGPU.Algorithms.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
