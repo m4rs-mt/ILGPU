@@ -712,6 +712,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T>(
             this <#= viewName #> source,
@@ -729,6 +730,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T>(
             this <#= viewName #> source,
@@ -746,6 +748,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T>(
             this <#= viewName #> target,
@@ -763,6 +766,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T>(
             this <#= viewName #> target,
@@ -792,6 +796,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> source,
@@ -812,6 +817,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> source,
@@ -832,6 +838,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> target,
@@ -855,6 +862,7 @@ namespace ILGPU.Runtime
         /// This method is not supported on accelerators.
         /// </remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T>(
             this <#= typeName #><T, <#= strideTypeName #>.<#= strideName #>> target,

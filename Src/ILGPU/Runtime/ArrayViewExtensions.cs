@@ -1423,6 +1423,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         public static void CopyToPageLockedAsync<T, TView>(
             this TView source,
             AcceleratorStream stream,
@@ -1459,6 +1460,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         public static void CopyFromPageLockedAsync<T, TView>(
             this TView target,
             AcceleratorStream stream,
@@ -1494,6 +1496,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T, TView>(
             this TView source,
@@ -1515,6 +1518,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockScope">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T, TView>(
             this TView target,
@@ -1537,6 +1541,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockedArray">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T, TView>(
             this TView source,
@@ -1546,7 +1551,7 @@ namespace ILGPU.Runtime
             where T : unmanaged =>
             source.CopyToPageLockedAsync(
                 stream,
-                pageLockedArray.Scope);
+                pageLockedArray.Scope.AsNotNull());
 
         /// <summary>
         /// Copies from the page locked memory into the given target view without
@@ -1559,6 +1564,7 @@ namespace ILGPU.Runtime
         /// <param name="pageLockedArray">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T, TView>(
             this TView target,
@@ -1568,7 +1574,7 @@ namespace ILGPU.Runtime
             where T : unmanaged =>
             target.CopyFromPageLockedAsync(
                 stream,
-                pageLockedArray.Scope);
+                pageLockedArray.Scope.AsNotNull());
 
         /// <summary>
         /// Copies from the source view into the given page locked memory without
@@ -1580,13 +1586,14 @@ namespace ILGPU.Runtime
         /// <param name="pageLockedArray">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyToPageLockedAsync<T, TView>(
             this TView source,
             PageLockedArray<T> pageLockedArray)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
-            source.CopyToPageLockedAsync(pageLockedArray.Scope);
+            source.CopyToPageLockedAsync(pageLockedArray.Scope.AsNotNull());
 
         /// <summary>
         /// Copies from the page locked memory into the given target view without
@@ -1598,13 +1605,14 @@ namespace ILGPU.Runtime
         /// <param name="pageLockedArray">The page locked memory.</param>
         /// <remarks>This method is not supported on accelerators.</remarks>
         [NotInsideKernel]
+        [Obsolete("Use PageLockScope.ArrayView instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CopyFromPageLockedAsync<T, TView>(
             this TView target,
             PageLockedArray<T> pageLockedArray)
             where TView : IContiguousArrayView<T>
             where T : unmanaged =>
-            target.CopyFromPageLockedAsync(pageLockedArray.Scope);
+            target.CopyFromPageLockedAsync(pageLockedArray.Scope.AsNotNull());
 
         #endregion
 
