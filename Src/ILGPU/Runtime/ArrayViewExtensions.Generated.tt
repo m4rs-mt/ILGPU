@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayViewExtensions.Generated.tt/ArrayViewExtensions.Generated.cs
@@ -915,7 +915,7 @@ namespace ILGPU.Runtime
                 .AllocatePageLocked<#= dimension #>D<T>(view.Extent);
 
             // Copy the data
-            view.CopyToPageLockedAsync(stream, result);
+            view.BaseView.CopyTo(stream, result.ArrayView);
             stream.Synchronize();
 
             return result;

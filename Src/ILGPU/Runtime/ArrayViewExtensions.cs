@@ -624,7 +624,10 @@ namespace ILGPU.Runtime
                 using var pageLockScope = accelerator.CreatePageLockFromPinned<T>(
                     new IntPtr(Unsafe.AsPointer(ref cpuData)),
                     length);
-                source.CopyToPageLockedAsync(stream, pageLockScope);
+                source.Buffer.CopyTo(
+                    stream,
+                    source.IndexInBytes,
+                    pageLockScope.ArrayView.Cast<byte>());
             }
             else
             {
@@ -694,7 +697,10 @@ namespace ILGPU.Runtime
                 using var pageLockScope = accelerator.CreatePageLockFromPinned<T>(
                     new IntPtr(Unsafe.AsPointer(ref cpuData)),
                     length);
-                target.CopyFromPageLockedAsync(pageLockScope);
+                target.Buffer.CopyFrom(
+                    stream,
+                    pageLockScope.ArrayView.Cast<byte>(),
+                    target.IndexInBytes);
             }
             else
             {
@@ -1678,7 +1684,7 @@ namespace ILGPU.Runtime
             var result = accelerator.AllocatePageLocked1D<T>(
                 view.Length,
                 uninitialized: true);
-            view.CopyToPageLockedAsync(stream, result);
+            view.CopyTo(stream, result.ArrayView);
             stream.Synchronize();
             return result;
         }

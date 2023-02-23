@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PageLockScope.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Runtime.CPU;
 using System;
 
 namespace ILGPU.Runtime
@@ -23,17 +24,36 @@ namespace ILGPU.Runtime
         /// Constructs a page lock scope for the accelerator.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
+        /// <param name="addrOfLockedObject">The address of page locked object.</param>
         /// <param name="numElements">The number of elements.</param>
-        protected PageLockScope(Accelerator accelerator, long numElements)
+        protected PageLockScope(
+            Accelerator accelerator,
+            IntPtr addrOfLockedObject,
+            long numElements)
             : base(accelerator)
         {
+            AddrOfLockedObject = addrOfLockedObject;
             Length = numElements;
+
+            if (Length > 0)
+            {
+                MemoryBuffer = CPUMemoryBuffer.Create(
+                    accelerator,
+                    AddrOfLockedObject,
+                    Length,
+                    Interop.SizeOf<T>());
+                ArrayView = MemoryBuffer.AsArrayView<T>(0L, MemoryBuffer.Length);
+            }
+            else
+            {
+                ArrayView = ArrayView<T>.Empty;
+            }
         }
 
         /// <summary>
         /// Returns the address of page locked object.
         /// </summary>
-        public IntPtr AddrOfLockedObject { get; protected set; }
+        public IntPtr AddrOfLockedObject { get; }
 
         /// <summary>
         /// Returns the number of elements.
@@ -44,6 +64,27 @@ namespace ILGPU.Runtime
         /// Returns the length of the page locked memory in bytes.
         /// </summary>
         public long LengthInBytes => Length * Interop.SizeOf<T>();
+
+        /// <summary>
+        /// Returns the memory buffer wrapper of the .Net array.
+        /// </summary>
+        private MemoryBuffer MemoryBuffer { get; set; }
+
+        /// <summary>
+        /// Returns the array view of the underlying .Net array.
+        /// </summary>
+        public ArrayView<T> ArrayView { get; private set; }
+
+        /// <inheritdoc/>
+        protected override void DisposeAcceleratorObject(bool disposing)
+        {
+            if (disposing)
+            {
+                MemoryBuffer?.Dispose();
+                MemoryBuffer = null;
+                ArrayView = ArrayView<T>.Empty;
+            }
+        }
     }
 
     /// <summary>
@@ -62,12 +103,7 @@ namespace ILGPU.Runtime
             Accelerator accelerator,
             IntPtr hostPtr,
             long numElements)
-            : base(accelerator, numElements)
-        {
-            AddrOfLockedObject = hostPtr;
-        }
-
-        /// <inheritdoc/>
-        protected override void DisposeAcceleratorObject(bool disposing) { }
+            : base(accelerator, hostPtr, numElements)
+        { }
     }
 }
