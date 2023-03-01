@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.Values.cs
@@ -230,7 +230,9 @@ namespace ILGPU.Backends.OpenCL
             statement.AppendCommand(
                 value.BasicValueType == BasicValueType.Int64 ?
                 CLInstructions.DoubleAsLong :
-                CLInstructions.FloatAsInt);
+                value.BasicValueType == BasicValueType.Int32 ?
+                CLInstructions.FloatAsInt :
+                CLInstructions.HalfAsShort);
             statement.BeginArguments();
             statement.AppendArgument(source);
             statement.EndArguments();
@@ -246,7 +248,9 @@ namespace ILGPU.Backends.OpenCL
             statement.AppendCommand(
                 value.BasicValueType == BasicValueType.Float64 ?
                 CLInstructions.LongAsDouble :
-                CLInstructions.IntAsFloat);
+                value.BasicValueType == BasicValueType.Float32 ?
+                CLInstructions.IntAsFloat :
+                CLInstructions.ShortAsHalf);
             statement.BeginArguments();
             statement.AppendArgument(source);
             statement.EndArguments();
