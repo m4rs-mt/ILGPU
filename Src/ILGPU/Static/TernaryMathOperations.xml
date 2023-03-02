@@ -4,5 +4,6 @@
         <Summary>The FMA operation.</Summary>
         <Flags>IntsAndFloats</Flags>
         <Call>IntrinsicMath.CPUOnly.FMA</Call>
+        <Velocity>{Value0}.MultiplyAdd{T}({Value1}, {Value2})</Velocity>
     </Operation>
 </Operations>
