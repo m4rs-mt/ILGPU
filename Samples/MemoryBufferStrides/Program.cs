@@ -126,6 +126,13 @@ namespace MemoryBufferStrides
             //
             // This is also known as row-major order, and is the standard layout of .NET
             // arrays.
+            //
+            // NB: The value 8 in .NET array below, is accessed by "array[1,3]". The
+            // value 9 is accessed by "array[1,4]". And the value 12 by "array[2,2].
+            // For .NET multi-dimensional arrays, this is equivalent to "array[y,x]".
+            // This is because the contiguous memory layout of the array keeps the values
+            // 8 and 9 next to each other, and the value 12 is X+4 away from the value 8.
+            //
             var denseXValues = new int[,]
             {                           // Row Major
                 { 0, 1, 2, 3, 4 },      //  --> --> --> --> -->
@@ -185,7 +192,9 @@ namespace MemoryBufferStrides
             Console.WriteLine("Using Stride2D - .NET Values");
             for (var y = 0; y < dimXY.Y; y++)
                 for (var x = 0; x < dimXY.X; x++)
-                    Console.WriteLine($"DenseX[{y}, {x}]= {denseXValues[y, x]}, DenseY[{x}, {y}]= {denseYValues[x, y]}");
+                    Console.WriteLine(
+                        $"DenseX[{y}, {x}]= {denseXValues[y, x]}, " +
+                        $"DenseY[{x}, {y}]= {denseYValues[x, y]}");
 
             Console.WriteLine();
         }
