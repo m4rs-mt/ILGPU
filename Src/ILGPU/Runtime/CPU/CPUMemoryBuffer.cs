@@ -91,8 +91,12 @@ namespace ILGPU.Runtime.CPU
             in ArrayView<T> targetView)
             where T : unmanaged
         {
-            if (targetView.GetAcceleratorType() != AcceleratorType.CPU)
+            switch (targetView.GetAcceleratorType())
             {
+                case AcceleratorType.CPU:
+                case AcceleratorType.Velocity:
+                    break;
+                default:
                 throw new NotSupportedException(
                     RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
@@ -106,6 +110,7 @@ namespace ILGPU.Runtime.CPU
             switch (sourceView.GetAcceleratorType())
             {
                 case AcceleratorType.CPU:
+                case AcceleratorType.Velocity:
                     // Copy from CPU to CPU
                     CPUCopyToCPU(
                         ref sourceView.LoadEffectiveAddress(),
@@ -156,10 +161,14 @@ namespace ILGPU.Runtime.CPU
             in ArrayView<T> targetView)
             where T : unmanaged
         {
-            if (sourceView.GetAcceleratorType() != AcceleratorType.CPU)
+            switch (sourceView.GetAcceleratorType())
             {
-                throw new NotSupportedException(
-                    RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                case AcceleratorType.CPU:
+                case AcceleratorType.Velocity:
+                    break;
+                default:
+                    throw new NotSupportedException(
+                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
             if (targetView.Length > sourceView.Length)
                 throw new ArgumentOutOfRangeException(nameof(sourceView));
@@ -171,6 +180,7 @@ namespace ILGPU.Runtime.CPU
             switch (targetView.GetAcceleratorType())
             {
                 case AcceleratorType.CPU:
+                case AcceleratorType.Velocity:
                     // Copy from CPU to CPU
                     CPUCopyToCPU(
                         ref sourceView.LoadEffectiveAddress(),
@@ -222,11 +232,14 @@ namespace ILGPU.Runtime.CPU
             in ArrayView<T> targetView)
             where T : unmanaged
         {
-            if (sourceView.GetAcceleratorType() == AcceleratorType.CPU)
+            if (sourceView.GetAcceleratorType() == AcceleratorType.CPU ||
+                sourceView.GetAcceleratorType() == AcceleratorType.Velocity)
             {
                 CPUCopyTo(stream, sourceView, targetView);
             }
-            else if (targetView.GetAcceleratorType() == AcceleratorType.CPU)
+            else if (
+                targetView.GetAcceleratorType() == AcceleratorType.CPU ||
+                sourceView.GetAcceleratorType() == AcceleratorType.Velocity)
             {
                 CPUCopyFrom(stream, sourceView, targetView);
             }
