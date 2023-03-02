@@ -65,12 +65,14 @@ namespace ILGPU.Tests
             output[linearIndex] = linearIndex;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(513)]
         [KernelMethod(nameof(Index2EntryPointKernel))]
         public void Index2EntryPoint(int length)
         {
+            Skip.If(length > Accelerator.MaxGroupSize.Y);
+
             var extent = new Index2D(length, length);
             using var buffer = Accelerator.Allocate1D<int>(extent.Size);
             Execute(extent, buffer.View, extent);
@@ -88,12 +90,16 @@ namespace ILGPU.Tests
             output[linearIndex] = linearIndex;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(257)]
         [KernelMethod(nameof(Index3EntryPointKernel))]
         public void Index3EntryPoint(int length)
         {
+            Skip.If(
+                length > Accelerator.MaxGroupSize.Y ||
+                length > Accelerator.MaxGroupSize.Z);
+
             var extent = new Index3D(length, length, length);
             using var buffer = Accelerator.Allocate1D<int>(extent.Size);
             Execute(extent, buffer.View, extent);
@@ -147,12 +153,14 @@ namespace ILGPU.Tests
             output[idx] = idx;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(129)]
         [KernelMethod(nameof(GroupedIndex2EntryPointKernel))]
         public void GroupedIndex2EntryPoint(int length)
         {
+            Skip.If(length > Accelerator.MaxGroupSize.Y);
+
             var end = (int)Math.Sqrt(Accelerator.MaxNumThreadsPerGroup);
             for (int i = 1; i <= end; i <<= 1)
             {
@@ -197,11 +205,15 @@ namespace ILGPU.Tests
             output[idx] = idx;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [KernelMethod(nameof(GroupedIndex3EntryPointKernel))]
         public void GroupedIndex3EntryPoint(int length)
         {
+            Skip.If(
+                length > Accelerator.MaxGroupSize.Y ||
+                length > Accelerator.MaxGroupSize.Z);
+
             var end = (int)Math.Pow(Accelerator.MaxNumThreadsPerGroup, 1.0 / 3.0);
             for (int i = 1; i <= end; i <<= 1)
             {
@@ -301,11 +313,13 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(513)]
         public void NonCapturingLambdaIndex2EntryPoint(int length)
         {
+            Skip.If(length > Accelerator.MaxGroupSize.Y);
+
             Action<Index2D, ArrayView1D<int, Stride1D.Dense>, Index2D> kernel =
                 (index, output, extent) =>
                 {
@@ -321,11 +335,15 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(257)]
         public void NonCapturingLambdaIndex3EntryPoint(int length)
         {
+            Skip.If(
+                length > Accelerator.MaxGroupSize.Y ||
+                length > Accelerator.MaxGroupSize.Z);
+
             Action<Index3D, ArrayView1D<int, Stride1D.Dense>, Index3D> kernel =
                 (index, output, extent) =>
                 {
@@ -358,11 +376,13 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(513)]
         public void InstanceMethodIndex2EntryPoint(int length)
         {
+            Skip.If(length > Accelerator.MaxGroupSize.Y);
+
             var instanceHost = new InstaceHost();
             Action<Index2D, ArrayView1D<int, Stride1D.Dense>, Index2D> kernel =
                 instanceHost.InstanceKernel;
@@ -376,11 +396,15 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(257)]
         public void InstanceMethodIndex3EntryPoint(int length)
         {
+            Skip.If(
+                length > Accelerator.MaxGroupSize.Y ||
+                length > Accelerator.MaxGroupSize.Z);
+
             var instanceHost = new InstaceHost();
             Action<Index3D, ArrayView1D<int, Stride1D.Dense>, Index3D> kernel =
                 instanceHost.InstanceKernel;
@@ -413,11 +437,13 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(513)]
         public void StaticPropertyCapturingLambdaIndex2EntryPoint(int length)
         {
+            Skip.If(length > Accelerator.MaxGroupSize.Y);
+
             Action<Index2D, ArrayView1D<int, Stride1D.Dense>, Index2D> kernel =
                 (index, output, extent) =>
                 {
@@ -434,11 +460,15 @@ namespace ILGPU.Tests
             Verify(buffer.View, expected);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(257)]
         public void StaticPropertyCapturingLambdaIndex3EntryPoint(int length)
         {
+            Skip.If(
+                length > Accelerator.MaxGroupSize.Y ||
+                length > Accelerator.MaxGroupSize.Z);
+
             Action<Index3D, ArrayView1D<int, Stride1D.Dense>, Index3D> kernel =
                 (index, output, extent) =>
                 {
@@ -472,11 +502,13 @@ namespace ILGPU.Tests
                 Execute(kernel.Method, new Index1D((int)buffer.Length), buffer.View));
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(513)]
         public void LocalCapturingLambdaIndex2EntryPoint(int length)
         {
+            Skip.If(length > Accelerator.MaxGroupSize.Y);
+
             var capturedVariable = 1;
             Action<Index2D, ArrayView1D<int, Stride1D.Dense>, Index2D> kernel =
                 (index, output, extent) =>
@@ -491,11 +523,15 @@ namespace ILGPU.Tests
                 Execute(kernel.Method, extent, buffer.View, extent));
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(257)]
         public void LocalCapturingLambdaIndex3EntryPoint(int length)
         {
+            Skip.If(
+                length > Accelerator.MaxGroupSize.Y ||
+                length > Accelerator.MaxGroupSize.Z);
+
             var capturedVariable = 1;
             Action<Index3D, ArrayView1D<int, Stride1D.Dense>, Index3D> kernel =
                 (index, output, extent) =>
@@ -548,11 +584,13 @@ namespace ILGPU.Tests
             VerifyStaticFieldCapturingLambdaException(e);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(513)]
         public void StaticFieldCapturingLambdaIndex2EntryPoint(int length)
         {
+            Skip.If(length > Accelerator.MaxGroupSize.Y);
+
             Action<Index2D, ArrayView1D<int, Stride1D.Dense>, Index2D> kernel =
                 (index, output, extent) =>
                 {
@@ -567,11 +605,15 @@ namespace ILGPU.Tests
             VerifyStaticFieldCapturingLambdaException(e);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(33)]
         [InlineData(257)]
         public void StaticFieldCapturingLambdaIndex3EntryPoint(int length)
         {
+            Skip.If(
+                length > Accelerator.MaxGroupSize.Y ||
+                length > Accelerator.MaxGroupSize.Z);
+
             Action<Index3D, ArrayView1D<int, Stride1D.Dense>, Index3D> kernel =
                 (index, output, extent) =>
                 {
