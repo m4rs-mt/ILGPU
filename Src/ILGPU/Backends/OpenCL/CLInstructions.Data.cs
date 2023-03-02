@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLInstructions.Data.cs
@@ -98,6 +98,11 @@ namespace ILGPU.Backends.OpenCL
         public const string AtomicCASOperation = "atomic_compare_exchange_strong";
 
         /// <summary>
+        /// An short-as-half operation.
+        /// </summary>
+        public const string ShortAsHalf = "as_half";
+
+        /// <summary>
         /// An int-as-float operation.
         /// </summary>
         public const string IntAsFloat = "as_float";
@@ -106,6 +111,11 @@ namespace ILGPU.Backends.OpenCL
         /// An long-as-double operation.
         /// </summary>
         public const string LongAsDouble = "as_double";
+
+        /// <summary>
+        /// A half-as-short operation.
+        /// </summary>
+        public const string HalfAsShort = "as_short";
 
         /// <summary>
         /// A float-as-int operation.
