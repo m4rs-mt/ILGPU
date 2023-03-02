@@ -12,6 +12,7 @@
             <Target>Add</Target>
         </Rewriter>
         <!-- CombineNestedLeftConstant not required (commutative) -->
+        <Velocity>{Value0}[{Type}] + {Value1}[{Type}]</Velocity>
     </Operation>
     <Operation Name="Sub">
         <Summary>The - operation.</Summary>
@@ -38,6 +39,7 @@
         <Rewriter Mode="CombineNestedRightConstant">
             <Target>Add</Target>
         </Rewriter>
+        <Velocity>{Value0}[{Type}] - {Value1}[{Type}]</Velocity>
     </Operation>
     <Operation Name="Mul" IsCommutative="true">
         <Summary>The * operation.</Summary>
@@ -68,6 +70,7 @@
             <Target>Mul</Target>
         </Rewriter>
         <!-- CombineNestedLeftConstant not required (commutative) -->
+        <Velocity>{Value0}[{Type}] * {Value1}[{Type}]</Velocity>
     </Operation>
     <Operation Name="Div">
         <Summary>The / operation.</Summary>
@@ -104,6 +107,7 @@
                     BinaryArithmeticKind.Shr)
             </Target>
         </Rewriter>
+        <Velocity>{Value0}[{Type}] / {Value1}[{Type}]</Velocity>
     </Operation>
     <Operation Name="Rem">
         <Summary>The % operation.</Summary>
@@ -113,6 +117,7 @@
         <Implementation>{Value0} % {Value1}</Implementation>
         <!-- If we add some rules here we have to enable specific test cases
              in BinaryIntOperations.tt -->
+        <Velocity>ComputeRem{T}({Value0}, {Value1})</Velocity>
     </Operation>
 
     <Operation Name="And" IsCommutative="true">
@@ -134,6 +139,7 @@
             <Target>{Value0}</Target>
         </Rewriter>
         <!-- {Value0}.IsZero not required (commutative) -->
+        <Velocity>{Value0}.And({Value1})</Velocity>
     </Operation>
     <Operation Name="Or" IsCommutative="true">
         <Summary>The logical or operation.</Summary>
@@ -154,11 +160,13 @@
             <Target>{Value1}</Target>
         </Rewriter>
         <!-- {Value0}.IsZero not required (commutative) -->
+        <Velocity>{Value0}.Or({Value1})</Velocity>
     </Operation>
     <Operation Name="Xor" IsCommutative="true">
         <Summary>The logical xor operation.</Summary>
         <Flags>BoolsAndInts</Flags>
         <Op>{Value0} ^ {Value1}</Op>
+        <Velocity>{Value0}.Xor({Value1})</Velocity>
     </Operation>
     <Operation Name="Shl">
         <Summary>The shift left operation.</Summary>
@@ -172,6 +180,7 @@
             <Source>{Value1}.IsZero</Source>
             <Target>{Value0}</Target>
         </Rewriter>
+        <Velocity SoftwareEmulation="true"/>
     </Operation>
     <Operation Name="Shr">
         <Summary>The shift right operation.</Summary>
@@ -185,6 +194,7 @@
             <Source>{Value1}.IsZero</Source>
             <Target>{Value0}</Target>
         </Rewriter>
+        <Velocity SoftwareEmulation="true"/>
     </Operation>
 
     <Operation Name="Min" IsCommutative="true">
@@ -196,6 +206,7 @@
         <Rewriter Mode="CombineNestedRightConstant">
             <Target>Min</Target>
         </Rewriter>
+        <Velocity>Vector.Min({Value0}[{Type}], {Value1}[{Type}])</Velocity>
     </Operation>
     <Operation Name="Max" IsCommutative="true">
         <Summary>The max operation.</Summary>
@@ -206,6 +217,7 @@
         <Rewriter Mode="CombineNestedRightConstant">
             <Target>Max</Target>
         </Rewriter>
+        <Velocity>Vector.Max({Value0}[{Type}], {Value1}[{Type}])</Velocity>
     </Operation>
 
     <Operation Name="Atan2F">
@@ -213,23 +225,27 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Atan2</Call>
         <Implementation>{MathType}.Atan2({Value0}, {Value1})</Implementation>
+        <Velocity SoftwareEmulation="true"/>
     </Operation>
     <Operation Name="PowF">
         <Summary>The pow operation.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Pow</Call>
         <Implementation>{MathType}.Pow({Value0}, {Value1})</Implementation>
+        <Velocity SoftwareEmulation="true"/>
     </Operation>
     <Operation Name="BinaryLogF">
         <Summary>The binary log operation.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Log</Call>
         <Implementation>{MathType}.Log({Value0}, {Value1})</Implementation>
+        <Velocity SoftwareEmulation="true"/>
     </Operation>
 
     <Operation Name="CopySignF">
         <Summary>The copy sign operation.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CopySign</Call>
+        <Velocity SoftwareEmulation="true"/>
     </Operation>
 </Operations>
