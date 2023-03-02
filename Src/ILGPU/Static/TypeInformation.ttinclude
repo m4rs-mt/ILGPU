@@ -27,6 +27,19 @@ public enum TypeInformationKind
 
 public class TypeInformation
 {
+    private static readonly Dictionary<string, string> BasicValueTypeMapping =
+        new Dictionary<string, string>()
+        {
+            { "UInt8", "Int8" },
+            { "UInt16", "Int16" },
+            { "UInt32", "Int32" },
+            { "UInt64", "Int64" },
+
+            { "Half", "Float16" },
+            { "Float", "Float32" },
+            { "Double", "Float64" },
+        };
+
     private static readonly Dictionary<string, string> ArithmeticBasicValueTypeMapping =
         new Dictionary<string, string>()
         {
@@ -67,6 +80,11 @@ public class TypeInformation
 
     public string FormatNumber(string number) =>
         Prefix + "(" + number + Suffix + ")";
+
+    public string GetBasicValueType() =>
+        BasicValueTypeMapping.TryGetValue(Name, out string mappedType)
+        ? mappedType
+        : Name;
 
     public string GetArithmeticBasicValueType() =>
         ArithmeticBasicValueTypeMapping.TryGetValue(Name, out string mappedType)
@@ -309,7 +327,7 @@ public class VelocityMathConfig
     [XmlIgnore]
     public bool RequiresSpecialization =>
         !string.IsNullOrWhiteSpace(Implementation) &&
-        Implementation.Contains("{T}") || Implementation.Contains("[");
+        Implementation.Contains("[");
 
     public string GetImplementation(
         string lowerAsExpression,
