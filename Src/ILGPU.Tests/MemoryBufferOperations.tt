@@ -261,13 +261,15 @@ namespace ILGPU.Tests
         }
 
 <#  foreach (var type in copyTypes) { #>
-        [Theory]
+        [SkippableTheory]
 <#      foreach (var length in lengths) { #>
         [InlineData(<#= length #>)]
 <#      } #>
         [KernelMethod(nameof(Copy2D_Kernel))]
         public void Copy2D_<#= type.Name #>(int length)
         {
+            Skip.If(length > Accelerator.MaxGroupSize.Y);
+
             var extent = new LongIndex2D(length, length);
             Func<int, <#= type.Type #>> converter = c => (<#= type.Type #>)c;
             var expected = InitializeArray2D(length, converter);
@@ -331,13 +333,17 @@ namespace ILGPU.Tests
         }
 
 <#  foreach (var type in copyTypes) { #>
-        [Theory]
+        [SkippableTheory]
 <#      foreach (var length in lengths) { #>
         [InlineData(<#= length #>)]
 <#      } #>
         [KernelMethod(nameof(Copy3D_Kernel))]
         public void Copy3D_<#= type.Name #>(int length)
         {
+            Skip.If(
+                length > Accelerator.MaxGroupSize.Y ||
+                length > Accelerator.MaxGroupSize.Z);
+
             var extent = new LongIndex3D(length, length, length);
             Func<int, <#= type.Type #>> converter = c => (<#= type.Type #>)c;
             var expected = InitializeArray3D(length, converter);
