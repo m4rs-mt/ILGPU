@@ -10,10 +10,10 @@
     <Description>ILGPU Algorithms library for high-level GPU programming.</Description>
     <PackageDescription>
       ILGPU Algorithms library for high-level GPU programming.
-      Samples can be found in the GitHub repository: https://github.com/m4rs-mt/ILGPU.Samples
+      Samples can be found in the GitHub repository: https://github.com/m4rs-mt/ILGPU/tree/master/Samples
     </PackageDescription>
     <PackageProjectUrl>http://www.ilgpu.net</PackageProjectUrl>
-    <PackageReleaseNotes>http://www.ilgpu.net/releases/ILGPU.Algorithms.ReleaseNotes.txt</PackageReleaseNotes>
+    <PackageReleaseNotes>http://www.ilgpu.net/releases</PackageReleaseNotes>
     <PackageTags>ilgpu gpu llvm nvidia amd amp opencl cuda scan prefix sum sort reduce parallel foreach</PackageTags>
   </PropertyGroup>
 
