@@ -214,7 +214,7 @@ namespace ILGPU.Runtime.CPU
             where TParent : IParent
         {
             // If we are the main thread, release the lock by issuing an atomic
-            // exchange operation in order to be visible by another AquireLock
+            // exchange operation in order to be visible by another AcquireLock
             // operation that might be executed in the future.
             if (isMainThread)
                 Interlocked.Exchange(ref memoryLock, 0);
