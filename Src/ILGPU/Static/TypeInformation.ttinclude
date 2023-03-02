@@ -73,10 +73,12 @@ public class TypeInformation
     public bool IsSignedInt => Kind == TypeInformationKind.SignedInt;
     public bool IsUnsignedInt => Kind == TypeInformationKind.UnsignedInt;
     public bool IsFloat => Kind == TypeInformationKind.Float;
+    public bool IsFloat16 => Name == "Half";
+    public bool IsIntOrFloat16 => IsInt || IsFloat16;
     public bool IsCLSCompliant => !(IsUnsignedInt || Name == "Int8");
 
-    public string SizeOfType => Name == "Half" ? "sizeof(ushort)" : $"sizeof({Type})";
-    public string DefaultValue => Name == "Half" ? "Half.Zero" : "0";
+    public string SizeOfType => IsFloat16 ? "sizeof(ushort)" : $"sizeof({Type})";
+    public string DefaultValue => IsFloat16 ? "Half.Zero" : "0";
 
     public string FormatNumber(string number) =>
         Prefix + "(" + number + Suffix + ")";
@@ -323,6 +325,9 @@ public class VelocityMathConfig
 
     [XmlAttribute]
     public bool SoftwareEmulation { get; set; }
+
+    [XmlAttribute]
+    public bool ReturnAsWarp32 { get; set; }
 
     [XmlIgnore]
     public bool RequiresSpecialization =>
