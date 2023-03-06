@@ -29,8 +29,8 @@ namespace CudaVersionUpdateTool.Services
             var context = BrowsingContext.New(config);
 
             var doc = await context.OpenAsync(ReleaseNotesUrl);
-            var table = doc.GetElementById("release-notes__ptx-release-history");
-            var rows = table?.QuerySelectorAll("tbody tr");
+            var section = doc.GetElementById("release-notes");
+            var rows = section?.QuerySelectorAll("tbody tr");
 
             foreach (var row in rows ?? Enumerable.Empty<IElement>())
             {

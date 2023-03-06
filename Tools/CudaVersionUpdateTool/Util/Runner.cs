@@ -33,8 +33,10 @@ namespace CudaVersionUpdateTool.Util
         /// <param name="path">The base path to process.</param>
         public async Task UpdateArchitectureAsync(string path)
         {
-            var versionSets = await ParserService.GetVersionSetsAsync();
-            await GeneratorService.GenerateAsync(path, versionSets.ToList());
+            var versionSets = (await ParserService.GetVersionSetsAsync()).ToList();
+            if (!versionSets.Any())
+                throw new InvalidDataException("No version data found.");
+            await GeneratorService.GenerateAsync(path, versionSets);
         }
     }
 }
