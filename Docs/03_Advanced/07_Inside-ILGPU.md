@@ -63,7 +63,7 @@ interface.
 
 Compiled kernels have to be loaded by an accelerator first before they can be executed.
 See
-the [ILGPU low-level kernel sample](https://github.com/m4rs-mt/ILGPU.Samples/tree/master/Src/LowLevelKernelCompilation)
+the [ILGPU low-level kernel sample](https://github.com/m4rs-mt/ILGPU/tree/master/Samples/LowLevelKernelCompilation)
 for details.
 **Note: manually loaded kernels should be disposed manually to have full control over the lifetime of the kernel
 function in driver memory. You can also rely on the .Net GC to dispose kernels in the background.**
@@ -119,7 +119,7 @@ class ...
 Kernel launchers are delegates that provide an alternative to direct kernel invocations.
 These launchers are specialized methods that are dynamically generated and specialized for every kernel.
 They avoid boxing and
-realize [high-performance kernel dispatching](https://github.com/m4rs-mt/ILGPU.Samples/blob/master/Src/SimpleKernelDelegate)
+realize [high-performance kernel dispatching](https://github.com/m4rs-mt/ILGPU/tree/master/Samples/SimpleKernel)
 .
 You can create a custom kernel launcher using the `CreateLauncherDelegate` method.
 It Creates a specialized launcher for the associated kernel.
