@@ -22,6 +22,7 @@ jobs:
       - name: Update Cuda versions
         uses: technote-space/create-pr-action@v2
         with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EXECUTE_COMMANDS: |
             dotnet run --configuration=Release -p:TreatWarningsAsErrors=true --project Tools/CudaVersionUpdateTool
           COMMIT_MESSAGE: 'Bump Cuda versions.'

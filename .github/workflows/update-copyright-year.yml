@@ -25,6 +25,7 @@ jobs:
       - name: Update copyright year
         uses: technote-space/create-pr-action@v2
         with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EXECUTE_COMMANDS: |
             dotnet run --configuration=Release -p:TreatWarningsAsErrors=true --project Tools/CopyrightUpdateTool
           COMMIT_MESSAGE: 'Bump copyright year.'
