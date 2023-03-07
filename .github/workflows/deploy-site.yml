@@ -77,6 +77,13 @@ jobs:
         uses: actions/upload-pages-artifact@v1
       ##### GitHub Pages #####
 
+  all-required-checks-done:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All required checks done"
+
   deploy: # Deployment job
     if: github.event_name != 'pull_request' # Skip deployment when building pull requests.
     environment:
