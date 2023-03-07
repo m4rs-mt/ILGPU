@@ -134,11 +134,11 @@ namespace MemoryBufferStrides
             // 8 and 9 next to each other, and the value 12 is X+4 away from the value 8.
             //
             var denseXValues = new int[,]
-            {                           // Row Major
-                { 0, 1, 2, 3, 4 },      //  --> --> --> --> -->
-                { 5, 6, 7, 8, 9 },      //  --> --> --> --> -->
-                { 10, 11, 12, 13, 14 }, //  --> --> --> --> -->
-            };
+            {                           // Row Major                      |---> X-axis
+                { 0, 1, 2, 3, 4 },      //  --> --> --> --> -->           |
+                { 5, 6, 7, 8, 9 },      //  --> --> --> --> -->           |
+                { 10, 11, 12, 13, 14 }, //  --> --> --> --> -->           v
+            };                          //                              Y-axis
             var dimXY = new Index2D(denseXValues.GetLength(1), denseXValues.GetLength(0));
             var denseXView = inputBuffer.View.As2DDenseXView(dimXY);
 
@@ -172,23 +172,23 @@ namespace MemoryBufferStrides
             // what we would get from a .NET array.
             //
             //  var denseXValues = new int[,]
-            //  {                           // Row Major
-            //      { 0, 1, 2, 3, 4 },      //  --> --> --> --> -->
-            //      { 5, 6, 7, 8, 9 },      //  --> --> --> --> -->
-            //      { 10, 11, 12, 13, 14 }, //  --> --> --> --> -->
-            //  };
+            //  {                           // Row Major                  |---> X-axis
+            //      { 0, 1, 2, 3, 4 },      //  --> --> --> --> -->       |
+            //      { 5, 6, 7, 8, 9 },      //  --> --> --> --> -->       |
+            //      { 10, 11, 12, 13, 14 }, //  --> --> --> --> -->       v
+            //  };                          //                          Y-axis
             //
             // Since Stride2D.DenseY is column-major order, we instead expect each (X, Y)
             // index to match what we would get from a .NET array.
             //
             var denseYValues = new int[,]
-            {                   // Column Major
-                { 0, 1, 2 },    //  |    /|    /|
-                { 3, 4, 5 },    //  |   / |   / |
-                { 6, 7, 8 },    //  |  /  |  /  |
-                { 9, 10, 11 },  //  | /   | /   |
-                { 12, 13, 14 }, //  |/    |/    |
-            };
+            {                   // Column Major             |---> X-axis
+                { 0, 1, 2 },    //  |    /|    /|           |
+                { 3, 4, 5 },    //  |   / |   / |           |
+                { 6, 7, 8 },    //  |  /  |  /  |           |
+                { 9, 10, 11 },  //  | /   | /   |           |
+                { 12, 13, 14 }, //  |/    |/    |           v
+            };                  //                        Y-axis
             Console.WriteLine("Using Stride2D - .NET Values");
             for (var y = 0; y < dimXY.Y; y++)
                 for (var x = 0; x < dimXY.X; x++)
