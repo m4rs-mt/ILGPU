@@ -6,8 +6,6 @@ on:
     branches: [ master ]
     paths-ignore:
       - '.github/workflows/deploy-site.yml'
-      - '.github/workflows/update-copyright-year.yml'
-      - '.github/workflows/update-cuda-versions.yml'
       - 'Docs/**'
       - 'Site/**'
   pull_request:
@@ -15,8 +13,6 @@ on:
     branches: [ master ]
     paths-ignore:
       - '.github/workflows/deploy-site.yml'
-      - '.github/workflows/update-copyright-year.yml'
-      - '.github/workflows/update-cuda-versions.yml'
       - 'Docs/**'
       - 'Site/**'
   schedule:
