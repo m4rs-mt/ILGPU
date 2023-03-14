@@ -208,7 +208,7 @@
     <value>Could not find NVVM DLL in '{0}'</value>
   </data>
   <data name="NotSupportedNonBlittableType" xml:space="preserve">
-    <value>Type type '{0}' is not blittable</value>
+    <value>Type '{0}' is not blittable</value>
   </data>
   <data name="NotSupportedOpenCLCVersion" xml:space="preserve">
     <value>Not supported OpenCL C version (&gt;= {0} required)</value>

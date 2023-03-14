@@ -612,23 +612,34 @@ namespace ILGPU.Tests
             public int[] Data;
         }
 
-        [Fact]
-        public void UnsupportedEntryPointParameter()
+        public static TheoryData<object> TestDataUnsupportedEntryPointParameter =>
+            new TheoryData<object>
+        {
+            { new UnsupportedKernelParam() { Data = new int[32] } },
+            { true },
+            { new ValueTuple<int, bool>(42, false) },
+            { new ArrayView<bool>() },
+            { SpecializedValue.New(true) },
+        };
+
+        [Theory]
+        [MemberData(nameof(TestDataUnsupportedEntryPointParameter))]
+        public void UnsupportedEntryPointParameter<T>(T value)
+            where T : unmanaged
         {
             Action<
                 Index1D,
                 ArrayView1D<int, Stride1D.Dense>,
-                UnsupportedKernelParam> kernel =
+                T> kernel =
                 (index, output, param) =>
                 {
-                    output[index] = param.Data[index];
+                    output[index] = 1;
                 };
 
             var extent = new Index1D(32);
-            var param = new UnsupportedKernelParam() { Data = new int[extent.Size] };
             using var buffer = Accelerator.Allocate1D<int>(extent.Size);
             var e = Assert.Throws<ArgumentException>(() =>
-                Execute(kernel.Method, extent, buffer.View, param));
+                Execute(kernel.Method, extent, buffer.View, value));
             Assert.IsType<NotSupportedException>(e.InnerException);
         }
     }

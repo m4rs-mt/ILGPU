@@ -821,10 +821,20 @@ namespace ILGPU.Backends.EntryPoints
             // Map all parameters
             for (int i = 0, e = parameters.Count; i < e; ++i)
             {
+                var paramType = parameters.ParameterTypes[i];
                 try
                 {
+                    // Ensure kernel parameters are blittable.
+                    if (!TypeContext.GetTypeInfo(paramType).IsValidKernelParameter)
+                    {
+                        throw new NotSupportedException(
+                            string.Format(
+                                RuntimeErrorMessages.NotSupportedNonBlittableType,
+                                paramType.FullName));
+                    }
+
                     // Map type and store the mapped instance in a pinned local
-                    var mappedType = MapType(parameters.ParameterTypes[i]);
+                    var mappedType = MapType(paramType);
                     var mappingLocal = emitter.DeclarePinnedLocal(mappedType);
                     var localTarget = new LocalTarget(mappingLocal);
 
@@ -840,7 +850,7 @@ namespace ILGPU.Backends.EntryPoints
                     throw new ArgumentException(
                         string.Format(
                             ErrorMessages.NotSupportedKernelParameterType,
-                            parameters.ParameterTypes[i]),
+                            paramType),
                         nse);
                 }
             }
@@ -934,9 +944,20 @@ namespace ILGPU.Backends.EntryPoints
             // Define all parameter types
             for (int i = 0, e = parameters.Count; i < e; ++i)
             {
+                var paramType = parameters.ParameterTypes[i];
                 try
                 {
-                    var mappedType = MapType(parameters.ParameterTypes[i]);
+                    // Ensure kernel parameters are blittable.
+                    if (!TypeContext.GetTypeInfo(paramType).IsValidKernelParameter)
+                    {
+                        throw new NotSupportedException(
+                            string.Format(
+                                RuntimeErrorMessages.NotSupportedNonBlittableType,
+                                paramType.FullName));
+                    }
+
+                    // Map parameter to argument struct.
+                    var mappedType = MapType(paramType);
                     typeBuilder.DefineField(
                         GetFieldName(i),
                         mappedType,
@@ -947,7 +968,7 @@ namespace ILGPU.Backends.EntryPoints
                     throw new ArgumentException(
                         string.Format(
                             ErrorMessages.NotSupportedKernelParameterType,
-                            parameters.ParameterTypes[i]),
+                            paramType),
                         nse);
                 }
             }

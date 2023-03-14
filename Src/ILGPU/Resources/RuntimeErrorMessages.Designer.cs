@@ -331,7 +331,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Type type &apos;{0}&apos; is not blittable.
+        ///   Looks up a localized string similar to Type &apos;{0}&apos; is not blittable.
         /// </summary>
         internal static string NotSupportedNonBlittableType {
             get {
