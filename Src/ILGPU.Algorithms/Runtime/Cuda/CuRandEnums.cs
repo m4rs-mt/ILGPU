@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuRandEnums.cs
@@ -46,27 +46,6 @@ namespace ILGPU.Runtime.Cuda
         CURAND_RNG_QUASI_SCRAMBLED_SOBOL32 = 202,
         CURAND_RNG_QUASI_SOBOL64 = 203,
         CURAND_RNG_QUASI_SCRAMBLED_SOBOL64 = 204,
-    }
-
-    /// <summary>
-    /// Specifies a cuRand API version.
-    /// </summary>
-    public enum CuRandAPIVersion : int
-    {
-        /// <summary>
-        /// Version 9 of the cuRand library.
-        /// </summary>
-        V9 = 9,
-
-        /// <summary>
-        /// Version 10 of the cuRand library.
-        /// </summary>
-        V10 = 10,
-
-        /// <summary>
-        /// Version 11 of the cuRand library.
-        /// </summary>
-        V11 = 11,
     }
 }
 

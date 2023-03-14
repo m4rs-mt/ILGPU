@@ -146,16 +146,12 @@
         <Parameter Name="pStr" Type="IntPtr" Flags="Out" />
     </Import>
     <Import Name="cuModuleLoadData"
-            CharSet="Ansi"
-            BestFitMapping="false"
-            ThrowOnUnmappableChar="true">
+            StringMarshalling="Utf8">
         <Parameter Name="module" Type="IntPtr" Flags="Out" />
         <Parameter Name="moduleData" Type="string" />
     </Import>
     <Import Name="cuModuleLoadDataEx"
-            CharSet="Ansi"
-            BestFitMapping="false"
-            ThrowOnUnmappableChar="true">
+            StringMarshalling="Utf8">
         <Parameter Name="module" Type="IntPtr" Flags="Out" />
         <Parameter Name="moduleData" Type="string" />
         <Parameter Name="numOptions" Type="int" />
@@ -166,9 +162,7 @@
         <Parameter Name="module" Type="IntPtr" />
     </Import>
     <Import Name="cuModuleGetFunction"
-            CharSet="Ansi"
-            BestFitMapping="false"
-            ThrowOnUnmappableChar="true">
+            StringMarshalling="Utf8">
         <Parameter Name="function" Type="IntPtr" Flags="Out" />
         <Parameter Name="module" Type="IntPtr" />
         <Parameter Name="functionName" Type="string" />

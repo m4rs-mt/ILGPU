@@ -41,7 +41,7 @@
     </Import>
     <Import Name="clGetExtensionFunctionAddressForPlatform"
             ReturnType="IntPtr"
-            CharSet="Ansi" BestFitMapping="false">
+            StringMarshalling="Utf8">
         <Parameter Name="platformId" Type="IntPtr" />
         <Parameter Name="name" Type="string" />
     </Import>
@@ -88,7 +88,7 @@
     <!-- Kernels -->
     <Import Name="clCreateProgramWithSource"
             ReturnType="IntPtr"
-            CharSet="Ansi" BestFitMapping="false">
+            StringMarshalling="Utf8">
         <Parameter Name="context" Type="IntPtr" />
         <Parameter Name="numPrograms" Type="int" />
         <Parameter Name="source" Type="string" Flags="Ref" />
@@ -96,7 +96,7 @@
         <Parameter Name="errorCode" Type="CLError" Flags="Out" />
     </Import>
     <Import Name="clBuildProgram"
-            CharSet="Ansi" BestFitMapping="false">
+            StringMarshalling="Utf8">
         <Parameter Name="program" Type="IntPtr" />
         <Parameter Name="numDevices" Type="int" />
         <Parameter Name="devices" Type="IntPtr*" />
@@ -124,7 +124,7 @@
     </Import>
     <Import Name="clCreateKernel"
             ReturnType="IntPtr"
-            CharSet="Ansi" BestFitMapping="false">
+            StringMarshalling="Utf8">
         <Parameter Name="program" Type="IntPtr" />
         <Parameter Name="kernelName" Type="string" />
         <Parameter Name="errorCode" Type="CLError" Flags="Out" />
@@ -173,7 +173,7 @@
     <Import Name="clEnqueueReadBuffer">
         <Parameter Name="queue" Type="IntPtr" />
         <Parameter Name="buffer" Type="IntPtr" />
-        <Parameter Name="blockingRead" Type="bool" />
+        <Parameter Name="blockingRead" Type="bool" MarshalAs="U4" />
         <Parameter Name="offset" Type="IntPtr" />
         <Parameter Name="size" Type="IntPtr" />
         <Parameter Name="ptr" Type="IntPtr" />
@@ -184,7 +184,7 @@
     <Import Name="clEnqueueWriteBuffer">
         <Parameter Name="queue" Type="IntPtr" />
         <Parameter Name="buffer" Type="IntPtr" />
-        <Parameter Name="blockingWrite" Type="bool" />
+        <Parameter Name="blockingWrite" Type="bool" MarshalAs="U4" />
         <Parameter Name="offset" Type="IntPtr" />
         <Parameter Name="size" Type="IntPtr" />
         <Parameter Name="ptr" Type="IntPtr" />
