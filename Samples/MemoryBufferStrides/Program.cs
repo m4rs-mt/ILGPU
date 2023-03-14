@@ -201,6 +201,79 @@ namespace MemoryBufferStrides
 
         #endregion
 
+        #region Bitmap Stride
+
+        static void BitmapStrideKernel(
+            Index2D index,
+            ArrayView2D<byte, Stride2D.DenseX> view)
+        {
+            Interop.WriteLine("DenseX[Y={0}, X={1}]= {2}",
+                index.Y,
+                index.X,
+                view[index]);
+        }
+
+        /// <summary>
+        /// Example of using a 24-bit bitmap as an example of Stride2D.DenseX.
+        /// </summary>
+        static void UsingBitmapStride(Accelerator accelerator)
+        {
+            Console.WriteLine("Using Bitmap Stride");
+
+            // A 24-bit bitmap with RGB pixels requires 3 bytes per pixel. The bitmap
+            // format requires that each row is padded to a multiple of 4 bytes. For a
+            // bitmap of width=3 and height=3, each row is 9 bytes (3 bytes per pixel),
+            // with 3 bytes of padding, for a total buffer size of 45 bytes.
+            //
+            // The memory layout is:
+            //
+            //   X ->  0  1  2  3  4  5  6  7  8  9 10 11
+            // Y
+            // |  0    R  G  B  R  G  B  R  G  B  p  p  p
+            // |  1    R  G  B  R  G  B  R  G  B  p  p  p
+            // |  2    R  G  B  R  G  B  R  G  B  p  p  p
+            // v  3    R  G  B  R  G  B  R  G  B
+            //
+            // Reference: https://en.wikipedia.org/wiki/BMP_file_format
+            //
+            const int Width = 3;
+            const int Height = 4;
+            const int BytesPerPixel = 3;
+            const int WidthInBytes = Width * BytesPerPixel;
+            const int PaddedWidthInBytes = (WidthInBytes + BytesPerPixel) & ~0x3;
+
+            using var imageBuffer = accelerator.Allocate2D<byte, Stride2D.DenseX>(
+                new Index2D(WidthInBytes, Height),
+                ex => ex.X,
+                (ex, leadingDim) => new Stride2D.DenseX(PaddedWidthInBytes));
+
+            // Populate the image buffer from a flat array, including the padding.
+            //
+            // var sourceBuffer =                              PADDING
+            //     new byte[Height, PaddedWidthInBytes]       |   |   |
+            //     {                                          v   v   v 
+            //         {  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12 },
+            //         { 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 },
+            //         { 25, 26, 27, 28, 20, 30, 31, 32, 33, 34, 35, 36 },
+            //         { 37, 38, 39, 40, 41, 42, 43, 44, 45 }
+            //     };
+            var sourceBuffer =
+                Enumerable.Range(1, (int)imageBuffer.Length)
+                .Select(x => (byte)x)
+                .ToArray();
+            imageBuffer.View.AsContiguous().CopyFromCPU(sourceBuffer);
+
+            // Iterate over the pixels of the image, skipping the padding.
+            var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                Index2D,
+                ArrayView2D<byte, Stride2D.DenseX>>(
+                    BitmapStrideKernel);
+            kernel(imageBuffer.IntExtent, imageBuffer.View);
+            accelerator.Synchronize();
+        }
+
+        #endregion
+
         /// <summary>
         /// Demonstrates memory buffer and array view striding.
         /// </summary>
@@ -218,6 +291,7 @@ namespace MemoryBufferStrides
 
                 UsingStride1D(accelerator);
                 UsingStride2D(accelerator);
+                UsingBitmapStride(accelerator);
             }
         }
     }
