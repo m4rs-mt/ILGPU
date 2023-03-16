@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -135,18 +135,24 @@ namespace AlgorithmsCuFFT
             // This workaround restores the accelerator context so that deallocation of
             // the memory buffers can be performed on the correct context.
             //
-            // Based on the versions of CuFFT released, apply workaround to CuFFT v10.4.x.
+            // Based on the versions of CuFFT released, we would need to apply the
+            // workaround to CuFFT v10.4.x.
             //
             // Release 11.1.1   CuFFT v10.3.0.105
             // Release 11.2     CuFFT v10.4.0.72
             // Release 11.3     CuFFT v10.4.2.58
             // Release 11.4     CuFFT v10.5.0.43
             //
+            // However, based on actual testing, the issue still persists in later
+            // versions. It appears to have been fixed in Release 12.0, which ships
+            // with CuFFT v11. So, we will apply the workaround from v10.4.x and later
+            // versions, up to v11 (exclusive).
+            //
             CuFFTException.ThrowIfFailed(
                 api.GetProperty(LibraryPropertyType.MAJOR_VERSION, out var major));
             CuFFTException.ThrowIfFailed(
                 api.GetProperty(LibraryPropertyType.MINOR_VERSION, out var minor));
-            if (major == 10 && minor == 4)
+            if (major == 10 && minor >= 4)
             {
                 CudaException.ThrowIfFailed(
                     CudaAPI.CurrentAPI.SetCurrentContext(accelerator.NativePtr));
