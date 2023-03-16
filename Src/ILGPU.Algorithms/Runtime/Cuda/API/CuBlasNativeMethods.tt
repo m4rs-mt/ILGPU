@@ -35,6 +35,9 @@ var libraryVersions = new (string, Platform, string)[]
         ("V11", Platform.Windows,   "cublas64_11.dll"),
         ("V11", Platform.Linux,     "libcublas.so.11"),
         ("V11", Platform.OSX,       "libcublas.11.dylib"),
+    
+        ("V12", Platform.Windows,   "cublas64_12.dll"),
+        ("V12", Platform.Linux,     "libcublas.so.12"),
     };
 
 var regions = new List<Region>();
