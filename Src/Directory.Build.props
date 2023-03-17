@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <LibraryVersionPrefix>1.4.0-beta1</LibraryVersionPrefix>
+    <LibraryVersionPrefix>1.4.0-rc1</LibraryVersionPrefix>
     <LibraryAssemblyVersion>1.4.0.0</LibraryAssemblyVersion>
     <LibraryFileVersion>1.4.0.0</LibraryFileVersion>
     <LibraryPackageValidationBaselineVersion>1.3.0</LibraryPackageValidationBaselineVersion>
