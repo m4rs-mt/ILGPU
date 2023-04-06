@@ -12,6 +12,9 @@
 
         <LibraryVersion Name="V11" Platform="Windows" LibName="cufft64_11.dll" />
         <LibraryVersion Name="V11" Platform="Linux" LibName="libcufft.so.11" />
+
+        <LibraryVersion Name="V12" Platform="Windows" LibName="cufft64_11.dll" />
+        <LibraryVersion Name="V12" Platform="Linux" LibName="libcufft.so.12" />
     </LibraryVersions>
 
     <Region Name="Basic Plans">

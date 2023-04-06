@@ -11,6 +11,9 @@
 
         <LibraryVersion Name="V11" Platform="Windows" LibName="cufftw64_11.dll" />
         <LibraryVersion Name="V11" Platform="Linux" LibName="libcufftw.so.11" />
+
+        <LibraryVersion Name="V12" Platform="Windows" LibName="cufftw64_11.dll" />
+        <LibraryVersion Name="V12" Platform="Linux" LibName="libcufftw.so.12" />
     </LibraryVersions>
 
     <Region Name="Basic Interface - Complex - Double Precision">
