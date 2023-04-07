@@ -13,6 +13,12 @@
         <LibraryVersion Name="V10" Platform="Windows" LibName="curand64_10.dll" />
         <LibraryVersion Name="V10" Platform="Linux" LibName="libcurand.so.10" />
         <LibraryVersion Name="V10" Platform="OSX" LibName="libcurand.10.dylib" />
+
+        <LibraryVersion Name="V11" Platform="Windows" LibName="curand64_10.dll" />
+        <LibraryVersion Name="V11" Platform="Linux" LibName="libcurand.so.11" />
+
+        <LibraryVersion Name="V12" Platform="Windows" LibName="curand64_10.dll" />
+        <LibraryVersion Name="V12" Platform="Linux" LibName="libcurand.so.12" />
     </LibraryVersions>
 
     <Region Name="Creation">
