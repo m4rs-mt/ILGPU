@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU", "ILGPU\ILGPU.csproj", "{30A409A1-B627-4ED0-9CDD-69BA19996E7B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{ED6D4369-EC01-4822-B94E-6C3DCFD26A35} = {ED6D4369-EC01-4822-B94E-6C3DCFD26A35}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Tests", "ILGPU.Tests\ILGPU.Tests.csproj", "{FD2580D6-C051-4F6B-8208-EE0EAAFD6392}"
 EndProject
