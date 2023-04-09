@@ -1,6 +1,6 @@
 ## ---------------------------------------------------------------------------------------
 ##                                        ILGPU
-##                        Copyright (c) 2021-2022 ILGPU Project
+##                        Copyright (c) 2021-2023 ILGPU Project
 ##                                    www.ilgpu.net
 ##
 ## File: UpdateSampleReferences.ps1
@@ -38,6 +38,12 @@ ForEach ($projectPath in $projectPaths) {
     $found = $referencePath -match '\\([^\\]*).csproj$'
     if ($found) {
       $libraryName = $matches[1]
+
+      # Skip ILGPU.Analyzers because we bundle it with ILGPU.
+      if ($libraryName -eq "ILGPU.Analyzers") {
+        continue
+      }
+
       dotnet add $projectPath package $libraryName -v $version --no-restore
     }
   }
