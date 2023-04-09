@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SourceCodeCopyrightParser.cs
@@ -148,6 +148,10 @@ namespace CopyrightUpdateTool.Parsers
                 if (File.Exists(templatePath))
                     return Task.FromResult(false);
             }
+
+            if (file.Name.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
+                file.Name.EndsWith(".g.verified.cs", StringComparison.OrdinalIgnoreCase))
+                return Task.FromResult(false);
 
             // Ignore .test.tt file (.runsettings)
             if (file.Name.Equals(".test.tt", StringComparison.OrdinalIgnoreCase))
