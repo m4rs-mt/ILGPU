@@ -206,7 +206,7 @@ jobs:
         run: echo "flavor=$([[ "${{ matrix.os }}" == cuda-* ]] && echo "Cuda" || echo "CPU")" >> $GITHUB_OUTPUT
 
       - name: Build and test
-        run: dotnet test Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }} --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger junit
+        run: dotnet test Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }} --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger trx
         env:
           ILGPU_CLEAN_TESTS: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }}
 
@@ -216,7 +216,7 @@ jobs:
         with:
           name: Test Results (${{ matrix.os }},${{ matrix.library }}, ${{matrix.framework }})
           path: |
-            **/TestResults/**/*.xml
+            **/TestResults/**/*.trx
 
   publish-test-results:
     needs: test-library
@@ -235,7 +235,7 @@ jobs:
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: "artifacts/**/*.xml"
+          files: "artifacts/**/*.trx"
 
   # Ensure that ILGPU libraries are built using the same version tag.
   check-version:
