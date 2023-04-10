@@ -229,6 +229,9 @@ jobs:
     needs: test-library
     runs-on: ubuntu-latest
     if: success() || failure()
+    permissions:
+      checks: write
+      pull-requests: write
 
     steps:
       - name: Download Artifacts
@@ -238,10 +241,6 @@ jobs:
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
-        permissions:
-          checks: write
-          # needed unless run with comment_mode: off
-          pull-requests: write
         with:
           files: "artifacts/**/*.xml"
 
