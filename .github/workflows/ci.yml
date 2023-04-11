@@ -221,7 +221,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: Test Results (${{ matrix.os }},${{ matrix.library }}, ${{matrix.framework }})
+          name: Test Results (${{ matrix.os }}, ${{ matrix.library }}, ${{matrix.framework }})
           path: |
             **/TestResults/**/*.trx
 
