@@ -81,11 +81,11 @@ jobs:
             exit 1
           fi
 
-  event_file:
+  event-file:
     runs-on: ubuntu-latest
     steps:
       - name: Upload
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Event File
           path: ${{ github.event_path }}
