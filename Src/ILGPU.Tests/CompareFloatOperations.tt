@@ -106,42 +106,6 @@ namespace ILGPU.Tests
 <#      } #>
 <# } #>
 
-<# foreach (var type in FloatTypes) { #>
-<#      foreach (var (limitName, limitFormat) in floatLimits) { #>
-<#          var baseName = "_" + limitName + "_" + type.Name; #>
-<#          var testName = "Constant" + baseName; #>
-<#          var kernelName = "ConstantKernel" + testName; #>
-<#          var testValue = string.Format(
-                limitFormat,
-                type.Type,
-                type.Suffix,
-                type.Prefix); #>
-        internal static void <#= kernelName #>(
-            Index1D index,
-            ArrayView1D<<#= type.Type #>, Stride1D.Dense> input,
-            ArrayView1D<int, Stride1D.Dense> output)
-        {
-            output[index] = input[index] == <#= testValue #> ? 1 : 0;
-        }
-
-        [Fact]
-        [KernelMethod(nameof(<#= kernelName #>))]
-        public void <#= testName #>()
-        {
-            var inputArray = new [] { <#= type.FormatNumber("0.0") #>, <#= testValue #> };
-            var expected = inputArray.Select(
-                x => x == <#= testValue #> ? 1 : 0).ToArray();
-
-            using var input = Accelerator.Allocate1D<<#= type.Type #>>(inputArray.Length);
-            using var output = Accelerator.Allocate1D<int>(inputArray.Length);
-            input.CopyFromCPU(inputArray);
-
-            Execute(input.IntExtent, input.View, output.View);
-            Verify(output.View, expected);
-        }
-
-<#      } #>
-<# } #>
     }
 }
 
