@@ -204,7 +204,7 @@ jobs:
         run: echo "flavor=$([[ "${{ matrix.os }}" == cuda-* ]] && echo "Cuda" || echo "CPU")" >> $GITHUB_OUTPUT
 
       - name: Build and test
-        run: dotnet test Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }} --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger GitHubActions
+        run: dotnet test Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }} --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true
         env:
           ILGPU_CLEAN_TESTS: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }}
 
