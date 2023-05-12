@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Mandelbrot.cs
@@ -16,7 +16,7 @@ using ILGPU.Runtime.Cuda;
 
 namespace Mandelbrot
 {
-    class Mandelbrot
+    static class Mandelbrot
     {
         /// <summary>
         /// ILGPU kernel for Mandelbrot set.

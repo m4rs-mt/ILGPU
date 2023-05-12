@@ -12,3 +12,7 @@ updates:
     directory: "/Samples/"
     schedule:
       interval: "daily"
+  - package-ecosystem: "bundler"
+    directory: "/Site/"
+    schedule:
+      interval: "daily"

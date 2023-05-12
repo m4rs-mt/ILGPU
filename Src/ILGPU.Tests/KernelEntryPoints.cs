@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelEntryPoints.cs
@@ -510,6 +510,27 @@ namespace ILGPU.Tests
                 Execute(kernel.Method, extent, buffer.View, extent));
         }
 
+        private static void VerifyStaticFieldCapturingLambdaException(
+            InternalCompilerException e)
+        {
+            // We would normally expect that a lambda that captures a static field would
+            // throw a NotSupportedException. However, in DEBUG build configuration, the
+            // the Method Builder is never marked as completed, and when running in
+            // VisualStudio, a second exception is thrown from a failed Debug.Assert.
+            // Deal with both expectations, so that unit tests pass in DEBUG mode when
+            // running in VisualStudio.
+#if DEBUG
+            if (e.InnerException is not NotSupportedException)
+            {
+                Assert.Equal(
+                    "Microsoft.VisualStudio.TestPlatform.TestHost.DebugAssertException",
+                    e.InnerException?.GetType().FullName);
+                return;
+            }
+#endif
+            Assert.IsType<NotSupportedException>(e.InnerException);
+        }
+
         [Theory]
         [InlineData(33)]
         [InlineData(1025)]
@@ -524,7 +545,7 @@ namespace ILGPU.Tests
             using var buffer = Accelerator.Allocate1D<int>(length);
             var e = Assert.Throws<InternalCompilerException>(() =>
                 Execute(kernel.Method, new Index1D((int)buffer.Length), buffer.View));
-            Assert.IsType<NotSupportedException>(e.InnerException);
+            VerifyStaticFieldCapturingLambdaException(e);
         }
 
         [Theory]
@@ -543,7 +564,7 @@ namespace ILGPU.Tests
             using var buffer = Accelerator.Allocate1D<int>(extent.Size);
             var e = Assert.Throws<InternalCompilerException>(() =>
                 Execute(kernel.Method, extent, buffer.View, extent));
-            Assert.IsType<NotSupportedException>(e.InnerException);
+            VerifyStaticFieldCapturingLambdaException(e);
         }
 
         [Theory]
@@ -562,7 +583,7 @@ namespace ILGPU.Tests
             using var buffer = Accelerator.Allocate1D<int>(extent.Size);
             var e = Assert.Throws<InternalCompilerException>(() =>
                 Execute(kernel.Method, extent, buffer.View, extent));
-            Assert.IsType<NotSupportedException>(e.InnerException);
+            VerifyStaticFieldCapturingLambdaException(e);
         }
 
         [KernelName("My @ CustomKernel.Name12345 [1211]")]
@@ -591,23 +612,34 @@ namespace ILGPU.Tests
             public int[] Data;
         }
 
-        [Fact]
-        public void UnsupportedEntryPointParameter()
+        public static TheoryData<object> TestDataUnsupportedEntryPointParameter =>
+            new TheoryData<object>
+        {
+            { new UnsupportedKernelParam() { Data = new int[32] } },
+            { true },
+            { new ValueTuple<int, bool>(42, false) },
+            { new ArrayView<bool>() },
+            { SpecializedValue.New(true) },
+        };
+
+        [Theory]
+        [MemberData(nameof(TestDataUnsupportedEntryPointParameter))]
+        public void UnsupportedEntryPointParameter<T>(T value)
+            where T : unmanaged
         {
             Action<
                 Index1D,
                 ArrayView1D<int, Stride1D.Dense>,
-                UnsupportedKernelParam> kernel =
+                T> kernel =
                 (index, output, param) =>
                 {
-                    output[index] = param.Data[index];
+                    output[index] = 1;
                 };
 
             var extent = new Index1D(32);
-            var param = new UnsupportedKernelParam() { Data = new int[extent.Size] };
             using var buffer = Accelerator.Allocate1D<int>(extent.Size);
             var e = Assert.Throws<ArgumentException>(() =>
-                Execute(kernel.Method, extent, buffer.View, param));
+                Execute(kernel.Method, extent, buffer.View, value));
             Assert.IsType<NotSupportedException>(e.InnerException);
         }
     }

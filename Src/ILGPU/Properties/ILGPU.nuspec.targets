@@ -4,16 +4,16 @@
         <PackageVersion>$(Version)</PackageVersion>
 
         <Title>ILGPU</Title>
-        <Copyright>Copyright (c) 2016-2022 ILGPU Project. All rights reserved.</Copyright>
+        <Copyright>Copyright (c) 2016-2023 ILGPU Project. All rights reserved.</Copyright>
         <Company />
         <Authors>Marcel Koester</Authors>
         <Description>ILGPU Just-In-Time Compiler</Description>
         <PackageDescription>
             ILGPU compiler and runtime library for convenient and high-performance GPU programming in .Net.
-            Samples can be found in the GitHub repository: https://github.com/m4rs-mt/ILGPU.Samples
+            Samples can be found in the GitHub repository: https://github.com/m4rs-mt/ILGPU/tree/master/Samples
         </PackageDescription>
         <PackageProjectUrl>http://www.ilgpu.net</PackageProjectUrl>
-        <PackageReleaseNotes>http://www.ilgpu.net/releases/ILGPU.ReleaseNotes.txt</PackageReleaseNotes>
+        <PackageReleaseNotes>http://www.ilgpu.net/releases</PackageReleaseNotes>
         <PackageTags>ilgpu gpu msil il cil cpu ptx nvidia amd amp opencl cuda compiler jit</PackageTags>
     </PropertyGroup>
 

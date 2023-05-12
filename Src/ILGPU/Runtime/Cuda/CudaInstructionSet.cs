@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaInstructionSet.cs
@@ -18,132 +18,18 @@ namespace ILGPU.Runtime.Cuda
     /// Represents a Cuda (PTX) ISA (Instruction Set Architecture).
     /// </summary>
     [DebuggerDisplay("ISA {Major}.{Minor}")]
-    public readonly struct CudaInstructionSet :
+    public readonly partial struct CudaInstructionSet :
         IEquatable<CudaInstructionSet>,
         IComparable<CudaInstructionSet>
     {
-        #region Constants
-
-        /// <summary>
-        /// The 3.0 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_30 = new CudaInstructionSet(3, 0);
-
-        /// <summary>
-        /// The 3.1 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_31 = new CudaInstructionSet(3, 1);
-
-        /// <summary>
-        /// The 3.2 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_32 = new CudaInstructionSet(3, 2);
-
-        /// <summary>
-        /// The 4.0 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_40 = new CudaInstructionSet(4, 0);
-
-        /// <summary>
-        /// The 4.1 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_41 = new CudaInstructionSet(4, 1);
-
-        /// <summary>
-        /// The 4.2 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_42 = new CudaInstructionSet(4, 2);
-
-        /// <summary>
-        /// The 4.3 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_43 = new CudaInstructionSet(4, 3);
-
-        /// <summary>
-        /// The 5.0 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_50 = new CudaInstructionSet(5, 0);
-
-        /// <summary>
-        /// The 6.0 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_60 = new CudaInstructionSet(6, 0);
-
-        /// <summary>
-        /// The 6.1 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_61 = new CudaInstructionSet(6, 1);
-
-        /// <summary>
-        /// The 6.2 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_62 = new CudaInstructionSet(6, 2);
-
-        /// <summary>
-        /// The 6.3 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_63 = new CudaInstructionSet(6, 3);
-
-        /// <summary>
-        /// The 6.4 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_64 = new CudaInstructionSet(6, 4);
-
-        /// <summary>
-        /// The 6.5 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_65 = new CudaInstructionSet(6, 5);
-
-        /// <summary>
-        /// The 7.0 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_70 = new CudaInstructionSet(7, 0);
-
-        /// <summary>
-        /// The 7.1 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_71 = new CudaInstructionSet(7, 1);
-
-        /// <summary>
-        /// The 7.2 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_72 = new CudaInstructionSet(7, 2);
-
-        /// <summary>
-        /// The 7.3 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_73 = new CudaInstructionSet(7, 3);
-
-        /// <summary>
-        /// The 7.4 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_74 = new CudaInstructionSet(7, 4);
-
-        /// <summary>
-        /// The 7.5 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_75 = new CudaInstructionSet(7, 5);
-
-        /// <summary>
-        /// The 7.6 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_76 = new CudaInstructionSet(7, 6);
-
-        /// <summary>
-        /// The 7.7 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_77 = new CudaInstructionSet(7, 7);
-
-        /// <summary>
-        /// The 7.8 ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_78 = new CudaInstructionSet(7, 8);
-
-        #endregion
-
         #region Instance
 
-        private CudaInstructionSet(int major, int minor)
+        /// <summary>
+        /// Creates the instruction set from major/minor values.
+        /// </summary>
+        /// <param name="major">The major version.</param>
+        /// <param name="minor">The minor version.</param>
+        public CudaInstructionSet(int major, int minor)
         {
             Major = major;
             Minor = minor;

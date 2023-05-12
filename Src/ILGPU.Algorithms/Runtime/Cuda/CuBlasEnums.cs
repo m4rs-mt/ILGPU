@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuBlasEnums.cs
@@ -78,22 +78,6 @@ namespace ILGPU.Runtime.Cuda
     {
         DefaultMath = 0,
         TensorOpMath = 1
-    }
-
-    /// <summary>
-    /// Specifies a cuBlas API version.
-    /// </summary>
-    public enum CuBlasAPIVersion : int
-    {
-        /// <summary>
-        /// Version 10 of the cuBlas library.
-        /// </summary>
-        V10,
-
-        /// <summary>
-        /// Version 11 of the cuBlas library.
-        /// </summary>
-        V11,
     }
 }
 

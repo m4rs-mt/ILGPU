@@ -14,7 +14,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NeutralLanguage>en-US</NeutralLanguage>
     <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -48,11 +48,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
-    <PackageReference Include="System.Memory" Version="4.5.5" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
-    <PackageReference Include="System.Reflection.Metadata" Version="6.0.1" />
     <PackageReference Include="T4.Build" Version="0.2.4" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net471' or '$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
+    <PackageReference Include="System.Reflection.Metadata" Version="7.0.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -96,10 +97,25 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
     </None>
+    <None Include="Runtime\Cuda\CudaArchitecture.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaArchitecture.Generated.tt</DependentUpon>
+    </None>
     <None Include="Runtime\Cuda\CudaAsm.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
+    </None>
+    <None Include="Runtime\Cuda\CudaDriverVersion.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaDriverVersion.Generated.tt</DependentUpon>
+    </None>
+    <None Include="Runtime\Cuda\CudaInstructionSet.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaInstructionSet.Generated.tt</DependentUpon>
     </None>
     <None Include="Runtime\PageLockedArrays.Generated.cs">
       <DesignTime>True</DesignTime>
@@ -155,6 +171,18 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
+    </None>
+    <None Update="Runtime\Cuda\CudaArchitecture.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaArchitecture.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CudaDriverVersion.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaDriverVersion.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CudaInstructionSet.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaInstructionSet.Generated.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -229,10 +257,25 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ValueTuples.tt</DependentUpon>
     </Compile>
+    <Compile Update="Runtime\Cuda\CudaArchitecture.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaArchitecture.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="Runtime\Cuda\CudaAsm.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CudaAsm.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CudaDriverVersion.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaDriverVersion.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CudaInstructionSet.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaInstructionSet.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\Cuda\LibDevice.cs">
       <DesignTime>True</DesignTime>

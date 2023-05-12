@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: References.cs
@@ -85,7 +85,7 @@ namespace ILGPU.IR.Analyses
         public static References Create<TPredicate>(
             Method method,
             in TPredicate predicate)
-            where TPredicate : IMethodCollectionPredicate =>
+            where TPredicate : struct, IMethodCollectionPredicate =>
             Create(method.Blocks, predicate);
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace ILGPU.IR.Analyses
             TPredicate predicate)
             where TOrder : struct, ITraversalOrder
             where TDirection : struct, IControlFlowDirection
-            where TPredicate : IMethodCollectionPredicate
+            where TPredicate : struct, IMethodCollectionPredicate
         {
             var references = new HashSet<Method>();
             var referencesList = new List<Method>();
@@ -131,7 +131,7 @@ namespace ILGPU.IR.Analyses
         public static References CreateRecursive<TPredicate>(
             BasicBlockCollection<ReversePostOrder, Forwards> collection,
             TPredicate predicate)
-            where TPredicate : IMethodCollectionPredicate
+            where TPredicate : struct, IMethodCollectionPredicate
         {
             var references = new HashSet<Method>();
             var referencesList = new List<Method>();

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLArgumentMapper.cs
@@ -51,7 +51,7 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             /// <typeparam name="TSource">The internal source type.</typeparam>
             private readonly struct MapperSource<TSource> : ISource
-                where TSource : ISource
+                where TSource : struct, ISource
             {
                 /// <summary>
                 /// Constructs a new source mapper.
@@ -158,7 +158,7 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             /// <typeparam name="TSource">The internal source type.</typeparam>
             private readonly struct MapperSource<TSource> : ISource
-                where TSource : ISource
+                where TSource : struct, ISource
             {
                 /// <summary>
                 /// Constructs a new source mapper.

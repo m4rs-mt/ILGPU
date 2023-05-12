@@ -1,0 +1,97 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ImportLibrary Namespace="ILGPU.Runtime.Cuda.API"
+               ClassName="CuRandAPI"
+               VersionType="CuRandAPIVersion"
+               DefaultDllImportSearchPath="LegacyBehavior"
+               DefaultMethodAccessModifier="public"
+               DefaultReturnType="CuRandStatus">
+    <LibraryVersions>
+        <LibraryVersion Name="V9" Platform="Windows" LibName="curand64_9.dll" />
+        <LibraryVersion Name="V9" Platform="Linux" LibName="libcurand.so.9" />
+        <LibraryVersion Name="V9" Platform="OSX" LibName="libcurand.9.dylib" />
+
+        <LibraryVersion Name="V10" Platform="Windows" LibName="curand64_10.dll" />
+        <LibraryVersion Name="V10" Platform="Linux" LibName="libcurand.so.10" />
+        <LibraryVersion Name="V10" Platform="OSX" LibName="libcurand.10.dylib" />
+
+        <LibraryVersion Name="V11" Platform="Windows" LibName="curand64_10.dll" />
+        <LibraryVersion Name="V11" Platform="Linux" LibName="libcurand.so.11" />
+
+        <LibraryVersion Name="V12" Platform="Windows" LibName="curand64_10.dll" />
+        <LibraryVersion Name="V12" Platform="Linux" LibName="libcurand.so.12" />
+    </LibraryVersions>
+
+    <Region Name="Creation">
+        <Import Name="curandCreateGenerator">
+            <Parameter Name="libHandle" Type="IntPtr" Flags="Out" />
+            <Parameter Name="rngType" Type="CuRandRngType" />
+        </Import>
+        <Import Name="curandCreateGeneratorHost">
+            <Parameter Name="libHandle" Type="IntPtr" Flags="Out" />
+            <Parameter Name="rngType" Type="CuRandRngType" />
+        </Import>
+        <Import Name="curandDestroyGenerator">
+            <Parameter Name="libHandle" Type="IntPtr" />
+        </Import>
+    </Region>
+
+    <Region Name="Generation">
+        <Import Name="curandSetPseudoRandomGeneratorSeed"
+                DisplayName="SetSeed">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="seed" Type="long" />
+        </Import>
+        <Import Name="curandGenerateSeeds">
+            <Parameter Name="libHandle" Type="IntPtr" />
+        </Import>
+        <Import Name="curandGenerate"
+                DisplayName="GenerateUInt">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="outputPtr" Type="IntPtr" />
+            <Parameter Name="length" Type="IntPtr" />
+        </Import>
+        <Import Name="curandGenerateLongLong"
+                DisplayName="GenerateULong">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="outputPtr" Type="IntPtr" />
+            <Parameter Name="length" Type="IntPtr" />
+        </Import>
+        <Import Name="curandGenerateUniform"
+                DisplayName="GenerateUniformFloat">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="outputPtr" Type="IntPtr" />
+            <Parameter Name="length" Type="IntPtr" />
+        </Import>
+        <Import Name="curandGenerateUniformDouble">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="outputPtr" Type="IntPtr" />
+            <Parameter Name="length" Type="IntPtr" />
+        </Import>
+        <Import Name="curandGenerateNormal"
+                DisplayName="GenerateNormalFloat">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="outputPtr" Type="IntPtr" />
+            <Parameter Name="length" Type="IntPtr" />
+            <Parameter Name="mean" Type="float" />
+            <Parameter Name="stddev" Type="float" />
+        </Import>
+        <Import Name="curandGenerateNormalDouble">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="outputPtr" Type="IntPtr" />
+            <Parameter Name="length" Type="IntPtr" />
+            <Parameter Name="mean" Type="double" />
+            <Parameter Name="stddev" Type="double" />
+        </Import>
+    </Region>
+
+    <Region Name="Utilities">
+        <Import Name="curandGetVersion">
+            <Parameter Name="version" Type="int" Flags="Out" />
+        </Import>
+        <Import Name="curandSetStream">
+            <Parameter Name="libHandle" Type="IntPtr" />
+            <Parameter Name="stream" Type="IntPtr" />
+        </Import>
+    </Region>
+
+</ImportLibrary>

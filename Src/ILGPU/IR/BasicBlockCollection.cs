@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlockCollection.cs
@@ -29,7 +29,7 @@ namespace ILGPU.IR
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
     public interface IBasicBlockCollection<TDirection> :
         IControlFlowAnalysisSource<TDirection>
-        where TDirection : IControlFlowDirection
+        where TDirection : struct, IControlFlowDirection
     {
         /// <summary>
         /// Returns the number of blocks.

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PhiValue.cs
@@ -352,7 +352,7 @@ namespace ILGPU.IR.Values
         public Value RemapArguments<TArgumentRemaper>(
             Method.Builder methodBuilder,
             TArgumentRemaper remapper)
-            where TArgumentRemaper : IArgumentRemapper
+            where TArgumentRemaper : struct, IArgumentRemapper
         {
             // Check for a valid block association
             this.Assert(methodBuilder.Method == BasicBlock.Method);

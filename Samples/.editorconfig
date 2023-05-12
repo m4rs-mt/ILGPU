@@ -9,13 +9,15 @@ trim_trailing_whitespace = true
 indent_size = 2
 tab_width = 2
 
-[*.tt]
+[*.{tt,ttinclude}]
 
 ###############################
 # General Code Formatting     #
 ###############################
 
 insert_final_newline = false
+max_line_length = 90
+guidelines_style = 1.5px dashed 80498B4E
 
 [*.cs]
 
@@ -145,3 +147,6 @@ dotnet_diagnostic.CA1814.severity = none
 
 # CA1815: Override equals and operator equals on value types
 dotnet_diagnostic.CA1815.severity = none
+
+# CA1852: Seal internal types
+dotnet_diagnostic.CA1852.severity = none

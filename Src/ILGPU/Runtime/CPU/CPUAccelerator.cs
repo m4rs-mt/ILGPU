@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUAccelerator.cs
@@ -14,6 +14,7 @@ using ILGPU.Backends.IL;
 using ILGPU.Resources;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
@@ -69,7 +70,16 @@ namespace ILGPU.Runtime.CPU
         private readonly object taskSynchronizationObject = new object();
         private volatile CPUAcceleratorTask currentTask;
 
+        [SuppressMessage(
+            "Microsoft.Usage",
+            "CA2213: Disposable fields should be disposed",
+            Justification = "This is disposed in DisposeAccelerator_SyncRoot")]
         private readonly Barrier finishedEventPerMultiprocessor;
+
+        [SuppressMessage(
+            "Microsoft.Usage",
+            "CA2213: Disposable fields should be disposed",
+            Justification = "This is disposed in DisposeAccelerator_SyncRoot")]
         private readonly SemaphoreSlim taskConcurrencyLimit = new SemaphoreSlim(1);
 
         /// <summary>

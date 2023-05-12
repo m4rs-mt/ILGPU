@@ -13,6 +13,7 @@ ProfilingMarkers
 SharedMemory
 SizeOfValues
 SpecializedKernels
+StaticAbstractInterfaceMembers
 StructureValues
 ValueTuples
 InteropTests

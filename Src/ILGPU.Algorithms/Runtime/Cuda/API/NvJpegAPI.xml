@@ -8,6 +8,9 @@
     <LibraryVersions>
         <LibraryVersion Name="V11" Platform="Windows" LibName="nvjpeg64_11.dll" />
         <LibraryVersion Name="V11" Platform="Linux" LibName="libnvjpeg.so.11" />
+
+        <LibraryVersion Name="V12" Platform="Windows" LibName="nvjpeg64_12.dll" />
+        <LibraryVersion Name="V12" Platform="Linux" LibName="libnvjpeg.so.12" />
     </LibraryVersions>
 
     <Region Name="Creation">

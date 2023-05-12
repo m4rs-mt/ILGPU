@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXGroupExtensions.cs
@@ -23,14 +23,14 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Reduce<T, TReduction>(T value)
             where T : unmanaged
-            where TReduction : IScanReduceOperation<T> =>
+            where TReduction : struct, IScanReduceOperation<T> =>
             AllReduce<T, TReduction>(value);
 
         /// <summary cref="GroupExtensions.AllReduce{T, TReduction}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T AllReduce<T, TReduction>(T value)
             where T : unmanaged
-            where TReduction : IScanReduceOperation<T>
+            where TReduction : struct, IScanReduceOperation<T>
         {
             // A fixed number of memory banks to distribute the workload
             // of the atomic operations in shared memory.

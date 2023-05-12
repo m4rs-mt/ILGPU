@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuBlasNativeMethods.tt/CuBlasNativeMethods.cs
@@ -11,1389 +11,918 @@
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="../CuBlasMappings.ttinclude"#>
+<#@ include file="../../../../ILGPU/Static/DllLibraryImporter.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
-<#
-var apis = new (string, string, string, string)[]
-{
-    ("CuBlasAPI",             null,                 null,      null),
-
-    ("CuBlas_WindowsAPI_V10", "cublas64_10",        "Windows", "V10"),
-    ("CuBlas_LinuxAPI_V10",   "libcublas.so.10",    "Linux",   "V10"),
-    ("CuBlas_MacOSAPI_V10",   "libcublas.10.dylib", "OSX",     "V10"),
-
-    ("CuBlas_WindowsAPI_V11", "cublas64_11",        "Windows", "V11"),
-    ("CuBlas_LinuxAPI_V11",   "libcublas.so.11",    "Linux",   "V11"),
-    ("CuBlas_MacOSAPI_V11",   "libcublas.11.dylib", "OSX",     "V11"),
-};
-#>
 
 using System;
 using System.Runtime.InteropServices;
 
 // disable: max_line_length
-#pragma warning disable IDE1006 // Naming Styles
-#pragma warning disable CA1707 // Identifiers should not contain underscores
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace ILGPU.Runtime.Cuda.API
-{
-    partial class CuBlasAPI
+<#
+var libraryVersions = new (string, Platform, string)[]
     {
-        private static CuBlasAPI CreateInternal(CuBlasAPIVersion version)
-        {
-<# foreach (var (className, _, platform, version) in apis.Skip(1)) { #>
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.<#= platform #>) &&
-                version == CuBlasAPIVersion.<#= version #>)
+        ("V10", Platform.Windows,   "cublas64_10.dll"),
+        ("V10", Platform.Linux,     "libcublas.so.10"),
+        ("V10", Platform.OSX,       "libcublas.10.dylib"),
+    
+        ("V11", Platform.Windows,   "cublas64_11.dll"),
+        ("V11", Platform.Linux,     "libcublas.so.11"),
+        ("V11", Platform.OSX,       "libcublas.11.dylib"),
+    
+        ("V12", Platform.Windows,   "cublas64_12.dll"),
+        ("V12", Platform.Linux,     "libcublas.so.12"),
+    };
+
+var regions = new List<Region>();
+Region currRegion;
+List<EntryPoint> currEntryPoints;
+
+//
+// Context Region definition
+//
+regions.Add(new Region() { Name = "Context" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasCreate_v2",
+        Parameters = new[]
             {
-                return new <#= className #>();
+                new Parameter()
+                {
+                    Name = "handle",
+                    Type = "IntPtr",
+                    Flags = ParameterFlags.Out
+                }
             }
-<# } #>
-            return null;
-        }
-    }
-
-<# foreach (var (className, libName, _, _) in apis) { #>
-<#      bool define = libName != null; #>
-
-    internal unsafe partial class <#= className #>
-<#      if (define) { #>
-        : <#= apis[0].Item1 #>
-<#      } #>
+    });
+currEntryPoints.Add(
+    new EntryPoint()
     {
-<#      if (define) { #>
-        #region Constants
-
-        /// <summary>
-        /// Represents the cuBlas library name.
-        /// </summary>
-        public const string LibName = "<#= libName #>";
-
-        #endregion
-
-<# } #>
-        #region Context
-
-<#      if (define) { #>
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasCreate_v2(out IntPtr handle);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasGetVersion_v2(
-            IntPtr handle,
-            out int version);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasDestroy_v2(IntPtr handle);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasGetStream_v2(
-            IntPtr handle,
-            out IntPtr stream);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasSetStream_v2(
-            IntPtr handle,
-            IntPtr stream);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasGetPointerMode_v2(
-            IntPtr handle,
-            out CuBlasPointerMode mode);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasSetPointerMode_v2(
-            IntPtr handle,
-            CuBlasPointerMode mode);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasGetAtomicsMode(
-            IntPtr handle,
-            out CuBlasAtomicsMode mode);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasSetAtomicsMode(
-            IntPtr handle,
-            CuBlasAtomicsMode mode);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasGetMathMode(
-            IntPtr handle,
-            out CuBlasMathMode mode);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus cublasSetMathMode(
-            IntPtr handle,
-            CuBlasMathMode mode);
-
-        /// <summary cref="CuBlasAPI.Create(out IntPtr)"/>
-        public override CuBlasStatus Create(out IntPtr handle) =>
-            cublasCreate_v2(out handle);
-
-        /// <summary cref="CuBlasAPI.GetVersion(IntPtr, out int)"/>
-        public override CuBlasStatus GetVersion(IntPtr handle, out int version) =>
-            cublasGetVersion_v2(handle, out version);
-
-        /// <summary cref="CuBlasAPI.Free(IntPtr)"/>
-        public override CuBlasStatus Free(IntPtr handle) =>
-            cublasDestroy_v2(handle);
-
-        /// <summary cref="CuBlasAPI.GetStream(IntPtr, out IntPtr)"/>
-        public override CuBlasStatus GetStream(IntPtr handle, out IntPtr stream) =>
-            cublasGetStream_v2(handle, out stream);
-
-        /// <summary cref="CuBlasAPI.SetStream(IntPtr, IntPtr)"/>
-        public override CuBlasStatus SetStream(IntPtr handle, IntPtr stream) =>
-            cublasSetStream_v2(handle, stream);
-
-        /// <summary cref="CuBlasAPI.GetPointerMode(IntPtr, out CuBlasPointerMode)"/>
-        public override CuBlasStatus GetPointerMode(IntPtr handle, out CuBlasPointerMode mode) =>
-            cublasGetPointerMode_v2(handle, out mode);
-
-        /// <summary cref="CuBlasAPI.SetPointerMode(IntPtr, CuBlasPointerMode)"/>
-        public override CuBlasStatus SetPointerMode(IntPtr handle, CuBlasPointerMode mode) =>
-            cublasSetPointerMode_v2(handle, mode);
-
-        /// <summary cref="CuBlasAPI.GetAtomicsMode(IntPtr, out CuBlasAtomicsMode)"/>
-        public override CuBlasStatus GetAtomicsMode(IntPtr handle, out CuBlasAtomicsMode mode) =>
-            cublasGetAtomicsMode(handle, out mode);
-
-        /// <summary cref="CuBlasAPI.SetAtomicsMode(IntPtr, CuBlasAtomicsMode)"/>
-        public override CuBlasStatus SetAtomicsMode(IntPtr handle, CuBlasAtomicsMode mode) =>
-            cublasSetAtomicsMode(handle, mode);
-
-        /// <summary cref="CuBlasAPI.GetMathMode(IntPtr, out CuBlasMathMode)"/>
-        public override CuBlasStatus GetMathMode(IntPtr handle, out CuBlasMathMode mode) =>
-            cublasGetMathMode(handle, out mode);
-
-        /// <summary cref="CuBlasAPI.SetMathMode(IntPtr, CuBlasMathMode)"/>
-        public override CuBlasStatus SetMathMode(IntPtr handle, CuBlasMathMode mode)  =>
-            cublasSetMathMode(handle, mode);
-
-<#      } #>
-
-        #endregion
-
-        #region Level 1
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Amax, Amin, Asum, Nrm2)) { #>
-<#          if (define) { #>
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            int n,
-            void* x,
-            int incx,
-            void* result);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* x,
-            int incx,
-            void* result) =>
-            <#= nativeFunc #>(handle, n, x, incx, result);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* x,
-            int incx,
-            void* result);
-
-<#          } #>
-
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Axpy)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            int n,
-            void* alpha,
-            void* x,
-            int incx,
-            void* y,
-            int incy);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* alpha,
-            void* x,
-            int incx,
-            void* y,
-            int incy) =>
-            <#= nativeFunc #>(handle, n, alpha, x, incx, y, incy);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* alpha,
-            void* x,
-            int incx,
-            void* y,
-            int incy);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Dot, RotM)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            int n,
-            void* x, int incx,
-            void* y, int incy,
-            void* result);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* x, int incx,
-            void* y, int incy,
-            void* result) =>
-            <#= nativeFunc #>(handle, n, x, incx, y, incy, result);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* x, int incx,
-            void* y, int incy,
-            void* result);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Rot)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            int n,
-            void* x, int incx,
-            void* y, int incy,
-            void* c,
-            void* s);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* x, int incx,
-            void* y, int incy,
-            void* c,
-            void* s) =>
-            <#= nativeFunc #>(handle, n, x, incx, y, incy, c, s);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* x, int incx,
-            void* y, int incy,
-            void* c,
-            void* s);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(RotG)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            void* a,
-            void* b,
-            void* c,
-            void* s);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            void* a,
-            void* b,
-            void* c,
-            void* s) =>
-            <#= nativeFunc #>(handle, a, b, c, s);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            void* a,
-            void* b,
-            void* c,
-            void* s);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Scal)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            int n,
-            void* alpha,
-            void* x,
-            int incx);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* alpha,
-            void* x,
-            int incx) =>
-            <#= nativeFunc #>(handle, n, alpha, x, incx);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* alpha,
-            void* x,
-            int incx);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Swap)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            int n,
-            void* x, int incx,
-            void* y, int incy);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* x, int incx,
-            void* y, int incy) =>
-            <#= nativeFunc #>(handle, n, x, incx, y, incy);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int n,
-            void* x, int incx,
-            void* y, int incy);
-
-<#          } #>
-<#      } #>
-
-        #endregion
-
-        #region Level 2
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Gbmv)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasOperation trans,
-            int m, int n,
-            int kl, int ku,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasOperation trans,
-            int m, int n,
-            int kl, int ku,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy) =>
-            <#= nativeFunc #>(
-                handle, trans,
-                m, n,
-                kl, ku,
-                alpha,
-                a, lda,
-                x, incx,
-                beta,
-                y, incy);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasOperation trans,
-            int m, int n,
-            int kl, int ku,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Gemv)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasOperation trans,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasOperation trans,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy) =>
-            <#= nativeFunc #>(
-                handle, trans,
-                m, n,
-                alpha,
-                a, lda,
-                x, incx,
-                beta,
-                y, incy);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasOperation trans,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Ger)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            int m, int n,
-            void* alpha,
-            void* x, int incx,
-            void* y, int incy,
-            void* a, int lda);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int m, int n,
-            void* alpha,
-            void* x, int incx,
-            void* y, int incy,
-            void* a, int lda) =>
-            <#= nativeFunc #>(
-                handle,
-                m, n,
-                alpha,
-                x, incx,
-                y, incy,
-                a, lda);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            int m, int n,
-            void* alpha,
-            void* x, int incx,
-            void* y, int incy,
-            void* a, int lda);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Sbmv)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo, 
-            int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo, 
-            int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                n, k,
-                alpha,
-                a, lda,
-                x, incx,
-                beta,
-                y, incy);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo, 
-            int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Spmv)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* ap,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* ap,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                n,
-                alpha,
-                ap,
-                x, incx,
-                beta,
-                y, incy);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* ap,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Spr)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* ap);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* ap) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                n,
-                alpha,
-                x, incx,
-                ap);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* ap);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Spr2)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* y, int incy,
-            void* ap);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* y, int incy,
-            void* ap) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                n,
-                alpha,
-                x, incx,
-                y, incy,
-                ap);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* y, int incy,
-            void* ap);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Symv)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                n,
-                alpha,
-                a, lda,
-                x, incx,
-                beta,
-                y, incy);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* a, int lda,
-            void* x, int incx,
-            void* beta,
-            void* y, int incy);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Syr)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* a, int lda);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* a, int lda) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                n,
-                alpha,
-                x, incx,
-                a, lda);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* a, int lda);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Syr2)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* y, int incy,
-            void* a, int lda);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* y, int incy,
-            void* a, int lda) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                n,
-                alpha,
-                x, incx,
-                y, incy,
-                a, lda);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n,
-            void* alpha,
-            void* x, int incx,
-            void* y, int incy,
-            void* a, int lda);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Tbmv, Tbsv)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int n, int k,
-            void* a, int lda,
-            void* x, int incx);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int n, int k,
-            void* a, int lda,
-            void* x, int incx) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                trans, diag,
-                n, k,
-                a, lda,
-                x, incx);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int n, int k,
-            void* a, int lda,
-            void* x, int incx);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Tpmv, Tpsv)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int n,
-            void* ap,
-            void* x, int incx);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int n,
-            void* ap,
-            void* x, int incx) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                trans, diag,
-                n,
-                ap,
-                x, incx);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int n,
-            void* ap,
-            void* x, int incx);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Trmv, Trsv)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int n,
-            void* a, int lda,
-            void* x, int incx);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int n,
-            void* a, int lda,
-            void* x, int incx) =>
-            <#= nativeFunc #>(
-                handle, uplo,
-                trans, diag,
-                n,
-                a, lda,
-                x, incx);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int n,
-            void* a, int lda,
-            void* x, int incx);
-
-<#          } #>
-<#      } #>
-
-        #endregion
-
-        #region Level 3
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Gemm)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasOperation transa,
-            CuBlasOperation transb,
-            int m, int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* beta,
-            void* c, int ldc);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasOperation transa,
-            CuBlasOperation transb,
-            int m, int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* beta,
-            void* c, int ldc) =>
-            <#= nativeFunc #>(
-                handle,
-                transa, transb,
-                m, n, k,
-                alpha,
-                a, lda,
-                b, ldb,
-                beta,
-                c, ldc);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasOperation transa,
-            CuBlasOperation transb,
-            int m, int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* beta,
-            void* c, int ldc);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Symm)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasSideMode side,
-            CuBlasFillMode uplo,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* beta,
-            void* c, int ldc);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasSideMode side,
-            CuBlasFillMode uplo,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* beta,
-            void* c, int ldc) =>
-            <#= nativeFunc #>(
-                handle,
-                side, uplo,
-                m, n,
-                alpha,
-                a, lda,
-                b, ldb,
-                beta,
-                c, ldc);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasSideMode side,
-            CuBlasFillMode uplo,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* beta,
-            void* c, int ldc);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Syrk)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* beta,
-            void* c, int ldc);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* beta,
-            void* c, int ldc) =>
-            <#= nativeFunc #>(
-                handle,
-                uplo, trans,
-                n, k,
-                alpha,
-                a, lda,
-                beta,
-                c, ldc);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* beta,
-            void* c, int ldc);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Syr2k, Syrkx)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* beta,
-            void* c, int ldc);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* beta,
-            void* c, int ldc) =>
-            <#= nativeFunc #>(
-                handle,
-                uplo, trans,
-                n, k,
-                alpha,
-                a, lda,
-                b, ldb,
-                beta,
-                c, ldc);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            int n, int k,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* beta,
-            void* c, int ldc);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Trmm)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasSideMode side,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* c, int ldc);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasSideMode side,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* c, int ldc) =>
-            <#= nativeFunc #>(
-                handle,
-                side, uplo,
-                trans, diag,
-                m, n,
-                alpha,
-                a, lda,
-                b, ldb,
-                c, ldc);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasSideMode side,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb,
-            void* c, int ldc);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Trsm)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasSideMode side,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasSideMode side,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb) =>
-            <#= nativeFunc #>(
-                handle,
-                side, uplo,
-                trans, diag,
-                m, n,
-                alpha,
-                a, lda,
-                b, ldb);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasSideMode side,
-            CuBlasFillMode uplo,
-            CuBlasOperation trans,
-            CuBlasDiagType diag,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* b, int ldb);
-
-<#          } #>
-<#      } #>
-
-        #endregion
-
-        #region Blas Extensions
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Geam)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasOperation transa,
-            CuBlasOperation transb,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* beta,
-            void* b, int ldb,
-            void* c, int ldc);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasOperation transa,
-            CuBlasOperation transb,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* beta,
-            void* b, int ldb,
-            void* c, int ldc) =>
-            <#= nativeFunc #>(
-                handle,
-                transa, transb,
-                m, n,
-                alpha,
-                a, lda,
-                beta,
-                b, ldb,
-                c, ldc);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasOperation transa,
-            CuBlasOperation transb,
-            int m, int n,
-            void* alpha,
-            void* a, int lda,
-            void* beta,
-            void* b, int ldb,
-            void* c, int ldc);
-
-<#          } #>
-<#      } #>
-
-<#      foreach (var (func, nativeFunc) in GetBlasEntries(Dgmm)) { #>
-<#          if (define) { #>
-        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
-        [DllImport(LibName)]
-        private static extern CuBlasStatus <#= nativeFunc #>(
-            IntPtr handle,
-            CuBlasSideMode mode,
-            int m, int n,
-            void* a, int lda,
-            void* x, int incx,
-            void* c, int ldc);
-
-        public override CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasSideMode mode,
-            int m, int n,
-            void* a, int lda,
-            void* x, int incx,
-            void* c, int ldc) =>
-            <#= nativeFunc #>(
-                handle, mode,
-                m, n,
-                a, lda,
-                x, incx,
-                c, ldc);
-
-<#          } else { #>
-
-        public abstract CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasSideMode mode,
-            int m, int n,
-            void* a, int lda,
-            void* x, int incx,
-            void* c, int ldc);
-
-<#          } #>
-<#      } #>
-
-        #endregion
-    }
-<# } #>
+        Name = "cublasGetVersion_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "version",
+                    Type = "int",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasDestroy_v2",
+        DisplayName = "Free",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasGetStream_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "stream",
+                    Type = "IntPtr",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasSetStream_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter() { Name = "stream", Type = "IntPtr" }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasGetPointerMode_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "mode",
+                    Type = "CuBlasPointerMode",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasSetPointerMode_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter() { Name = "mode", Type = "CuBlasPointerMode" }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasGetAtomicsMode",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "mode",
+                    Type = "CuBlasAtomicsMode",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasSetAtomicsMode",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter() { Name = "mode", Type = "CuBlasAtomicsMode" }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasGetMathMode",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "mode",
+                    Type = "CuBlasMathMode",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasSetMathMode",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter() { Name = "mode", Type = "CuBlasMathMode" }
+            }
+    });
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Level 1 Region definition
+//
+regions.Add(new Region() { Name = "Level 1" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Amax, Amin, Asum, Nrm2))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "result", Type = "void*" }
+                }
+        });
 }
 
-#pragma warning restore CA1707 // Identifiers should not contain underscores
-#pragma warning restore IDE1006 // Naming Styles
+foreach (var (func, nativeFunc) in GetBlasEntries(Axpy))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Dot, RotM))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "result", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Rot))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "s", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(RotG))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "s", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Scal))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Swap))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Level 2 Region definition
+//
+regions.Add(new Region() { Name = "Level 2" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Gbmv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "kl", Type = "int" },
+                    new Parameter() { Name = "ku", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Gemv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Ger))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Sbmv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Spmv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "ap", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Spr))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "ap", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Spr2))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "ap", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Symv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Syr))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Syr2))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Tbmv, Tbsv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Tpmv, Tpsv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "ap", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Trmv, Trsv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" }
+                }
+        });
+}
+
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Level 3 Region definition
+//
+regions.Add(new Region() { Name = "Level 3" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Gemm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "transa", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "transb", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Symm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "side", Type = "CuBlasSideMode" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Syrk))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Syr2k, Syrkx))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Trmm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "side", Type = "CuBlasSideMode" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Trsm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "side", Type = "CuBlasSideMode" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" }
+                }
+        });
+}
+
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Blas Extensions Region definition
+//
+regions.Add(new Region() { Name = "Extensions" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Geam))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "transa", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "transb", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Dgmm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "mode", Type = "CuBlasSideMode" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Write CuBlas library
+//
+var importLib = new ImportLibrary()
+    {
+        Namespace = "ILGPU.Runtime.Cuda.API",
+        ClassName="CuBlasAPI",
+        VersionType="CuBlasAPIVersion",
+        DefaultDllImportSearchPath="LegacyBehavior",
+        DefaultMethodAccessModifier="public",
+        DefaultReturnType="CuBlasStatus",
+        LibraryVersions =
+            libraryVersions.Select(lv =>
+                new LibraryVersion()
+                {
+                    Name = lv.Item1,
+                    Platform = lv.Item2,
+                    LibName = lv.Item3
+                }
+            ).ToArray(),
+        Regions = regions.ToArray()
+    };
+importLib.ApplyDefaults();
+
+// Remove 'cublas' prefix, and '_v2' suffix.
+SetMakeMethodNameFunc(methodName =>
+    Regex.Replace(methodName, "^cublas(.+?)(_v\\d+)?$", "$1"));
+
+WriteLibrary(importLib);
+
+#>
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

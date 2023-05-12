@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXBackend.cs
@@ -195,6 +195,7 @@ namespace ILGPU.Backends.PTX
         /// Creates a new PTX-compatible kernel builder and initializes a
         /// <see cref="PTXCodeGenerator.GeneratorArgs"/> instance.
         /// </summary>
+        [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
         protected override StringBuilder CreateKernelBuilder(
             EntryPoint entryPoint,
             in BackendContext backendContext,
@@ -226,7 +227,7 @@ namespace ILGPU.Backends.PTX
             builder.Append(".version ");
             builder.AppendLine(InstructionSet.ToString());
             builder.Append(".target ");
-            builder.Append(Architecture.ToString().ToLower());
+            builder.Append(Architecture.ToString().ToLowerInvariant());
             if (useDebugInfo)
                 builder.AppendLine(", debug");
             else
@@ -315,15 +316,20 @@ namespace ILGPU.Backends.PTX
             if (NvvmAPI == null || backendContext.Count == 0)
                 return;
 
+            // Determine the NVVM IR Version to use.
+            var result = NvvmAPI.GetIRVersion(out int majorIR, out _, out _, out _);
+            if (result != NvvmResult.NVVM_SUCCESS)
+                return;
+
             // Convert the methods in the context into NVVM.
             var methods = backendContext.GetEnumerator().AsEnumerable();
-            var nvvmModule = PTXLibDeviceNvvm.GenerateNvvm(methods);
+            var nvvmModule = PTXLibDeviceNvvm.GenerateNvvm(majorIR, methods);
 
             if (string.IsNullOrEmpty(nvvmModule))
                 return;
 
             // Create a new NVVM program.
-            var result = NvvmAPI.CreateProgram(out var program);
+            result = NvvmAPI.CreateProgram(out var program);
 
             try
             {

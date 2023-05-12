@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaDriverVersion.cs
@@ -11,7 +11,6 @@
 
 using ILGPU.Resources;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -226,79 +225,9 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Utilities for <see cref="CudaDriverVersion"/>.
     /// </summary>
-    public static class CudaDriverVersionUtils
+    public static partial class CudaDriverVersionUtils
     {
         #region Static
-
-        /// <summary>
-        /// Maps PTX architecture to their corresponding minimum CUDA driver version.
-        /// </summary>
-        private static readonly Dictionary<
-            CudaArchitecture,
-            CudaDriverVersion> ArchitectureLookup =
-            new Dictionary<CudaArchitecture, CudaDriverVersion>
-        {
-            { CudaArchitecture.SM_30, CudaDriverVersion.FromMajorMinor(4, 1) },
-            { CudaArchitecture.SM_32, CudaDriverVersion.FromMajorMinor(6, 0) },
-            { CudaArchitecture.SM_35, CudaDriverVersion.FromMajorMinor(5, 0) },
-            { CudaArchitecture.SM_37, CudaDriverVersion.FromMajorMinor(6, 5) },
-
-            { CudaArchitecture.SM_50, CudaDriverVersion.FromMajorMinor(6, 5) },
-            { CudaArchitecture.SM_52, CudaDriverVersion.FromMajorMinor(6, 5) },
-            { CudaArchitecture.SM_53, CudaDriverVersion.FromMajorMinor(7, 0) },
-
-            { CudaArchitecture.SM_60, CudaDriverVersion.FromMajorMinor(8, 0) },
-            { CudaArchitecture.SM_61, CudaDriverVersion.FromMajorMinor(8, 0) },
-            { CudaArchitecture.SM_62, CudaDriverVersion.FromMajorMinor(8, 0) },
-
-            { CudaArchitecture.SM_70, CudaDriverVersion.FromMajorMinor(9, 0) },
-            { CudaArchitecture.SM_72, CudaDriverVersion.FromMajorMinor(9, 1) },
-            { CudaArchitecture.SM_75, CudaDriverVersion.FromMajorMinor(10, 0) },
-
-            { CudaArchitecture.SM_80, CudaDriverVersion.FromMajorMinor(11, 0) },
-            { CudaArchitecture.SM_86, CudaDriverVersion.FromMajorMinor(11, 1) },
-            { CudaArchitecture.SM_87, CudaDriverVersion.FromMajorMinor(11, 4) },
-            { CudaArchitecture.SM_89, CudaDriverVersion.FromMajorMinor(11, 8) },
-
-            { CudaArchitecture.SM_90, CudaDriverVersion.FromMajorMinor(11, 8) },
-        };
-
-        /// <summary>
-        /// Maps PTX ISA to their corresponding minimum CUDA driver version.
-        /// </summary>
-        private static readonly Dictionary<
-            CudaInstructionSet,
-            CudaDriverVersion> InstructionSetLookup =
-            new Dictionary<CudaInstructionSet, CudaDriverVersion>
-        {
-            { CudaInstructionSet.ISA_30, CudaDriverVersion.FromMajorMinor(4, 1) },
-            { CudaInstructionSet.ISA_31, CudaDriverVersion.FromMajorMinor(5, 0) },
-            { CudaInstructionSet.ISA_32, CudaDriverVersion.FromMajorMinor(5, 5) },
-
-            { CudaInstructionSet.ISA_40, CudaDriverVersion.FromMajorMinor(6, 0) },
-            { CudaInstructionSet.ISA_41, CudaDriverVersion.FromMajorMinor(6, 5) },
-            { CudaInstructionSet.ISA_42, CudaDriverVersion.FromMajorMinor(7, 0) },
-            { CudaInstructionSet.ISA_43, CudaDriverVersion.FromMajorMinor(7, 5) },
-
-            { CudaInstructionSet.ISA_50, CudaDriverVersion.FromMajorMinor(8, 0) },
-
-            { CudaInstructionSet.ISA_60, CudaDriverVersion.FromMajorMinor(9, 0) },
-            { CudaInstructionSet.ISA_61, CudaDriverVersion.FromMajorMinor(9, 1) },
-            { CudaInstructionSet.ISA_62, CudaDriverVersion.FromMajorMinor(9, 2) },
-            { CudaInstructionSet.ISA_63, CudaDriverVersion.FromMajorMinor(10, 0) },
-            { CudaInstructionSet.ISA_64, CudaDriverVersion.FromMajorMinor(10, 1) },
-            { CudaInstructionSet.ISA_65, CudaDriverVersion.FromMajorMinor(10, 2) },
-
-            { CudaInstructionSet.ISA_70, CudaDriverVersion.FromMajorMinor(11, 0) },
-            { CudaInstructionSet.ISA_71, CudaDriverVersion.FromMajorMinor(11, 1) },
-            { CudaInstructionSet.ISA_72, CudaDriverVersion.FromMajorMinor(11, 2) },
-            { CudaInstructionSet.ISA_73, CudaDriverVersion.FromMajorMinor(11, 3) },
-            { CudaInstructionSet.ISA_74, CudaDriverVersion.FromMajorMinor(11, 4) },
-            { CudaInstructionSet.ISA_75, CudaDriverVersion.FromMajorMinor(11, 5) },
-            { CudaInstructionSet.ISA_76, CudaDriverVersion.FromMajorMinor(11, 6) },
-            { CudaInstructionSet.ISA_77, CudaDriverVersion.FromMajorMinor(11, 7) },
-            { CudaInstructionSet.ISA_78, CudaDriverVersion.FromMajorMinor(11, 8) },
-        };
 
         /// <summary>
         /// Resolves the minimum CUDA driver version for the PTX architecture

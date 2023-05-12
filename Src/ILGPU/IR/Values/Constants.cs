@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Constants.cs
@@ -14,6 +14,7 @@ using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -380,8 +381,9 @@ namespace ILGPU.IR.Values
         #region Object
 
         /// <summary cref="Node.ToPrefixString"/>
+        [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
         protected override string ToPrefixString() =>
-            "const.str." + Encoding.EncodingName.ToLower();
+            "const.str." + Encoding.EncodingName.ToLowerInvariant();
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() => String;

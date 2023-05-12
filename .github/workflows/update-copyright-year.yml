@@ -1,6 +1,7 @@
 name: 'Update Copyright Year'
 
 on:
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
   schedule:
     - cron:  '0 0 * * *' # Run once per day, at midnight.
 
@@ -8,9 +9,7 @@ jobs:
   update-copyright-year:
     # Only run on main repository
     if: github.repository == 'm4rs-mt/ILGPU'
-    # WORKAROUND: LibGit2Sharp does not currently work on ubuntu-20.04
-    # https://github.com/libgit2/libgit2sharp/issues/1798
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       # Checkout full history so that the copyright tool has the required information.
       - name: Checkout
@@ -18,10 +17,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup the latest .NET 6 SDK
-        uses: actions/setup-dotnet@v2
+      - name: Setup the latest .NET 7 SDK
+        uses: actions/setup-dotnet@v3.0.3
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
 
       - name: Update copyright year
         uses: technote-space/create-pr-action@v2

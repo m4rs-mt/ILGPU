@@ -1,8 +1,17 @@
 name: CI
 
 on:
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
   push:
+    paths-ignore:
+      - '.github/workflows/deploy-site.yml'
+      - 'Docs/**'
+      - 'Site/**'
   pull_request:
+    paths-ignore:
+      - '.github/workflows/deploy-site.yml'
+      - 'Docs/**'
+      - 'Site/**'
   schedule:
     # Run daily at 00:00 so we get notified if CI is broken before a pull request
     # is submitted.
@@ -19,7 +28,7 @@ jobs:
     # Jobs that depend on this one will be skipped too.
     # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
     # run the CI for each branch push to a fork, and for each pull request originating from a fork.
-    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     needs:
       - check-style-line-lengths
       - check-style-line-endings
@@ -29,7 +38,7 @@ jobs:
       - run: echo "All style checks done"
 
   check-style-line-lengths:
-    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -39,7 +48,7 @@ jobs:
         run: .github/workflows/Scripts/CheckLineLength.ps1 -path Src
 
   check-style-line-endings:
-    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -49,15 +58,18 @@ jobs:
         run: .github/workflows/Scripts/CheckT4LineEndings.ps1 -path Src
 
   check-style-copyright-headers:
-    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
-    # WORKAROUND: LibGit2Sharp does not currently work on ubuntu-20.04
-    # https://github.com/libgit2/libgit2sharp/issues/1798
-    runs-on: ubuntu-18.04
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: Setup the latest .NET 7 SDK
+        uses: actions/setup-dotnet@v3.0.3
+        with:
+          dotnet-version: 7.0.x
 
       - name: Check Copyright Headers
         run: |
@@ -65,6 +77,7 @@ jobs:
           if [[ -z "$(git status --porcelain)" ]]; then
             exit 0
           else
+            git status --porcelain
             exit 1
           fi
 
@@ -75,7 +88,7 @@ jobs:
     # Jobs that depend on this one will be skipped too.
     # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
     # run the CI for each branch push to a fork, and for each pull request originating from a fork.
-    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: ubuntu-latest
     steps:
       - name: Check if repo is fork
@@ -92,6 +105,7 @@ jobs:
           # pushed, we do this since macOS builds last too long and ILGPU
           # is rarely used on a macOS
           (
+            [ "${{ github.event_name }}" == "workflow_dispatch" ] ||
             [ "${{ github.event_name }}" == "schedule" ] ||
             (
               [ "${{ github.event_name }}" == "push" ] &&
@@ -114,7 +128,7 @@ jobs:
     # Jobs that depend on this one will be skipped too.
     # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
     # run the CI for each branch push to a fork, and for each pull request originating from a fork.
-    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: windows-latest
     strategy:
       matrix:
@@ -124,13 +138,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup the latest .NET 6 SDK
+      - name: Setup the latest .NET 7 SDK
         uses: actions/setup-dotnet@v3.0.3
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
 
       - name: Build
-        run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true ${{ matrix.path }}
+        run: dotnet build ${{ matrix.path }} --configuration=Release -p:TreatWarningsAsErrors=true
 
   # Run tests for all supported combinations of OS/library/framework.
   test-library:
@@ -139,7 +153,7 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
         library: [ILGPU, ILGPU.Algorithms]
-        framework: [netcoreapp3.1, net5.0, net6.0]
+        framework: [netcoreapp3.1, net5.0, net6.0, net7.0]
         include:
           - os: windows-latest
             library: ILGPU
@@ -153,14 +167,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup the latest .NET 5 SDK
-        if: matrix.framework == 'net5.0'
-        uses: actions/setup-dotnet@v3.0.3
-        env:
-          DOTNET_INSTALL_DIR: ${{ matrix.framework == 'cuda' && '~/.' }}
-        with:
-          dotnet-version: 5.0.x
-
       - name: Setup the latest .NET Core 3.1 SDK
         if: matrix.framework == 'netcoreapp3.1'
         uses: actions/setup-dotnet@v3.0.3
@@ -169,12 +175,28 @@ jobs:
         with:
           dotnet-version: 3.1.x
 
+      - name: Setup the latest .NET 5 SDK
+        if: matrix.framework == 'net5.0'
+        uses: actions/setup-dotnet@v3.0.3
+        env:
+          DOTNET_INSTALL_DIR: ${{ matrix.framework == 'cuda' && '~/.' }}
+        with:
+          dotnet-version: 5.0.x
+
       - name: Setup the latest .NET 6 SDK
+        if: matrix.framework == 'net6.0'
         uses: actions/setup-dotnet@v3.0.3
         env:
           DOTNET_INSTALL_DIR: ${{ matrix.framework == 'cuda' && '~/.' }}
         with:
           dotnet-version: 6.0.x
+
+      - name: Setup the latest .NET 7 SDK
+        uses: actions/setup-dotnet@v3.0.3
+        env:
+          DOTNET_INSTALL_DIR: ${{ matrix.framework == 'cuda' && '~/.' }}
+        with:
+          dotnet-version: 7.0.x
 
       - name: Set test flavor
         id: test-flavor
@@ -182,9 +204,9 @@ jobs:
         run: echo "flavor=$([[ "${{ matrix.os }}" == cuda-* ]] && echo "Cuda" || echo "CPU")" >> $GITHUB_OUTPUT
 
       - name: Build and test
-        run: dotnet test --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger GitHubActions Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }}
+        run: dotnet test Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }} --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true --logger GitHubActions
         env:
-          ILGPU_CLEAN_TESTS: ${{ github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }}
+          ILGPU_CLEAN_TESTS: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }}
 
   # Ensure that ILGPU libraries are built using the same version tag.
   check-version:
@@ -192,7 +214,7 @@ jobs:
     # Jobs that depend on this one will be skipped too.
     # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
     # run the CI for each branch push to a fork, and for each pull request originating from a fork.
-    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -233,10 +255,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup the latest .NET 6 SDK
+      - name: Setup the latest .NET 7 SDK
         uses: actions/setup-dotnet@v3.0.3
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
 
       - name: Create NuGet packages
         run: |
@@ -246,7 +268,7 @@ jobs:
             $params = "--version-suffix", $suffix
           }
 
-          dotnet pack --configuration=Release @params Src
+          dotnet pack Src --configuration=Release @params
 
       - name: Fix NuGet Symbols Packages
         run: .github/workflows/Scripts/FixNugetSymbolPackages.ps1 -version "${{ needs.check-version.outputs.version }}"
@@ -267,10 +289,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup the latest .NET 6 SDK
+      - name: Setup the latest .NET 7 SDK
         uses: actions/setup-dotnet@v3.0.3
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
 
       # Change the ILGPU project references to NuGet package references
       - name: Update sample references

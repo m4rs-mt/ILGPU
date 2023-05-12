@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ValueReference.cs
@@ -149,7 +149,7 @@ namespace ILGPU.IR.Values
         /// <param name="visitor">The visitor.</param>
         /// <returns>The resulting value.</returns>
         public void Accept<T>(T visitor)
-            where T : IValueVisitor =>
+            where T : struct, IValueVisitor =>
             Resolve().Accept(visitor);
 
         /// <summary>

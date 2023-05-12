@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaProgress.cs
@@ -13,6 +13,9 @@ using ILGPU;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 using System;
+using System.Diagnostics.CodeAnalysis;
+
+#pragma warning disable CA2213
 
 namespace MonitorProgress
 {
@@ -81,6 +84,10 @@ namespace MonitorProgress
         /// <summary>
         /// Holds the Cuda memory buffer that contains the progress value.
         /// </summary>
+        [SuppressMessage(
+            "Microsoft.Usage",
+            "CA2213: Disposable fields should be disposed",
+            Justification = "This is disposed in DisposeAcceleratorObject")]
         private readonly CudaProgressMemoryBuffer memoryBuffer;
 
         /// <summary>

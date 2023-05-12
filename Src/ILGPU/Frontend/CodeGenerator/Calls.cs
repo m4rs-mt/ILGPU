@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Calls.cs
@@ -64,6 +64,22 @@ namespace ILGPU.Frontend
                     : ConvertFlags.None;
                 Block.Push(LoadOntoEvaluationStack(result, flags));
             }
+        }
+
+        /// <summary>
+        /// Realizes a call instruction.
+        /// </summary>
+        /// <param name="instruction">The instruction to realize.</param>
+        private void MakeCall(ILInstruction instruction)
+        {
+            var method = instruction.GetArgumentAs<MethodBase>();
+            if (instruction.HasFlags(ILInstructionFlags.Constrained)
+                && method is MethodInfo methodInfo)
+            {
+                var constrainedType = instruction.FlagsContext.Argument as Type;
+                method = ResolveVirtualCallTarget(methodInfo, constrainedType);
+            }
+            MakeCall(method);
         }
 
         /// <summary>

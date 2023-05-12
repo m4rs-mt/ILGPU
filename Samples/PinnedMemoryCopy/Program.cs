@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -20,7 +20,7 @@ namespace PinnedMemoryCopy
     class Program
     {
         /// <summary>
-        /// Uses GCHandle to allocated pinned allocate pinned chunks of memory in CPU host memory.
+        /// Uses GCHandle to allocate pinned chunks of memory in CPU host memory.
         /// </summary>
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="dataSize">The number of elements to copy.</param>
@@ -53,7 +53,7 @@ namespace PinnedMemoryCopy
 
 #if NET5_0_OR_GREATER
         /// <summary>
-        /// Uses System.GC.AllocateArray to allocated pinned allocate pinned chunks of memory in CPU host memory.
+        /// Uses System.GC.AllocateArray to allocate pinned chunks of memory in CPU host memory.
         /// </summary>
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="dataSize">The number of elements to copy.</param>

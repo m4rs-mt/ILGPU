@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InferAddressSpaces.cs
@@ -69,7 +69,7 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         /// <typeparam name="TProvider">The address-space provider type.</typeparam>
         public readonly struct ProcessingData<TProvider>
-            where TProvider : IAddressSpaceProvider
+            where TProvider : struct, IAddressSpaceProvider
         {
             #region Instance
 
@@ -145,7 +145,7 @@ namespace ILGPU.IR.Transformations
         /// <returns>The processing data instance.</returns>
         public static ProcessingData<TProvider> CreateProcessingData<TProvider>(
             TProvider provider)
-            where TProvider : IAddressSpaceProvider =>
+            where TProvider : struct, IAddressSpaceProvider =>
             new ProcessingData<TProvider>(provider);
 
         /// <summary>
@@ -157,7 +157,7 @@ namespace ILGPU.IR.Transformations
         private static bool IsRedundantCast<TProvider>(
             in ProcessingData<TProvider> data,
             AddressSpaceCast cast)
-            where TProvider : IAddressSpaceProvider
+            where TProvider : struct, IAddressSpaceProvider
         {
             // Check for trivial situations which can occur due to compiler optimizations
             if (cast.TargetAddressSpace == cast.SourceType.AddressSpace)
@@ -193,7 +193,7 @@ namespace ILGPU.IR.Transformations
             in ProcessingData<TProvider> data,
             Use use,
             MemoryAddressSpace targetSpace)
-            where TProvider : IAddressSpaceProvider
+            where TProvider : struct, IAddressSpaceProvider
         {
             var value = use.Resolve();
             switch (value)
@@ -248,7 +248,7 @@ namespace ILGPU.IR.Transformations
             RewriterContext context,
             ProcessingData<TProvider> data,
             AddressSpaceCast cast)
-            where TProvider : IAddressSpaceProvider
+            where TProvider : struct, IAddressSpaceProvider
         {
             if (!IsRedundantCast(data, cast))
                 return;
@@ -265,7 +265,7 @@ namespace ILGPU.IR.Transformations
             ProcessingData<TProvider> data,
             TValue value)
             where TValue : Value
-            where TProvider : IAddressSpaceProvider =>
+            where TProvider : struct, IAddressSpaceProvider =>
             value.Type is AddressSpaceType type &&
             type.AddressSpace != data[value];
 
@@ -276,7 +276,7 @@ namespace ILGPU.IR.Transformations
             RewriterContext context,
             ProcessingData<TProvider> data,
             PhiValue phiValue)
-            where TProvider : IAddressSpaceProvider
+            where TProvider : struct, IAddressSpaceProvider
         {
             var builder = context.Builder;
             var location = phiValue.Location;
@@ -307,7 +307,7 @@ namespace ILGPU.IR.Transformations
             RewriterContext context,
             ProcessingData<TProvider> data,
             Predicate predicate)
-            where TProvider : IAddressSpaceProvider
+            where TProvider : struct, IAddressSpaceProvider
         {
             var builder = context.Builder;
             var location = predicate.Location;
@@ -340,7 +340,7 @@ namespace ILGPU.IR.Transformations
             ProcessingData<TProvider> provider,
             TValue value)
             where TValue : Value
-            where TProvider : IAddressSpaceProvider =>
+            where TProvider : struct, IAddressSpaceProvider =>
             value.InvalidateType();
 
         #endregion
@@ -368,7 +368,7 @@ namespace ILGPU.IR.Transformations
         /// <param name="rewriter">The target rewriter instance.</param>
         public static void AddRewriters<TProvider>(
             Rewriter<ProcessingData<TProvider>> rewriter)
-            where TProvider : IAddressSpaceProvider
+            where TProvider : struct, IAddressSpaceProvider
         {
             // Rewrites address space casts that are not required
             rewriter.Add<AddressSpaceCast>(Rewrite);

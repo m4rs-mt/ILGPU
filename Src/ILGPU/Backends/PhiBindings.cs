@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PhiBindings.cs
@@ -294,7 +294,7 @@ namespace ILGPU.Backends
             TAllocator allocator)
             where TOrder : struct, ITraversalOrder
             where TDirection : struct, IControlFlowDirection
-            where TAllocator : IPhiBindingAllocator
+            where TAllocator : struct, IPhiBindingAllocator
         {
             var mapping = collection.CreateMap(new InfoProvider());
 

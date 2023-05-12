@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.cs
@@ -386,7 +386,7 @@ namespace ILGPU.Backends.OpenCL
             StringBuilder targetBuilder,
             ref TSetupLogic logic,
             int paramOffset)
-            where TSetupLogic : IParametersSetupLogic
+            where TSetupLogic : struct, IParametersSetupLogic
         {
             bool attachComma = false;
             int offset = 0;

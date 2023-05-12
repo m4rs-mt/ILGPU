@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2022 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLDevice.cs
@@ -406,13 +406,14 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Init general OpenCL extensions.
         /// </summary>
+        [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
         private void InitExtensions()
         {
             // Resolve extensions
             var extensionString = CurrentAPI.GetDeviceInfo(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_EXTENSIONS);
-            foreach (var extension in extensionString.ToLower().Split(' '))
+            foreach (var extension in extensionString.ToLowerInvariant().Split(' '))
                 extensionSet.Add(extension);
             Extensions = extensionSet.ToImmutableArray();
         }

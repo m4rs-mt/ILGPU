@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArgumentMapper.cs
@@ -119,7 +119,7 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <typeparam name="TParentTarget">The parent source type.</typeparam>
         protected readonly struct StructureTarget<TParentTarget> : ITarget
-            where TParentTarget : ITarget
+            where TParentTarget : struct, ITarget
         {
             /// <summary>
             /// Constructs a new structure target.
@@ -295,7 +295,7 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <typeparam name="TParentSource">The parent source type.</typeparam>
         protected readonly struct StructureSource<TParentSource> : ISource
-            where TParentSource : ISource
+            where TParentSource : struct, ISource
         {
             /// <summary>
             /// Construct a new structure source.
@@ -346,7 +346,7 @@ namespace ILGPU.Backends.EntryPoints
         /// A view-parameter source.
         /// </summary>
         protected readonly struct ViewSource<TSource> : ISource
-            where TSource : ISource
+            where TSource : struct, ISource
         {
             /// <summary>
             /// Constructs a new view source.
@@ -821,10 +821,20 @@ namespace ILGPU.Backends.EntryPoints
             // Map all parameters
             for (int i = 0, e = parameters.Count; i < e; ++i)
             {
+                var paramType = parameters.ParameterTypes[i];
                 try
                 {
+                    // Ensure kernel parameters are blittable.
+                    if (!TypeContext.GetTypeInfo(paramType).IsValidKernelParameter)
+                    {
+                        throw new NotSupportedException(
+                            string.Format(
+                                RuntimeErrorMessages.NotSupportedNonBlittableType,
+                                paramType.FullName));
+                    }
+
                     // Map type and store the mapped instance in a pinned local
-                    var mappedType = MapType(parameters.ParameterTypes[i]);
+                    var mappedType = MapType(paramType);
                     var mappingLocal = emitter.DeclarePinnedLocal(mappedType);
                     var localTarget = new LocalTarget(mappingLocal);
 
@@ -840,7 +850,7 @@ namespace ILGPU.Backends.EntryPoints
                     throw new ArgumentException(
                         string.Format(
                             ErrorMessages.NotSupportedKernelParameterType,
-                            parameters.ParameterTypes[i]),
+                            paramType),
                         nse);
                 }
             }
@@ -934,9 +944,20 @@ namespace ILGPU.Backends.EntryPoints
             // Define all parameter types
             for (int i = 0, e = parameters.Count; i < e; ++i)
             {
+                var paramType = parameters.ParameterTypes[i];
                 try
                 {
-                    var mappedType = MapType(parameters.ParameterTypes[i]);
+                    // Ensure kernel parameters are blittable.
+                    if (!TypeContext.GetTypeInfo(paramType).IsValidKernelParameter)
+                    {
+                        throw new NotSupportedException(
+                            string.Format(
+                                RuntimeErrorMessages.NotSupportedNonBlittableType,
+                                paramType.FullName));
+                    }
+
+                    // Map parameter to argument struct.
+                    var mappedType = MapType(paramType);
                     typeBuilder.DefineField(
                         GetFieldName(i),
                         mappedType,
@@ -947,7 +968,7 @@ namespace ILGPU.Backends.EntryPoints
                     throw new ArgumentException(
                         string.Format(
                             ErrorMessages.NotSupportedKernelParameterType,
-                            parameters.ParameterTypes[i]),
+                            paramType),
                         nse);
                 }
             }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2022 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StrideTypes.tt/StrideTypes.cs
@@ -516,7 +516,7 @@ namespace ILGPU
         public static int ComputeElementIndex<TStride>(
             this TStride stride,
             <#= indexName #> index)
-            where TStride : <#= strideName #> =>
+            where TStride : struct, <#= strideName #> =>
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
 <#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
@@ -533,7 +533,7 @@ namespace ILGPU
         public static long ComputeElementIndex<TStride>(
             this TStride stride,
             <#= longIndexName #> index)
-            where TStride : <#= strideName #> =>
+            where TStride : struct, <#= strideName #> =>
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
 <#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
@@ -553,7 +553,7 @@ namespace ILGPU
             this TStride stride,
             <#= indexName #> index,
             <#= indexName #> extent)
-            where TStride : <#= strideName #>
+            where TStride : struct, <#= strideName #>
         {
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
@@ -567,7 +567,7 @@ namespace ILGPU
                     Bitwise.And(index.<#= iName #> == 0, extent.<#= iName #> == 0)),
                 "<#= iName #> index out of bounds");
 <#      } #>
-            return stride.ComputeElementIndex(index);
+            return ComputeElementIndex(stride, index);
         }
 
         /// <summary>
@@ -583,7 +583,7 @@ namespace ILGPU
             this TStride stride,
             <#= longIndexName #> index,
             <#= longIndexName #> extent)
-            where TStride : <#= strideName #>
+            where TStride : struct, <#= strideName #>
         {
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
@@ -593,7 +593,7 @@ namespace ILGPU
                     index.<#= iName #> < extent.<#= iName #>),
                 "<#= iName #> index out of bounds");
 <#      } #>
-            return stride.ComputeElementIndex(index);
+            return ComputeElementIndex(stride, index);
         }
 
         /// <summary>
@@ -606,14 +606,14 @@ namespace ILGPU
         public static int ComputeBufferLength<TStride>(
             this TStride stride,
             <#= indexName #> extent)
-            where TStride : <#= strideName #>
+            where TStride : struct, <#= strideName #>
         {
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
             if (extent.<#= iName #> == 0)
                 return 0;
 <#      } #>
-            return stride.ComputeElementIndex(extent - <#= indexName #>.One) + 1;
+            return ComputeElementIndex(stride, extent - <#= indexName #>.One) + 1;
         }
 
         /// <summary>
@@ -626,14 +626,14 @@ namespace ILGPU
         public static long ComputeBufferLength<TStride>(
             this TStride stride,
             <#= longIndexName #> extent)
-            where TStride : <#= strideName #>
+            where TStride : struct, <#= strideName #>
         {
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 <#          var iName = IndexDimensions[i].PropertyName; #>
             if (extent.<#= iName #> == 0L)
                 return 0L;
 <#      } #>
-            return stride.ComputeElementIndex(extent - <#= longIndexName #>.One) + 1L;
+            return ComputeElementIndex(stride, extent - <#= longIndexName #>.One) + 1L;
         }
 
     }

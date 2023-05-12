@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXBlockSchedule.cs
@@ -61,7 +61,7 @@ namespace ILGPU.Backends.PTX.Analyses
         /// <param name="allocator">The allocator to use.</param>
         /// <returns>The created phi bindings.</returns>
         public abstract PhiBindings ComputePhiBindings<TAllocator>(TAllocator allocator)
-            where TAllocator : IPhiBindingAllocator;
+            where TAllocator : struct, IPhiBindingAllocator;
 
         /// <summary>
         /// Returns true if the given <paramref name="successor"/> is an implicit

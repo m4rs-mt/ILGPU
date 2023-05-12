@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelLauncherBuilder.cs
@@ -46,7 +46,7 @@ namespace ILGPU.Runtime
             in TEmitter emitter,
             Action loadIdx,
             Action<int> manipulateIdx)
-            where TEmitter : IILEmitter
+            where TEmitter : struct, IILEmitter
         {
             var indexFieldGetter = new MethodInfo[]
             {
@@ -87,7 +87,7 @@ namespace ILGPU.Runtime
         public static void EmitSharedMemorySpeficiation<TEmitter>(
             EntryPoint entryPoint,
             in TEmitter emitter)
-            where TEmitter : IILEmitter
+            where TEmitter : struct, IILEmitter
         {
             emitter.EmitConstant(entryPoint.SharedMemory.StaticSize);
             emitter.Emit(
@@ -121,7 +121,7 @@ namespace ILGPU.Runtime
             in Index3D maxGridSize,
             in Index3D maxGroupSize,
             int customGroupSize = 0)
-            where TEmitter : IILEmitter
+            where TEmitter : struct, IILEmitter
         {
             if (entryPoint.IsImplictlyGrouped)
             {
@@ -210,7 +210,7 @@ namespace ILGPU.Runtime
             TEmitter emitter,
             in Index3D maxGridSize,
             in Index3D maxGroupSize)
-            where TEmitter : IILEmitter
+            where TEmitter : struct, IILEmitter
         {
             // NOTE: Requires that the top two elements of the IL stack contain the
             // grid and group dimensions (as Index3) to be tested.
@@ -283,7 +283,7 @@ namespace ILGPU.Runtime
             in Index3D maxGridSize,
             in Index3D maxGroupSize,
             int customGroupSize = 0)
-            where TEmitter : IILEmitter
+            where TEmitter : struct, IILEmitter
         {
             EmitLoadKernelConfig(
                 entryPoint,
@@ -310,10 +310,9 @@ namespace ILGPU.Runtime
             int kernelArgumentIndex,
             in TEmitter emitter)
             where T : Kernel
-            where TEmitter : IILEmitter
+            where TEmitter : struct, IILEmitter
         {
             Debug.Assert(kernelArgumentIndex >= 0);
-            Debug.Assert(emitter != null);
 
             emitter.Emit(ArgumentOperation.Load, kernelArgumentIndex);
             emitter.Emit(OpCodes.Castclass, typeof(T));
@@ -331,10 +330,9 @@ namespace ILGPU.Runtime
             int streamArgumentIndex,
             in TEmitter emitter)
             where T : AcceleratorStream
-            where TEmitter : IILEmitter
+            where TEmitter : struct, IILEmitter
         {
             Debug.Assert(streamArgumentIndex >= 0);
-            Debug.Assert(emitter != null);
 
             emitter.Emit(ArgumentOperation.Load, streamArgumentIndex);
             emitter.Emit(OpCodes.Castclass, typeof(T));

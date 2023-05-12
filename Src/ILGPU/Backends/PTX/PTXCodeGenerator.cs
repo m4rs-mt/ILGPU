@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.cs
@@ -19,6 +19,7 @@ using ILGPU.IR.Values;
 using ILGPU.Runtime.Cuda;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -40,21 +41,10 @@ namespace ILGPU.Backends.PTX
             SupportedInstructionSets = ImmutableSortedSet.Create(
                 Comparer<CudaInstructionSet>.Create((first, second) =>
                     second.CompareTo(first)),
-                CudaInstructionSet.ISA_78,
-                CudaInstructionSet.ISA_77,
-                CudaInstructionSet.ISA_76,
-                CudaInstructionSet.ISA_75,
-                CudaInstructionSet.ISA_74,
-                CudaInstructionSet.ISA_73,
-                CudaInstructionSet.ISA_72,
-                CudaInstructionSet.ISA_71,
-                CudaInstructionSet.ISA_70,
-                CudaInstructionSet.ISA_65,
-                CudaInstructionSet.ISA_64,
-                CudaInstructionSet.ISA_63,
-                CudaInstructionSet.ISA_62,
-                CudaInstructionSet.ISA_61,
-                CudaInstructionSet.ISA_60);
+                CudaDriverVersionUtils.InstructionSetLookup
+                    .Keys
+                    .Where(x => x >= CudaInstructionSet.ISA_60)
+                    .ToArray());
 
         /// <summary>
         /// The name for the globally registered dynamic shared memory alloca (if any).
@@ -691,7 +681,7 @@ namespace ILGPU.Backends.PTX
             StringBuilder targetBuilder,
             ref TSetupLogic logic,
             int paramOffset)
-            where TSetupLogic : IParameterSetupLogic
+            where TSetupLogic : struct, IParameterSetupLogic
         {
             var parameters = new List<MappedParameter>(
                 Method.NumParameters - paramOffset);

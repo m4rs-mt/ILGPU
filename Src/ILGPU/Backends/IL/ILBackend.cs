@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILBackend.cs
@@ -218,7 +218,7 @@ namespace ILGPU.Backends.IL
             in ILLocal task,
             in ILLocal index,
             ImmutableArray<ILLocal> locals)
-            where TEmitter : IILEmitter;
+            where TEmitter : struct, IILEmitter;
 
         #endregion
 
@@ -238,7 +238,7 @@ namespace ILGPU.Backends.IL
             TEmitter emitter,
             ImmutableArray<FieldInfo> taskArgumentMapping,
             ILLocal task)
-            where TEmitter : IILEmitter
+            where TEmitter : struct, IILEmitter
         {
             // Cache all fields in local variables
             var taskArgumentLocals = ImmutableArray.CreateBuilder<ILLocal>(
@@ -358,7 +358,7 @@ namespace ILGPU.Backends.IL
             Type taskType,
             out ILLocal task,
             out ILLocal index)
-            where TEmitter : IILEmitter
+            where TEmitter : struct, IILEmitter
         {
             // Cast generic task type to actual task type
             task = emitter.DeclareLocal(taskType);

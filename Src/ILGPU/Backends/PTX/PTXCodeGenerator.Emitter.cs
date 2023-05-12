@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Emitter.cs
@@ -617,7 +617,7 @@ namespace ILGPU.Backends.PTX
             string command,
             in TEmitter emitter,
             params Register[] registers)
-            where TEmitter : IComplexCommandEmitter
+            where TEmitter : struct, IComplexCommandEmitter
         {
             // Iterate over all child registers and create commands
             switch (registers[0])
@@ -665,7 +665,7 @@ namespace ILGPU.Backends.PTX
             in TEmitter emitter,
             Register register,
             int offset = 0)
-            where TEmitter : IComplexCommandEmitterWithOffsets
+            where TEmitter : struct, IComplexCommandEmitterWithOffsets
         {
             switch (register)
             {
@@ -708,7 +708,7 @@ namespace ILGPU.Backends.PTX
             string command,
             in TEmitter emitter,
             Register register)
-            where TEmitter : IVectorizedCommandEmitter
+            where TEmitter : struct, IVectorizedCommandEmitter
         {
             if (!PointerAlignments.IsEmpty &&
                 register is CompoundRegister compoundRegister)

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeInformationManager.cs
@@ -47,6 +47,9 @@ namespace ILGPU.IR.Types
             /// <param name="fieldTypes">All managed field types.</param>
             /// <param name="numFlattenedFields">The number of flattened fields.</param>
             /// <param name="isBlittable">True, if this type is blittable.</param>
+            /// <param name="isValidKernelParameter">
+            /// True, if a valid kernel parameter.
+            /// </param>
             internal TypeInformation(
                 TypeInformationManager parent,
                 Type type,
@@ -55,7 +58,8 @@ namespace ILGPU.IR.Types
                 ImmutableArray<int> fieldOffsets,
                 ImmutableArray<Type> fieldTypes,
                 int numFlattenedFields,
-                bool isBlittable)
+                bool isBlittable,
+                bool isValidKernelParameter)
             {
                 Debug.Assert(parent != null, "Invalid parent");
                 Debug.Assert(type != null, "Invalid type");
@@ -67,6 +71,7 @@ namespace ILGPU.IR.Types
                 FieldOffsets = fieldOffsets;
                 FieldTypes = fieldTypes;
                 IsBlittable = isBlittable;
+                IsValidKernelParameter = isValidKernelParameter;
                 NumFlattendedFields = numFlattenedFields;
             }
 
@@ -113,6 +118,11 @@ namespace ILGPU.IR.Types
             /// Returns true if the associated .Net type is blittable.
             /// </summary>
             public bool IsBlittable { get; }
+
+            /// <summary>
+            /// Returns true if the type can be used as a kernel parameter.
+            /// </summary>
+            internal bool IsValidKernelParameter { get; }
 
             /// <summary>
             /// Returns the number of flattened fields.
@@ -259,7 +269,22 @@ namespace ILGPU.IR.Types
         /// <param name="type">The type to add.</param>
         /// <param name="isBlittable">True, if this type is blittable.</param>
         /// <returns>The created type information instance.</returns>
-        private TypeInformation AddTypeInfo(Type type, bool isBlittable)
+        private TypeInformation AddTypeInfo(Type type, bool isBlittable) =>
+            AddTypeInfo(type, isBlittable, isValidKernelParameter: isBlittable);
+
+        /// <summary>
+        /// Adds primitive type information.
+        /// </summary>
+        /// <param name="type">The type to add.</param>
+        /// <param name="isBlittable">True, if this type is blittable.</param>
+        /// <param name="isValidKernelParameter">
+        /// True, if a valid kernel parameter.
+        /// </param>
+        /// <returns>The created type information instance.</returns>
+        private TypeInformation AddTypeInfo(
+            Type type,
+            bool isBlittable,
+            bool isValidKernelParameter)
         {
             var result = new TypeInformation(
                 this,
@@ -269,7 +294,8 @@ namespace ILGPU.IR.Types
                 ImmutableArray<int>.Empty,
                 ImmutableArray<Type>.Empty,
                 1,
-                isBlittable);
+                isBlittable,
+                isValidKernelParameter);
             typeInfoMapping.Add(type, result);
             return result;
         }
@@ -299,9 +325,10 @@ namespace ILGPU.IR.Types
                 result = AddTypeInfo(type, baseInfo.IsBlittable);
             }
             // Check for opaque view types
-            else if (type.IsArrayViewType(out Type _))
+            else if (type.IsArrayViewType(out Type elementType))
             {
-                result = AddTypeInfo(type, false);
+                var elementInfo = GetTypeInfoInternal(elementType);
+                result = AddTypeInfo(type, false, elementInfo.IsBlittable);
             }
             else
             {
@@ -358,6 +385,7 @@ namespace ILGPU.IR.Types
             var fieldOffsetsBuilder = ImmutableArray.CreateBuilder<int>(fields.Length);
             int flattenedFields = 0;
             bool isBlittable = true;
+            bool isValidKernelParameter = true;
             foreach (var field in fields)
             {
                 fieldOffsetsBuilder.Add(flattenedFields);
@@ -365,6 +393,7 @@ namespace ILGPU.IR.Types
 
                 var nestedTypeInfo = GetTypeInfoInternal(field.FieldType);
                 isBlittable &= nestedTypeInfo.IsBlittable;
+                isValidKernelParameter &= nestedTypeInfo.IsValidKernelParameter;
 
                 // Empty structures are treated as having a single field.
                 flattenedFields += nestedTypeInfo.NumFlattendedFields > 0
@@ -380,7 +409,8 @@ namespace ILGPU.IR.Types
                 fieldOffsetsBuilder.MoveToImmutable(),
                 fieldTypesBuilder.MoveToImmutable(),
                 flattenedFields,
-                isBlittable);
+                isBlittable,
+                isValidKernelParameter);
         }
 
         /// <summary>

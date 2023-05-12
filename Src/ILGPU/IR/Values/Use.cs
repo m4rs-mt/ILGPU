@@ -186,7 +186,7 @@ namespace ILGPU.IR.Values
             /// </summary>
             /// <param name="node">The node.</param>
             /// <param name="uses">The list of all uses.</param>
-            internal Enumerator(Value node, in ReadOnlySpan<Use> uses)
+            internal Enumerator(Value node, ReadOnlySpan<Use> uses)
             {
                 Node = node;
                 enumerator = uses.GetEnumerator();
@@ -225,7 +225,7 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="node">The associated node.</param>
         /// <param name="uses">The set of associated uses.</param>
-        internal UseCollection(Value node, in ReadOnlySpan<Use> uses)
+        internal UseCollection(Value node, ReadOnlySpan<Use> uses)
         {
             Node = node;
             Uses = uses;
