@@ -53,28 +53,29 @@ namespace AlgorithmsMath
                 Console.WriteLine($"Performing operations on {accelerator}");
 
                 using var buffer = accelerator.Allocate1D<float>(64);
-                void WriteData()
-                {
-                    // Reads data from the GPU buffer into a new CPU array.
-                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                    // that the kernel and memory copy are completed first.
-                    var data = buffer.GetAsArray1D();
-                    for (int i = 0, e = data.Length; i < e; ++i)
-                        Console.WriteLine($"Data[{i}] = {data[i]}");
-                }
 
                 Console.WriteLine(nameof(KernelWithXMath));
                 var xmathKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<float>, float>(
                     KernelWithXMath);
                 xmathKernel((int)buffer.Length, buffer.View, 0.1f);
-                WriteData();
+                WriteData(buffer);
 
                 Console.WriteLine(nameof(KernelWithMath));
                 var mathKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<float>, float>(
                     KernelWithMath);
                 mathKernel((int)buffer.Length, buffer.View, 0.1f);
-                WriteData();
+                WriteData(buffer);
             }
+        }
+
+        private static void WriteData(MemoryBuffer1D<float, Stride1D.Dense> buffer)
+        {
+            // Reads data from the GPU buffer into a new CPU array.
+            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+            // that the kernel and memory copy are completed first.
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"Data[{i}] = {data[i]}");
         }
     }
 }
