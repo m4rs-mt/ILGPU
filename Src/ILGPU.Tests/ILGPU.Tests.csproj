@@ -24,8 +24,11 @@
     <Compile Remove="Generic\Verifier.cs" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net471'">
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+  </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="GitHubActionsTestLogger" Version="2.2.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
