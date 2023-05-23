@@ -1,6 +1,6 @@
 ## ---------------------------------------------------------------------------------------
 ##                                        ILGPU
-##                           Copyright (c) 2022 ILGPU Project
+##                        Copyright (c) 2022-2023 ILGPU Project
 ##                                    www.ilgpu.net
 ##
 ## File: GenerateCompatibilitySuppressionFiles.ps1
@@ -11,7 +11,7 @@
 
 using namespace System.IO
 
-$basePath = [Path]::Combine($PSScriptRoot, '..\..')
+$basePath = [Path]::Combine($PSScriptRoot, '../..')
 $srcPath = [Path]::Combine($basePath, 'Src')
 
 # Reset by deleting existing compatibility suppression files.
