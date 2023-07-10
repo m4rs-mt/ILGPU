@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XorShift32.cs
@@ -107,6 +107,15 @@ namespace ILGPU.Algorithms.Random
         /// <inheritdoc cref="IRandomProvider{TProvider}.CreateProvider(System.Random)"/>
         public readonly XorShift32 CreateProvider(System.Random random) =>
             Create(random);
+
+        /// <summary>
+        /// Creates a new provider based on the input instance.
+        /// </summary>
+        /// <param name="random">The random instance.</param>
+        /// <returns>The created provider.</returns>
+        public readonly XorShift32 CreateProvider<TProvider>(ref TProvider random)
+            where TProvider : struct, IRandomProvider<TProvider> =>
+            new XorShift32((uint)random.Next() + 1U);
 
         #endregion
 

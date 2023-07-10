@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XorShift64Star.cs
@@ -110,6 +110,16 @@ namespace ILGPU.Algorithms.Random
         /// <inheritdoc cref="IRandomProvider{TProvider}.CreateProvider(System.Random)"/>
         public readonly XorShift64Star CreateProvider(System.Random random) =>
             Create(random);
+
+        /// <summary>
+        /// Creates a new provider based on the input instance.
+        /// </summary>
+        /// <param name="random">The random instance.</param>
+        /// <returns>The created provider.</returns>
+        public readonly XorShift64Star CreateProvider<TRandomProvider>(
+            ref TRandomProvider random)
+            where TRandomProvider : struct, IRandomProvider<TRandomProvider> =>
+            new XorShift64Star((ulong)random.NextLong() + 1UL);
 
         #endregion
 

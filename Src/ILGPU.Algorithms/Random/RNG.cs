@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RNG.cs
@@ -31,6 +31,7 @@ namespace ILGPU.Algorithms.Random
         /// <typeparam name="TRandomProvider">The random provider type.</typeparam>
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="random">The parent RNG provider.</param>
+        [CLSCompliant(false)]
         public static RNG<TRandomProvider> Create<TRandomProvider>(
             Accelerator accelerator,
             System.Random random)
@@ -46,6 +47,7 @@ namespace ILGPU.Algorithms.Random
         /// <param name="maxNumParallelWarps">
         /// The maximum number of parallel warps.
         /// </param>
+        [CLSCompliant(false)]
         public static RNG<TRandomProvider> Create<TRandomProvider>(
             Accelerator accelerator,
             System.Random random,
@@ -146,6 +148,7 @@ namespace ILGPU.Algorithms.Random
     /// is stored within an underlying memory buffer.
     /// </summary>
     /// <typeparam name="TRandomProvider">The random provider type.</typeparam>
+    [CLSCompliant(false)]
     public readonly struct RNGView<TRandomProvider> : IRandomProvider
         where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
     {
@@ -256,6 +259,7 @@ namespace ILGPU.Algorithms.Random
     /// </summary>
     /// <typeparam name="TRandomProvider">The random provider type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
+    [CLSCompliant(false)]
     public class RNG<TRandomProvider> : RNG
         where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
     {
