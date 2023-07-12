@@ -1,0 +1,910 @@
+// ---------------------------------------------------------------------------------------
+//                                   ILGPU Algorithms
+//                           Copyright (c) 2023 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: VectorTypes.tt/VectorTypes.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../TypeInformation.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+// Please note that this code does not support FP16 at the moment because ILGPU.Half does
+// not support the INumberBase<T> and INumber<T> interfaces and will be considered
+// obsolete in the future anyway.
+var allTypes = IntTypes.Concat(FloatTypes.Skip(1));
+var typesByRawName = allTypes.ToDictionary(t => t.Type);
+var accumulationTypes = new Dictionary<string, string[]>()
+{
+    {"Int32",  new string[]
+        { "byte", "sbyte", "short", "ushort", "int", "float", "double" }},
+    {"Int64",  new string[]
+        { "byte", "sbyte", "short", "ushort", "int", "uint", "float", "double" }},
+    
+    {"UInt32", new string[]
+        { "byte", "ushort", "uint", "float", "double" }},
+    {"UInt64", new string[]
+        { "byte", "ushort", "uint", "ulong", "float", "double" }},
+    
+    {"Float",  new string[]
+        { "float", "byte", "sbyte", "short", "ushort", "int", "uint", "long", "ulong" }},
+    {"Double", new string[]
+        { "float", "double", "byte", "sbyte", "short", "ushort", "int", "uint", "long",
+            "ulong" }},
+};
+
+var vectorLengths = new int[] { 2, 4, 8 };
+var vectorItemNames = new string[]
+{
+    "X", "Y", "Z", "W", "I", "J", "K", "L"
+};
+var vectorParamNames = new string[]
+{
+    "x", "y", "z", "w", "i", "j", "k", "l"
+};
+
+TypeInformation GetTypeByName(string rawName) => typesByRawName[rawName];
+string GetTypeNameByName(string rawName, int vectorLength) =>
+    GetTypeName(GetTypeByName(rawName), vectorLength);
+string GetTypeName(TypeInformation type, int vectorLength)
+{
+    var postFix = type.Name == "Half" ? "16" : type.Name == "Float"
+        ? "32" : type.Name == "Double" ? "64" : "";
+    var baseTypeName = type.Name == "Half" || type.Name == "Double" ?
+        "Float" : type.Name;
+    return $"{baseTypeName}{postFix}x{vectorLength}";
+}
+#>
+using ILGPU.Algorithms.Random;
+using ILGPU.Runtime;
+using System;
+using System.Globalization;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+#if NET7_0_OR_GREATER
+
+// disable: max_line_length
+
+#pragma warning disable IDE0004 // Cast is redundant
+#pragma warning disable CA2225 // Friendly operator names
+
+namespace ILGPU.Algorithms.Vectors
+{
+<#  foreach (var type in allTypes) { #>
+<#      var accumulations = accumulationTypes.TryGetValue(type.Name, out var accTypes)
+                ? accTypes : Array.Empty<string>(); #>
+<#      foreach (var vectorLength in vectorLengths) { #>
+<#          var typeName = GetTypeName(type, vectorLength); #>
+    /// <summary>
+    /// Represents a vectorized <#= type.Type #> type with length <#= vectorLength #>.
+    /// </summary>
+<#          if (!type.IsCLSCompliant) { #>
+    [CLSCompliant(false)]
+<#          } #>
+    public readonly record struct <#= typeName #>(
+        <#= string.Join(", ", vectorItemNames
+            .Take(vectorLength)
+            .Select(t => $"{type.Type} {t}")) #>) :
+        IVectorType<<#= typeName #>, <#= type.Type #>>
+<#          foreach (var accType in accumulations) { #>
+        , IAccumulationVectorType<
+            <#= typeName #>,
+            <#= GetTypeNameByName(accType, vectorLength) #>,
+            <#= accType #>>
+<#          } #>
+    {
+<#          for (int i = 0; i < vectorLength; ++i) { #>
+        /// <summary>
+        /// The offset of the <#= vectorItemNames[i] #> field in bytes.
+        /// </summary>
+        public static readonly int Offset<#= vectorItemNames[i] #> =
+            sizeof(<#= type.Type #>) * <#= i #>;
+
+        /// <summary>
+        /// The offset of the <#= vectorItemNames[i] #> field in bytes.
+        /// </summary>
+        [CLSCompliant(false)]
+        public static UIntPtr OffsetPtr<#= vectorItemNames[i] #> =>
+            new UIntPtr((uint)Offset<#= vectorItemNames[i] #>);
+<#          } #>
+
+        /// <summary>
+        /// Returns the length of this vector which is <#= vectorLength #>.
+        /// </summary>
+        public static int Length => <#= vectorLength #>;
+
+        /// <summary>
+        /// Returns the radix of the underlying value.
+        /// </summary>
+        public static int Radix => 10;
+
+        /// <summary>
+        /// Returns an invalid value (min [signed types], max value [unsigned] or NaN).
+        /// </summary>
+        public static <#= typeName #> Invalid => FromScalar(
+<#          if (type.IsSignedInt) { #>
+            <#= type.Type #>.MinValue
+<#          } else if (type.IsUnsignedInt) { #>
+            <#= type.Type #>.MaxValue
+<#          } else { #>
+            <#= type.Type #>.NaN
+<#          } #>
+        );
+
+        /// <summary>
+        /// Returns the value zero.
+        /// </summary>
+        public static <#= typeName #> Zero => new();
+
+        /// <summary>
+        /// Returns the value one.
+        /// </summary>
+        public static <#= typeName #> One => FromScalar(<#= type.FormatNumber("1") #>);
+
+        /// <summary>
+        /// Returns the value zero.
+        /// </summary>
+        public static <#= typeName #> AdditiveIdentity => Zero;
+
+        /// <summary>
+        /// Returns the value one.
+        /// </summary>
+        public static <#= typeName #> MultiplicativeIdentity => One;
+
+        /// <summary>
+        /// Computes the min value of both.
+        /// </summary>
+        /// <param name="first">The first value.</param>
+        /// <param name="second">The second value.</param>
+        /// <returns>The min value.</returns>
+        public static <#= typeName #> Min(
+            <#= typeName #> first,
+            <#= typeName #> second) =>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"({type.Type})Math.Min(first.{t}, second.{t})")) #>);
+
+        /// <summary>
+        /// Computes the max value of both.
+        /// </summary>
+        /// <param name="first">The first value.</param>
+        /// <param name="second">The second value.</param>
+        /// <returns>The max value.</returns>
+        public static <#= typeName #> Max(
+            <#= typeName #> first,
+            <#= typeName #> second) =>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"({type.Type})Math.Max(first.{t}, second.{t})")) #>);
+
+        /// <summary>
+        /// Clamps the given value.
+        /// </summary>
+        /// <param name="value">The value to clamp.</param>
+        /// <param name="min">The min value.</param>
+        /// <param name="max">The max value.</param>
+        /// <returns>The clamped value.</returns>
+        public static <#= typeName #> Clamp(
+            <#= typeName #> value,
+            <#= typeName #> min,
+            <#= typeName #> max) =>
+            Max(Min(value, max), min);
+
+        /// <summary>
+        /// Creates a random scalar instance falling into the range of min max.
+        /// </summary>
+        /// <param name="random">The random provider to use.</param>
+        /// <param name="min">The min value.</param>
+        /// <param name="max">The max value.</param>
+        /// <returns>The created random scalar instance.</returns>
+        public static <#= type.Type #> GetRandomScalar<TRandom>(
+            ref TRandom random,
+            <#= type.Type #> min,
+            <#= type.Type #> max)
+            where TRandom : struct, IRandomProvider =>
+            (<#= type.Type #>)RandomExtensions.
+                Next(ref random, min, max);
+
+        /// <summary>
+        /// Creates a random vector instance falling into the range of min max.
+        /// </summary>
+        /// <param name="random">The random provider to use.</param>
+        /// <param name="min">The min value.</param>
+        /// <param name="max">The max value.</param>
+        /// <returns>The created random vector instance.</returns>
+        public static <#= typeName #> GetRandom<TRandom>(
+            ref TRandom random,
+            <#= typeName #> min,
+            <#= typeName #> max)
+            where TRandom : struct, IRandomProvider
+        {
+<#          for (int i = 0; i < vectorLength; ++i) { #>
+            <#= type.Type #> <#= vectorParamNames[i] #> = GetRandomScalar(
+                ref random, min.<#= vectorItemNames[i] #>, max.<#= vectorItemNames[i] #>);
+<#          } #>
+            return new <#= typeName #>(<#= string.Join(", ", vectorParamNames
+                .Take(vectorLength)) #>);
+        }
+
+        /// <summary>
+        /// Creates a vector instance from the given source view.
+        /// </summary>
+        /// <typeparam name="TStride">The custom stride type.</typeparam>
+        /// <param name="sourceView">The source view.</param>
+        /// <param name="index">The source base index.</param>
+        /// <returns>The vector instance.</returns>
+        public static <#= typeName #> FromElementView<TStride>(
+            ArrayView1D<<#= type.Type #>, TStride> sourceView,
+            Index1D index)
+            where TStride : struct, IStride1D =>
+            new <#= typeName #>(
+<#          for (int i = 0; i < vectorLength; ++i) { #>
+                sourceView[index + <#= i #>]<#= i + 1 < vectorLength ? "," : "" #>
+<#          } #>
+                );
+
+        /// <summary>
+        /// Serializes the current vector instance into the given target view.
+        /// </summary>
+        /// <typeparam name="TStride">The custom stride type.</typeparam>
+        /// <param name="targetView">The target view.</param>
+        /// <param name="index">The target base index.</param>
+        public void ToElementView<TStride>(
+            ArrayView1D<<#= type.Type #>, TStride> targetView,
+            Index1D index)
+            where TStride : struct, IStride1D
+        {
+<#          for (int i = 0; i < vectorLength; ++i) { #>
+            targetView[index + <#= i #>] = <#= vectorItemNames[i] #>;
+<#          } #>
+        }
+
+        /// <summary>
+        /// Creates a vector instance from the given source view.
+        /// </summary>
+        /// <param name="sourceView">The source view.</param>
+        /// <param name="index">The source base index.</param>
+        /// <returns>The vector instance.</returns>
+        public static <#= typeName #> FromElementView(
+            SingleVectorView<<#= type.Type #>> sourceView,
+            Index1D index) =>
+            new <#= typeName #>(
+<#          for (int i = 0; i < vectorLength; ++i) { #>
+                sourceView[index + <#= i #>]<#= i + 1 < vectorLength ? "," : "" #>
+<#          } #>
+                );
+
+        /// <summary>
+        /// Serializes the current vector instance into the given target view.
+        /// </summary>
+        /// <param name="targetView">The target view.</param>
+        /// <param name="index">The target base index.</param>
+        public void ToElementView(
+            SingleVectorView<<#= type.Type #>> targetView,
+            Index1D index)
+        {
+<#          for (int i = 0; i < vectorLength; ++i) { #>
+            targetView[index + <#= i #>] = <#= vectorItemNames[i] #>;
+<#          } #>
+        }
+
+        /// <summary>
+        /// Converts a scalar value into the current vectorized type.
+        /// </summary>
+        /// <param name="scalar">The scalar element type.</param>
+        /// <returns>The created vectorized type.</returns>
+        public static <#= typeName #> FromScalar(<#= type.Type #> scalar) =>
+            new <#= typeName #>(<#= string.Join(", ",
+                Enumerable.Range(0, vectorLength).Select(_ => "scalar")) #>);
+
+<#          if (accumulations.Length > 0) { #>
+        /// <summary>
+        /// Atomically adds two vectors.
+        /// </summary>
+        /// <param name="target">The target memory address.</param>
+        /// <param name="value">The current value to add.</param>
+        public static void AtomicAdd(ref <#= typeName #> target, <#= typeName #> value)
+        {
+            ref var elementRef = ref Unsafe.As<<#= typeName #>, <#= type.Type #>>(
+                ref target);
+<#              for (int i = 0; i < vectorLength; ++i) { #>
+            Atomic.Add(
+                ref Unsafe.AddByteOffset(
+                    ref elementRef,
+                    OffsetPtr<#= vectorItemNames[i] #>),
+                value.<#= vectorItemNames[i] #>);
+<#              } #>
+        }
+
+        /// <summary>
+        /// Computes the average while using the provided denominator.
+        /// </summary>
+        /// <param name="denominator">The denominator to use.</param>
+        /// <returns>The computed average.</returns>
+        public <#= typeName #> ComputeAverage(long denominator) =>
+            this / FromScalar((<#= type.Type #>)denominator);
+        
+<#          } #>
+<#          foreach (var accType in accumulations) { #>
+<#              var otherTypeName = GetTypeNameByName(accType, vectorLength); #>
+<#              string clsCompliant = type.IsCLSCompliant &&
+                    GetTypeByName(accType).IsCLSCompliant ? "true" : "false"; #>
+<#              if (accType != type.Type) { #>
+        /// <summary>
+        /// Adds an accumulation instance and a more coarse grained value instance.
+        /// </summary>
+        /// <param name="toAccumulate">The precise accumulation instance.</param>
+        /// <param name="current">The value to add.</param>
+        /// <returns>The accumulated instance.</returns>
+        [CLSCompliant(<#= clsCompliant #>)]
+        public static <#= typeName #> operator +(
+            <#= typeName #> current,
+            <#= otherTypeName #> toAccumulate) =>
+            current + ConvertFrom_<#= accType #>(toAccumulate);
+        
+        /// <summary>
+        /// Adds an accumulation instance and a more coarse grained value instance.
+        /// </summary>
+        /// <param name="toAccumulate">The precise accumulation instance.</param>
+        /// <param name="current">The value to add.</param>
+        /// <returns>The accumulated instance.</returns>
+        [CLSCompliant(<#= clsCompliant #>)]
+        public static <#= typeName #> operator +(
+            <#= otherTypeName #> toAccumulate,
+            <#= typeName #> current) =>
+            ConvertFrom_<#= accType #>(toAccumulate) + current;
+        
+        /// <summary>
+        /// Subtracts an accumulation instance and a more coarse grained value instance.
+        /// </summary>
+        /// <param name="toAccumulate">The precise accumulation instance.</param>
+        /// <param name="current">The value to subtract.</param>
+        /// <returns>The accumulated instance.</returns>
+        [CLSCompliant(<#= clsCompliant #>)]
+        public static <#= typeName #> operator -(
+            <#= typeName #> current,
+            <#= otherTypeName #> toAccumulate) =>
+            current - ConvertFrom_<#= accType #>(toAccumulate);
+        
+        /// <summary>
+        /// Subtracts an accumulation instance and a more coarse grained value instance.
+        /// </summary>
+        /// <param name="toAccumulate">The precise accumulation instance.</param>
+        /// <param name="current">The value to subtract.</param>
+        /// <returns>The accumulated instance.</returns>
+        [CLSCompliant(<#= clsCompliant #>)]
+        public static <#= typeName #> operator -(
+            <#= otherTypeName #> toAccumulate,
+            <#= typeName #> current) =>
+            ConvertFrom_<#= accType #>(toAccumulate) - current;
+
+        /// <summary>
+        /// Atomically adds two vectors.
+        /// </summary>
+        /// <param name="target">The target memory address.</param>
+        /// <param name="value">The current value to add.</param>
+        [CLSCompliant(<#= clsCompliant #>)]
+        public static void AtomicAdd(
+            ref <#= typeName #> target,
+            <#= otherTypeName #> value) =>
+            AtomicAdd(ref target, ConvertFrom_<#= accType #>(value));
+<#              } #>
+
+        /// <summary>
+        /// Converts a given coarse-grained value instance into its corresponding
+        /// accumulation value.
+        /// </summary>
+        /// <param name="other">The value to convert.</param>
+        /// <returns>The converted value.</returns>
+        private static <#= typeName #> ConvertFrom_<#= accType #>(
+            <#= otherTypeName #> other) =>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"({type.Type})other.{t}")) #>);
+
+        /// <summary>
+        /// Converts a given fine-grained value instance into its corresponding
+        /// raw value.
+        /// </summary>
+        /// <param name="current">The value to convert.</param>
+        /// <returns>The converted value.</returns>
+        private static <#= otherTypeName #> ConvertTo_<#= accType #>(
+            <#= typeName #> current) =>
+            new <#= otherTypeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"({accType})current.{t}")) #>);
+
+        /// <summary>
+        /// Converts a given coarse-grained value instance into its corresponding
+        /// accumulation value.
+        /// </summary>
+        /// <param name="other">The value to convert.</param>
+        /// <returns>The converted value.</returns>
+        static <#= typeName #> IAccumulationVectorType<
+            <#= typeName #>,
+            <#= GetTypeNameByName(accType, vectorLength) #>,
+            <#= accType #>>.ConvertFromBase(<#= otherTypeName #> other) =>
+            ConvertFrom_<#= accType #>(other);
+
+        /// <summary>
+        /// Converts a given fine-grained value instance into its corresponding
+        /// raw value.
+        /// </summary>
+        /// <param name="current">The value to convert.</param>
+        /// <returns>The converted value.</returns>
+        static <#= otherTypeName #> IAccumulationVectorType<
+            <#= typeName #>,
+            <#= GetTypeNameByName(accType, vectorLength) #>,
+            <#= accType #>>.ConvertToBase(<#= typeName #> current) =>
+            ConvertTo_<#= accType #>(current);
+
+<#              if (accType != "long") { #>
+        /// <summary>
+        /// Computes the average while using the provided denominator.
+        /// </summary>
+        /// <param name="denominator">The denominator to use.</param>
+        /// <returns>The computed average.</returns>
+        [CLSCompliant(<#= clsCompliant #>)]
+        public <#= typeName #> ComputeAverage(<#= accType #> denominator) =>
+            this / FromScalar((<#= type.Type #>)denominator);
+
+<#              } #>
+<#          } #>
+        /// <summary>
+        /// Converts this instance into an unsafe span instance.
+        /// </summary>
+        /// <returns>The readonly span instance.</returns>
+        public unsafe ReadOnlySpan<<#= type.Type #>> AsSpan() =>
+            new(Unsafe.AsPointer(ref Unsafe.AsRef(this)), <#= vectorLength #>);
+
+        /// <summary>
+        /// Iterates over all elements by applying the given iterator to each element.
+        /// </summary>
+        /// <typeparam name="TIterator">The managed iterator type.</typeparam>
+        /// <param name="iterator">The iterator to invoke.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ForEach<TIterator>(ref TIterator iterator)
+            where TIterator : struct, IVectorElementIterator<
+            <#= typeName #>,
+            <#= type.Type #>>
+        {
+<#              for (int i = 0; i < vectorLength; ++i) { #>
+            iterator.Iterate(<#= vectorItemNames[i] #>, <#= i #>);
+<#              } #>
+        }
+
+        /// <summary>
+        /// Converts this vector instance to a string.
+        /// </summary>
+        public override string ToString() =>
+            $"<#= string.Join($", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{{{t}}}")) #>";
+
+        /// <summary>
+        /// Converts this vector instance to a string.
+        /// </summary>
+        public string ToString(string format, IFormatProvider formatProvider) =>
+            $"<#= string.Join($", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{{{t}.ToString(format, formatProvider)}}")) #>";
+
+        /// <summary>
+        /// Returns true.
+        /// </summary>
+        public static bool IsCanonical(<#= typeName #> value) => true;
+
+        /// <summary>
+        /// Returns false.
+        /// </summary>
+        public static bool IsComplexNumber(<#= typeName #> value) => false;
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsEvenInteger(<#= typeName #> value) =>
+            <#= string.Join(" & ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsEvenInteger(value.{t})")) #>;
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsFinite(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            true;
+<#          } else { #>
+            <#= string.Join(" & ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsFinite(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Returns false.
+        /// </summary>
+        public static bool IsImaginaryNumber(<#= typeName #> value) => false;
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsInfinity(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            false;
+<#          } else { #>
+            <#= string.Join(" | ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsInfinity(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsInteger(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            true;
+<#          } else { #>
+            <#= string.Join(" & ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsInteger(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsNaN(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            false;
+<#          } else { #>
+            <#= string.Join(" | ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsNaN(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsNegative(<#= typeName #> value) =>
+<#          if (type.IsUnsignedInt) { #>
+            false;
+<#          } else { #>
+            <#= string.Join(" & ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsNegative(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsNegativeInfinity(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            false;
+<#          } else { #>
+            <#= string.Join(" | ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsNegativeInfinity(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsNormal(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            true;
+<#          } else { #>
+            <#= string.Join(" & ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsNormal(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsOddInteger(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            true;
+<#          } else { #>
+            <#= string.Join(" & ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsOddInteger(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsPositive(<#= typeName #> value) =>
+<#          if (type.IsUnsignedInt) { #>
+            true;
+<#          } else { #>
+            <#= string.Join(" & ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsPositive(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsPositiveInfinity(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            false;
+<#          } else { #>
+            <#= string.Join(" | ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsPositiveInfinity(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Returns true.
+        /// </summary>
+        public static bool IsRealNumber(<#= typeName #> value) => true;
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsSubnormal(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            false;
+<#          } else { #>
+            <#= string.Join(" & ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.IsSubnormal(value.{t})")) #>;
+<#          } #>
+
+        /// <summary>
+        /// Evaluates the described predicate.
+        /// </summary>
+        public static bool IsZero(<#= typeName #> value) =>
+<#          if (type.IsInt) { #>
+            value == Zero;
+<#          } else { #>
+            Abs(value) == Zero;
+<#          } #>
+
+        /// <summary>
+        /// Returns the absolute value.
+        /// </summary>
+        public static <#= typeName #> Abs(<#= typeName #> value) =>
+<#          if (type.IsUnsignedInt) { #>
+            value;
+<#          } else { #>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"Math.Abs(value.{t})")) #>);
+<#          } #>
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> operator +(<#= typeName #> left, <#= typeName #> right) =>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"({type.Type})(left.{t} + right.{t})")) #>);
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> operator --(<#= typeName #> value) => value - One;
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> operator /(<#= typeName #> left, <#= typeName #> right) =>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"({type.Type})(left.{t} / right.{t})")) #>);
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> operator ++(<#= typeName #> value) => value + One;
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> operator *(<#= typeName #> left, <#= typeName #> right) =>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"({type.Type})(left.{t} * right.{t})")) #>);
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> operator -(<#= typeName #> left, <#= typeName #> right) =>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"({type.Type})(left.{t} - right.{t})")) #>);
+
+<#          if (type.IsUnsignedInt) { #>
+        /// <summary>
+        /// Not supported operation.
+        /// </summary>
+        static <#= typeName #> IUnaryNegationOperators<<#= typeName #>, <#= typeName #>>.
+            operator -(<#= typeName #> value) => value;
+<#          } else { #>
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> operator -(<#= typeName #> value) =>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"({type.Type})-value.{t}")) #>);
+<#          } #>
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> operator +(<#= typeName #> value) => value;
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> MaxMagnitude(<#= typeName #> x, <#= typeName #> y) =>
+<#          if (type.IsUnsignedInt) { #>
+            Max(x, y);
+<#          } else { #>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.MaxMagnitude(x.{t}, y.{t})")) #>);
+<#          } #>
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> MaxMagnitudeNumber(<#= typeName #> x, <#= typeName #> y) =>
+<#          if (type.IsInt) { #>
+            MaxMagnitude(x, y);
+<#          } else { #>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.MaxMagnitudeNumber(x.{t}, y.{t})")) #>);
+<#          } #>
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> MinMagnitude(<#= typeName #> x, <#= typeName #> y) =>
+<#          if (type.IsUnsignedInt) { #>
+            Min(x, y);
+<#          } else { #>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.MinMagnitude(x.{t}, y.{t})")) #>);
+<#          } #>
+
+        /// <summary>
+        /// Performs the specified operation.
+        /// </summary>
+        public static <#= typeName #> MinMagnitudeNumber(<#= typeName #> x, <#= typeName #> y) =>
+<#          if (type.IsInt) { #>
+            MinMagnitude(x, y);
+<#          } else { #>
+            new <#= typeName #>(<#= string.Join(", ", vectorItemNames
+                .Take(vectorLength)
+                .Select(t => $"{type.Type}.MinMagnitudeNumber(x.{t}, y.{t})")) #>);
+<#          } #>
+
+        // Not supported operations
+
+        /// <summary>
+        /// Parses the given string into a vectorized instance.
+        /// </summary>
+        static <#= typeName #> IParsable<<#= typeName #>>.Parse(
+            string s,
+            IFormatProvider provider) =>
+            throw new NotSupportedException();
+
+        /// <summary>
+        /// Parses the given string into a vectorized instance.
+        /// </summary>
+        static <#= typeName #> ISpanParsable<<#= typeName #>>.Parse(
+            ReadOnlySpan<char> s,
+            IFormatProvider provider) =>
+            throw new NotSupportedException();
+
+        /// <summary>
+        /// Parses the given string into a vectorized instance.
+        /// </summary>
+        static <#= typeName #> INumberBase<<#= typeName #>>.Parse(
+            ReadOnlySpan<char> s,
+            NumberStyles style,
+            IFormatProvider provider) =>
+            throw new NotSupportedException();
+
+        /// <summary>
+        /// Parses the given string into a vectorized instance.
+        /// </summary>
+        static <#= typeName #> INumberBase<<#= typeName #>>.Parse(
+            string s,
+            NumberStyles style,
+            IFormatProvider provider) =>
+            throw new NotSupportedException();
+
+        /// <summary>
+        /// Tries to parse the given string into a vectorized instance.
+        /// </summary>
+        bool ISpanFormattable.TryFormat(
+            Span<char> destination,
+            out int charsWritten,
+            ReadOnlySpan<char> format,
+            IFormatProvider provider) =>
+            throw new NotSupportedException();
+
+        /// <summary>
+        /// Tries to parse the given string into a vectorized instance.
+        /// </summary>
+        static bool IParsable<<#= typeName #>>.TryParse(
+            string s,
+            IFormatProvider provider,
+            out <#= typeName #> result) =>
+            throw new NotSupportedException();
+
+        /// <summary>
+        /// Tries to parse the given span into a vectorized instance.
+        /// </summary>
+        static bool ISpanParsable<<#= typeName #>>.TryParse(
+            ReadOnlySpan<char> s,
+            IFormatProvider provider,
+            out <#= typeName #> result) =>
+            throw new NotSupportedException();
+
+        /// <summary>
+        /// Tries to parse the given string into a vectorized instance.
+        /// </summary>
+        static bool INumberBase<<#= typeName #>>.TryParse(
+            ReadOnlySpan<char> s,
+            NumberStyles style,
+            IFormatProvider provider,
+            out <#= typeName #> result) =>
+            throw new NotSupportedException();
+
+        /// <summary>
+        /// Tries to parse the given string into a vectorized instance.
+        /// </summary>
+        static bool INumberBase<<#= typeName #>>.TryParse(
+            string s,
+            NumberStyles style,
+            IFormatProvider provider,
+            out <#= typeName #> result) =>
+            throw new NotSupportedException();
+
+        static bool INumberBase<<#= typeName #>>.TryConvertFromChecked<TOther>(
+            TOther value,
+            out <#= typeName #> result) =>
+            throw new NotSupportedException();
+        static bool INumberBase<<#= typeName #>>.TryConvertFromSaturating<TOther>(
+            TOther value,
+            out <#= typeName #> result) =>
+            throw new NotSupportedException();
+        static bool INumberBase<<#= typeName #>>.TryConvertFromTruncating<TOther>(
+            TOther value,
+            out <#= typeName #> result) =>
+            throw new NotSupportedException();
+        static bool INumberBase<<#= typeName #>>.TryConvertToChecked<TOther>(
+            <#= typeName #> value,
+            out TOther result) =>
+            throw new NotSupportedException();
+        static bool INumberBase<<#= typeName #>>.TryConvertToSaturating<TOther>(
+            <#= typeName #> value,
+            out TOther result) =>
+            throw new NotSupportedException();
+        static bool INumberBase<<#= typeName #>>.TryConvertToTruncating<TOther>(
+            <#= typeName #> value,
+            out TOther result) =>
+            throw new NotSupportedException();
+    }
+
+<#      } #>
+<#  } #>
+}
+
+#pragma warning restore CA2225
+#pragma warning restore IDE0004
+
+#endif
