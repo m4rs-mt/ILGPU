@@ -174,6 +174,8 @@ namespace ILGPU.Frontend
                     ErrorMessages.NotSupportedVirtualMethodCall,
                     target.Name);
             }
+            if (sourceGenerics.Length > 0 && !actualTarget.IsGenericMethodDefinition)
+                actualTarget = actualTarget.GetGenericMethodDefinition();
             return sourceGenerics.Length > 0
                 ? actualTarget.MakeGenericMethod(sourceGenerics)
                 : actualTarget;

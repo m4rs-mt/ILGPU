@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VectorTests.cs
@@ -9,11 +9,15 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Algorithms.Random;
+using ILGPU.Algorithms.Vectors;
 using ILGPU.Runtime;
 using ILGPU.Tests;
 using System.Numerics;
 using Xunit;
 using Xunit.Abstractions;
+
+#pragma warning disable xUnit1026
 
 namespace ILGPU.Algorithms.Tests
 {
@@ -54,6 +58,18 @@ namespace ILGPU.Algorithms.Tests
                 { 127, default(Vector4UnitZ) },
                 { 48, default(Vector4UnitW) },
             };
+        
+#if NET7_0_OR_GREATER
+        
+        public static TheoryData<object, object, object, object>
+            VectorStaticAbstractData =>
+            new TheoryData<object, object, object, object>
+            {
+                { Int32x2.Zero, Int32x2.One, default(int),
+                    XorShift64Star.Create(new System.Random(1337)) },
+            };
+        
+#endif
 
         #endregion
 
@@ -85,6 +101,30 @@ namespace ILGPU.Algorithms.Tests
             var target = input.VariableView(index);
             target.AtomicAdd(operand);
         }
+        
+#if NET7_0_OR_GREATER
+        
+        internal static void VectorStaticAbstractCallKernel<
+            TNumericType,
+            TElementType,
+            TRandom>(
+            Index1D index,
+            ArrayView1D<TNumericType, Stride1D.Dense> output,
+            TNumericType lowerBound,
+            TNumericType upperBound,
+            TRandom random)
+            where TNumericType : unmanaged, IVectorType<TNumericType, TElementType>
+            where TElementType : unmanaged, INumber<TElementType>
+            where TRandom : unmanaged, IRandomProvider<TRandom>
+        {
+            var initPosition = TNumericType.GetRandom(
+                ref random,
+                lowerBound,
+                upperBound);
+            output[index] = initPosition;
+        }
+        
+#endif
 
         #endregion
 
@@ -194,5 +234,32 @@ namespace ILGPU.Algorithms.Tests
             Assert.Equal(initVector, vector);
             Assert.Equal(initIndex, index);
         }
+        
+#if NET7_0_OR_GREATER
+        [Theory]
+        [MemberData(nameof(VectorStaticAbstractData))]
+        [KernelMethod(nameof(VectorStaticAbstractCallKernel))]
+        public void VectorStaticAbstractCall<TNumericType, TElementType, TRandom>(
+            TNumericType lowerBound,
+            TNumericType upperBound,
+            TElementType _,
+            TRandom random)
+            where TNumericType : unmanaged
+            where TElementType : unmanaged
+            where TRandom : unmanaged
+        {
+            const int Length = 32;
+            using var targetBuffer = Accelerator.Allocate1D<TNumericType>(Length);
+
+            Execute<Index1D, TNumericType, TElementType, TRandom>(
+                targetBuffer.IntExtent,
+                targetBuffer.View,
+                lowerBound,
+                upperBound,
+                random);
+        }
+#endif
     }
 }
+
+#pragma warning restore xUnit1026
