@@ -153,35 +153,12 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
         library: [ILGPU, ILGPU.Algorithms]
-        framework: [netcoreapp3.1, net5.0, net6.0, net7.0]
-        include:
-          - os: windows-latest
-            library: ILGPU
-            framework: net471
-          - os: windows-latest
-            library: ILGPU.Algorithms
-            framework: net471
+        framework: [net6.0, net7.0]
       fail-fast: false
     runs-on: ${{ contains(matrix.os, 'cuda') && format('{0}-{1}-{2}', matrix.os, matrix.library, matrix.framework) || matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Setup the latest .NET Core 3.1 SDK
-        if: matrix.framework == 'netcoreapp3.1'
-        uses: actions/setup-dotnet@v3.2.0
-        env:
-          DOTNET_INSTALL_DIR: ${{ matrix.framework == 'cuda' && '~/.' }}
-        with:
-          dotnet-version: 3.1.x
-
-      - name: Setup the latest .NET 5 SDK
-        if: matrix.framework == 'net5.0'
-        uses: actions/setup-dotnet@v3.2.0
-        env:
-          DOTNET_INSTALL_DIR: ${{ matrix.framework == 'cuda' && '~/.' }}
-        with:
-          dotnet-version: 5.0.x
 
       - name: Setup the latest .NET 6 SDK
         if: matrix.framework == 'net6.0'
@@ -269,9 +246,6 @@ jobs:
           }
 
           dotnet pack Src --configuration=Release @params
-
-      - name: Fix NuGet Symbols Packages
-        run: .github/workflows/Scripts/FixNugetSymbolPackages.ps1 -version "${{ needs.check-version.outputs.version }}"
 
       - name: Upload NuGet package artifacts
         uses: actions/upload-artifact@v3

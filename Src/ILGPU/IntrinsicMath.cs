@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMath.cs
@@ -665,14 +665,7 @@ namespace ILGPU
         /// <returns>A value with the magnitude of x and the sign of y.</returns>
         [MathIntrinsic(MathIntrinsicKind.CopySignF)]
         public static double CopySign(double x, double y) =>
-#if !NETFRAMEWORK && !NETSTANDARD
             Math.CopySign(x, y);
-#else
-            // NB: net471 and netstandard2.1 do not support Math.CopySign.
-            Interop.IntAsFloat(
-                (Interop.FloatAsInt(x) & ~(1UL << 63)) |
-                (Interop.FloatAsInt(y) & (1UL << 63)));
-#endif
 
         /// <summary>
         /// Returns a value with the magnitude of x and the sign of y.
@@ -682,14 +675,7 @@ namespace ILGPU
         /// <returns>A value with the magnitude of x and the sign of y.</returns>
         [MathIntrinsic(MathIntrinsicKind.CopySignF)]
         public static float CopySign(float x, float y) =>
-#if !NETFRAMEWORK && !NETSTANDARD
             MathF.CopySign(x, y);
-#else
-            // NB: net471 and netstandard2.1 do not support Math.CopySign.
-            Interop.IntAsFloat(
-                (Interop.FloatAsInt(x) & ~(1U << 31)) |
-                (Interop.FloatAsInt(y) & (1U << 31)));
-#endif
 
         #endregion
     }
