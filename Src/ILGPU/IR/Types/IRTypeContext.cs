@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRTypeContext.cs
@@ -368,7 +368,7 @@ namespace ILGPU.IR.Types
             else if (type.IsArray)
             {
                 var arrayElementType = CreateType_Sync(
-                    type.GetElementType(),
+                    type.GetElementType().AsNotNull(),
                     addressSpace);
                 var dimension = type.GetArrayRank();
                 return Map(
@@ -376,7 +376,7 @@ namespace ILGPU.IR.Types
                     addressSpace,
                     CreateArrayType(arrayElementType, dimension));
             }
-            else if (type.IsArrayViewType(out Type elementType))
+            else if (type.IsArrayViewType(out Type? elementType))
             {
                 return Map(
                     type,
@@ -398,7 +398,7 @@ namespace ILGPU.IR.Types
                     type,
                     addressSpace,
                     CreatePointerType(
-                        CreateType_Sync(type.GetElementType(), addressSpace),
+                        CreateType_Sync(type.GetElementType().AsNotNull(), addressSpace),
                         addressSpace));
             }
             else if (type.IsClass)
@@ -454,7 +454,7 @@ namespace ILGPU.IR.Types
             }
             else
             {
-                var viewType = addressSpaceType as ViewType;
+                var viewType = addressSpaceType.AsNotNullCast<ViewType>();
                 return CreateViewType(
                     viewType.ElementType,
                     addressSpace);
@@ -471,7 +471,7 @@ namespace ILGPU.IR.Types
         public bool TrySpecializeAddressSpaceType(
             TypeNode type,
             MemoryAddressSpace addressSpace,
-            out TypeNode specializedType)
+            [NotNullWhen(true)] out TypeNode? specializedType)
         {
             Debug.Assert(type != null, "Invalid type");
 
@@ -493,8 +493,8 @@ namespace ILGPU.IR.Types
             // Synchronize all accesses below using a read/write scope
             using var readWriteScope = typeLock.EnterUpgradeableReadScope();
 
-            if (unifiedTypes.TryGetValue(type, out TypeNode result))
-                return result as T;
+            if (unifiedTypes.TryGetValue(type, out TypeNode? result))
+                return result.AsNotNullCast<T>();
 
             // Synchronize all accesses below using a write scope
             using var writeScope = typeLock.EnterWriteScope();

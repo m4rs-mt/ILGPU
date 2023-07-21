@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ValueTuples.tt/ValueTuples.cs
@@ -12,6 +12,7 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 <#@ output extension=".cs" #>
+using ILGPU.Util;
 using System;
 using System.Reflection;
 <#
@@ -52,7 +53,7 @@ namespace ILGPU.IR.Types
                 _ => throw new NotImplementedException()
             };
             var method = methodInfo.MakeGenericMethod(types);
-            return (int[])method.Invoke(null, null);
+            return method.Invoke(null, null).AsNotNullCast<int[]>();
         }
 
         private static unsafe int CalculateOffset(byte* current, byte* baseline) =>
@@ -83,7 +84,8 @@ namespace ILGPU.IR.Types
         private static readonly MethodInfo GetOffsetsMethod<#= type.NumParams #> =
             typeof(ValueTuples).GetMethod(
                 nameof(GetOffsets<#= type.NumParams #>),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
 <#  } #>
         #endregion

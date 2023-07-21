@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2022 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Context.cs
@@ -96,7 +96,7 @@ namespace ILGPU
                 /// <summary>
                 /// Returns the current use.
                 /// </summary>
-                public TDevice Current => enumerator.Current as TDevice;
+                public TDevice Current => enumerator.Current.AsNotNullCast<TDevice>();
 
                 /// <summary cref="IEnumerator.MoveNext"/>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -142,7 +142,7 @@ namespace ILGPU
                     if (deviceIndex < 0)
                         throw new ArgumentOutOfRangeException(nameof(deviceIndex));
                     return deviceIndex < Count
-                        ? devices[deviceIndex] as TDevice
+                        ? devices[deviceIndex].AsNotNullCast<TDevice>()
                         : throw new NotSupportedException(
                             RuntimeErrorMessages.NotSupportedTargetAccelerator);
                 }
@@ -176,7 +176,8 @@ namespace ILGPU
         static Context()
         {
             var versionString = Assembly.GetExecutingAssembly().
-                GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+                GetCustomAttribute<AssemblyFileVersionAttribute>().ThrowIfNull()
+                .Version;
             int offset = 0;
             for (int i = 0; i < 3; ++i)
                 offset = versionString.IndexOf('.', offset + 1);
@@ -184,7 +185,8 @@ namespace ILGPU
 
             InliningAttributeBuilder = new CustomAttributeBuilder(
                 typeof(MethodImplAttribute).GetConstructor(
-                    new Type[] { typeof(MethodImplOptions) }),
+                    new Type[] { typeof(MethodImplOptions) })
+                    .ThrowIfNull(),
                 new object[] { MethodImplOptions.AggressiveInlining });
         }
 
@@ -195,7 +197,7 @@ namespace ILGPU
         /// <summary>
         /// Will be called when a new accelerator has been created.
         /// </summary>
-        public event EventHandler<Accelerator> AcceleratorCreated;
+        public event EventHandler<Accelerator>? AcceleratorCreated;
 
         #endregion
 
@@ -241,7 +243,7 @@ namespace ILGPU
             IntrinsicManager = builder.IntrinsicManager;
 
             // Create frontend
-            DebugInformationManager frontendDebugInformationManager =
+            DebugInformationManager? frontendDebugInformationManager =
                 Properties.DebugSymbolsMode > DebugSymbolsMode.Disabled
                 ? DebugInformationManager
                 : null;
@@ -613,7 +615,7 @@ namespace ILGPU
         /// <summary>
         /// Returns the exception from code generation failure.
         /// </summary>
-        public Exception LastException => Context.ILFrontend.LastException;
+        public Exception? LastException => Context.ILFrontend.LastException;
 
         #endregion
 

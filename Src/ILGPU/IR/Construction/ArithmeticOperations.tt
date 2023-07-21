@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2022 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArithmeticOperations.tt/ArithmeticOperations.cs
@@ -127,7 +127,7 @@ namespace ILGPU.IR.Construction
 <#    } #>
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Value UnaryArithmeticSimplify(
+        private Value? UnaryArithmeticSimplify(
             Location location,
             Value value,
             UnaryArithmeticKind kind,
@@ -199,7 +199,7 @@ namespace ILGPU.IR.Construction
         /// Simplifies the <#= settings.Name #> of a binary expression.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Value BinaryArithmeticSimplify_<#= settings.Name #>(
+        private Value? BinaryArithmeticSimplify_<#= settings.Name #>(
             Location location,
             <#= settings.Left #> left,
             <#= settings.Right #> right,
@@ -230,7 +230,7 @@ namespace ILGPU.IR.Construction
         /// Simplifies the <#= settings.Name #> of a binary expression.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Value BinaryArithmeticSimplify_<#= settings.Name #>(
+        private Value? BinaryArithmeticSimplify_<#= settings.Name #>(
             Location location,
             BinaryArithmeticValue arithmeticValue,
             PrimitiveValue firstValue,

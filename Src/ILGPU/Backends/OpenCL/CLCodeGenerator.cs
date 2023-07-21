@@ -16,7 +16,9 @@ using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -151,7 +153,7 @@ namespace ILGPU.Backends.OpenCL
             /// </param>
             /// <param name="parameter">The intrinsic parameter.</param>
             /// <returns>The allocated variable (if any).</returns>
-            Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
+            Variable? HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
         }
 
         /// <summary>
@@ -225,7 +227,9 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="block">The block.</param>
             /// <param name="phisToDeclare">The variables to declare (if any).</param>
             /// <returns>True, if there are some phi variables to declare.</returns>
-            public bool TryGetPhis(BasicBlock block, out List<Variable> phisToDeclare) =>
+            public bool TryGetPhis(
+                BasicBlock block,
+                [NotNullWhen(true)] out List<Variable>? phisToDeclare) =>
                 phiMapping.TryGetValue(block, out phisToDeclare);
         }
 
@@ -393,7 +397,7 @@ namespace ILGPU.Backends.OpenCL
 
             foreach (var param in Method.Parameters)
             {
-                Variable variable;
+                Variable? variable;
                 if (offset < paramOffset)
                 {
                     variable = logic.HandleIntrinsicParameter(offset, param);
@@ -578,7 +582,7 @@ namespace ILGPU.Backends.OpenCL
                 }
 
                 // Build terminator
-                this.GenerateCodeFor(block.Terminator);
+                this.GenerateCodeFor(block.Terminator.AsNotNull());
                 Builder.AppendLine();
             }
         }

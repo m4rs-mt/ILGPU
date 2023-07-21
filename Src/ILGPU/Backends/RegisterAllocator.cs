@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RegisterAllocator.cs
@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -266,7 +267,7 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns the underlying type.
             /// </summary>
-            public new StructureType Type => base.Type as StructureType;
+            public new StructureType Type => base.Type.AsNotNullCast<StructureType>();
 
             /// <summary>
             /// Returns all child registers.
@@ -412,7 +413,7 @@ namespace ILGPU.Backends
         {
             node.AssertNotNull(node);
 
-            if (aliases.TryGetValue(node, out Value alias))
+            if (aliases.TryGetValue(node, out Value? alias))
                 node = alias;
             if (!registerLookup.TryGetValue(node, out RegisterEntry entry))
             {
@@ -420,7 +421,7 @@ namespace ILGPU.Backends
                 entry = new RegisterEntry(targetRegister, node);
                 registerLookup.Add(node, entry);
             }
-            var result = entry.Register as HardwareRegister;
+            var result = entry.Register.AsNotNullCast<HardwareRegister>();
             node.AssertNotNull(result);
             return result;
         }
@@ -444,7 +445,7 @@ namespace ILGPU.Backends
         public Register Allocate(Value node)
         {
             node.AssertNotNull(node);
-            if (aliases.TryGetValue(node, out Value alias))
+            if (aliases.TryGetValue(node, out Value? alias))
                 node = alias;
             if (!registerLookup.TryGetValue(node, out RegisterEntry entry))
             {
@@ -504,7 +505,7 @@ namespace ILGPU.Backends
         {
             node.AssertNotNull(node);
             node.AssertNotNull(aliasNode);
-            if (aliases.TryGetValue(aliasNode, out Value otherAlias))
+            if (aliases.TryGetValue(aliasNode, out Value? otherAlias))
                 aliasNode = otherAlias;
             aliases[node] = aliasNode;
         }
@@ -517,7 +518,7 @@ namespace ILGPU.Backends
         public T LoadAs<T>(Value node)
             where T : Register
         {
-            var result = Load(node) as T;
+            var result = Load(node).AsNotNullCast<T>();
             node.AssertNotNull(result);
             return result;
         }
@@ -530,7 +531,7 @@ namespace ILGPU.Backends
         public Register Load(Value node)
         {
             node.AssertNotNull(node);
-            if (aliases.TryGetValue(node, out Value alias))
+            if (aliases.TryGetValue(node, out Value? alias))
                 node = alias;
             return registerLookup.TryGetValue(node, out RegisterEntry entry)
                 ? entry.Register
@@ -546,7 +547,7 @@ namespace ILGPU.Backends
         {
             var result = Load(node);
             node.AssertNotNull(result);
-            return result as PrimitiveRegister;
+            return result.AsNotNullCast<PrimitiveRegister>();
         }
 
         /// <summary>
@@ -558,7 +559,7 @@ namespace ILGPU.Backends
         {
             var result = Load(node);
             node.AssertNotNull(result);
-            return result as HardwareRegister;
+            return result.AsNotNullCast<HardwareRegister>();
         }
 
         /// <summary>

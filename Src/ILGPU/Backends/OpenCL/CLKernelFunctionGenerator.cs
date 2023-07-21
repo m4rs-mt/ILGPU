@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLKernelFunctionGenerator.cs
@@ -67,12 +67,12 @@ namespace ILGPU.Backends.OpenCL
             /// <summary>
             /// Returns the main index variable.
             /// </summary>
-            public Variable IndexVariable { get; private set; }
+            public Variable? IndexVariable { get; private set; }
 
             /// <summary>
             /// Returns the length variable of implicitly grouped kernels.
             /// </summary>
-            public Variable LengthVariable { get; private set; }
+            public Variable? LengthVariable { get; private set; }
 
             /// <summary>
             /// Returns the parent type generator.
@@ -88,7 +88,7 @@ namespace ILGPU.Backends.OpenCL
             /// <summary>
             /// Updates index and length variables.
             /// </summary>
-            public Variable HandleIntrinsicParameter(
+            public Variable? HandleIntrinsicParameter(
                 int parameterOffset,
                 Parameter parameter)
             {
@@ -476,11 +476,12 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="lengthVariable">
         /// The length variable of implicitly grouped kernels.
         /// </param>
-        private void SetupKernelIndex(Variable indexVariable, Variable lengthVariable)
+        private void SetupKernelIndex(Variable? indexVariable, Variable? lengthVariable)
         {
             if (EntryPoint.IsExplicitlyGrouped)
                 return;
             Debug.Assert(indexVariable != null, "Invalid index variable");
+            Debug.Assert(lengthVariable != null, "Invalid length variable");
 
             if (EntryPoint.IndexType == IndexType.Index1D)
             {

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Predicate.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.IR.Construction
 {
@@ -37,7 +38,7 @@ namespace ILGPU.IR.Construction
                 falseValue = CreateConvert(
                     location,
                     falseValue,
-                    trueValue.Type as PrimitiveType);
+                    trueValue.Type.AsNotNullCast<PrimitiveType>());
             }
 
             // Match simple constant predicates

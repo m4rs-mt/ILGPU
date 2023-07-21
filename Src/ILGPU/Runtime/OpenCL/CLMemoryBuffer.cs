@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLMemoryBuffer.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using static ILGPU.Runtime.OpenCL.CLAPI;
 
@@ -170,21 +171,21 @@ namespace ILGPU.Runtime.OpenCL
             AcceleratorStream stream,
             byte value,
             in ArrayView<byte> targetView) =>
-            CLMemSet(stream as CLStream, value, targetView);
+            CLMemSet(stream.AsNotNullCast<CLStream>(), value, targetView);
 
         /// <inheritdoc/>
         protected internal override void CopyFrom(
             AcceleratorStream stream,
             in ArrayView<byte> sourceView,
             in ArrayView<byte> targetView) =>
-            CLCopy(stream as CLStream, sourceView, targetView);
+            CLCopy(stream.AsNotNullCast<CLStream>(), sourceView, targetView);
 
         /// <inheritdoc/>
         protected internal override void CopyTo(
             AcceleratorStream stream,
             in ArrayView<byte> sourceView,
             in ArrayView<byte> targetView) =>
-            CLCopy(stream as CLStream, sourceView, targetView);
+            CLCopy(stream.AsNotNullCast<CLStream>(), sourceView, targetView);
 
         #endregion
 

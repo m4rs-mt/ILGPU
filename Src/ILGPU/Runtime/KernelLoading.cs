@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelLoading.cs
@@ -131,7 +131,7 @@ namespace ILGPU.Runtime
         public Kernel LoadImplicitlyGroupedKernel(
             CompiledKernel kernel,
             int customGroupSize,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
         {
             Bind();
             return LoadImplicitlyGroupedKernelInternal(
@@ -159,7 +159,7 @@ namespace ILGPU.Runtime
         protected abstract Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
             int customGroupSize,
-            out KernelInfo kernelInfo);
+            out KernelInfo? kernelInfo);
 
         /// <summary>
         /// Loads the given implicitly-grouped kernel while using an automatically
@@ -187,7 +187,7 @@ namespace ILGPU.Runtime
         /// </remarks>
         public Kernel LoadAutoGroupedKernel(
             CompiledKernel kernel,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
         {
             Bind();
             return LoadAutoGroupedKernelInternal(kernel, out kernelInfo);
@@ -207,7 +207,7 @@ namespace ILGPU.Runtime
         /// </remarks>
         protected abstract Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
-            out KernelInfo kernelInfo);
+            out KernelInfo? kernelInfo);
 
         #endregion
 
@@ -229,7 +229,7 @@ namespace ILGPU.Runtime
             public Kernel LoadKernel(
                 Accelerator accelerator,
                 CompiledKernel compiledKernel,
-                out KernelInfo kernelInfo)
+                out KernelInfo? kernelInfo)
             {
                 var kernel = accelerator.LoadKernel(compiledKernel);
                 kernelInfo = KernelInfo.CreateFrom(
@@ -265,7 +265,7 @@ namespace ILGPU.Runtime
             public Kernel LoadKernel(
                 Accelerator accelerator,
                 CompiledKernel compiledKernel,
-                out KernelInfo kernelInfo) =>
+                out KernelInfo? kernelInfo) =>
                 accelerator.LoadImplicitlyGroupedKernel(
                     compiledKernel,
                     GroupSize,
@@ -287,7 +287,7 @@ namespace ILGPU.Runtime
             public Kernel LoadKernel(
                 Accelerator accelerator,
                 CompiledKernel compiledKernel,
-                out KernelInfo kernelInfo) =>
+                out KernelInfo? kernelInfo) =>
                 accelerator.LoadAutoGroupedKernel(
                     compiledKernel,
                     out kernelInfo);
@@ -312,7 +312,7 @@ namespace ILGPU.Runtime
             in EntryPointDescription entry,
             in KernelSpecialization specialization,
             in TKernelLoader kernelLoader,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate
             where TKernelLoader : struct, IKernelLoader
         {
@@ -379,7 +379,7 @@ namespace ILGPU.Runtime
         public Kernel LoadKernel(
             MethodInfo method,
             KernelSpecialization specialization,
-            out KernelInfo kernelInfo) =>
+            out KernelInfo? kernelInfo) =>
             LoadGenericKernel(
                 EntryPointDescription.FromExplicitlyGroupedKernel(method),
                 specialization,
@@ -429,7 +429,7 @@ namespace ILGPU.Runtime
         /// </remarks>
         public Kernel LoadAutoGroupedKernel(
             MethodInfo method,
-            out KernelInfo kernelInfo) =>
+            out KernelInfo? kernelInfo) =>
             LoadGenericKernel(
                 EntryPointDescription.FromImplicitlyGroupedKernel(method),
                 KernelSpecialization.Empty,
@@ -484,7 +484,7 @@ namespace ILGPU.Runtime
         public TDelegate LoadKernel<TDelegate>(
             MethodInfo method,
             KernelSpecialization specialization,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate =>
             LoadGenericKernel<TDelegate, DefaultKernelLoader>(
                 EntryPointDescription.FromExplicitlyGroupedKernel(method),
@@ -527,7 +527,7 @@ namespace ILGPU.Runtime
         public TDelegate LoadImplicitlyGroupedKernel<TDelegate>(
             MethodInfo method,
             int customGroupSize,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate =>
             LoadGenericKernel<TDelegate, GroupedKernelLoader>(
                 EntryPointDescription.FromImplicitlyGroupedKernel(method),
@@ -554,7 +554,7 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel-launcher delegate.</returns>
         public TDelegate LoadAutoGroupedKernel<TDelegate>(
             MethodInfo method,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate =>
             LoadGenericKernel<TDelegate, AutoKernelLoader>(
                 EntryPointDescription.FromImplicitlyGroupedKernel(method),
@@ -579,7 +579,7 @@ namespace ILGPU.Runtime
         /// </remarks>
         public TDelegate LoadKernel<TDelegate, TSourceDelegate>(
             TSourceDelegate methodDelegate,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate
             where TSourceDelegate : Delegate =>
             LoadKernel<TDelegate>(
@@ -604,7 +604,7 @@ namespace ILGPU.Runtime
         public TDelegate LoadKernel<TDelegate, TSourceDelegate>(
             TSourceDelegate methodDelegate,
             KernelSpecialization specialization,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate
             where TSourceDelegate : Delegate =>
             LoadKernel<TDelegate>(
@@ -651,7 +651,7 @@ namespace ILGPU.Runtime
         public TDelegate LoadImplicitlyGroupedKernel<TDelegate, TSourceDelegate>(
             TSourceDelegate methodDelegate,
             int customGroupSize,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate
             where TSourceDelegate : Delegate =>
             LoadImplicitlyGroupedKernel<TDelegate>(
@@ -670,7 +670,7 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel-launcher delegate.</returns>
         public TDelegate LoadAutoGroupedKernel<TDelegate, TSourceDelegate>(
             TSourceDelegate methodDelegate,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate
             where TSourceDelegate : Delegate =>
             LoadAutoGroupedKernel<TDelegate>(

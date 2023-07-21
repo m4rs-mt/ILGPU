@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Arithmetic.cs
@@ -152,7 +152,7 @@ namespace ILGPU.IR.Construction
         {
             VerifyBinaryArithmeticOperands(location, left, right, kind);
 
-            Value simplified;
+            Value? simplified;
             if (right is PrimitiveValue rightValue)
             {
                 // Check for constants

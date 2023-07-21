@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AssemblyDebugInformation.cs
@@ -12,6 +12,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Reflection.Metadata;
@@ -52,6 +53,10 @@ namespace ILGPU.Frontend.DebugInformation
         {
             Assembly = assembly;
             Modules = ImmutableArray<Module>.Empty;
+
+            readerProvider =
+                MetadataReaderProvider.FromPortablePdbImage(ImmutableArray<byte>.Empty);
+            MetadataReader = readerProvider.GetMetadataReader();
         }
 
         /// <summary>
@@ -75,7 +80,7 @@ namespace ILGPU.Frontend.DebugInformation
             {
                 var definitionHandle = methodHandle.ToDefinitionHandle();
                 var metadataToken = MetadataTokens.GetToken(definitionHandle);
-                if (TryResolveMethod(metadataToken, out MethodBase method))
+                if (TryResolveMethod(metadataToken, out MethodBase? method))
                 {
                     debugInformation.Add(
                         method,
@@ -129,7 +134,9 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="method">The resolved method (or null).</param>
         /// <returns>True, if the given token could be resolved.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryResolveMethod(int metadataToken, out MethodBase method)
+        public bool TryResolveMethod(
+            int metadataToken,
+            [NotNullWhen(true)] out MethodBase? method)
         {
             foreach (var module in Modules)
             {
@@ -151,7 +158,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// <returns>True, if the requested debug information could be loaded.</returns>
         public bool TryLoadDebugInformation(
             MethodBase methodBase,
-            out MethodDebugInformation methodDebugInformation)
+            [NotNullWhen(true)] out MethodDebugInformation? methodDebugInformation)
         {
             Debug.Assert(methodBase != null, "Invalid method");
             Debug.Assert(

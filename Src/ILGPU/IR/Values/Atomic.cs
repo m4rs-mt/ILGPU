@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Atomic.cs
@@ -166,7 +166,8 @@ namespace ILGPU.IR.Values
             AtomicFlags flags)
             : base(initializer, flags)
         {
-            Debug.Assert(value.Type == (target.Type as PointerType).ElementType);
+            Debug.Assert(value.Type ==
+                target.Type.AsNotNullCast<PointerType>().ElementType);
 
             Kind = kind;
             Seal(target, value);
@@ -239,7 +240,8 @@ namespace ILGPU.IR.Values
             AtomicFlags flags)
             : base(initializer, flags)
         {
-            Debug.Assert(value.Type == (target.Type as PointerType).ElementType);
+            Debug.Assert(value.Type ==
+                target.Type.AsNotNullCast<PointerType>().ElementType);
             Debug.Assert(value.Type == compareValue.Type);
 
             Seal(target, value, compareValue);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Location.cs
@@ -240,7 +240,7 @@ namespace ILGPU.IR
         /// <returns>
         /// True, if the given object is equal to the current location.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is FileLocation other &&
             FileName == other.FileName &&
             StartColumn == other.StartColumn &&
@@ -343,7 +343,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="location">Filled in with the location found.</param>
         /// <returns>True if this compilation stack has the location type.</returns>
-        public bool TryGetLocation<T>(out T location)
+        public bool TryGetLocation<T>([NotNullWhen(true)] out T? location)
             where T : Location
         {
             foreach (var loc in Stack.Reverse())
@@ -370,7 +370,7 @@ namespace ILGPU.IR
         /// <returns>
         /// True, if the given object is equal to the current location.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is CompilationStackLocation other &&
             Stack == other.Stack;
 

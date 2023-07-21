@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Memory.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.IR.Construction
 {
@@ -205,7 +206,7 @@ namespace ILGPU.IR.Construction
             // Assert a valid indexing type from here on
             location.Assert(
                 IRTypeContext.IsViewIndexType(elementIndex.BasicValueType));
-            var addressSpaceType = source.Type as AddressSpaceType;
+            var addressSpaceType = source.Type.AsNotNullCast<AddressSpaceType>();
             location.AssertNotNull(addressSpaceType);
 
             // Fold nested conversion operations that do not change the semantics

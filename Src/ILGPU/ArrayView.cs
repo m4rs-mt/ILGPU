@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayView.cs
@@ -200,7 +200,6 @@ namespace ILGPU
         [NotInsideKernel]
         public ArrayView(MemoryBuffer source, long index, long length)
         {
-            Trace.Assert(source != null, "Invalid source buffer");
             Trace.Assert(index >= 0L, "Index out of range");
             Trace.Assert(length >= 0L, "Length out of range");
 

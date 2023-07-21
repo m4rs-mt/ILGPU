@@ -14,7 +14,6 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.OpenCL;
 using ILGPU.Util;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.OpenCL
@@ -138,7 +137,7 @@ namespace ILGPU.Backends.OpenCL
             if (!CLInstructions.TryGetArithmeticOperation(
                 value.Kind,
                 value.BasicValueType.IsFloat(),
-                out string operation))
+                out string? operation))
             {
                 throw new InvalidCodeGenerationException();
             }
@@ -593,7 +592,7 @@ namespace ILGPU.Backends.OpenCL
         private void MakeIntrinsicValue(
             Value value,
             string operation,
-            string args = null)
+            string? args = null)
         {
             var target = Allocate(value);
             using var statement = BeginStatement(target);
@@ -663,7 +662,7 @@ namespace ILGPU.Backends.OpenCL
 
             // Resolve the name of the global variable containing the length of the
             // shared dynamic memory buffer.
-            var dynamicView = value.GetFirstUseNode().ResolveAs<Alloca>();
+            var dynamicView = value.GetFirstUseNode().ResolveAs<Alloca>().AsNotNull();
             var lengthVariableName = GetSharedMemoryAllocationLengthName(dynamicView);
 
             // Load the dynamic memory size (in bytes) from the dynamic length variable
@@ -709,7 +708,7 @@ namespace ILGPU.Backends.OpenCL
 
             if (!CLInstructions.TryGetPredicateBarrier(
                 barrier.Kind,
-                out string operation))
+                out string? operation))
             {
                 throw new InvalidCodeGenerationException();
             }
@@ -757,7 +756,7 @@ namespace ILGPU.Backends.OpenCL
             if (!CLInstructions.TryGetShuffleOperation(
                 Backend.Vendor,
                 shuffle.Kind,
-                out string operation))
+                out string? operation))
             {
                 throw new InvalidCodeGenerationException();
             }

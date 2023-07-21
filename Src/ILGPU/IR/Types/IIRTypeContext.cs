@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IIRTypeContext.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR.Types
 {
@@ -106,7 +107,7 @@ namespace ILGPU.IR.Types
         bool TrySpecializeAddressSpaceType(
             TypeNode type,
             MemoryAddressSpace addressSpace,
-            out TypeNode specializedType);
+            [NotNullWhen(true)] out TypeNode? specializedType);
     }
 
     /// <summary>

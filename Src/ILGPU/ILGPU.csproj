@@ -10,6 +10,14 @@
     <FileVersion>$(LibraryFileVersion)</FileVersion>
   </PropertyGroup>
 
+  <!-- Enable Nullable Reference Types, but only check for warnings on the latest framework -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' != '$(LibraryLatestTargetFramework)'">
+    <NoWarn>$(NoWarn);nullable</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NeutralLanguage>en-US</NeutralLanguage>

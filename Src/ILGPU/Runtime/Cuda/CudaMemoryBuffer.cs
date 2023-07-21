@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2022 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaMemoryBuffer.cs
@@ -32,7 +32,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="value">The value to write into the buffer.</param>
         /// <param name="targetView">The target view to write to.</param>
         public static void CudaMemSet<T>(
-            CudaStream stream,
+            CudaStream? stream,
             byte value,
             in ArrayView<T> targetView)
             where T : unmanaged
@@ -62,7 +62,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="sourceView">The source view to copy from.</param>
         /// <param name="targetView">The target view to copy to.</param>
         public static void CudaCopy<T>(
-            CudaStream stream,
+            CudaStream? stream,
             in ArrayView<T> sourceView,
             in ArrayView<T> targetView)
             where T : unmanaged

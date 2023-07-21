@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerStructures.cs
@@ -13,6 +13,7 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 
@@ -98,7 +99,7 @@ namespace ILGPU.IR.Transformations
             var newValue = implementation.Lower(
                 context.Builder,
                 value,
-                variable).ResolveAs<TValue>();
+                variable).ResolveAs<TValue>().AsNotNull();
 
             // Disassemble the resulting structure value
             DisassembleStructure(context, structureType, newValue);
@@ -199,7 +200,7 @@ namespace ILGPU.IR.Transformations
             Load load) =>
             DisassembleStructure(
                 context,
-                load.Type as StructureType,
+                load.Type.AsNotNullCast<StructureType>(),
                 load);
 
         /// <summary>
@@ -211,7 +212,7 @@ namespace ILGPU.IR.Transformations
             Load load)
         {
             var builder = context.Builder;
-            foreach (var (_, fieldAccess) in load.Type as StructureType)
+            foreach (var (_, fieldAccess) in load.Type.AsNotNullCast<StructureType>())
             {
                 // Update source address
                 var address = builder.CreateLoadFieldAddress(
@@ -240,7 +241,7 @@ namespace ILGPU.IR.Transformations
         {
             var newValue = AssembleStructure(
                 context,
-                store.Value.Type as StructureType,
+                store.Value.Type.AsNotNullCast<StructureType>(),
                 store.Value);
             var newStore = context.Builder.CreateStore(
                 store.Location,
@@ -258,7 +259,8 @@ namespace ILGPU.IR.Transformations
             Store store)
         {
             var builder = context.Builder;
-            foreach (var (_, fieldAccess) in store.Value.Type as StructureType)
+            var structureType = store.Value.Type.AsNotNullCast<StructureType>();
+            foreach (var (_, fieldAccess) in structureType)
             {
                 // Update target address
                 var address = builder.CreateLoadFieldAddress(
@@ -287,7 +289,8 @@ namespace ILGPU.IR.Transformations
             LoweringData _,
             NullValue nullValue)
         {
-            foreach (var (fieldType, fieldAccess) in nullValue.Type as StructureType)
+            var structureType = nullValue.Type.AsNotNullCast<StructureType>();
+            foreach (var (fieldType, fieldAccess) in structureType)
             {
                 // Build the new target value
                 var value = context.Builder.CreateNull(
@@ -369,7 +372,7 @@ namespace ILGPU.IR.Transformations
             LoweringData _,
             SetField setField)
         {
-            foreach (var (_, fieldAccess) in setField.Type as StructureType)
+            foreach (var (_, fieldAccess) in setField.Type.AsNotNullCast<StructureType>())
             {
                 Value value;
                 if (setField.FieldSpan.Contains(fieldAccess))
@@ -410,7 +413,8 @@ namespace ILGPU.IR.Transformations
             LoweringData data,
             PhiValue phi)
         {
-            foreach (var (fieldType, fieldAccess) in phi.Type as StructureType)
+            var structureType = phi.Type.AsNotNullCast<StructureType>();
+            foreach (var (fieldType, fieldAccess) in structureType)
             {
                 // Build a new phi which might become dead in the future
                 var phiBuilder = context.Builder.CreatePhi(
@@ -437,7 +441,8 @@ namespace ILGPU.IR.Transformations
             LoweringData _,
             Predicate predicate)
         {
-            foreach (var (_, fieldAccess) in predicate.Type as StructureType)
+            var structureType = predicate.Type.AsNotNullCast<StructureType>();
+            foreach (var (_, fieldAccess) in structureType)
             {
                 // Build a new if predicate which might become dead in the future
                 var trueValue = context.GetValue(
@@ -508,7 +513,7 @@ namespace ILGPU.IR.Transformations
                 Broadcast,
                 LowerThreadIntrinsics.BroadcastLowering>(
                 context,
-                value.Type as StructureType,
+                value.Type.AsNotNullCast<StructureType>(),
                 value);
 
         /// <summary>
@@ -522,7 +527,7 @@ namespace ILGPU.IR.Transformations
                 WarpShuffle,
                 LowerThreadIntrinsics.WarpShuffleLowering>(
                 context,
-                value.Type as StructureType,
+                value.Type.AsNotNullCast<StructureType>(),
                 value);
 
         /// <summary>
@@ -536,7 +541,7 @@ namespace ILGPU.IR.Transformations
                 SubWarpShuffle,
                 LowerThreadIntrinsics.SubWarpShuffleLowering>(
                 context,
-                value.Type as StructureType,
+                value.Type.AsNotNullCast<StructureType>(),
                 value);
 
         /// <summary>

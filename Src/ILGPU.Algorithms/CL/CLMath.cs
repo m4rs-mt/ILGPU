@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLMath.cs
@@ -35,7 +35,7 @@ namespace ILGPU.Algorithms.CL
             Value value)
         {
             // Manually generate code for "1.0 / argument"
-            var arithmeticValue = value as UnaryArithmeticValue;
+            var arithmeticValue = value.AsNotNullCast<UnaryArithmeticValue>();
             var argument = codeGenerator.Load(arithmeticValue.Value);
             var target = codeGenerator.Allocate(arithmeticValue);
             var operation = CLInstructions.GetArithmeticOperation(

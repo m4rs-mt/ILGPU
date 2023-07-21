@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Memory.cs
@@ -11,6 +11,8 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using ILGPU.Util;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR.Values
 {
@@ -115,7 +117,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns true if this allocation is an array allocation.
         /// </summary>
-        public bool IsArrayAllocation(out PrimitiveValue primitive)
+        public bool IsArrayAllocation([NotNullWhen(true)] out PrimitiveValue? primitive)
         {
             primitive = ArrayLength.ResolveAs<PrimitiveValue>();
             return primitive != null;
@@ -287,7 +289,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
-            (Source.Type as PointerType).ElementType;
+            Source.Type.AsNotNullCast<PointerType>().ElementType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

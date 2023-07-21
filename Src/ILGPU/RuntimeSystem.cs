@@ -13,6 +13,7 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
@@ -164,6 +165,8 @@ namespace ILGPU
         /// <summary>
         /// Reloads the assembly builder.
         /// </summary>
+        [MemberNotNull(nameof(assemblyBuilder))]
+        [MemberNotNull(nameof(moduleBuilder))]
         private void ReloadAssemblyBuilder()
         {
             using var writerLock = assemblyLock.EnterWriteScope();
@@ -176,7 +179,8 @@ namespace ILGPU
             assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
                 assemblyName,
                 AssemblyBuilderAccess.RunAndCollect);
-            moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
+            moduleBuilder =
+                assemblyBuilder.DefineDynamicModule(assemblyName.Name.AsNotNull());
         }
 
         /// <summary>

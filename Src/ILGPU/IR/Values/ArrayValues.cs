@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayValues.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using ILGPU.Util;
 using System.Runtime.CompilerServices;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
@@ -127,7 +128,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the array type of this value.
         /// </summary>
-        public new ArrayType Type => base.Type as ArrayType;
+        public new ArrayType Type => base.Type.AsNotNullCast<ArrayType>();
 
         /// <summary>
         /// Returns the array's element type.

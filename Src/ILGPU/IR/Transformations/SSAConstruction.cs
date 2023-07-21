@@ -13,6 +13,7 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -747,7 +748,8 @@ namespace ILGPU.IR.Transformations
 
             // Get the builder and the associated array length value
             var builder = context.Builder;
-            var arrayLengthValue = alloca.ArrayLength.ResolveAs<PrimitiveValue>();
+            var arrayLengthValue =
+                alloca.ArrayLength.ResolveAs<PrimitiveValue>().AsNotNull();
             alloca.AssertNotNull(arrayLengthValue);
             int arrayLength = arrayLengthValue.Int32Value;
 
@@ -845,7 +847,8 @@ namespace ILGPU.IR.Transformations
                 return;
 
             // Get the primitive constant field offset
-            var fieldOffset = loadElementAddress.Offset.ResolveAs<PrimitiveValue>();
+            var fieldOffset =
+                loadElementAddress.Offset.ResolveAs<PrimitiveValue>().AsNotNull();
             loadElementAddress.AssertNotNull(fieldOffset);
             var fieldAccess = new FieldAccess(
                 fieldOffset.Int32Value * leaData.NumElementFields);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VariableAllocator.cs
@@ -146,7 +146,7 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns the represented IR type.
             /// </summary>
-            public new PointerType Type => base.Type as PointerType;
+            public new PointerType Type => base.Type.AsNotNullCast<PointerType>();
         }
 
         /// <summary>
@@ -166,7 +166,7 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns the represented IR string type.
             /// </summary>
-            public new StringType Type => base.Type as StringType;
+            public new StringType Type => base.Type.AsNotNullCast<StringType>();
         }
 
         /// <summary>
@@ -186,7 +186,7 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns the represented IR type.
             /// </summary>
-            public new ObjectType Type => base.Type as ObjectType;
+            public new ObjectType Type => base.Type.AsNotNullCast<ObjectType>();
         }
 
         #endregion
@@ -213,7 +213,7 @@ namespace ILGPU.Backends
         /// <returns>The allocated variable.</returns>
         public Variable Allocate(Value value)
         {
-            if (variableLookup.TryGetValue(value, out Variable variable))
+            if (variableLookup.TryGetValue(value, out Variable? variable))
                 return variable;
             variable = value is PrimitiveValue primitiveValue
                 ? new ConstantVariable(idCounter++, primitiveValue)
@@ -230,7 +230,7 @@ namespace ILGPU.Backends
         /// <returns>The allocated variable.</returns>
         public Variable Allocate(Value value, ArithmeticBasicValueType basicValueType)
         {
-            if (variableLookup.TryGetValue(value, out Variable variable))
+            if (variableLookup.TryGetValue(value, out Variable? variable))
                 return variable;
             variable = AllocateType(basicValueType);
             variableLookup.Add(value, variable);
@@ -244,7 +244,7 @@ namespace ILGPU.Backends
         /// <returns>The allocated variable.</returns>
         public T AllocateAs<T>(Value value)
             where T : Variable =>
-            Allocate(value) as T;
+            Allocate(value).AsNotNullCast<T>();
 
         /// <summary>
         /// Allocates the given type.

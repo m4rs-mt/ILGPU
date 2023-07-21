@@ -90,7 +90,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="obj">The other object.</param>
         /// <returns>True,
         /// if the given object is equal to this architecture.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is CudaArchitecture architecture && architecture == this;
 
         /// <summary>

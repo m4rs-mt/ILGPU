@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUMemoryBufferCache.cs
@@ -30,7 +30,7 @@ namespace ILGPU.Runtime
             "Microsoft.Usage",
             "CA2213: Disposable fields should be disposed",
             Justification = "This is disposed in DisposeAcceleratorObject")]
-        private MemoryBuffer<ArrayView1D<byte, Stride1D.Dense>> cache;
+        private MemoryBuffer<ArrayView1D<byte, Stride1D.Dense>>? cache;
 
         /// <summary>
         /// Constructs a new memory-buffer cache.
@@ -68,7 +68,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the underlying memory buffer view.
         /// </summary>
-        public ArrayView<byte> Cache => cache.View;
+        public ArrayView<byte> Cache => cache?.View ?? ArrayView<byte>.Empty;
 
         #endregion
 

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelCache.cs
@@ -12,9 +12,11 @@
 using ILGPU.Backends;
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
@@ -101,7 +103,7 @@ namespace ILGPU.Runtime
             /// <returns>
             /// True, if the given object is equal to the current one.
             /// </returns>
-            public override bool Equals(object obj) =>
+            public override bool Equals(object? obj) =>
                 obj is CachedCompiledKernelKey other && Equals(other);
 
             /// <summary>
@@ -183,7 +185,7 @@ namespace ILGPU.Runtime
             /// </summary>
             /// <param name="obj">The other object.</param>
             /// <returns>True, if the given object is equal to the current one.</returns>
-            public override bool Equals(object obj) =>
+            public override bool Equals(object? obj) =>
                 obj is CachedKernelKey other && Equals(other);
 
             /// <summary>
@@ -219,7 +221,7 @@ namespace ILGPU.Runtime
             /// <param name="kernelInfo">Detailed kernel information.</param>
             public CachedKernel(
                 WeakReference<object> kernel,
-                KernelInfo kernelInfo)
+                KernelInfo? kernelInfo)
             {
                 kernelReference = kernel;
                 KernelInfo = kernelInfo;
@@ -232,7 +234,7 @@ namespace ILGPU.Runtime
             /// <summary>
             /// Returns the stored kernel information.
             /// </summary>
-            public KernelInfo KernelInfo { get; }
+            public KernelInfo? KernelInfo { get; }
 
             #endregion
 
@@ -243,7 +245,7 @@ namespace ILGPU.Runtime
             /// </summary>
             /// <param name="kernel">The resolved kernel.</param>
             /// <returns>True, if the associated kernel could be resolved.</returns>
-            public readonly bool TryGetKernel<T>(out T kernel)
+            public readonly bool TryGetKernel<T>([NotNullWhen(true)] out T? kernel)
                 where T : class
             {
                 kernel = null;
@@ -294,7 +296,7 @@ namespace ILGPU.Runtime
             Kernel LoadKernel(
                 Accelerator accelerator,
                 CompiledKernel compiledKernel,
-                out KernelInfo kernelInfo);
+                out KernelInfo? kernelInfo);
         }
 
         /// <summary>
@@ -302,7 +304,7 @@ namespace ILGPU.Runtime
         /// </summary>
         private delegate T CachedKernelLoader<T, TKernelLoader>(
             in TKernelLoader kernelLoader,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where T : class
             where TKernelLoader : struct, IKernelLoader;
 
@@ -316,13 +318,13 @@ namespace ILGPU.Runtime
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Dictionary<
             CachedCompiledKernelKey,
-            WeakReference<CompiledKernel>> compiledKernelCache;
+            WeakReference<CompiledKernel>>? compiledKernelCache;
 
         /// <summary>
         /// A cache for loaded kernel objects.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Dictionary<CachedKernelKey, CachedKernel> kernelCache;
+        private Dictionary<CachedKernelKey, CachedKernel>? kernelCache;
 
         /// <summary>
         /// Initializes the local kernel cache.
@@ -360,8 +362,8 @@ namespace ILGPU.Runtime
         /// </remarks>
         private bool RequestKernelCacheGC_SyncRoot =>
             KernelCacheEnabled &&
-            ((compiledKernelCache.Count + 1) % NumberNewKernelsUntilGC == 0 ||
-            (kernelCache.Count + 1) % NumberNewKernelsUntilGC == 0);
+            ((compiledKernelCache.AsNotNull().Count + 1) % NumberNewKernelsUntilGC == 0 ||
+            (kernelCache.AsNotNull().Count + 1) % NumberNewKernelsUntilGC == 0);
 
         #endregion
 
@@ -384,7 +386,7 @@ namespace ILGPU.Runtime
             in KernelSpecialization specialization,
             in TKernelLoader kernelLoader,
             CachedKernelLoader<T, TKernelLoader> cachedLoader,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where T : class
             where TKernelLoader : struct, IKernelLoader
         {
@@ -398,11 +400,13 @@ namespace ILGPU.Runtime
                     kernelLoader.GroupSize);
                 lock (syncRoot)
                 {
-                    if (!kernelCache.TryGetValue(cachedKey, out CachedKernel cached) ||
-                        !cached.TryGetKernel(out T result))
+                    if (!kernelCache.AsNotNull().TryGetValue(
+                        cachedKey,
+                        out CachedKernel cached) ||
+                        !cached.TryGetKernel(out T? result))
                     {
                         result = cachedLoader(kernelLoader, out kernelInfo);
-                        kernelCache[cachedKey] = new CachedKernel(
+                        kernelCache.AsNotNull()[cachedKey] = new CachedKernel(
                             cached.UpdateReference(result),
                             kernelInfo);
                     }
@@ -436,7 +440,7 @@ namespace ILGPU.Runtime
             in EntryPointDescription entry,
             in KernelSpecialization specialization,
             in TKernelLoader kernelLoader,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TKernelLoader : struct, IKernelLoader
         {
             var compiledKernel = CompileKernel(entry, specialization);
@@ -460,13 +464,13 @@ namespace ILGPU.Runtime
             EntryPointDescription entry,
             KernelSpecialization specialization,
             in TKernelLoader kernelLoader,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TKernelLoader : struct, IKernelLoader =>
             LoadCachedKernel(
                 entry,
                 specialization,
                 kernelLoader,
-                (in TKernelLoader loader, out KernelInfo info) =>
+                (in TKernelLoader loader, out KernelInfo? info) =>
                     LoadGenericKernelDirect(entry, specialization, loader, out info),
                 out kernelInfo);
 
@@ -483,7 +487,7 @@ namespace ILGPU.Runtime
             in EntryPointDescription entry,
             in KernelSpecialization specialization,
             in TKernelLoader kernelLoader,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate
             where TKernelLoader : struct, IKernelLoader
         {
@@ -516,14 +520,14 @@ namespace ILGPU.Runtime
             EntryPointDescription entry,
             KernelSpecialization specialization,
             in TKernelLoader kernelLoader,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TDelegate : Delegate
             where TKernelLoader : struct, IKernelLoader =>
             LoadCachedKernel(
                 entry,
                 specialization,
                 kernelLoader,
-                (in TKernelLoader loader, out KernelInfo info) =>
+                (in TKernelLoader loader, out KernelInfo? info) =>
                     LoadSpecializationKernelDirect<TDelegate, TKernelLoader>(
                         entry,
                         specialization,
@@ -567,15 +571,15 @@ namespace ILGPU.Runtime
                 var cachedKey = new CachedCompiledKernelKey(entry, specialization);
                 lock (syncRoot)
                 {
-                    if (!compiledKernelCache.TryGetValue(
+                    if (!compiledKernelCache.AsNotNull().TryGetValue(
                         cachedKey,
-                        out WeakReference<CompiledKernel> cached) ||
-                        !cached.TryGetTarget(out CompiledKernel result))
+                        out WeakReference<CompiledKernel>? cached) ||
+                        !cached.TryGetTarget(out CompiledKernel? result))
                     {
                         result = Backend.Compile(entry, specialization);
                         if (cached == null)
                         {
-                            compiledKernelCache.Add(
+                            compiledKernelCache.AsNotNull().Add(
                                 cachedKey,
                                 new WeakReference<CompiledKernel>(result));
                         }
@@ -601,8 +605,8 @@ namespace ILGPU.Runtime
         {
             if (!KernelCacheEnabled)
                 return;
-            compiledKernelCache.Clear();
-            kernelCache.Clear();
+            compiledKernelCache.AsNotNull().Clear();
+            kernelCache.AsNotNull().Clear();
         }
 
         /// <summary>
@@ -617,26 +621,26 @@ namespace ILGPU.Runtime
             if (!KernelCacheEnabled)
                 return;
 
-            if (compiledKernelCache.Count >= MinNumberOfKernelsInGC)
+            if (compiledKernelCache.AsNotNull().Count >= MinNumberOfKernelsInGC)
             {
-                var oldCompiledKernels = compiledKernelCache;
+                var oldCompiledKernels = compiledKernelCache.AsNotNull();
                 compiledKernelCache = new Dictionary<
                     CachedCompiledKernelKey,
                     WeakReference<CompiledKernel>>();
                 foreach (var entry in oldCompiledKernels)
                 {
-                    if (entry.Value.TryGetTarget(out CompiledKernel _))
+                    if (entry.Value.TryGetTarget(out CompiledKernel? _))
                         compiledKernelCache.Add(entry.Key, entry.Value);
                 }
             }
 
-            if (kernelCache.Count >= MinNumberOfKernelsInGC)
+            if (kernelCache.AsNotNull().Count >= MinNumberOfKernelsInGC)
             {
-                var oldKernels = kernelCache;
+                var oldKernels = kernelCache.AsNotNull();
                 kernelCache = new Dictionary<CachedKernelKey, CachedKernel>();
                 foreach (var entry in oldKernels)
                 {
-                    if (entry.Value.TryGetKernel(out object _))
+                    if (entry.Value.TryGetKernel(out object? _))
                         kernelCache.Add(entry.Key, entry.Value);
                 }
             }

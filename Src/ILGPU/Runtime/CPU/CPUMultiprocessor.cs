@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUMultiprocessor.cs
@@ -220,10 +220,10 @@ namespace ILGPU.Runtime.CPU
         /// Entry point for a single processing thread.
         /// </summary>
         /// <param name="arg">The absolute thread index.</param>
-        private void ExecuteThread(object arg)
+        private void ExecuteThread(object? arg)
         {
             // Get the current thread information
-            int absoluteThreadIndex = (int)arg;
+            int absoluteThreadIndex = (int)arg.AsNotNull();
             int threadIdx = absoluteThreadIndex % MaxNumThreadsPerMultiprocessor;
 
             bool isMainThread = threadIdx == 0;
@@ -244,7 +244,7 @@ namespace ILGPU.Runtime.CPU
             // Setup the current group context as it always stays the same
             groupContext.MakeCurrent();
 
-            CPUAcceleratorTask task = null;
+            CPUAcceleratorTask? task = null;
             for (; ; )
             {
                 // Get a new task to execute (if any)

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUKernel.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 
@@ -29,7 +30,9 @@ namespace ILGPU.Runtime.CPU
             typeof(CPUKernel).GetProperty(
                 nameof(KernelExecutionDelegate),
                 BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-            .GetGetMethod(true);
+            .ThrowIfNull()
+            .GetGetMethod(true)
+            .ThrowIfNull();
 
         #endregion
 
@@ -60,7 +63,8 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Returns the associated CPU runtime.
         /// </summary>
-        public CPUAccelerator CPUAccelerator => Accelerator as CPUAccelerator;
+        public CPUAccelerator CPUAccelerator =>
+            Accelerator.AsNotNullCast<CPUAccelerator>();
 
         /// <summary>
         /// Returns the associated kernel-execution delegate.

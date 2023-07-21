@@ -12,6 +12,7 @@
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PTX;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -44,7 +45,10 @@ namespace ILGPU.Runtime.Cuda
         private static readonly MethodInfo GetCudaAPIMethod =
             typeof(CudaAPI).GetProperty(
                 nameof(CurrentAPI),
-                BindingFlags.Public | BindingFlags.Static).GetGetMethod();
+                BindingFlags.Public | BindingFlags.Static)
+            .ThrowIfNull()
+            .GetGetMethod()
+            .ThrowIfNull();
 
         /// <summary>
         /// Represents the <see cref="CudaAPI.LaunchKernelWithStruct{T}(
@@ -53,7 +57,8 @@ namespace ILGPU.Runtime.Cuda
         private static readonly MethodInfo LaunchKernelMethod =
             typeof(CudaAPI).GetMethod(
                 nameof(CudaAPI.LaunchKernelWithStruct),
-                BindingFlags.Public | BindingFlags.Instance);
+                BindingFlags.Public | BindingFlags.Instance)
+            .ThrowIfNull();
 
         /// <summary>
         /// Represents the <see cref="CudaException.ThrowIfFailed(CudaError)" /> method.
@@ -61,7 +66,8 @@ namespace ILGPU.Runtime.Cuda
         private static readonly MethodInfo ThrowIfFailedMethod =
             typeof(CudaException).GetMethod(
                 nameof(CudaException.ThrowIfFailed),
-                BindingFlags.Public | BindingFlags.Static);
+                BindingFlags.Public | BindingFlags.Static)
+            .ThrowIfNull();
 
         /// <summary>
         /// Resolves the memory type of the given device pointer.
@@ -177,7 +183,8 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetCacheConfig(out cacheConfiguration));
 
-            var nvvmAPI = !string.IsNullOrEmpty(context.Properties.LibNvvmPath)
+            var nvvmAPI = !string.IsNullOrEmpty(context.Properties.LibNvvmPath) &&
+                !string.IsNullOrEmpty(context.Properties.LibDevicePath)
                 ? NvvmAPI.Create(
                     context.Properties.LibNvvmPath,
                     context.Properties.LibDevicePath)
@@ -187,7 +194,7 @@ namespace ILGPU.Runtime.Cuda
                 Context,
                 Capabilities,
                 Architecture,
-                (CudaInstructionSet)Device.InstructionSet,
+                Device.InstructionSet.GetValueOrDefault(),
                 nvvmAPI));
         }
 
@@ -198,7 +205,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Returns the Cuda device.
         /// </summary>
-        public new CudaDevice Device => base.Device as CudaDevice;
+        public new CudaDevice Device => base.Device.AsNotNullCast<CudaDevice>();
 
         /// <summary>
         /// Returns the device id.
@@ -214,7 +221,7 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the PTX architecture.
         /// </summary>
         public CudaArchitecture Architecture =>
-            (CudaArchitecture)Device.Architecture;
+            Device.Architecture.GetValueOrDefault();
 
         /// <summary>
         /// Returns the PTX instruction set.
@@ -353,13 +360,13 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Returns the PTX backend of this accelerator.
         /// </summary>
-        public new PTXBackend Backend => base.Backend as PTXBackend;
+        public new PTXBackend Backend => base.Backend.AsNotNullCast<PTXBackend>();
 
         /// <summary>
         /// Returns the capabilities of this accelerator.
         /// </summary>
         public new CudaCapabilityContext Capabilities =>
-            base.Capabilities as CudaCapabilityContext;
+            base.Capabilities.AsNotNullCast<CudaCapabilityContext>();
 
         #endregion
 

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeConverter.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -181,7 +182,7 @@ namespace ILGPU.IR.Types
         /// <returns>The target field span.</returns>
         public FieldSpan ComputeSpan(Value value, FieldSpan fieldSpan)
         {
-            var sourceType = this[value] as StructureType;
+            var sourceType = this[value].AsNotNullCast<StructureType>();
             int sourceIndex = fieldSpan.Index;
             int index = 0;
             for (int i = 0; i < sourceIndex; ++i)

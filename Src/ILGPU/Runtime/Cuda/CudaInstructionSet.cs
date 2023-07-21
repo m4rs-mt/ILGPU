@@ -91,7 +91,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="obj">The other object.</param>
         /// <returns>True,
         /// if the given object is equal to this instruction set.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is CudaInstructionSet instructionSet && instructionSet == this;
 
         /// <summary>

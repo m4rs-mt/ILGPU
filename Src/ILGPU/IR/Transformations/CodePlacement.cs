@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CodePlacement.cs
@@ -12,13 +12,12 @@
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Dominators = ILGPU.IR.Analyses.Dominators<
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
-using PostDominators = ILGPU.IR.Analyses.Dominators<
-    ILGPU.IR.Analyses.ControlFlowDirection.Backwards>;
 
 namespace ILGPU.IR.Transformations
 {
@@ -698,7 +697,8 @@ namespace ILGPU.IR.Transformations
             var appendMode = new AppendMode(blockMapping);
             foreach (var block in blocks)
             {
-                var terminatorEntry = new PlacementEntry(block.Terminator, block);
+                var terminatorEntry =
+                    new PlacementEntry(block.Terminator.AsNotNull(), block);
                 placer.PlaceRecursive(terminatorEntry, appendMode);
             }
 

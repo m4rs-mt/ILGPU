@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Uniforms.cs
@@ -88,7 +88,7 @@ namespace ILGPU.IR.Analyses
             /// <returns>
             /// True, if the given object is equal to the current instance.
             /// </returns>
-            public override bool Equals(object obj) =>
+            public override bool Equals(object? obj) =>
                 obj is ValueInfo other && Equals(other);
 
             /// <summary>

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayType.cs
@@ -81,8 +81,8 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ 0x3C11A78B ^ NumDimensions;
 
-        /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj) =>
+        /// <summary cref="TypeNode.Equals(object?)"/>
+        public override bool Equals(object? obj) =>
             obj is ArrayType arrayType &&
             arrayType.ElementType == ElementType &&
             arrayType.NumDimensions == NumDimensions &&

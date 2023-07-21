@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PeerAccess.cs
@@ -33,7 +33,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Event handler to disable peer access to disposed accelerators.
         /// </summary>
-        private void PeerAccessAcceleratorDestroyed(object sender, EventArgs e)
+        private void PeerAccessAcceleratorDestroyed(object? sender, EventArgs e)
         {
             // Reject cases in which the sender is not another accelerator instance
             if (!(sender is Accelerator otherAccelerator))

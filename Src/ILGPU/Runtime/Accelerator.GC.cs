@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.GC.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -34,6 +35,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Initializes the GC functionality.
         /// </summary>
+        [MemberNotNull(nameof(gcThread))]
         private void InitGC()
         {
             gcActivated = true;

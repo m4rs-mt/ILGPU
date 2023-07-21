@@ -58,7 +58,7 @@ namespace ILGPU.IR
             /// Returns true if both blocks represent the same block.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly bool Equals(BasicBlock x, BasicBlock y) =>
+            public readonly bool Equals(BasicBlock? x, BasicBlock? y) =>
                 x == y;
 
             /// <summary>
@@ -257,7 +257,7 @@ namespace ILGPU.IR
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock) =>
-                basicBlock.Terminator.Targets;
+                basicBlock.CurrentSuccessors;
         }
 
         /// <summary>
@@ -290,7 +290,7 @@ namespace ILGPU.IR
         private List<ValueReference> values = new List<ValueReference>();
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Builder builder = null;
+        private Builder? builder = null;
 
         /// <summary>
         /// Constructs a new basic block.
@@ -298,7 +298,7 @@ namespace ILGPU.IR
         /// <param name="method">The parent method.</param>
         /// <param name="location">The current location.</param>
         /// <param name="name">The name of the block (or null).</param>
-        internal BasicBlock(Method method, Location location, string name)
+        internal BasicBlock(Method method, Location location, string? name)
             : base(location)
         {
             Method = method;
@@ -338,7 +338,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the current terminator.
         /// </summary>
-        public TerminatorValue Terminator { get; private set; }
+        public TerminatorValue? Terminator { get; private set; }
 
         /// <summary>
         /// The current list of successor blocks.
@@ -436,7 +436,7 @@ namespace ILGPU.IR
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void PropagateSuccessors()
         {
-            foreach (var successor in Terminator.Targets)
+            foreach (var successor in CurrentSuccessors)
             {
                 successors.Add(successor);
                 successor.predecessors.Add(this);
@@ -468,7 +468,7 @@ namespace ILGPU.IR
             where T : TerminatorValue
         {
             this.Assert(Terminator is T);
-            return Terminator as T;
+            return Terminator.AsNotNullCast<T>();
         }
 
         /// <summary>
@@ -482,9 +482,11 @@ namespace ILGPU.IR
             Method.Builder functionBuilder,
             out Builder resolvedBuilder)
         {
-            resolvedBuilder = builder;
-            if (resolvedBuilder != null)
+            if (builder != null)
+            {
+                resolvedBuilder = builder;
                 return false;
+            }
             this.AssertNotNull(functionBuilder);
             this.Assert(functionBuilder.Method == Method);
             resolvedBuilder = builder = new Builder(functionBuilder, this);
@@ -500,7 +502,7 @@ namespace ILGPU.IR
         {
             this.AssertNotNull(otherBuilder);
             this.Assert(otherBuilder == builder);
-            this.AssertNotNull(Terminator);
+            this.AssertNotNull(Terminator.AsNotNull());
             builder = null;
         }
 
@@ -508,7 +510,7 @@ namespace ILGPU.IR
         /// Compacts the terminator.
         /// </summary>
         /// <returns></returns>
-        private TerminatorValue CompactTerminator() =>
+        private TerminatorValue? CompactTerminator() =>
             Terminator = Terminator?.ResolveAs<TerminatorValue>();
 
         /// <summary>
@@ -527,7 +529,7 @@ namespace ILGPU.IR
                 textWriter.WriteLine(value.ToString());
             }
             textWriter.Write("\t");
-            textWriter.WriteLine(Terminator.ToString());
+            textWriter.WriteLine(Terminator?.ToString());
         }
 
         /// <summary>
@@ -537,7 +539,7 @@ namespace ILGPU.IR
         internal void GC()
         {
             var newTerminator = CompactTerminator();
-            newTerminator.GC();
+            newTerminator?.GC();
 
             var newValues = new List<ValueReference>(Count);
             foreach (Value value in values)

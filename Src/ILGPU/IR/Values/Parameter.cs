@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Parameter.cs
@@ -32,7 +32,7 @@ namespace ILGPU.IR.Values
         internal Parameter(
             in ValueInitializer initializer,
             TypeNode type,
-            string name)
+            string? name)
             : base(initializer)
         {
             ParameterType = type;

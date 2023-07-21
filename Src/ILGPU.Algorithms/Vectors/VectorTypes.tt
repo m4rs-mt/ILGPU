@@ -492,7 +492,7 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Converts this vector instance to a string.
         /// </summary>
-        public string ToString(string format, IFormatProvider formatProvider) =>
+        public string ToString(string? format, IFormatProvider? formatProvider) =>
             $"<#= string.Join($", ", vectorItemNames
                 .Take(vectorLength)
                 .Select(t => $"{{{t}.ToString(format, formatProvider)}}")) #>";
@@ -797,7 +797,7 @@ namespace ILGPU.Algorithms.Vectors
         /// </summary>
         static <#= typeName #> IParsable<<#= typeName #>>.Parse(
             string s,
-            IFormatProvider provider) =>
+            IFormatProvider? provider) =>
             throw new NotSupportedException();
 
         /// <summary>
@@ -805,7 +805,7 @@ namespace ILGPU.Algorithms.Vectors
         /// </summary>
         static <#= typeName #> ISpanParsable<<#= typeName #>>.Parse(
             ReadOnlySpan<char> s,
-            IFormatProvider provider) =>
+            IFormatProvider? provider) =>
             throw new NotSupportedException();
 
         /// <summary>
@@ -814,7 +814,7 @@ namespace ILGPU.Algorithms.Vectors
         static <#= typeName #> INumberBase<<#= typeName #>>.Parse(
             ReadOnlySpan<char> s,
             NumberStyles style,
-            IFormatProvider provider) =>
+            IFormatProvider? provider) =>
             throw new NotSupportedException();
 
         /// <summary>
@@ -823,7 +823,7 @@ namespace ILGPU.Algorithms.Vectors
         static <#= typeName #> INumberBase<<#= typeName #>>.Parse(
             string s,
             NumberStyles style,
-            IFormatProvider provider) =>
+            IFormatProvider? provider) =>
             throw new NotSupportedException();
 
         /// <summary>
@@ -833,15 +833,15 @@ namespace ILGPU.Algorithms.Vectors
             Span<char> destination,
             out int charsWritten,
             ReadOnlySpan<char> format,
-            IFormatProvider provider) =>
+            IFormatProvider? provider) =>
             throw new NotSupportedException();
 
         /// <summary>
         /// Tries to parse the given string into a vectorized instance.
         /// </summary>
         static bool IParsable<<#= typeName #>>.TryParse(
-            string s,
-            IFormatProvider provider,
+            string? s,
+            IFormatProvider? provider,
             out <#= typeName #> result) =>
             throw new NotSupportedException();
 
@@ -850,7 +850,7 @@ namespace ILGPU.Algorithms.Vectors
         /// </summary>
         static bool ISpanParsable<<#= typeName #>>.TryParse(
             ReadOnlySpan<char> s,
-            IFormatProvider provider,
+            IFormatProvider? provider,
             out <#= typeName #> result) =>
             throw new NotSupportedException();
 
@@ -860,7 +860,7 @@ namespace ILGPU.Algorithms.Vectors
         static bool INumberBase<<#= typeName #>>.TryParse(
             ReadOnlySpan<char> s,
             NumberStyles style,
-            IFormatProvider provider,
+            IFormatProvider? provider,
             out <#= typeName #> result) =>
             throw new NotSupportedException();
 
@@ -868,9 +868,9 @@ namespace ILGPU.Algorithms.Vectors
         /// Tries to parse the given string into a vectorized instance.
         /// </summary>
         static bool INumberBase<<#= typeName #>>.TryParse(
-            string s,
+            string? s,
             NumberStyles style,
-            IFormatProvider provider,
+            IFormatProvider? provider,
             out <#= typeName #> result) =>
             throw new NotSupportedException();
 

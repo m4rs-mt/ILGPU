@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ValueBuilder.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.IR
 {
@@ -137,6 +138,6 @@ namespace ILGPU.IR
         /// </summary>
         /// <returns>The resulting value reference.</returns>
         public T SealAs<T>()
-            where T : Value => Seal().ResolveAs<T>();
+            where T : Value => Seal().ResolveAs<T>().AsNotNull();
     }
 }

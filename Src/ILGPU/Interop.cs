@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Interop.cs
@@ -98,13 +98,17 @@ namespace ILGPU
         /// <remarks>Only supports unmanaged types.</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int SizeOf(Type type) =>
-            (int)InteropSizeOfMethod.MakeGenericMethod(type).Invoke(null, null);
+            (int)InteropSizeOfMethod
+            .MakeGenericMethod(type)
+            .Invoke(null, null)
+            .AsNotNull();
 
         private static readonly MethodInfo InteropSizeOfMethod =
             typeof(Interop).GetMethod(
                 nameof(SizeOf),
                 Type.EmptyTypes,
-                null);
+                null)
+            .ThrowIfNull();
 
         /// <summary>
         /// Computes number of elements of type <typeparamref name="TFirst"/>

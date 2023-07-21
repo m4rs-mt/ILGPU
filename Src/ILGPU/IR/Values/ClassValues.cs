@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ClassValues.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
+using ILGPU.Util;
 
 namespace ILGPU.IR.Values
 {
@@ -58,7 +59,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the object type.
         /// </summary>
-        public ObjectType ObjectType => ObjectValue.Type as ObjectType;
+        public ObjectType ObjectType => ObjectValue.Type.AsNotNullCast<ObjectType>();
 
         #endregion
     }

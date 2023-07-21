@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Intrinsics.cs
@@ -94,49 +94,64 @@ namespace ILGPU.Frontend.Intrinsic
         {
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleAcceleratorOperation(
-                    ref context, attribute as AcceleratorIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<AcceleratorIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleAtomicOperation(
-                    ref context, attribute as AtomicIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<AtomicIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleCompareOperation(
-                    ref context, attribute as CompareIntriniscAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<CompareIntriniscAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleConvertOperation(
-                    ref context, attribute as ConvertIntriniscAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<ConvertIntriniscAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleGridOperation(
-                    ref context, attribute as GridIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<GridIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleGroupOperation(
-                    ref context, attribute as GroupIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<GroupIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleInterop(
-                    ref context, attribute as InteropIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<InteropIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleMathOperation(
-                    ref context, attribute as MathIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<MathIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleMemoryBarrierOperation(
-                    ref context, attribute as MemoryBarrierIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<MemoryBarrierIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleSharedMemoryOperation(
-                    ref context, attribute as SharedMemoryIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<SharedMemoryIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleLocalMemoryOperation(
-                    ref context, attribute as LocalMemoryIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<LocalMemoryIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleViewOperation(
-                    ref context, attribute as ViewIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<ViewIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleWarpOperation(
-                    ref context, attribute as WarpIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<WarpIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleUtilityOperation(
-                    ref context, attribute as UtilityIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<UtilityIntrinsicAttribute>()),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleLanguageOperation(
-                    ref context, attribute as LanguageIntrinsicAttribute),
+                    ref context,
+                    attribute.AsNotNullCast<LanguageIntrinsicAttribute>()),
         };
 
         #endregion
@@ -163,15 +178,15 @@ namespace ILGPU.Frontend.Intrinsic
             if (intrinsic != null)
                 result = IntrinsicHandlers[(int)intrinsic.Type](ref context, intrinsic);
 
-            if (IsIntrinsicArrayType(method.DeclaringType))
+            if (IsIntrinsicArrayType(method.DeclaringType.AsNotNull()))
             {
                 result = HandleArrays(ref context);
                 // All array operations will be handled by the ILGPU intrinsic handlers
                 return true;
             }
             else if (FunctionHandlers.TryGetValue(
-                method.DeclaringType,
-                out DeviceFunctionHandler handler))
+                method.DeclaringType.AsNotNull(),
+                out DeviceFunctionHandler? handler))
             {
                 result = handler(ref context);
             }
@@ -265,8 +280,8 @@ namespace ILGPU.Frontend.Intrinsic
             var location = context.Location;
 
             // Resolve the array data
-            var handle = context[1].ResolveAs<HandleValue>();
-            var value = handle.GetHandle<FieldInfo>().GetValue(null);
+            var handle = context[1].ResolveAs<HandleValue>().AsNotNull();
+            var value = handle.GetHandle<FieldInfo>().GetValue(null).AsNotNull();
             int valueSize = Marshal.SizeOf(value);
 
             // Load the associated array data
@@ -284,7 +299,8 @@ namespace ILGPU.Frontend.Intrinsic
             for (int i = 0, e = valueSize / elementSize; i < e; ++i)
             {
                 byte* address = data + elementSize * i;
-                var instance = Marshal.PtrToStructure(new IntPtr(address), elementType);
+                var instance =
+                    Marshal.PtrToStructure(new IntPtr(address), elementType).AsNotNull();
 
                 // Convert element to IR value
                 var irValue = builder.CreateValue(location, instance, elementType);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AcceleratorObject.cs
@@ -267,7 +267,7 @@ namespace ILGPU.Runtime
             foreach (var childObject in childObjects)
             {
                 // Try to get the actual child object and dispose it
-                if (childObject.TryGetTarget(out AcceleratorObject obj))
+                if (childObject.TryGetTarget(out AcceleratorObject? obj))
                 {
                     // We can safely dispose the object at this point since the current
                     // accelerator is bound and the syncRoot lock is acquired
@@ -291,7 +291,7 @@ namespace ILGPU.Runtime
             childObjects = new List<WeakReference<AcceleratorObject>>();
             foreach (var childObject in oldObjects)
             {
-                if (childObject.TryGetTarget(out AcceleratorObject _))
+                if (childObject.TryGetTarget(out AcceleratorObject? _))
                     childObjects.Add(childObject);
             }
         }

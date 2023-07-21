@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMapping.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -149,7 +150,7 @@ namespace ILGPU.IR.Intrinsics
             /// <returns>
             /// True, if the given object is equal to this mapping key.
             /// </returns>
-            public override bool Equals(object obj) =>
+            public override bool Equals(object? obj) =>
                 obj is MappingKey entry && Equals(entry);
 
             /// <summary>
@@ -295,8 +296,8 @@ namespace ILGPU.IR.Intrinsics
     {
         #region Instance
 
-        private readonly Dictionary<MappingKey, Method> implementationMapping;
-        private readonly Dictionary<MappingKey, TDelegate> delegateMapping;
+        private readonly Dictionary<MappingKey, Method>? implementationMapping;
+        private readonly Dictionary<MappingKey, TDelegate>? delegateMapping;
 
         /// <summary>
         /// Constructs a new intrinsic implementation.
@@ -313,8 +314,9 @@ namespace ILGPU.IR.Intrinsics
                 case IntrinsicImplementationMode.GenerateCode:
                     if (!TargetMethod.IsGenericMethod)
                     {
-                        CodeGenerator = TargetMethod.CreateDelegate(typeof(TDelegate))
-                            as TDelegate;
+                        CodeGenerator = (TargetMethod.CreateDelegate(typeof(TDelegate))
+                            as TDelegate)
+                            .AsNotNull();
                     }
                     else
                     {
@@ -333,7 +335,7 @@ namespace ILGPU.IR.Intrinsics
         /// <summary>
         /// Returns the associated default code generator (if any).
         /// </summary>
-        private TDelegate CodeGenerator { get; }
+        private TDelegate? CodeGenerator { get; }
 
         #endregion
 
@@ -346,7 +348,7 @@ namespace ILGPU.IR.Intrinsics
         /// <param name="implementation">The implementation to provide.</param>
         internal void ProvideImplementation(
             MappingKey genericMapping,
-            Method implementation)
+            Method? implementation)
         {
             Debug.Assert(
                 Mode == IntrinsicImplementationMode.Redirect,
@@ -355,7 +357,7 @@ namespace ILGPU.IR.Intrinsics
                 implementation != null,
                 "Invalid implementation");
 
-            implementationMapping[genericMapping] = implementation;
+            implementationMapping.AsNotNull()[genericMapping] = implementation;
         }
 
         /// <summary>
@@ -371,7 +373,7 @@ namespace ILGPU.IR.Intrinsics
             Debug.Assert(Mode == IntrinsicImplementationMode.Redirect);
             var genericArguments = resolver.ResolveGenericArguments();
             var key = new MappingKey(genericArguments);
-            return implementationMapping[key];
+            return implementationMapping.AsNotNull()[key];
         }
 
         /// <summary>
@@ -390,14 +392,14 @@ namespace ILGPU.IR.Intrinsics
 
             var resolvedMethod = ResolveTarget(resolver, out var genericArguments);
             Debug.Assert(genericArguments != null, "Invalid generic arguments");
-            lock (delegateMapping)
+            lock (delegateMapping.AsNotNull())
             {
                 var key = new MappingKey(genericArguments);
-                if (!delegateMapping.TryGetValue(key, out var codeGenerator))
+                if (!delegateMapping.AsNotNull().TryGetValue(key, out var codeGenerator))
                 {
                     codeGenerator = resolvedMethod.CreateDelegate(typeof(TDelegate))
-                        as TDelegate;
-                    delegateMapping.Add(key, codeGenerator);
+                        .AsNotNullCast<TDelegate>();
+                    delegateMapping.AsNotNull().Add(key, codeGenerator);
                 }
                 return codeGenerator;
             }

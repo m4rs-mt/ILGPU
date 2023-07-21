@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILContext.cs
@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.IR.Intrinsics;
+using ILGPU.Util;
 using System;
 
 namespace ILGPU.Algorithms.IL
@@ -63,7 +64,8 @@ namespace ILGPU.Algorithms.IL
         {
             var sourceMethod = sourceType.GetMethod(
                 name,
-                AlgorithmContext.IntrinsicBindingFlags);
+                AlgorithmContext.IntrinsicBindingFlags)
+                .ThrowIfNull();
             manager.RegisterMethod(
                 sourceMethod,
                 new ILIntrinsic(targetType, name, IntrinsicImplementationMode.Redirect));

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VoidType.cs
@@ -55,8 +55,8 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ 0x3F671AC4;
 
-        /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj) =>
+        /// <summary cref="TypeNode.Equals(object?)"/>
+        public override bool Equals(object? obj) =>
             obj is VoidType && base.Equals(obj);
 
         #endregion

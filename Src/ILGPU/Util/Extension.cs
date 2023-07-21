@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Extension.cs
@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Util
 {
@@ -59,7 +60,8 @@ namespace ILGPU.Util
         /// <typeparam name="T">The extension type.</typeparam>
         /// <param name="extension">The extension instance.</param>
         /// <returns>True, if the extension could be retrieved.</returns>
-        bool TryGetExtension<T>(out T extension) where T : TExtension;
+        bool TryGetExtension<T>([NotNullWhen(true)] out T? extension)
+            where T : TExtension;
 
         /// <summary>
         /// Executes the given action for each registered extension.
@@ -120,10 +122,11 @@ namespace ILGPU.Util
         /// <typeparam name="T">The extension type.</typeparam>
         /// <param name="extension">The extension instance.</param>
         /// <returns>True, if the extension could be retrieved.</returns>
-        public bool TryGetExtension<T>(out T extension) where T : TExtension
+        public bool TryGetExtension<T>([NotNullWhen(true)] out T? extension)
+            where T : TExtension
         {
             extension = null;
-            if (!extensions.TryGetValue(typeof(T), out TExtension ext))
+            if (!extensions.TryGetValue(typeof(T), out TExtension? ext))
                 return false;
             extension = ext as T;
             Debug.Assert(extension != null, "Invalid backend extension");

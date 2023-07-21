@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLAPI.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -338,7 +339,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <typeparam name="T">The delegate type.</typeparam>
         /// <param name="platform">The platform pointer.</param>
         /// <returns>The resolved extension.</returns>
-        public T GetExtension<T>(IntPtr platform)
+        public T? GetExtension<T>(IntPtr platform)
             where T : Delegate =>
             GetExtension<T>(platform, typeof(T).Name);
 
@@ -349,7 +350,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="platform">The platform pointer.</param>
         /// <param name="name">The extension name.</param>
         /// <returns>The resolved extension.</returns>
-        public T GetExtension<T>(IntPtr platform, string name)
+        public T? GetExtension<T>(IntPtr platform, string name)
             where T : Delegate
         {
             var address = clGetExtensionFunctionAddressForPlatform(
@@ -606,7 +607,7 @@ namespace ILGPU.Runtime.OpenCL
         public CLError GetProgramBuildLog(
             IntPtr program,
             IntPtr device,
-            out string buildLog)
+            out string? buildLog)
         {
             const int LogSize = 32_000;
             var log = new sbyte[LogSize];
@@ -959,7 +960,7 @@ namespace ILGPU.Runtime.OpenCL
             IntPtr size,
             IntPtr ptr)
         {
-            var clStream = stream as CLStream;
+            var clStream = stream.AsNotNullCast<CLStream>();
             CLException.ThrowIfFailed(EnqueueBarrier(clStream.CommandQueue));
             return clEnqueueReadBuffer(
                 clStream.CommandQueue,
@@ -996,7 +997,7 @@ namespace ILGPU.Runtime.OpenCL
             IntPtr size,
             IntPtr ptr)
         {
-            var clStream = stream as CLStream;
+            var clStream = stream.AsNotNullCast<CLStream>();
             CLException.ThrowIfFailed(EnqueueBarrier(clStream.CommandQueue));
             return clEnqueueWriteBuffer(
                 clStream.CommandQueue,
@@ -1031,7 +1032,7 @@ namespace ILGPU.Runtime.OpenCL
             IntPtr size)
             where T : unmanaged
         {
-            var clStream = stream as CLStream;
+            var clStream = stream.AsNotNullCast<CLStream>();
             CLException.ThrowIfFailed(EnqueueBarrier(clStream.CommandQueue));
             return clEnqueueFillBuffer(
                 clStream.CommandQueue,
@@ -1070,7 +1071,7 @@ namespace ILGPU.Runtime.OpenCL
             IntPtr targetOffset,
             IntPtr size)
         {
-            var clStream = stream as CLStream;
+            var clStream = stream.AsNotNullCast<CLStream>();
             CLException.ThrowIfFailed(EnqueueBarrier(clStream.CommandQueue));
             return clEnqueueCopyBuffer(
                 clStream.CommandQueue,

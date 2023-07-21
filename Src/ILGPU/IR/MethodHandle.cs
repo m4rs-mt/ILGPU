@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MethodHandle.cs
@@ -122,7 +122,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to this handle.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is MethodHandle handle && handle == this;
 
         /// <summary>
@@ -248,7 +248,7 @@ namespace ILGPU.IR
         public MethodDeclaration(
             MethodHandle handle,
             TypeNode returnType,
-            MethodBase source,
+            MethodBase? source,
             MethodFlags flags)
         {
             Handle = handle;
@@ -258,7 +258,7 @@ namespace ILGPU.IR
             Flags = flags;
 
             if (flags == MethodFlags.None && Source != null)
-                Flags = Method.ResolveMethodFlags(source);
+                Flags = Method.ResolveMethodFlags(Source);
         }
 
         #endregion
@@ -298,7 +298,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the managed source method.
         /// </summary>
-        public MethodBase Source { get; }
+        public MethodBase? Source { get; }
 
         #endregion
 
@@ -368,7 +368,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to this declaration.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is MethodDeclaration declaration && declaration == this;
 
         /// <summary>

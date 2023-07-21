@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: HandleValue.cs
@@ -81,7 +81,7 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "handle";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => Handle.ToString();
+        protected override string ToArgString() => $"{Handle}";
 
         #endregion
     }

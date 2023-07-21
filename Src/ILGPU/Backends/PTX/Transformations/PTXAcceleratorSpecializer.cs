@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXAcceleratorSpecializer.cs
@@ -16,6 +16,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System.Reflection;
 using System.Text;
 
@@ -60,7 +61,8 @@ namespace ILGPU.Backends.PTX.Transformations
         private static readonly MethodInfo PrintFMethod =
             typeof(PTXAcceleratorSpecializer).GetMethod(
                 nameof(PrintF),
-                BindingFlags.Static | BindingFlags.NonPublic);
+                BindingFlags.Static | BindingFlags.NonPublic)
+            .ThrowIfNull();
 
         /// <summary>
         /// A handle to the <see cref="AssertFailed(string, string, int, string, int)"/>
@@ -69,7 +71,8 @@ namespace ILGPU.Backends.PTX.Transformations
         private static readonly MethodInfo AssertFailedMethod =
             typeof(PTXAcceleratorSpecializer).GetMethod(
                 nameof(AssertFailed),
-                BindingFlags.Static | BindingFlags.NonPublic);
+                BindingFlags.Static | BindingFlags.NonPublic)
+            .ThrowIfNull();
 
         #endregion
 
@@ -129,7 +132,7 @@ namespace ILGPU.Backends.PTX.Transformations
                 context.Declare(AssertFailedMethod, out var _));
 
             // Move the debug assertion to this block
-            var sourceMessage = debugAssert.Message.ResolveAs<StringValue>();
+            var sourceMessage = debugAssert.Message.ResolveAs<StringValue>().AsNotNull();
             var message = innerBuilder.CreatePrimitiveValue(
                 location,
                 sourceMessage.String,

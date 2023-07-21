@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAPI.cs
@@ -71,7 +71,8 @@ namespace ILGPU.Runtime.Cuda
         public string GetErrorString(CudaError error) =>
             cuGetErrorString(error, out IntPtr ptr) != CudaError.CUDA_SUCCESS
             ? RuntimeErrorMessages.CannotResolveErrorString
-            : Marshal.PtrToStringAnsi(ptr);
+            : Marshal.PtrToStringAnsi(ptr)
+                ?? RuntimeErrorMessages.CannotResolveErrorString;
 
         #endregion
 
@@ -105,7 +106,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="name">The resolved name.</param>
         /// <param name="device">The device.</param>
         /// <returns>The error status.</returns>
-        public unsafe CudaError GetDeviceName(out string name, int device)
+        public unsafe CudaError GetDeviceName(out string? name, int device)
         {
             const int MaxAcceleratorNameLength = 2048;
             name = null;
@@ -381,7 +382,7 @@ namespace ILGPU.Runtime.Cuda
             IntPtr destination,
             IntPtr source,
             IntPtr length,
-            AcceleratorStream stream)
+            AcceleratorStream? stream)
         {
             var cudaStream = stream as CudaStream;
             return cuMemcpyAsync(
@@ -406,7 +407,7 @@ namespace ILGPU.Runtime.Cuda
             IntPtr destinationDevice,
             byte value,
             IntPtr length,
-            AcceleratorStream stream)
+            AcceleratorStream? stream)
         {
             var cudaStream = stream as CudaStream;
             return Memset(
@@ -572,7 +573,7 @@ namespace ILGPU.Runtime.Cuda
         public unsafe CudaError LoadModule(
             out IntPtr kernelModule,
             string moduleData,
-            out string errorLog)
+            out string? errorLog)
         {
             const int BufferSize = 1024;
             const int NumOptions = 2;
@@ -787,7 +788,7 @@ namespace ILGPU.Runtime.Cuda
             out int minGridSize,
             out int blockSize,
             IntPtr func,
-            ComputeDynamicMemorySizeForBlockSize blockSizeToDynamicSMemSize,
+            ComputeDynamicMemorySizeForBlockSize? blockSizeToDynamicSMemSize,
             IntPtr dynamicSMemSize,
             int blockSizeLimit) =>
             cuOccupancyMaxPotentialBlockSize(

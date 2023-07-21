@@ -10,6 +10,14 @@
     <FileVersion>$(LibraryFileVersion)</FileVersion>
   </PropertyGroup>
 
+  <!-- Enable Nullable Reference Types, but only check for warnings on the latest framework -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' != '$(LibraryLatestTargetFramework)'">
+    <NoWarn>$(NoWarn);nullable</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NeutralLanguage>en-US</NeutralLanguage>
@@ -22,6 +30,10 @@
     <DocumentationFile>../../Bin/$(Configuration)/$(TargetFramework)/ILGPU.Algorithms.xml</DocumentationFile>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ILGPU\Util\NullableAttributes.cs" Link="Util\NullableAttributes.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="AlgorithmContextMappings.cs">

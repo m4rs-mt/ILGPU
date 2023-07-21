@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Arithmetic.cs
@@ -13,6 +13,7 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Frontend
@@ -58,7 +59,7 @@ namespace ILGPU.Frontend
         private bool TryConvertIntoLoadElementAddress(
             Value left,
             BinaryArithmeticValue baseAddress,
-            out Value result)
+            [NotNullWhen(true)] out Value? result)
         {
             if (
                 // Check multiplications

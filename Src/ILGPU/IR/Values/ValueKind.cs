@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ValueKind.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Reflection;
 
@@ -405,7 +406,7 @@ namespace ILGPU.IR
         /// <returns>The determined value kind.</returns>
         public static ValueKind GetValueKind<TValue>()
             where TValue : Value =>
-            typeof(TValue).GetCustomAttribute<ValueKindAttribute>().Kind;
+            typeof(TValue).GetCustomAttribute<ValueKindAttribute>().AsNotNull().Kind;
 
         /// <summary>
         /// Gets the value kind of the type specified.

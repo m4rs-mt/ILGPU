@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelConfig.cs
@@ -37,7 +37,8 @@ namespace ILGPU
                 {
                     typeof(Index3D),
                     typeof(Index3D)
-                });
+                })
+            .ThrowIfNull();
 
         #endregion
 
@@ -501,7 +502,8 @@ namespace ILGPU
             {
                 typeof(KernelConfig),
                 typeof(SharedMemorySpecification)
-            });
+            })
+            .ThrowIfNull();
 
         #endregion
 

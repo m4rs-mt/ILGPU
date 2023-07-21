@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ViewImplementation.cs
@@ -32,7 +32,8 @@ namespace ILGPU.Backends.SeparateViews
         /// A handle to the <see cref="Create{T}(ArrayView{T})"/> method.
         /// </summary>
         private static readonly MethodInfo CreateMethod = typeof(ViewImplementation).
-            GetMethod(nameof(Create));
+            GetMethod(nameof(Create))
+            .ThrowIfNull();
 
         /// <summary>
         /// Returns a specialized create method.
@@ -42,8 +43,8 @@ namespace ILGPU.Backends.SeparateViews
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static MethodInfo GetCreateMethod(Type sourceType)
         {
-            sourceType.IsArrayViewType(out Type elementType);
-            return CreateMethod.MakeGenericMethod(elementType);
+            sourceType.IsArrayViewType(out Type? elementType);
+            return CreateMethod.MakeGenericMethod(elementType.AsNotNull());
         }
 
         /// <summary>
@@ -71,7 +72,7 @@ namespace ILGPU.Backends.SeparateViews
         /// <param name="implType">The view implementation type.</param>
         /// <returns>The resolved field.</returns>
         public static FieldInfo GetIndexField(Type implType) =>
-            implType.GetField(nameof(Index));
+            implType.GetField(nameof(Index)).AsNotNull();
 
         /// <summary>
         /// Returns the length field of a view implementation.
@@ -79,7 +80,7 @@ namespace ILGPU.Backends.SeparateViews
         /// <param name="implType">The view implementation type.</param>
         /// <returns>The resolved field.</returns>
         public static FieldInfo GetLengthField(Type implType) =>
-            implType.GetField(nameof(Length));
+            implType.GetField(nameof(Length)).AsNotNull();
 
         #endregion
 

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DebugInformationManager.cs
@@ -58,7 +58,8 @@ namespace ILGPU.Frontend.DebugInformation
             /// </returns>
             bool Load(
                 Assembly assembly,
-                out AssemblyDebugInformation assemblyDebugInformation);
+                [NotNullWhen(true)]
+                out AssemblyDebugInformation? assemblyDebugInformation);
         }
 
         /// <summary>
@@ -104,7 +105,7 @@ namespace ILGPU.Frontend.DebugInformation
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)
             {
-                if (Parent.pdbFiles.TryGetValue(PDBFileName, out string fileName))
+                if (Parent.pdbFiles.TryGetValue(PDBFileName, out string? fileName))
                 {
                     try
                     {
@@ -152,20 +153,21 @@ namespace ILGPU.Frontend.DebugInformation
             /// </summary>
             public DebugInformationManager Parent { get; }
 
-            /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
+            /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation?)"/>
             public bool Load(
                 Assembly assembly,
-                out AssemblyDebugInformation assemblyDebugInformation)
+                [NotNullWhen(true)]
+                out AssemblyDebugInformation? assemblyDebugInformation)
             {
                 assemblyDebugInformation = null;
                 if (assembly.IsDynamic || string.IsNullOrEmpty(assembly.Location))
                     return false;
 
                 var debugDir = Path.GetDirectoryName(assembly.Location);
-                if (!Parent.lookupDirectories.Contains(debugDir))
+                if (debugDir != null && !Parent.lookupDirectories.Contains(debugDir))
                     Parent.RegisterLookupDirectory(debugDir);
 
-                var pdbFileName = assembly.GetName().Name;
+                var pdbFileName = assembly.GetName().Name.AsNotNull();
                 var loader = new FileLoader(Parent, pdbFileName);
                 return loader.Load(assembly, out assemblyDebugInformation);
             }
@@ -199,7 +201,7 @@ namespace ILGPU.Frontend.DebugInformation
             /// </summary>
             public Stream PDBStream { get; }
 
-            /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
+            /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation?)"/>
             [SuppressMessage(
                 "Design",
                 "CA1031:Do not catch general exception types",
@@ -208,7 +210,8 @@ namespace ILGPU.Frontend.DebugInformation
                 "of an invalid/incompatible/broken PDB file.")]
             public bool Load(
                 Assembly assembly,
-                out AssemblyDebugInformation assemblyDebugInformation)
+                [NotNullWhen(true)]
+                out AssemblyDebugInformation? assemblyDebugInformation)
             {
                 try
                 {
@@ -268,7 +271,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// <returns>True, if the debug information could be loaded.</returns>
         public bool TryLoadSymbols(
             Assembly assembly,
-            out AssemblyDebugInformation assemblyDebugInformation) =>
+            [NotNullWhen(true)] out AssemblyDebugInformation? assemblyDebugInformation) =>
             TryLoadSymbolsInternal(
                 assembly,
                 new AutoFileLoader(this),
@@ -287,7 +290,7 @@ namespace ILGPU.Frontend.DebugInformation
         public bool TryLoadSymbols(
             Assembly assembly,
             string pdbFileName,
-            out AssemblyDebugInformation assemblyDebugInformation)
+            [NotNullWhen(true)] out AssemblyDebugInformation? assemblyDebugInformation)
         {
             if (pdbFileName == null)
                 throw new ArgumentNullException(nameof(pdbFileName));
@@ -312,7 +315,7 @@ namespace ILGPU.Frontend.DebugInformation
         public bool TryLoadSymbols(
             Assembly assembly,
             Stream pdbStream,
-            out AssemblyDebugInformation assemblyDebugInformation)
+            [NotNullWhen(true)] out AssemblyDebugInformation? assemblyDebugInformation)
         {
             if (pdbStream == null)
                 throw new ArgumentNullException(nameof(pdbStream));
@@ -336,7 +339,7 @@ namespace ILGPU.Frontend.DebugInformation
         private bool TryLoadSymbolsInternal<TLoader>(
             Assembly assembly,
             in TLoader loader,
-            out AssemblyDebugInformation assemblyDebugInformation)
+            [NotNullWhen(true)] out AssemblyDebugInformation? assemblyDebugInformation)
             where TLoader : struct, ILoader
         {
             if (assembly == null)
@@ -371,7 +374,9 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="pdbFileName">The name of the debug-information file.</param>
         /// <param name="fileName">The resolved filename (or null).</param>
         /// <returns>True, if the given debug-information file could be found.</returns>
-        public bool TryFindPbdFile(string pdbFileName, out string fileName)
+        public bool TryFindPbdFile(
+            string pdbFileName,
+            [NotNullWhen(true)] out string? fileName)
         {
             cacheLock.EnterReadLock();
             try
@@ -432,7 +437,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// <returns>True, if debug information could be loaded.</returns>
         public bool TryLoadDebugInformation(
             MethodBase methodBase,
-            out MethodDebugInformation methodDebugInformation)
+            [NotNullWhen(true)] out MethodDebugInformation? methodDebugInformation)
         {
             Debug.Assert(methodBase != null, "Invalid method");
             methodDebugInformation = null;
@@ -458,7 +463,7 @@ namespace ILGPU.Frontend.DebugInformation
         public SequencePointEnumerator LoadSequencePoints(MethodBase methodBase) =>
             TryLoadDebugInformation(
                 methodBase,
-                out MethodDebugInformation methodDebugInformation)
+                out MethodDebugInformation? methodDebugInformation)
             ? methodDebugInformation.CreateSequencePointEnumerator()
             : SequencePointEnumerator.Empty;
 
@@ -479,11 +484,12 @@ namespace ILGPU.Frontend.DebugInformation
                 {
                     // Do not dispose system assemblies
                     var assembliesToRemove = new List<Assembly>(assemblies.Count);
-                    foreach (var assembly in assemblies.Keys)
+                    foreach (Assembly assembly in assemblies.Keys)
                     {
-                        if (assembly.FullName.StartsWith(
-                            Context.AssemblyName,
-                            StringComparison.OrdinalIgnoreCase))
+                        if (assembly.FullName != null &&
+                            assembly.FullName.StartsWith(
+                                Context.AssemblyName,
+                                StringComparison.OrdinalIgnoreCase))
                         {
                             continue;
                         }

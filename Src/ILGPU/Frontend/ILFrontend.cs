@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILFrontend.cs
@@ -37,7 +37,7 @@ namespace ILGPU.Frontend
             public ProcessingEntry(
                 MethodBase method,
                 CompilationStackLocation compilationStackLocation,
-                CodeGenerationResult result)
+                CodeGenerationResult? result)
             {
                 Method = method;
                 CompilationStackLocation = compilationStackLocation;
@@ -57,7 +57,7 @@ namespace ILGPU.Frontend
             /// <summary>
             /// Returns the processing future.
             /// </summary>
-            public CodeGenerationResult Result { get; }
+            public CodeGenerationResult? Result { get; }
 
             /// <summary>
             /// Returns true if this is an external processing request.
@@ -88,7 +88,7 @@ namespace ILGPU.Frontend
         private readonly Stack<ProcessingEntry> processing =
             new Stack<ProcessingEntry>(1 << 6);
 
-        private volatile CodeGenerationPhase codeGenerationPhase;
+        private volatile CodeGenerationPhase? codeGenerationPhase;
 
         /// <summary>
         /// Constructs a new frontend with two threads.
@@ -99,7 +99,7 @@ namespace ILGPU.Frontend
         /// </param>
         public ILFrontend(
             Context context,
-            DebugInformationManager debugInformationManager)
+            DebugInformationManager? debugInformationManager)
             : this(context, debugInformationManager, 2)
         { }
 
@@ -114,7 +114,7 @@ namespace ILGPU.Frontend
         /// <param name="numThreads">The number of threads.</param>
         public ILFrontend(
             Context context,
-            DebugInformationManager debugInformationManager,
+            DebugInformationManager? debugInformationManager,
             int numThreads)
         {
             if (numThreads < 1)
@@ -141,7 +141,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the associated debug information manager (if any).
         /// </summary>
-        public DebugInformationManager DebugInformationManager { get; }
+        public DebugInformationManager? DebugInformationManager { get; }
 
         /// <summary>
         /// Returns true if the code generation has failed.
@@ -151,7 +151,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the exception from code generation failure.
         /// </summary>
-        public Exception LastException { get; private set; }
+        public Exception? LastException { get; private set; }
 
         #endregion
 
@@ -291,7 +291,7 @@ namespace ILGPU.Frontend
                 "This code generation phase had nothing to do");
             if (phase.HadWorkToDo)
                 driverNotifier.Wait();
-            LastException = codeGenerationPhase.FirstException;
+            LastException = codeGenerationPhase?.FirstException;
 
             if (Interlocked.CompareExchange(
                 ref codeGenerationPhase,
@@ -335,7 +335,6 @@ namespace ILGPU.Frontend
         /// <param name="method">The associated method.</param>
         internal CodeGenerationResult(MethodBase method)
         {
-            Debug.Assert(method != null, "Invalid method");
             Method = method;
         }
 
@@ -347,7 +346,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// The associated function result.
         /// </summary>
-        public Method Result { get; internal set; }
+        public Method? Result { get; internal set; }
 
         /// <summary>
         /// Returns true if this result has a function value.
@@ -357,7 +356,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// The first exception during code generation, if any.
         /// </summary>
-        public Exception FirstException { get; internal set; }
+        public Exception? FirstException { get; internal set; }
 
     }
 
@@ -371,7 +370,7 @@ namespace ILGPU.Frontend
 
         private volatile bool isFinished;
         private volatile bool hadWorkToDo;
-        private volatile Exception firstException;
+        private volatile Exception? firstException;
 
         /// <summary>
         /// Constructs a new generation phase.
@@ -407,7 +406,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the associated debug information manager (if any).
         /// </summary>
-        public DebugInformationManager DebugInformationManager { get; }
+        public DebugInformationManager? DebugInformationManager { get; }
 
         /// <summary>
         /// Returns the associated verifier instance.
@@ -427,7 +426,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the first exception recorded during code-generation.
         /// </summary>
-        public Exception FirstException => firstException;
+        public Exception? FirstException => firstException;
 
         #endregion
 
@@ -450,7 +449,7 @@ namespace ILGPU.Frontend
             Dictionary<MethodBase, CompilationStackLocation> detectedMethods,
             out Method generatedMethod)
         {
-            ILocation location = null;
+            ILocation? location = null;
             try
             {
                 generatedMethod = Context.Declare(method, out bool created);

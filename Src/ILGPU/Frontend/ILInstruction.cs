@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILInstruction.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
+using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -515,7 +516,7 @@ namespace ILGPU.Frontend
         /// <param name="argument">The flags argument.</param>
         public ILInstructionFlagsContext(
             ILInstructionFlags flags,
-            object argument)
+            object? argument)
         {
             Flags = flags;
             Argument = argument;
@@ -533,7 +534,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the flag argument.
         /// </summary>
-        public object Argument { get; }
+        public object? Argument { get; }
 
         #endregion
 
@@ -556,7 +557,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the current object is equal to the given one.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is ILInstructionFlagsContext context && context == this;
 
         /// <summary>
@@ -595,15 +596,9 @@ namespace ILGPU.Frontend
             ILInstructionFlagsContext first,
             ILInstructionFlagsContext second)
         {
-            if (first.Flags != second.Flags ||
-                first.Argument == null && second.Argument != null ||
-                first.Argument != null && second.Argument == null)
-            {
+            if (first.Flags != second.Flags)
                 return false;
-            }
-            return
-                first.Argument == null && second.Argument == null ||
-                first.Argument.Equals(second.Argument);
+            return Equals(first.Argument, second.Argument);
         }
 
         /// <summary>
@@ -663,7 +658,7 @@ namespace ILGPU.Frontend
             ILInstructionFlagsContext flagsContext,
             ushort popCount,
             ushort pushCount,
-            object argument,
+            object? argument,
             Location location)
         {
             Offset = offset;
@@ -714,7 +709,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the instruction argument.
         /// </summary>
-        public object Argument { get; }
+        public object? Argument { get; }
 
         /// <summary>
         /// Returns true if the instruction is a call instruction.
@@ -759,7 +754,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <typeparam name="T">The target type T.</typeparam>
         /// <returns>The instruction argument T.</returns>
-        public T GetArgumentAs<T>() => (T)Argument;
+        public T GetArgumentAs<T>() => (T)Argument.AsNotNull();
 
         /// <summary>
         /// Returns true if current instruction has the given flags.
@@ -817,21 +812,15 @@ namespace ILGPU.Frontend
             "Style",
             "IDE0046:Convert to conditional expression",
             Justification = "Avoid nested if conditionals")]
-        public bool Equals(ILInstruction other)
+        public bool Equals(ILInstruction? other)
         {
             if (other == null)
                 return false;
             if (InstructionType != other.InstructionType ||
-                FlagsContext != other.FlagsContext ||
-                Argument == null && other.Argument != null ||
-                Argument != null && other.Argument == null)
-            {
+                FlagsContext != other.FlagsContext)
                 return false;
-            }
 
-            return
-                Argument == null && other.Argument == null ||
-                Argument.Equals(other.Argument);
+            return Equals(Argument, other.Argument);
         }
 
         #endregion
@@ -843,7 +832,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the current object is equal to the given one.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is ILInstruction otherObj && otherObj == this;
 
         /// <summary>

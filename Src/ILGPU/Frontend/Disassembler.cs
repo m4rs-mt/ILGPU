@@ -62,7 +62,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// The current flags argument.
         /// </summary>
-        private object flagsArgument;
+        private object? flagsArgument;
 
         /// <summary>
         /// Represents the current list of instructions.
@@ -77,7 +77,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the source location.
         /// </summary>
-        private readonly CompilationStackLocation compilationStackLocation;
+        private readonly CompilationStackLocation? compilationStackLocation;
 
         /// <summary>
         /// Constructs a new disassembler.
@@ -90,22 +90,20 @@ namespace ILGPU.Frontend
         public Disassembler(
             MethodBase methodBase,
             SequencePointEnumerator sequencePointEnumerator,
-            CompilationStackLocation compilationStackLocation = null)
+            CompilationStackLocation? compilationStackLocation = null)
         {
             MethodBase = methodBase
                 ?? throw new ArgumentNullException(nameof(methodBase));
             MethodGenericArguments = MethodBase is MethodInfo
                 ? MethodBase.GetGenericArguments()
                 : Array.Empty<Type>();
-            TypeGenericArguments = MethodBase.DeclaringType.GetGenericArguments();
-            MethodBody = MethodBase.GetMethodBody();
-            if (MethodBody == null)
-            {
-                throw new NotSupportedException(string.Format(
+            TypeGenericArguments =
+                MethodBase.DeclaringType.AsNotNull().GetGenericArguments();
+            MethodBody = MethodBase.GetMethodBody()
+                ?? throw new NotSupportedException(string.Format(
                     ErrorMessages.NativeMethodNotSupported,
                     MethodBase.Name));
-            }
-            il = MethodBody.GetILAsByteArray();
+            il = MethodBody.GetILAsByteArray() ?? Array.Empty<byte>();
             instructions = ImmutableArray.CreateBuilder<ILInstruction>(il.Length);
             debugInformationEnumerator = sequencePointEnumerator;
             this.compilationStackLocation = compilationStackLocation;
@@ -129,7 +127,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the declaring type of the method.
         /// </summary>
-        public Type DeclaringType => MethodBase.DeclaringType;
+        public Type DeclaringType => MethodBase.DeclaringType.AsNotNull();
 
         /// <summary>
         /// Returns the associated managed module.
@@ -225,7 +223,7 @@ namespace ILGPU.Frontend
         /// <param name="methodToken">The token of the method to be disassembled.</param>
         private void DisassembleCall(ILInstructionType type, int methodToken)
         {
-            var method = ResolveMethod(methodToken);
+            var method = ResolveMethod(methodToken).AsNotNull();
             var popCount = method.GetParameters().Length;
             var methodInfo = method as MethodInfo;
             int pushCount = 0;
@@ -273,7 +271,7 @@ namespace ILGPU.Frontend
             ILInstructionType type,
             ushort popCount,
             ushort pushCount,
-            object argument = null) =>
+            object? argument = null) =>
             AppendInstructionWithFlags(
                 type,
                 popCount,
@@ -298,7 +296,7 @@ namespace ILGPU.Frontend
             ushort popCount,
             ushort pushCount,
             ILInstructionFlags additionalFlags,
-            object argument = null) =>
+            object? argument = null) =>
             // Merge with current flags
             instructions.Add(new ILInstruction(
                 instructionOffset,
@@ -331,7 +329,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="token">The token of the method to resolve.</param>
         /// <returns>The resolved method.</returns>
-        private MethodBase ResolveMethod(int token) =>
+        private MethodBase? ResolveMethod(int token) =>
             AssociatedModule.ResolveMethod(
                 token,
                 TypeGenericArguments,
@@ -343,7 +341,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="token">The token of the field to resolve.</param>
         /// <returns>The resolved field.</returns>
-        private FieldInfo ResolveField(int token) =>
+        private FieldInfo? ResolveField(int token) =>
             AssociatedModule.ResolveField(
                 token,
                 TypeGenericArguments,
@@ -409,7 +407,7 @@ namespace ILGPU.Frontend
         /// Reads a field reference from the current instruction data.
         /// </summary>
         /// <returns>The decoded field reference.</returns>
-        private FieldInfo ReadFieldArg()
+        private FieldInfo? ReadFieldArg()
         {
             var token = ReadIntArg();
             return ResolveField(token);

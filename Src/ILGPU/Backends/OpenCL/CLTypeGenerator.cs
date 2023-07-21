@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLTypeGenerator.cs
@@ -65,7 +65,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         private static readonly ImmutableArray<string> BasicTypeMapping =
             ImmutableArray.Create(
-                null,
+                string.Empty,
                 "bool",
                 "char",
                 "short",
@@ -97,7 +97,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Maps arithmetic-basic value types to atomic OpenCL language types.
         /// </summary>
-        private static readonly ImmutableArray<string> AtomicTypeMapping =
+        private static readonly ImmutableArray<string?> AtomicTypeMapping =
             ImmutableArray.Create(
                 string.Empty,
                 null,
@@ -142,7 +142,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="basicValueType">The basic-value type to resolve.</param>
         /// <returns>The resolved atomic OpenCL type name.</returns>
-        public string GetAtomicType(ArithmeticBasicValueType basicValueType) =>
+        public string? GetAtomicType(ArithmeticBasicValueType basicValueType) =>
             basicValueType == ArithmeticBasicValueType.Float16 && !Capabilities.Float16
             ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
             : basicValueType == ArithmeticBasicValueType.Float64 && !Capabilities.Float64
@@ -240,7 +240,7 @@ namespace ILGPU.Backends.OpenCL
                 // Synchronize all accesses below using a read/write scope
                 using var readWriteScope = readerWriterLock.EnterUpgradeableReadScope();
 
-                if (mapping.TryGetValue(typeNode, out string typeName))
+                if (mapping.TryGetValue(typeNode, out string? typeName))
                     return typeName;
 
                 // Synchronize all accesses below using a write scope
@@ -269,7 +269,7 @@ namespace ILGPU.Backends.OpenCL
         private string GetOrCreateType(TypeNode typeNode)
         {
             Debug.Assert(!(typeNode is ViewType), "Invalid view type");
-            if (mapping.TryGetValue(typeNode, out string clName))
+            if (mapping.TryGetValue(typeNode, out string? clName))
                 return clName;
 
             if (typeNode is PointerType pointerType)

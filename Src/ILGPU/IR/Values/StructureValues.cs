@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StructureValues.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -97,7 +98,7 @@ namespace ILGPU.IR.Values
         /// <returns>
         /// True, if the given field access is equal to the current one.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is FieldAccess other && Equals(other);
 
         /// <summary>
@@ -286,7 +287,7 @@ namespace ILGPU.IR.Values
         /// <returns>
         /// True, if the given field access is equal to the current one.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is FieldSpan other && Equals(other);
 
         /// <summary>
@@ -495,7 +496,7 @@ namespace ILGPU.IR.Values
         /// <returns>
         /// True, if the given field ref is equal to the current one.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is FieldAccessChain other && Equals(other);
 
         /// <summary>
@@ -600,7 +601,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the field span.
         /// </summary>
-        public FieldSpan FieldSpan => span.Value;
+        public FieldSpan FieldSpan => span.GetValueOrDefault();
 
         /// <summary>
         /// Returns true if this instances references the whole source object.
@@ -654,7 +655,7 @@ namespace ILGPU.IR.Values
         /// <returns>
         /// True, if the given field ref is equal to the current one.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is FieldRef other && Equals(other);
 
         /// <summary>
@@ -800,7 +801,7 @@ namespace ILGPU.IR.Values
             /// <summary>
             /// Returns the next expected type to be added.
             /// </summary>
-            public TypeNode NextExpectedType =>
+            public TypeNode? NextExpectedType =>
                 Count < Parent.NumFields ? Parent[Count] : null;
 
             #endregion
@@ -1081,7 +1082,8 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the structure type.
         /// </summary>
-        public StructureType StructureType => ObjectValue.Type as StructureType;
+        public StructureType StructureType =>
+            ObjectValue.Type.AsNotNullCast<StructureType>();
 
         /// <summary>(
         /// Returns the field span.
@@ -1134,7 +1136,9 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
-            (ObjectValue.Type as StructureType).Get(initializer.Context, FieldSpan);
+            (ObjectValue.Type as StructureType)
+            .AsNotNull()
+            .Get(initializer.Context, FieldSpan);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

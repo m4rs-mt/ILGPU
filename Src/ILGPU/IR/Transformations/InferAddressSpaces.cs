@@ -13,7 +13,9 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using static ILGPU.IR.Analyses.PointerAddressSpaces;
 using static ILGPU.IR.Transformations.InferAddressSpaces;
 using static ILGPU.IR.Types.AddressSpaceType;
@@ -116,7 +118,7 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Tries to pop a value from the current processing stack.
             /// </summary>
-            public readonly bool TryPop(out Value value)
+            public readonly bool TryPop([NotNullWhen(true)] out Value? value)
             {
                 value = default;
                 if (ToProcess.Count < 1)
@@ -522,7 +524,7 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             /// <param name="methods">The collection of methods.</param>
             /// <param name="kernelAddressSpace">The target address space.</param>
-            public static MethodDataProvider CreateProvider(
+            public static MethodDataProvider? CreateProvider(
                 in MethodCollection methods,
                 MemoryAddressSpace kernelAddressSpace)
             {
@@ -657,7 +659,7 @@ namespace ILGPU.IR.Transformations
                 return type == targetType
                     ? value
                     : context.AssembleStructure(
-                        targetType as StructureType,
+                        (targetType as StructureType).AsNotNull(),
                         value,
                         (ctx, val, access) =>
                         {
@@ -866,7 +868,7 @@ namespace ILGPU.IR.Transformations
         /// Creates a new <see cref="MethodDataProvider"/> instance based on the main
         /// entry-point method.
         /// </summary>
-        protected override MethodDataProvider CreateIntermediate(
+        protected override MethodDataProvider? CreateIntermediate(
             in MethodCollection methods) =>
             MethodDataProvider.CreateProvider(methods, KernelAddressSpace);
 
@@ -876,7 +878,7 @@ namespace ILGPU.IR.Transformations
         protected override bool PerformTransformation(
             IRContext context,
             Method.Builder builder,
-            in MethodDataProvider intermediate,
+            in MethodDataProvider? intermediate,
             Landscape landscape,
             Landscape.Entry current)
         {
@@ -919,7 +921,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Performs no operation.
         /// </summary>
-        protected override void FinishProcessing(in MethodDataProvider intermediate) { }
+        protected override void FinishProcessing(in MethodDataProvider? intermediate) { }
 
         #endregion
     }

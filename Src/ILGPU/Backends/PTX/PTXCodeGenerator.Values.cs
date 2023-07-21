@@ -329,20 +329,24 @@ namespace ILGPU.Backends.PTX
                     new PredicateConfiguration(conditionRegister, true)))
                 {
                     statement1.AppendSuffix(BasicValueType.Int1);
-                    statement1.AppendArgument(targetRegister as PrimitiveRegister);
-                    statement1.AppendArgument(trueValue as PrimitiveRegister);
+                    statement1.AppendArgument(
+                        targetRegister.AsNotNullCast<PrimitiveRegister>());
+                    statement1.AppendArgument(
+                        trueValue.AsNotNullCast<PrimitiveRegister>());
                 }
 
                 using var statement2 = BeginMove(
                     new PredicateConfiguration(conditionRegister, false));
                 statement2.AppendSuffix(BasicValueType.Int1);
-                statement2.AppendArgument(targetRegister as PrimitiveRegister);
-                statement2.AppendArgument(falseValue as PrimitiveRegister);
+                statement2.AppendArgument(
+                    targetRegister.AsNotNullCast<PrimitiveRegister>());
+                statement2.AppendArgument(
+                    falseValue.AsNotNullCast<PrimitiveRegister>());
             }
             else
             {
                 EmitComplexCommand(
-                    null,
+                    string.Empty,
                     new PredicateEmitter(condition),
                     targetRegister,
                     trueValue,
@@ -369,10 +373,10 @@ namespace ILGPU.Backends.PTX
             var targetRegister = requiresResult ? AllocateHardware(atomic) : default;
             using var command = BeginCommand(atomicOperation);
             command.AppendNonLocalAddressSpace(
-                (atomic.Target.Type as AddressSpaceType).AddressSpace);
+                atomic.Target.Type.AsNotNullCast<AddressSpaceType>().AddressSpace);
             command.AppendSuffix(suffix);
             if (requiresResult)
-                command.AppendArgument(targetRegister);
+                command.AppendArgument(targetRegister.AsNotNull());
             command.AppendArgumentValue(target);
             command.AppendArgument(value);
         }
@@ -388,7 +392,7 @@ namespace ILGPU.Backends.PTX
 
             using var command = BeginCommand(PTXInstructions.AtomicCASOperation);
             command.AppendNonLocalAddressSpace(
-                (atomicCAS.Target.Type as AddressSpaceType).AddressSpace);
+                atomicCAS.Target.Type.AsNotNullCast<AddressSpaceType>().AddressSpace);
             command.AppendSuffix(atomicCAS.BasicValueType);
             command.AppendArgument(targetRegister);
             command.AppendArgumentValue(target);
@@ -474,7 +478,7 @@ namespace ILGPU.Backends.PTX
                 codeGenerator.EmitIOLoad(
                     Emitter,
                     command,
-                    register as HardwareRegister,
+                    register.AsNotNullCast<HardwareRegister>(),
                     offset);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -498,7 +502,7 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(Load load)
         {
             var address = LoadHardware(load.Source);
-            var sourceType = load.Source.Type as PointerType;
+            var sourceType = load.Source.Type.AsNotNullCast<PointerType>();
             var targetRegister = Allocate(load);
 
             EmitVectorizedCommand(
@@ -598,7 +602,7 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(Store store)
         {
             var address = LoadHardware(store.Target);
-            var targetType = store.Target.Type as PointerType;
+            var targetType = store.Target.Type.AsNotNullCast<PointerType>();
             var value = Load(store.Value);
 
             EmitVectorizedCommand(
@@ -802,7 +806,7 @@ namespace ILGPU.Backends.PTX
         {
             // Check for already existing global constant
             var key = (value.Encoding, value.String);
-            if (!stringConstants.TryGetValue(key, out string stringBinding))
+            if (!stringConstants.TryGetValue(key, out string? stringBinding))
             {
                 stringBinding = "__strconst" + value.Id;
                 stringConstants.Add(key, stringBinding);
@@ -901,7 +905,7 @@ namespace ILGPU.Backends.PTX
                 Bind(
                     value,
                     new CompoundRegister(
-                        value.Type as StructureType,
+                        value.Type.AsNotNullCast<StructureType>(),
                         childRegisters.MoveToImmutable()));
             }
         }
@@ -1251,7 +1255,7 @@ namespace ILGPU.Backends.PTX
                 if (emit.UsingRefParams)
                 {
                     // If there is an input, initialize with the supplied argument value.
-                    var pointerType = argument.Type as PointerType;
+                    var pointerType = argument.Type.AsNotNullCast<PointerType>();
                     var pointerElementType = pointerType.ElementType;
 
                     var targetRegister = AllocateRegister(
@@ -1275,7 +1279,7 @@ namespace ILGPU.Backends.PTX
                     registers.Add(
                         emit.IsOutputArgument(argumentIdx)
                         ? AllocateRegister(ResolveRegisterDescription(
-                            (argument.Type as PointerType).ElementType))
+                            argument.Type.AsNotNullCast<PointerType>().ElementType))
                         : LoadPrimitive(argument));
                 }
             }
@@ -1293,7 +1297,7 @@ namespace ILGPU.Backends.PTX
                     }
                     else
                     {
-                        emitter.AppendRawString(expression.String);
+                        emitter.AppendRawString(expression.String.AsNotNull());
                     }
                 }
             }
@@ -1305,7 +1309,7 @@ namespace ILGPU.Backends.PTX
                 {
                     var outputArgument = emit.Nodes[argumentIdx];
                     var address = LoadHardware(outputArgument);
-                    var targetType = outputArgument.Type as PointerType;
+                    var targetType = outputArgument.Type.AsNotNullCast<PointerType>();
                     var newValue = registers[argumentIdx];
 
                     EmitVectorizedCommand(

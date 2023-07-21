@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MethodScope.cs
@@ -112,7 +112,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// </summary>
         /// <param name="other">The other scope.</param>
         /// <returns>True, if the given scope is equal to the current scope.</returns>
-        public bool Equals(MethodScope other) =>
+        public bool Equals(MethodScope? other) =>
             other != null &&
             StartOffset == other.StartOffset &&
             Length == other.Length;
@@ -126,7 +126,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// </summary>
         /// <param name="obj">The other sequence object.</param>
         /// <returns>True, if the given object is equal to the current scope.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is MethodScope other && Equals(other);
 
         /// <summary>

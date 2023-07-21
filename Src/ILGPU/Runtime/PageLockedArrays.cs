@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PageLockedArrays.cs
@@ -14,6 +14,7 @@ using ILGPU.Runtime.CPU;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace ILGPU.Runtime
@@ -36,12 +37,14 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the memory buffer wrapper of the .Net array.
         /// </summary>
-        protected internal MemoryBuffer MemoryBuffer { get; private set; }
+        protected internal MemoryBuffer MemoryBuffer { get; private set; } =
+            Utilities.InitNotNullable<MemoryBuffer>();
 
         /// <summary>
         /// Returns the page locking scope that includes the underlying array.
         /// </summary>
-        protected internal PageLockScope<T> Scope { get; private set; }
+        protected internal PageLockScope<T> Scope { get; private set; } =
+            Utilities.InitNotNullable<PageLockScope<T>>();
 
         /// <summary>
         /// Returns the array view of the underlying .Net array.
@@ -64,14 +67,14 @@ namespace ILGPU.Runtime
         /// <param name="ptr">The pinned host pointer.</param>
         /// <param name="length">The total number of elements.</param>
         protected unsafe void Initialize(
-            Accelerator accelerator,
+            Accelerator? accelerator,
             IntPtr ptr,
             long length)
         {
             if (length < 0L)
                 throw new ArgumentNullException(nameof(length));
 
-            if (length > 0L)
+            if (accelerator != null && length > 0L)
             {
                 MemoryBuffer = CPUMemoryBuffer.Create(
                     accelerator,
@@ -140,7 +143,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="accelerator">The parent accelerator.</param>
         /// <param name="extent">The number of elements to allocate.</param>
-        internal PageLockedArray1D(Accelerator accelerator, LongIndex1D extent)
+        internal PageLockedArray1D(Accelerator? accelerator, LongIndex1D extent)
             : this(accelerator, extent, false)
         { }
 
@@ -151,7 +154,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The number of elements to allocate.</param>
         /// <param name="uninitialized">True, to allocate an uninitialized array.</param>
         internal unsafe PageLockedArray1D(
-            Accelerator accelerator,
+            Accelerator? accelerator,
             LongIndex1D extent,
             bool uninitialized)
         {

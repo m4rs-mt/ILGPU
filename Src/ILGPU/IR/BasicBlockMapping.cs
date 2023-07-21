@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlockMapping.cs
@@ -640,7 +640,7 @@ namespace ILGPU.IR
         /// <param name="value">The stored value (if any).</param>
         /// <returns>True, if the block could be found.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetValue(BasicBlock block, out T value)
+        public bool TryGetValue(BasicBlock block, [NotNullWhen(true)] out T? value)
         {
             value = default;
             int index = block.BlockIndex;
@@ -745,6 +745,7 @@ namespace ILGPU.IR
         private HashSet<BasicBlock> blockSet;
 
         /// <summary cref="InitBlockSet"/>
+        [MemberNotNull(nameof(blockSet))]
         partial void InitBlockSet() => blockSet = new HashSet<BasicBlock>();
 
         #endregion
@@ -783,6 +784,7 @@ namespace ILGPU.IR
         private Dictionary<BasicBlock, T> blockMap;
 
         /// <summary cref="InitBlockMap"/>
+        [MemberNotNull(nameof(blockMap))]
         partial void InitBlockMap() => blockMap = new Dictionary<BasicBlock, T>();
 
         #endregion
@@ -808,7 +810,7 @@ namespace ILGPU.IR
             bool found = blockMap.TryGetValue(block, out var storedValue);
             EntryBlock.Assert(contained == found);
             if (contained)
-                EntryBlock.Assert(value.Equals(storedValue));
+                EntryBlock.Assert(Equals(value, storedValue));
         }
 
         /// <summary cref="AssertCleared()"/>

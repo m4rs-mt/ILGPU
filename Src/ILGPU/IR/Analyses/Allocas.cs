@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Allocas.cs
@@ -273,13 +273,13 @@ namespace ILGPU.IR.Analyses
             Alloca alloca,
             ImmutableArray<AllocaInformation>.Builder builder,
             ref int memorySize,
-            ImmutableArray<AllocaInformation>.Builder dynamicBuilder = null)
+            ImmutableArray<AllocaInformation>.Builder? dynamicBuilder = null)
         {
             var info = new AllocaInformation(builder.Count, alloca);
             if (info.IsDynamicArray)
             {
-                alloca.AssertNotNull(dynamicBuilder);
-                dynamicBuilder.Add(info);
+                alloca.AssertNotNull(dynamicBuilder.AsNotNull());
+                dynamicBuilder.AsNotNull().Add(info);
             }
             else
             {
@@ -358,13 +358,13 @@ namespace ILGPU.IR.Analyses
         /// <param name="value">The value to get the type information for.</param>
         /// <returns>The type, if the value is supported, null otherwise.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode TryGetAnalysisType(Value value) =>
+        private static TypeNode? TryGetAnalysisType(Value value) =>
             value switch
             {
                 PhiValue phiValue => phiValue.Type,
                 PointerCast cast => cast.TargetElementType,
                 AddressSpaceCast cast =>
-                    (cast.TargetType as AddressSpaceType).ElementType,
+                    cast.TargetType.AsNotNullCast<AddressSpaceType>().ElementType,
                 NewView newView => newView.ViewElementType,
                 ViewCast cast => cast.TargetElementType,
                 SubViewValue subView => subView.ElementType,
@@ -427,7 +427,7 @@ namespace ILGPU.IR.Analyses
             while (toProcess.Count > 0)
             {
                 var current = toProcess.Pop();
-                TypeNode type;
+                TypeNode? type;
 
                 // Check whether we have already seen this value
                 if (!visited.Add(current))

@@ -12,6 +12,7 @@
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -48,7 +49,7 @@ namespace ILGPU.Runtime
             Action<int> manipulateIdx)
             where TEmitter : struct, IILEmitter
         {
-            var indexFieldGetter = new MethodInfo[]
+            var indexFieldGetter = new MethodInfo?[]
             {
                 indexType.GetProperty(
                     nameof(Index3D.X),
@@ -187,14 +188,18 @@ namespace ILGPU.Runtime
                     .GetProperty(
                         nameof(KernelConfig.GridDim),
                         BindingFlags.Public | BindingFlags.Instance)
-                    .GetGetMethod());
+                    .AsNotNull()
+                    .GetGetMethod()
+                    .AsNotNull());
                 emitter.Emit(LocalOperation.LoadAddress, kernelCfgLocal);
                 emitter.EmitCall(
                     typeof(KernelConfig)
                     .GetProperty(
                         nameof(KernelConfig.GroupDim),
                         BindingFlags.Public | BindingFlags.Instance)
-                    .GetGetMethod());
+                    .AsNotNull()
+                    .GetGetMethod()
+                    .AsNotNull());
                 EmitVerifyKernelLaunchBounds(emitter, maxGridSize, maxGroupSize);
             }
         }
@@ -225,7 +230,8 @@ namespace ILGPU.Runtime
             emitter.EmitCall(
                 typeof(KernelLauncherBuilder).GetMethod(
                     nameof(VerifyKernelLaunchBounds),
-                    BindingFlags.NonPublic | BindingFlags.Static));
+                    BindingFlags.NonPublic | BindingFlags.Static)
+                .AsNotNull());
         }
 
         /// <summary>

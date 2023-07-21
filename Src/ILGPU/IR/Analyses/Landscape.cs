@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Landscape.cs
@@ -9,10 +9,12 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 namespace ILGPU.IR.Analyses
@@ -38,9 +40,9 @@ namespace ILGPU.IR.Analyses
                 (first, second) => first.Method.Id.CompareTo(second.Method.Id);
 
             private readonly HashSet<Method> usesSet = new HashSet<Method>();
-            private List<Method> uses;
+            private List<Method>? uses;
 
-            internal Entry(Method method, References references, in T data)
+            internal Entry(Method method, References references, in T? data)
             {
                 method.AssertNotNull(method);
 
@@ -57,7 +59,7 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Returns custom information.
             /// </summary>
-            public T Data { get; }
+            public T? Data { get; }
 
             /// <summary>
             /// Returns the number of basic block.
@@ -67,7 +69,7 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Returns the number of uses.
             /// </summary>
-            public int NumUses => uses.Count;
+            public int NumUses => usesSet.Count;
 
             /// <summary>
             /// Returns true if this function has references.
@@ -110,7 +112,8 @@ namespace ILGPU.IR.Analyses
             /// <returns>
             /// An enumerator to enumerate all depending method entries.
             /// </returns>
-            internal List<Method>.Enumerator GetEnumerator() => uses.GetEnumerator();
+            internal List<Method>.Enumerator GetEnumerator() =>
+                uses.AsNotNull().GetEnumerator();
 
             /// <summary>
             /// Returns the string representation of this entry.
@@ -132,7 +135,7 @@ namespace ILGPU.IR.Analyses
             /// All references to other methods.
             /// </param>
             /// <returns>The resolved custom data.</returns>
-            T GetData(Method method, References methodReferences);
+            T? GetData(Method method, References methodReferences);
         }
 
         /// <summary>
@@ -233,7 +236,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="method">The source method.</param>
         /// <returns>The resolved landscape entry.</returns>
         public Entry this[Method method] =>
-            TryGetEntry(method, out Entry entry)
+            TryGetEntry(method, out Entry? entry)
             ? entry
             : throw new KeyNotFoundException();
 
@@ -252,7 +255,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="method">The method.</param>
         /// <param name="entry">The resolved entry.</param>
         /// <returns>True, if the entry could be resolved.</returns>
-        public bool TryGetEntry(Method method, out Entry entry) =>
+        public bool TryGetEntry(Method method, [NotNullWhen(true)] out Entry? entry) =>
             entries.TryGetValue(method, out entry);
 
         /// <summary>
@@ -283,7 +286,7 @@ namespace ILGPU.IR.Analyses
             {
                 foreach (var reference in entry.References)
                 {
-                    if (entries.TryGetValue(reference, out Entry referenceEntry))
+                    if (entries.TryGetValue(reference, out Entry? referenceEntry))
                         referenceEntry.AddUse(entry.Method);
                 }
             }
@@ -381,7 +384,7 @@ namespace ILGPU.IR.Analyses
         private readonly struct DataProvider : IDataProvider
         {
             /// <summary cref="Landscape{T}.IDataProvider.GetData(Method, References)"/>
-            public object GetData(Method method, References references) => null;
+            public object? GetData(Method method, References references) => null;
         }
 
         #endregion

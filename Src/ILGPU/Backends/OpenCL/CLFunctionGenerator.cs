@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLFunctionGenerator.cs
@@ -62,7 +62,7 @@ namespace ILGPU.Backends.OpenCL
             /// <summary>
             /// This setup logic does not support intrinsic parameters.
             /// </summary>
-            public Variable HandleIntrinsicParameter(
+            public Variable? HandleIntrinsicParameter(
                 int parameterOffset,
                 Parameter parameter) =>
                 null;

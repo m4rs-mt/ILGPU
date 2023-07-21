@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PaddingType.cs
@@ -58,7 +58,8 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the corresponding managed basic value type.
         /// </summary>
-        protected override Type GetManagedType() => BasicValueType.GetManagedType();
+        protected override Type GetManagedType() =>
+            BasicValueType.GetManagedType().AsNotNull();
 
         #endregion
 
@@ -72,8 +73,8 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ 0x2AB11613 ^ (int)BasicValueType;
 
-        /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj) =>
+        /// <summary cref="TypeNode.Equals(object?)"/>
+        public override bool Equals(object? obj) =>
             obj is PaddingType paddingType &&
             paddingType.BasicValueType == BasicValueType;
 

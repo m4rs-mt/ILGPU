@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMatcher.cs
@@ -9,8 +9,10 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ILGPU.IR.Intrinsics
@@ -49,7 +51,7 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <param name="implementation">The implementation to transform.</param>
         /// <returns>The transformed implementation.</returns>
-        TSecond Transform(TFirst implementation);
+        TSecond? Transform(TFirst? implementation);
     }
 
     /// <summary>
@@ -116,7 +118,7 @@ namespace ILGPU.IR.Intrinsics
         /// <returns>True, if an implementation could be resolved.</returns>
         public abstract bool TryGetImplementation(
             TMatchedValue value,
-            out T implementation);
+            [NotNullWhen(true)] out T? implementation);
 
         #endregion
     }
@@ -130,8 +132,8 @@ namespace ILGPU.IR.Intrinsics
     {
         #region Instance
 
-        private readonly Dictionary<MethodInfo, T> entries =
-            new Dictionary<MethodInfo, T>();
+        private readonly Dictionary<MethodInfo, T?> entries =
+            new Dictionary<MethodInfo, T?>();
 
         /// <summary>
         /// Constructs a new intrinsic matcher.
@@ -162,7 +164,9 @@ namespace ILGPU.IR.Intrinsics
 
         /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(
         /// TMatchedValue, out T)"/>
-        public override bool TryGetImplementation(MethodInfo value, out T implementation)
+        public override bool TryGetImplementation(
+            MethodInfo value,
+            [NotNullWhen(true)] out T? implementation)
         {
             if (value.IsGenericMethod)
                 value = value.GetGenericMethodDefinition();
@@ -175,7 +179,7 @@ namespace ILGPU.IR.Intrinsics
             TTransformer transformer,
             IntrinsicMatcher<TOther> other)
         {
-            var otherMatcher = other as IntrinsicMethodMatcher<TOther>;
+            var otherMatcher = other.AsNotNullCast<IntrinsicMethodMatcher<TOther>>();
             foreach (var entry in entries)
                 otherMatcher.entries[entry.Key] = transformer.Transform(entry.Value);
         }
@@ -229,7 +233,7 @@ namespace ILGPU.IR.Intrinsics
         /// <summary>
         /// All value implementation entries.
         /// </summary>
-        private readonly T[,] entries;
+        private readonly T?[,] entries;
 
         /// <summary>
         /// Constructs a new abstract intrinsic value matcher.
@@ -253,7 +257,7 @@ namespace ILGPU.IR.Intrinsics
         /// <param name="index">The element index.</param>
         /// <param name="basicValueType">The basic-value type.</param>
         /// <returns>The resolved reference.</returns>
-        protected T this[int index, BasicValueType basicValueType]
+        protected T? this[int index, BasicValueType basicValueType]
         {
             get => entries[index, (int)basicValueType];
             set => entries[index, (int)basicValueType] = value;
@@ -269,7 +273,8 @@ namespace ILGPU.IR.Intrinsics
             TTransformer transformer,
             IntrinsicMatcher<TOther> other)
         {
-            var otherMatcher = other as TypedIntrinsicValueMatcher<TOther, TValueKind>;
+            var otherMatcher =
+                other.AsNotNullCast<TypedIntrinsicValueMatcher<TOther, TValueKind>>();
             for (int i = 0, e = entries.GetLength(0); i < e; ++i)
             {
                 for (int j = 0, e2 = entries.GetLength(1); j < e2; ++j)

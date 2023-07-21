@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2022 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUMemoryBuffer.cs
@@ -12,6 +12,7 @@
 using ILGPU.Resources;
 using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.OpenCL;
+using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -569,7 +570,8 @@ namespace ILGPU.Runtime.CPU
         {
             if (array is null)
                 throw new ArgumentNullException(nameof(array));
-            int elementSize = Interop.SizeOf(array.GetType().GetElementType());
+            int elementSize =
+                Interop.SizeOf(array.GetType().GetElementType().AsNotNull());
             return FromArray(array, elementSize);
 
         }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvJpegStructs.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 
 #pragma warning disable CA1051 // Do not declare visible instance fields
@@ -29,7 +30,7 @@ namespace ILGPU.Runtime.Cuda
     {
         #region Properties
 
-        public MemoryBuffer1D<byte, Stride1D.Dense>[] Channel;
+        public MemoryBuffer1D<byte, Stride1D.Dense>?[] Channel;
         public ulong[] Pitch;
 
         #endregion
@@ -64,7 +65,7 @@ namespace ILGPU.Runtime.Cuda
             var size = width * height;
             var outputImage = new NvJpegImage
             {
-                Channel = new MemoryBuffer1D<byte, Stride1D.Dense>[]
+                Channel = new MemoryBuffer1D<byte, Stride1D.Dense>?[]
                 {
                     numComponents >= 1 ? accelerator.Allocate1D<byte>(size) : null,
                     numComponents >= 2 ? accelerator.Allocate1D<byte>(size) : null,
@@ -104,7 +105,7 @@ namespace ILGPU.Runtime.Cuda
                 i < Math.Min(Channel.Length, NvJpegConstants.NVJPEG_MAX_COMPONENT);
                 i++)
             {
-                imageInterop.Channel[i] = MemoryBufferToUInt64(Channel[i]);
+                imageInterop.Channel[i] = MemoryBufferToUInt64(Channel[i].AsNotNull());
                 imageInterop.Pitch[i] = Pitch[i];
             }
 
