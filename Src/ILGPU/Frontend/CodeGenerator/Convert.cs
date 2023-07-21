@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Convert.cs
@@ -59,7 +59,7 @@ namespace ILGPU.Frontend
         {
             if (value.Type is AddressSpaceType)
             {
-                var otherType = targetType as AddressSpaceType;
+                var otherType = targetType.AsNotNullCast<AddressSpaceType>();
                 value = Builder.CreateAddressSpaceCast(
                     Location,
                     value,

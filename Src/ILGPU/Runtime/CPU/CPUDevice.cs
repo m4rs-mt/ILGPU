@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUDevice.cs
@@ -336,7 +336,7 @@ namespace ILGPU.Runtime.CPU
         #region Object
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is CPUDevice device &&
             device.WarpSize == WarpSize &&
             device.MaxNumThreadsPerGroup == MaxNumThreadsPerGroup &&

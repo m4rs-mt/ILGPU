@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelSpecialization.cs
@@ -120,7 +120,7 @@ namespace ILGPU.Runtime
         /// <returns>
         /// True, if the given object is equal to the current specialization.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is KernelSpecialization specialization && specialization == this;
 
         /// <summary>

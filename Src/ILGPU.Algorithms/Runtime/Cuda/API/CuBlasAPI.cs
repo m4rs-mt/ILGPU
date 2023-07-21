@@ -28,6 +28,7 @@ namespace ILGPU.Runtime.Cuda.API
         public static CuBlasAPI Create(CuBlasAPIVersion? version) =>
             version.HasValue
             ? CreateInternal(version.Value)
+                ?? throw new DllNotFoundException(nameof(CuBlasAPI))
             : CreateLatest();
 
         /// <summary>
@@ -36,12 +37,15 @@ namespace ILGPU.Runtime.Cuda.API
         /// <returns>The created API wrapper.</returns>
         private static CuBlasAPI CreateLatest()
         {
-            Exception firstException = null;
-            var versions = Enum.GetValues(typeof(CuBlasAPIVersion));
-
+            Exception? firstException = null;
+#if NET5_0_OR_GREATER
+            var versions = Enum.GetValues<CuBlasAPIVersion>();
+#else
+            var versions = (CuBlasAPIVersion[])Enum.GetValues(typeof(CuBlasAPIVersion));
+#endif
             for (var i = versions.Length - 1; i >= 0; i--)
             {
-                var version = (CuBlasAPIVersion)versions.GetValue(i);
+                var version = versions[i];
                 var api = CreateInternal(version);
                 if (api is null)
                     continue;

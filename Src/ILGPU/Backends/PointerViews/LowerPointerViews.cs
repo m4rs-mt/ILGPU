@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerPointerViews.cs
@@ -14,6 +14,7 @@ using ILGPU.IR.Rewriting;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.Backends.PointerViews
 {
@@ -192,7 +193,8 @@ namespace ILGPU.Backends.PointerViews
 
             // Compute new length:
             // newLength = length * sourceElementSize / targetElementSize;
-            var sourceElementType = (typeLowering[value] as ViewType).ElementType;
+            var sourceElementType =
+                typeLowering[value].AsNotNullCast<ViewType>().ElementType;
             var sourceElementSize = builder.CreateLongSizeOf(
                 location,
                 sourceElementType);

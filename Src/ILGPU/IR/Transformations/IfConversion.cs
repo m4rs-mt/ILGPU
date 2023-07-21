@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IfConversion.cs
@@ -16,6 +16,7 @@ using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using BlockCollection = ILGPU.IR.BasicBlockCollection<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
@@ -272,7 +273,7 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Gets or sets the current set of gathered blocks.
             /// </summary>
-            private HashSet<BasicBlock> Gathered { get; set; }
+            private HashSet<BasicBlock>? Gathered { get; set; }
 
             #endregion
 
@@ -380,7 +381,7 @@ namespace ILGPU.IR.Transformations
 
                 // Reject blocks with side effects and check whether this is a node
                 // that has been referenced by another region
-                if (current.HasSideEffects() || !Gathered.Add(current))
+                if (current.HasSideEffects() || !Gathered.AsNotNull().Add(current))
                     return false;
 
                 // Adjust the current region size
@@ -412,7 +413,7 @@ namespace ILGPU.IR.Transformations
             private readonly HashSet<PhiValue> GatherPhis(Method method)
             {
                 var phiValues = new HashSet<PhiValue>();
-                var gathered = Gathered;
+                var gathered = Gathered.AsNotNull();
                 method.Blocks.ForEachValue<PhiValue>(phiValue =>
                 {
                     foreach (var block in phiValue.Sources)
@@ -688,7 +689,7 @@ namespace ILGPU.IR.Transformations
         /// <param name="caseValue">The case value to merge.</param>
         /// <returns>True, if both case values are compatible.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool MergePhiCaseValue(ref Value currentValue, Value caseValue)
+        private static bool MergePhiCaseValue(ref Value? currentValue, Value caseValue)
         {
             var oldCaseValue = currentValue;
             currentValue = caseValue;
@@ -886,7 +887,7 @@ namespace ILGPU.IR.Transformations
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public readonly bool IsCompatibleBlock(
                 BasicBlock basicBlock,
-                out IfBranch terminator) =>
+                [NotNullWhen(true)] out IfBranch? terminator) =>
                 // The current block must have an IfBranch terminator
                 (terminator = basicBlock.Terminator as IfBranch) != null &&
                 // It must be dominated by the entry block in order to avoid rare cases
@@ -1194,7 +1195,8 @@ namespace ILGPU.IR.Transformations
                 var innerBlocksSet = blocks.ToSet(
                     new BlockKindPredicate(kinds, BlockKind.Inner));
 
-                Value trueValue = null, falseValue = null;
+                Value? trueValue = null;
+                Value? falseValue = null;
                 foreach (var phi in exitPhis)
                 {
                     // The phi must be located in one of our exit blocks
@@ -1341,13 +1343,13 @@ namespace ILGPU.IR.Transformations
                 BlockBuilder.SetupInsertPositionToEnd();
 
                 // Emit the actual condition
-                CreateInnerCondition(terminator, null, null, out Value condition);
-                EntryBlock.AssertNotNull(condition);
+                CreateInnerCondition(terminator, null, null, out Value? condition);
+                EntryBlock.AssertNotNull(condition.AsNotNull());
 
                 // Create the actual branch condition
                 BlockBuilder.CreateIfBranch(
                     terminator.Location,
-                    condition,
+                    condition.AsNotNull(),
                     CaseBlocks.TrueBlock,
                     CaseBlocks.FalseBlock);
 
@@ -1386,7 +1388,7 @@ namespace ILGPU.IR.Transformations
             /// The merged condition or <paramref name="newCondition"/>.
             /// </returns>
             private Value MergeCondition(
-                Value condition,
+                Value? condition,
                 Value newCondition,
                 BinaryArithmeticKind kind) =>
                 condition is null
@@ -1408,10 +1410,10 @@ namespace ILGPU.IR.Transformations
             /// <param name="exitCondition">The exit condition to be updated.</param>
             private void CreateMergedCondition(
                 BasicBlock current,
-                Value condition,
+                Value? condition,
                 Value newCondition,
-                Value initialExitCondition,
-                out Value exitCondition)
+                Value? initialExitCondition,
+                out Value? exitCondition)
             {
                 var merged = MergeCondition(
                     condition,
@@ -1437,8 +1439,8 @@ namespace ILGPU.IR.Transformations
             private void CreateExitCondition(
                 BasicBlock current,
                 Value condition,
-                Value initialExitCondition,
-                out Value exitCondition)
+                Value? initialExitCondition,
+                out Value? exitCondition)
             {
                 current.Assert(IsExit(current));
 
@@ -1467,9 +1469,9 @@ namespace ILGPU.IR.Transformations
             /// <param name="exitCondition">The exit condition to be updated.</param>
             private void CreateInnerCondition(
                 IfBranch terminator,
-                Value condition,
-                Value initialExitCondition,
-                out Value exitCondition)
+                Value? condition,
+                Value? initialExitCondition,
+                out Value? exitCondition)
             {
                 // Determine the true and false conditions, as well as the different
                 // branch targets
@@ -1533,8 +1535,8 @@ namespace ILGPU.IR.Transformations
             private void CreateCondition(
                 BasicBlock current,
                 Value condition,
-                Value initialExitCondition,
-                out Value exitCondition)
+                Value? initialExitCondition,
+                out Value? exitCondition)
             {
                 if (IsExit(current))
                 {

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2022 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.cs
@@ -93,7 +93,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Will be raised if the accelerator is disposed.
         /// </summary>
-        public event EventHandler Disposed;
+        public event EventHandler? Disposed;
 
         #endregion
 
@@ -128,6 +128,10 @@ namespace ILGPU.Runtime
             InitKernelCache();
             InitLaunchCache();
             InitGC();
+
+            // NB: Initialized later by derived classes.
+            Backend = Utilities.InitNotNullable<Backend>();
+            DefaultStream = Utilities.InitNotNullable<AcceleratorStream>();
         }
 
         #endregion

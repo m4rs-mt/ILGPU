@@ -38,7 +38,7 @@ namespace ILGPU.Algorithms
         public ConcurrentStreamProcessor(
             Accelerator accelerator,
             int maxNumConcurrentStreams = 0,
-            Func<Accelerator, AcceleratorStream> streamProvider = null)
+            Func<Accelerator, AcceleratorStream>? streamProvider = null)
         {
             maxNumConcurrentStreams = Math.Max(
                 Math.Max(maxNumConcurrentStreams, 1),
@@ -93,7 +93,7 @@ namespace ILGPU.Algorithms
         /// The action to invoke on each stream to submit work.
         /// </param>
         public void ProcessConcurrently(
-            AcceleratorStream stream,
+            AcceleratorStream? stream,
             int numActions,
             Action<AcceleratorStream, int> action)
         {

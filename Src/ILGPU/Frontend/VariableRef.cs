@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VariableRef.cs
@@ -107,7 +107,7 @@ namespace ILGPU.Frontend
         /// <returns>
         /// True, if the given variable ref is equal to the current one.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is VariableRef variableRef && variableRef == this;
 
         /// <summary>

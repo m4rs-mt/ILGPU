@@ -28,6 +28,7 @@ namespace ILGPU.Runtime.Cuda.API
         public static CuRandAPI Create(CuRandAPIVersion? version) =>
             version.HasValue
             ? CreateInternal(version.Value)
+                ?? throw new DllNotFoundException(nameof(CuRandAPI))
             : CreateLatest();
 
         /// <summary>
@@ -36,12 +37,15 @@ namespace ILGPU.Runtime.Cuda.API
         /// <returns>The created API wrapper.</returns>
         private static CuRandAPI CreateLatest()
         {
-            Exception firstException = null;
-            var versions = Enum.GetValues(typeof(CuRandAPIVersion));
-
+            Exception? firstException = null;
+#if NET5_0_OR_GREATER
+            var versions = Enum.GetValues<CuRandAPIVersion>();
+#else
+            var versions = (CuRandAPIVersion[])Enum.GetValues(typeof(CuRandAPIVersion));
+#endif
             for (var i = versions.Length - 1; i >= 0; i--)
             {
-                var version = (CuRandAPIVersion)versions.GetValue(i);
+                var version = versions[i];
                 var api = CreateInternal(version);
                 if (api != null)
                 {

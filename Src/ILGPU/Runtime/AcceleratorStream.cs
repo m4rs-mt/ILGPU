@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AcceleratorStream.cs
@@ -29,14 +29,6 @@ namespace ILGPU.Runtime
         #region Instance
 
         private readonly Action synchronizeAction;
-
-        /// <summary>
-        /// Constructs a new accelerator stream.
-        /// </summary>
-        protected AcceleratorStream()
-        {
-            synchronizeAction = () => Synchronize();
-        }
 
         /// <summary>
         /// Constructs a new accelerator stream.

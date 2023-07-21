@@ -69,7 +69,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <returns>The actual value.</returns>
-        T ResolveAs<T>() where T : Value;
+        T? ResolveAs<T>() where T : Value;
 
         /// <summary>
         /// Accepts a value visitor.
@@ -187,7 +187,7 @@ namespace ILGPU.IR
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValueInitializer(
             IRBaseContext context,
-            ValueParent parent,
+            ValueParent? parent,
             Location location)
         {
             // Enforce a valid location in all cases
@@ -210,7 +210,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the associated parent.
         /// </summary>
-        public ValueParent Parent { get; }
+        public ValueParent? Parent { get; }
 
         /// <summary>
         /// Returns the associated location.
@@ -251,13 +251,13 @@ namespace ILGPU.IR
         /// The current parent container.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private ValueParent parent;
+        private ValueParent? parent;
 
         /// <summary>
         /// The current node type.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private TypeNode type;
+        private TypeNode? type;
 
         /// <summary>
         /// The list of all values.
@@ -314,7 +314,7 @@ namespace ILGPU.IR
         protected Value(
             in ValueInitializer initializer,
             ValueFlags valueFlags,
-            TypeNode staticType)
+            TypeNode? staticType)
             : base(initializer.Location)
         {
             parent = initializer.Parent;
@@ -343,14 +343,14 @@ namespace ILGPU.IR
         public Method Method =>
             parent is BasicBlock basicBlock
             ? basicBlock.Method
-            : parent as Method;
+            : parent.AsNotNullCast<Method>();
 
         /// <summary>
         /// Returns the parent basic block.
         /// </summary>
         public BasicBlock BasicBlock
         {
-            get => parent as BasicBlock;
+            get => parent.AsNotNullCast<BasicBlock>();
             internal set
             {
                 this.Assert(value.IsBasicBlock);
@@ -682,7 +682,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <returns>The actual value.</returns>
-        public T ResolveAs<T>() where T : Value => Resolve() as T;
+        public T? ResolveAs<T>() where T : Value => Resolve() as T;
 
         #endregion
 
@@ -693,7 +693,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="other">The other value.</param>
         /// <returns>True, if the given value is the same value.</returns>
-        public bool Equals(Value other) => other == this;
+        public bool Equals(Value? other) => other == this;
 
         #endregion
 
@@ -736,7 +736,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current value.</returns>
-        public override bool Equals(object obj) => obj == this;
+        public override bool Equals(object? obj) => obj == this;
 
         /// <summary>
         /// Returns the hash code of this value.

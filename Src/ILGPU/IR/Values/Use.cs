@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Use.cs
@@ -75,7 +75,7 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <returns>The actual value.</returns>
-        public T ResolveAs<T>() where T : Value => Resolve() as T;
+        public T? ResolveAs<T>() where T : Value => Resolve() as T;
 
         #endregion
 
@@ -97,7 +97,7 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to this use.</returns>
-        public override bool Equals(object obj) => obj is Use use && use == this;
+        public override bool Equals(object? obj) => obj is Use use && use == this;
 
         /// <summary>
         /// Returns the hash code of this use.

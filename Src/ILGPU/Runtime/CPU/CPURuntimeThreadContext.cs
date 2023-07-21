@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPURuntimeThreadContext.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -27,7 +28,7 @@ namespace ILGPU.Runtime.CPU
         /// Represents the current context.
         /// </summary>
         [ThreadStatic]
-        private static CPURuntimeThreadContext currentContext;
+        private static CPURuntimeThreadContext? currentContext;
 
         /// <summary>
         /// Returns the current warp runtime context.
@@ -40,7 +41,7 @@ namespace ILGPU.Runtime.CPU
                 Trace.Assert(
                     currentContext != null,
                     ErrorMessages.InvalidKernelOperation);
-                return currentContext;
+                return currentContext.AsNotNull();
             }
         }
 

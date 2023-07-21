@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Arithmetic.cs
@@ -71,7 +71,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the associated type.
         /// </summary>
-        public PrimitiveType PrimitiveType => Type as PrimitiveType;
+        public PrimitiveType PrimitiveType => Type.AsNotNullCast<PrimitiveType>();
 
         /// <summary>
         /// Returns the operation flags.

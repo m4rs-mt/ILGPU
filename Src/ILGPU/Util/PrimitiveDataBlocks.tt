@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PrimitiveDataBlocks.tt/PrimitiveDataBlocks.cs
@@ -141,7 +141,7 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current one.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is <#= typeParams.TypeName #> other && Equals(other);
 
         /// <summary>

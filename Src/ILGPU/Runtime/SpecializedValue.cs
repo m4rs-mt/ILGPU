@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SpecializedValue.cs
@@ -85,7 +85,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to this value.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is SpecializedValue<T> other && Equals(other);
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace ILGPU.Runtime
         /// Returns the string representation of this value.
         /// </summary>
         /// <returns>The string representation of this value.</returns>
-        public override string ToString() => Value.ToString();
+        public override string? ToString() => Value.ToString();
 
         #endregion
 

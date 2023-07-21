@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLCompiledKernel.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Util;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -31,7 +32,7 @@ namespace ILGPU.Backends.OpenCL
         public CLCompiledKernel(
             Context context,
             SeparateViewEntryPoint entryPoint,
-            KernelInfo info,
+            KernelInfo? info,
             string source,
             CLCVersion version)
             : base(context, entryPoint, info)
@@ -58,7 +59,7 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the internally used entry point.
         /// </summary>
         internal new SeparateViewEntryPoint EntryPoint =>
-            base.EntryPoint as SeparateViewEntryPoint;
+            base.EntryPoint.AsNotNullCast<SeparateViewEntryPoint>();
 
         #endregion
     }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayIntrinsics.cs
@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -78,7 +79,8 @@ namespace ILGPU.Frontend.Intrinsic
             }
 
             // Create an array view type of the appropriate dimension
-            var managedElementType = context.Method.DeclaringType.GetElementType();
+            var managedElementType =
+                context.Method.DeclaringType.AsNotNull().GetElementType().AsNotNull();
             var elementType = builder.CreateType(managedElementType);
             var arrayType = builder.CreateArrayType(elementType, dimension);
 

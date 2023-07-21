@@ -48,7 +48,7 @@ namespace ILGPU.Algorithms.MatrixOperations
         public MaskedMatrixProcessor(
             Accelerator accelerator,
             int maxNumConcurrentStreams = 0,
-            Func<Accelerator, AcceleratorStream> streamProvider = null)
+            Func<Accelerator, AcceleratorStream>? streamProvider = null)
             : base(accelerator, maxNumConcurrentStreams, streamProvider)
         {
             matrixMultiplier = accelerator.CreateSparseTransposedMatrixMultiplierMasked<

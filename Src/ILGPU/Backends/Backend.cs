@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2022 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Backend.cs
@@ -328,7 +328,7 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns the associated kernel information object (if any).
             /// </summary>
-            public CompiledKernel.KernelInfo KernelInfo { get; }
+            public CompiledKernel.KernelInfo? KernelInfo { get; }
 
             #endregion
 
@@ -603,8 +603,8 @@ namespace ILGPU.Backends
                 }
 
                 if (codeGenerationPhase.IsFaulted)
-                    throw codeGenerationPhase.LastException;
-                generatedKernelMethod = generationResult.Result;
+                    throw codeGenerationPhase.LastException.AsNotNull();
+                generatedKernelMethod = generationResult.Result.AsNotNull();
                 codeGenerationPhase.Optimize();
 
                 backendHook.FinishedCodeGeneration(mainContext, generatedKernelMethod);
@@ -801,7 +801,11 @@ namespace ILGPU.Backends
             BackendType backendType,
             ArgumentMapper argumentMapper)
             : base(context, capabilities, backendType, argumentMapper)
-        { }
+        {
+            // NB: Initialized later by derived classes.
+            IntrinsicProvider =
+                Utilities.InitNotNullable<IntrinsicImplementationProvider<TDelegate>>();
+        }
 
         #endregion
 

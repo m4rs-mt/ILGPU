@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PointerAlignments.cs
@@ -360,7 +360,7 @@ namespace ILGPU.IR.Analyses
             int baseAlignment = context[lea.Source].Data;
 
             // Determine the alignment of the referenced element type (used for indexing)
-            var elementType = (lea.Type as AddressSpaceType).ElementType;
+            var elementType = lea.Type.AsNotNullCast<AddressSpaceType>().ElementType;
             int typeAlignment = AllocaAlignments.GetAllocaTypeAlignment(elementType);
 
             // Check whether we have found a power of 2 != 0

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Block.CFGBuilder.cs
@@ -130,7 +130,7 @@ namespace ILGPU.Frontend
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private Block AppendBasicBlock(Location location, int target)
             {
-                if (!blockMapping.TryGetValue(target, out Block block))
+                if (!blockMapping.TryGetValue(target, out Block? block))
                 {
                     var basicBlock = Builder.CreateBasicBlock(location);
                     block = new Block(CodeGenerator, basicBlock);
@@ -177,7 +177,7 @@ namespace ILGPU.Frontend
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private void AddSuccessor(Block current, Block successor)
             {
-                if (!successorMapping.TryGetValue(current, out List<Block> successors))
+                if (!successorMapping.TryGetValue(current, out List<Block>? successors))
                 {
                     successors = new List<Block>();
                     successorMapping.Add(current, successors);
@@ -230,7 +230,7 @@ namespace ILGPU.Frontend
                 {
                     var instruction = disassembledMethod[instructionIdx];
                     // Handle implicit cases: jumps to blocks without a jump instruction
-                    if (blockMapping.TryGetValue(instruction.Offset, out Block other) &&
+                    if (blockMapping.TryGetValue(instruction.Offset, out Block? other) &&
                         current != other)
                     {
                         // Wire current and new block

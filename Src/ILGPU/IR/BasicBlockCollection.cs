@@ -248,7 +248,7 @@ namespace ILGPU.IR
         [Conditional("DEBUG")]
         public void AssertUniqueExitBlock()
         {
-            BasicBlock exitBlock = null;
+            BasicBlock? exitBlock = null;
 
             // Traverse all blocks to find a block without a successor
             foreach (var block in this)
@@ -279,7 +279,7 @@ namespace ILGPU.IR
 
             // Unreachable
             EntryBlock.Assert(false);
-            return null;
+            return Utilities.InitNotNullable<BasicBlock>();
         }
 
         /// <summary>
@@ -294,7 +294,7 @@ namespace ILGPU.IR
         {
             foreach (var block in this)
             {
-                if (block.Terminator.Resolve() is TTerminatorValue terminator)
+                if (block.Terminator?.Resolve() is TTerminatorValue terminator)
                     visitor(terminator);
             }
         }

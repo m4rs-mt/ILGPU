@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelInfo.cs
@@ -31,7 +31,7 @@ namespace ILGPU.Runtime
         /// <param name="minGridSize">The minimum grid size (if known).</param>
         /// <returns>The created kernel information object.</returns>
         public static KernelInfo CreateFrom(
-            CompiledKernel.KernelInfo info,
+            CompiledKernel.KernelInfo? info,
             int? minGroupSize,
             int? minGridSize) =>
             info is null

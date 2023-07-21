@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Utilities.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -55,7 +56,8 @@ namespace ILGPU.Backends.PointerViews
             {
                 typeof(ArrayView<>).MakeGenericType(
                     implType.GetGenericArguments()[0])
-            });
+            })
+            .ThrowIfNull();
 
         /// <summary>
         /// Returns the pointer field of a view implementation.
@@ -63,7 +65,7 @@ namespace ILGPU.Backends.PointerViews
         /// <param name="implType">The view implementation type.</param>
         /// <returns>The resolved field.</returns>
         public static FieldInfo GetPtrField(Type implType) =>
-            implType.GetField(nameof(ViewImplementation<int>.Ptr));
+            implType.GetField(nameof(ViewImplementation<int>.Ptr)).ThrowIfNull();
 
         /// <summary>
         /// Returns the length field of a view implementation.
@@ -71,7 +73,7 @@ namespace ILGPU.Backends.PointerViews
         /// <param name="implType">The view implementation type.</param>
         /// <returns>The resolved field.</returns>
         public static FieldInfo GetLengthField(Type implType) =>
-            implType.GetField(nameof(ViewImplementation<int>.Length));
+            implType.GetField(nameof(ViewImplementation<int>.Length)).ThrowIfNull();
 
         /// <summary>
         /// The method handle of the <see cref="GetNativePtrMethod(Type)"/> method.
@@ -79,7 +81,8 @@ namespace ILGPU.Backends.PointerViews
         private static readonly MethodInfo GetNativePtrMethodInfo =
             typeof(ViewImplementation).GetMethod(
                 nameof(GetNativePtr),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
         /// <summary>
         /// Gets the associated native pointer that is stored inside the given view.

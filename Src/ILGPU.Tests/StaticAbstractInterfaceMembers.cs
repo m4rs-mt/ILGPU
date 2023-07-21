@@ -134,7 +134,7 @@ namespace ILGPU.Tests
             static abstract int Inc(int x);
         }
 
-        public class Incrementer: IStaticAbstract
+        public class Incrementer : IStaticAbstract
         {
             public static int Inc(int x) => x + 1;
         }

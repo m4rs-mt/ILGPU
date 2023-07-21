@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Inliner.cs
@@ -142,7 +142,7 @@ namespace ILGPU.IR.Transformations
                         continue;
                     }
 
-                    var successors = currentBlock.Terminator.Targets;
+                    var successors = currentBlock.CurrentSuccessors;
                     if (successors.Length > 0)
                     {
                         currentBlock = successors[0];

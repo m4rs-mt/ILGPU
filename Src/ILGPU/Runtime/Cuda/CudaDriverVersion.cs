@@ -115,7 +115,7 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to this version.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is CudaDriverVersion version && version == this;
 
         /// <summary>

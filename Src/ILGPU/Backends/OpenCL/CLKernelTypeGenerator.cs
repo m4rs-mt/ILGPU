@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLKernelTypeGenerator.cs
@@ -13,6 +13,7 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -150,7 +151,7 @@ namespace ILGPU.Backends.OpenCL
             // Convert the kernel type using a specific type converter
             structureType = typeConverter.ConvertType(
                 TypeGenerator.TypeContext,
-                structureType) as StructureType;
+                structureType).AsNotNullCast<StructureType>();
 
             // Register internally
             parameterTypes[parameter.Index] = (structureType, clName);

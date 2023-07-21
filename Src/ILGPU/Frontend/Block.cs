@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Block.cs
@@ -83,7 +83,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the current terminator.
         /// </summary>
-        public TerminatorValue Terminator => BasicBlock.Terminator;
+        public TerminatorValue? Terminator => BasicBlock.Terminator;
 
         /// <summary>
         /// Returns the current stack counter.
@@ -134,7 +134,7 @@ namespace ILGPU.Frontend
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ReadOnlySpan<BasicBlock> GetBuilderTerminator(int count)
         {
-            var targets = ((BuilderTerminator)Terminator).Targets;
+            var targets = Terminator.AsNotNullCast<BuilderTerminator>().Targets;
             Terminator.Assert(targets.Length == count);
             return targets;
         }
@@ -257,7 +257,7 @@ namespace ILGPU.Frontend
         public ValueList PopMethodArgs(
             Location location,
             MethodBase methodBase,
-            Value instanceValue)
+            Value? instanceValue)
         {
             var parameters = methodBase.GetParameters();
             var parameterOffset = methodBase.GetParameterOffset();
@@ -279,8 +279,9 @@ namespace ILGPU.Frontend
             {
                 if (instanceValue == null)
                 {
-                    var declaringType = Builder.CreateType(methodBase.DeclaringType);
-                    if (!Intrinsics.IsIntrinsicArrayType(methodBase.DeclaringType))
+                    var baseDeclaringType = methodBase.DeclaringType.AsNotNull();
+                    var declaringType = Builder.CreateType(baseDeclaringType);
+                    if (!Intrinsics.IsIntrinsicArrayType(baseDeclaringType))
                     {
                         declaringType = Builder.CreatePointerType(
                             declaringType,

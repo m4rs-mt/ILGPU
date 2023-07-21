@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LoopUnrolling.cs
@@ -59,7 +59,7 @@ namespace ILGPU.IR.Transformations
             public LoopRemapper(
                 BasicBlock source,
                 BasicBlock target,
-                Value targetValue = null)
+                Value? targetValue = null)
             {
                 Source = source;
                 Target = target;
@@ -79,7 +79,7 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Returns the target value to map phi operands to (if any).
             /// </summary>
-            public Value TargetValue { get; }
+            public Value? TargetValue { get; }
 
             /// <summary>
             /// Returns true if the given span contains the loop entry.
@@ -120,7 +120,9 @@ namespace ILGPU.IR.Transformations
                 PhiValue phiValue,
                 BasicBlock updatedBlock,
                 Value value) =>
-                updatedBlock == Target ? TargetValue : value;
+                updatedBlock == Target && TargetValue != null
+                ? TargetValue
+                : value;
         }
 
         /// <summary>
@@ -169,7 +171,7 @@ namespace ILGPU.IR.Transformations
                     loopInfo.Exit,
                     out var loopBody);
                 variable.BreakBranch.Assert(hasOtherTarget);
-                LoopBody = loopBody;
+                LoopBody = loopBody.AsNotNull();
                 BackEdge = loopInfo.BackEdge;
 
                 // Determine all values in the body of the loop that require value
@@ -315,7 +317,7 @@ namespace ILGPU.IR.Transformations
                 foreach (var (phi, _) in phiValues)
                 {
                     // Get the corresponding phi value for the back-edge predecessor
-                    var backEdgeValue = phi.GetValue(BackEdge);
+                    var backEdgeValue = phi.GetValue(BackEdge).AsNotNull();
                     phi.AssertNotNull(backEdgeValue);
                     phiMapping[phi] = rebuilder[backEdgeValue];
                 }
@@ -332,7 +334,7 @@ namespace ILGPU.IR.Transformations
                 // straight-line piece of code
                 var backEdgeBlock = rebuilder[BackEdge];
                 backEdgeBlock.CreateBranch(
-                    backEdgeBlock.Terminator.Location,
+                    backEdgeBlock.Terminator.AsNotNull().Location,
                     currentExit);
 
                 return (rebuilder.EntryBlock, currentExit);

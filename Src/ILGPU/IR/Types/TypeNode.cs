@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeNode.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -101,7 +102,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// The managed type representation of this IR type.
         /// </summary>
-        private Type managedType;
+        private Type? managedType;
 
         /// <summary>
         /// Constructs a new type.
@@ -257,7 +258,7 @@ namespace ILGPU.IR.Types
         public T As<T>(ILocation location)
             where T : TypeNode
         {
-            var result = this as T;
+            var result = this.AsNotNullCast<T>();
             location.AssertNotNull(result);
             return result;
         }
@@ -291,7 +292,7 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current type.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is TypeNode;
 
         /// <summary>

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: EntryPointDescription.cs
@@ -76,7 +76,7 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="indexType">The index type.</param>
         internal EntryPointDescription(
             MethodInfo methodSource,
-            ParameterInfo[] parameters,
+            ParameterInfo[]? parameters,
             IndexType indexType)
         {
             if (indexType == IndexType.None)
@@ -178,7 +178,7 @@ namespace ILGPU.Backends.EntryPoints
         /// <returns>The acquired scoped lock.</returns>
         internal RuntimeSystem.ScopedLock CreateLauncherMethod(
             RuntimeSystem runtimeSystem,
-            Type instanceType,
+            Type? instanceType,
             out RuntimeSystem.MethodEmitter methodEmitter)
         {
             var parameterTypes = new Type[
@@ -229,7 +229,7 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current one.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is EntryPointDescription other && Equals(other);
 
         /// <summary>

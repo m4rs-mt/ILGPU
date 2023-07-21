@@ -14,9 +14,11 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
 using ILGPU.IR;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -79,7 +81,8 @@ namespace ILGPU.Runtime
                     new Type[]
                     {
                         field.FieldType
-                    });
+                    })
+                    .AsNotNull();
                 emitter.EmitNewObject(instanceConstructor);
 
                 emitter.Emit(OpCodes.Box, fieldReturnType);
@@ -145,9 +148,10 @@ namespace ILGPU.Runtime
                 loader,
                 entry,
                 specialization);
-            return launcherMethod.CreateDelegate(
+            return (launcherMethod.CreateDelegate(
                 typeof(TDelegate),
-                cacheInstance) as TDelegate;
+                cacheInstance) as TDelegate)
+                .AsNotNull();
         }
 
         /// <summary>
@@ -195,8 +199,9 @@ namespace ILGPU.Runtime
 
                 var valueProperty = param.SpecializedType.GetProperty(
                     nameof(SpecializedValue<int>.Value),
-                    BindingFlags.Public | BindingFlags.Instance);
-                emitter.EmitCall(valueProperty.GetGetMethod());
+                    BindingFlags.Public | BindingFlags.Instance)
+                    .AsNotNull();
+                emitter.EmitCall(valueProperty.GetGetMethod().AsNotNull());
 
                 // Store value
                 emitter.Emit(OpCodes.Stfld, fields[i]);
@@ -205,7 +210,8 @@ namespace ILGPU.Runtime
             // Resolve kernel and dispatch it
             var getOrCreateMethod = cacheType.GetMethod(
                 "GetOrCreateKernel",
-                BindingFlags.Public | BindingFlags.Instance);
+                BindingFlags.Public | BindingFlags.Instance)
+                .AsNotNull();
             emitter.Emit(ArgumentOperation.Load, KernelInstanceParamIdx);
             emitter.Emit(LocalOperation.Load, keyVariable);
             emitter.EmitCall(getOrCreateMethod);
@@ -219,7 +225,8 @@ namespace ILGPU.Runtime
             // Dispatch kernel
             var invokeMethod = typeof(TDelegate).GetMethod(
                 "Invoke",
-                BindingFlags.Public | BindingFlags.Instance);
+                BindingFlags.Public | BindingFlags.Instance)
+                .AsNotNull();
             emitter.EmitCall(invokeMethod);
 
             // Return
@@ -273,7 +280,7 @@ namespace ILGPU.Runtime
         protected Kernel(
             Accelerator accelerator,
             CompiledKernel compiledKernel,
-            MethodInfo launcher)
+            MethodInfo? launcher)
             : base(accelerator)
         {
             Debug.Assert(compiledKernel != null, "Invalid compiled kernel");
@@ -288,7 +295,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the associated kernel launcher.
         /// </summary>
-        public MethodInfo Launcher { get; internal set; }
+        public MethodInfo? Launcher { get; internal set; }
 
         /// <summary>
         /// Returns the associated specialization.
@@ -307,7 +314,7 @@ namespace ILGPU.Runtime
         /// This instance will be available when the property
         /// <see cref="ContextProperties.EnableKernelInformation"/> is enabled.
         /// </remarks>
-        public CompiledKernel.KernelInfo Info => CompiledKernel.Info;
+        public CompiledKernel.KernelInfo? Info => CompiledKernel.Info;
 
         /// <summary>
         /// Returns the associated compiled kernel object.
@@ -327,7 +334,8 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TDelegate CreateLauncherDelegate<TDelegate>()
             where TDelegate : Delegate =>
-            Launcher.CreateDelegate(typeof(TDelegate), this) as TDelegate;
+            (Launcher.AsNotNull().CreateDelegate(typeof(TDelegate), this) as TDelegate)
+            .AsNotNull();
 
         /// <summary>
         /// Invokes the associated launcher via reflection.
@@ -355,7 +363,7 @@ namespace ILGPU.Runtime
                 ?? throw new ArgumentNullException(nameof(stream));
             reflectionArgs[KernelParamDimensionIdx] = dimension;
             args.CopyTo(reflectionArgs, KernelParameterOffset);
-            Launcher.Invoke(null, reflectionArgs);
+            Launcher.AsNotNull().Invoke(null, reflectionArgs);
         }
 
         #endregion
@@ -407,7 +415,7 @@ namespace ILGPU.Runtime
         /// <returns>True, if a kernel object could be resolved.</returns>
         public static bool TryGetKernel<TDelegate>(
             this TDelegate kernelDelegate,
-            out Kernel kernel)
+            [NotNullWhen(true)] out Kernel? kernel)
             where TDelegate : Delegate
         {
             // Try to resolve the kernel object from the delegate directly.
@@ -423,7 +431,8 @@ namespace ILGPU.Runtime
                 // needs to be extracted from this inner delegate using reflection.
                 var displayClass = kernelDelegate.Method.DeclaringType;
 
-                if (displayClass.IsDefined(typeof(CompilerGeneratedAttribute), false))
+                if (displayClass != null &&
+                    displayClass.IsDefined(typeof(CompilerGeneratedAttribute), false))
                 {
                     var capturedFields = displayClass.GetFields(
                         BindingFlags.Instance
@@ -501,7 +510,7 @@ namespace ILGPU.Runtime
         /// This instance will be available when the property
         /// <see cref="ContextProperties.EnableKernelInformation"/> is enabled.
         /// </remarks>
-        public static CompiledKernel.KernelInfo GetKernelInfo<TDelegate>(
+        public static CompiledKernel.KernelInfo? GetKernelInfo<TDelegate>(
             this TDelegate kernelDelegate)
             where TDelegate : Delegate =>
             kernelDelegate.GetKernel().Info;

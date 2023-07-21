@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2022 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUAccelerator.cs
@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -68,7 +69,7 @@ namespace ILGPU.Runtime.CPU
         // Task execution
 
         private readonly object taskSynchronizationObject = new object();
-        private volatile CPUAcceleratorTask currentTask;
+        private volatile CPUAcceleratorTask? currentTask;
 
         [SuppressMessage(
             "Microsoft.Usage",
@@ -152,7 +153,7 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Returns the IL backend of this accelerator.
         /// </summary>
-        internal new ILBackend Backend => base.Backend as ILBackend;
+        internal new ILBackend Backend => base.Backend.AsNotNullCast<ILBackend>();
 
         #endregion
 
@@ -357,12 +358,16 @@ namespace ILGPU.Runtime.CPU
             emitter.Emit(LocalOperation.Load, cpuKernel);
             emitter.EmitCall(
                 typeof(CPUKernel).GetProperty(
-                    nameof(CPUKernel.CPUAccelerator)).GetGetMethod(false));
+                    nameof(CPUKernel.CPUAccelerator))
+                .AsNotNull()
+                .GetGetMethod(false)
+                .AsNotNull());
             emitter.Emit(LocalOperation.Load, task);
             emitter.EmitCall(
                 typeof(CPUAccelerator).GetMethod(
                     nameof(CPUAccelerator.Launch),
-                    BindingFlags.NonPublic | BindingFlags.Instance));
+                    BindingFlags.NonPublic | BindingFlags.Instance)
+                .AsNotNull());
 
             // End of launch method
             emitter.Emit(OpCodes.Ret);
@@ -375,7 +380,7 @@ namespace ILGPU.Runtime.CPU
 
         #region Execution Methods
 
-        internal bool WaitForTask(ref CPUAcceleratorTask task)
+        internal bool WaitForTask([NotNullWhen(true)] ref CPUAcceleratorTask? task)
         {
             // Get a new task to execute
             lock (taskSynchronizationObject)

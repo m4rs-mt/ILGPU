@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicImplementationProvider.cs
@@ -16,6 +16,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -60,8 +61,8 @@ namespace ILGPU.IR.Intrinsics
 
             /// <summary cref="IIntrinsicImplementationTransformer{TFirst, TSecond}.
             /// Transform(TFirst)"/>
-            public IntrinsicMapping<TDelegate> Transform(
-                IntrinsicImplementationManager.ImplementationEntry entry)
+            public IntrinsicMapping<TDelegate>? Transform(
+                IntrinsicImplementationManager.ImplementationEntry? entry)
             {
                 if (entry != null &&
                     CheckImplementations(Backend, entry, out var mainImplementation))
@@ -93,7 +94,7 @@ namespace ILGPU.IR.Intrinsics
             private static bool CheckImplementations(
                 Backend backend,
                 IntrinsicImplementationManager.ImplementationEntry implementations,
-                out IntrinsicImplementation mainImplementation)
+                [NotNullWhen(true)] out IntrinsicImplementation? mainImplementation)
             {
                 mainImplementation = null;
                 foreach (var implementation in implementations)
@@ -359,8 +360,9 @@ namespace ILGPU.IR.Intrinsics
             var allMatchers = IntrinsicMatcher.CreateMatchers<
                 IntrinsicMapping<TDelegate>>();
             container.TransformTo(new ImplementationTransformer(backend), allMatchers);
-            methodMatcher = allMatchers[(int)IntrinsicMatcher.MatcherKind.Method]
-                as IntrinsicMethodMatcher<IntrinsicMapping<TDelegate>>;
+            methodMatcher = (allMatchers[(int)IntrinsicMatcher.MatcherKind.Method]
+                as IntrinsicMethodMatcher<IntrinsicMapping<TDelegate>>)
+                .AsNotNull();
 
             // Build a fast value-kind specific lookup
             valueMatchers = new BaseIntrinsicValueMatcher<
@@ -405,7 +407,7 @@ namespace ILGPU.IR.Intrinsics
         /// <returns>True, if the given method could be resolved to a mapping.</returns>
         public bool TryGetMapping(
             Method method,
-            out IntrinsicMapping<TDelegate> mapping) =>
+            [NotNullWhen(true)] out IntrinsicMapping<TDelegate>? mapping) =>
             TryGetMapping(method, out var _, out mapping);
 
         /// <summary>
@@ -419,8 +421,8 @@ namespace ILGPU.IR.Intrinsics
         /// <returns>True, if the given method could be resolved to a mapping.</returns>
         public bool TryGetMapping(
             Method method,
-            out MethodInfo methodInfo,
-            out IntrinsicMapping<TDelegate> mapping)
+            [NotNullWhen(true)] out MethodInfo? methodInfo,
+            [NotNullWhen(true)] out IntrinsicMapping<TDelegate>? mapping)
         {
             mapping = default;
             return (methodInfo = method.Source as MethodInfo) != null &&
@@ -436,7 +438,7 @@ namespace ILGPU.IR.Intrinsics
         /// <returns>True, if the given method could be resolved to a mapping.</returns>
         public bool TryGetMapping(
             MethodInfo method,
-            out IntrinsicMapping<TDelegate> mapping) =>
+            [NotNullWhen(true)] out IntrinsicMapping<TDelegate>? mapping) =>
             methodMatcher.TryGetImplementation(method, out mapping);
 
         /// <summary>
@@ -446,7 +448,9 @@ namespace ILGPU.IR.Intrinsics
         /// <param name="mapping">The resolved mapping.</param>
         /// <returns>True, if the given method could be resolved to a mapping.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetMapping(Value value, out IntrinsicMapping<TDelegate> mapping)
+        public bool TryGetMapping(
+            Value value,
+            [NotNullWhen(true)] out IntrinsicMapping<TDelegate>? mapping)
         {
             var matchers = valueMatchers[(int)value.ValueKind];
             if (matchers != null)
@@ -466,14 +470,16 @@ namespace ILGPU.IR.Intrinsics
         /// True, if the value could be resolved to an intrinsic value.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool TryGetData<TResult, TDataProvider>(Value value, out TResult result)
+        private bool TryGetData<TResult, TDataProvider>(
+            Value value,
+            [NotNullWhen(true)] out TResult? result)
             where TResult : class
             where TDataProvider : struct, IDataProvider<TResult>
         {
             result = null;
 
             TDataProvider dataProvider = default;
-            IntrinsicMapping<TDelegate> mapping;
+            IntrinsicMapping<TDelegate>? mapping;
             if (value is MethodCall call)
             {
                 if (!TryGetMapping(call.Target, out var methodInfo, out mapping) ||
@@ -506,7 +512,9 @@ namespace ILGPU.IR.Intrinsics
         /// <returns>
         /// True, if the given method could be resolved to an IR implementation.
         /// </returns>
-        public bool TryGetImplementation(Value value, out Method irImplementation) =>
+        public bool TryGetImplementation(
+            Value value,
+            [NotNullWhen(true)] out Method? irImplementation) =>
             TryGetData<Method, ImplementationProvider>(value, out irImplementation);
 
         /// <summary>
@@ -517,7 +525,9 @@ namespace ILGPU.IR.Intrinsics
         /// <returns>
         /// True, if the given method could be resolved to a code generator.
         /// </returns>
-        public bool TryGetCodeGenerator(Value value, out TDelegate codeGenerator) =>
+        public bool TryGetCodeGenerator(
+            Value value,
+            [NotNullWhen(true)] out TDelegate? codeGenerator) =>
             TryGetData<TDelegate, CodeGeneratorProvider>(value, out codeGenerator);
 
         /// <summary>

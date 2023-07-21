@@ -14,6 +14,7 @@ using ILGPU.Algorithms.Random;
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using static ILGPU.Algorithms.Random.RandomExtensions;
 
@@ -232,7 +233,7 @@ namespace ILGPU.Runtime.Cuda
                 API.GetVersion(out int version));
             Version = version;
 
-            Stream = accelerator.DefaultStream as CudaStream;
+            Stream = accelerator.DefaultStream.AsNotNullCast<CudaStream>();
         }
 
         #endregion
@@ -260,6 +261,7 @@ namespace ILGPU.Runtime.Cuda
         public CudaStream Stream
         {
             get => currentStream;
+            [MemberNotNull(nameof(currentStream))]
             set
             {
                 if (value == null)

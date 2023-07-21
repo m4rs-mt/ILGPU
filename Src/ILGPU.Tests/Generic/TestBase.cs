@@ -59,7 +59,7 @@ namespace ILGPU.Tests
         internal static MethodInfo GetKernelMethod(
             Type type,
             string name,
-            Type[] typeArguments)
+            Type[]? typeArguments)
         {
             var method = type.GetMethod(
                 name,

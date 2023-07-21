@@ -16,6 +16,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -109,7 +110,7 @@ namespace ILGPU.Backends.PTX
             CudaCapabilityContext capabilities,
             CudaArchitecture architecture,
             CudaInstructionSet instructionSet,
-            NvvmAPI nvvmAPI)
+            NvvmAPI? nvvmAPI)
             : base(
                   context,
                   capabilities,
@@ -174,18 +175,18 @@ namespace ILGPU.Backends.PTX
         /// Returns the associated <see cref="Backend.ArgumentMapper"/>.
         /// </summary>
         public new PTXArgumentMapper ArgumentMapper =>
-            base.ArgumentMapper as PTXArgumentMapper;
+            base.ArgumentMapper.AsNotNullCast<PTXArgumentMapper>();
 
         /// <summary>
         /// Returns the supported capabilities.
         /// </summary>
         public new CudaCapabilityContext Capabilities =>
-            base.Capabilities as CudaCapabilityContext;
+            base.Capabilities.AsNotNullCast<CudaCapabilityContext>();
 
         /// <summary>
         /// Returns the NVVM API instance (if available).
         /// </summary>
-        public NvvmAPI NvvmAPI { get; private set; }
+        public NvvmAPI? NvvmAPI { get; private set; }
 
         #endregion
 
@@ -290,7 +291,7 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         protected override CompiledKernel CreateKernel(
             EntryPoint entryPoint,
-            CompiledKernel.KernelInfo kernelInfo,
+            CompiledKernel.KernelInfo? kernelInfo,
             StringBuilder builder,
             PTXCodeGenerator.GeneratorArgs data)
         {
@@ -388,7 +389,7 @@ namespace ILGPU.Backends.PTX
                     if (result == NvvmResult.NVVM_SUCCESS)
                     {
                         var compiledString =
-                            compiledPTX
+                            compiledPTX.AsNotNull()
                             .Replace(".version", "//.version")
                             .Replace(".target", "//.target")
                             .Replace(".address_size", "//.address_size");

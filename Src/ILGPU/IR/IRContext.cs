@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -169,7 +170,9 @@ namespace ILGPU.IR
         /// <param name="method">The method to resolve.</param>
         /// <param name="handle">The resolved function reference (if any).</param>
         /// <returns>True, if the requested function could be resolved.</returns>
-        public bool TryGetMethodHandle(MethodBase method, out MethodHandle handle)
+        public bool TryGetMethodHandle(
+            MethodBase method,
+            [NotNullWhen(true)] out MethodHandle? handle)
         {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
@@ -186,7 +189,9 @@ namespace ILGPU.IR
         /// <param name="handle">The function handle to resolve.</param>
         /// <param name="function">The resolved function (if any).</param>
         /// <returns>True, if the requested function could be resolved.</returns>
-        public bool TryGetMethod(MethodHandle handle, out Method function)
+        public bool TryGetMethod(
+            MethodHandle handle,
+            [NotNullWhen(true)] out Method? function)
         {
             if (handle.IsEmpty)
             {
@@ -206,7 +211,9 @@ namespace ILGPU.IR
         /// <param name="method">The method to resolve.</param>
         /// <param name="function">The resolved function (if any).</param>
         /// <returns>True, if the requested function could be resolved.</returns>
-        public bool TryGetMethod(MethodBase method, out Method function)
+        public bool TryGetMethod(
+            MethodBase method,
+            [NotNullWhen(true)] out Method? function)
         {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
@@ -215,8 +222,8 @@ namespace ILGPU.IR
             using var readScope = irLock.EnterUpgradeableReadScope();
 
             function = null;
-            return methods.TryGetHandle(method, out MethodHandle handle)
-                && methods.TryGetData(handle, out function);
+            return methods.TryGetHandle(method, out MethodHandle? handle)
+                && methods.TryGetData(handle.Value, out function);
         }
 
         /// <summary>
@@ -225,7 +232,7 @@ namespace ILGPU.IR
         /// <param name="method">The method to resolve.</param>
         /// <returns>The resolved function.</returns>
         public Method GetMethod(MethodHandle method) =>
-            TryGetMethod(method, out Method function)
+            TryGetMethod(method, out Method? function)
             ? function
             : throw new InvalidOperationException(string.Format(
                 ErrorMessages.CouldNotFindCorrespondingIRMethod,
@@ -245,17 +252,17 @@ namespace ILGPU.IR
             using var readScope = irLock.EnterUpgradeableReadScope();
 
             // Check for existing method
-            if (methods.TryGetHandle(methodBase, out MethodHandle handle))
+            if (methods.TryGetHandle(methodBase, out MethodHandle? handle))
             {
                 created = false;
-                return methods[handle];
+                return methods[handle.Value];
             }
 
             var externalAttribute = methodBase.GetCustomAttribute<ExternalAttribute>();
             var methodName = externalAttribute?.Name ?? methodBase.Name;
             handle = MethodHandle.Create(methodName);
             var declaration = new MethodDeclaration(
-                handle,
+                handle.Value,
                 CreateType(methodBase.GetReturnType()),
                 methodBase);
 
@@ -291,7 +298,7 @@ namespace ILGPU.IR
             Debug.Assert(declaration.ReturnType != null, "Invalid return type");
 
             created = false;
-            if (methods.TryGetData(declaration.Handle, out Method method))
+            if (methods.TryGetData(declaration.Handle, out Method? method))
                 return method;
 
             created = true;
@@ -315,7 +322,7 @@ namespace ILGPU.IR
         {
             var methodId = Context.CreateMethodHandle();
             var methodName = declaration.Handle.Name ??
-                (declaration.HasSource ? declaration.Source.Name : "Func");
+                (declaration.HasSource ? declaration.Source.AsNotNull().Name : "Func");
             handle = new MethodHandle(methodId, methodName);
             var specializedDeclaration = declaration.Specialize(handle);
 
@@ -377,7 +384,7 @@ namespace ILGPU.IR
                 throw source.GetArgumentException(nameof(source));
 
             // Determine the actual source context reference
-            var sourceContext = source.BaseContext as IRContext;
+            var sourceContext = (source.BaseContext as IRContext).AsNotNull();
             if (sourceContext == this)
                 throw source.GetInvalidOperationException();
 
@@ -385,7 +392,7 @@ namespace ILGPU.IR
             using var readScope = irLock.EnterUpgradeableReadScope();
 
             // Check for the requested method handle
-            if (methods.TryGetData(source.Handle, out Method method))
+            if (methods.TryGetData(source.Handle, out Method? method))
                 return method;
 
             // CAUTION: we have to acquire the current irLock in write mode and have

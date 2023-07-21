@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvvmAPI.cs
@@ -36,7 +36,7 @@ namespace ILGPU.Runtime.Cuda
             CharSet = CharSet.Ansi,
             BestFitMapping = false,
             ThrowOnUnmappableChar = true)]
-        delegate string NvvmGetErrorString(NvvmResult result);
+        delegate string? NvvmGetErrorString(NvvmResult result);
 
         delegate NvvmResult NvvmVersion(out int major, out int minor);
 
@@ -59,7 +59,7 @@ namespace ILGPU.Runtime.Cuda
             IntPtr program,
             IntPtr buffer,
             IntPtr size,
-            string name);
+            string? name);
 
         [UnmanagedFunctionPointer(
             CallingConvention.Winapi,
@@ -70,7 +70,7 @@ namespace ILGPU.Runtime.Cuda
             IntPtr program,
             IntPtr buffer,
             IntPtr size,
-            string name);
+            string? name);
 
         delegate NvvmResult NvvmCompileProgram(
             IntPtr program,
@@ -245,7 +245,7 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="result">The error code.</param>
         /// <returns>The error string.</returns>
-        public string GetErrorString(NvvmResult result) =>
+        public string? GetErrorString(NvvmResult result) =>
             nvvmGetErrorString(result);
 
         /// <summary>
@@ -300,7 +300,7 @@ namespace ILGPU.Runtime.Cuda
             IntPtr program,
             IntPtr buffer,
             IntPtr size,
-            string name) =>
+            string? name) =>
             nvvmAddModuleToProgram(program, buffer, size, name);
 
         /// <summary>
@@ -315,7 +315,7 @@ namespace ILGPU.Runtime.Cuda
             IntPtr program,
             IntPtr buffer,
             IntPtr size,
-            string name) =>
+            string? name) =>
             nvvmLazyAddModuleToProgram(program, buffer, size, name);
 
         /// <summary>
@@ -347,7 +347,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="program">The program.</param>
         /// <param name="result">Filled in with the PTX result.</param>
         /// <returns>The error code.</returns>
-        public unsafe NvvmResult GetCompiledResult(IntPtr program, out string result)
+        public unsafe NvvmResult GetCompiledResult(IntPtr program, out string? result)
         {
             var error = GetCompiledResultSize(program, out var bufferSize);
             if (error == NvvmResult.NVVM_SUCCESS)
@@ -399,7 +399,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="program">The program.</param>
         /// <param name="result">Filled in with the program log.</param>
         /// <returns>The error code.</returns>
-        public unsafe NvvmResult GetProgramLog(IntPtr program, out string result)
+        public unsafe NvvmResult GetProgramLog(IntPtr program, out string? result)
         {
             var error = GetProgramLogSize(program, out var bufferSize);
             if (error == NvvmResult.NVVM_SUCCESS)

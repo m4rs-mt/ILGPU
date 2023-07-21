@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.Emitter.cs
@@ -465,7 +465,7 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="arguments">The string format arguments.</param>
             public void AppendOperation(
                 RawString operation,
-                params object[] arguments)
+                params object?[] arguments)
             {
                 var formatExpression = operation.Value;
                 if (!FormatString.TryParse(formatExpression, out var expressions))
@@ -495,49 +495,49 @@ namespace ILGPU.Backends.OpenCL
                 {
                     if (!expression.HasArgument)
                     {
-                        AppendOperation(expression.String);
+                        AppendOperation(expression.String.AsNotNull());
                     }
                     else
                     {
                         var argument = arguments[expression.Argument];
-                        var argumentType = argument.GetType();
+                        var argumentType = argument?.GetType();
                         switch (Type.GetTypeCode(argumentType))
                         {
                             case TypeCode.Boolean:
-                                AppendConstant((bool)argument ? 1 : 0);
+                                AppendConstant((bool)argument.AsNotNull() ? 1 : 0);
                                 break;
                             case TypeCode.SByte:
-                                AppendConstant((sbyte)argument);
+                                AppendConstant((sbyte)argument.AsNotNull());
                                 break;
                             case TypeCode.Byte:
-                                AppendConstant((byte)argument);
+                                AppendConstant((byte)argument.AsNotNull());
                                 break;
                             case TypeCode.Int16:
-                                AppendConstant((short)argument);
+                                AppendConstant((short)argument.AsNotNull());
                                 break;
                             case TypeCode.UInt16:
-                                AppendConstant((ushort)argument);
+                                AppendConstant((ushort)argument.AsNotNull());
                                 break;
                             case TypeCode.Int32:
-                                AppendConstant((int)argument);
+                                AppendConstant((int)argument.AsNotNull());
                                 break;
                             case TypeCode.UInt32:
-                                AppendConstant((uint)argument);
+                                AppendConstant((uint)argument.AsNotNull());
                                 break;
                             case TypeCode.Int64:
-                                AppendConstant((long)argument);
+                                AppendConstant((long)argument.AsNotNull());
                                 break;
                             case TypeCode.UInt64:
-                                AppendConstant((ulong)argument);
+                                AppendConstant((ulong)argument.AsNotNull());
                                 break;
                             case TypeCode.Single:
-                                AppendConstant((float)argument);
+                                AppendConstant((float)argument.AsNotNull());
                                 break;
                             case TypeCode.Double:
-                                AppendConstant((double)argument);
+                                AppendConstant((double)argument.AsNotNull());
                                 break;
                             case TypeCode.String:
-                                AppendOperation((string)argument);
+                                AppendOperation((string)argument.AsNotNull());
                                 break;
                             default:
                                 if (argument is Variable variable)
@@ -552,13 +552,13 @@ namespace ILGPU.Backends.OpenCL
                                 }
                                 else if (argumentType == typeof(Half))
                                 {
-                                    AppendConstant((Half)argument);
+                                    AppendConstant((Half)argument.AsNotNull());
                                     break;
                                 }
                                 throw new NotSupportedException(string.Format(
                                     ErrorMessages.NotSupportedWriteFormatArgumentType,
                                     formatExpression,
-                                    argument.GetType().ToString()));
+                                    argumentType?.ToString()));
                         }
                     }
                 }

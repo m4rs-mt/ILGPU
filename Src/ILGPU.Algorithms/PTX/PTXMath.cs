@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXMath.cs
@@ -39,7 +39,7 @@ namespace ILGPU.Algorithms.PTX
             PTXCodeGenerator codeGenerator,
             Value value)
         {
-            var arithmeticValue = value as UnaryArithmeticValue;
+            var arithmeticValue = value.AsNotNullCast<UnaryArithmeticValue>();
             var instruction = PTXInstructions.GetArithmeticOperation(
                 arithmeticValue.Kind,
                 arithmeticValue.ArithmeticBasicValueType,

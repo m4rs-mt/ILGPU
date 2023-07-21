@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Views.cs
@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Diagnostics;
 
 namespace ILGPU.Backends.PTX
@@ -26,7 +27,7 @@ namespace ILGPU.Backends.PTX
             Debug.Assert(value.IsPointerAccess, "Invalid pointer access");
 
             var address = LoadPrimitive(value.Source);
-            var sourceType = value.Source.Type as AddressSpaceType;
+            var sourceType = value.Source.Type.AsNotNullCast<AddressSpaceType>();
             var elementSize = sourceType.ElementType.Size;
 
             if (value.Is32BitAccess)

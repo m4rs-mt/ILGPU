@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CodeGeneratorBackend.cs
@@ -174,7 +174,7 @@ namespace ILGPU.Backends
         /// <returns>The resulting compiled kernel.</returns>
         protected abstract CompiledKernel CreateKernel(
             EntryPoint entryPoint,
-            CompiledKernel.KernelInfo kernelInfo,
+            CompiledKernel.KernelInfo? kernelInfo,
             TKernelBuilder builder,
             T data);
 

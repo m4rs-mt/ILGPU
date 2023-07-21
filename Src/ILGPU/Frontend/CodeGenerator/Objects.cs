@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Objects.cs
@@ -60,7 +60,7 @@ namespace ILGPU.Frontend
             if (constructor == null)
                 throw Location.GetInvalidOperationException();
 
-            var type = constructor.DeclaringType;
+            var type = constructor.DeclaringType.AsNotNull();
             var typeNode = Builder.CreateType(type);
             var alloca = CreateTempAlloca(typeNode);
 

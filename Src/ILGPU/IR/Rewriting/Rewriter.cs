@@ -386,7 +386,7 @@ namespace ILGPU.IR.Rewriting
                 }
 
                 // Process terminator (if any)
-                Value terminator = blockBuilder.Terminator;
+                Value? terminator = blockBuilder.Terminator;
                 if (terminator == null || !converted.Add(terminator))
                     continue;
 
@@ -615,7 +615,7 @@ namespace ILGPU.IR.Rewriting
             Method.Builder builder,
             T data,
             out RewriterProcess rewriting) =>
-            TryBeginRewrite(blocks, builder, null, data, out rewriting);
+            TryBeginRewrite(blocks, builder, string.Empty, data, out rewriting);
 
         /// <summary>
         /// Rewrites the given scope on-the-fly using the method builder provided.
@@ -628,7 +628,7 @@ namespace ILGPU.IR.Rewriting
             in BlockCollection blocks,
             Method.Builder builder,
             T data) =>
-            Rewrite(blocks, builder, null, data);
+            Rewrite(blocks, builder, string.Empty, data);
     }
 
     /// <summary>
@@ -690,7 +690,7 @@ namespace ILGPU.IR.Rewriting
             in BlockCollection blocks,
             Method.Builder builder,
             out RewriterProcess rewriting) =>
-            TryBeginRewrite(blocks, builder, null, out rewriting);
+            TryBeginRewrite(blocks, builder, string.Empty, out rewriting);
 
         /// <summary>
         /// Rewrites the given scope on-the-fly using the method builder provided.
@@ -699,6 +699,6 @@ namespace ILGPU.IR.Rewriting
         /// <param name="builder">The current builder.</param>
         /// <returns>True, if the rewriter could be applied.</returns>
         public bool Rewrite(in BlockCollection blocks, Method.Builder builder) =>
-            Rewrite(blocks, builder, null);
+            Rewrite(blocks, builder, string.Empty);
     }
 }

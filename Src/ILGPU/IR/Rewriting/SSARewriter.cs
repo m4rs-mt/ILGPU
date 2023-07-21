@@ -280,7 +280,7 @@ namespace ILGPU.IR.Rewriting
                 }
 
                 // Process terminator (if any)
-                Value terminator = blockBuilder.Terminator;
+                Value? terminator = blockBuilder.Terminator;
                 if (terminator != null && converted.Add(terminator))
                 {
                     // Move insert position to the end of the block
@@ -364,7 +364,7 @@ namespace ILGPU.IR.Rewriting
         public bool TryBeginRewrite(
             SSABuilder<TVariable> ssaBuilder,
             out RewriterProcess rewriting) =>
-            TryBeginRewrite(ssaBuilder, null, out rewriting);
+            TryBeginRewrite(ssaBuilder, string.Empty, out rewriting);
 
         /// <summary>
         /// Rewrites the given SSA builder on-the-fly using the method builder provided.
@@ -372,6 +372,6 @@ namespace ILGPU.IR.Rewriting
         /// <param name="ssaBuilder">The parent SSA builder.</param>
         /// <returns>True, if the rewriter could be applied.</returns>
         public bool Rewrite(SSABuilder<TVariable> ssaBuilder) =>
-            Rewrite(ssaBuilder, null);
+            Rewrite(ssaBuilder, string.Empty);
     }
 }

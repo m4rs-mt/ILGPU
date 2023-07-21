@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Verifier.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -377,12 +378,14 @@ namespace ILGPU.IR
                     }
 
                     // Check the terminator value
-                    Assert(block.Terminator, values.Add(block.Terminator));
-                    foreach (Value node in block.Terminator.Nodes)
+                    Assert(
+                        block.Terminator.AsNotNull(),
+                        values.Add(block.Terminator.AsNotNull()));
+                    foreach (Value node in block.Terminator.AsNotNull().Nodes)
                     {
                         if (node is UndefinedValue)
                             continue;
-                        Assert(block.Terminator, values.Contains(node));
+                        Assert(block.Terminator.AsNotNull(), values.Contains(node));
                     }
                 }
 
@@ -417,7 +420,9 @@ namespace ILGPU.IR
                     Assert(value, foundBlock);
                     if (!foundBlock)
                         continue;
-                    Assert(value.BasicBlock, blockValues.Contains(value));
+                    Assert(
+                        value.BasicBlock,
+                        blockValues != null && blockValues.Contains(value));
                 }
             }
 
@@ -548,8 +553,9 @@ namespace ILGPU.IR
 
             void Verify<T>() where T : VerifierBase
             {
-                var instance = Activator.CreateInstance(typeof(T), method, result)
-                    as VerifierBase;
+                var instance = (Activator.CreateInstance(typeof(T), method, result)
+                    as VerifierBase
+                    ).AsNotNull();
                 instance.Verify();
             }
 

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILEmitter.cs
@@ -525,7 +525,7 @@ namespace ILGPU.Backends.IL
         {
             EmitPrefix();
             Writer.Write(target.IsVirtual ? "callvirt " : "call ");
-            Writer.Write(target.DeclaringType.FullName);
+            Writer.Write(target.DeclaringType.AsNotNull().FullName);
             Writer.Write('.');
             Writer.WriteLine(target.Name);
         }
@@ -535,7 +535,7 @@ namespace ILGPU.Backends.IL
         {
             EmitPrefix();
             Writer.Write("newobj ");
-            Writer.Write(info.DeclaringType.FullName);
+            Writer.Write(info.DeclaringType.AsNotNull().FullName);
             Writer.Write('.');
             Writer.WriteLine(info.Name);
         }

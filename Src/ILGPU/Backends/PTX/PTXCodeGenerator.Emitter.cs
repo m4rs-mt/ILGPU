@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -204,7 +205,7 @@ namespace ILGPU.Backends.PTX
                 if (argument is ConstantRegister constantRegister)
                     AppendArgument(constantRegister);
                 else
-                    AppendArgument(argument as HardwareRegister);
+                    AppendArgument(argument.AsNotNullCast<HardwareRegister>());
             }
 
             /// <summary>
@@ -485,7 +486,7 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// The associated register allocator.
             /// </summary>
-            public PTXRegisterAllocator RegisterAllocator { get; }
+            public PTXRegisterAllocator? RegisterAllocator { get; }
 
             /// <summary>
             /// The allocated predicate register.
@@ -626,8 +627,11 @@ namespace ILGPU.Backends.PTX
                     // Invoke final emitter
                     var primitiveRegisters = new PrimitiveRegister[registers.Length];
                     for (int i = 0, e = registers.Length; i < e; ++i)
-                        primitiveRegisters[i] = registers[i] as PrimitiveRegister;
-                    command = emitter.AdjustCommand(command, primitiveRegisters);
+                    {
+                        primitiveRegisters[i] =
+                            registers[i].AsNotNullCast<PrimitiveRegister>();
+                        command = emitter.AdjustCommand(command, primitiveRegisters);
+                    }
                     using (var commandEmitter = BeginCommand(command))
                         emitter.Emit(commandEmitter, primitiveRegisters);
                     break;
@@ -638,7 +642,8 @@ namespace ILGPU.Backends.PTX
                         for (int j = 0, e2 = registers.Length; j < e2; ++j)
                         {
                             elementRegisters[j] =
-                                (registers[j] as CompoundRegister).Children[i];
+                                registers[j].AsNotNullCast<CompoundRegister>()
+                                .Children[i];
                         }
                         EmitComplexCommand(command, emitter, elementRegisters);
                     }
@@ -680,7 +685,7 @@ namespace ILGPU.Backends.PTX
                             this,
                             command,
                             structureRegister.Children[access.Index]
-                                as PrimitiveRegister,
+                                .AsNotNullCast<PrimitiveRegister>(),
                             offset + fieldOffset);
                     }
                     break;
@@ -869,7 +874,7 @@ namespace ILGPU.Backends.PTX
             where TIOEmitter : struct, IIOEmitter<T>
             where T : struct
         {
-            HardwareRegister originalRegister = null;
+            HardwareRegister? originalRegister = null;
             // We need a temporary 32bit register for predicate conversion at this point:
             // 1) load value into temporary register
             // 2) convert loaded value into predicate
@@ -913,7 +918,7 @@ namespace ILGPU.Backends.PTX
             // We need a temporary 32bit register for predicate conversion at this point:
             // 1) convert current predicate into 32bit integer
             // 2) store the converted value from the temporary register
-            PrimitiveRegister originalRegister = null;
+            PrimitiveRegister? originalRegister = null;
             if (register.BasicValueType == BasicValueType.Int1)
             {
                 originalRegister = register;
@@ -922,7 +927,7 @@ namespace ILGPU.Backends.PTX
                 // Convert predicate
                 ConvertPredicateToValue(
                     originalRegister,
-                    register as HardwareRegister);
+                    register.AsNotNullCast<HardwareRegister>());
             }
 
             // Emit store
@@ -930,7 +935,7 @@ namespace ILGPU.Backends.PTX
 
             // Free temp register
             if (originalRegister != null)
-                FreeRegister(register as HardwareRegister);
+                FreeRegister(register.AsNotNullCast<HardwareRegister>());
         }
 
         /// <summary>
@@ -1077,7 +1082,7 @@ namespace ILGPU.Backends.PTX
             {
                 command.AppendRegisterMovementSuffix(register.BasicValueType);
                 command.AppendArgument(hardwareRegister);
-                command.AppendArgument(register as ConstantRegister);
+                command.AppendArgument(register.AsNotNullCast<ConstantRegister>());
             }
             return hardwareRegister;
         }

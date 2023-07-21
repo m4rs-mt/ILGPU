@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RadixSortExtensions.cs
@@ -541,22 +541,26 @@ namespace ILGPU.Algorithms
         private static readonly MethodInfo CPURadixSortKernel1Method =
             typeof(RadixSortExtensions).GetMethod(
                 nameof(CPURadixSortKernel1),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
         private static readonly MethodInfo CPURadixSortKernel2Method =
             typeof(RadixSortExtensions).GetMethod(
                 nameof(CPURadixSortKernel2),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
         private static readonly MethodInfo RadixSortKernel1Method =
             typeof(RadixSortExtensions).GetMethod(
                 nameof(RadixSortKernel1),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
         private static readonly MethodInfo RadixSortKernel2Method =
             typeof(RadixSortExtensions).GetMethod(
                 nameof(RadixSortKernel2),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
         /// <summary>
         /// Represents a single specialization.

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: EntryPoint.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 
@@ -163,7 +164,7 @@ namespace ILGPU.Backends.EntryPoints
         /// <returns>The acquired scoped lock.</returns>
         internal RuntimeSystem.ScopedLock CreateLauncherMethod(
             RuntimeSystem runtimeSystem,
-            Type instanceType,
+            Type? instanceType,
             out RuntimeSystem.MethodEmitter methodEmitter) =>
             Description.CreateLauncherMethod(
                 runtimeSystem,
@@ -189,7 +190,8 @@ namespace ILGPU.Backends.EntryPoints
             {
                 typeof(int),
                 typeof(bool)
-            });
+            })
+            .ThrowIfNull();
 
         #endregion
 

@@ -174,7 +174,7 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <returns>The actual node.</returns>
-        public T ResolveAs<T>() where T : Value => Resolve() as T;
+        public T? ResolveAs<T>() where T : Value => Resolve() as T;
 
         /// <summary>
         /// Dumps this node to the given text writer.
@@ -214,7 +214,7 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object points to the same node.</returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is ValueReference other && Equals(other);
 
         /// <summary>

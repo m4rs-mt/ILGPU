@@ -82,7 +82,7 @@ namespace ILGPU.IR
             /// <summary>
             /// Gets or sets the current terminator.
             /// </summary>
-            public TerminatorValue Terminator
+            public TerminatorValue? Terminator
             {
                 get => BasicBlock.Terminator;
                 set
@@ -213,7 +213,8 @@ namespace ILGPU.IR
             {
                 foreach (var reference in Values)
                     toRemove.Add(reference.DirectTarget);
-                toRemove.Add(Terminator);
+                if (Terminator != null)
+                    toRemove.Add(Terminator);
             }
 
             /// <summary>
@@ -510,7 +511,7 @@ namespace ILGPU.IR
             protected override T CreateTerminator<T>(T node)
             {
                 Terminator?.Replace(node);
-                return (Terminator = node) as T;
+                return (Terminator = node).AsNotNullCast<T>();
             }
 
             /// <summary cref="IRBuilder.CreatePhiValue(PhiValue)"/>

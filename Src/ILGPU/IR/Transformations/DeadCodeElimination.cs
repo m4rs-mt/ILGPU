@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DeadCodeElimination.cs
@@ -54,7 +54,7 @@ namespace ILGPU.IR.Transformations
                 }
 
                 // Register all terminator value dependencies
-                foreach (Value node in block.Terminator)
+                foreach (Value node in block.Terminator.AsNotNull())
                     toProcess.Add(node);
             }
 

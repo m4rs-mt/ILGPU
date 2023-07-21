@@ -173,7 +173,7 @@ namespace ILGPU.Algorithms.Random
         /// </summary>
         /// <param name="obj">The other rng to test.</param>
         /// <returns>True, if the given object is equal to the current rng.</returns>
-        public readonly override bool Equals(object obj) =>
+        public readonly override bool Equals(object? obj) =>
             obj is XorShift128Plus shift && Equals(shift);
 
         /// <summary>

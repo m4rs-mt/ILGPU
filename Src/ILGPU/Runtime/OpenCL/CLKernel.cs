@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLKernel.cs
@@ -44,7 +44,7 @@ namespace ILGPU.Runtime.OpenCL
             CLCVersion version,
             out IntPtr programPtr,
             out IntPtr kernelPtr,
-            out string errorLog)
+            out string? errorLog)
         {
             errorLog = null;
             kernelPtr = IntPtr.Zero;
@@ -137,7 +137,7 @@ namespace ILGPU.Runtime.OpenCL
         public CLKernel(
             CLAccelerator accelerator,
             CLCompiledKernel kernel,
-            MethodInfo launcher)
+            MethodInfo? launcher)
             : base(accelerator, kernel, launcher)
         {
             var errorCode = LoadKernel(

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicImplementation.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.Backends;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 
@@ -70,14 +71,15 @@ namespace ILGPU.IR.Intrinsics
         protected IntrinsicImplementation(
             BackendType backendType,
             Type handlerType,
-            string methodName,
+            string? methodName,
             IntrinsicImplementationMode mode)
             : this(
                   backendType,
                   handlerType.GetMethod(
-                      methodName ?? "Invoke",
-                      BindingFlags.Public | BindingFlags.NonPublic |
-                      BindingFlags.Static | BindingFlags.Instance),
+                    methodName ?? "Invoke",
+                    BindingFlags.Public | BindingFlags.NonPublic |
+                    BindingFlags.Static | BindingFlags.Instance)
+                    .AsNotNull(),
                   mode)
         { }
 

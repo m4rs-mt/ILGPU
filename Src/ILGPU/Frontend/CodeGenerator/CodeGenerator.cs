@@ -71,6 +71,9 @@ namespace ILGPU.Frontend
                 cfgBuilder.Blocks);
 
             SetupVariables();
+
+            // NB: Initialized during GenerateCode.
+            Block = Utilities.InitNotNullable<Block>();
         }
 
         /// <summary>
@@ -103,7 +106,7 @@ namespace ILGPU.Frontend
             // Initialize params
             if (!Method.IsStatic && !Method.IsNotCapturingLambda())
             {
-                var declaringType = builder.CreateType(Method.DeclaringType);
+                var declaringType = builder.CreateType(Method.DeclaringType.AsNotNull());
                 declaringType = builder.CreatePointerType(
                     declaringType,
                     MemoryAddressSpace.Generic);
@@ -142,7 +145,7 @@ namespace ILGPU.Frontend
             }
 
             // Initialize locals
-            var localVariables = Method.GetMethodBody().LocalVariables;
+            var localVariables = Method.GetMethodBody().AsNotNull().LocalVariables;
             for (int i = 0, e = localVariables.Count; i < e; ++i)
             {
                 var variable = localVariables[i];
@@ -384,7 +387,8 @@ namespace ILGPU.Frontend
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void VerifyNotRuntimeMethod(MethodBase method)
         {
-            Debug.Assert(method != null, "Invalid method");
+            if (method.DeclaringType == null || method.DeclaringType.FullName == null)
+                return;
             var @namespace = method.DeclaringType.FullName;
             // Internal unsafe intrinsic methods
             if (@namespace.StartsWith(

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCompiledKernel.cs
@@ -30,7 +30,7 @@ namespace ILGPU.Backends.PTX
         internal PTXCompiledKernel(
             Context context,
             EntryPoint entryPoint,
-            KernelInfo info,
+            KernelInfo? info,
             string ptxAssembly)
             : base(context, entryPoint, info)
         {

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Transformation.cs
@@ -458,7 +458,7 @@ namespace ILGPU.IR.Transformations
             public Executor(
                 OrderedTransformation<TIntermediate> parent,
                 IRContext context,
-                TIntermediate intermediate,
+                TIntermediate? intermediate,
                 Landscape landscape,
                 Landscape.Entry entry)
             {
@@ -482,7 +482,7 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Returns the associated intermediate value.
             /// </summary>
-            public TIntermediate Intermediate { get; }
+            public TIntermediate? Intermediate { get; }
 
             /// <summary>
             /// Returns the current landscape.
@@ -526,13 +526,13 @@ namespace ILGPU.IR.Transformations
         /// Creates a new intermediate value.
         /// </summary>
         /// <returns>The resulting intermediate value.</returns>
-        protected abstract TIntermediate CreateIntermediate(in MethodCollection methods);
+        protected abstract TIntermediate? CreateIntermediate(in MethodCollection methods);
 
         /// <summary>
         /// Is invoked after all methods have been transformed.
         /// </summary>
         /// <param name="intermediate">The current intermediate value.</param>
-        protected abstract void FinishProcessing(in TIntermediate intermediate);
+        protected abstract void FinishProcessing(in TIntermediate? intermediate);
 
         /// <summary>
         /// Transforms all methods in the given context.
@@ -573,7 +573,7 @@ namespace ILGPU.IR.Transformations
         protected abstract bool PerformTransformation(
             IRContext context,
             Method.Builder builder,
-            in TIntermediate intermediate,
+            in TIntermediate? intermediate,
             Landscape landscape,
             Landscape.Entry current);
 
@@ -601,14 +601,14 @@ namespace ILGPU.IR.Transformations
         /// Creates a new intermediate value.
         /// </summary>
         /// <returns>The resulting intermediate value.</returns>
-        protected sealed override object CreateIntermediate(
+        protected sealed override object? CreateIntermediate(
             in MethodCollection methods) => null;
 
         /// <summary>
         /// Is invoked after all methods have been transformed.
         /// </summary>
         /// <param name="intermediate">The current intermediate value.</param>
-        protected sealed override void FinishProcessing(in object intermediate) { }
+        protected sealed override void FinishProcessing(in object? intermediate) { }
 
         /// <summary>
         /// Transforms the given method using the provided builder.
@@ -621,7 +621,7 @@ namespace ILGPU.IR.Transformations
         protected sealed override bool PerformTransformation(
             IRContext context,
             Method.Builder builder,
-            in object intermediate,
+            in object? intermediate,
             Landscape landscape,
             Landscape.Entry current) =>
             PerformTransformation(context, builder, landscape, current);

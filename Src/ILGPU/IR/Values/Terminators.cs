@@ -13,6 +13,7 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using BlockList = ILGPU.Util.InlineList<ILGPU.IR.BasicBlock>;
@@ -392,7 +393,9 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="block">The branch target to exclude.</param>
         /// <param name="otherBlock">The other branch target (if any).</param>
-        public bool TryGetOtherBranchTarget(BasicBlock block, out BasicBlock otherBlock)
+        public bool TryGetOtherBranchTarget(
+            BasicBlock block,
+            [NotNullWhen(true)] out BasicBlock? otherBlock)
         {
             otherBlock = null;
             if (NumTargets != 2)

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelLoaders.tt/KernelLoaders.cs
@@ -74,7 +74,7 @@ namespace ILGPU.Runtime
         public static Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>> LoadKernel<<#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
             if (action == null)
@@ -111,7 +111,7 @@ namespace ILGPU.Runtime
         public static Action<KernelConfig, <#= delegateParams.TypeParams #>> LoadStreamKernel<<#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
             var baseKernel = accelerator.LoadKernel<<#= delegateParams.TypeParams #>>(action, out kernelInfo);
@@ -152,7 +152,7 @@ namespace ILGPU.Runtime
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action,
             KernelSpecialization specialization,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
             if (action == null)
@@ -201,7 +201,7 @@ namespace ILGPU.Runtime
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action,
             KernelSpecialization specialization,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
             var baseKernel = accelerator.LoadKernel<<#= delegateParams.TypeParams #>>(
@@ -260,7 +260,7 @@ namespace ILGPU.Runtime
             this Accelerator accelerator,
             Action<TIndex, <#= delegateParams.TypeParams #>> action,
             int customGroupSize,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
@@ -316,7 +316,7 @@ namespace ILGPU.Runtime
             this Accelerator accelerator,
             Action<TIndex, <#= delegateParams.TypeParams #>> action,
             int customGroupSize,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
@@ -362,7 +362,7 @@ namespace ILGPU.Runtime
         public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<TIndex, <#= delegateParams.TypeParams #>> action,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
@@ -405,7 +405,7 @@ namespace ILGPU.Runtime
         public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<TIndex, <#= delegateParams.TypeParams #>> action,
-            out KernelInfo kernelInfo)
+            out KernelInfo? kernelInfo)
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {

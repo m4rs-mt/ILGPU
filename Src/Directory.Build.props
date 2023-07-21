@@ -2,6 +2,7 @@
   <!-- Library Project Configuration -->
   <PropertyGroup>
     <LibraryTargetFrameworks>net7.0</LibraryTargetFrameworks>
+    <LibraryLatestTargetFramework>$(LibraryTargetFrameworks)</LibraryLatestTargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net471;netstandard2.1;net5.0;net6.0</LibraryTargetFrameworks>
@@ -18,6 +19,7 @@
   <!-- Unit Test Project Configuration -->
   <PropertyGroup>
     <LibraryUnitTestTargetFrameworks>net7.0</LibraryUnitTestTargetFrameworks>
+    <LibraryLatestUnitTestTargetFramework>$(LibraryUnitTestTargetFrameworks)</LibraryLatestUnitTestTargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net471;netcoreapp3.1;net5.0;net6.0</LibraryUnitTestTargetFrameworks>

@@ -15,6 +15,7 @@ using ILGPU.Backends.SeparateViews;
 using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -35,7 +36,8 @@ namespace ILGPU.Backends.OpenCL
         private static readonly MethodInfo SetKernelArgumentMethod =
             typeof(CLAPI).GetMethod(
                 nameof(CLAPI.SetKernelArgumentUnsafeWithKernel),
-                BindingFlags.Public | BindingFlags.Instance);
+                BindingFlags.Public | BindingFlags.Instance)
+            .ThrowIfNull();
 
         #endregion
 

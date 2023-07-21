@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILocation.cs
@@ -47,7 +47,7 @@ namespace ILGPU.IR
         /// the current source location at which this exception has been created.
         /// </returns>
         public static InternalCompilerException GetException(
-            this ILocation location,
+            this ILocation? location,
             Exception exception)
         {
             var message = (location?.FormatErrorMessage(
@@ -67,7 +67,7 @@ namespace ILGPU.IR
         /// <see cref="ArgumentOutOfRangeException"/>.
         /// </returns>
         public static InternalCompilerException GetArgumentException(
-            this ILocation location,
+            this ILocation? location,
             string paramName) =>
             location.GetException(new ArgumentOutOfRangeException(paramName));
 
@@ -82,7 +82,7 @@ namespace ILGPU.IR
         /// <see cref="ArgumentNullException"/>.
         /// </returns>
         public static InternalCompilerException GetArgumentNullException(
-            this ILocation location,
+            this ILocation? location,
             string paramName) =>
             location.GetException(new ArgumentNullException(paramName));
 
@@ -98,7 +98,7 @@ namespace ILGPU.IR
         /// <see cref="NotSupportedException"/>.
         /// </returns>
         public static InternalCompilerException GetNotSupportedException(
-            this ILocation location,
+            this ILocation? location,
             string message,
             params object[] args) =>
             location.GetException(new NotSupportedException(
@@ -114,7 +114,7 @@ namespace ILGPU.IR
         /// <see cref="InvalidOperationException"/>.
         /// </returns>
         public static InternalCompilerException GetInvalidOperationException(
-            this ILocation location) =>
+            this ILocation? location) =>
             location.GetException(new InvalidOperationException(
                 ErrorMessages.InternalCompilerError));
 
@@ -129,7 +129,7 @@ namespace ILGPU.IR
         /// <see cref="InvalidOperationException"/>.
         /// </returns>
         public static InternalCompilerException GetInvalidOperationException(
-            this ILocation location,
+            this ILocation? location,
             string message) =>
             location.GetException(new InvalidOperationException(message));
 
@@ -143,7 +143,7 @@ namespace ILGPU.IR
         /// <param name="value">The value to be not null.</param>
         [Conditional("DEBUG")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void AssertNotNull<TValue>(this ILocation location, TValue value)
+        internal static void AssertNotNull<TValue>(this ILocation? location, TValue value)
             where TValue : class
         {
             if (value == null)
@@ -165,7 +165,7 @@ namespace ILGPU.IR
         /// <param name="condition">The condition to hold.</param>
         [Conditional("DEBUG")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Assert(this ILocation location, bool condition)
+        internal static void Assert(this ILocation? location, bool condition)
         {
             if (!condition)
             {

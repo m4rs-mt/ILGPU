@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXInstructions.cs
@@ -54,14 +54,14 @@ namespace ILGPU.Backends.PTX
             {
                 if (CompareUnorderedFloatOperations.TryGetValue(
                     (kind, type),
-                    out string operation))
+                    out string? operation))
                 {
                     return operation;
                 }
             }
             else
             {
-                if (CompareOperations.TryGetValue((kind, type), out string operation))
+                if (CompareOperations.TryGetValue((kind, type), out string? operation))
                     return operation;
             }
             throw new NotSupportedIntrinsicException(kind.ToString());
@@ -76,7 +76,7 @@ namespace ILGPU.Backends.PTX
         public static string GetConvertOperation(
             ArithmeticBasicValueType source,
             ArithmeticBasicValueType target) =>
-            ConvertOperations.TryGetValue((source, target), out string operation)
+            ConvertOperations.TryGetValue((source, target), out string? operation)
             ? operation
             : throw new NotSupportedIntrinsicException($"{source} -> {target}");
 
@@ -111,7 +111,7 @@ namespace ILGPU.Backends.PTX
             return fastMath &&
                 UnaryArithmeticOperationsFastMath.TryGetValue(
                     key,
-                    out string operation) ||
+                    out string? operation) ||
                 UnaryArithmeticOperations.TryGetValue(key, out operation)
                 ? operation
                 : throw new NotSupportedIntrinsicException(kind.ToString());
@@ -148,7 +148,7 @@ namespace ILGPU.Backends.PTX
             return fastMath &&
                 BinaryArithmeticOperationsFastMath.TryGetValue(
                     key,
-                    out string operation) ||
+                    out string? operation) ||
                 BinaryArithmeticOperations.TryGetValue(key, out operation)
                 ? operation
                 : throw new NotSupportedIntrinsicException(kind.ToString());
@@ -163,7 +163,7 @@ namespace ILGPU.Backends.PTX
         public static string GetArithmeticOperation(
             TernaryArithmeticKind kind,
             ArithmeticBasicValueType type) =>
-            TernaryArithmeticOperations.TryGetValue((kind, type), out string operation)
+            TernaryArithmeticOperations.TryGetValue((kind, type), out string? operation)
             ? operation
             : throw new NotSupportedIntrinsicException(kind.ToString());
 
@@ -174,7 +174,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="requireResult">True, if the return value is required.</param>
         /// <returns>The resolved atomic operation.</returns>
         public static string GetAtomicOperation(AtomicKind kind, bool requireResult) =>
-            AtomicOperations.TryGetValue((kind, requireResult), out string operation)
+            AtomicOperations.TryGetValue((kind, requireResult), out string? operation)
             ? operation
             : throw new NotSupportedIntrinsicException(kind.ToString());
 
@@ -187,7 +187,7 @@ namespace ILGPU.Backends.PTX
         public static string GetAtomicOperationSuffix(
             AtomicKind kind,
             ArithmeticBasicValueType type) =>
-            AtomicOperationsTypes.TryGetValue((kind, type), out string operation)
+            AtomicOperationsTypes.TryGetValue((kind, type), out string? operation)
             ? operation
             : throw new NotSupportedIntrinsicException(kind.ToString());
 
@@ -248,7 +248,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="numElements">The number of elements.</param>
         /// <returns>The vector operation suffix.</returns>
         public static string GetVectorOperationSuffix(int numElements) =>
-            VectorSuffixes.TryGetValue(numElements, out string operation)
+            VectorSuffixes.TryGetValue(numElements, out string? operation)
             ? operation
             : throw new NotSupportedIntrinsicException("v" + numElements.ToString());
     }

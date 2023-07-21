@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Fields.cs
@@ -28,7 +28,7 @@ namespace ILGPU.Frontend
         private FieldSpan ComputeFieldSpan(TypeNode type, FieldInfo field)
         {
             var typeInfo = TypeContext.GetTypeInfo(field.FieldType);
-            var parentInfo = TypeContext.GetTypeInfo(field.DeclaringType);
+            var parentInfo = TypeContext.GetTypeInfo(field.DeclaringType.AsNotNull());
             var fieldIndex = parentInfo.GetAbsoluteIndex(field);
 
             if (type.IsStructureType)
@@ -93,7 +93,7 @@ namespace ILGPU.Frontend
             if (field == null)
                 throw Location.GetInvalidOperationException();
             var targetPointerType = Builder.CreatePointerType(
-                Builder.CreateType(field.DeclaringType),
+                Builder.CreateType(field.DeclaringType.AsNotNull()),
                 MemoryAddressSpace.Generic);
             var address = Block.Pop(
                 targetPointerType,

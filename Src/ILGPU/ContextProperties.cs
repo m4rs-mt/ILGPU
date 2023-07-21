@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ContextProperties.cs
@@ -403,12 +403,12 @@ namespace ILGPU
         /// <summary>
         /// Returns the path to LibNVVM DLL.
         /// </summary>
-        public string LibNvvmPath { get; protected set; }
+        public string? LibNvvmPath { get; protected set; }
 
         /// <summary>
         /// Returns the path to LibDevice bitcode.
         /// </summary>
-        public string LibDevicePath { get; protected set; }
+        public string? LibDevicePath { get; protected set; }
 
         #endregion
 

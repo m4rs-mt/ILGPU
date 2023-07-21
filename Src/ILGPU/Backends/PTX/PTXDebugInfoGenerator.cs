@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXDebugInfoGenerator.cs
@@ -45,7 +45,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the current location.
         /// </summary>
-        public FileLocation Current { get; private set; }
+        public FileLocation? Current { get; private set; }
 
         #endregion
 

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TestData.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Runtime.InteropServices;
 using Xunit.Abstractions;
@@ -42,7 +43,10 @@ namespace ILGPU.Tests
     /// <typeparam name="T">The value to wrap.</typeparam>
     public class TestData<T> : IXunitSerializable
     {
-        public TestData() { }
+        public TestData()
+        {
+            Value = Utilities.InitNotNullable<T>();
+        }
 
         public TestData(T value)
         {
@@ -61,7 +65,7 @@ namespace ILGPU.Tests
             info.AddValue(nameof(Value), Value);
         }
 
-        public override string ToString() => Value.ToString();
+        public override string ToString() => $"{Value}";
     }
 
     #region Data Structures
@@ -88,7 +92,7 @@ namespace ILGPU.Tests
 
         public bool Equals(EmptyStruct other) => true;
 
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is EmptyStruct other && Equals(other);
 
         public override int GetHashCode() => 0;
@@ -96,9 +100,9 @@ namespace ILGPU.Tests
 
     [Serializable]
     // warning disabled intentionally for testing this scenario
-    #pragma warning disable CS0659 // Type does not override Object.GetHashCode()
+#pragma warning disable CS0659 // Type does not override Object.GetHashCode()
     public struct NoHashCodeStruct : IXunitSerializable, IEquatable<NoHashCodeStruct>
-    #pragma warning restore CS0659 // Type does not override Object.GetHashCode()
+#pragma warning restore CS0659 // Type does not override Object.GetHashCode()
     {
         public void Deserialize(IXunitSerializationInfo info) { }
 
@@ -106,7 +110,7 @@ namespace ILGPU.Tests
 
         public bool Equals(NoHashCodeStruct other) => true;
 
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is NoHashCodeStruct other && Equals(other);
     }
 
@@ -181,7 +185,7 @@ namespace ILGPU.Tests
             Z == other.Z &&
             W == other.W;
 
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is TestStruct other && Equals(other);
 
         public override int GetHashCode() =>
@@ -266,7 +270,7 @@ namespace ILGPU.Tests
             Val2 == other.Val2 &&
             Val1.Equals(other.Val1);
 
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is TestStructEquatable<T> other && Equals(other);
 
         public override int GetHashCode() =>
@@ -355,7 +359,7 @@ namespace ILGPU.Tests
             Val0.Equals(other.Val0) &&
             Val2.Equals(other.Val2);
 
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is TestStructEquatable<T1, T2> other && Equals(other);
 
         public override int GetHashCode() => data.GetHashCode();

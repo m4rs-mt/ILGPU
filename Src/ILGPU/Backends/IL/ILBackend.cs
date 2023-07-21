@@ -16,6 +16,7 @@ using ILGPU.IR.Transformations;
 using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
+using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -53,7 +54,8 @@ namespace ILGPU.Backends.IL
         private static readonly MethodInfo Reconstruct2DIndexMethod =
             typeof(ILBackend).GetMethod(
                 nameof(Reconstruct2DIndex),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
         /// <summary>
         /// A reference to the static <see cref="Reconstruct3DIndex(Index3D, int)"/>
@@ -62,7 +64,8 @@ namespace ILGPU.Backends.IL
         private static readonly MethodInfo Reconstruct3DIndexMethod =
             typeof(ILBackend).GetMethod(
                 nameof(Reconstruct3DIndex),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
         /// <summary>
         /// Helper method to reconstruct 2D indices.
@@ -132,7 +135,7 @@ namespace ILGPU.Backends.IL
         /// Returns the associated <see cref="Backend.ArgumentMapper"/>.
         /// </summary>
         public new ILArgumentMapper ArgumentMapper =>
-            base.ArgumentMapper as ILArgumentMapper;
+            base.ArgumentMapper.AsNotNullCast<ILArgumentMapper>();
 
         #endregion
 
@@ -328,17 +331,20 @@ namespace ILGPU.Backends.IL
                 for (int i = 0, e = argFieldBuilders.Length; i < e; ++i)
                 {
                     argFieldBuilders[i] = taskBuilder.GetField(
-                        string.Format(ArgumentFormat, i));
+                        string.Format(ArgumentFormat, i)).AsNotNull();
                 }
             }
             taskConstructor = taskType.GetConstructor(
-                CPUAcceleratorTask.ConstructorParameterTypes);
+                CPUAcceleratorTask.ConstructorParameterTypes).AsNotNull();
 
             // Map the final fields
             var resultMapping = ImmutableArray.CreateBuilder<FieldInfo>(
                 parameters.Count);
             for (int i = 0, e = parameters.Count; i < e; ++i)
-                resultMapping.Add(taskType.GetField(argFieldBuilders[i].Name));
+            {
+                resultMapping.Add(
+                    taskType.GetField(argFieldBuilders[i].Name).AsNotNull());
+            }
             taskArgumentMapping = resultMapping.MoveToImmutable();
 
             return taskType;

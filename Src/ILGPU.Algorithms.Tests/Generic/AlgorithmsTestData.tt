@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AlgorithmsTestData.tt/AlgorithmsTestData.cs
@@ -16,6 +16,7 @@
 
 using ILGPU.Algorithms.RadixSortOperations;
 using ILGPU.Algorithms.ScanReduceOperations;
+using ILGPU.Util;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Xunit.Abstractions;
@@ -30,7 +31,10 @@ namespace ILGPU.Algorithms.Tests
 
     public class AlgorithmsTestData<T> : IXunitSerializable
     {
-        public AlgorithmsTestData() { }
+        public AlgorithmsTestData()
+        {
+            Value = Utilities.InitNotNullable<T>();
+        }
 
         public AlgorithmsTestData(T value)
         {
@@ -48,7 +52,7 @@ namespace ILGPU.Algorithms.Tests
             info.AddValue(nameof(Value), Value);
         }
 
-        public override string ToString() => Value.ToString();
+        public override string ToString() => $"{Value}";
     }
 
     #region Xunit Sequencer Structures

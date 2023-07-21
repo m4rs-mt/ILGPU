@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: FormatString.cs
@@ -61,7 +61,7 @@ namespace ILGPU.Util
             /// <summary>
             /// Returns the string to output (if any).
             /// </summary>
-            public string String { get; }
+            public string? String { get; }
 
             /// <summary>
             /// Returns the argument reference to output.

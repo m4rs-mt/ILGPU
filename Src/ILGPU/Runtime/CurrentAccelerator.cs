@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CurrentAccelerator.cs
@@ -23,12 +23,12 @@ namespace ILGPU.Runtime
         /// Represents the current accelerator.
         /// </summary>
         [ThreadStatic]
-        private static Accelerator currentAccelerator;
+        private static Accelerator? currentAccelerator;
 
         /// <summary>
         /// Returns the current group runtime context.
         /// </summary>
-        public static Accelerator Current
+        public static Accelerator? Current
         {
             get => currentAccelerator;
             private set => currentAccelerator = value;
@@ -106,7 +106,7 @@ namespace ILGPU.Runtime
         /// Returns the old accelerator that was the current one
         /// before the current binding operation (if any).
         /// </summary>
-        public Accelerator OldAccelerator { get; private set; }
+        public Accelerator? OldAccelerator { get; private set; }
 
         /// <summary>
         /// Returns true if an old accelerator has to be recovered.
@@ -125,7 +125,7 @@ namespace ILGPU.Runtime
         {
             if (!IsRecoverable)
                 return;
-            OldAccelerator.Bind();
+            OldAccelerator?.Bind();
             OldAccelerator = null;
         }
 
@@ -165,7 +165,7 @@ namespace ILGPU.Runtime
         /// <returns>
         /// True, if the given object is equal to the current binding.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is ScopedAcceleratorBinding binding && Equals(binding);
 
         /// <summary>
@@ -173,14 +173,14 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <returns>The hash code of this binding.</returns>
         public override int GetHashCode() =>
-            IsRecoverable ? OldAccelerator.GetHashCode() : 0;
+            OldAccelerator?.GetHashCode() ?? 0;
 
         /// <summary>
         /// Returns the string representation of this binding.
         /// </summary>
         /// <returns>The string representation of this binding.</returns>
         public override string ToString() =>
-            IsRecoverable ? OldAccelerator.ToString() : "<NoBinding>";
+            OldAccelerator?.ToString() ?? "<NoBinding>";
 
         #endregion
 

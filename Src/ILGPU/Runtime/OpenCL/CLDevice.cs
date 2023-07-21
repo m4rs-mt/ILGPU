@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLDevice.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.OpenCL;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -191,7 +192,7 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Instance
 
-        private readonly clGetKernelSubGroupInfoKHR getKernelSubGroupInfo;
+        private readonly clGetKernelSubGroupInfoKHR? getKernelSubGroupInfo;
         private readonly HashSet<string> extensionSet = new HashSet<string>();
 
         /// <summary>
@@ -231,6 +232,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Init general platform information.
         /// </summary>
+        [MemberNotNull(nameof(PlatformName))]
         private void InitPlatformInfo()
         {
             PlatformName = CurrentAPI.GetPlatformInfo(
@@ -321,6 +323,7 @@ namespace ILGPU.Runtime.OpenCL
             "CA1307:Specify StringComparison",
             Justification = "string.GetHashCode(StringComparison) not " +
             "available in net471")]
+        [MemberNotNull(nameof(VendorName))]
         private void InitVendorAndWarpSizeInfo()
         {
             VendorName = CurrentAPI.GetPlatformInfo(
@@ -519,7 +522,7 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         public new CLCapabilityContext Capabilities
         {
-            get => base.Capabilities as CLCapabilityContext;
+            get => base.Capabilities.AsNotNullCast<CLCapabilityContext>();
             private set => base.Capabilities = value;
         }
 
@@ -725,7 +728,7 @@ namespace ILGPU.Runtime.OpenCL
         #region Object
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is CLDevice device &&
             device.PlatformId == PlatformId &&
             device.DeviceId == DeviceId &&

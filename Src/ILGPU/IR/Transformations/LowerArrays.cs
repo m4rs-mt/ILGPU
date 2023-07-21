@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerArrays.cs
@@ -14,6 +14,7 @@ using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR.Transformations
@@ -110,6 +111,7 @@ namespace ILGPU.IR.Transformations
             var builder = context.Builder;
             var location = value.Location;
             var targetAddressSpace = (typeLowering as ArrayTypeLowering)
+                .AsNotNull()
                 .TargetAddressSpace;
 
             // Compute array length
