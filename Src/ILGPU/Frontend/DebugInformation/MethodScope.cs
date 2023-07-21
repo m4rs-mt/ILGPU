@@ -21,15 +21,6 @@ namespace ILGPU.Frontend.DebugInformation
     /// </summary>
     public sealed class MethodScope : IEquatable<MethodScope>
     {
-        #region Constants
-
-        /// <summary>
-        /// Represents an invalid method scope.
-        /// </summary>
-        public static readonly MethodScope Invalid;
-
-        #endregion
-
         #region Static
 
         /// <summary>

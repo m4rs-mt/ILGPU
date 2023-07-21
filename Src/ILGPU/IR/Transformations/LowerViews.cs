@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerViews.cs
@@ -26,11 +26,6 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected abstract class ViewTypeLowering : TypeLowering<ViewType>
         {
-            /// <summary>
-            /// Constructs a new type lowering without a parent type context.
-            /// </summary>
-            protected ViewTypeLowering() { }
-
             /// <summary>
             /// Constructs a new type lowering.
             /// </summary>

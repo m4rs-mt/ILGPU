@@ -117,11 +117,6 @@ namespace ILGPU.IR.Types
             new Dictionary<Value, TypeNode>();
 
         /// <summary>
-        /// Constructs a new type lowering without a parent type context.
-        /// </summary>
-        protected TypeLowering() { }
-
-        /// <summary>
         /// Constructs a new type lowering.
         /// </summary>
         /// <param name="builder">The parent builder.</param>

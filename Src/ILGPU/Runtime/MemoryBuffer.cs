@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MemoryBuffer.cs
@@ -25,16 +25,6 @@ namespace ILGPU.Runtime
     public abstract class MemoryBuffer : AcceleratorObject
     {
         #region Instance
-
-        /// <summary>
-        /// Initializes this buffer on the CPU.
-        /// </summary>
-        /// <param name="length">The length of this source.</param>
-        /// <param name="elementSize">The element size.</param>
-        protected MemoryBuffer(long length, int elementSize)
-        {
-            Init(length, elementSize);
-        }
 
         /// <summary>
         /// Initializes this array view buffer.

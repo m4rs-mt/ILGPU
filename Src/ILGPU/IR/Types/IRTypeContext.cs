@@ -166,11 +166,6 @@ namespace ILGPU.IR.Types
         /// </summary>
         public PaddingType Padding64Type { get; }
 
-        /// <summary>
-        /// Returns a dense 1D stride type (<see cref="Stride1D.Dense"/>).
-        /// </summary>
-        public TypeNode Dense1DStrideType { get; }
-
         #endregion
 
         #region Methods

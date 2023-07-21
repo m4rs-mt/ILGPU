@@ -350,11 +350,6 @@ namespace ILGPU.Frontend
         public Method Result { get; internal set; }
 
         /// <summary>
-        /// Returns the associated function handle.
-        /// </summary>
-        public MethodHandle ResultHandle => Result.Handle;
-
-        /// <summary>
         /// Returns true if this result has a function value.
         /// </summary>
         public bool HasResult => Result != null;

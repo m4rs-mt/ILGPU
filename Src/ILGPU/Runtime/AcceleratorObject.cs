@@ -45,11 +45,6 @@ namespace ILGPU.Runtime
         #region Instance
 
         /// <summary>
-        /// Constructs an accelerator object that lives on the CPU.
-        /// </summary>
-        protected AcceleratorObject() { }
-
-        /// <summary>
         /// Constructs an accelerator object.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
