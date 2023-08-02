@@ -112,7 +112,7 @@ namespace ILGPU.Algorithms.Random
         /// Generates a random ulong in [0..ulong.MaxValue].
         /// </summary>
         /// <returns>A random ulong in [0..ulong.MaxValue].</returns>
-        public ulong NextULong() => SeperateUInt(NextUInt());
+        public ulong NextULong() => SeparateUInt(NextUInt());
 
         /// <inheritdoc cref="IRandomProvider.Next"/>
         public int Next() => ToInt(NextUInt());
