@@ -247,9 +247,6 @@ jobs:
 
           dotnet pack Src --configuration=Release @params
 
-      - name: Fix NuGet Symbols Packages
-        run: .github/workflows/Scripts/FixNugetSymbolPackages.ps1 -version "${{ needs.check-version.outputs.version }}"
-
       - name: Upload NuGet package artifacts
         uses: actions/upload-artifact@v3
         with:
