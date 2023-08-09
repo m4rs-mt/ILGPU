@@ -227,8 +227,19 @@
 
 
 /***** DOC LAYOUT *****/
+@import 'sidebar-collapse';
+
 .light header {
   box-shadow: 0 0 25px 0 rgba(0, 0, 0, 0.1);
+}
+
+#sidebar-collapse {
+  cursor: pointer;
+  @include sidebar-collapse-transition(transform);
+}
+
+#sidebar-collapse.sidebar-collapsed {
+  transform: rotate(180deg);
 }
 
 #sidebar {
@@ -236,13 +247,19 @@
   top: 100px;
   bottom: 0;
   left: 0;
-  width: 300px;
+  width: 325px;
   overflow-x: hidden;
   overflow-y: scroll;
   height: calc(100vh - 100px);
   background: #002C5A;
   z-index: 200;
   padding: 0;
+  @include sidebar-collapse-transition(transform);
+}
+
+#sidebar.sidebar-collapsed {
+  transform: translateX(calc(-75% - 12px));  // calculated from column ratios (9/12) and padding on sidebar header
+  overflow: hidden;  // disable scrolling
 }
 
 #sidebar h5 {
@@ -251,7 +268,7 @@
 
 #sidebar-header {
   background-color: $primaryColor;
-  padding: 20px 20px 10px;
+  padding: 20px 0 20px 12px;
   margin-bottom: 20px;
 }
 
@@ -262,17 +279,27 @@
 }
 
 #wiki-nav {
-  padding: 0 20px;
+  padding: 0 70px 0 20px;
 }
 
 #wiki-nav ul {
   list-style-type: none;
+  padding-left: 10px;
+}
+
+#wiki-nav ul li {
+  padding-bottom: 7px;
 }
 
 #wiki-main {
-  margin-left: 300px;
+  margin-left: 325px;
   padding: 32px 50px 130px 50px;
   min-height: 92vh;
+  @include sidebar-collapse-transition(margin-left);
+}
+
+#wiki-main.sidebar-collapsed {
+  margin-left: 70px;
 }
 
 #wiki-main h2 {
