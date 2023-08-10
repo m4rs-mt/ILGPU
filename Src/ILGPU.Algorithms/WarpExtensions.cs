@@ -10,8 +10,10 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.IL;
+using ILGPU.Algorithms.RadixSortOperations;
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.IR.Intrinsics;
+using ILGPU.Util;
 
 namespace ILGPU.Algorithms
 {
@@ -77,6 +79,54 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TScan : struct, IScanReduceOperation<T> =>
             ILWarpExtensions.InclusiveScan<T, TScan>(value);
+
+        #endregion
+
+        #region Sort
+
+        /// <summary>
+        /// Performs a warp-wide radix sort operation.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The radix sort operation type.
+        /// </typeparam>
+        /// <param name="value">The original value in the current lane.</param>
+        /// <returns>The sorted value for the current lane.</returns>
+        public static T RadixSort<T, TRadixSortOperation>(T value)
+            where T : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<T>
+        {
+            TRadixSortOperation operation = default;
+            for (int bitIdx = 0; bitIdx < operation.NumBits; bitIdx++)
+            {
+                var key = operation.ExtractRadixBits(value, bitIdx, 1);
+                var key0 = key == 0 ? 1 : 0;
+                var key1 = 1 - key0;
+
+                for (int offset = 1; offset < Warp.WarpSize - 1; offset <<= 1)
+                {
+                    var partialKey0 = Warp.ShuffleUp(key0, offset);
+                    var partialKey1 = Warp.ShuffleUp(key1, offset);
+                    key0 += Utilities.Select(Warp.LaneIdx >= offset, partialKey0, 0);
+                    key1 += Utilities.Select(Warp.LaneIdx >= offset, partialKey1, 0);
+                }
+                key1 += Warp.Shuffle(key0, Warp.WarpSize - 1);
+
+                var target = key == 0 ? key0 - 1 : key1 - 1;
+                T newElement = operation.DefaultValue;
+                for (int k = 0; k < Warp.WarpSize; k++)
+                {
+                    var targetLane = Warp.Shuffle(target, k);
+                    var retrievedElement = Warp.Shuffle(value, k);
+                    if (targetLane == Warp.LaneIdx)
+                        newElement = retrievedElement;
+                }
+
+                value = newElement;
+            }
+            return value;
+        }
 
         #endregion
     }

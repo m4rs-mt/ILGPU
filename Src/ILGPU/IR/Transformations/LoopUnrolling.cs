@@ -43,7 +43,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Represents the default maximum unroll factor.
         /// </summary>
-        public const int DefaultMaxUnrollFactor = 32;
+        public const int DefaultMaxUnrollFactor = 64;
 
         #endregion
 
