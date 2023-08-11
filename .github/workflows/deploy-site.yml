@@ -78,11 +78,20 @@ jobs:
       ##### GitHub Pages #####
 
   all-required-checks-done:
+    if: ${{ always() }}
     needs:
       - build
     runs-on: ubuntu-latest
     steps:
-      - run: echo "All required checks done"
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            const results = ${{ toJSON(needs.*.result) }};
+            if (results.every(res => res === 'success')) {
+              core.info('All required checks succeeded');
+            } else {
+              core.setFailed('Some required checks failed');
+            }
 
   deploy: # Deployment job
     if: github.event_name != 'pull_request' # Skip deployment when building pull requests.
