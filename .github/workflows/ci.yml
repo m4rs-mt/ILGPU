@@ -311,8 +311,10 @@ jobs:
 
   # Virtual job that can be configured as a required check before a PR can be
   # merged.
+  # As GitHub considers a check as successful if it is skipped, we need to
+  # check its status in another workflow (check-required.yml) and create a
+  # check there.
   all-required-checks-done:
-    if: ${{ always() }}
     needs:
       - check-style
       - build
@@ -321,15 +323,7 @@ jobs:
       - package-samples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v6
-        with:
-          script: |
-            const results = ${{ toJSON(needs.*.result) }};
-            if (results.every(res => res === 'success')) {
-              core.info('All required checks succeeded');
-            } else {
-              core.setFailed('Some required checks failed');
-            }
+      - run: echo "All required checks done"
 
   # Publish a preview version of the NuGet packages on feedz.io when there is
   # a push to master.
