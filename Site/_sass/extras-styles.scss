@@ -233,13 +233,16 @@
   box-shadow: 0 0 25px 0 rgba(0, 0, 0, 0.1);
 }
 
-#sidebar-collapse {
+#sidebar-collapse-icon {
   cursor: pointer;
-  @include sidebar-collapse-transition(transform);
 }
 
-#sidebar-collapse.sidebar-collapsed {
+#sidebar-collapse-icon.sidebar-collapsed {
   transform: rotate(180deg);
+}
+
+#sidebar-collapse-icon.sidebar-animated {
+  @include sidebar-collapse-transition(transform);
 }
 
 #sidebar {
@@ -254,12 +257,15 @@
   background: #002C5A;
   z-index: 200;
   padding: 0;
-  @include sidebar-collapse-transition(transform);
 }
 
 #sidebar.sidebar-collapsed {
   transform: translateX(calc(-75% - 12px));  // calculated from column ratios (9/12) and padding on sidebar header
   overflow: hidden;  // disable scrolling
+}
+
+#sidebar.sidebar-animated {
+  @include sidebar-collapse-transition(transform);
 }
 
 #sidebar h5 {
@@ -295,11 +301,14 @@
   margin-left: 325px;
   padding: 32px 50px 130px 50px;
   min-height: 92vh;
-  @include sidebar-collapse-transition(margin-left);
 }
 
 #wiki-main.sidebar-collapsed {
   margin-left: 70px;
+}
+
+#wiki-main.sidebar-animated {
+  @include sidebar-collapse-transition(margin-left);
 }
 
 #wiki-main h2 {

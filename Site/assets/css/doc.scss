@@ -9,11 +9,14 @@
 
 #breadcrumbs .container {
   margin-left: 340px;
-  @include sidebar-collapse-transition(margin-left);
 }
 
 #breadcrumbs .container.sidebar-collapsed {
   margin-left: 85px;
+}
+
+#breadcrumbs .container.sidebar-animated {
+  @include sidebar-collapse-transition(margin-left);
 }
 
 {% if site.search.enabled %}
