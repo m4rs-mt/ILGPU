@@ -10,18 +10,30 @@
 // ---------------------------------------------------------------------------------------
 
 function main() {
-   const menuToggle = document.getElementById("sidebar-collapse");
+   const menuToggle = document.getElementById("sidebar-collapse-icon");
    const sidebar = document.getElementById("sidebar");
    const content = document.getElementById("wiki-main");
    const breadcrumbs = document.querySelector("#breadcrumbs .container");
 
+   const elements = [menuToggle, sidebar, content, breadcrumbs];
+
    menuToggle.addEventListener('click', toggleCollapsed);
 
    function toggleCollapsed() {
-      menuToggle.classList.toggle("sidebar-collapsed");
-      sidebar.classList.toggle("sidebar-collapsed");
-      content.classList.toggle("sidebar-collapsed");
-      breadcrumbs.classList.toggle("sidebar-collapsed");
+      for (const element of elements) {
+         element.classList.add("sidebar-animated");
+         element.classList.toggle("sidebar-collapsed");
+      }
+
+      const isCollapsed = localStorage.getItem("sidebar-collapse") === "true";
+      localStorage.setItem("sidebar-collapse", isCollapsed ? "false" : "true");
+   }
+
+   if(localStorage.getItem("sidebar-collapse") === "true")  {
+      for (const element of elements) {
+         element.classList.remove("sidebar-animated");
+         element.classList.toggle("sidebar-collapsed");
+      }
    }
 }
 
