@@ -127,7 +127,7 @@ namespace ILGPU.Frontend
                     // Check whether this can be safely converted into a LEA value
                     kind == BinaryArithmeticKind.Add)
                 {
-                    // Check the size of the element type and devide the raw offset
+                    // Check the size of the element type and divide the raw offset
                     // by the element size to retrieve the actual element index.
                     var elementType = left.Type.As<PointerType>(Location).ElementType;
                     var elementSize = Builder.CreateSizeOf(Location, elementType);
@@ -159,6 +159,35 @@ namespace ILGPU.Frontend
             {
                 switch (kind)
                 {
+                    case BinaryArithmeticKind.Add:
+                    case BinaryArithmeticKind.Sub:
+                    case BinaryArithmeticKind.Mul:
+                        PrimitiveValue? const0 = null;
+                        PrimitiveValue? const1 = null;
+                        // Convert the left operand, if required
+                        if (left.BasicValueType == BasicValueType.Int1)
+                        {
+                            const0 = Builder.CreatePrimitiveValue(Location, 0);
+                            const1 = Builder.CreatePrimitiveValue(Location, 1);
+                            left = Builder.CreatePredicate(
+                                Location,
+                                left,
+                                const1,
+                                const0);
+                        }
+
+                        // Convert the right operand, if required
+                        if (right.BasicValueType == BasicValueType.Int1)
+                        {
+                            const0 ??= Builder.CreatePrimitiveValue(Location, 0);
+                            const1 ??= Builder.CreatePrimitiveValue(Location, 1);
+                            right = Builder.CreatePredicate(
+                                Location,
+                                right,
+                                const1,
+                                const0);
+                        }
+                        break;
                     case BinaryArithmeticKind.Shl:
                     case BinaryArithmeticKind.Shr:
                         // Convert right operand to 32bits
