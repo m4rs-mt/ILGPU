@@ -356,6 +356,11 @@ namespace ILGPU.Frontend.DebugInformation
                 {
                     return loader.Load(assembly, out assemblyDebugInformation);
                 }
+                catch (BadImageFormatException)
+                {
+                    // Ignore unsuccessful loads here
+                    return false;
+                }
                 finally
                 {
                     cacheLock.ExitWriteLock();
