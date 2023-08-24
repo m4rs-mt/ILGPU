@@ -60,6 +60,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
     </None>
+    <None Include="Backends\Velocity\Scalar\ScalarOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ScalarOperations.tt</DependentUpon>
+    </None>
     <None Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -189,6 +194,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PTXLibDeviceNvvm.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Backends\Velocity\Scalar\ScalarOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ScalarOperations.tt</DependentUpon>
     </Compile>
     <Compile Update="Memory.cs">
       <DesignTime>True</DesignTime>
