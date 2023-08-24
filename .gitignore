@@ -257,6 +257,7 @@ Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
 Src/ILGPU/Backends/PTX/PTXLibDeviceMethods.cs
 Src/ILGPU/Backends/PTX/PTXLibDeviceNvvm.cs
+Src/ILGPU/Backends/Velocity/Scalar/ScalarOperations.cs
 Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
 Src/ILGPU/HalfConversion.cs
 Src/ILGPU/IR/Construction/ArithmeticOperations.cs
