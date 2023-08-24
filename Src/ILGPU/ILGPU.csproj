@@ -21,7 +21,6 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
     <LangVersion>11.0</LangVersion>
   </PropertyGroup>
 
@@ -29,16 +28,6 @@
     <OutputPath>../../Bin/$(Configuration)/</OutputPath>
     <DocumentationFile>../../Bin/$(Configuration)/$(TargetFramework)/ILGPU.xml</DocumentationFile>
     <Configurations>Debug;Release</Configurations>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net471|AnyCPU'">
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net471|AnyCPU'">
-    <DebugType>pdbonly</DebugType>
-    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -57,11 +46,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="T4.Build" Version="0.2.4" PrivateAssets="All" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net471' or '$(TargetFramework)' == 'netstandard2.1'">
-    <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
-    <PackageReference Include="System.Reflection.Metadata" Version="7.0.2" />
   </ItemGroup>
 
   <ItemGroup>

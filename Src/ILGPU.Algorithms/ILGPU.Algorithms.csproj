@@ -21,7 +21,6 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
     <LangVersion>11.0</LangVersion>
   </PropertyGroup>
 
@@ -30,10 +29,6 @@
     <DocumentationFile>../../Bin/$(Configuration)/$(TargetFramework)/ILGPU.Algorithms.xml</DocumentationFile>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="..\ILGPU\Util\NullableAttributes.cs" Link="Util\NullableAttributes.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="AlgorithmContextMappings.cs">
