@@ -64,7 +64,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <EnablePackageValidation>true</EnablePackageValidation>
+    <!-- Turn off package validation for now to avoid checks against non-supported frameworks -->
+    <EnablePackageValidation>false</EnablePackageValidation>
     <PackageValidationBaselineVersion>$(LibraryPackageValidationBaselineVersion)</PackageValidationBaselineVersion>
   </PropertyGroup>
 
