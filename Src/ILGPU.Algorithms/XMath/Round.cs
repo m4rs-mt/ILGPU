@@ -40,6 +40,15 @@ namespace ILGPU.Algorithms
         /// Rounds the value to the nearest value (halfway cases are rounded to even).
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Round(Half value) =>
+            Round(value, 0, MidpointRounding.ToEven);
+
+        /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded to even).
+        /// </summary>
+        /// <param name="value">The value.</param>
         /// <param name="digits">
         /// The number of fractional digits in the return value.
         /// </param>
@@ -61,11 +70,23 @@ namespace ILGPU.Algorithms
             Round(value, digits, MidpointRounding.ToEven);
 
         /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded to even).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="digits">
+        /// The number of fractional digits in the return value.
+        /// </param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Round(Half value, int digits) =>
+            Round(value, digits, MidpointRounding.ToEven);
+
+        /// <summary>
         /// Rounds the value to the nearest value.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="mode">
-        /// Specifiies how to round value if it is midway between two numbers.
+        /// Specifies how to round value if it is midway between two numbers.
         /// </param>
         /// <returns>The nearest value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -77,7 +98,7 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="mode">
-        /// Specifiies how to round value if it is midway between two numbers.
+        /// Specifies how to round value if it is midway between two numbers.
         /// </param>
         /// <returns>The nearest value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,11 +109,23 @@ namespace ILGPU.Algorithms
         /// Rounds the value to the nearest value.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <param name="mode">
+        /// Specifies how to round value if it is midway between two numbers.
+        /// </param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Round(Half value, MidpointRounding mode) =>
+            Round(value, 0, mode);
+
+        /// <summary>
+        /// Rounds the value to the nearest value.
+        /// </summary>
+        /// <param name="value">The value.</param>
         /// <param name="digits">
         /// The number of fractional digits in the return value.
         /// </param>
         /// <param name="mode">
-        /// Specifiies how to round value if it is midway between two numbers.
+        /// Specifies how to round value if it is midway between two numbers.
         /// </param>
         /// <returns>The nearest value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,12 +140,27 @@ namespace ILGPU.Algorithms
         /// The number of fractional digits in the return value.
         /// </param>
         /// <param name="mode">
-        /// Specifiies how to round value if it is midway between two numbers.
+        /// Specifies how to round value if it is midway between two numbers.
         /// </param>
         /// <returns>The nearest value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Round(float value, int digits, MidpointRounding mode) =>
             RoundingModes.Round(value, digits, mode);
+
+        /// <summary>
+        /// Rounds the value to the nearest value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="digits">
+        /// The number of fractional digits in the return value.
+        /// </param>
+        /// <param name="mode">
+        /// Specifies how to round value if it is midway between two numbers.
+        /// </param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Round(Half value, int digits, MidpointRounding mode) =>
+            (Half)Round((float)value, digits, mode);
 
         /// <summary>
         /// Rounds the value to the nearest value (halfway cases are rounded away from
@@ -137,6 +185,16 @@ namespace ILGPU.Algorithms
             MathF.Round(value, MidpointRounding.AwayFromZero);
 
         /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded away from
+        /// zero).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half RoundAwayFromZero(Half value) =>
+            (Half)RoundAwayFromZero((float)value);
+
+        /// <summary>
         /// Rounds the value to the nearest value (halfway cases are rounded to even).
         /// </summary>
         /// <param name="value">The value.</param>
@@ -157,6 +215,16 @@ namespace ILGPU.Algorithms
             MathF.Round(value, MidpointRounding.ToEven);
 
         /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded to even).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [IntrinsicImplementation]
+        public static Half RoundToEven(Half value) =>
+            (Half)RoundToEven((float)value);
+
+        /// <summary>
         /// Truncates the given value.
         /// </summary>
         /// <param name="value">The value to truncate.</param>
@@ -173,5 +241,14 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Truncate(float value) =>
             Utilities.Select(value < 0.0f, Ceiling(value), Floor(value));
+
+        /// <summary>
+        /// Truncates the given value.
+        /// </summary>
+        /// <param name="value">The value to truncate.</param>
+        /// <returns>The truncated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Truncate(Half value) =>
+            Utilities.Select(value < Half.Zero, Ceiling(value), Floor(value));
     }
 }

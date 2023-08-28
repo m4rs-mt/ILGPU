@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Sqrt.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms
@@ -34,6 +35,15 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Sqrt(value);
 
         /// <summary>
+        /// Computes sqrt(value).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>sqrt(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Sqrt(Half value) =>
+            IntrinsicMath.CPUOnly.Sqrt(value);
+
+        /// <summary>
         /// Computes 1/sqrt(value).
         /// </summary>
         /// <param name="value">The value.</param>
@@ -49,6 +59,15 @@ namespace ILGPU.Algorithms
         /// <returns>1/sqrt(value).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Rsqrt(float value) =>
+            IntrinsicMath.CPUOnly.Rsqrt(value);
+
+        /// <summary>
+        /// Computes 1/sqrt(value).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>1/sqrt(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Rsqrt(Half value) =>
             IntrinsicMath.CPUOnly.Rsqrt(value);
     }
 }

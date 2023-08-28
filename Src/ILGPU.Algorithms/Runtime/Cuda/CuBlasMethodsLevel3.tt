@@ -18,6 +18,7 @@
 <#@ output extension=".cs" #>
 
 using ILGPU.Util;
+using System;
 using System.Runtime.CompilerServices;
 
 // disable: max_line_length
@@ -34,7 +35,7 @@ namespace ILGPU.Runtime.Cuda
         public unsafe void <#= entry #>(
             CuBlasOperation transa,
             CuBlasOperation transb,
-            int m, 
+            int m,
             int n,
             int k,
             <#= paramType #> alpha,
@@ -77,7 +78,7 @@ namespace ILGPU.Runtime.Cuda
         public unsafe void <#= entry #>(
             CuBlasSideMode side,
             CuBlasFillMode uplo,
-            int m, 
+            int m,
             int n,
             <#= paramType #> alpha,
             ArrayView<<#= type #>> a,
@@ -118,7 +119,7 @@ namespace ILGPU.Runtime.Cuda
         public unsafe void <#= entry #>(
             CuBlasFillMode uplo,
             CuBlasOperation trans,
-            int m, 
+            int m,
             int n,
             <#= paramType #> alpha,
             ArrayView<<#= type #>> a,
@@ -156,7 +157,7 @@ namespace ILGPU.Runtime.Cuda
         public unsafe void <#= entry #>(
             CuBlasFillMode uplo,
             CuBlasOperation trans,
-            int n, 
+            int n,
             int k,
             <#= paramType #> alpha,
             ArrayView<<#= type #>> a,

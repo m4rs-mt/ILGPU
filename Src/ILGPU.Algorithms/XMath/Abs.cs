@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Abs.cs
@@ -32,6 +32,15 @@ namespace ILGPU.Algorithms
         /// <returns>|value|.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Abs(float value) =>
+            IntrinsicMath.Abs(value);
+
+        /// <summary>
+        /// Computes |value|.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>|value|.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Abs(Half value) =>
             IntrinsicMath.Abs(value);
 
         /// <summary>

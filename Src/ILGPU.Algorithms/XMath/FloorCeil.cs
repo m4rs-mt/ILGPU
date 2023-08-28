@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: FloorCeil.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms
@@ -34,6 +35,15 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Floor(value);
 
         /// <summary>
+        /// Computes floor(value).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>floor(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Floor(Half value) =>
+            IntrinsicMath.CPUOnly.Floor(value);
+
+        /// <summary>
         /// Computes ceiling(value).
         /// </summary>
         /// <param name="value">The value.</param>
@@ -49,6 +59,15 @@ namespace ILGPU.Algorithms
         /// <returns>ceiling(value).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Ceiling(float value) =>
+            IntrinsicMath.CPUOnly.Ceiling(value);
+
+        /// <summary>
+        /// Computes ceiling(value).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>ceiling(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Ceiling(Half value) =>
             IntrinsicMath.CPUOnly.Ceiling(value);
     }
 }

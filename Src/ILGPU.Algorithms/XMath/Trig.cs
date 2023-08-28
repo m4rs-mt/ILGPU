@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Trig.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms
@@ -34,12 +35,39 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Sin(value);
 
         /// <summary>
+        /// Computes sin(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <returns>sin(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Sin(Half value) =>
+            IntrinsicMath.CPUOnly.Sin(value);
+
+        /// <summary>
         /// Computes sinh(value).
         /// </summary>
         /// <param name="value">The value in radians.</param>
         /// <returns>sinh(value).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Sinh(double value) =>
+            IntrinsicMath.CPUOnly.Sinh(value);
+
+        /// <summary>
+        /// Computes sinh(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <returns>sinh(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Sinh(float value) =>
+            IntrinsicMath.CPUOnly.Sinh(value);
+
+        /// <summary>
+        /// Computes sinh(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <returns>sinh(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Sinh(Half value) =>
             IntrinsicMath.CPUOnly.Sinh(value);
 
         /// <summary>
@@ -61,13 +89,13 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Asin(value);
 
         /// <summary>
-        /// Computes sinh(value).
+        /// Computes asin(value).
         /// </summary>
         /// <param name="value">The value in radians.</param>
-        /// <returns>sinh(value).</returns>
+        /// <returns>asin(value).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Sinh(float value) =>
-            IntrinsicMath.CPUOnly.Sinh(value);
+        public static Half Asin(Half value) =>
+            IntrinsicMath.CPUOnly.Asin(value);
 
         /// <summary>
         /// Computes cos(value).
@@ -88,6 +116,15 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Cos(value);
 
         /// <summary>
+        /// Computes cos(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <returns>cos(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Cos(Half value) =>
+            IntrinsicMath.CPUOnly.Cos(value);
+
+        /// <summary>
         /// Computes cosh(value).
         /// </summary>
         /// <param name="value">The value in radians.</param>
@@ -103,6 +140,16 @@ namespace ILGPU.Algorithms
         /// <returns>cosh(value).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Cosh(float value) =>
+            IntrinsicMath.CPUOnly.Cosh(value);
+
+
+        /// <summary>
+        /// Computes cosh(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <returns>cosh(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Cosh(Half value) =>
             IntrinsicMath.CPUOnly.Cosh(value);
 
         /// <summary>
@@ -124,6 +171,15 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Acos(value);
 
         /// <summary>
+        /// Computes acos(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <returns>acos(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Acos(Half value) =>
+            IntrinsicMath.CPUOnly.Acos(value);
+
+        /// <summary>
         /// Computes tan(value).
         /// </summary>
         /// <param name="value">The value in radians.</param>
@@ -139,6 +195,15 @@ namespace ILGPU.Algorithms
         /// <returns>tan(value).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Tan(float value) =>
+            IntrinsicMath.CPUOnly.Tan(value);
+
+        /// <summary>
+        /// Computes tan(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <returns>tan(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Tan(Half value) =>
             IntrinsicMath.CPUOnly.Tan(value);
 
         /// <summary>
@@ -160,6 +225,15 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Tanh(value);
 
         /// <summary>
+        /// Computes tanh(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <returns>tanh(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Tanh(Half value) =>
+            IntrinsicMath.CPUOnly.Tanh(value);
+
+        /// <summary>
         /// Computes atan(value).
         /// </summary>
         /// <param name="value">The value in radians.</param>
@@ -175,6 +249,15 @@ namespace ILGPU.Algorithms
         /// <returns>atan(value).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Atan(float value) =>
+            IntrinsicMath.CPUOnly.Atan(value);
+
+        /// <summary>
+        /// Computes atan(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <returns>atan(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Atan(Half value) =>
             IntrinsicMath.CPUOnly.Atan(value);
 
         /// <summary>
@@ -195,6 +278,16 @@ namespace ILGPU.Algorithms
         /// <returns>atan2(y, x).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Atan2(float y, float x) =>
+            IntrinsicMath.CPUOnly.Atan2(y, x);
+
+        /// <summary>
+        /// Computes atan2(y, x).
+        /// </summary>
+        /// <param name="y">The y value in radians.</param>
+        /// <param name="x">The x value in radians.</param>
+        /// <returns>atan2(y, x).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Atan2(Half y, Half x) =>
             IntrinsicMath.CPUOnly.Atan2(y, x);
 
         /// <summary>
@@ -220,6 +313,20 @@ namespace ILGPU.Algorithms
         /// <returns>tanh(value).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SinCos(float value, out float sin, out float cos)
+        {
+            sin = Sin(value);
+            cos = Cos(value);
+        }
+
+        /// <summary>
+        /// Computes sin(value) and cos(value).
+        /// </summary>
+        /// <param name="value">The value in radians.</param>
+        /// <param name="sin">The result of sin(value).</param>
+        /// <param name="cos">The result of cos(value).</param>
+        /// <returns>tanh(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void SinCos(Half value, out Half sin, out Half cos)
         {
             sin = Sin(value);
             cos = Cos(value);

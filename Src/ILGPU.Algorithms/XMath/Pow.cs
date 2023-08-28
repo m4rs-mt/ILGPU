@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Pow.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms
@@ -36,6 +37,16 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Pow(@base, exp);
 
         /// <summary>
+        /// Computes basis^exp.
+        /// </summary>
+        /// <param name="base">The basis.</param>
+        /// <param name="exp">The exponent.</param>
+        /// <returns>pow(basis, exp).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Pow(Half @base, Half exp) =>
+            IntrinsicMath.CPUOnly.Pow(@base, exp);
+
+        /// <summary>
         /// Computes exp(value).
         /// </summary>
         /// <param name="value">The value.</param>
@@ -54,6 +65,15 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Exp(value);
 
         /// <summary>
+        /// Computes exp(value).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>exp(value).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Exp(Half value) =>
+            IntrinsicMath.CPUOnly.Exp(value);
+
+        /// <summary>
         /// Computes 2^value.
         /// </summary>
         /// <param name="value">The value.</param>
@@ -69,6 +89,15 @@ namespace ILGPU.Algorithms
         /// <returns>2^value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Exp2(float value) =>
+            IntrinsicMath.CPUOnly.Exp2(value);
+
+        /// <summary>
+        /// Computes 2^value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>2^value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Exp2(Half value) =>
             IntrinsicMath.CPUOnly.Exp2(value);
     }
 }

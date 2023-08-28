@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Rcp.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms
@@ -31,6 +32,15 @@ namespace ILGPU.Algorithms
         /// <returns>1.0f / value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Rcp(float value) =>
+            IntrinsicMath.CPUOnly.Rcp(value);
+
+        /// <summary>
+        /// Computes 1.0f / value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>1.0f / value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Rcp(Half value) =>
             IntrinsicMath.CPUOnly.Rcp(value);
     }
 }

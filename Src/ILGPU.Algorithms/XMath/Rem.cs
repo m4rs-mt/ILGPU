@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Rem.cs
@@ -38,6 +38,16 @@ namespace ILGPU.Algorithms
             IntrinsicMath.CPUOnly.Rem(x, y);
 
         /// <summary>
+        /// Computes x%y.
+        /// </summary>
+        /// <param name="x">The nominator.</param>
+        /// <param name="y">The denominator.</param>
+        /// <returns>x%y.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Rem(Half x, Half y) =>
+            IntrinsicMath.CPUOnly.Rem(x, y);
+
+        /// <summary>
         /// Computes remainder operation that complies with the IEEE 754 specification.
         /// </summary>
         /// <param name="x">The nominator.</param>
@@ -57,10 +67,16 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static float IEEERemainder(float x, float y) =>
-#if !NETFRAMEWORK
             MathF.IEEERemainder(x, y);
-#else
-            (float)Math.IEEERemainder(x, y);
-#endif
+
+        /// <summary>
+        /// Computes remainder operation that complies with the IEEE 754 specification.
+        /// </summary>
+        /// <param name="x">The nominator.</param>
+        /// <param name="y">The denominator.</param>
+        /// <returns>x%y.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half IEEERemainder(Half x, Half y) =>
+            (Half)MathF.IEEERemainder((float)x, (float)y);
     }
 }

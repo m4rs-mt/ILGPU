@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using System;
 
 namespace ILGPU.Algorithms.Sequencers
 {
