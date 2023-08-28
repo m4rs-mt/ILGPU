@@ -255,7 +255,6 @@ Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
 Src/ILGPU/Backends/PTX/PTXLibDeviceMethods.cs
 Src/ILGPU/Backends/PTX/PTXLibDeviceNvvm.cs
 Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
-Src/ILGPU/HalfConversion.cs
 Src/ILGPU/IR/Construction/ArithmeticOperations.cs
 Src/ILGPU/IR/Construction/CompareOperations.cs
 Src/ILGPU/IR/Intrinsics/IntrinsicMatchers.cs
