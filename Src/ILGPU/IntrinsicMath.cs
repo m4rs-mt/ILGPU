@@ -118,6 +118,16 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Min)]
+        public static Half Min(Half first, Half second) =>
+            Half.Min(first, second);
+
+        /// <summary>
+        /// Computes min(first, second).
+        /// </summary>
+        /// <param name="first">The first argument.</param>
+        /// <param name="second">The second argument.</param>
+        /// <returns>The minimum of first and second value.</returns>
         [CLSCompliant(false)]
         public static sbyte Min(sbyte first, sbyte second) =>
             (sbyte)Min((int)first, second);
@@ -211,6 +221,16 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.Max)]
         public static float Max(float first, float second) =>
             Math.Max(first, second);
+
+        /// <summary>
+        /// Computes max(first, second).
+        /// </summary>
+        /// <param name="first">The first argument.</param>
+        /// <param name="second">The second argument.</param>
+        /// <returns>The maximum of first and second value.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Max)]
+        public static Half Max(Half first, Half second) =>
+            Half.Max(first, second);
 
         /// <summary>
         /// Computes max(first, second).
@@ -314,6 +334,16 @@ namespace ILGPU
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
         public static float Clamp(float value, float min, float max) =>
+            Max(Min(value, max), min);
+
+        /// <summary>
+        /// Computes clamp(value, min, max) = Max(Min(clamp, max), min).
+        /// </summary>
+        /// <param name="value">The value to clamp.</param>
+        /// <param name="min">The first argument.</param>
+        /// <param name="max">The second argument.</param>
+        /// <returns>The clamped value in the interval [min, max].</returns>
+        public static Half Clamp(Half value, Half min, Half max) =>
             Max(Min(value, max), min);
 
         /// <summary>
@@ -665,7 +695,14 @@ namespace ILGPU
         /// <returns>A value with the magnitude of x and the sign of y.</returns>
         [MathIntrinsic(MathIntrinsicKind.CopySignF)]
         public static double CopySign(double x, double y) =>
+#if !NETFRAMEWORK && !NETSTANDARD
             Math.CopySign(x, y);
+#else
+            // NB: net471 and netstandard2.1 do not support Math.CopySign.
+            Interop.IntAsFloat(
+                (Interop.FloatAsInt(x) & ~(1UL << 63)) |
+                (Interop.FloatAsInt(y) & (1UL << 63)));
+#endif
 
         /// <summary>
         /// Returns a value with the magnitude of x and the sign of y.
@@ -676,6 +713,16 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.CopySignF)]
         public static float CopySign(float x, float y) =>
             MathF.CopySign(x, y);
+
+        /// <summary>
+        /// Returns a value with the magnitude of x and the sign of y.
+        /// </summary>
+        /// <param name="x">A number whose magnitude is used in the result.</param>
+        /// <param name="y">A number whose sign is the used in the result.</param>
+        /// <returns>A value with the magnitude of x and the sign of y.</returns>
+        [MathIntrinsic(MathIntrinsicKind.CopySignF)]
+        public static Half CopySign(Half x, Half y) =>
+            Half.CopySign(x, y);
 
         #endregion
     }

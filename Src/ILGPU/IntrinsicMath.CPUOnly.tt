@@ -107,7 +107,7 @@ namespace ILGPU
             /// <param name="right">The right operand.</param>
             [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
             public static Half <#= op.MethodName #>(Half left, Half right) =>
-                HalfExtensions.<#= op.MethodName #>FP32(left, right);
+                <#= op.GetImplementation("half", "Half", "Half.One", "(Half)2.0f", "left", "right") #>;
 
 <# } #>
             #endregion
