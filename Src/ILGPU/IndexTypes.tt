@@ -516,7 +516,6 @@ namespace ILGPU
         /// Implicitly converts an index to an unsigned value.
         /// </summary>
         /// <param name="idx">The index to convert.</param>
-        [CLSCompliant(false)]
         public static explicit operator u<#= baseType #>(<#= name #> idx) =>
             (u<#= baseType #>)idx.X;
     }

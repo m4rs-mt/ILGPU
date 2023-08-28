@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LibDevice.tt/LibDevice.cs
@@ -26,8 +26,6 @@ using ILGPU.Backends.PTX;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-#pragma warning disable CS3001 // Argument type is not CLS-compliant
-#pragma warning disable CS3002 // Return type is not CLS-compliant
 #pragma warning disable IDE0018 // Inline variable declaration
 #pragma warning disable IDE1006 // Naming Styles
 
@@ -55,8 +53,6 @@ namespace ILGPU.Runtime.Cuda
 
 #pragma warning restore IDE1006 // Naming Styles
 #pragma warning restore IDE0018 // Inline variable declaration
-#pragma warning restore CS3002 // Return type is not CLS-compliant
-#pragma warning restore CS3001 // Argument type is not CLS-compliant
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
 <#+

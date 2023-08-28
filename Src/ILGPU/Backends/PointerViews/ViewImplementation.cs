@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ViewImplementation.cs
@@ -21,7 +21,6 @@ namespace ILGPU.Backends.PointerViews
     /// native pointers.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    [CLSCompliant(false)]
     [StructLayout(LayoutKind.Sequential)]
     public unsafe readonly struct ViewImplementation<T>
         where T : unmanaged

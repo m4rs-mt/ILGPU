@@ -150,7 +150,6 @@ namespace ILGPU.IR.Construction
         /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        [CLSCompliant(false)]
         public PrimitiveValue CreatePrimitiveValue(Location location, sbyte value) =>
             Append(new PrimitiveValue(
                 GetInitializer(location),
@@ -184,7 +183,6 @@ namespace ILGPU.IR.Construction
         /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        [CLSCompliant(false)]
         public PrimitiveValue CreatePrimitiveValue(Location location, ushort value) =>
             CreatePrimitiveValue(location, (short)value);
 
@@ -206,7 +204,6 @@ namespace ILGPU.IR.Construction
         /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        [CLSCompliant(false)]
         public PrimitiveValue CreatePrimitiveValue(Location location, uint value) =>
             CreatePrimitiveValue(location, (int)value);
 
@@ -228,7 +225,6 @@ namespace ILGPU.IR.Construction
         /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        [CLSCompliant(false)]
         public PrimitiveValue CreatePrimitiveValue(Location location, ulong value) =>
             CreatePrimitiveValue(location, (long)value);
 

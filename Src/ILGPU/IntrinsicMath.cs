@@ -58,7 +58,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>|value|.</returns>
-        [CLSCompliant(false)]
         public static sbyte Abs(sbyte value) =>
             (sbyte)Abs((int)value);
 
@@ -118,7 +117,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [CLSCompliant(false)]
         public static sbyte Min(sbyte first, sbyte second) =>
             (sbyte)Min((int)first, second);
 
@@ -166,7 +164,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [CLSCompliant(false)]
         public static ushort Min(ushort first, ushort second) =>
             (ushort)Min((uint)first, second);
 
@@ -176,7 +173,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.Min, ArithmeticFlags.Unsigned)]
         public static uint Min(uint first, uint second) =>
             Math.Min(first, second);
@@ -187,7 +183,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.Min, ArithmeticFlags.Unsigned)]
         public static ulong Min(ulong first, ulong second) =>
             Math.Min(first, second);
@@ -218,7 +213,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [CLSCompliant(false)]
         public static sbyte Max(sbyte first, sbyte second) =>
             (sbyte)Max((int)first, second);
 
@@ -266,7 +260,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [CLSCompliant(false)]
         public static ushort Max(ushort first, ushort second) =>
             (ushort)Max((uint)first, second);
 
@@ -276,7 +269,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.Max, ArithmeticFlags.Unsigned)]
         public static uint Max(uint first, uint second) =>
             Math.Max(first, second);
@@ -287,7 +279,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.Max, ArithmeticFlags.Unsigned)]
         public static ulong Max(ulong first, ulong second) =>
             Math.Max(first, second);
@@ -323,7 +314,6 @@ namespace ILGPU
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        [CLSCompliant(false)]
         public static sbyte Clamp(sbyte value, sbyte min, sbyte max) =>
             Max(Min(value, max), min);
 
@@ -374,7 +364,6 @@ namespace ILGPU
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        [CLSCompliant(false)]
         public static ushort Clamp(ushort value, ushort min, ushort max) =>
             Max(Min(value, max), min);
 
@@ -385,7 +374,6 @@ namespace ILGPU
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        [CLSCompliant(false)]
         public static uint Clamp(uint value, uint min, uint max) =>
             Max(Min(value, max), min);
 
@@ -396,7 +384,6 @@ namespace ILGPU
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        [CLSCompliant(false)]
         public static ulong Clamp(ulong value, ulong min, ulong max) =>
             Max(Min(value, max), min);
 
@@ -417,7 +404,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of one bits.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.PopC)]
         public static int PopCount(uint value) => BitOperations.PopCount(value);
 
@@ -434,7 +420,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of one bits.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.PopC)]
         public static int PopCount(ulong value) => BitOperations.PopCount(value);
 
@@ -456,7 +441,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of leading zeros.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.CLZ)]
         public static int LeadingZeroCount(uint value) =>
             BitOperations.LeadingZeroCount(value);
@@ -475,7 +459,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of leading zeros.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.CLZ)]
         public static int LeadingZeroCount(ulong value) =>
             BitOperations.LeadingZeroCount(value);
@@ -498,7 +481,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of trailing zeros.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.CTZ)]
         public static int TrailingZeroCount(uint value) =>
             BitOperations.TrailingZeroCount(value);
@@ -517,7 +499,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of trailing zeros.</returns>
-        [CLSCompliant(false)]
         [MathIntrinsic(MathIntrinsicKind.CTZ)]
         public static int TrailingZeroCount(ulong value) =>
             BitOperations.TrailingZeroCount(value);
@@ -581,7 +562,6 @@ namespace ILGPU
         /// <summary>
         /// Represents integer parts of an 64 bit integer.
         /// </summary>
-        [CLSCompliant(false)]
         public struct IntegerParts
         {
             /// <summary>
@@ -625,7 +605,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to decompose.</param>
         /// <returns>The lower and upper part.</returns>
-        [CLSCompliant(false)]
         public static IntegerParts Decompose(long value) => Decompose((ulong)value);
 
         /// <summary>
@@ -633,7 +612,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to decompose.</param>
         /// <returns>The lower and upper part.</returns>
-        [CLSCompliant(false)]
         public static IntegerParts Decompose(ulong value) =>
             new IntegerParts(value);
 
@@ -642,7 +620,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="parts">The lower and upper parts.</param>
         /// <returns>The composed integer.</returns>
-        [CLSCompliant(false)]
         public static ulong ComposeULong(IntegerParts parts) => parts.ToULong();
 
         /// <summary>
@@ -650,7 +627,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="parts">The lower and upper parts.</param>
         /// <returns>The composed integer.</returns>
-        [CLSCompliant(false)]
         public static long ComposeLong(IntegerParts parts) => (long)ComposeULong(parts);
 
         #endregion

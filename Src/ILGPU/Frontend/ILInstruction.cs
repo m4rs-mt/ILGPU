@@ -651,7 +651,6 @@ namespace ILGPU.Frontend
         /// </param>
         /// <param name="argument">The instruction argument.</param>
         /// <param name="location">The current location.</param>
-        [CLSCompliant(false)]
         public ILInstruction(
             int offset,
             ILInstructionType type,
@@ -697,13 +696,11 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the number of elements to pop from the stack.
         /// </summary>
-        [CLSCompliant(false)]
         public ushort PopCount { get; }
 
         /// <summary>
         /// Returns the number of elements to push onto the stack.
         /// </summary>
-        [CLSCompliant(false)]
         public ushort PushCount { get; }
 
         /// <summary>
