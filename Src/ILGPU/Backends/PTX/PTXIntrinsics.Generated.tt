@@ -19,27 +19,28 @@
 <#
 var fp16Ops = new (string, string, string, string)[]
 {
-    ("Unary", "Neg", "Neg", "SM_53"),
+    ("Unary", "Neg", "op_UnaryNegation", "SM_53"),
     ("Unary", "Abs", "Abs", "SM_53"),
     ("Unary", "IsInfF", "IsInfinity", null),
     ("Unary", "IsNaNF", "IsNaN", null),
     ("Unary", "Exp2F", "Exp2FP32", "SM_75"),
     ("Unary", "TanhF", "TanhFP32", "SM_75"),
 
-    ("Binary", "Add", "AddFP32", "SM_53"),
-    ("Binary", "Sub", "SubFP32", "SM_53"),
-    ("Binary", "Mul", "MulFP32", "SM_53"),
-    ("Binary", "Div", "DivFP32", null),
-    ("Binary", "Min", "MinFP32", "SM_80"),
-    ("Binary", "Max", "MaxFP32", "SM_80"),
+    ("Binary", "Add", "op_Addition", "SM_53"),
+    ("Binary", "Sub", "op_Subtraction", "SM_53"),
+    ("Binary", "Mul", "op_Multiply", "SM_53"),
+    ("Binary", "Div", "op_Division", null),
+    ("Binary", "Min", "Min", "SM_80"),
+    ("Binary", "Max", "Max", "SM_80"),
 
-    ("Ternary", "MultiplyAdd", "FmaFP32", "SM_53"),
+    ("Ternary", "MultiplyAdd", "FusedMultiplyAdd", "SM_53"),
 };
 #>
+using System;
+using System.Runtime.CompilerServices;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.Cuda;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.PTX
 {
@@ -151,7 +152,7 @@ namespace ILGPU.Backends.PTX
                 <#= type #>ArithmeticKind.<#= kind #>,
                 BasicValueType.Float16,
                 CreateFP16Intrinsic(
-                    nameof(HalfExtensions.<#= name #>),
+                    "<#= name #>",
                     <#= sm != null ? $"CudaArchitecture.{sm}" : "null" #>));
 <# } #>
         }

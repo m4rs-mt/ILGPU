@@ -365,7 +365,7 @@ namespace ILGPU.Backends.OpenCL
                         AppendConstant(value.UInt64Value);
                         break;
                     case BasicValueType.Float16:
-                        AppendConstant(value.Float16Value);
+                        AppendConstant((float)value.Float16Value);
                         break;
                     case BasicValueType.Float32:
                         AppendConstant(value.Float32Value);
@@ -552,7 +552,7 @@ namespace ILGPU.Backends.OpenCL
                                 }
                                 else if (argumentType == typeof(Half))
                                 {
-                                    AppendConstant((Half)argument.AsNotNull());
+                                    AppendConstant((float)(Half)argument.AsNotNull());
                                     break;
                                 }
                                 throw new NotSupportedException(string.Format(

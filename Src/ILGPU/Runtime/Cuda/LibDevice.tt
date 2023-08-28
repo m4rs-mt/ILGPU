@@ -22,6 +22,7 @@
 string rootPath = Host.ResolvePath(".");
 var functions = LibDeviceFunctions.Load(rootPath, "../../Static/CudaLibDevice.xml");
 #>
+using System;
 using ILGPU.Backends.PTX;
 using System.Runtime.CompilerServices;
 

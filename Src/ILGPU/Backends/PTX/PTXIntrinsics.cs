@@ -33,7 +33,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The Half implementation type.
         /// </summary>
-        private static readonly Type HalfType = typeof(HalfExtensions);
+        private static readonly Type HalfType = typeof(Half);
 
         /// <summary>
         /// Creates a new PTX intrinsic.
