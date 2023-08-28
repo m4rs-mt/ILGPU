@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RemappedIntrinsics.Generated.tt/RemappedIntrinsics.Generated.cs
@@ -134,7 +134,6 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(<#= type.Type #>),
                 typeof(<#= type.Type #>));
 <# } #>
-#if !NETFRAMEWORK
             var systemMathFType = typeof(MathF);
 
 <# foreach (var (method, type, _, className) in unaryMathFunctions
@@ -154,7 +153,6 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(<#= type.Type #>),
                 typeof(<#= type.Type #>));
 <# } #>
-#endif
         }
 
         private static void RegisterInterlockedRemappings()
