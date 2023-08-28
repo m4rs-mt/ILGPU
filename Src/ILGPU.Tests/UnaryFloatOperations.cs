@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: UnaryFloatOperations.cs
@@ -10,9 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
-#if NETFRAMEWORK
-using ILGPU.Util;
-#endif
 using Xunit;
 using Xunit.Abstractions;
 
@@ -126,14 +123,7 @@ namespace ILGPU.Tests
             ArrayView1D<int, Stride1D.Dense> data,
             double value)
         {
-#if NETFRAMEWORK
-            data[index + 0] =
-                Bitwise.And(!double.IsNaN(value), !double.IsInfinity(value))
-                ? 1
-                : 0;
-#else
             data[index + 0] = double.IsFinite(value) ? 1 : 0;
-#endif
             data[index + 1] = double.IsInfinity(value) ? 1 : 0;
             data[index + 2] = double.IsPositiveInfinity(value) ? 1 : 0;
             data[index + 3] = double.IsNegativeInfinity(value) ? 1 : 0;
