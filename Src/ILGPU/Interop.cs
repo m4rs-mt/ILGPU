@@ -170,7 +170,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
         public static ushort FloatAsInt(Half value) =>
-            value.RawValue;
+            Unsafe.As<Half, ushort>(ref value);
 
         /// <summary>
         /// Casts the given float to an int via a reinterpret cast.
@@ -203,7 +203,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.IntAsFloat)]
         public static Half IntAsFloat(ushort value) =>
-            new Half(value);
+            Unsafe.As<ushort, Half>(ref value);
 
         /// <summary>
         /// Casts the given int to a float via a reinterpret cast.
