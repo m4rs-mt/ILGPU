@@ -17,6 +17,7 @@
 <#@ output extension=".cs" #>
 using ILGPU.Runtime;
 using ILGPU.Tests;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -66,7 +67,7 @@ namespace ILGPU.Algorithms.Tests
 
             Verify(input.View, expected, length: resultLength);
         }
-        
+
         [Theory]
         [InlineData(1)]
         [InlineData(317)]

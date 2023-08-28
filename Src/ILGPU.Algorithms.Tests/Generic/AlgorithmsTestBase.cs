@@ -37,7 +37,7 @@ namespace ILGPU.Algorithms.Tests
 
             public override bool Equals(Half x, Half y)
             {
-                if ((Half.IsNaN(x) && float.IsNaN(y)) ||
+                if ((Half.IsNaN(x) && Half.IsNaN(y)) ||
                     (Half.IsPositiveInfinity(x) && Half.IsPositiveInfinity(y)) ||
                     (Half.IsNegativeInfinity(x) && Half.IsNegativeInfinity(y)))
                 {
@@ -49,7 +49,7 @@ namespace ILGPU.Algorithms.Tests
                     return false;
                 }
 
-                return Math.Abs(x - y) < Margin;
+                return (float)Half.Abs(x - y) < Margin;
             }
 
             public override int GetHashCode(Half obj) =>
@@ -145,14 +145,11 @@ namespace ILGPU.Algorithms.Tests
                     return false;
                 }
 
-                var diff = Math.Abs(x - y);
-
-                if (diff == 0)
+                var diff = Half.Abs(x - y);
+                if (diff == Half.Zero)
                     return true;
-
-                if (x != 0)
-                    return Math.Abs(diff / x) < RelativeError;
-
+                if (x != Half.Zero)
+                    return (float)Half.Abs(diff / x) < RelativeError;
                 return false;
             }
 

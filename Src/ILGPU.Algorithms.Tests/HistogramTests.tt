@@ -18,6 +18,7 @@
 using ILGPU.Algorithms.HistogramOperations;
 using ILGPU.Runtime;
 using ILGPU.Tests;
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -87,7 +88,7 @@ namespace ILGPU.Algorithms.Tests
                 <#= inputType.Type #> value,
                 Index1D numBins) =>
 <#      if (inputType.IsFloat) { #>
-                (int)XMath.Abs(XMath.Rem(value, numBins));
+                (int)XMath.Abs(XMath.Rem(value, (<#= inputType.Type #>)numBins.X));
 <#      } else { #>
                 (int)XMath.Abs(value % (uint)numBins);
 <#      } #>

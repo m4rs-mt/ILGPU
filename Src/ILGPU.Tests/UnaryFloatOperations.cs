@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using System;
 using Xunit;
 using Xunit.Abstractions;
 

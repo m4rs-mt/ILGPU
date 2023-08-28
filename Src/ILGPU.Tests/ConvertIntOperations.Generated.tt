@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ConvertIntOperations.Generated.tt/ConvertIntOperations.Generated.cs
@@ -14,6 +14,7 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
 using ILGPU.Runtime;
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;

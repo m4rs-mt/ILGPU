@@ -17,6 +17,7 @@
 using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
 using ILGPU.Tests;
+using System;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -208,7 +209,7 @@ namespace ILGPU.Algorithms.Tests
 
             <#= type.Type #>[] expected = new <#= type.Type #>[bufferLength];
             for (int i = 0, e = bufferLength; i < e; i += 8)
-                for (int j = 0; j < 2; ++j) 
+                for (int j = 0; j < 2; ++j)
                     for (int k = 0; k < 4 && (i + j * 4 + k) < e; ++k)
                         expected[i + j * 4 + k] = (<#= type.Type #>)(j);
 
