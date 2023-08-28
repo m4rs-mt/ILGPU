@@ -117,11 +117,7 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-#if NETFRAMEWORK
-                v => (<#= function.DataType #>)Math.<#= function.Name #>(v.X, v.Y))
-#else
                 v => Math<#= function.MathSuffix #>.<#= function.Name #>(v.X, v.Y))
-#endif
                 .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinRelativeError(
@@ -186,11 +182,7 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-#if NETFRAMEWORK
-                x => (<#= function.DataType #>)Math.Pow(
-#else
                 x => Math<#= function.MathSuffix #>.Pow(
-#endif
                     2.0<#= function.ValueSuffix #>, x)).ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinRelativeError(
@@ -255,11 +247,7 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-#if NETFRAMEWORK
-                x => (<#= function.DataType #>)Math.<#= function.Name #>(x))
-#else
                 x => Math<#= function.MathSuffix #>.<#= function.Name #>(x))
-#endif
                 .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinRelativeError(

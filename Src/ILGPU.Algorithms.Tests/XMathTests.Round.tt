@@ -125,11 +125,7 @@ namespace ILGPU.Algorithms.Tests
                 2.8<#= function.ValueSuffix #>,
                 2.5<#= function.ValueSuffix #>,
                 3.5<#= function.ValueSuffix #>,
-#if NETFRAMEWORK
-                (<#= function.DataType #>)Math.Pow(2, 53),
-#else
                 Math<#= function.MathSuffix #>.Pow(2, 53),
-#endif
                 -0.0<#= function.ValueSuffix #>,
                 -0.4<#= function.ValueSuffix #>,
                 -0.5<#= function.ValueSuffix #>,
@@ -139,31 +135,14 @@ namespace ILGPU.Algorithms.Tests
                 -2.5<#= function.ValueSuffix #>,
                 -2.8<#= function.ValueSuffix #>,
                 -3.5<#= function.ValueSuffix #>,
-#if NETFRAMEWORK
-                (<#= function.DataType #>)-Math.Pow(2, 53),
-#else
                 -Math<#= function.MathSuffix #>.Pow(2, 53),
-#endif
                 <#= function.DataType #>.NaN,
                 <#= function.DataType #>.PositiveInfinity,
                 <#= function.DataType #>.NegativeInfinity,
             };
 
 <# } #>
-<#
-    foreach (var function in roundFunctions)
-    {
-        // net471 and netstandard2.1 only support MidpointRounding.ToEven (0)
-        // and MidpointRounding.AwayFromZero (1).
-        bool restrictedRoundingMode =
-            function.RoundingMode.HasValue &&
-            function.RoundingMode.Value > (int)MidpointRounding.AwayFromZero;
-        if (restrictedRoundingMode)
-        {
-#>
-
-#if !NETFRAMEWORK // If MidpointRounding mode not supported
-<#      } #>
+<# foreach (var function in roundFunctions) { #>
         internal static void <#= function.KernelName #>(
             Index1D index,
             ArrayView1D<<#= function.DataType #>, Stride1D.Dense> input,
@@ -186,15 +165,6 @@ namespace ILGPU.Algorithms.Tests
         {
             var expected = new[]
             {
-#if NETFRAMEWORK
-                <#= string.Format(
-                        function.ExpectedFormatString,
-                        "(" + function.DataType + ")Math",
-                        "value",
-                        function.Digits,
-                        function.RoundingMode)
-                #>
-#else
                 <#= string.Format(
                         function.ExpectedFormatString,
                         "Math" + function.MathSuffix,
@@ -202,7 +172,6 @@ namespace ILGPU.Algorithms.Tests
                         function.Digits,
                         function.RoundingMode)
                 #>
-#endif
             };
             using var input = Accelerator.Allocate1D<<#= function.DataType #>>(1);
             using var output = Accelerator.Allocate1D<<#= function.DataType #>>(1);
@@ -212,9 +181,6 @@ namespace ILGPU.Algorithms.Tests
             Verify(output.View, expected);
         }
 
-<# if (restrictedRoundingMode) { #>
-#endif
-<#      } #>
 <# } #>
     }
 }
