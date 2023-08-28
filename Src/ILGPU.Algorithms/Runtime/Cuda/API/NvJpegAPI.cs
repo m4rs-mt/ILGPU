@@ -16,7 +16,6 @@ namespace ILGPU.Runtime.Cuda.API
     /// <summary>
     /// An implementation of the nvJpeg API.
     /// </summary>
-    [CLSCompliant(false)]
     public abstract partial class NvJpegAPI
     {
         #region Static

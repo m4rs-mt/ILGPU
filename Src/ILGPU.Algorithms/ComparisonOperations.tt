@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ComparisonOperations.tt/ComparisonOperations.cs
@@ -27,9 +27,6 @@ namespace ILGPU.Algorithms.ComparisonOperations
     /// <summary>
     /// Represents an comparison between two elements of type <#= type.Type #>.
     /// </summary>
-<#      if (!type.IsCLSCompliant) { #>
-    [CLSCompliant(false)]
-<#      } #>
     public readonly struct Comparison<#= type.Name #>
         : IComparisonOperation<<#= type.Type #>>
     {

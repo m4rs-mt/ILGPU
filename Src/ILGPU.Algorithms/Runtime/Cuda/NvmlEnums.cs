@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvmlEnums.cs
@@ -338,7 +338,6 @@ namespace ILGPU.Runtime.Cuda
         NVML_VALUE_TYPE_COUNT
     }
 
-    [CLSCompliant(false)]
     public static class NvmlConstants
     {
         public const uint NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE = 16;

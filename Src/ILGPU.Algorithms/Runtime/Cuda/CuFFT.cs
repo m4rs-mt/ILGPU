@@ -17,7 +17,6 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Wrapper over cuFFT to simplify integration with ILGPU.
     /// </summary>
-    [CLSCompliant(false)]
     public sealed class CuFFT
     {
         /// <summary>

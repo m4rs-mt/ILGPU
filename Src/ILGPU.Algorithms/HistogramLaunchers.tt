@@ -49,9 +49,6 @@ namespace ILGPU.Algorithms
         /// <param name="histogramOverflow">
         /// Single-element view that indicates whether the histogram has overflowed.
         /// </param>
-<# if (!type.IsCLSCompliant) { #>
-        [CLSCompliant(false)]
-<# } #>
         public static void Histogram<T, TStride, TLocator>(
             this Accelerator accelerator,
             AcceleratorStream stream,
