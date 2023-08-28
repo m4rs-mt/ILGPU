@@ -254,7 +254,7 @@ namespace ILGPU.IR.Values
         public bool HasFloatValue(float f32Value, double f64Value) =>
             BasicValueType switch
             {
-                BasicValueType.Float16 => Float16Value == f32Value,
+                BasicValueType.Float16 => (float)Float16Value == f32Value,
                 BasicValueType.Float32 => Float32Value == f32Value,
                 BasicValueType.Float64 => Float64Value == f64Value,
                 _ => false

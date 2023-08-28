@@ -242,7 +242,7 @@ namespace ILGPU.IR.Construction
             Append(new PrimitiveValue(
                 GetInitializer(location),
                 BasicValueType.Float16,
-                value.RawValue));
+                Unsafe.As<Half, short>(ref value)));
 
         /// <summary>
         /// Creates a primitive <see cref="float"/> value.

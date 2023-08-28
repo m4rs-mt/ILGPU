@@ -285,7 +285,7 @@ namespace ILGPU.IR.Construction
                                 return CreatePrimitiveValue(
                                     location,
                                     targetBasicValueType,
-                                    Half.IsZero(value.Float16Value) ? 0 : 1);
+                                    Half.Abs(value.Float16Value) == Half.Zero ? 0 : 1);
                             case BasicValueType.Int8:
                             case BasicValueType.Int16:
                             case BasicValueType.Int32:
