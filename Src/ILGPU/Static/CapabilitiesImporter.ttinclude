@@ -47,11 +47,21 @@ public class Capability
     [XmlElement]
     public CLEntry OpenCL { get; set; }
 
-    public bool IsCudaOnly => Cuda != null && OpenCL == null;
-    public bool IsOpenCLOnly => Cuda == null && OpenCL != null;
+    [XmlElement]
+    public VelocityEntry Velocity { get; set; }
+
+    public bool IsCudaOnly => Cuda != null && OpenCL == null && Velocity == null;
+    public bool IsOpenCLOnly => Cuda == null && OpenCL != null && Velocity == null;
+    public bool IsVelocityOnly => Velocity != null && Cuda == null && OpenCL == null;
 
     [XmlIgnore]
     public string ParameterName => char.ToLower(Name[0]).ToString() + Name.Substring(1);
+}
+
+public class VelocityEntry
+{
+    [XmlAttribute("supported")]
+    public bool Supported { get; set; }
 }
 
 public class CudaEntry
