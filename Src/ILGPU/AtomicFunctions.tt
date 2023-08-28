@@ -164,7 +164,7 @@ namespace ILGPU
         /// <returns>The old value that was stored at the target location.</returns>
 <#      if (type.IsUnsignedInt) { #>
         [AtomicIntrinsic(AtomicIntrinsicKind.Max, AtomicFlags.Unsigned)]
-<#      } else if (type.IsInt) { #>
+<#      } else if (type.IsInt || type.IsFloat) { #>
         [AtomicIntrinsic(AtomicIntrinsicKind.Max, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -202,7 +202,7 @@ namespace ILGPU
         /// <returns>The old value that was stored at the target location.</returns>
 <#      if (type.IsUnsignedInt) { #>
         [AtomicIntrinsic(AtomicIntrinsicKind.Min, AtomicFlags.Unsigned)]
-<#      } else if (type.IsInt) { #>
+<#      } else if (type.IsInt || type.IsFloat) { #>
         [AtomicIntrinsic(AtomicIntrinsicKind.Min, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
