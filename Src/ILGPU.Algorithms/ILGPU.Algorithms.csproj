@@ -114,6 +114,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
     </None>
+    <None Update="Random\RandomRanges.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RandomRanges.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Cuda\API\CuFFTAPI.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CuFFTAPI.Generated.cs</LastGenOutput>
@@ -251,6 +255,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>RadixSortOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Random\RandomRanges.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RandomRanges.tt</DependentUpon>
     </Compile>
     <Compile Update="Resources\ErrorMessages.Designer.cs">
       <DesignTime>True</DesignTime>

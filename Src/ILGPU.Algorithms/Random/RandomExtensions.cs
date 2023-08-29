@@ -10,8 +10,10 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms.Random
@@ -49,7 +51,7 @@ namespace ILGPU.Algorithms.Random
         /// <summary>
         /// Separates the given unsigned int into an unsigned long.
         /// </summary>
-        internal static ulong SeperateUInt(uint nextUInt) =>
+        internal static ulong SeparateUInt(uint nextUInt) =>
             ((ulong)nextUInt << 32) | nextUInt;
 
         /// <summary>
@@ -91,8 +93,8 @@ namespace ILGPU.Algorithms.Random
         /// Generates a random int in [minValue..maxValue).
         /// </summary>
         /// <param name="randomProvider">The random provider.</param>
-        /// <param name="minValue">The minimum value (inclusive)</param>
-        /// <param name="maxValue">The maximum values (exclusive)</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
         /// <returns>A random int in [minValue..maxValue).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Next<TRandomProvider>(
@@ -112,8 +114,8 @@ namespace ILGPU.Algorithms.Random
         /// Generates a random int in [minValue..maxValue).
         /// </summary>
         /// <param name="randomProvider">The random provider.</param>
-        /// <param name="minValue">The minimum value (inclusive)</param>
-        /// <param name="maxValue">The maximum values (exclusive)</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
         /// <returns>A random int in [minValue..maxValue).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Next<TRandomProvider>(
@@ -133,8 +135,8 @@ namespace ILGPU.Algorithms.Random
         /// Generates a random int in [minValue..maxValue).
         /// </summary>
         /// <param name="randomProvider">The random provider.</param>
-        /// <param name="minValue">The minimum value (inclusive)</param>
-        /// <param name="maxValue">The maximum values (exclusive)</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
         /// <returns>A random int in [minValue..maxValue).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Next<TRandomProvider>(
@@ -154,8 +156,8 @@ namespace ILGPU.Algorithms.Random
         /// Generates a random long in [minValue..maxValue).
         /// </summary>
         /// <param name="randomProvider">The random provider.</param>
-        /// <param name="minValue">The minimum value (inclusive)</param>
-        /// <param name="maxValue">The maximum values (exclusive)</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
         /// <returns>A random long in [minValue..maxValue).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Next<TRandomProvider>(
@@ -173,6 +175,72 @@ namespace ILGPU.Algorithms.Random
                 : (long)(randomProvider.NextDouble() * dist);
             return Math.Min(intermediate + minValue, maxValue - 1);
         }
+
+#if NET7_0_OR_GREATER
+        /// <summary>
+        /// Generates a new random vector containing provided RNG-based values.
+        /// </summary>
+        /// <typeparam name="T">The vector element type.</typeparam>
+        /// <typeparam name="TRandomProvider">The RNG provider type.</typeparam>
+        /// <typeparam name="TRange">The generic RNG value range.</typeparam>
+        /// <param name="randomProvider">The random provider instance to use.</param>
+        /// <param name="range">The generic range instance to use.</param>
+        /// <returns>The created random vector.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe Vector<T> NextVector<T, TRandomProvider, TRange>(
+            ref TRandomProvider randomProvider,
+            TRange range)
+            where T : unmanaged
+            where TRandomProvider : struct, IRandomProvider
+            where TRange : struct, IRandomRange<T>
+        {
+            int vectorLength = Vector<T>.Count;
+            int length = Interop.SizeOf<T>() * vectorLength;
+
+            // Allocate temporary buffers
+            var source = stackalloc byte[length + vectorLength];
+            var span = new Span<T>(
+                (void*)Interop.Align((long)source, length, vectorLength),
+                vectorLength);
+
+            // Generated random numbers
+            for (int i = 0; i < vectorLength; ++i)
+                span[i] = range.Next(ref randomProvider);
+
+            // Load aligned vector
+            return span.LoadAlignedVectorUnsafe();
+        }
+
+        /// <summary>
+        /// Generates a new random vector containing provided RNG-based values.
+        /// </summary>
+        /// <typeparam name="T">The vector element type.</typeparam>
+        /// <typeparam name="TRangeProvider">The RNG range provider.</typeparam>
+        /// <param name="rangeProvider">The range provider instance to use.</param>
+        /// <returns>The created random vector.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe Vector<T> NextVector<T, TRangeProvider>(
+            ref TRangeProvider rangeProvider)
+            where T : unmanaged
+            where TRangeProvider : struct, IRandomRangeProvider<TRangeProvider, T>
+        {
+            int vectorLength = Vector<T>.Count;
+            int length = Interop.SizeOf<T>() * vectorLength;
+
+            // Allocate temporary buffers
+            var source = stackalloc byte[length + vectorLength];
+            var span = new Span<T>(
+                (void*)Interop.Align((long)source, length, vectorLength),
+                vectorLength);
+
+            // Generated random numbers
+            for (int i = 0; i < vectorLength; ++i)
+                span[i] = rangeProvider.Next();
+
+            // Load aligned vector
+            return span.LoadAlignedVectorUnsafe();
+        }
+#endif
 
         /// <summary>
         /// Constructs an RNG using the given provider instance.
