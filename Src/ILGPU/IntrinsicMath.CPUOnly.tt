@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMath.CPUOnly.tt/IntrinsicMath.CPUOnly.cs
@@ -63,7 +63,6 @@ namespace ILGPU
 
             #region Single Precision
 
-#if !NETFRAMEWORK
 <# foreach (var op in unaryOps) { #>
             /// <summary>
             /// <#= op.Summary #>
@@ -85,29 +84,6 @@ namespace ILGPU
                 <#= op.GetImplementation("float", "MathF", "1.0f", "2.0f", "left", "right") #>;
 
 <# } #>
-#else
-<# foreach (var op in unaryOps) { #>
-            /// <summary>
-            /// <#= op.Summary #>
-            /// </summary>
-            /// <param name="value">The value.</param>
-            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
-            public static <#= op.IsPredicate ? "bool" : "float" #> <#= op.MethodName #>(float value) =>
-                <#= op.GetImplementation("float", "(float)Math", "1.0f", "2.0f", "value") #>;
-
-<# } #>
-<# foreach (var op in binaryOps) { #>
-            /// <summary>
-            /// <#= op.Summary #>
-            /// </summary>
-            /// <param name="left">The left operand.</param>
-            /// <param name="right">The right operand.</param>
-            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
-            public static float <#= op.MethodName #>(float left, float right) =>
-                <#= op.GetImplementation("float", "(float)Math", "1.0f", "2.0f", "left", "right") #>;
-
-<# } #>
-#endif
 
             #endregion
 

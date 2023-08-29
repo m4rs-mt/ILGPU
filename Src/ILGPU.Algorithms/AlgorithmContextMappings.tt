@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AlgorithmContextMappings.tt/AlgorithmContextMappings.cs
@@ -29,9 +29,7 @@ namespace ILGPU
         private static void RegisterMathRemappings()
         {
             var systemMathType = typeof(System.Math);
-#if !NETFRAMEWORK
             var systemMathFType = typeof(System.MathF);
-#endif
 
             // Register math remappings
 <# foreach (var (name, types) in DefaultMathFunctions) { #>
@@ -64,9 +62,6 @@ namespace ILGPU
         var isFloat32 = floatType.Type == "float";
         var remapSourceType = isFloat32 ? "systemMathFType" : "systemMathType";
 #>
-<#      if (isFloat32) { #>
-#if !NETFRAMEWORK
-<#      } #>
             RemappedIntrinsics.AddRemapping(
                 <#= remapSourceType #>,
                 XMathType,
@@ -94,9 +89,6 @@ namespace ILGPU
                 XMathType,
                 "Truncate",
                 typeof(<#= floatType.Type #>));
-<#      if (isFloat32) { #>
-#endif
-<#      } #>
 <# } #>
 
         }

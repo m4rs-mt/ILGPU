@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Round.cs
@@ -134,11 +134,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static float RoundAwayFromZero(float value) =>
-#if !NETFRAMEWORK
             MathF.Round(value, MidpointRounding.AwayFromZero);
-#else
-            (float)Math.Round(value, MidpointRounding.AwayFromZero);
-#endif
 
         /// <summary>
         /// Rounds the value to the nearest value (halfway cases are rounded to even).
@@ -158,11 +154,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static float RoundToEven(float value) =>
-#if !NETFRAMEWORK
             MathF.Round(value, MidpointRounding.ToEven);
-#else
-            (float)Math.Round(value, MidpointRounding.ToEven);
-#endif
 
         /// <summary>
         /// Truncates the given value.
