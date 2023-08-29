@@ -3,7 +3,7 @@
     <LibrarySamplesTargetFrameworks>net7.0</LibrarySamplesTargetFrameworks>
     <LibrarySamplesTargetFrameworksWindows>net7.0-windows</LibrarySamplesTargetFrameworksWindows>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(MSBuildVersion)' &gt;= '17.0' AND '$(MSBuildVersion)' &lt; '17.4'">
+  <PropertyGroup Condition="'$(MSBuildVersion)' &lt; '17.4'">
     <LibrarySamplesTargetFrameworks>net6.0</LibrarySamplesTargetFrameworks>
     <LibrarySamplesTargetFrameworksWindows>net6.0-windows</LibrarySamplesTargetFrameworksWindows>
   </PropertyGroup>
