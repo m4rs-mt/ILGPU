@@ -77,7 +77,6 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="value">The integer value.</param>
         /// <returns>True, if the given integer is a power of two.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsPowerOf2(ulong value) =>
             value > 0 & ((value & (value - 1)) == 0);

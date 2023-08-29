@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MinMax.cs
@@ -42,7 +42,6 @@ namespace ILGPU.Algorithms
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static sbyte Min(sbyte first, sbyte second) =>
             IntrinsicMath.Min(first, second);
@@ -93,7 +92,6 @@ namespace ILGPU.Algorithms
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort Min(ushort first, ushort second) =>
             IntrinsicMath.Min(first, second);
@@ -104,7 +102,6 @@ namespace ILGPU.Algorithms
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint Min(uint first, uint second) =>
             IntrinsicMath.Min(first, second);
@@ -115,7 +112,6 @@ namespace ILGPU.Algorithms
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong Min(ulong first, ulong second) =>
             IntrinsicMath.Min(first, second);
@@ -146,7 +142,6 @@ namespace ILGPU.Algorithms
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static sbyte Max(sbyte first, sbyte second) =>
             IntrinsicMath.Max(first, second);
@@ -197,7 +192,6 @@ namespace ILGPU.Algorithms
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort Max(ushort first, ushort second) =>
             IntrinsicMath.Max(first, second);
@@ -208,7 +202,6 @@ namespace ILGPU.Algorithms
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint Max(uint first, uint second) =>
             IntrinsicMath.Max(first, second);
@@ -219,7 +212,6 @@ namespace ILGPU.Algorithms
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong Max(ulong first, ulong second) =>
             IntrinsicMath.Max(first, second);
@@ -253,7 +245,6 @@ namespace ILGPU.Algorithms
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static sbyte Clamp(sbyte value, sbyte min, sbyte max) =>
             IntrinsicMath.Clamp(value, min, max);
@@ -309,7 +300,6 @@ namespace ILGPU.Algorithms
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort Clamp(ushort value, ushort min, ushort max) =>
             IntrinsicMath.Clamp(value, min, max);
@@ -321,7 +311,6 @@ namespace ILGPU.Algorithms
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint Clamp(uint value, uint min, uint max) =>
             IntrinsicMath.Clamp(value, min, max);
@@ -333,7 +322,6 @@ namespace ILGPU.Algorithms
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong Clamp(ulong value, ulong min, ulong max) =>
             IntrinsicMath.Clamp(value, min, max);

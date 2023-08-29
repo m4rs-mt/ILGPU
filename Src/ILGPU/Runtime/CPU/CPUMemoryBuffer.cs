@@ -498,7 +498,6 @@ namespace ILGPU.Runtime.CPU
         /// <param name="value">The native value pointer.</param>
         /// <param name="length">The length of this source.</param>
         /// <returns>A wrapped pointer memory buffer.</returns>
-        [CLSCompliant(false)]
         public static unsafe CPUMemoryBuffer Create<T>(
             Accelerator accelerator,
             T* value,
@@ -518,7 +517,6 @@ namespace ILGPU.Runtime.CPU
         /// <param name="length">The length of this source.</param>
         /// <param name="elementSize">The element size.</param>
         /// <returns>A wrapped pointer memory buffer.</returns>
-        [CLSCompliant(false)]
         public static unsafe CPUMemoryBuffer Create(
             Accelerator accelerator,
             IntPtr ptr,

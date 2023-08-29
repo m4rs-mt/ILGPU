@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: UniqueLaunchers.tt/UniqueLaunchers.cs
@@ -38,9 +38,6 @@ namespace ILGPU.Algorithms
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input view.</param>
         /// <returns>The new/valid length of the input view.</returns>
-<# if (!type.IsCLSCompliant) { #>
-        [CLSCompliant(false)]
-<# } #>
         public static long Unique(
             this Accelerator accelerator,
             AcceleratorStream stream,

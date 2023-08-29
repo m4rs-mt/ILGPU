@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvmlDevice.cs
@@ -79,7 +79,6 @@ namespace ILGPU.Runtime.Cuda
         /// Constructs a new instance to access the Nvidia Management Library
         /// from the index of the GPU.
         /// </summary>
-        [CLSCompliant(false)]
         public static NvmlDevice CreateFromIndex(uint index)
         {
             var api = CreateInitAPI(new NvmlAPIVersion?());
@@ -117,7 +116,6 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Returns the associated NVML API instance.
         /// </summary>
-        [CLSCompliant(false)]
         public NvmlAPI API { get; }
 
         /// <summary>
@@ -152,7 +150,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the the intended operating speed of the device's fan.
         /// </summary>
         /// <returns>The fan speed percentage.</returns>
-        [CLSCompliant(false)]
         public uint GetFanSpeed()
         {
             NvmlException.ThrowIfFailed(
@@ -165,7 +162,6 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="fan">The fan to query.</param>
         /// <returns>The fan speed percentage.</returns>
-        [CLSCompliant(false)]
         public uint GetFanSpeed(uint fan)
         {
             NvmlException.ThrowIfFailed(
@@ -176,7 +172,6 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Returns the current temperature readings for the device, in degrees C.
         /// </summary>
-        [CLSCompliant(false)]
         public uint GetGpuTemperature()
         {
             NvmlException.ThrowIfFailed(
@@ -191,7 +186,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the temperature threshold for the device, in degrees C.
         /// </summary>
         /// <param name="threshold">The threshold to query.</param>
-        [CLSCompliant(false)]
         public uint GetTemperatureThreshold(NvmlTemperatureThresholds threshold)
         {
             NvmlException.ThrowIfFailed(
@@ -206,7 +200,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the current speed of the graphics clock for the device, in MHz.
         /// </summary>
         /// <returns>The speed in MHz.</returns>
-        [CLSCompliant(false)]
         public uint GetGraphicsClockSpeed()
         {
             NvmlException.ThrowIfFailed(
@@ -221,7 +214,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the current speed of the SM clock for the device, in MHz.
         /// </summary>
         /// <returns>The speed in MHz.</returns>
-        [CLSCompliant(false)]
         public uint GetStreamingMultiprocessorClockSpeed()
         {
             NvmlException.ThrowIfFailed(
@@ -236,7 +228,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the current speed of the memory clock for the device, in MHz.
         /// </summary>
         /// <returns>The speed in MHz.</returns>
-        [CLSCompliant(false)]
         public uint GetMemoryClockSpeed()
         {
             NvmlException.ThrowIfFailed(
@@ -251,7 +242,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the current speed of the video clock for the device, in MHz.
         /// </summary>
         /// <returns>The speed in MHz.</returns>
-        [CLSCompliant(false)]
         public uint GetVideoClockSpeed()
         {
             NvmlException.ThrowIfFailed(
@@ -266,7 +256,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the max speed of the graphics clock for the device, in MHz.
         /// </summary>
         /// <returns>The speed in MHz.</returns>
-        [CLSCompliant(false)]
         public uint GetMaxGraphicsClockSpeed()
         {
             NvmlException.ThrowIfFailed(
@@ -281,7 +270,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the max speed of the SM clock for the device, in MHz.
         /// </summary>
         /// <returns>The speed in MHz.</returns>
-        [CLSCompliant(false)]
         public uint GetMaxStreamingMultiprocessorClockSpeed()
         {
             NvmlException.ThrowIfFailed(
@@ -296,7 +284,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the max speed of the memory clock for the device, in MHz.
         /// </summary>
         /// <returns>The speed in MHz.</returns>
-        [CLSCompliant(false)]
         public uint GetMaxMemoryClockSpeed()
         {
             NvmlException.ThrowIfFailed(
@@ -311,7 +298,6 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the max speed of the video clock for the device, in MHz.
         /// </summary>
         /// <returns>The speed in MHz.</returns>
-        [CLSCompliant(false)]
         public uint GetMaxVideoClockSpeed()
         {
             NvmlException.ThrowIfFailed(

@@ -19,17 +19,16 @@ namespace ILGPU.Algorithms.Random
     /// Represents a single RNG instance per thread stored separately in a memory buffer.
     /// </summary>
     /// <typeparam name="TRandomProvider">The underlying RNG provider type.</typeparam>
-    [CLSCompliant(false)]
     public class ThreadWiseRNG<TRandomProvider> : DisposeBase
         where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
     {
         #region Instance
-        
+
         /// <summary>
         /// Stores a single RNG instance per thread.
         /// </summary>
         private readonly MemoryBuffer1D<TRandomProvider, Stride1D.Dense> randomProviders;
-        
+
         /// <summary>
         /// Constructs an RNG using the given provider instance.
         /// </summary>
@@ -54,9 +53,9 @@ namespace ILGPU.Algorithms.Random
             randomProviders = accelerator.Allocate1D<TRandomProvider>(maxNumThreads);
             accelerator.InitRNGView(stream, RNGView, random, numInitializers);
         }
-        
+
         #endregion
-        
+
         #region Methods
 
         /// <summary>
@@ -65,7 +64,7 @@ namespace ILGPU.Algorithms.Random
         public ArrayView<TRandomProvider> RNGView => randomProviders.View;
 
         #endregion
-        
+
         #region IDisposable
 
         /// <summary>

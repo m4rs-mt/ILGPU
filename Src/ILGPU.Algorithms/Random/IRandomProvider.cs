@@ -53,7 +53,6 @@ namespace ILGPU.Algorithms.Random
     /// An abstract RNG provider that supports period shifts.
     /// </summary>
     /// <typeparam name="TProvider">The implementing provider type.</typeparam>
-    [CLSCompliant(false)]
     public interface IRandomProvider<TProvider> : IRandomProvider
         where TProvider : struct, IRandomProvider<TProvider>
     {

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BitOperations.cs
@@ -31,7 +31,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of one bits.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int PopCount(uint value) => IntrinsicMath.PopCount(value);
 
@@ -48,7 +47,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of one bits.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int PopCount(ulong value) =>
             IntrinsicMath.PopCount(value);
@@ -71,7 +69,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of leading zeros.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int LeadingZeroCount(uint value) =>
             IntrinsicMath.LeadingZeroCount(value);
@@ -90,7 +87,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of leading zeros.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int LeadingZeroCount(ulong value) =>
             IntrinsicMath.LeadingZeroCount(value);
@@ -113,7 +109,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of trailing zeros.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int TrailingZeroCount(uint value) =>
             IntrinsicMath.TrailingZeroCount(value);
@@ -132,7 +127,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value to use.</param>
         /// <returns>The number of trailing zeros.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int TrailingZeroCount(ulong value) =>
             IntrinsicMath.TrailingZeroCount(value);

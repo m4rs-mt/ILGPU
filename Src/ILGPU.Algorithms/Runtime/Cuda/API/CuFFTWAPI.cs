@@ -16,7 +16,6 @@ namespace ILGPU.Runtime.Cuda.API
     /// <summary>
     /// An implementation of the cuFFT API.
     /// </summary>
-    [CLSCompliant(false)]
     public abstract partial class CuFFTWAPI
     {
         #region Static

@@ -180,7 +180,6 @@ namespace ILGPU.Algorithms.Random
         /// <typeparam name="TRandomProvider">The random provider type.</typeparam>
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="random">The parent RNG provider.</param>
-        [CLSCompliant(false)]
         public static RNG<TRandomProvider> CreateRNG<TRandomProvider>(
             this Accelerator accelerator,
             System.Random random)
@@ -196,7 +195,6 @@ namespace ILGPU.Algorithms.Random
         /// <param name="maxNumParallelWarps">
         /// The maximum number of parallel warps.
         /// </param>
-        [CLSCompliant(false)]
         public static RNG<TRandomProvider> CreateRNG<TRandomProvider>(
             this Accelerator accelerator,
             System.Random random,
@@ -220,7 +218,7 @@ namespace ILGPU.Algorithms.Random
             {
                 randomProvider[i] = default(TRandomProvider).CreateProvider(ref provider);
             }
-            
+
             // Update provider state for future iterations
             sourceProviders[index] = provider;
         }
@@ -236,7 +234,6 @@ namespace ILGPU.Algorithms.Random
         /// <param name="rngView">The view to fill.</param>
         /// <param name="random">The source RNG provider.</param>
         /// <param name="numInitializers">The number of CPU initializers to use.</param>
-        [CLSCompliant(false)]
         public static void InitRNGView<TRandomProvider>(
             this Accelerator accelerator,
             AcceleratorStream stream,

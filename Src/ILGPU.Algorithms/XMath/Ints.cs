@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Ints.cs
@@ -75,7 +75,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value to decompose.</param>
         /// <returns>The lower and upper part.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IntrinsicMath.IntegerParts Decompose(long value) =>
             IntrinsicMath.Decompose(value);
@@ -85,7 +84,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value to decompose.</param>
         /// <returns>The lower and upper part.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IntrinsicMath.IntegerParts Decompose(ulong value) =>
             IntrinsicMath.Decompose(value);
@@ -95,7 +93,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="parts">The lower and upper parts.</param>
         /// <returns>The composed integer.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong ComposeULong(IntrinsicMath.IntegerParts parts) =>
             parts.ToULong();
@@ -105,7 +102,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="parts">The lower and upper parts.</param>
         /// <returns>The composed integer.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long ComposeLong(IntrinsicMath.IntegerParts parts) =>
             (long)parts.ToULong();

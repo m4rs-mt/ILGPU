@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXInstructions.Data.cs
@@ -107,7 +107,6 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// A warp member mask that considers all threads in a warp.
         /// </summary>
-        [CLSCompliant(false)]
         public const uint AllThreadsInAWarpMemberMask = 0xffffffff;
 
         private static readonly Dictionary<ArithmeticBasicValueType, string> LEAMulOperations =

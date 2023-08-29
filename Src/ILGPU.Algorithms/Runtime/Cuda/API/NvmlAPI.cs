@@ -20,7 +20,6 @@ namespace ILGPU.Runtime.Cuda.API
     /// <summary>
     /// An implementation of the NVML API.
     /// </summary>
-    [CLSCompliant(false)]
     public abstract partial class NvmlAPI
     {
         #region Static
@@ -281,7 +280,6 @@ namespace ILGPU.Runtime.Cuda.API
         /// Provides access to <see cref="DeviceGetBridgeChipInfo_Interop"/>
         /// without using raw pointers.
         /// </summary>
-        [CLSCompliant(false)]
         public unsafe NvmlReturn DeviceGetBridgeChipInfo(
             IntPtr device,
             out NvmlBridgeChipHierarchy bridgeHierarchy)

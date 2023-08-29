@@ -615,7 +615,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="inputs">All input values.</param>
         /// <param name="value">The resolved value.</param>
         /// <returns>True, if the value could be resolved.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetKernelSubGroupInfo<T>(
             IntPtr kernel,

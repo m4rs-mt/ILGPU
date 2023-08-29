@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ScanReduceOperations.tt/ScanReduceOperations.cs
@@ -38,9 +38,6 @@ namespace ILGPU.Algorithms.ScanReduceOperations
     /// <summary>
     /// Represents an <#= op.Name #> reduction of type <#= type.Type #>.
     /// </summary>
-<#      if (!type.IsCLSCompliant) { #>
-    [CLSCompliant(false)]
-<#      } #>
     public readonly struct <#= op.Name #><#= type.Name #> : IScanReduceOperation<<#= type.Type #>>
     {
         /// <summary>

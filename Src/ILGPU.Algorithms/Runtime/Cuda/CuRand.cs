@@ -296,7 +296,6 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="stream">The stream to use.</param>
         /// <param name="view">The view to fill.</param>
-        [CLSCompliant(false)]
         public unsafe void FillUniform(
             AcceleratorStream stream,
             ArrayView<uint> view)
@@ -314,7 +313,6 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="stream">The stream to use.</param>
         /// <param name="view">The view to fill.</param>
-        [CLSCompliant(false)]
         public unsafe void FillUniform(
             AcceleratorStream stream,
             ArrayView<ulong> view)
@@ -534,7 +532,6 @@ namespace ILGPU.Runtime.Cuda
         /// Fills the given span with uniformly distributed unsigned integers.
         /// </summary>
         /// <param name="span">The span to fill.</param>
-        [CLSCompliant(false)]
         public unsafe void FillUniform(Span<uint> span)
         {
             fixed (uint* ptr = span)
@@ -551,7 +548,6 @@ namespace ILGPU.Runtime.Cuda
         /// Fills the given span with uniformly distributed unsigned longs.
         /// </summary>
         /// <param name="span">The span to fill.</param>
-        [CLSCompliant(false)]
         public unsafe void FillUniform(Span<ulong> span)
         {
             fixed (ulong* ptr = span)

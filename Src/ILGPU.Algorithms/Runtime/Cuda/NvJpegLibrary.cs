@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvJpegLibrary.cs
@@ -18,7 +18,6 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Represents an NvJpeg library.
     /// </summary>
-    [CLSCompliant(false)]
     public sealed partial class NvJpegLibrary : DisposeBase
     {
         /// <summary>

@@ -140,7 +140,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="platforms">The target platform ids to fill.</param>
         /// <param name="numPlatforms">The resolved number of platforms.</param>
         /// <returns>The error code.</returns>
-        [CLSCompliant(false)]
         public CLError GetPlatforms(IntPtr* platforms, ref int numPlatforms) =>
             clGetPlatformIDs(numPlatforms, platforms, out numPlatforms);
 
@@ -219,7 +218,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="devices">The device ids to fill.</param>
         /// <param name="numDevices">The number of devices.</param>
         /// <returns>The error code.</returns>
-        [CLSCompliant(false)]
         public CLError GetDevices(
             IntPtr platform,
             CLDeviceType deviceType,
@@ -510,7 +508,6 @@ namespace ILGPU.Runtime.OpenCL
         /// The program build options (refer to the OpenCL specification).
         /// </param>
         /// <returns>The error code.</returns>
-        [CLSCompliant(false)]
         public CLError BuildProgram(
             IntPtr program,
             IntPtr* devices,
@@ -557,7 +554,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="paramValue">The parameter value to use.</param>
         /// <param name="paramValueSizeRet">The resulting parameter value size.</param>
         /// <returns>The error code.</returns>
-        [CLSCompliant(false)]
         public CLError GetProgramInfo(
             IntPtr program,
             CLProgramInfo paramName,
@@ -581,7 +577,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="paramValue">The parameter value to use.</param>
         /// <param name="paramValueSizeRet">The resulting parameter value size.</param>
         /// <returns>The error code.</returns>
-        [CLSCompliant(false)]
         public CLError GetProgramBuildInfo(
             IntPtr program,
             IntPtr device,
@@ -697,7 +692,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="size">The argument size in bytes.</param>
         /// <param name="value">A pointer to the value to set.</param>
         /// <returns>The error code.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CLError SetKernelArgumentUnsafe(
             IntPtr kernel,
@@ -718,7 +712,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="size">The argument size in bytes.</param>
         /// <param name="value">A pointer to the value to set.</param>
         /// <returns>The error code.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CLError SetKernelArgumentUnsafeWithKernel(
             CLKernel kernel,
@@ -788,7 +781,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="globalWorkSizes">All global work sizes.</param>
         /// <param name="localWorkSizes">All local work sizes.</param>
         /// <returns>The error code.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CLError LaunchKernelUnsafe(
             IntPtr queue,
@@ -1117,7 +1109,7 @@ namespace ILGPU.Runtime.OpenCL
         /// previously enqueued commands to complete before it completes.
         ///
         /// This command blocks command execution, that is, any following commands
-        /// enqueued after it do not execute until it completes. 
+        /// enqueued after it do not execute until it completes.
         /// </summary>
         /// <param name="queue">The command queue.</param>
         /// <returns>The error code.</returns>
@@ -1132,9 +1124,9 @@ namespace ILGPU.Runtime.OpenCL
         /// Enqueues a barrier command on the given command queue which waits for the
         /// list of events to complete, or if the list is empty, waits for all previously
         /// enqueued commands to complete before it completes.
-        /// 
+        ///
         /// This command blocks command execution, that is, any following commands
-        /// enqueued after it do not execute until it completes. 
+        /// enqueued after it do not execute until it completes.
         /// </summary>
         /// <param name="queue">The command queue.</param>
         /// <param name="waitEvents">The events to wait on.</param>

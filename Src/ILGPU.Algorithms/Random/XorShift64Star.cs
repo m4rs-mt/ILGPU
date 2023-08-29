@@ -20,7 +20,6 @@ namespace ILGPU.Algorithms.Random
     /// Implements a simple and fast xor-shift rng.
     /// </summary>
     /// <remarks>https://en.wikipedia.org/wiki/Xorshift</remarks>
-    [CLSCompliant(false)]
     public struct XorShift64Star :
         IEquatable<XorShift64Star>,
         IRandomProvider<XorShift64Star>
