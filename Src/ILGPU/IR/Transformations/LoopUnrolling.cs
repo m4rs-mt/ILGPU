@@ -387,51 +387,6 @@ namespace ILGPU.IR.Transformations
             #endregion
         }
 
-        /// <summary>
-        /// Applies the unrolling transformation to all loops.
-        /// </summary>
-        private struct LoopProcessor : Loops.ILoopProcessor
-        {
-            private readonly LoopInfos loopInfos;
-
-            public LoopProcessor(
-                in LoopInfos<ReversePostOrder, Forwards> infos,
-                Method.Builder builder,
-                int maxUnrollFactor)
-            {
-                loopInfos = infos;
-                Builder = builder;
-                MaxUnrollFactor = maxUnrollFactor;
-                Applied = false;
-            }
-
-            /// <summary>
-            /// Returns the parent method builder.
-            /// </summary>
-            public Method.Builder Builder { get; }
-
-            /// <summary>
-            /// Returns the maximum unrolling factor.
-            /// </summary>
-            public int MaxUnrollFactor { get; }
-
-            /// <summary>
-            /// Returns true if the loop processor could be applied.
-            /// </summary>
-            public bool Applied { get; private set; }
-
-            /// <summary>
-            /// Applies the unrolling transformation.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Process(Loop loop) =>
-                Applied |= TryUnroll(
-                    Builder,
-                    loop,
-                    loopInfos,
-                    MaxUnrollFactor);
-        }
-
         #endregion
 
         #region Static
@@ -664,10 +619,16 @@ namespace ILGPU.IR.Transformations
             // need to get information about previous predecessors and successors
             builder.AcceptControlFlowUpdates(accept: true);
 
-            return loops.ProcessLoops(new LoopProcessor(
-                loopInfos,
-                builder,
-                MaxUnrollFactor)).Applied;
+            bool applied = false;
+            loops.ProcessLoops(loop =>
+            {
+                applied |= TryUnroll(
+                    builder,
+                    loop,
+                    loopInfos,
+                    MaxUnrollFactor);
+            });
+            return applied;
         }
 
         #endregion

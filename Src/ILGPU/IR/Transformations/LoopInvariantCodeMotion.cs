@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LoopInvariantCodeMotion.cs
@@ -172,39 +172,6 @@ namespace ILGPU.IR.Transformations
             }
         }
 
-        /// <summary>
-        /// Applies the LICM transformation to all loops.
-        /// </summary>
-        private struct LoopProcessor : Loops.ILoopProcessor
-        {
-            public LoopProcessor(Method.Builder builder)
-            {
-                Builder = builder;
-                Applied = false;
-            }
-
-            /// <summary>
-            /// Returns the parent method builder.
-            /// </summary>
-            public Method.Builder Builder { get; }
-
-            /// <summary>
-            /// Returns true if the loop processor could be applied.
-            /// </summary>
-            public bool Applied { get; private set; }
-
-            /// <summary>
-            /// Applies the LICM transformation.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Process(Loop loop)
-            {
-                if (loop.Entries.Length > 1)
-                    return;
-                Applied |= ApplyLICM(Builder, loop);
-            }
-        }
-
         #endregion
 
         #region Static
@@ -270,7 +237,14 @@ namespace ILGPU.IR.Transformations
             // need to get information about previous predecessors and successors
             builder.AcceptControlFlowUpdates(accept: true);
 
-            return loops.ProcessLoops(new LoopProcessor(builder)).Applied;
+            bool applied = false;
+            loops.ProcessLoops(loop =>
+            {
+                if (loop.Entries.Length > 1)
+                    return;
+                applied |= ApplyLICM(builder, loop);
+            });
+            return applied;
         }
 
         #endregion
