@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ReinterpretCasts.tt/ReinterpretCasts.cs
@@ -41,10 +41,13 @@ namespace ILGPU.Tests
             data[index] = Interop.FloatAsInt(value);
         }
 
-        [Fact]
+        [SkippableFact]
         [KernelMethod(nameof(<#= floatType.Name #>AsIntKernel))]
         public void <#= floatType.Name #>AsInt()
         {
+<#      if (floatType == FloatTypes[0]) { #>
+            Skip.If(!Accelerator.Capabilities.Float16);
+<#      } #>
             var floatValue = (<#= floatType.Type #>)2.0;
             using var data = Accelerator.Allocate1D<<#= intType.Type #>>(Length);
             Execute(Length, data.View, floatValue);
@@ -63,10 +66,13 @@ namespace ILGPU.Tests
             data[index] = Interop.IntAsFloat(value);
         }
 
-        [Fact]
+        [SkippableFact]
         [KernelMethod(nameof(IntAs<#= floatType.Name #>Kernel))]
         public void IntAs<#= floatType.Name #>()
         {
+<#      if (floatType == FloatTypes[0]) { #>
+            Skip.If(!Accelerator.Capabilities.Float16);
+<#      } #>
             var intValue = Interop.FloatAsInt((<#= floatType.Type #>)2.0);
             using var data = Accelerator.Allocate1D<<#= floatType.Type #>>(Length);
             Execute(Length, data.View, intValue);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: WarpOperations.cs
@@ -286,7 +286,7 @@ namespace ILGPU.Tests
             data[index] = sharedMemory[Warp.WarpIdx] * Warp.WarpSize + value;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(3)]
