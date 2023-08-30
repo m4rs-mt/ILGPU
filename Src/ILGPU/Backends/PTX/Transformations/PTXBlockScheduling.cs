@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXBlockScheduling.cs
@@ -20,7 +20,7 @@ namespace ILGPU.Backends.PTX.Transformations
     /// Adapts the actual block branch order in a way to avoid negated predicated
     /// branches and which maximizes the number of implicit block branches.
     /// </summary>
-    public sealed class PTXBlockScheduling : UnorderedTransformation
+    sealed class PTXBlockScheduling : UnorderedTransformation
     {
         /// <summary>
         /// Applies the PTX-specific block schedule to the given builder.
