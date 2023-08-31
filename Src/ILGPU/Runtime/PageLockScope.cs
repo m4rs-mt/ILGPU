@@ -68,7 +68,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the memory buffer wrapper of the .Net array.
         /// </summary>
-        private MemoryBuffer MemoryBuffer { get; set; }
+        private MemoryBuffer? MemoryBuffer { get; set; }
 
         /// <summary>
         /// Returns the array view of the underlying .Net array.

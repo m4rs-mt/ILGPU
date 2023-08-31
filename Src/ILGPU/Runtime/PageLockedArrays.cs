@@ -36,8 +36,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the page locking scope that includes the underlying array.
         /// </summary>
-        protected internal PageLockScope<T> Scope { get; private set; } =
-            Utilities.InitNotNullable<PageLockScope<T>>();
+        protected internal PageLockScope<T>? Scope { get; private set; }
 
         /// <summary>
         /// Returns the array view of the underlying .Net array.
