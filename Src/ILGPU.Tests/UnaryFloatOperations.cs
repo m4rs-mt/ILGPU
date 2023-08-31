@@ -75,14 +75,7 @@ namespace ILGPU.Tests
             ArrayView1D<int, Stride1D.Dense> data,
             float value)
         {
-#if NETFRAMEWORK
-            data[index + 0] =
-                Bitwise.And(!float.IsNaN(value), !float.IsInfinity(value))
-                ? 1
-                : 0;
-#else
             data[index + 0] = float.IsFinite(value) ? 1 : 0;
-#endif
             data[index + 1] = float.IsInfinity(value) ? 1 : 0;
             data[index + 2] = float.IsPositiveInfinity(value) ? 1 : 0;
             data[index + 3] = float.IsNegativeInfinity(value) ? 1 : 0;

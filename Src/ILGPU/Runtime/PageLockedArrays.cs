@@ -134,9 +134,6 @@ namespace ILGPU.Runtime
         #region Instance
 
         private readonly T[] array;
-#if !NET5_0_OR_GREATER
-        private readonly GCHandle handle;
-#endif
 
         /// <summary>
         /// Creates a new page-locked 1D array.
@@ -160,20 +157,11 @@ namespace ILGPU.Runtime
         {
             if (extent < 0L)
                 throw new ArgumentOutOfRangeException(nameof(extent));
-#if NET5_0_OR_GREATER
             array = uninitialized
                 ? GC.AllocateUninitializedArray<T>(extent.ToIntIndex(), pinned: true)
                 : GC.AllocateArray<T>(extent.ToIntIndex(), pinned: true);
             fixed (T* ptr = array)
                 Initialize(accelerator, new IntPtr(ptr), extent);
-#else
-            Trace.WriteLineIf(
-                uninitialized,
-                RuntimeErrorMessages.NotSupportedUninitalizedArrayInitialization);
-            array = new T[extent];
-            handle = GCHandle.Alloc(array, GCHandleType.Pinned);
-            Initialize(accelerator, handle.AddrOfPinnedObject(), extent);
-#endif
         }
 
         #endregion
@@ -212,19 +200,6 @@ namespace ILGPU.Runtime
         public T[] GetArray() => array;
 
         #endregion
-
-#if !NET5_0_OR_GREATER
-        #region IDisposable
-
-        /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
-        {
-            handle.Free();
-            base.Dispose(disposing);
-        }
-
-        #endregion
-#endif
     }
 
     /// <summary>
