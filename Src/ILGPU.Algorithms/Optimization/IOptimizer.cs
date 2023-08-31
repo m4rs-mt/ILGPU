@@ -230,7 +230,9 @@ namespace ILGPU.Algorithms.Optimization
         /// </summary>
         /// <param name="data">The data to load the particles to.</param>
         public void LoadParticles(PageLockedArray2D<TNumericType> data) =>
-            Optimizer.Engine.PositionsView.DataView.CopyToPageLockedAsync(Stream, data);
+            Optimizer.Engine.PositionsView.DataView.BaseView.CopyTo(
+                Stream,
+                data.ArrayView);
 
         /// <summary>
         /// Loads all particle positions and converts them into a 2D array.
