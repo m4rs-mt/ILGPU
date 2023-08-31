@@ -13,6 +13,7 @@ using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Algorithms.Vectors;
 using ILGPU.Runtime;
 using ILGPU.Util;
+using ILGPU;
 using System;
 using System.Diagnostics;
 using System.Numerics;
@@ -396,9 +397,9 @@ namespace ILGPU.Algorithms.Optimization
                 boundsElementBufferCPU[i, 1] = upperBounds[i];
             }
             
-            boundsElementView.DataView.CopyFromPageLockedAsync(
+            boundsElementView.DataView.BaseView.CopyFrom(
                 stream,
-                boundsElementBufferCPU);
+                boundsElementBufferCPU.ArrayView);
             
             ConvertToVectorizedView(
                 stream,
@@ -453,7 +454,7 @@ namespace ILGPU.Algorithms.Optimization
             AcceleratorStream stream,
             ArrayView<TElementType> parameters)
         {
-            parameters.CopyToPageLockedAsync(stream, parametersCPU);
+            parameters.CopyTo(stream, parametersCPU.ArrayView);
             stream.Synchronize();
         }
 
@@ -528,8 +529,8 @@ namespace ILGPU.Algorithms.Optimization
             resultEvalBufferCPU[0] = bestResult;
 
             // Copy position and best result to GPU buffers
-            resultElementView.CopyFromPageLockedAsync(stream, resultElementBufferCPU);
-            resultEvalView.BaseView.CopyFromPageLockedAsync(stream, resultEvalBufferCPU);
+            resultElementView.CopyFrom(stream, resultElementBufferCPU.ArrayView);
+            resultEvalView.BaseView.CopyFrom(stream, resultEvalBufferCPU.ArrayView);
 
             // Convert our best result view
             ConvertToVectorizedView(
@@ -613,12 +614,12 @@ namespace ILGPU.Algorithms.Optimization
             OptimizationResultView<TElementType, TEvalType> resultView)
         {
             // Copy result to CPU to group by range of numerical values
-            resultView.PositionView.CopyToPageLockedAsync(
+            resultView.PositionView.CopyTo(
                 stream,
-                resultElementBufferCPU);
-            resultView.ResultView.BaseView.CopyToPageLockedAsync(
+                resultElementBufferCPU.ArrayView);
+            resultView.ResultView.BaseView.CopyTo(
                 stream,
-                resultEvalBufferCPU);
+                resultEvalBufferCPU.ArrayView);
 
             // Return the actual result
             return new OptimizationResult<TElementType, TEvalType>(
