@@ -12,6 +12,8 @@
 using ILGPU.IR;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
+using ILGPU.IR.Values;
+using System;
 using System.Collections.Immutable;
 
 namespace ILGPU.Backends.PTX.Analyses
@@ -57,11 +59,10 @@ namespace ILGPU.Backends.PTX.Analyses
         /// <summary>
         /// Creates a new phi bindings mapping.
         /// </summary>
-        /// <typeparam name="TAllocator">The custom allocator type.</typeparam>
         /// <param name="allocator">The allocator to use.</param>
         /// <returns>The created phi bindings.</returns>
-        public abstract PhiBindings ComputePhiBindings<TAllocator>(TAllocator allocator)
-            where TAllocator : struct, IPhiBindingAllocator;
+        public abstract PhiBindings ComputePhiBindings(
+            Action<BasicBlock, PhiValue> allocator);
 
         /// <summary>
         /// Returns true if the given <paramref name="successor"/> is an implicit
@@ -127,11 +128,10 @@ namespace ILGPU.Backends.PTX.Analyses
         /// <summary>
         /// Creates a new phi bindings mapping.
         /// </summary>
-        /// <typeparam name="TAllocator">The custom allocator type.</typeparam>
         /// <param name="allocator">The allocator to use.</param>
         /// <returns>The created phi bindings.</returns>
-        public override PhiBindings ComputePhiBindings<TAllocator>(
-            TAllocator allocator) =>
+        public override PhiBindings ComputePhiBindings(
+            Action<BasicBlock, PhiValue> allocator) =>
             PhiBindings.Create(BasicBlockCollection, allocator);
 
         #endregion
