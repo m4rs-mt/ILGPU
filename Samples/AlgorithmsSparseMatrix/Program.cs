@@ -19,7 +19,6 @@ using System;
 
 namespace AlgorithmsSparseMatrix
 {
-#if NET6_0_OR_GREATER
     class Program
     {
         /// <summary>
@@ -181,15 +180,6 @@ namespace AlgorithmsSparseMatrix
             }
         }
     }
-#else
-    class Program
-    {
-        static void Main()
-        {
-            Console.WriteLine("Cannot use this sample on frameworks prior to .Net6.0");
-        }
-    }
-#endif
 }
 
 #pragma warning restore CA5394

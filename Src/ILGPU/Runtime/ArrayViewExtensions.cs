@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayViewExtensions.cs
@@ -1675,13 +1675,9 @@ namespace ILGPU.Runtime
             if (view.HasNoData())
                 return PageLockedArray1D<T>.Empty;
             var accelerator = view.GetAccelerator();
-#if NET5_0_OR_GREATER
             var result = accelerator.AllocatePageLocked1D<T>(
                 view.Length,
                 uninitialized: true);
-#else
-            var result = accelerator.AllocatePageLocked1D<T>(view.Length);
-#endif
             view.CopyToPageLockedAsync(stream, result);
             stream.Synchronize();
             return result;

@@ -14,11 +14,6 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-#if NET5_0_OR_GREATER
-using NativeLibrary = System.Runtime.InteropServices.NativeLibrary;
-#else
-using NativeLibrary = ILGPU.Util.NativeLibrary;
-#endif
 
 #pragma warning disable CA2216 // Disposable types should declare finalizer
 

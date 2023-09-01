@@ -40,11 +40,7 @@ namespace ILGPU.Runtime.Cuda.API
         private static CuFFTAPI CreateLatest()
         {
             Exception? firstException = null;
-#if NET5_0_OR_GREATER
             var versions = Enum.GetValues<CuFFTAPIVersion>();
-#else
-            var versions = (CuFFTAPIVersion[])Enum.GetValues(typeof(CuFFTAPIVersion));
-#endif
             for (var i = versions.Length - 1; i >= 0; i--)
             {
                 var version = versions[i];

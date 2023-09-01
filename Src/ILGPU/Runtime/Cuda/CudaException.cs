@@ -90,9 +90,6 @@ namespace ILGPU.Runtime.Cuda
 
         /// <summary cref="Exception.GetObjectData(
         /// SerializationInfo, StreamingContext)"/>
-#if !NET5_0_OR_GREATER
-        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
-#endif
         public override void GetObjectData(
             SerializationInfo info,
             StreamingContext context)
