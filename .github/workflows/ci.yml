@@ -116,7 +116,7 @@ jobs:
             )
           ) && os+=("macos-latest")
 
-          [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda-${{ github.run_id }}-${{ github.run_attempt }}")
+          [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda")
 
           echo "os=$(jq -cn '$ARGS.positional' --args ${os[@]})" >> $GITHUB_OUTPUT
     outputs:
@@ -155,7 +155,7 @@ jobs:
         library: [ILGPU, ILGPU.Algorithms]
         framework: [net6.0, net7.0]
       fail-fast: false
-    runs-on: ${{ contains(matrix.os, 'cuda') && format('{0}-{1}-{2}', matrix.os, matrix.library, matrix.framework) || matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -178,7 +178,7 @@ jobs:
       - name: Set test flavor
         id: test-flavor
         shell: bash
-        run: echo "flavor=$([[ "${{ matrix.os }}" == cuda-* ]] && echo "Cuda" || echo "CPU")" >> $GITHUB_OUTPUT
+        run: echo "flavor=$([[ "${{ matrix.os }}" == cuda ]] && echo "Cuda" || echo "CPU")" >> $GITHUB_OUTPUT
 
       - name: Build and test
         run: dotnet test Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }} --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true
