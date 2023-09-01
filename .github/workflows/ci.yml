@@ -163,15 +163,11 @@ jobs:
       - name: Setup the latest .NET 6 SDK
         if: matrix.framework == 'net6.0'
         uses: actions/setup-dotnet@v3.2.0
-        env:
-          DOTNET_INSTALL_DIR: ${{ matrix.framework == 'cuda' && '~/.' }}
         with:
           dotnet-version: 6.0.x
 
       - name: Setup the latest .NET 7 SDK
         uses: actions/setup-dotnet@v3.2.0
-        env:
-          DOTNET_INSTALL_DIR: ${{ matrix.framework == 'cuda' && '~/.' }}
         with:
           dotnet-version: 7.0.x
 
