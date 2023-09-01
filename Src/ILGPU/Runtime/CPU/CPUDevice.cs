@@ -254,6 +254,7 @@ namespace ILGPU.Runtime.CPU
             MaxSharedMemoryPerGroup = int.MaxValue;
             MaxConstantMemory = int.MaxValue;
             NumThreads = MaxNumThreads;
+            Capabilities = new CPUCapabilityContext();
         }
 
         /// <summary>

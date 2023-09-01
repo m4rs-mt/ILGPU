@@ -46,7 +46,7 @@ namespace ILGPU.Tests
             data[index + 4] = Half.IsNaN(value) ? 1 : 0;
         }
 
-        [Theory]
+        [SkippableTheory]
         [MemberData(nameof(HalfData))]
         [KernelMethod(nameof(IsPredicateF16Kernel))]
         public void IsPredicateF16(
@@ -56,6 +56,8 @@ namespace ILGPU.Tests
             bool isPositiveInfinity,
             bool isNegativeInfinity)
         {
+            Skip.If(!Accelerator.Capabilities.Float16);
+
             using var buffer = Accelerator.Allocate1D<int>(5);
             Execute<Index1D>(1, buffer.View, value);
 

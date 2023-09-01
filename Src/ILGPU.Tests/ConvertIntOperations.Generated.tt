@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ConvertIntOperations.Generated.tt/ConvertIntOperations.Generated.cs
@@ -30,6 +30,7 @@ namespace ILGPU.Tests
     {
 <# foreach (var type in IntTypes) { #>
 <#      foreach (var targetType in types) { #>
+<#         bool isFP16 = type == FloatTypes[0] || targetType == FloatTypes[0]; #>
 <#         var baseName = "_" + type.Name + "_" + targetType.Name; #>
 <#         var testName = "ConvertOperation" + baseName; #>
 <#         var kernelName = "ConvertOperationKernel" + baseName; #>
@@ -41,9 +42,11 @@ namespace ILGPU.Tests
             b[index] = (<#= targetType.Type #>)a[index];
         }
 
-        [Theory]
 <#      // Half conversions of these values is implementation specific in these cases #>
-<#      if (targetType != FloatTypes[0]) { #>
+<#      if (isFP16) { #>
+        [SkippableTheory]
+<#      } else { #>
+        [Theory]
         [InlineData(<#= type.Type #>.MaxValue)]
         [InlineData(<#= type.Type #>.MinValue)]
         [InlineData(<#= type.Type #>.MinValue + 1)]
@@ -54,6 +57,9 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>(<#= type.Type #> value)
         {
+<#      if (isFP16) { #>
+            Skip.If(!Accelerator.Capabilities.Float16);
+<#      } #>
             const int length = 32;
             using var a = Accelerator.Allocate1D<<#= type.Type #>>(length);
             using var b = Accelerator.Allocate1D<<#= targetType.Type #>>(length);
@@ -75,10 +81,18 @@ namespace ILGPU.Tests
             }
         }
 
+<#      if (targetType != FloatTypes[0]) { #>
         [Fact]
+<#      } else { #>
+        [SkippableFact]
+<#      } #>
         [KernelMethod(nameof(<#= kernelName #>_MaxValue))]
         public void <#= testName #>_MaxValue()
         {
+<#      if (targetType == FloatTypes[0]) { #>
+            Skip.If(!Accelerator.Capabilities.Float16);
+<#      } #>
+
             const int length = 32;
             using var output = Accelerator.Allocate1D<<#= targetType.Type #>>(length);
             Execute(length, output.View);
