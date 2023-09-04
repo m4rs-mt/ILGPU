@@ -5,46 +5,44 @@ namespace SPIRVGenerationTool.Grammar;
 
 public class SPIRVGrammar
 {
-    public List<SPIRVOp> Instructions { get; set; }
+    public required List<SPIRVOp> Instructions { get; set; }
 
     [JsonPropertyName("operand_kinds")]
-    public List<SPIRVType> Types { get; set; }
+    public required List<SPIRVType> Types { get; set; }
 }
 
 public class SPIRVOp
 {
-    public string OpName { get; }
+    public required string OpName { get; set; }
 
-    public int OpCode { get; }
+    public required int OpCode { get; set; }
 
-    public List<SPIRVOperand>? Operands { get; }
+    public required List<SPIRVOperand>? Operands { get; set; }
 }
 
 public class SPIRVOperand
 {
-    public string Kind { get; }
+    public required string Kind { get; set; }
 
-    public string? Name { get; set; }
+    public required string? Name { get; set; }
 
-    public string Quantifier { get; }
+    public required string Quantifier { get; set; }
 }
 
 public class SPIRVType
 {
-    public List<string> Bases { get; }
+    public required List<string> Bases { get; set; }
 
-    public string Category { get; }
+    public required string Category { get; set; }
 
-    public List<SPIRVEnumerant>? Enumerants { get; }
+    public required List<SPIRVEnumerant>? Enumerants { get; set; }
 
-    [JsonPropertyName("kind")]
-    public string Name { get; }
+    [JsonPropertyName("kind")] public required string Name { get; set; }
 }
 
 public class SPIRVEnumerant
 {
-    [JsonPropertyName("enumerant")]
-    public string Name { get; set; }
+    [JsonPropertyName("enumerant")] public required string Name { get; set; }
 
-    public JsonElement Value { get; set; }
+    public required JsonElement Value { get; set; }
 }
