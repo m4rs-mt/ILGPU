@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ISPIRVBuilder.cs
@@ -22,7 +22,7 @@ namespace ILGPU.Backends.SPIRV
     internal interface ISPIRVBuilder
     {
         byte[] ToByteArray();
-    
+
         void AddMetadata(
             SPIRVWord magic,
             SPIRVWord version,
@@ -723,6 +723,12 @@ namespace ILGPU.Backends.SPIRV
 
         public void GenerateOpPtrDiff(IdResultType resultType, IdResult resultId, IdRef operand1, IdRef operand2);
 
+        public void GenerateOpColorAttachmentReadEXT(IdResultType resultType, IdResult resultId, IdRef attachment, IdRef? sample = null);
+
+        public void GenerateOpDepthAttachmentReadEXT(IdResultType resultType, IdResult resultId, IdRef? sample = null);
+
+        public void GenerateOpStencilAttachmentReadEXT(IdResultType resultType, IdResult resultId, IdRef? sample = null);
+
         public void GenerateOpTerminateInvocation();
 
         public void GenerateOpSubgroupBallotKHR(IdResultType resultType, IdResult resultId, IdRef predicate);
@@ -773,6 +779,16 @@ namespace ILGPU.Backends.SPIRV
 
         public void GenerateOpSUDotAccSatKHR(IdResultType resultType, IdResult resultId, IdRef vector1, IdRef vector2, IdRef accumulator, PackedVectorFormat? packedVectorFormat = null);
 
+        public void GenerateOpTypeCooperativeMatrixKHR(IdResult resultId, IdRef componentType, IdScope scope, IdRef rows, IdRef columns, IdRef use);
+
+        public void GenerateOpCooperativeMatrixLoadKHR(IdResultType resultType, IdResult resultId, IdRef pointer, IdRef memoryLayout, IdRef? stride = null, MemoryAccess? memoryOperand = null);
+
+        public void GenerateOpCooperativeMatrixStoreKHR(IdRef pointer, IdRef @object, IdRef memoryLayout, IdRef? stride = null, MemoryAccess? memoryOperand = null);
+
+        public void GenerateOpCooperativeMatrixMulAddKHR(IdResultType resultType, IdResult resultId, IdRef a, IdRef b, IdRef c, CooperativeMatrixOperands? cooperativeMatrixOperands = null);
+
+        public void GenerateOpCooperativeMatrixLengthKHR(IdResultType resultType, IdResult resultId, IdRef type);
+
         public void GenerateOpTypeRayQueryKHR(IdResult resultId);
 
         public void GenerateOpRayQueryInitializeKHR(IdRef rayQuery, IdRef accel, IdRef rayFlags, IdRef cullMask, IdRef rayOrigin, IdRef rayTMin, IdRef rayDirection, IdRef rayTMax);
@@ -786,6 +802,14 @@ namespace ILGPU.Backends.SPIRV
         public void GenerateOpRayQueryProceedKHR(IdResultType resultType, IdResult resultId, IdRef rayQuery);
 
         public void GenerateOpRayQueryGetIntersectionTypeKHR(IdResultType resultType, IdResult resultId, IdRef rayQuery, IdRef intersection);
+
+        public void GenerateOpImageSampleWeightedQCOM(IdResultType resultType, IdResult resultId, IdRef texture, IdRef coordinates, IdRef weights);
+
+        public void GenerateOpImageBoxFilterQCOM(IdResultType resultType, IdResult resultId, IdRef texture, IdRef coordinates, IdRef boxSize);
+
+        public void GenerateOpImageBlockMatchSSDQCOM(IdResultType resultType, IdResult resultId, IdRef target, IdRef targetCoordinates, IdRef reference, IdRef referenceCoordinates, IdRef blockSize);
+
+        public void GenerateOpImageBlockMatchSADQCOM(IdResultType resultType, IdResult resultId, IdRef target, IdRef targetCoordinates, IdRef reference, IdRef referenceCoordinates, IdRef blockSize);
 
         public void GenerateOpGroupIAddNonUniformAMD(IdResultType resultType, IdResult resultId, IdScope execution, GroupOperation operation, IdRef x);
 
@@ -809,7 +833,83 @@ namespace ILGPU.Backends.SPIRV
 
         public void GenerateOpReadClockKHR(IdResultType resultType, IdResult resultId, IdScope scope);
 
+        public void GenerateOpFinalizeNodePayloadsAMDX(IdRef payloadArray);
+
+        public void GenerateOpFinishWritingNodePayloadAMDX(IdResultType resultType, IdResult resultId, IdRef payload);
+
+        public void GenerateOpInitializeNodePayloadsAMDX(IdRef payloadArray, IdScope visibility, IdRef payloadCount, IdRef nodeIndex);
+
+        public void GenerateOpHitObjectRecordHitMotionNV(IdRef hitObject, IdRef accelerationStructure, IdRef instanceId, IdRef primitiveId, IdRef geometryIndex, IdRef hitKind, IdRef sBTRecordOffset, IdRef sBTRecordStride, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef currentTime, IdRef hitObjectAttributes);
+
+        public void GenerateOpHitObjectRecordHitWithIndexMotionNV(IdRef hitObject, IdRef accelerationStructure, IdRef instanceId, IdRef primitiveId, IdRef geometryIndex, IdRef hitKind, IdRef sBTRecordIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef currentTime, IdRef hitObjectAttributes);
+
+        public void GenerateOpHitObjectRecordMissMotionNV(IdRef hitObject, IdRef sBTIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef currentTime);
+
+        public void GenerateOpHitObjectGetWorldToObjectNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetObjectToWorldNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetObjectRayDirectionNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetObjectRayOriginNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectTraceRayMotionNV(IdRef hitObject, IdRef accelerationStructure, IdRef rayFlags, IdRef cullmask, IdRef sBTRecordOffset, IdRef sBTRecordStride, IdRef missIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef time, IdRef payload);
+
+        public void GenerateOpHitObjectGetShaderRecordBufferHandleNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetShaderBindingTableRecordIndexNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectRecordEmptyNV(IdRef hitObject);
+
+        public void GenerateOpHitObjectTraceRayNV(IdRef hitObject, IdRef accelerationStructure, IdRef rayFlags, IdRef cullmask, IdRef sBTRecordOffset, IdRef sBTRecordStride, IdRef missIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef payload);
+
+        public void GenerateOpHitObjectRecordHitNV(IdRef hitObject, IdRef accelerationStructure, IdRef instanceId, IdRef primitiveId, IdRef geometryIndex, IdRef hitKind, IdRef sBTRecordOffset, IdRef sBTRecordStride, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef hitObjectAttributes);
+
+        public void GenerateOpHitObjectRecordHitWithIndexNV(IdRef hitObject, IdRef accelerationStructure, IdRef instanceId, IdRef primitiveId, IdRef geometryIndex, IdRef hitKind, IdRef sBTRecordIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef hitObjectAttributes);
+
+        public void GenerateOpHitObjectRecordMissNV(IdRef hitObject, IdRef sBTIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax);
+
+        public void GenerateOpHitObjectExecuteShaderNV(IdRef hitObject, IdRef payload);
+
+        public void GenerateOpHitObjectGetCurrentTimeNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetAttributesNV(IdRef hitObject, IdRef hitObjectAttribute);
+
+        public void GenerateOpHitObjectGetHitKindNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetPrimitiveIndexNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetGeometryIndexNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetInstanceIdNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetInstanceCustomIndexNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetWorldRayDirectionNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetWorldRayOriginNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetRayTMaxNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectGetRayTMinNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectIsEmptyNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectIsHitNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpHitObjectIsMissNV(IdResultType resultType, IdResult resultId, IdRef hitObject);
+
+        public void GenerateOpReorderThreadWithHitObjectNV(IdRef hitObject, IdRef? hint = null, IdRef? bits = null);
+
+        public void GenerateOpReorderThreadWithHintNV(IdRef hint, IdRef bits);
+
+        public void GenerateOpTypeHitObjectNV(IdResult resultId);
+
         public void GenerateOpImageSampleFootprintNV(IdResultType resultType, IdResult resultId, IdRef sampledImage, IdRef coordinate, IdRef granularity, IdRef coarse, ImageOperands? param6 = null);
+
+        public void GenerateOpEmitMeshTasksEXT(IdRef groupCountX, IdRef groupCountY, IdRef groupCountZ, IdRef? payload = null);
+
+        public void GenerateOpSetMeshOutputsEXT(IdRef vertexCount, IdRef primitiveCount);
 
         public void GenerateOpGroupNonUniformPartitionNV(IdResultType resultType, IdResult resultId, IdRef value);
 
@@ -828,6 +928,8 @@ namespace ILGPU.Backends.SPIRV
         public void GenerateOpTraceMotionNV(IdRef accel, IdRef rayFlags, IdRef cullMask, IdRef sBTOffset, IdRef sBTStride, IdRef missIndex, IdRef rayOrigin, IdRef rayTmin, IdRef rayDirection, IdRef rayTmax, IdRef time, IdRef payloadId);
 
         public void GenerateOpTraceRayMotionNV(IdRef accel, IdRef rayFlags, IdRef cullMask, IdRef sBTOffset, IdRef sBTStride, IdRef missIndex, IdRef rayOrigin, IdRef rayTmin, IdRef rayDirection, IdRef rayTmax, IdRef time, IdRef payload);
+
+        public void GenerateOpRayQueryGetIntersectionTriangleVertexPositionsKHR(IdResultType resultType, IdResult resultId, IdRef rayQuery, IdRef intersection);
 
         public void GenerateOpTypeAccelerationStructureNV(IdResult resultId);
 
@@ -1350,6 +1452,10 @@ namespace ILGPU.Backends.SPIRV
         public void GenerateOpConstantCompositeContinuedINTEL(params IdRef[] constituents);
 
         public void GenerateOpSpecConstantCompositeContinuedINTEL(params IdRef[] constituents);
+
+        public void GenerateOpConvertFToBF16INTEL(IdResultType resultType, IdResult resultId, IdRef floatValue);
+
+        public void GenerateOpConvertBF16ToFINTEL(IdResultType resultType, IdResult resultId, IdRef bFloat16Value);
 
         public void GenerateOpControlBarrierArriveINTEL(IdScope execution, IdScope memory, IdMemorySemantics semantics);
 

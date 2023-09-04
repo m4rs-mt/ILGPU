@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SPIRVTypes.cs
@@ -227,6 +227,12 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly LoopControl NoFusionINTEL =
             new LoopControl(8388608, "NoFusionINTEL");
+
+        public static readonly LoopControl LoopCountINTEL =
+            new LoopControl(16777216, "LoopCountINTEL");
+
+        public static readonly LoopControl MaxReinvocationDelayINTEL =
+            new LoopControl(33554432, "MaxReinvocationDelayINTEL");
 
         public SPIRVWord[] ToWords() =>
             new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
@@ -463,6 +469,9 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly RayFlags SkipAABBsKHR =
             new RayFlags(512, "SkipAABBsKHR");
 
+        public static readonly RayFlags ForceOpacityMicromap2StateEXT =
+            new RayFlags(1024, "ForceOpacityMicromap2StateEXT");
+
         public SPIRVWord[] ToWords() =>
             new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
 
@@ -532,6 +541,15 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly SourceLanguage SYCL =
             new SourceLanguage(7, "SYCL");
+
+        public static readonly SourceLanguage HERO_C =
+            new SourceLanguage(8, "HERO_C");
+
+        public static readonly SourceLanguage NZSL =
+            new SourceLanguage(9, "NZSL");
+
+        public static readonly SourceLanguage WGSL =
+            new SourceLanguage(10, "WGSL");
 
         public SPIRVWord[] ToWords() =>
             new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
@@ -612,6 +630,12 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly ExecutionModel CallableKHR =
             new ExecutionModel(5318, "CallableKHR");
+
+        public static readonly ExecutionModel TaskEXT =
+            new ExecutionModel(5364, "TaskEXT");
+
+        public static readonly ExecutionModel MeshEXT =
+            new ExecutionModel(5365, "MeshEXT");
 
         public SPIRVWord[] ToWords() =>
             new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
@@ -808,6 +832,15 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly ExecutionMode LocalSizeHintId =
             new ExecutionMode(39, "LocalSizeHintId");
 
+        public static readonly ExecutionMode NonCoherentColorAttachmentReadEXT =
+            new ExecutionMode(4169, "NonCoherentColorAttachmentReadEXT");
+
+        public static readonly ExecutionMode NonCoherentDepthAttachmentReadEXT =
+            new ExecutionMode(4170, "NonCoherentDepthAttachmentReadEXT");
+
+        public static readonly ExecutionMode NonCoherentStencilAttachmentReadEXT =
+            new ExecutionMode(4171, "NonCoherentStencilAttachmentReadEXT");
+
         public static readonly ExecutionMode SubgroupUniformControlFlowKHR =
             new ExecutionMode(4421, "SubgroupUniformControlFlowKHR");
 
@@ -829,14 +862,56 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly ExecutionMode RoundingModeRTZ =
             new ExecutionMode(4463, "RoundingModeRTZ");
 
+        public static readonly ExecutionMode EarlyAndLateFragmentTestsAMD =
+            new ExecutionMode(5017, "EarlyAndLateFragmentTestsAMD");
+
         public static readonly ExecutionMode StencilRefReplacingEXT =
             new ExecutionMode(5027, "StencilRefReplacingEXT");
+
+        public static readonly ExecutionMode CoalescingAMDX =
+            new ExecutionMode(5069, "CoalescingAMDX");
+
+        public static readonly ExecutionMode MaxNodeRecursionAMDX =
+            new ExecutionMode(5071, "MaxNodeRecursionAMDX");
+
+        public static readonly ExecutionMode StaticNumWorkgroupsAMDX =
+            new ExecutionMode(5072, "StaticNumWorkgroupsAMDX");
+
+        public static readonly ExecutionMode ShaderIndexAMDX =
+            new ExecutionMode(5073, "ShaderIndexAMDX");
+
+        public static readonly ExecutionMode MaxNumWorkgroupsAMDX =
+            new ExecutionMode(5077, "MaxNumWorkgroupsAMDX");
+
+        public static readonly ExecutionMode StencilRefUnchangedFrontAMD =
+            new ExecutionMode(5079, "StencilRefUnchangedFrontAMD");
+
+        public static readonly ExecutionMode StencilRefGreaterFrontAMD =
+            new ExecutionMode(5080, "StencilRefGreaterFrontAMD");
+
+        public static readonly ExecutionMode StencilRefLessFrontAMD =
+            new ExecutionMode(5081, "StencilRefLessFrontAMD");
+
+        public static readonly ExecutionMode StencilRefUnchangedBackAMD =
+            new ExecutionMode(5082, "StencilRefUnchangedBackAMD");
+
+        public static readonly ExecutionMode StencilRefGreaterBackAMD =
+            new ExecutionMode(5083, "StencilRefGreaterBackAMD");
+
+        public static readonly ExecutionMode StencilRefLessBackAMD =
+            new ExecutionMode(5084, "StencilRefLessBackAMD");
 
         public static readonly ExecutionMode OutputLinesNV =
             new ExecutionMode(5269, "OutputLinesNV");
 
+        public static readonly ExecutionMode OutputLinesEXT =
+            new ExecutionMode(5269, "OutputLinesEXT");
+
         public static readonly ExecutionMode OutputPrimitivesNV =
             new ExecutionMode(5270, "OutputPrimitivesNV");
+
+        public static readonly ExecutionMode OutputPrimitivesEXT =
+            new ExecutionMode(5270, "OutputPrimitivesEXT");
 
         public static readonly ExecutionMode DerivativeGroupQuadsNV =
             new ExecutionMode(5289, "DerivativeGroupQuadsNV");
@@ -846,6 +921,9 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly ExecutionMode OutputTrianglesNV =
             new ExecutionMode(5298, "OutputTrianglesNV");
+
+        public static readonly ExecutionMode OutputTrianglesEXT =
+            new ExecutionMode(5298, "OutputTrianglesEXT");
 
         public static readonly ExecutionMode PixelInterlockOrderedEXT =
             new ExecutionMode(5366, "PixelInterlockOrderedEXT");
@@ -894,6 +972,12 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly ExecutionMode SchedulerTargetFmaxMhzINTEL =
             new ExecutionMode(5903, "SchedulerTargetFmaxMhzINTEL");
+
+        public static readonly ExecutionMode StreamingInterfaceINTEL =
+            new ExecutionMode(6154, "StreamingInterfaceINTEL");
+
+        public static readonly ExecutionMode RegisterMapInterfaceINTEL =
+            new ExecutionMode(6160, "RegisterMapInterfaceINTEL");
 
         public static readonly ExecutionMode NamedBarrierCountINTEL =
             new ExecutionMode(6417, "NamedBarrierCountINTEL");
@@ -954,6 +1038,15 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly StorageClass StorageBuffer =
             new StorageClass(12, "StorageBuffer");
 
+        public static readonly StorageClass TileImageEXT =
+            new StorageClass(4172, "TileImageEXT");
+
+        public static readonly StorageClass NodePayloadAMDX =
+            new StorageClass(5068, "NodePayloadAMDX");
+
+        public static readonly StorageClass NodeOutputPayloadAMDX =
+            new StorageClass(5076, "NodeOutputPayloadAMDX");
+
         public static readonly StorageClass CallableDataNV =
             new StorageClass(5328, "CallableDataNV");
 
@@ -995,6 +1088,12 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly StorageClass PhysicalStorageBufferEXT =
             new StorageClass(5349, "PhysicalStorageBufferEXT");
+
+        public static readonly StorageClass HitObjectAttributeNV =
+            new StorageClass(5385, "HitObjectAttributeNV");
+
+        public static readonly StorageClass TaskPayloadWorkgroupEXT =
+            new StorageClass(5402, "TaskPayloadWorkgroupEXT");
 
         public static readonly StorageClass CodeSectionINTEL =
             new StorageClass(5605, "CodeSectionINTEL");
@@ -1042,6 +1141,9 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly Dim SubpassData =
             new Dim(6, "SubpassData");
+
+        public static readonly Dim TileImageDataEXT =
+            new Dim(4173, "TileImageDataEXT");
 
         public SPIRVWord[] ToWords() =>
             new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
@@ -1386,6 +1488,12 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly ImageChannelDataType UnormInt101010_2 =
             new ImageChannelDataType(16, "UnormInt101010_2");
 
+        public static readonly ImageChannelDataType UnsignedIntRaw10EXT =
+            new ImageChannelDataType(19, "UnsignedIntRaw10EXT");
+
+        public static readonly ImageChannelDataType UnsignedIntRaw12EXT =
+            new ImageChannelDataType(20, "UnsignedIntRaw12EXT");
+
         public SPIRVWord[] ToWords() =>
             new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
 
@@ -1589,6 +1697,35 @@ namespace ILGPU.Backends.SPIRV.Types
         public string ToRepr() => _repr;
     }
 
+    internal struct HostAccessQualifier : ISPIRVType
+    {
+        private SPIRVWord _value;
+        private string _repr;
+
+        public HostAccessQualifier(SPIRVWord word, string name)
+        {
+            _value = word;
+            _repr = name;
+        }
+
+        public static readonly HostAccessQualifier NoneINTEL =
+            new HostAccessQualifier(0, "NoneINTEL");
+
+        public static readonly HostAccessQualifier ReadINTEL =
+            new HostAccessQualifier(1, "ReadINTEL");
+
+        public static readonly HostAccessQualifier WriteINTEL =
+            new HostAccessQualifier(2, "WriteINTEL");
+
+        public static readonly HostAccessQualifier ReadWriteINTEL =
+            new HostAccessQualifier(3, "ReadWriteINTEL");
+
+        public SPIRVWord[] ToWords() =>
+            new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
+
+        public string ToRepr() => _repr;
+    }
+
     internal struct FunctionParameterAttribute : ISPIRVType
     {
         private SPIRVWord _value;
@@ -1623,6 +1760,9 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly FunctionParameterAttribute NoReadWrite =
             new FunctionParameterAttribute(7, "NoReadWrite");
+
+        public static readonly FunctionParameterAttribute RuntimeAlignedINTEL =
+            new FunctionParameterAttribute(5940, "RuntimeAlignedINTEL");
 
         public SPIRVWord[] ToWords() =>
             new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
@@ -1788,8 +1928,26 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly Decoration NoUnsignedWrap =
             new Decoration(4470, "NoUnsignedWrap");
 
+        public static readonly Decoration WeightTextureQCOM =
+            new Decoration(4487, "WeightTextureQCOM");
+
+        public static readonly Decoration BlockMatchTextureQCOM =
+            new Decoration(4488, "BlockMatchTextureQCOM");
+
         public static readonly Decoration ExplicitInterpAMD =
             new Decoration(4999, "ExplicitInterpAMD");
+
+        public static readonly Decoration NodeSharesPayloadLimitsWithAMDX =
+            new Decoration(5019, "NodeSharesPayloadLimitsWithAMDX");
+
+        public static readonly Decoration NodeMaxPayloadsAMDX =
+            new Decoration(5020, "NodeMaxPayloadsAMDX");
+
+        public static readonly Decoration TrackFinishWritingAMDX =
+            new Decoration(5078, "TrackFinishWritingAMDX");
+
+        public static readonly Decoration PayloadNodeNameAMDX =
+            new Decoration(5091, "PayloadNodeNameAMDX");
 
         public static readonly Decoration OverrideCoverageNV =
             new Decoration(5248, "OverrideCoverageNV");
@@ -1805,6 +1963,9 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly Decoration PerPrimitiveNV =
             new Decoration(5271, "PerPrimitiveNV");
+
+        public static readonly Decoration PerPrimitiveEXT =
+            new Decoration(5271, "PerPrimitiveEXT");
 
         public static readonly Decoration PerViewNV =
             new Decoration(5272, "PerViewNV");
@@ -1835,6 +1996,9 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly Decoration AliasedPointerEXT =
             new Decoration(5356, "AliasedPointerEXT");
+
+        public static readonly Decoration HitObjectShaderRecordBufferNV =
+            new Decoration(5386, "HitObjectShaderRecordBufferNV");
 
         public static readonly Decoration BindlessSamplerNV =
             new Decoration(5398, "BindlessSamplerNV");
@@ -1950,11 +2114,23 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly Decoration FuseLoopsInFunctionINTEL =
             new Decoration(5907, "FuseLoopsInFunctionINTEL");
 
+        public static readonly Decoration MathOpDSPModeINTEL =
+            new Decoration(5909, "MathOpDSPModeINTEL");
+
         public static readonly Decoration AliasScopeINTEL =
             new Decoration(5914, "AliasScopeINTEL");
 
         public static readonly Decoration NoAliasINTEL =
             new Decoration(5915, "NoAliasINTEL");
+
+        public static readonly Decoration InitiationIntervalINTEL =
+            new Decoration(5917, "InitiationIntervalINTEL");
+
+        public static readonly Decoration MaxConcurrencyINTEL =
+            new Decoration(5918, "MaxConcurrencyINTEL");
+
+        public static readonly Decoration PipelineEnableINTEL =
+            new Decoration(5919, "PipelineEnableINTEL");
 
         public static readonly Decoration BufferLocationINTEL =
             new Decoration(5921, "BufferLocationINTEL");
@@ -1973,6 +2149,51 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly Decoration MediaBlockIOINTEL =
             new Decoration(6140, "MediaBlockIOINTEL");
+
+        public static readonly Decoration InitModeINTEL =
+            new Decoration(6147, "InitModeINTEL");
+
+        public static readonly Decoration ImplementInRegisterMapINTEL =
+            new Decoration(6148, "ImplementInRegisterMapINTEL");
+
+        public static readonly Decoration HostAccessINTEL =
+            new Decoration(6168, "HostAccessINTEL");
+
+        public static readonly Decoration FPMaxErrorDecorationINTEL =
+            new Decoration(6170, "FPMaxErrorDecorationINTEL");
+
+        public static readonly Decoration LatencyControlLabelINTEL =
+            new Decoration(6172, "LatencyControlLabelINTEL");
+
+        public static readonly Decoration LatencyControlConstraintINTEL =
+            new Decoration(6173, "LatencyControlConstraintINTEL");
+
+        public static readonly Decoration ConduitKernelArgumentINTEL =
+            new Decoration(6175, "ConduitKernelArgumentINTEL");
+
+        public static readonly Decoration RegisterMapKernelArgumentINTEL =
+            new Decoration(6176, "RegisterMapKernelArgumentINTEL");
+
+        public static readonly Decoration MMHostInterfaceAddressWidthINTEL =
+            new Decoration(6177, "MMHostInterfaceAddressWidthINTEL");
+
+        public static readonly Decoration MMHostInterfaceDataWidthINTEL =
+            new Decoration(6178, "MMHostInterfaceDataWidthINTEL");
+
+        public static readonly Decoration MMHostInterfaceLatencyINTEL =
+            new Decoration(6179, "MMHostInterfaceLatencyINTEL");
+
+        public static readonly Decoration MMHostInterfaceReadWriteModeINTEL =
+            new Decoration(6180, "MMHostInterfaceReadWriteModeINTEL");
+
+        public static readonly Decoration MMHostInterfaceMaxBurstINTEL =
+            new Decoration(6181, "MMHostInterfaceMaxBurstINTEL");
+
+        public static readonly Decoration MMHostInterfaceWaitRequestINTEL =
+            new Decoration(6182, "MMHostInterfaceWaitRequestINTEL");
+
+        public static readonly Decoration StableKernelArgumentINTEL =
+            new Decoration(6183, "StableKernelArgumentINTEL");
 
         public SPIRVWord[] ToWords() =>
             new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
@@ -2114,6 +2335,21 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly BuiltIn InstanceIndex =
             new BuiltIn(43, "InstanceIndex");
 
+        public static readonly BuiltIn CoreIDARM =
+            new BuiltIn(4160, "CoreIDARM");
+
+        public static readonly BuiltIn CoreCountARM =
+            new BuiltIn(4161, "CoreCountARM");
+
+        public static readonly BuiltIn CoreMaxIDARM =
+            new BuiltIn(4162, "CoreMaxIDARM");
+
+        public static readonly BuiltIn WarpIDARM =
+            new BuiltIn(4163, "WarpIDARM");
+
+        public static readonly BuiltIn WarpMaxIDARM =
+            new BuiltIn(4164, "WarpMaxIDARM");
+
         public static readonly BuiltIn SubgroupEqMask =
             new BuiltIn(4416, "SubgroupEqMask");
 
@@ -2189,6 +2425,12 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly BuiltIn FragStencilRefEXT =
             new BuiltIn(5014, "FragStencilRefEXT");
 
+        public static readonly BuiltIn CoalescedInputCountAMDX =
+            new BuiltIn(5021, "CoalescedInputCountAMDX");
+
+        public static readonly BuiltIn ShaderIndexAMDX =
+            new BuiltIn(5073, "ShaderIndexAMDX");
+
         public static readonly BuiltIn ViewportMaskNV =
             new BuiltIn(5253, "ViewportMaskNV");
 
@@ -2254,6 +2496,18 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly BuiltIn InvocationsPerPixelNV =
             new BuiltIn(5293, "InvocationsPerPixelNV");
+
+        public static readonly BuiltIn PrimitivePointIndicesEXT =
+            new BuiltIn(5294, "PrimitivePointIndicesEXT");
+
+        public static readonly BuiltIn PrimitiveLineIndicesEXT =
+            new BuiltIn(5295, "PrimitiveLineIndicesEXT");
+
+        public static readonly BuiltIn PrimitiveTriangleIndicesEXT =
+            new BuiltIn(5296, "PrimitiveTriangleIndicesEXT");
+
+        public static readonly BuiltIn CullPrimitiveEXT =
+            new BuiltIn(5299, "CullPrimitiveEXT");
 
         public static readonly BuiltIn LaunchIdNV =
             new BuiltIn(5319, "LaunchIdNV");
@@ -2332,6 +2586,9 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly BuiltIn CurrentRayTimeNV =
             new BuiltIn(5334, "CurrentRayTimeNV");
+
+        public static readonly BuiltIn HitTriangleVertexPositionsKHR =
+            new BuiltIn(5335, "HitTriangleVertexPositionsKHR");
 
         public static readonly BuiltIn IncomingRayFlagsNV =
             new BuiltIn(5351, "IncomingRayFlagsNV");
@@ -2689,6 +2946,18 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly Capability UniformDecoration =
             new Capability(71, "UniformDecoration");
 
+        public static readonly Capability CoreBuiltinsARM =
+            new Capability(4165, "CoreBuiltinsARM");
+
+        public static readonly Capability TileImageColorReadAccessEXT =
+            new Capability(4166, "TileImageColorReadAccessEXT");
+
+        public static readonly Capability TileImageDepthReadAccessEXT =
+            new Capability(4167, "TileImageDepthReadAccessEXT");
+
+        public static readonly Capability TileImageStencilReadAccessEXT =
+            new Capability(4168, "TileImageStencilReadAccessEXT");
+
         public static readonly Capability FragmentShadingRateKHR =
             new Capability(4422, "FragmentShadingRateKHR");
 
@@ -2782,6 +3051,15 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly Capability RayTracingKHR =
             new Capability(4479, "RayTracingKHR");
 
+        public static readonly Capability TextureSampleWeightedQCOM =
+            new Capability(4484, "TextureSampleWeightedQCOM");
+
+        public static readonly Capability TextureBoxFilterQCOM =
+            new Capability(4485, "TextureBoxFilterQCOM");
+
+        public static readonly Capability TextureBlockMatchQCOM =
+            new Capability(4486, "TextureBlockMatchQCOM");
+
         public static readonly Capability Float16ImageAMD =
             new Capability(5008, "Float16ImageAMD");
 
@@ -2802,6 +3080,9 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly Capability ShaderClockKHR =
             new Capability(5055, "ShaderClockKHR");
+
+        public static readonly Capability ShaderEnqueueAMDX =
+            new Capability(5067, "ShaderEnqueueAMDX");
 
         public static readonly Capability SampleMaskOverrideCoverageNV =
             new Capability(5249, "SampleMaskOverrideCoverageNV");
@@ -2832,6 +3113,9 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly Capability ImageFootprintNV =
             new Capability(5282, "ImageFootprintNV");
+
+        public static readonly Capability MeshShadingEXT =
+            new Capability(5283, "MeshShadingEXT");
 
         public static readonly Capability FragmentBarycentricKHR =
             new Capability(5284, "FragmentBarycentricKHR");
@@ -2923,6 +3207,9 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly Capability StorageTexelBufferArrayNonUniformIndexingEXT =
             new Capability(5312, "StorageTexelBufferArrayNonUniformIndexingEXT");
 
+        public static readonly Capability RayTracingPositionFetchKHR =
+            new Capability(5336, "RayTracingPositionFetchKHR");
+
         public static readonly Capability RayTracingNV =
             new Capability(5340, "RayTracingNV");
 
@@ -2974,8 +3261,17 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly Capability DemoteToHelperInvocationEXT =
             new Capability(5379, "DemoteToHelperInvocationEXT");
 
+        public static readonly Capability RayTracingOpacityMicromapEXT =
+            new Capability(5381, "RayTracingOpacityMicromapEXT");
+
+        public static readonly Capability ShaderInvocationReorderNV =
+            new Capability(5383, "ShaderInvocationReorderNV");
+
         public static readonly Capability BindlessTextureNV =
             new Capability(5390, "BindlessTextureNV");
+
+        public static readonly Capability RayQueryPositionFetchKHR =
+            new Capability(5391, "RayQueryPositionFetchKHR");
 
         public static readonly Capability SubgroupShuffleINTEL =
             new Capability(5568, "SubgroupShuffleINTEL");
@@ -3073,8 +3369,14 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly Capability LoopFuseINTEL =
             new Capability(5906, "LoopFuseINTEL");
 
+        public static readonly Capability FPGADSPControlINTEL =
+            new Capability(5908, "FPGADSPControlINTEL");
+
         public static readonly Capability MemoryAccessAliasingINTEL =
             new Capability(5910, "MemoryAccessAliasingINTEL");
+
+        public static readonly Capability FPGAInvocationPipeliningAttributesINTEL =
+            new Capability(5916, "FPGAInvocationPipeliningAttributesINTEL");
 
         public static readonly Capability FPGABufferLocationINTEL =
             new Capability(5920, "FPGABufferLocationINTEL");
@@ -3084,6 +3386,9 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly Capability USMStorageClassesINTEL =
             new Capability(5935, "USMStorageClassesINTEL");
+
+        public static readonly Capability RuntimeAlignedAttributeINTEL =
+            new Capability(5939, "RuntimeAlignedAttributeINTEL");
 
         public static readonly Capability IOPipesINTEL =
             new Capability(5943, "IOPipesINTEL");
@@ -3121,6 +3426,9 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly Capability RayCullMaskKHR =
             new Capability(6020, "RayCullMaskKHR");
 
+        public static readonly Capability CooperativeMatrixKHR =
+            new Capability(6022, "CooperativeMatrixKHR");
+
         public static readonly Capability BitInstructions =
             new Capability(6025, "BitInstructions");
 
@@ -3145,8 +3453,29 @@ namespace ILGPU.Backends.SPIRV.Types
         public static readonly Capability DebugInfoModuleINTEL =
             new Capability(6114, "DebugInfoModuleINTEL");
 
+        public static readonly Capability BFloat16ConversionINTEL =
+            new Capability(6115, "BFloat16ConversionINTEL");
+
         public static readonly Capability SplitBarrierINTEL =
             new Capability(6141, "SplitBarrierINTEL");
+
+        public static readonly Capability GlobalVariableFPGADecorationsINTEL =
+            new Capability(6146, "GlobalVariableFPGADecorationsINTEL");
+
+        public static readonly Capability FPGAKernelAttributesv2INTEL =
+            new Capability(6161, "FPGAKernelAttributesv2INTEL");
+
+        public static readonly Capability GlobalVariableHostAccessINTEL =
+            new Capability(6167, "GlobalVariableHostAccessINTEL");
+
+        public static readonly Capability FPMaxErrorINTEL =
+            new Capability(6169, "FPMaxErrorINTEL");
+
+        public static readonly Capability FPGALatencyControlINTEL =
+            new Capability(6171, "FPGALatencyControlINTEL");
+
+        public static readonly Capability FPGAArgumentInterfacesINTEL =
+            new Capability(6174, "FPGAArgumentInterfacesINTEL");
 
         public static readonly Capability GroupUniformArithmeticKHR =
             new Capability(6400, "GroupUniformArithmeticKHR");
@@ -3245,6 +3574,113 @@ namespace ILGPU.Backends.SPIRV.Types
 
         public static readonly PackedVectorFormat PackedVectorFormat4x8BitKHR =
             new PackedVectorFormat(0, "PackedVectorFormat4x8BitKHR");
+
+        public SPIRVWord[] ToWords() =>
+            new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
+
+        public string ToRepr() => _repr;
+    }
+
+    internal struct CooperativeMatrixOperands : ISPIRVType
+    {
+        private SPIRVWord _value;
+        private string _repr;
+
+        public CooperativeMatrixOperands(SPIRVWord word, string name)
+        {
+            _value = word;
+            _repr = name;
+        }
+
+        public static readonly CooperativeMatrixOperands NoneKHR =
+            new CooperativeMatrixOperands(0, "NoneKHR");
+
+        public static readonly CooperativeMatrixOperands MatrixASignedComponentsKHR =
+            new CooperativeMatrixOperands(1, "MatrixASignedComponentsKHR");
+
+        public static readonly CooperativeMatrixOperands MatrixBSignedComponentsKHR =
+            new CooperativeMatrixOperands(2, "MatrixBSignedComponentsKHR");
+
+        public static readonly CooperativeMatrixOperands MatrixCSignedComponentsKHR =
+            new CooperativeMatrixOperands(4, "MatrixCSignedComponentsKHR");
+
+        public static readonly CooperativeMatrixOperands MatrixResultSignedComponentsKHR =
+            new CooperativeMatrixOperands(8, "MatrixResultSignedComponentsKHR");
+
+        public static readonly CooperativeMatrixOperands SaturatingAccumulationKHR =
+            new CooperativeMatrixOperands(16, "SaturatingAccumulationKHR");
+
+        public SPIRVWord[] ToWords() =>
+            new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
+
+        public string ToRepr() => _repr;
+    }
+
+    internal struct CooperativeMatrixLayout : ISPIRVType
+    {
+        private SPIRVWord _value;
+        private string _repr;
+
+        public CooperativeMatrixLayout(SPIRVWord word, string name)
+        {
+            _value = word;
+            _repr = name;
+        }
+
+        public static readonly CooperativeMatrixLayout RowMajorKHR =
+            new CooperativeMatrixLayout(0, "RowMajorKHR");
+
+        public static readonly CooperativeMatrixLayout ColumnMajorKHR =
+            new CooperativeMatrixLayout(1, "ColumnMajorKHR");
+
+        public SPIRVWord[] ToWords() =>
+            new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
+
+        public string ToRepr() => _repr;
+    }
+
+    internal struct CooperativeMatrixUse : ISPIRVType
+    {
+        private SPIRVWord _value;
+        private string _repr;
+
+        public CooperativeMatrixUse(SPIRVWord word, string name)
+        {
+            _value = word;
+            _repr = name;
+        }
+
+        public static readonly CooperativeMatrixUse MatrixAKHR =
+            new CooperativeMatrixUse(0, "MatrixAKHR");
+
+        public static readonly CooperativeMatrixUse MatrixBKHR =
+            new CooperativeMatrixUse(1, "MatrixBKHR");
+
+        public static readonly CooperativeMatrixUse MatrixAccumulatorKHR =
+            new CooperativeMatrixUse(2, "MatrixAccumulatorKHR");
+
+        public SPIRVWord[] ToWords() =>
+            new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };
+
+        public string ToRepr() => _repr;
+    }
+
+    internal struct InitializationModeQualifier : ISPIRVType
+    {
+        private SPIRVWord _value;
+        private string _repr;
+
+        public InitializationModeQualifier(SPIRVWord word, string name)
+        {
+            _value = word;
+            _repr = name;
+        }
+
+        public static readonly InitializationModeQualifier InitOnDeviceReprogramINTEL =
+            new InitializationModeQualifier(0, "InitOnDeviceReprogramINTEL");
+
+        public static readonly InitializationModeQualifier InitOnDeviceResetINTEL =
+            new InitializationModeQualifier(1, "InitOnDeviceResetINTEL");
 
         public SPIRVWord[] ToWords() =>
             new SPIRVWord[] { SPIRVWord.FromBytes(BitConverter.GetBytes(_value.Data)) };

@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BinarySPIRVBuilder.cs
@@ -4924,6 +4924,49 @@ namespace ILGPU.Backends.SPIRV {
             _instructions.AddRange(tempList);
         }
 
+        public void GenerateOpColorAttachmentReadEXT(IdResultType resultType, IdResult resultId, IdRef attachment, IdRef? sample = null)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(attachment.ToWords());
+            if(sample is IdRef sampleNotNull)
+                tempList.AddRange(sampleNotNull.ToWords());
+            ushort opCode = 4160;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpDepthAttachmentReadEXT(IdResultType resultType, IdResult resultId, IdRef? sample = null)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            if(sample is IdRef sampleNotNull)
+                tempList.AddRange(sampleNotNull.ToWords());
+            ushort opCode = 4161;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpStencilAttachmentReadEXT(IdResultType resultType, IdResult resultId, IdRef? sample = null)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            if(sample is IdRef sampleNotNull)
+                tempList.AddRange(sampleNotNull.ToWords());
+            ushort opCode = 4162;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
         public void GenerateOpTerminateInvocation()
         {
             ushort opCode = 4416;
@@ -5288,6 +5331,87 @@ namespace ILGPU.Backends.SPIRV {
             _instructions.AddRange(tempList);
         }
 
+        public void GenerateOpTypeCooperativeMatrixKHR(IdResult resultId, IdRef componentType, IdScope scope, IdRef rows, IdRef columns, IdRef use)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(componentType.ToWords());
+            tempList.AddRange(scope.ToWords());
+            tempList.AddRange(rows.ToWords());
+            tempList.AddRange(columns.ToWords());
+            tempList.AddRange(use.ToWords());
+            ushort opCode = 4456;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpCooperativeMatrixLoadKHR(IdResultType resultType, IdResult resultId, IdRef pointer, IdRef memoryLayout, IdRef? stride = null, MemoryAccess? memoryOperand = null)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(pointer.ToWords());
+            tempList.AddRange(memoryLayout.ToWords());
+            if(stride is IdRef strideNotNull)
+                tempList.AddRange(strideNotNull.ToWords());
+            if(memoryOperand is MemoryAccess memoryOperandNotNull)
+                tempList.AddRange(memoryOperandNotNull.ToWords());
+            ushort opCode = 4457;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpCooperativeMatrixStoreKHR(IdRef pointer, IdRef @object, IdRef memoryLayout, IdRef? stride = null, MemoryAccess? memoryOperand = null)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(pointer.ToWords());
+            tempList.AddRange(@object.ToWords());
+            tempList.AddRange(memoryLayout.ToWords());
+            if(stride is IdRef strideNotNull)
+                tempList.AddRange(strideNotNull.ToWords());
+            if(memoryOperand is MemoryAccess memoryOperandNotNull)
+                tempList.AddRange(memoryOperandNotNull.ToWords());
+            ushort opCode = 4458;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpCooperativeMatrixMulAddKHR(IdResultType resultType, IdResult resultId, IdRef a, IdRef b, IdRef c, CooperativeMatrixOperands? cooperativeMatrixOperands = null)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(a.ToWords());
+            tempList.AddRange(b.ToWords());
+            tempList.AddRange(c.ToWords());
+            if(cooperativeMatrixOperands is CooperativeMatrixOperands cooperativeMatrixOperandsNotNull)
+                tempList.AddRange(cooperativeMatrixOperandsNotNull.ToWords());
+            ushort opCode = 4459;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpCooperativeMatrixLengthKHR(IdResultType resultType, IdResult resultId, IdRef type)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(type.ToWords());
+            ushort opCode = 4460;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
         public void GenerateOpTypeRayQueryKHR(IdResult resultId)
         {
             var tempList = new List<SPIRVWord>();
@@ -5372,6 +5496,70 @@ namespace ILGPU.Backends.SPIRV {
             tempList.AddRange(rayQuery.ToWords());
             tempList.AddRange(intersection.ToWords());
             ushort opCode = 4479;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpImageSampleWeightedQCOM(IdResultType resultType, IdResult resultId, IdRef texture, IdRef coordinates, IdRef weights)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(texture.ToWords());
+            tempList.AddRange(coordinates.ToWords());
+            tempList.AddRange(weights.ToWords());
+            ushort opCode = 4480;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpImageBoxFilterQCOM(IdResultType resultType, IdResult resultId, IdRef texture, IdRef coordinates, IdRef boxSize)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(texture.ToWords());
+            tempList.AddRange(coordinates.ToWords());
+            tempList.AddRange(boxSize.ToWords());
+            ushort opCode = 4481;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpImageBlockMatchSSDQCOM(IdResultType resultType, IdResult resultId, IdRef target, IdRef targetCoordinates, IdRef reference, IdRef referenceCoordinates, IdRef blockSize)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(target.ToWords());
+            tempList.AddRange(targetCoordinates.ToWords());
+            tempList.AddRange(reference.ToWords());
+            tempList.AddRange(referenceCoordinates.ToWords());
+            tempList.AddRange(blockSize.ToWords());
+            ushort opCode = 4482;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpImageBlockMatchSADQCOM(IdResultType resultType, IdResult resultId, IdRef target, IdRef targetCoordinates, IdRef reference, IdRef referenceCoordinates, IdRef blockSize)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(target.ToWords());
+            tempList.AddRange(targetCoordinates.ToWords());
+            tempList.AddRange(reference.ToWords());
+            tempList.AddRange(referenceCoordinates.ToWords());
+            tempList.AddRange(blockSize.ToWords());
+            ushort opCode = 4483;
             ushort wordCount = (ushort) (tempList.Count + 1);
             uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
             _instructions.Add(new SPIRVWord(combined));
@@ -5540,6 +5728,534 @@ namespace ILGPU.Backends.SPIRV {
             _instructions.AddRange(tempList);
         }
 
+        public void GenerateOpFinalizeNodePayloadsAMDX(IdRef payloadArray)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(payloadArray.ToWords());
+            ushort opCode = 5075;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpFinishWritingNodePayloadAMDX(IdResultType resultType, IdResult resultId, IdRef payload)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(payload.ToWords());
+            ushort opCode = 5078;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpInitializeNodePayloadsAMDX(IdRef payloadArray, IdScope visibility, IdRef payloadCount, IdRef nodeIndex)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(payloadArray.ToWords());
+            tempList.AddRange(visibility.ToWords());
+            tempList.AddRange(payloadCount.ToWords());
+            tempList.AddRange(nodeIndex.ToWords());
+            ushort opCode = 5090;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectRecordHitMotionNV(IdRef hitObject, IdRef accelerationStructure, IdRef instanceId, IdRef primitiveId, IdRef geometryIndex, IdRef hitKind, IdRef sBTRecordOffset, IdRef sBTRecordStride, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef currentTime, IdRef hitObjectAttributes)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(accelerationStructure.ToWords());
+            tempList.AddRange(instanceId.ToWords());
+            tempList.AddRange(primitiveId.ToWords());
+            tempList.AddRange(geometryIndex.ToWords());
+            tempList.AddRange(hitKind.ToWords());
+            tempList.AddRange(sBTRecordOffset.ToWords());
+            tempList.AddRange(sBTRecordStride.ToWords());
+            tempList.AddRange(origin.ToWords());
+            tempList.AddRange(tMin.ToWords());
+            tempList.AddRange(direction.ToWords());
+            tempList.AddRange(tMax.ToWords());
+            tempList.AddRange(currentTime.ToWords());
+            tempList.AddRange(hitObjectAttributes.ToWords());
+            ushort opCode = 5249;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectRecordHitWithIndexMotionNV(IdRef hitObject, IdRef accelerationStructure, IdRef instanceId, IdRef primitiveId, IdRef geometryIndex, IdRef hitKind, IdRef sBTRecordIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef currentTime, IdRef hitObjectAttributes)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(accelerationStructure.ToWords());
+            tempList.AddRange(instanceId.ToWords());
+            tempList.AddRange(primitiveId.ToWords());
+            tempList.AddRange(geometryIndex.ToWords());
+            tempList.AddRange(hitKind.ToWords());
+            tempList.AddRange(sBTRecordIndex.ToWords());
+            tempList.AddRange(origin.ToWords());
+            tempList.AddRange(tMin.ToWords());
+            tempList.AddRange(direction.ToWords());
+            tempList.AddRange(tMax.ToWords());
+            tempList.AddRange(currentTime.ToWords());
+            tempList.AddRange(hitObjectAttributes.ToWords());
+            ushort opCode = 5250;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectRecordMissMotionNV(IdRef hitObject, IdRef sBTIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef currentTime)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(sBTIndex.ToWords());
+            tempList.AddRange(origin.ToWords());
+            tempList.AddRange(tMin.ToWords());
+            tempList.AddRange(direction.ToWords());
+            tempList.AddRange(tMax.ToWords());
+            tempList.AddRange(currentTime.ToWords());
+            ushort opCode = 5251;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetWorldToObjectNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5252;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetObjectToWorldNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5253;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetObjectRayDirectionNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5254;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetObjectRayOriginNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5255;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectTraceRayMotionNV(IdRef hitObject, IdRef accelerationStructure, IdRef rayFlags, IdRef cullmask, IdRef sBTRecordOffset, IdRef sBTRecordStride, IdRef missIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef time, IdRef payload)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(accelerationStructure.ToWords());
+            tempList.AddRange(rayFlags.ToWords());
+            tempList.AddRange(cullmask.ToWords());
+            tempList.AddRange(sBTRecordOffset.ToWords());
+            tempList.AddRange(sBTRecordStride.ToWords());
+            tempList.AddRange(missIndex.ToWords());
+            tempList.AddRange(origin.ToWords());
+            tempList.AddRange(tMin.ToWords());
+            tempList.AddRange(direction.ToWords());
+            tempList.AddRange(tMax.ToWords());
+            tempList.AddRange(time.ToWords());
+            tempList.AddRange(payload.ToWords());
+            ushort opCode = 5256;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetShaderRecordBufferHandleNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5257;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetShaderBindingTableRecordIndexNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5258;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectRecordEmptyNV(IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5259;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectTraceRayNV(IdRef hitObject, IdRef accelerationStructure, IdRef rayFlags, IdRef cullmask, IdRef sBTRecordOffset, IdRef sBTRecordStride, IdRef missIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef payload)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(accelerationStructure.ToWords());
+            tempList.AddRange(rayFlags.ToWords());
+            tempList.AddRange(cullmask.ToWords());
+            tempList.AddRange(sBTRecordOffset.ToWords());
+            tempList.AddRange(sBTRecordStride.ToWords());
+            tempList.AddRange(missIndex.ToWords());
+            tempList.AddRange(origin.ToWords());
+            tempList.AddRange(tMin.ToWords());
+            tempList.AddRange(direction.ToWords());
+            tempList.AddRange(tMax.ToWords());
+            tempList.AddRange(payload.ToWords());
+            ushort opCode = 5260;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectRecordHitNV(IdRef hitObject, IdRef accelerationStructure, IdRef instanceId, IdRef primitiveId, IdRef geometryIndex, IdRef hitKind, IdRef sBTRecordOffset, IdRef sBTRecordStride, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef hitObjectAttributes)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(accelerationStructure.ToWords());
+            tempList.AddRange(instanceId.ToWords());
+            tempList.AddRange(primitiveId.ToWords());
+            tempList.AddRange(geometryIndex.ToWords());
+            tempList.AddRange(hitKind.ToWords());
+            tempList.AddRange(sBTRecordOffset.ToWords());
+            tempList.AddRange(sBTRecordStride.ToWords());
+            tempList.AddRange(origin.ToWords());
+            tempList.AddRange(tMin.ToWords());
+            tempList.AddRange(direction.ToWords());
+            tempList.AddRange(tMax.ToWords());
+            tempList.AddRange(hitObjectAttributes.ToWords());
+            ushort opCode = 5261;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectRecordHitWithIndexNV(IdRef hitObject, IdRef accelerationStructure, IdRef instanceId, IdRef primitiveId, IdRef geometryIndex, IdRef hitKind, IdRef sBTRecordIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax, IdRef hitObjectAttributes)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(accelerationStructure.ToWords());
+            tempList.AddRange(instanceId.ToWords());
+            tempList.AddRange(primitiveId.ToWords());
+            tempList.AddRange(geometryIndex.ToWords());
+            tempList.AddRange(hitKind.ToWords());
+            tempList.AddRange(sBTRecordIndex.ToWords());
+            tempList.AddRange(origin.ToWords());
+            tempList.AddRange(tMin.ToWords());
+            tempList.AddRange(direction.ToWords());
+            tempList.AddRange(tMax.ToWords());
+            tempList.AddRange(hitObjectAttributes.ToWords());
+            ushort opCode = 5262;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectRecordMissNV(IdRef hitObject, IdRef sBTIndex, IdRef origin, IdRef tMin, IdRef direction, IdRef tMax)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(sBTIndex.ToWords());
+            tempList.AddRange(origin.ToWords());
+            tempList.AddRange(tMin.ToWords());
+            tempList.AddRange(direction.ToWords());
+            tempList.AddRange(tMax.ToWords());
+            ushort opCode = 5263;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectExecuteShaderNV(IdRef hitObject, IdRef payload)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(payload.ToWords());
+            ushort opCode = 5264;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetCurrentTimeNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5265;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetAttributesNV(IdRef hitObject, IdRef hitObjectAttribute)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            tempList.AddRange(hitObjectAttribute.ToWords());
+            ushort opCode = 5266;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetHitKindNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5267;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetPrimitiveIndexNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5268;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetGeometryIndexNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5269;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetInstanceIdNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5270;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetInstanceCustomIndexNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5271;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetWorldRayDirectionNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5272;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetWorldRayOriginNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5273;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetRayTMaxNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5274;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectGetRayTMinNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5275;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectIsEmptyNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5276;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectIsHitNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5277;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpHitObjectIsMissNV(IdResultType resultType, IdResult resultId, IdRef hitObject)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(hitObject.ToWords());
+            ushort opCode = 5278;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpReorderThreadWithHitObjectNV(IdRef hitObject, IdRef? hint = null, IdRef? bits = null)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hitObject.ToWords());
+            if(hint is IdRef hintNotNull)
+                tempList.AddRange(hintNotNull.ToWords());
+            if(bits is IdRef bitsNotNull)
+                tempList.AddRange(bitsNotNull.ToWords());
+            ushort opCode = 5279;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpReorderThreadWithHintNV(IdRef hint, IdRef bits)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(hint.ToWords());
+            tempList.AddRange(bits.ToWords());
+            ushort opCode = 5280;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpTypeHitObjectNV(IdResult resultId)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultId.ToWords());
+            ushort opCode = 5281;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
         public void GenerateOpImageSampleFootprintNV(IdResultType resultType, IdResult resultId, IdRef sampledImage, IdRef coordinate, IdRef granularity, IdRef coarse, ImageOperands? param6 = null)
         {
             var tempList = new List<SPIRVWord>();
@@ -5552,6 +6268,33 @@ namespace ILGPU.Backends.SPIRV {
             if(param6 is ImageOperands param6NotNull)
                 tempList.AddRange(param6NotNull.ToWords());
             ushort opCode = 5283;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpEmitMeshTasksEXT(IdRef groupCountX, IdRef groupCountY, IdRef groupCountZ, IdRef? payload = null)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(groupCountX.ToWords());
+            tempList.AddRange(groupCountY.ToWords());
+            tempList.AddRange(groupCountZ.ToWords());
+            if(payload is IdRef payloadNotNull)
+                tempList.AddRange(payloadNotNull.ToWords());
+            ushort opCode = 5294;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpSetMeshOutputsEXT(IdRef vertexCount, IdRef primitiveCount)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(vertexCount.ToWords());
+            tempList.AddRange(primitiveCount.ToWords());
+            ushort opCode = 5295;
             ushort wordCount = (ushort) (tempList.Count + 1);
             uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
             _instructions.Add(new SPIRVWord(combined));
@@ -5686,6 +6429,20 @@ namespace ILGPU.Backends.SPIRV {
             tempList.AddRange(time.ToWords());
             tempList.AddRange(payload.ToWords());
             ushort opCode = 5339;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpRayQueryGetIntersectionTriangleVertexPositionsKHR(IdResultType resultType, IdResult resultId, IdRef rayQuery, IdRef intersection)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(rayQuery.ToWords());
+            tempList.AddRange(intersection.ToWords());
+            ushort opCode = 5340;
             ushort wordCount = (ushort) (tempList.Count + 1);
             uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
             _instructions.Add(new SPIRVWord(combined));
@@ -9498,6 +10255,32 @@ namespace ILGPU.Backends.SPIRV {
                 tempList.AddRange(el.ToWords());
             }
             ushort opCode = 6092;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpConvertFToBF16INTEL(IdResultType resultType, IdResult resultId, IdRef floatValue)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(floatValue.ToWords());
+            ushort opCode = 6116;
+            ushort wordCount = (ushort) (tempList.Count + 1);
+            uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
+            _instructions.Add(new SPIRVWord(combined));
+            _instructions.AddRange(tempList);
+        }
+
+        public void GenerateOpConvertBF16ToFINTEL(IdResultType resultType, IdResult resultId, IdRef bFloat16Value)
+        {
+            var tempList = new List<SPIRVWord>();
+            tempList.AddRange(resultType.ToWords());
+            tempList.AddRange(resultId.ToWords());
+            tempList.AddRange(bFloat16Value.ToWords());
+            ushort opCode = 6117;
             ushort wordCount = (ushort) (tempList.Count + 1);
             uint combined = SPIRVBuilderUtils.JoinOpCodeWordCount(opCode, wordCount);
             _instructions.Add(new SPIRVWord(combined));
