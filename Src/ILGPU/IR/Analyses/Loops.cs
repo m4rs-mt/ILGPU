@@ -39,18 +39,6 @@ namespace ILGPU.IR.Analyses
         #region Nested Types
 
         /// <summary>
-        /// Represents an abstract loop processor.
-        /// </summary>
-        public interface ILoopProcessor
-        {
-            /// <summary>
-            /// Processes the given loop.
-            /// </summary>
-            /// <param name="node">The current loop node.</param>
-            void Process(Node node);
-        }
-
-        /// <summary>
         /// A specialized successor provider for loop members that exclude all exit
         /// blocks of an associated loop.
         /// </summary>
@@ -88,8 +76,7 @@ namespace ILGPU.IR.Analyses
             /// of the associated loop exit blocks.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
-                BasicBlock basicBlock)
+            public ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock)
             {
                 var successors = basicBlock.CurrentSuccessors;
 
@@ -114,7 +101,7 @@ namespace ILGPU.IR.Analyses
             /// <param name="currentSuccessors">The current successors.</param>
             /// <returns>The adjusted span that contains header blocks only.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private readonly ReadOnlySpan<BasicBlock> AdjustEntrySuccessors(
+            private ReadOnlySpan<BasicBlock> AdjustEntrySuccessors(
                 ReadOnlySpan<BasicBlock> currentSuccessors)
             {
                 var successors = InlineList<BasicBlock>.Create(currentSuccessors.Length);
@@ -132,7 +119,7 @@ namespace ILGPU.IR.Analyses
             /// <param name="currentSuccessors">The current successors.</param>
             /// <returns>The adjusted span without any exit block.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private readonly ReadOnlySpan<BasicBlock> AdjustExitSuccessors(
+            private ReadOnlySpan<BasicBlock> AdjustExitSuccessors(
                 ReadOnlySpan<BasicBlock> currentSuccessors)
             {
                 var successors = currentSuccessors.ToInlineList();
@@ -181,6 +168,7 @@ namespace ILGPU.IR.Analyses
             {
                 Parent = parent;
                 parent?.AddChild(this);
+                Level = (parent?.Level ?? -1) + 1;
 
                 headerBlocks.MoveTo(ref headers);
                 breakerBlocks.MoveTo(ref breakers);
@@ -194,6 +182,11 @@ namespace ILGPU.IR.Analyses
             #endregion
 
             #region Properties
+
+            /// <summary>
+            /// Returns the loop level.
+            /// </summary>
+            public int Level { get; }
 
             /// <summary>
             /// Returns the number of members.
@@ -259,7 +252,7 @@ namespace ILGPU.IR.Analyses
             /// </summary>
             /// <param name="block">The block to map to an loop.</param>
             /// <returns>True, if the node belongs to this loop.</returns>
-            public bool Contains(BasicBlock block) =>
+            public bool Contains(BasicBlock? block) =>
                 block != null && AllMembers.Contains(block);
 
             /// <summary>
@@ -305,13 +298,13 @@ namespace ILGPU.IR.Analyses
             }
 
             /// <summary>
-            /// Returns true if the given blocks contain at least one backedge block.
+            /// Returns true if the given blocks contain at least one back edge block.
             /// </summary>
             /// <param name="blocks">The blocks to test.</param>
             /// <returns>
-            /// True, if the given block contain at least one backedge block.
+            /// True, if the given block contain at least one back edge block.
             /// </returns>
-            public bool ContainsBackedgeBlock(ReadOnlySpan<BasicBlock> blocks)
+            public bool ContainsBackEdgeBlock(ReadOnlySpan<BasicBlock> blocks)
             {
                 foreach (var block in blocks)
                 {
@@ -509,19 +502,6 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
-        /// Provides new intermediate <see cref="NodeData"/> list instances.
-        /// </summary>
-        private readonly struct NodeListProvider : IBasicBlockMapValueProvider<List<Node>>
-        {
-            /// <summary>
-            /// Creates a new <see cref="NodeData"/> instance.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly List<Node> GetValue(BasicBlock block, int _) =>
-                new List<Node>(2);
-        }
-
-        /// <summary>
         /// Provides new intermediate <see cref="NodeData"/> instances.
         /// </summary>
         private readonly struct NodeDataProvider : IBasicBlockMapValueProvider<NodeData>
@@ -544,7 +524,7 @@ namespace ILGPU.IR.Analyses
             /// Creates a new <see cref="NodeData"/> instance.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly NodeData GetValue(BasicBlock block, int traversalIndex) =>
+            public NodeData GetValue(BasicBlock block, int traversalIndex) =>
                 new NodeData(CFG[block]);
         }
 
@@ -858,33 +838,28 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Processes all loops starting with the innermost loops.
         /// </summary>
-        /// <typeparam name="TProcessor">The processor type.</typeparam>
-        /// <param name="processor">The processor instance.</param>
+        /// <param name="processor">The loop processor action.</param>
         /// <returns>The resulting processor instance.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TProcessor ProcessLoops<TProcessor>(TProcessor processor)
-            where TProcessor : struct, ILoopProcessor
+        public void ProcessLoops(Action<Node> processor)
         {
             foreach (var header in Headers)
-                ProcessLoopsRecursive(header, ref processor);
-            return processor;
+                ProcessLoopsRecursive(header, processor);
         }
 
         /// <summary>
         /// Unrolls loops in a recursive way by unrolling the innermost loops first.
         /// </summary>
-        /// <typeparam name="TProcessor">The processor type.</typeparam>
         /// <param name="loop">The current loop node.</param>
-        /// <param name="processor">The processor instance.</param>
-        private static void ProcessLoopsRecursive<TProcessor>(
+        /// <param name="processor">The loop processor action.</param>
+        private static void ProcessLoopsRecursive(
             Node loop,
-            ref TProcessor processor)
-            where TProcessor : struct, ILoopProcessor
+            Action<Node> processor)
         {
             foreach (var child in loop.Children)
-                ProcessLoopsRecursive(child, ref processor);
+                ProcessLoopsRecursive(child, processor);
 
-            processor.Process(loop);
+            processor(loop);
         }
 
         #endregion
