@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Optimizer.cs
@@ -181,6 +181,7 @@ namespace ILGPU.IR.Transformations
 
             // Converts local memory arrays into compile-time known structures
             builder.Add(new SSAStructureConstruction());
+            builder.Add(new DeadCodeElimination());
 
             // Infer all specialized address spaces
             if (level > OptimizationLevel.O1)
