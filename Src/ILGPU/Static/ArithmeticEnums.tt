@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2022 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArithmeticEnums.tt/ArithmeticEnums.cs
@@ -118,6 +118,12 @@ namespace ILGPU.Frontend.Intrinsic
         _BinaryFunctions,
 
 <# foreach (var op in binaryOps) { #>
+        <#= op.Name #>,
+<# } #>
+
+        _TernaryFunctions,
+
+<# foreach (var op in ternaryOps) { #>
         <#= op.Name #>,
 <# } #>
     }
