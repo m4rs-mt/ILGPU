@@ -1,0 +1,60 @@
+name: Check required jobs
+
+# This workflow is triggered when a workflow run for the CI is completed.
+# It checks if the "All required checks done" job was actually successful
+# (and not just skipped) and creates a check run if that is the case. The
+# check run can be used to protect the main branch from being merged if the
+# CI is not passing.
+
+on:
+  workflow_run:
+    types: [completed]
+    workflows:
+      - CI
+      - Deploy Site with Jekyll, GitHub Pages
+
+permissions:
+  actions: read
+  checks: write
+
+jobs:
+  required-jobs:
+    name: Check required jobs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            // list jobs for worklow run attempt
+            const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRunAttempt({
+              owner: context.payload.repository.owner.login,
+              repo: context.payload.repository.name,
+              run_id: context.payload.workflow_run.id,
+              attempt_number: context.payload.workflow_run.run_attempt,
+            });
+            // check if required job was successful
+            var success = false;
+            core.info(`Checking jobs for workflow run ${context.payload.workflow_run.html_url}`);
+            jobs.forEach(job => {
+              var mark = '-'
+              if (job.name === 'All required checks done' && job.conclusion === 'success') {
+                success = true;
+                mark = '✅';
+              }
+              core.info(`${mark} ${job.name}: ${job.conclusion}`);
+            });
+            // create check run if job was successful
+            if (success) {
+              await github.rest.checks.create({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                name: 'All required checks succeeded',
+                head_sha: context.payload.workflow_run.head_sha,
+                status: 'completed',
+                conclusion: 'success',
+                output: {
+                  title: 'All required checks succeeded',
+                  summary: `See [workflow run](${context.payload.workflow_run.html_url}) for details.`,
+                },
+              });
+            }
