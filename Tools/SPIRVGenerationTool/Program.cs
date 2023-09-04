@@ -1,4 +1,16 @@
-﻿using SPIRVGenerationTool.Generators;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2023 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Program.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+using SPIRVGenerationTool.Generators;
 using System.Text.Json;
 using SPIRVGenerationTool.Generators.Builder;
 using SPIRVGenerationTool.Generators.Type;
