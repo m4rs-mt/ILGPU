@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Globalization;
 using System.Text;
 
 namespace ILGPU.Backends.SPIRV.Types
@@ -41,7 +42,7 @@ namespace ILGPU.Backends.SPIRV.Types
         public SPIRVWord[] ToWords() =>
             new[] {SPIRVWord.FromBytes(BitConverter.GetBytes(_value))};
 
-        public string ToRepr() => _value.ToString();
+        public string ToRepr() => _value.ToString(CultureInfo.InvariantCulture);
     }
 
     internal readonly struct LiteralString : ISPIRVType
@@ -76,9 +77,9 @@ namespace ILGPU.Backends.SPIRV.Types
             _floatValue = null;
         }
 
-        public SPIRVWord[] ToWords() => _floatValue?.ToWords() ?? _intValue?.ToWords();
+        public SPIRVWord[] ToWords() => _floatValue?.ToWords() ?? _intValue?.ToWords()!;
 
-        public string ToRepr() => _floatValue?.ToRepr() ?? _intValue?.ToRepr();
+        public string ToRepr() => _floatValue?.ToRepr() ?? _intValue?.ToRepr()!;
     }
 
     internal readonly struct LiteralExtInstInteger
