@@ -156,7 +156,7 @@ namespace ILGPU.Runtime
         public int MaxNumThreadsPerGroup { get; protected set; }
 
         /// <summary>
-        /// Returns the maximum number of shared memory per thread group in bytes.
+        /// Returns the maximum shared memory per thread group in bytes.
         /// </summary>
         public int MaxSharedMemoryPerGroup { get; protected set; }
 
