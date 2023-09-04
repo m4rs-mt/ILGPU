@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLInstructions.cs
@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.OpenCL;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -44,7 +45,7 @@ namespace ILGPU.Backends.OpenCL
         /// <returns>True, if an operation could be resolved.</returns>
         public static bool TryGetAddressSpaceCast(
             MemoryAddressSpace addressSpace,
-            out string operation)
+            [NotNullWhen(true)] out string? operation)
         {
             operation = AddressSpaceCastOperations[(int)addressSpace];
             return operation != null;
@@ -109,7 +110,7 @@ namespace ILGPU.Backends.OpenCL
         public static bool TryGetArithmeticOperation(
             TernaryArithmeticKind kind,
             bool isFloat,
-            out string operation) =>
+            [NotNullWhen(true)] out string? operation) =>
             TernaryArithmeticOperations.TryGetValue((kind, isFloat), out operation);
 
         /// <summary>
@@ -136,7 +137,7 @@ namespace ILGPU.Backends.OpenCL
         /// <returns>True, if the operation could be resolved.</returns>
         public static bool TryGetPredicateBarrier(
             PredicateBarrierKind kind,
-            out string operation)
+            [NotNullWhen(true)] out string? operation)
         {
             operation = PredicateBarrierOperations[(int)kind];
             return operation != null;
@@ -174,7 +175,7 @@ namespace ILGPU.Backends.OpenCL
         public static bool TryGetShuffleOperation(
             CLDeviceVendor vendor,
             ShuffleKind kind,
-            out string operation) =>
+            [NotNullWhen(true)] out string? operation) =>
             ShuffleOperations.TryGetValue((vendor, kind), out operation);
 
         /// <summary>

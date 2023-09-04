@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Debug.cs
@@ -65,18 +65,26 @@ namespace ILGPU.IR.Values
         public (string FileName, int Line, string Method) GetLocationInfo()
         {
             const string KernelName = "Kernel";
-            if (Location.IsKnown &&
-                (Location is FileLocation fileLocation ||
-                Location is CompilationStackLocation compilationStackLocation &&
-                compilationStackLocation.TryGetLocation(out fileLocation)))
-            {
-                // Return information based on the current file location
-                return (
+
+            // Return information based on the current file location
+            static (string FileName, int Line, string Method) MakeLocation(
+                FileLocation fileLocation) => (
                     string.IsNullOrWhiteSpace(fileLocation.FileName)
                     ? KernelName
                     : fileLocation.FileName,
                     fileLocation.StartLine,
                     string.Empty);
+
+            if (Location.IsKnown && Location is FileLocation fileLocation)
+            {
+                return MakeLocation(fileLocation);
+            }
+            else if (Location.IsKnown &&
+                Location is CompilationStackLocation compilationStackLocation &&
+                compilationStackLocation.TryGetLocation(
+                    out FileLocation? innerFileLocation))
+            {
+                return MakeLocation(innerFileLocation);
             }
             else
             {

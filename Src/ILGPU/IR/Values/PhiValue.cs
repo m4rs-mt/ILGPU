@@ -241,7 +241,7 @@ namespace ILGPU.IR.Values
             // See also: SSABuilder.cs
 
             Debug.Assert(phiValue != null, "Invalid phi value to remove");
-            Value same = null;
+            Value? same = null;
             foreach (Value argument in phiValue.Nodes)
             {
                 if (same == argument || argument == phiValue)
@@ -318,7 +318,7 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="source">The source block.</param>
         /// <returns>The value for the given source block (if any).</returns>
-        public Value GetValue(BasicBlock source)
+        public Value? GetValue(BasicBlock source)
         {
             var index = sourceBlocks.IndexOf(source, new BasicBlock.Comparer());
             return index >= 0 ? this[index].Resolve() : null;

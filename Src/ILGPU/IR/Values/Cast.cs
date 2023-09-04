@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Cast.cs
@@ -248,12 +248,13 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the associated type.
         /// </summary>
-        public new AddressSpaceType Type => base.Type as AddressSpaceType;
+        public new AddressSpaceType Type => base.Type.AsNotNullCast<AddressSpaceType>();
 
         /// <summary>
         /// Returns the source type.
         /// </summary>
-        public new AddressSpaceType SourceType => base.SourceType as AddressSpaceType;
+        public new AddressSpaceType SourceType =>
+            base.SourceType.AsNotNullCast<AddressSpaceType>();
 
         #endregion
     }
@@ -291,7 +292,8 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the source element type.
         /// </summary>
-        public TypeNode SourceElementType => (Value.Type as PointerType).ElementType;
+        public TypeNode SourceElementType =>
+            Value.Type.AsNotNullCast<PointerType>().ElementType;
 
         /// <summary>
         /// Returns the target element type.
@@ -359,7 +361,8 @@ namespace ILGPU.IR.Values
             TargetAddressSpace = targetAddressSpace;
             initializer.Assert(
                 value.Type.IsViewOrPointerType &&
-                (value.Type as AddressSpaceType).AddressSpace != targetAddressSpace);
+                value.Type.AsNotNullCast<AddressSpaceType>().AddressSpace !=
+                targetAddressSpace);
         }
 
         #endregion
@@ -399,7 +402,7 @@ namespace ILGPU.IR.Values
             }
             else
             {
-                var pointerType = SourceType as PointerType;
+                var pointerType = SourceType.AsNotNullCast<PointerType>();
                 return initializer.Context.CreatePointerType(
                     pointerType.ElementType,
                     TargetAddressSpace);
@@ -464,7 +467,8 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the source element type.
         /// </summary>
-        public TypeNode SourceElementType => (SourceType as ViewType).ElementType;
+        public TypeNode SourceElementType =>
+            SourceType.AsNotNullCast<ViewType>().ElementType;
 
         /// <summary>
         /// Returns the target element type.
@@ -540,7 +544,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the array type of the source value.
         /// </summary>
-        public new ArrayType SourceType => base.SourceType as ArrayType;
+        public new ArrayType SourceType => base.SourceType.AsNotNullCast<ArrayType>();
 
         /// <summary>
         /// Returns the array element type.

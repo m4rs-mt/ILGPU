@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InvocationContext.cs
@@ -13,6 +13,7 @@ using ILGPU.IR;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -153,7 +154,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <returns>The generic arguments of the used method.</returns>
         public Type[] GetTypeGenericArguments() =>
-            Method.DeclaringType.GetGenericArguments();
+            Method.DeclaringType.AsNotNull().GetGenericArguments();
 
         /// <summary>
         /// Declares a (potentially new) method.

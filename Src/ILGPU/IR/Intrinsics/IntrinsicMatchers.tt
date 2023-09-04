@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMatchers.tt/IntrinsicMatchers.cs
@@ -31,9 +31,10 @@ var typedMatchers = new (string, string, string)[]
 var allMatchers = matchers.Concat(typedMatchers);
 #>
 
-using System;
 using ILGPU.IR.Values;
+using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR.Intrinsics
 {
@@ -161,7 +162,9 @@ namespace ILGPU.IR.Intrinsics
         /// <param name="kind">The value kind.</param>
         /// <param name="implementation">The resolved implementation (if any).</param>
         /// <returns>True, if an implementation could be resolved.</returns>
-        public bool TryGetImplementation(<#= kind #> kind, out T implementation)
+        public bool TryGetImplementation(
+            <#= kind #> kind,
+            [NotNullWhen(true)] out T? implementation)
         {
             implementation = this[(int)kind];
             return implementation != null;
@@ -169,7 +172,9 @@ namespace ILGPU.IR.Intrinsics
 
         /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(
         /// TMatchedValue, out T)"/>
-        public override bool TryGetImplementation(Value value, out T implementation)
+        public override bool TryGetImplementation(
+            Value value,
+            [NotNullWhen(true)] out T? implementation)
         {
             var targetValue = value as <#= matcher #>;
             Debug.Assert(targetValue != null, "Invalid target value");
@@ -215,7 +220,7 @@ namespace ILGPU.IR.Intrinsics
         public bool TryGetImplementation(
             <#= kind #> kind,
             BasicValueType basicValueType,
-            out T implementation)
+            [NotNullWhen(true)] out T? implementation)
         {
             implementation = this[(int)kind, basicValueType];
             return implementation != null;
@@ -223,7 +228,9 @@ namespace ILGPU.IR.Intrinsics
 
         /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(
         /// TMatchedValue, out T)"/>
-        public override bool TryGetImplementation(Value value, out T implementation)
+        public override bool TryGetImplementation(
+            Value value,
+            [NotNullWhen(true)] out T? implementation)
         {
             var targetValue = value as <#= matcher #>;
             Debug.Assert(targetValue != null, "Invalid target value");

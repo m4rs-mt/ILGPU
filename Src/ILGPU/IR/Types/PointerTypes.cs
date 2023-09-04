@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PointerTypes.cs
@@ -132,8 +132,8 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ (int)AddressSpace;
 
-        /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj) =>
+        /// <summary cref="TypeNode.Equals(object?)"/>
+        public override bool Equals(object? obj) =>
             obj is AddressSpaceType type &&
             type.AddressSpace == AddressSpace &&
             type.ElementType == ElementType &&
@@ -211,8 +211,8 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ 0x2FE10E2A;
 
-        /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj) =>
+        /// <summary cref="TypeNode.Equals(object?)"/>
+        public override bool Equals(object? obj) =>
             obj is PointerType && base.Equals(obj);
 
         #endregion
@@ -270,8 +270,8 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ 0x11A34102;
 
-        /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj) =>
+        /// <summary cref="TypeNode.Equals(object?)"/>
+        public override bool Equals(object? obj) =>
             obj is ViewType && base.Equals(obj);
 
         #endregion

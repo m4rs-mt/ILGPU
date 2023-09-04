@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUStream.cs
@@ -16,21 +16,7 @@ namespace ILGPU.Runtime.CPU
     /// </summary>
     sealed class CPUStream : AcceleratorStream
     {
-        #region Static
-
-        /// <summary>
-        /// The default instance.
-        /// </summary>
-        internal static readonly CPUStream Default = new CPUStream();
-
-        #endregion
-
         #region Instance
-
-        /// <summary>
-        /// Constructs a new CPU stream.
-        /// </summary>
-        private CPUStream() : base() { }
 
         /// <summary>
         /// Constructs a new CPU stream.

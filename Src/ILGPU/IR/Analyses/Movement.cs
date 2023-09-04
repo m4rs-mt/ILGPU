@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Movement.cs
@@ -9,17 +9,17 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using PreDominators = ILGPU.IR.Analyses.Dominators<
-    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using System.Runtime.CompilerServices;
 using PostDominators = ILGPU.IR.Analyses.Dominators<
     ILGPU.IR.Analyses.ControlFlowDirection.Backwards>;
-using System;
-using ILGPU.IR.Analyses.TraversalOrders;
-using ILGPU.IR.Analyses.ControlFlowDirection;
-using System.Runtime.CompilerServices;
+using PreDominators = ILGPU.IR.Analyses.Dominators<
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
 namespace ILGPU.IR.Analyses
 {

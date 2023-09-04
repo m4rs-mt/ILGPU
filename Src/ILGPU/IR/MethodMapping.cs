@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MethodMapping.cs
@@ -14,6 +14,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ILGPU.IR
@@ -133,7 +134,9 @@ namespace ILGPU.IR
             /// <param name="method">The method to resolve.</param>
             /// <param name="handle">The resolved function handle (if any).</param>
             /// <returns>True, if the requested function could be resolved.</returns>
-            public bool TryGetHandle(MethodBase method, out MethodHandle handle) =>
+            public bool TryGetHandle(
+                MethodBase method,
+                [NotNullWhen(true)] out MethodHandle? handle) =>
                 Parent.TryGetHandle(method, out handle);
 
             /// <summary>
@@ -142,7 +145,9 @@ namespace ILGPU.IR
             /// <param name="handle">The function handle to resolve.</param>
             /// <param name="data">The resolved data (if any).</param>
             /// <returns>True, if the requested function could be resolved.</returns>
-            public bool TryGetFunction(MethodHandle handle, out T data) =>
+            public bool TryGetFunction(
+                MethodHandle handle,
+                [NotNullWhen(true)] out T? data) =>
                 Parent.TryGetData(handle, out data);
 
             #endregion
@@ -193,7 +198,7 @@ namespace ILGPU.IR
             get
             {
                 if (handle.IsEmpty)
-                    return default;
+                    throw new ArgumentNullException(nameof(handle));
                 var index = methods[handle];
                 return dataList[index];
             }
@@ -215,8 +220,21 @@ namespace ILGPU.IR
         /// <param name="method">The method to resolve.</param>
         /// <param name="handle">The resolved function handle (if any).</param>
         /// <returns>True, if the requested function could be resolved.</returns>
-        public bool TryGetHandle(MethodBase method, out MethodHandle handle) =>
-            managedMethods.TryGetValue(method, out handle);
+        public bool TryGetHandle(
+            MethodBase method,
+            [NotNullWhen(true)] out MethodHandle? handle)
+        {
+            if (managedMethods.TryGetValue(method, out var result))
+            {
+                handle = result;
+                return true;
+            }
+            else
+            {
+                handle = default;
+                return false;
+            }
+        }
 
         /// <summary>
         /// Tries to resolve the given method to a top-level function.
@@ -224,7 +242,7 @@ namespace ILGPU.IR
         /// <param name="method">The method to resolve.</param>
         /// <param name="data">The resolved data (if any).</param>
         /// <returns>True, if the requested function could be resolved.</returns>
-        public bool TryGetData(MethodHandle method, out T data)
+        public bool TryGetData(MethodHandle method, [NotNullWhen(true)] out T? data)
         {
             if (!methods.TryGetValue(method, out int index))
             {

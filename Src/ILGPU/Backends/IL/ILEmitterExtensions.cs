@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILEmitterExtensions.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -20,12 +21,16 @@ namespace ILGPU.Backends.IL
     /// </summary>
     public static class ILEmitterExtensions
     {
-        private static readonly MethodInfo GetHashCodeInfo = typeof(object).GetMethod(
-            nameof(object.GetHashCode),
-            BindingFlags.Public | BindingFlags.Instance);
-        private static readonly MethodInfo EqualsInfo = typeof(object).GetMethod(
-            nameof(object.Equals),
-            BindingFlags.Public | BindingFlags.Instance);
+        private static readonly MethodInfo GetHashCodeInfo =
+            typeof(object).GetMethod(
+                nameof(object.GetHashCode),
+                BindingFlags.Public | BindingFlags.Instance)
+            .ThrowIfNull();
+        private static readonly MethodInfo EqualsInfo =
+            typeof(object).GetMethod(
+                nameof(object.Equals),
+                BindingFlags.Public | BindingFlags.Instance)
+            .ThrowIfNull();
 
         /// <summary>
         /// Generates hash code and equals functions for the given fields.
@@ -70,7 +75,8 @@ namespace ILGPU.Backends.IL
 
                 var fieldHashCode = field.FieldType.GetMethod(
                     GetHashCodeInfo.Name,
-                    BindingFlags.Public | BindingFlags.Instance);
+                    BindingFlags.Public | BindingFlags.Instance)
+                    .AsNotNull();
                 if (!field.FieldType.IsValueType)
                 {
                     emitter.Emit(OpCodes.Ldfld, field);
@@ -131,7 +137,8 @@ namespace ILGPU.Backends.IL
 
                 emitter.EmitCall(field.FieldType.GetMethod(
                     EqualsInfo.Name,
-                    new Type[] { field.FieldType }));
+                    new Type[] { field.FieldType })
+                    .AsNotNull());
 
                 // IMPORTANT: Each field can branch to the false label. However, if we
                 // have a large number of fields, depending on the number of IL bytes we

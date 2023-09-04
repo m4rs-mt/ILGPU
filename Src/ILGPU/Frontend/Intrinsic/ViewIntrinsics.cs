@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ViewIntrinsics.cs
@@ -13,6 +13,7 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -87,7 +88,7 @@ namespace ILGPU.Frontend.Intrinsic
                     builder.CreateGetViewLongLength(location, instanceValue),
                     builder.CreateLongSizeOf(
                         location,
-                        (instanceValue.Type as AddressSpaceType).ElementType),
+                        instanceValue.Type.AsNotNullCast<AddressSpaceType>().ElementType),
                     BinaryArithmeticKind.Mul),
                 ViewIntrinsicKind.GetSubView => builder.CreateSubViewValue(
                     location,

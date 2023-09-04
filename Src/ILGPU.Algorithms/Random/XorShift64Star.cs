@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XorShift64Star.cs
@@ -111,6 +111,16 @@ namespace ILGPU.Algorithms.Random
         public readonly XorShift64Star CreateProvider(System.Random random) =>
             Create(random);
 
+        /// <summary>
+        /// Creates a new provider based on the input instance.
+        /// </summary>
+        /// <param name="random">The random instance.</param>
+        /// <returns>The created provider.</returns>
+        public readonly XorShift64Star CreateProvider<TRandomProvider>(
+            ref TRandomProvider random)
+            where TRandomProvider : struct, IRandomProvider<TRandomProvider> =>
+            new XorShift64Star((ulong)random.NextLong() + 1UL);
+
         #endregion
 
         #region IEquatable
@@ -137,7 +147,7 @@ namespace ILGPU.Algorithms.Random
         /// </summary>
         /// <param name="obj">The other rng to test.</param>
         /// <returns>True, if the given object is equal to the current rng.</returns>
-        public readonly override bool Equals(object obj) =>
+        public readonly override bool Equals(object? obj) =>
             obj is XorShift64Star shift && Equals(shift);
 
         /// <summary>

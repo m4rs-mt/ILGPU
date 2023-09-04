@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: FixPointAnalysis.cs
@@ -13,10 +13,12 @@ using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Analyses
@@ -81,7 +83,7 @@ namespace ILGPU.IR.Analyses
             /// <param name="block">The popped block (if any).</param>
             /// <returns>True, if a value could be popped from the stack.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool TryPop(out BasicBlock block)
+            public bool TryPop([NotNullWhen(true)] out BasicBlock? block)
             {
                 block = null;
                 if (Stack.Count < 1)
@@ -353,7 +355,10 @@ namespace ILGPU.IR.Analyses
         protected override bool Update<TContext>(Value node, TContext context)
         {
             var oldValue = context[node];
-            var newValue = Merge(oldValue, node, context as ValueAnalysisContext);
+            var newValue = Merge(
+                oldValue,
+                node,
+                context.AsNotNullCast<ValueAnalysisContext>());
             context[node] = newValue;
             return oldValue != newValue;
         }
@@ -446,8 +451,11 @@ namespace ILGPU.IR.Analyses
                         valueMapping[value] = CreateData(value);
                 }
                 // Register terminators
-                if (!valueMapping.ContainsKey(block.Terminator))
-                    valueMapping[block.Terminator] = CreateData(block.Terminator);
+                if (!valueMapping.ContainsKey(block.Terminator.AsNotNull()))
+                {
+                    valueMapping[block.Terminator.AsNotNull()] =
+                        CreateData(block.Terminator.AsNotNull());
+                }
             }
 
             // Create the analysis context and perform the analysis
@@ -856,7 +864,9 @@ namespace ILGPU.IR.Analyses
         /// <param name="result">The result data (if any).</param>
         /// <returns>True, if return data could be determined.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool TryGetData(Method method, out TMethodData result)
+        public readonly bool TryGetData(
+            Method method,
+            [MaybeNullWhen(false)] out TMethodData? result)
         {
             result = default;
             return Mapping?.TryGetValue(method, out result) ?? false;
@@ -949,7 +959,7 @@ namespace ILGPU.IR.Analyses
             /// <returns>
             /// True, if the given object is equal to the current entry.
             /// </returns>
-            public readonly override bool Equals(object obj) =>
+            public readonly override bool Equals(object? obj) =>
                 obj is GlobalAnalysisEntry<TValue> entry && Equals(entry);
 
             /// <summary>

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLContext.cs
@@ -40,7 +40,8 @@ namespace ILGPU.Algorithms.CL
         private static readonly MethodInfo MathCodeGenerator =
             CLMathType.GetMethod(
                 nameof(CLMath.GenerateMathIntrinsic),
-                AlgorithmContext.IntrinsicBindingFlags);
+                AlgorithmContext.IntrinsicBindingFlags)
+            .ThrowIfNull();
 
         /// <summary>
         /// Represents the intrinsic representation of the
@@ -49,7 +50,8 @@ namespace ILGPU.Algorithms.CL
         private static readonly CLIntrinsic MathCodeGeneratorIntrinsic =
             new CLIntrinsic(
                 MathCodeGenerator,
-                IntrinsicImplementationMode.GenerateCode);
+                IntrinsicImplementationMode.GenerateCode)
+            .ThrowIfNull();
 
         /// <summary>
         /// The <see cref="CLGroupExtensions"/> type.
@@ -74,7 +76,8 @@ namespace ILGPU.Algorithms.CL
                 AlgorithmContext.IntrinsicBindingFlags,
                 null,
                 types,
-                null);
+                null)
+                .ThrowIfNull();
             return new CLIntrinsic(targetMethod, IntrinsicImplementationMode.Redirect);
         }
 
@@ -93,7 +96,8 @@ namespace ILGPU.Algorithms.CL
         {
             var sourceMethod = sourceType.GetMethod(
                 name,
-                AlgorithmContext.IntrinsicBindingFlags);
+                AlgorithmContext.IntrinsicBindingFlags)
+                .ThrowIfNull();
             manager.RegisterMethod(
                 sourceMethod,
                 new CLIntrinsic(targetType, name, IntrinsicImplementationMode.Redirect));
@@ -118,7 +122,8 @@ namespace ILGPU.Algorithms.CL
         {
             var sourceMethod = sourceType.GetMethod(
                 name,
-                AlgorithmContext.IntrinsicBindingFlags);
+                AlgorithmContext.IntrinsicBindingFlags)
+                .ThrowIfNull();
             manager.RegisterMethod(
                 sourceMethod,
                 new CLIntrinsic(
@@ -150,7 +155,8 @@ namespace ILGPU.Algorithms.CL
                     AlgorithmContext.IntrinsicBindingFlags,
                     null,
                     types,
-                    null),
+                    null)
+                    .ThrowIfNull(),
                 new CLIntrinsic(
                     targetType,
                     codeGeneratorName,
@@ -176,7 +182,7 @@ namespace ILGPU.Algorithms.CL
             where TScanReduce : struct, IScanReduceOperation<T>
         {
             // Allocate target and load source argument
-            var reduce = value as MethodCall;
+            var reduce = value.AsNotNullCast<MethodCall>();
             var sourceValue = codeGenerator.Load(reduce[0]);
             var target = codeGenerator.Allocate(value);
 

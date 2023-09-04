@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.Launchers.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -48,7 +49,7 @@ namespace ILGPU.Runtime
         /// The internal async launch cache dictionary.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Dictionary<Delegate, Delegate> launchCache;
+        private Dictionary<Delegate, Delegate>? launchCache;
 
         /// <summary>
         /// Initializes the local launch cache.
@@ -107,14 +108,14 @@ namespace ILGPU.Runtime
             {
                 // Try to load a previously loaded delegate and ensure that the loaded
                 // launcher is compatible with the desired target delegate type
-                if (!launchCache.TryGetValue(action, out var launcher) ||
+                if (!launchCache.AsNotNull().TryGetValue(action, out var launcher) ||
                     !(launcher is TTarget))
                 {
                     // Load the launcher using the provided loader
                     launcher = loader.Load(this, action);
-                    launchCache.Add(action, launcher);
+                    launchCache.AsNotNull().Add(action, launcher);
                 }
-                return launcher as TTarget;
+                return launcher.AsNotNullCast<TTarget>();
             }
         }
 
@@ -125,7 +126,7 @@ namespace ILGPU.Runtime
         {
             if (!LaunchCacheEnabled)
                 return;
-            launchCache.Clear();
+            launchCache.AsNotNull().Clear();
         }
 
         #endregion

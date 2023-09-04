@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2022 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Utilities.cs
@@ -109,5 +109,12 @@ namespace ILGPU.Util
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long LCM(long a, long b) =>
             a * b / GCD(a, b);
+
+        /// <summary>
+        /// Initializes a non-nullable instance with null.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T InitNotNullable<T>()
+            => default(T).AsNotNull();
     }
 }

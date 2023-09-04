@@ -176,7 +176,7 @@ public void WriteLibraryCreateInternal(ImportLibrary importLib)
     WriteLine($"#region Creation");
     WriteLine();
 
-    Write($"private static {importLib.ClassName} CreateInternal(");
+    Write($"private static {importLib.ClassName}? CreateInternal(");
     WriteLine($"{importLib.VersionType} version)");
     WriteLine("{");
 

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Device.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -115,6 +116,9 @@ namespace ILGPU.Runtime
         protected Device()
         {
             AcceleratorType = DeviceTypeAttribute.GetAcceleratorType(GetType());
+
+            // NB: Initialized later by derived classes.
+            Capabilities = Utilities.InitNotNullable<CapabilityContext>();
         }
 
         #endregion
@@ -279,7 +283,7 @@ namespace ILGPU.Runtime
         /// <returns>
         /// True, if the given object is equal to the current device.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is Device device &&
             device.AcceleratorType == AcceleratorType &&
             device.Name == Name;

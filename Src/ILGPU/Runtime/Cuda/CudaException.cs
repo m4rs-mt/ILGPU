@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaException.cs
@@ -29,9 +29,7 @@ namespace ILGPU.Runtime.Cuda
         /// Constructs a new Cuda exception.
         /// </summary>
         public CudaException()
-        {
-            Error = "N/A";
-        }
+        { }
 
         /// <summary>
         /// Constructs a new Cuda exception.
@@ -69,7 +67,7 @@ namespace ILGPU.Runtime.Cuda
         private CudaException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            Error = info.GetString("Error");
+            Error = info.GetString("Error") ?? string.Empty;
         }
 
         #endregion
@@ -79,7 +77,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Returns the error.
         /// </summary>
-        public string Error { get; }
+        public string Error { get; } = "N/A";
 
         /// <summary>
         /// Returns <see cref="AcceleratorType.Cuda"/>.

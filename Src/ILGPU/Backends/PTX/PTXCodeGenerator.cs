@@ -17,6 +17,7 @@ using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.Cuda;
+using ILGPU.Util;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -172,7 +173,7 @@ namespace ILGPU.Backends.PTX
             /// </param>
             /// <param name="parameter">The intrinsic parameter.</param>
             /// <returns>The allocated register (if any).</returns>
-            Register HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
+            Register? HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
         }
 
         /// <summary>
@@ -183,7 +184,7 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Does not handle intrinsic parameters.
             /// </summary>
-            public Register HandleIntrinsicParameter(
+            public Register? HandleIntrinsicParameter(
                 int parameterOffset,
                 Parameter parameter) =>
                 null;
@@ -229,7 +230,7 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private static readonly ImmutableArray<string> BasicSuffixes =
             ImmutableArray.Create(
-                default, "pred",
+                string.Empty, "pred",
                 "b8", "b16", "b32", "b64",
                 "f16", "f32", "f64");
 
@@ -360,7 +361,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the associated backend.
         /// </summary>
-        public new PTXBackend Backend => base.Backend as PTXBackend;
+        public new PTXBackend Backend => base.Backend.AsNotNullCast<PTXBackend>();
 
         /// <summary>
         /// Returns the associated method.
@@ -598,7 +599,7 @@ namespace ILGPU.Backends.PTX
                 }
 
                 // Build terminator
-                this.GenerateCodeFor(block.Terminator);
+                this.GenerateCodeFor(block.Terminator.AsNotNull());
                 Builder.AppendLine();
             }
 
@@ -690,7 +691,7 @@ namespace ILGPU.Backends.PTX
 
             foreach (var param in Method.Parameters)
             {
-                Register register = null;
+                Register? register = null;
                 if (offset < paramOffset)
                 {
                     register = logic.HandleIntrinsicParameter(offset, param);
@@ -792,7 +793,7 @@ namespace ILGPU.Backends.PTX
                         // using the previously allocated temp register
                         codeGenerator.CreateAddressSpaceCast(
                             TempRegister,
-                            primitiveRegister as HardwareRegister,
+                            primitiveRegister.AsNotNullCast<HardwareRegister>(),
                             MemoryAddressSpace.Generic,
                             addressSpaceType.AddressSpace);
                     }
@@ -830,7 +831,7 @@ namespace ILGPU.Backends.PTX
                 codeGenerator.EmitIOLoad(
                     Emitter,
                     command,
-                    primitiveRegister as HardwareRegister,
+                    primitiveRegister.AsNotNullCast<HardwareRegister>(),
                     offset);
         }
 

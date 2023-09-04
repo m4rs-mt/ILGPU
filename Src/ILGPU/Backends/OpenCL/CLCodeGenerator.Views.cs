@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.Views.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -21,7 +22,7 @@ namespace ILGPU.Backends.OpenCL
         {
             var elementIndex = LoadAs<PrimitiveVariable>(value.Offset);
             var source = Load(value.Source);
-            var target = AllocatePointerType(value.Type as PointerType);
+            var target = AllocatePointerType(value.Type.AsNotNullCast<PointerType>());
 
             using (var statement = BeginStatement(target))
             {
@@ -36,20 +37,20 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IBackendCodeGenerator.GenerateCode(AddressSpaceCast)"/>
         public void GenerateCode(AddressSpaceCast value)
         {
-            var targetType = value.TargetType as AddressSpaceType;
+            var targetType = value.TargetType.AsNotNullCast<AddressSpaceType>();
             var source = Load(value.Value);
             var target = Allocate(value);
 
             bool isOperation = CLInstructions.TryGetAddressSpaceCast(
                 value.TargetAddressSpace,
-                out string operation);
+                out string? operation);
 
             void GeneratePointerCast(StatementEmitter statement)
             {
                 if (isOperation)
                 {
                     // There is a specific cast operation
-                    statement.AppendCommand(operation);
+                    statement.AppendCommand(operation.AsNotNull());
                     statement.BeginArguments();
                 }
                 else

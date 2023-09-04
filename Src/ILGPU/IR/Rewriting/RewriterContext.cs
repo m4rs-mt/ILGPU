@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RewriterContext.cs
@@ -43,7 +43,7 @@ namespace ILGPU.IR.Rewriting
         /// <param name="converted">The set of converted value.</param>
         internal RewriterContext(
             BasicBlock.Builder builder,
-            HashSet<Value> converted)
+            HashSet<Value>? converted)
         {
             Debug.Assert(builder != null, "Invalid builder");
 
@@ -68,7 +68,7 @@ namespace ILGPU.IR.Rewriting
         /// <summary>
         /// The set of all converted nodes.
         /// </summary>
-        private HashSet<Value> Converted { get; }
+        private HashSet<Value>? Converted { get; }
 
         #endregion
 
@@ -88,14 +88,16 @@ namespace ILGPU.IR.Rewriting
         /// </summary>
         /// <param name="value">The value to check.</param>
         /// <returns>True, if the given value has been converted.</returns>
-        public readonly bool IsConverted(Value value) => Converted.Contains(value);
+        public readonly bool IsConverted(Value value) =>
+            Converted != null && Converted.Contains(value);
 
         /// <summary>
         /// Marks the given value as converted.
         /// </summary>
         /// <param name="value">The value to mark.</param>
         /// <returns>True, if the element has been added to the set of value.</returns>
-        public readonly bool MarkConverted(Value value) => Converted.Add(value);
+        public readonly bool MarkConverted(Value value) =>
+            Converted != null && Converted.Add(value);
 
         /// <summary>
         /// Replaces the given value with the new value.

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PointerAddressSpaces.cs
@@ -160,7 +160,7 @@ namespace ILGPU.IR.Analyses
                     return addressSpaceType.AddressSpace;
 
                 // Unify all address space flags from each dependent field
-                var structureType = type as StructureType;
+                var structureType = type.AsNotNullCast<StructureType>();
                 var result = new AddressSpaceInfo();
                 foreach (var (fieldType, _) in structureType)
                     result = Merge(result, FromType(fieldType));
@@ -302,7 +302,7 @@ namespace ILGPU.IR.Analyses
             /// <returns>
             /// True, if the given object is equal to the current instance.
             /// </returns>
-            public override readonly bool Equals(object obj) =>
+            public override readonly bool Equals(object? obj) =>
                 obj is AddressSpaceInfo info && Equals(info);
 
             /// <summary>

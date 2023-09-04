@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerThreadIntrinsics.cs
@@ -12,6 +12,7 @@
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -127,7 +128,7 @@ namespace ILGPU.IR.Transformations
             where TLoweringImplementation : struct, ILoweringImplementation<TValue>
         {
             var builder = context.Builder;
-            var primitiveType = variable.Type as PrimitiveType;
+            var primitiveType = variable.Type.AsNotNullCast<PrimitiveType>();
             Value value = variable;
             if (primitiveType.BasicValueType < BasicValueType.Int32)
             {

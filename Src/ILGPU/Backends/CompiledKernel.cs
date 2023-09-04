@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CompiledKernel.cs
@@ -183,7 +183,7 @@ namespace ILGPU.Backends
         protected CompiledKernel(
             Context context,
             EntryPoint entryPoint,
-            KernelInfo info)
+            KernelInfo? info)
         {
             Context = context;
             EntryPoint = entryPoint;
@@ -236,7 +236,7 @@ namespace ILGPU.Backends
         /// This instance will be available when the property
         /// <see cref="ContextProperties.EnableKernelInformation"/> is enabled.
         /// </remarks>
-        public KernelInfo Info { get; }
+        public KernelInfo? Info { get; }
 
         #endregion
 

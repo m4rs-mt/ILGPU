@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
@@ -10,11 +10,19 @@
     <FileVersion>$(LibraryFileVersion)</FileVersion>
   </PropertyGroup>
 
+  <!-- Enable Nullable Reference Types, but only check for warnings on the latest framework -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' != '$(LibraryLatestTargetFramework)'">
+    <NoWarn>$(NoWarn);nullable</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NeutralLanguage>en-US</NeutralLanguage>
     <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
-    <LangVersion>9.0</LangVersion>
+    <LangVersion>11.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -53,7 +61,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net471' or '$(TargetFramework)' == 'netstandard2.1'">
     <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
-    <PackageReference Include="System.Reflection.Metadata" Version="7.0.1" />
+    <PackageReference Include="System.Reflection.Metadata" Version="7.0.2" />
   </ItemGroup>
 
   <ItemGroup>

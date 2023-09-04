@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2022 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IIndex.cs
@@ -92,7 +92,7 @@ namespace ILGPU
         /// <summary>
         /// An internal mapping of the <see cref="IndexType"/> values to managed types.
         /// </summary>
-        private static readonly Type[] ManagedIndexTypes =
+        private static readonly Type?[] ManagedIndexTypes =
         {
             null,
             typeof(Index1D),

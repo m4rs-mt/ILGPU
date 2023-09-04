@@ -74,7 +74,7 @@ jobs:
           source: ./Site
           destination: ./_site
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v2
       ##### GitHub Pages #####
 
   all-required-checks-done:

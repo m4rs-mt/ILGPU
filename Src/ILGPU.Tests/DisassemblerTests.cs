@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DisassemblerTests.cs
@@ -12,6 +12,7 @@
 using ILGPU.Frontend;
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -102,7 +103,8 @@ namespace ILGPU.Tests
         {
             var methodInfo = typeof(DisassemblerTests).GetMethod(
                 nameof(StelemLdtokenKernel),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+                .ThrowIfNull();
             var method = methodInfo.MakeGenericMethod(genericType);
 
             var disassembler = new Disassembler(method, SequencePointEnumerator.Empty);

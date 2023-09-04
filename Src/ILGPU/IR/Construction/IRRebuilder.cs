@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRRebuilder.cs
@@ -10,8 +10,10 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using static ILGPU.IR.Values.TerminatorValue;
 using BlockCollection = ILGPU.IR.BasicBlockCollection<
@@ -385,7 +387,7 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Gets or sets the current block builder.
         /// </summary>
-        private BasicBlock.Builder CurrentBlock { get; set; }
+        private BasicBlock.Builder? CurrentBlock { get; set; }
 
         /// <summary>
         /// Lookups the given block in the internal rebuilder remapping.
@@ -417,7 +419,7 @@ namespace ILGPU.IR.Construction
         /// <returns>The exit block and the associated return value.</returns>
         public (BasicBlock.Builder, Value) Rebuild()
         {
-            (BasicBlock.Builder, Value) exitBlock = (null, null);
+            (BasicBlock.Builder?, Value?) exitBlock = (null, null);
 
             // Rebuild all instructions
             foreach (var block in Blocks)
@@ -428,7 +430,7 @@ namespace ILGPU.IR.Construction
                 foreach (Value value in block)
                     Rebuild(value);
 
-                var terminator = block.Terminator.Resolve();
+                var terminator = block.Terminator?.Resolve();
                 if (terminator is ReturnTerminator returnValue)
                 {
                     var newReturnValue = Rebuild(returnValue.ReturnValue);
@@ -459,7 +461,7 @@ namespace ILGPU.IR.Construction
                 targetPhiBuilder.Seal();
             }
 
-            return exitBlock;
+            return (exitBlock.Item1.AsNotNull(), exitBlock.Item2.AsNotNull());
         }
 
         /// <summary>
@@ -468,7 +470,9 @@ namespace ILGPU.IR.Construction
         /// <param name="oldNode">The old node.</param>
         /// <param name="newNode">The new node.</param>
         /// <returns>True, if a corresponding new node could be found.</returns>
-        public bool TryGetNewNode(Value oldNode, out Value newNode) =>
+        public bool TryGetNewNode(
+            Value oldNode,
+            [NotNullWhen(true)] out Value? newNode) =>
             valueMapping.TryGetValue(oldNode, out newNode);
 
         /// <summary>
@@ -544,7 +548,7 @@ namespace ILGPU.IR.Construction
             // Verify that we are not rebuilding a replaced node
             source.Assert(!source.IsReplaced);
 
-            if (TryGetNewNode(source, out Value node))
+            if (TryGetNewNode(source, out Value? node))
                 return node;
 
             // Preserve values from to already defined parts of the program
@@ -558,7 +562,7 @@ namespace ILGPU.IR.Construction
 
             // Verify that we are not rebuilding a parameter
             source.Assert(!(source is Parameter));
-            node = source.Rebuild(CurrentBlock, this);
+            node = source.Rebuild(CurrentBlock.AsNotNull(), this);
             Map(source, node);
             return node;
         }
@@ -570,7 +574,7 @@ namespace ILGPU.IR.Construction
         /// <typeparam name="T">The target type to cast the new node to.</typeparam>
         /// <param name="source">The source node.</param>
         /// <returns>The new node.</returns>
-        public T RebuildAs<T>(Value source)
+        public T? RebuildAs<T>(Value source)
             where T : Value =>
             Rebuild(source) as T;
 

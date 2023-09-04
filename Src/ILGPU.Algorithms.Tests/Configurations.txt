@@ -1,7 +1,9 @@
 ﻿ArrayExtensionTests
 GroupExtensionTests
-﻿HistogramTests
+HistogramTests
 InitializeTests
+MatrixTests
+OptimizationTests
 RadixSortExtensionTests
 RandomTests
 ReductionExtensionTests

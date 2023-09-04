@@ -80,7 +80,7 @@ namespace ILGPU
             /// <param name="index">The dimension for index computation.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeElementIndex(<#= indexName #> index) => 0;
+            public int ComputeElementIndex(<#= indexName #> index) => 0;
 
             /// <summary>
             /// Computes the linear 64-bit element address using the given index.
@@ -88,7 +88,7 @@ namespace ILGPU
             /// <param name="index">The dimension for index computation.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeElementIndex(<#= longIndexName #> index) => 0L;
+            public long ComputeElementIndex(<#= longIndexName #> index) => 0L;
 
             /// <summary>
             /// Computes the linear 32-bit element address using the given index while
@@ -99,7 +99,7 @@ namespace ILGPU
             /// <param name="extent">The extent dimension to check.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeElementIndexChecked(
+            public int ComputeElementIndexChecked(
                 <#= indexName #> index,
                 <#= indexName #> extent) =>
                 // Note that all element indices are in bounds
@@ -114,7 +114,7 @@ namespace ILGPU
             /// <param name="extent">The extent dimension to check.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeElementIndexChecked(
+            public long ComputeElementIndexChecked(
                 <#= longIndexName #> index,
                 <#= longIndexName #> extent) =>
                 // Note that all element indices are in bounds
@@ -126,8 +126,7 @@ namespace ILGPU
             /// <param name="elementIndex">The linear element index.</param>
             /// <returns>The reconstructed index.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly <#= indexName #> ReconstructFromElementIndex(
-                int elementIndex)
+            public <#= indexName #> ReconstructFromElementIndex(int elementIndex)
             {
                 Trace.Assert(
                     false,
@@ -141,8 +140,7 @@ namespace ILGPU
             /// <param name="elementIndex">The linear element index.</param>
             /// <returns>The reconstructed index.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly <#= longIndexName #> ReconstructFromElementIndex(
-                long elementIndex)
+            public <#= longIndexName #> ReconstructFromElementIndex(long elementIndex)
             {
                 Trace.Assert(
                     false,
@@ -156,7 +154,7 @@ namespace ILGPU
             /// <param name="extent">The extent to allocate.</param>
             /// <returns>The 32-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeBufferLength(<#= indexName #> extent) => 1;
+            public int ComputeBufferLength(<#= indexName #> extent) => 1;
 
             /// <summary>
             /// Computes the 64-bit length of a required allocation.
@@ -164,19 +162,19 @@ namespace ILGPU
             /// <param name="extent">The extent to allocate.</param>
             /// <returns>The 64-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeBufferLength(<#= longIndexName #> extent) => 1L;
+            public long ComputeBufferLength(<#= longIndexName #> extent) => 1L;
 
             /// <summary>
             /// Returns this stride as general <#= def.Dimension #>D stride.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly General AsGeneral() => new General(default);
+            public General AsGeneral() => new General(default);
 
             /// <summary>
             /// Converts this stride instance into a general 1D stride.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly Stride1D.General To1DStride() => default;
+            public Stride1D.General To1DStride() => default;
 
             #endregion
 
@@ -187,7 +185,7 @@ namespace ILGPU
             /// </summary>
             /// <returns>The string representation of this stride.</returns>
             [NotInsideKernel]
-            public readonly override string ToString() => "<inf>";
+            public override string ToString() => "<inf>";
 
             #endregion
         }
@@ -222,8 +220,7 @@ namespace ILGPU
             /// <param name="index">The dimension for index computation.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeElementIndex(<#= indexName #> index) =>
-                index;
+            public int ComputeElementIndex(<#= indexName #> index) => index;
 
             /// <summary>
             /// Computes the linear 64-bit element address using the given index.
@@ -231,8 +228,7 @@ namespace ILGPU
             /// <param name="index">The dimension for index computation.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeElementIndex(<#= longIndexName #> index) =>
-                index;
+            public long ComputeElementIndex(<#= longIndexName #> index) => index;
 
             /// <summary>
             /// Computes the linear 32-bit element address using the given index while
@@ -243,7 +239,7 @@ namespace ILGPU
             /// <param name="extent">The extent dimension to check.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeElementIndexChecked(
+            public int ComputeElementIndexChecked(
                 <#= indexName #> index,
                 <#= indexName #> extent) =>
                 <#= className #>.ComputeElementIndexChecked(this, index, extent);
@@ -257,7 +253,7 @@ namespace ILGPU
             /// <param name="extent">The extent dimension to check.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeElementIndexChecked(
+            public long ComputeElementIndexChecked(
                 <#= longIndexName #> index,
                 <#= longIndexName #> extent) =>
                 <#= className #>.ComputeElementIndexChecked(this, index, extent);
@@ -268,8 +264,7 @@ namespace ILGPU
             /// <param name="elementIndex">The linear element index.</param>
             /// <returns>The reconstructed index.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly <#= indexName #> ReconstructFromElementIndex(
-                int elementIndex) =>
+            public <#= indexName #> ReconstructFromElementIndex(int elementIndex) =>
                 elementIndex;
 
             /// <summary>
@@ -278,8 +273,7 @@ namespace ILGPU
             /// <param name="elementIndex">The linear element index.</param>
             /// <returns>The reconstructed index.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly <#= longIndexName #> ReconstructFromElementIndex(
-                long elementIndex) =>
+            public <#= longIndexName #> ReconstructFromElementIndex(long elementIndex) =>
                 elementIndex;
 
             /// <summary>
@@ -288,21 +282,20 @@ namespace ILGPU
             /// <param name="extent">The extent to allocate.</param>
             /// <returns>The 32-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeBufferLength(<#= indexName #> extent) => extent;
+            public int ComputeBufferLength(<#= indexName #> extent) => extent;
 
             /// <summary>
             /// Computes the 64-bit length of a required allocation.
             /// </summary>
             /// <param name="extent">The extent to allocate.</param>
             /// <returns>The 64-bit length of a required allocation.</returns>
-            public readonly long ComputeBufferLength(<#= longIndexName #> extent) =>
-                extent;
+            public long ComputeBufferLength(<#= longIndexName #> extent) => extent;
 
             /// <summary>
             /// Returns this stride as general <#= def.Dimension #>D stride.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly General AsGeneral() =>
+            public General AsGeneral() =>
                 new General(
                     <#= string.Join(", ", Enumerable.Range(0, def.Dimension)
                         .Select(t => $"{IndexDimensions[t]}Stride"))#>
@@ -312,7 +305,7 @@ namespace ILGPU
             /// Converts this stride instance into a general 1D stride.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly General To1DStride() => AsGeneral();
+            public General To1DStride() => AsGeneral();
 
             #endregion
 
@@ -323,7 +316,7 @@ namespace ILGPU
             /// </summary>
             /// <returns>The string representation of this stride.</returns>
             [NotInsideKernel]
-            public readonly override string ToString() => "<dense>";
+            public override string ToString() => "<dense>";
 
             #endregion
         }
@@ -346,7 +339,7 @@ namespace ILGPU
         /// <summary>
         /// A general <#= def.Dimension #>D stride.
         /// </summary>
-        public readonly struct General : <#= strideName #>
+        public struct General : <#= strideName #>
         {
             #region Instance
 
@@ -377,7 +370,7 @@ namespace ILGPU
             /// <summary>
             /// Returns the <#= IndexDimensions[i] #>-dimension stride.
             /// </summary>
-            public readonly int <#= IndexDimensions[i] #>Stride =>
+            public int <#= IndexDimensions[i] #>Stride =>
                 StrideExtent.<#= IndexDimensions[i] #>;
 <#      } #>
 
@@ -391,7 +384,7 @@ namespace ILGPU
             /// <param name="index">The dimension for index computation.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeElementIndex(<#= indexName #> index) =>
+            public int ComputeElementIndex(<#= indexName #> index) =>
                 <#= className #>.ComputeElementIndex(this, index);
 
             /// <summary>
@@ -400,7 +393,7 @@ namespace ILGPU
             /// <param name="index">The dimension for index computation.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeElementIndex(<#= longIndexName #> index) =>
+            public long ComputeElementIndex(<#= longIndexName #> index) =>
                 <#= className #>.ComputeElementIndex(this, index);
 
             /// <summary>
@@ -412,7 +405,7 @@ namespace ILGPU
             /// <param name="extent">The extent dimension to check.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeElementIndexChecked(
+            public int ComputeElementIndexChecked(
                 <#= indexName #> index,
                 <#= indexName #> extent) =>
                 <#= className #>.ComputeElementIndexChecked(this, index, extent);
@@ -426,7 +419,7 @@ namespace ILGPU
             /// <param name="extent">The extent dimension to check.</param>
             /// <returns>The computed linear element address.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeElementIndexChecked(
+            public long ComputeElementIndexChecked(
                 <#= longIndexName #> index,
                 <#= longIndexName #> extent) =>
                 <#= className #>.ComputeElementIndexChecked(this, index, extent);
@@ -437,13 +430,56 @@ namespace ILGPU
             /// <param name="elementIndex">The linear element index.</param>
             /// <returns>The reconstructed index.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly <#= indexName #> ReconstructFromElementIndex(
-                int elementIndex)
+            public <#= indexName #> ReconstructFromElementIndex(int elementIndex)
             {
+<#      if (def.Dimension == 1) { #>
+                return new <#= indexName #>(elementIndex);
+<#      } else if (def.Dimension == 2) { #>
+                bool prefer1st =
+                    <#= IndexDimensions[0] #>Stride >
+                    <#= IndexDimensions[1] #>Stride;
+                var index = prefer1st
+                    ? new DenseY(<#= IndexDimensions[0] #>Stride)
+                        .ReconstructFromElementIndex(elementIndex)
+                    : new DenseX(<#= IndexDimensions[1] #>Stride)
+                        .ReconstructFromElementIndex(elementIndex);
+                int minDimension = Utilities.Select(
+                    prefer1st,
+                    <#= IndexDimensions[1] #>Stride,
+                    <#= IndexDimensions[0] #>Stride);
+                return new <#= indexName #>(index.X, index.Y / minDimension);
+<#      } else if (def.Dimension == 3) { #>
+                bool prefer1st =
+                    <#= IndexDimensions[0] #>Stride >
+                    <#= IndexDimensions[2] #>Stride;
+                Trace.Assert(
+                    !prefer1st &
+                    <#= IndexDimensions[2] #>Stride >
+                    <#= IndexDimensions[1] #>Stride |
+                    prefer1st &
+                    <#= IndexDimensions[1] #>Stride >
+                    <#= IndexDimensions[2] #>Stride,
+                    "Reconstruction of general 3D strides is not supported");
+                int mainDim = Utilities.Select(
+                    prefer1st,
+                    <#= IndexDimensions[2] #>Stride,
+                    <#= IndexDimensions[0] #>Stride);
+                var index = prefer1st
+                    ? new DenseZY(
+                        <#= IndexDimensions[0] #>Stride * mainDim,
+                        <#= IndexDimensions[1] #>Stride * mainDim)
+                        .ReconstructFromElementIndex(elementIndex)
+                    : new DenseXY(
+                        <#= IndexDimensions[1] #>Stride * mainDim,
+                        <#= IndexDimensions[2] #>Stride * mainDim)
+                        .ReconstructFromElementIndex(elementIndex);
+                return index;
+<#      } else { #>
                 Trace.Assert(
                     false,
                     "Reconstruction of general strides is not supported");
                 return <#= indexName #>.Invalid;
+<#      } #>
             }
 
             /// <summary>
@@ -452,13 +488,56 @@ namespace ILGPU
             /// <param name="elementIndex">The linear element index.</param>
             /// <returns>The reconstructed index.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly <#= longIndexName #> ReconstructFromElementIndex(
-                long elementIndex)
+            public <#= longIndexName #> ReconstructFromElementIndex(long elementIndex)
             {
+<#      if (def.Dimension == 1) { #>
+                return new <#= longIndexName #>(elementIndex);
+<#      } else if (def.Dimension == 2) { #>
+                bool prefer1st =
+                    <#= IndexDimensions[0] #>Stride >
+                    <#= IndexDimensions[1] #>Stride;
+                var index = prefer1st
+                    ? new DenseY(<#= IndexDimensions[0] #>Stride)
+                        .ReconstructFromElementIndex(elementIndex)
+                    : new DenseX(<#= IndexDimensions[1] #>Stride)
+                        .ReconstructFromElementIndex(elementIndex);
+                int minDimension = Utilities.Select(
+                    prefer1st,
+                    <#= IndexDimensions[1] #>Stride,
+                    <#= IndexDimensions[0] #>Stride);
+                return new <#= longIndexName #>(index.X, index.Y / minDimension);
+<#      } else if (def.Dimension == 3) { #>
+                bool prefer1st =
+                    <#= IndexDimensions[0] #>Stride >
+                    <#= IndexDimensions[2] #>Stride;
+                Trace.Assert(
+                    !prefer1st &
+                    <#= IndexDimensions[2] #>Stride >
+                    <#= IndexDimensions[1] #>Stride |
+                    prefer1st &
+                    <#= IndexDimensions[1] #>Stride >
+                    <#= IndexDimensions[2] #>Stride,
+                    "Reconstruction of general 3D strides is not supported");
+                int mainDim = Utilities.Select(
+                    prefer1st,
+                    <#= IndexDimensions[2] #>Stride,
+                    <#= IndexDimensions[0] #>Stride);
+                var index = prefer1st
+                    ? new DenseZY(
+                        <#= IndexDimensions[0] #>Stride * mainDim,
+                        <#= IndexDimensions[1] #>Stride * mainDim)
+                        .ReconstructFromElementIndex(elementIndex)
+                    : new DenseXY(
+                        <#= IndexDimensions[1] #>Stride * mainDim,
+                        <#= IndexDimensions[2] #>Stride * mainDim)
+                        .ReconstructFromElementIndex(elementIndex);
+                return index;
+<#      } else { #>
                 Trace.Assert(
                     false,
                     "Reconstruction of general strides is not supported");
                 return <#= longIndexName #>.Invalid;
+<#      } #>
             }
 
             /// <summary>
@@ -467,7 +546,7 @@ namespace ILGPU
             /// <param name="extent">The extent to allocate.</param>
             /// <returns>The 32-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int ComputeBufferLength(<#= indexName #> extent) =>
+            public int ComputeBufferLength(<#= indexName #> extent) =>
                 <#= className #>.ComputeBufferLength(this, extent);
 
             /// <summary>
@@ -476,20 +555,20 @@ namespace ILGPU
             /// <param name="extent">The extent to allocate.</param>
             /// <returns>The 64-bit length of a required allocation.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long ComputeBufferLength(<#= longIndexName #> extent) =>
+            public long ComputeBufferLength(<#= longIndexName #> extent) =>
                 <#= className #>.ComputeBufferLength(this, extent);
 
             /// <summary>
             /// Returns this stride as general <#= def.Dimension #>D stride.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly General AsGeneral() => this;
+            public General AsGeneral() => this;
 
             /// <summary>
             /// Converts this stride instance into a general 1D stride.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly Stride1D.General To1DStride() =>
+            public Stride1D.General To1DStride() =>
                 new Stride1D.General(XStride);
 
             #endregion
@@ -501,7 +580,7 @@ namespace ILGPU
             /// </summary>
             /// <returns>The string representation of this stride.</returns>
             [NotInsideKernel]
-            public readonly override string ToString() => StrideExtent.ToString();
+            public override string ToString() => StrideExtent.ToString();
 
             #endregion
         }

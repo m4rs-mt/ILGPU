@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeExtensions.cs
@@ -15,7 +15,7 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Util
 {
@@ -32,7 +32,9 @@ namespace ILGPU.Util
         /// The resolved element type in case of an array view.
         /// </param>
         /// <returns>True, in case of an array view.</returns>
-        public static bool IsArrayViewType(this Type type, out Type elementType)
+        public static bool IsArrayViewType(
+            this Type type,
+            [NotNullWhen(true)] out Type? elementType)
         {
             elementType = null;
             if (!type.IsGenericType ||
@@ -79,7 +81,9 @@ namespace ILGPU.Util
         /// The resolved element type in case of an array view.
         /// </param>
         /// <returns>True, in case of an array view.</returns>
-        public static bool IsSpecializedType(this Type type, out Type nestedType)
+        public static bool IsSpecializedType(
+            this Type type,
+            [NotNullWhen(true)] out Type? nestedType)
         {
             nestedType = null;
             if (!type.IsGenericType ||
@@ -98,7 +102,9 @@ namespace ILGPU.Util
         /// <param name="type">The source type.</param>
         /// <param name="elementType">The element type (if any).</param>
         /// <returns>True, if the given type is an immutable array.</returns>
-        public static bool IsImmutableArray(this Type type, out Type elementType)
+        public static bool IsImmutableArray(
+            this Type type,
+            [NotNullWhen(true)] out Type? elementType)
         {
             elementType = null;
             if (!type.IsGenericType ||
@@ -132,7 +138,7 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="type">The source type.</param>
         /// <returns>The resolved delegate invocation method.</returns>
-        public static MethodInfo GetDelegateInvokeMethod(this Type type)
+        public static MethodInfo? GetDelegateInvokeMethod(this Type type)
         {
             const string InvokeMethodName = "Invoke";
             return !type.IsDelegate()
@@ -234,7 +240,7 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="type">The source type.</param>
         /// <returns>The resolved managed type.</returns>
-        public static Type GetManagedType(this BasicValueType type) =>
+        public static Type? GetManagedType(this BasicValueType type) =>
             type switch
             {
                 BasicValueType.Int1 => typeof(bool),
@@ -455,5 +461,27 @@ namespace ILGPU.Util
         /// <returns>The required conversion flags.</returns>
         internal static ConvertFlags ToTargetUnsignedFlags(this Type type) =>
             type.IsUnsignedInt() ? ConvertFlags.TargetUnsigned : ConvertFlags.None;
+
+        /// <summary>
+        /// Applies the null-forgiving operator.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T AsNotNull<T>(this T? value)
+            => value!;
+
+        /// <summary>
+        /// Applies the null-forgiving operator.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T AsNotNullCast<T>(this object? value)
+            where T : class
+            => (value as T).AsNotNull();
+
+        /// <summary>
+        /// Throws exception of the value is null.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T ThrowIfNull<T>(this T? value)
+            => value ?? throw new ArgumentNullException(nameof(value));
     }
 }

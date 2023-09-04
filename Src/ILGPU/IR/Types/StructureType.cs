@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StructureType.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -889,7 +890,7 @@ namespace ILGPU.IR.Types
                 else if (nestedSpan.Contains(span))
                 {
                     // This must be a nested structure
-                    (type as StructureType).SliceRecursive(
+                    type.AsNotNullCast<StructureType>().SliceRecursive(
                         ref builder,
                         ref index,
                         span);
@@ -954,8 +955,8 @@ namespace ILGPU.IR.Types
         /// <summary cref="TypeNode.GetHashCode"/>
         public override int GetHashCode() => hashCode;
 
-        /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj)
+        /// <summary cref="TypeNode.Equals(object?)"/>
+        public override bool Equals(object? obj)
         {
             if (!(obj is StructureType structureType) ||
                 structureType.NumFields != NumFields)

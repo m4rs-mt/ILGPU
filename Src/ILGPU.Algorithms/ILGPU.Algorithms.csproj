@@ -10,11 +10,19 @@
     <FileVersion>$(LibraryFileVersion)</FileVersion>
   </PropertyGroup>
 
+  <!-- Enable Nullable Reference Types, but only check for warnings on the latest framework -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' != '$(LibraryLatestTargetFramework)'">
+    <NoWarn>$(NoWarn);nullable</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NeutralLanguage>en-US</NeutralLanguage>
     <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
-    <LangVersion>9.0</LangVersion>
+    <LangVersion>11.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -22,6 +30,10 @@
     <DocumentationFile>../../Bin/$(Configuration)/$(TargetFramework)/ILGPU.Algorithms.xml</DocumentationFile>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ILGPU\Util\NullableAttributes.cs" Link="Util\NullableAttributes.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="AlgorithmContextMappings.cs">
@@ -173,6 +185,10 @@
     <None Update="UniqueLaunchers.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>UniqueLaunchers.cs</LastGenOutput>
+    </None>
+    <None Update="Vectors\VectorTypes.tt">
+      <LastGenOutput>VectorTypes.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Update="XMath\Cordic.ttinclude">
       <Generator></Generator>
@@ -329,6 +345,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>UniqueLaunchers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Vectors\VectorTypes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>VectorTypes.tt</DependentUpon>
     </Compile>
     <Compile Update="XMath\Cordic.cs">
       <DesignTime>True</DesignTime>

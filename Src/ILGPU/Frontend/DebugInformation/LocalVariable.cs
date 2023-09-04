@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LocalVariable.cs
@@ -73,7 +73,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// <returns>
         /// True, if the given object is equal to the current local variable.
         /// </returns>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is LocalVariable localVariable && Equals(localVariable);
 
         /// <summary>

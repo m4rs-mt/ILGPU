@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MethodExtensions.cs
@@ -61,7 +61,8 @@ namespace ILGPU.Util
             // https://github.com/dotnet/fsharp/tree/596f3d7
             //
             var declaringType = method.DeclaringType;
-            return declaringType.IsClass
+            return declaringType != null
+                && declaringType.IsClass
                 && declaringType.GetFields(
                     BindingFlags.Instance |
                     BindingFlags.NonPublic |

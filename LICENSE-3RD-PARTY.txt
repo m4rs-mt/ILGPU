@@ -9,6 +9,8 @@ ILGPU Dependencies:
     (https://www.nuget.org/packages/System.Reflection.Metadata)
     - System.Runtime.CompilerServices.Unsafe
     (https://www.nuget.org/packages/system.runtime.CompilerServices.Unsafe/)
+    - .NET Runtime
+    (https://github.com/dotnet/runtime/)
 ********************************************************************************
 
 ********************************************************************************
@@ -38,3 +40,11 @@ http://go.microsoft.com/fwlink/?LinkId=329770
 
 System.Runtime.CompilerServices.Unsafe license can be found via:
 http://go.microsoft.com/fwlink/?LinkId=329770
+
+********************************************************************************
+     ILGPU Compiler Dependency: .NET Runtime
+
+For compatibility with older frameworks, parts of ILGPU makes use of source
+code for Nullable Attributes from the .NET runtime. This code is licensed
+under the MIT license, and can be found via:
+https://raw.githubusercontent.com/dotnet/runtime/v7.0.0/LICENSE.TXT

@@ -104,7 +104,7 @@ namespace ILGPU.Frontend
         /// <returns>The resolved call target.</returns>
         private MethodInfo ResolveVirtualCallTarget(
             MethodInfo target,
-            Type constrainedType)
+            Type? constrainedType)
         {
             const BindingFlags ConstraintMethodFlags = BindingFlags.Instance |
                 BindingFlags.Public | BindingFlags.NonPublic;
@@ -127,7 +127,7 @@ namespace ILGPU.Frontend
             // However, there are two special cases that are supported:
             // x.GetHashCode(), x.ToString()
             // where GetHashCode and ToString are defined in Object.
-            MethodInfo actualTarget = null;
+            MethodInfo? actualTarget = null;
             if (target.DeclaringType == typeof(object))
             {
                 var @params = target.GetParameters();
@@ -146,7 +146,7 @@ namespace ILGPU.Frontend
                     throw Location.GetNotSupportedException(
                         ErrorMessages.NotSupportedVirtualMethodCallToObject,
                         target.Name,
-                        actualTarget.DeclaringType,
+                        actualTarget.DeclaringType.AsNotNull(),
                         constrainedType);
                 }
             }
@@ -156,7 +156,7 @@ namespace ILGPU.Frontend
                 if (sourceGenerics.Length > 0)
                     target = target.GetGenericMethodDefinition();
                 var interfaceMapping = constrainedType.GetInterfaceMap(
-                    target.DeclaringType);
+                    target.DeclaringType.AsNotNull());
                 for (
                     int i = 0, e = interfaceMapping.InterfaceMethods.Length;
                     i < e;
@@ -174,6 +174,8 @@ namespace ILGPU.Frontend
                     ErrorMessages.NotSupportedVirtualMethodCall,
                     target.Name);
             }
+            if (sourceGenerics.Length > 0 && !actualTarget.IsGenericMethodDefinition)
+                actualTarget = actualTarget.GetGenericMethodDefinition();
             return sourceGenerics.Length > 0
                 ? actualTarget.MakeGenericMethod(sourceGenerics)
                 : actualTarget;
@@ -205,7 +207,7 @@ namespace ILGPU.Frontend
         /// <param name="constrainedType">
         /// The target type on which to invoke the method.
         /// </param>
-        private void MakeVirtualCall(MethodInfo target, Type constrainedType)
+        private void MakeVirtualCall(MethodInfo target, Type? constrainedType)
         {
             target = ResolveVirtualCallTarget(target, constrainedType);
             MakeCall(target);

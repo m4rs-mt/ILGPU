@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLBackend.cs
@@ -16,6 +16,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
+using ILGPU.Util;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -68,7 +69,7 @@ namespace ILGPU.Backends.OpenCL
             CLStdVersion = clStdVersion;
 
             InitIntrinsicProvider();
-            InitializeKernelTransformers( builder =>
+            InitializeKernelTransformers(builder =>
             {
                 var transformerBuilder = Transformer.CreateBuilder(
                     TransformerConfiguration.Empty);
@@ -110,13 +111,13 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the associated <see cref="Backend.ArgumentMapper"/>.
         /// </summary>
         public new CLArgumentMapper ArgumentMapper =>
-            base.ArgumentMapper as CLArgumentMapper;
+            base.ArgumentMapper.AsNotNullCast<CLArgumentMapper>();
 
         /// <summary>
         /// Returns the capabilities of this accelerator.
         /// </summary>
         public new CLCapabilityContext Capabilities =>
-            base.Capabilities as CLCapabilityContext;
+            base.Capabilities.AsNotNullCast<CLCapabilityContext>();
 
         #endregion
 
@@ -162,7 +163,7 @@ namespace ILGPU.Backends.OpenCL
             data = new CLCodeGenerator.GeneratorArgs(
                 this,
                 typeGenerator,
-                entryPoint as SeparateViewEntryPoint,
+                entryPoint.AsNotNullCast<SeparateViewEntryPoint>(),
                 backendContext.SharedAllocations,
                 backendContext.DynamicSharedAllocations);
             return builder;
@@ -192,7 +193,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         protected override CompiledKernel CreateKernel(
             EntryPoint entryPoint,
-            CompiledKernel.KernelInfo kernelInfo,
+            CompiledKernel.KernelInfo? kernelInfo,
             StringBuilder builder,
             CLCodeGenerator.GeneratorArgs data)
         {
@@ -208,7 +209,7 @@ namespace ILGPU.Backends.OpenCL
             var clSource = builder.ToString();
             return new CLCompiledKernel(
                 Context,
-                entryPoint as SeparateViewEntryPoint,
+                entryPoint.AsNotNullCast<SeparateViewEntryPoint>(),
                 kernelInfo,
                 clSource,
                 CLStdVersion);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicSpecializer.cs
@@ -41,7 +41,7 @@ namespace ILGPU.IR.Transformations
             for (int i = 0, e = dependencies.Count; i < e; ++i)
             {
                 var (node, intrinsic) = dependencies[i];
-                if (!importedFunctions.TryGetValue(intrinsic, out Method imported))
+                if (!importedFunctions.TryGetValue(intrinsic, out Method? imported))
                 {
                     imported = targetContext.Import(intrinsic);
                     importedFunctions.Add(intrinsic, imported);

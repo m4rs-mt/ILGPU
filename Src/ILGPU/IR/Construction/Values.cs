@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Values.cs
@@ -323,7 +323,10 @@ namespace ILGPU.IR.Construction
                 ArithmeticBasicValueType.UInt64 =>
                     CreatePrimitiveValue(location, Convert.ToUInt64(value)),
                 ArithmeticBasicValueType.Float16 =>
-                    CreatePrimitiveValue(location, (Half)value),
+                    CreatePrimitiveValue(location,
+                        value == null
+                        ? Half.Zero
+                        : (Half)value),
                 ArithmeticBasicValueType.Float32 =>
                     CreatePrimitiveValue(location, Convert.ToSingle(value)),
                 ArithmeticBasicValueType.Float64 =>

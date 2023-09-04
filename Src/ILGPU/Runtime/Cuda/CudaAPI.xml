@@ -191,7 +191,7 @@
         <Parameter Name="blockSize" Type="int" Flags="Out" />
         <Parameter Name="func" Type="IntPtr" />
         <Parameter Name="blockSizeToDynamicSMemSize"
-                   Type="ComputeDynamicMemorySizeForBlockSize" />
+                   Type="ComputeDynamicMemorySizeForBlockSize?" />
         <Parameter Name="dynamicSMemSize" Type="IntPtr" />
         <Parameter Name="blockSizeLimit" Type="int" />
     </Import>

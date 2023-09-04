@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Dominators.cs
@@ -224,7 +224,7 @@ namespace ILGPU.IR.Analyses
         private BasicBlock GetPhiParent(BasicBlock dominatorBlock, UseCollection uses)
         {
             // Check for phi-value references
-            BasicBlock phiParent = null;
+            BasicBlock? phiParent = null;
             foreach (Use use in uses)
             {
                 if (!(use.Resolve() is PhiValue phiValue))

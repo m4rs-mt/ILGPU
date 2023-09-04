@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRandomProvider.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -19,7 +20,6 @@ namespace ILGPU.Algorithms.Random
     /// </summary>
     public interface IRandomProvider
     {
-
         /// <summary>
         /// Generates a random int in [0..int.MaxValue].
         /// </summary>
@@ -53,6 +53,7 @@ namespace ILGPU.Algorithms.Random
     /// An abstract RNG provider that supports period shifts.
     /// </summary>
     /// <typeparam name="TProvider">The implementing provider type.</typeparam>
+    [CLSCompliant(false)]
     public interface IRandomProvider<TProvider> : IRandomProvider
         where TProvider : struct, IRandomProvider<TProvider>
     {
@@ -74,6 +75,14 @@ namespace ILGPU.Algorithms.Random
         /// <param name="random">The parent RNG instance.</param>
         /// <returns>The next provider instance.</returns>
         TProvider CreateProvider(System.Random random);
+
+        /// <summary>
+        /// Instantiates a new provider using the given random.
+        /// </summary>
+        /// <param name="random">The parent RNG instance.</param>
+        /// <returns>The next provider instance.</returns>
+        TProvider CreateProvider<TRandomProvider>(ref TRandomProvider random)
+            where TRandomProvider : struct, IRandomProvider<TRandomProvider>;
     }
 
     namespace Operations
@@ -106,7 +115,7 @@ namespace ILGPU.Algorithms.Random
             /// <inheritdoc cref="IRandomProviderOperation{T, TRandomProvider}.
             /// Apply(ref TRandomProvider)"/>"
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly int Apply(ref TRandomProvider randomProvider) =>
+            public int Apply(ref TRandomProvider randomProvider) =>
                 randomProvider.Next();
         }
 
@@ -121,7 +130,7 @@ namespace ILGPU.Algorithms.Random
             /// <inheritdoc cref="IRandomProviderOperation{T, TRandomProvider}.
             /// Apply(ref TRandomProvider)"/>"
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly long Apply(ref TRandomProvider randomProvider) =>
+            public long Apply(ref TRandomProvider randomProvider) =>
                 randomProvider.NextLong();
         }
 
@@ -136,7 +145,7 @@ namespace ILGPU.Algorithms.Random
             /// <inheritdoc cref="IRandomProviderOperation{T, TRandomProvider}.
             /// Apply(ref TRandomProvider)"/>"
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly float Apply(ref TRandomProvider randomProvider) =>
+            public float Apply(ref TRandomProvider randomProvider) =>
                 randomProvider.NextFloat();
         }
 
@@ -151,7 +160,7 @@ namespace ILGPU.Algorithms.Random
             /// <inheritdoc cref="IRandomProviderOperation{T, TRandomProvider}.
             /// Apply(ref TRandomProvider)"/>"
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly double Apply(ref TRandomProvider randomProvider) =>
+            public double Apply(ref TRandomProvider randomProvider) =>
                 randomProvider.NextDouble();
         }
     }

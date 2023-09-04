@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TestBase.cs
@@ -59,7 +59,7 @@ namespace ILGPU.Tests
         internal static MethodInfo GetKernelMethod(
             Type type,
             string name,
-            Type[] typeArguments)
+            Type[]? typeArguments)
         {
             var method = type.GetMethod(
                 name,
@@ -221,6 +221,29 @@ namespace ILGPU.Tests
             {
                 typeof(T1),
                 typeof(T2)
+            });
+            Execute(kernelMethod, dimension, arguments);
+        }
+
+        /// <summary>
+        /// Executes an implicitly linked kernel with the given arguments.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <param name="dimension">The dimension.</param>
+        /// <param name="arguments">The arguments.</param>
+        public void Execute<TIndex, T1, T2, T3>(
+            TIndex dimension,
+            params object[] arguments)
+            where TIndex : struct, IIndex
+            where T1 : unmanaged
+            where T2 : unmanaged
+            where T3 : unmanaged
+        {
+            var kernelMethod = KernelMethodAttribute.GetKernelMethod(new Type[]
+            {
+                typeof(T1),
+                typeof(T2),
+                typeof(T3)
             });
             Execute(kernelMethod, dimension, arguments);
         }

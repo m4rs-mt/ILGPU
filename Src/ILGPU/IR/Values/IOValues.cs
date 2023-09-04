@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IOValues.cs
@@ -74,7 +74,7 @@ namespace ILGPU.IR.Values
                 {
                     WriteToOutput = writeToOutput;
                     enumerator = writeToOutput.Expressions.GetEnumerator();
-                    Current = default;
+                    Current = Utilities.InitNotNullable<Value>();
                 }
 
                 /// <summary>
@@ -298,7 +298,7 @@ namespace ILGPU.IR.Values
                 {
                     // Append the underlying expression string and escape % characters
                     result.Append(
-                        expression.String.Replace(
+                        expression.String.AsNotNull().Replace(
                             "%",
                             PrintFPercentFormat));
                 }

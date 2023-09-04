@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Constants.cs
@@ -137,7 +137,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the associated primitive type.
         /// </summary>
-        public PrimitiveType PrimitiveType => Type as PrimitiveType;
+        public PrimitiveType PrimitiveType => Type.AsNotNullCast<PrimitiveType>();
 
         /// <summary>
         /// Returns the value as i1.
@@ -351,7 +351,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the associated type.
         /// </summary>
-        public StringType StringType => Type as StringType;
+        public StringType StringType => Type.AsNotNullCast<StringType>();
 
         /// <summary>
         /// Returns the associated string constant.

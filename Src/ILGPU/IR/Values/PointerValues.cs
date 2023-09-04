@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PointerValues.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
@@ -59,7 +60,8 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the view element type.
         /// </summary>
-        public AddressSpaceType AddressSpaceType => Type as AddressSpaceType;
+        public AddressSpaceType AddressSpaceType =>
+            Type.AsNotNullCast<AddressSpaceType>();
 
         /// <summary>
         /// Returns the pointer address space.
@@ -197,7 +199,7 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer)
         {
-            var sourceType = Source.Type as AddressSpaceType;
+            var sourceType = Source.Type.AsNotNullCast<AddressSpaceType>();
             Location.AssertNotNull(sourceType);
 
             return sourceType is PointerType
@@ -442,12 +444,13 @@ namespace ILGPU.IR.Values
         /// Returns the structure type.
         /// </summary>
         public StructureType StructureType =>
-            (Source.Type as PointerType).ElementType as StructureType;
+            (Source.Type.AsNotNullCast<PointerType>().ElementType as StructureType)
+            .AsNotNull();
 
         /// <summary>
         /// Returns the managed field information.
         /// </summary>
-        public TypeNode FieldType => (Type as PointerType).ElementType;
+        public TypeNode FieldType => Type.AsNotNullCast<PointerType>().ElementType;
 
         /// <summary>
         /// Returns the field span.

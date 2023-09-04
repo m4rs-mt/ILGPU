@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Method.Builder.cs
@@ -121,8 +121,8 @@ namespace ILGPU.IR
             /// </returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static bool RequiresControlFlowUpdate(
-                TerminatorValue oldTerminator,
-                TerminatorValue newTerminator)
+                TerminatorValue? oldTerminator,
+                TerminatorValue? newTerminator)
             {
                 if (oldTerminator == newTerminator)
                     return false;
@@ -280,8 +280,8 @@ namespace ILGPU.IR
             /// changed by setting a new terminator.
             /// </summary>
             public void ScheduleControlFlowUpdate(
-                TerminatorValue oldTerminator,
-                TerminatorValue newTerminator)
+                TerminatorValue? oldTerminator,
+                TerminatorValue? newTerminator)
             {
                 if (RequiresControlFlowUpdate(oldTerminator, newTerminator))
                     ScheduleControlFlowUpdate();
@@ -393,7 +393,7 @@ namespace ILGPU.IR
             /// <param name="type">The parameter type.</param>
             /// <param name="name">The parameter name (for debugging purposes).</param>
             /// <returns>The created parameter.</returns>
-            public Parameter AddParameter(TypeNode type, string name)
+            public Parameter AddParameter(TypeNode type, string? name)
             {
                 var param = CreateParam(type, name);
                 parameters.Add(param);
@@ -414,7 +414,7 @@ namespace ILGPU.IR
             /// <param name="type">The parameter type.</param>
             /// <param name="name">The parameter name (for debugging purposes).</param>
             /// <returns>The created parameter.</returns>
-            public Parameter InsertParameter(TypeNode type, string name)
+            public Parameter InsertParameter(TypeNode type, string? name)
             {
                 var param = CreateParam(type, name);
                 parameters.Insert(0, param);
@@ -427,7 +427,7 @@ namespace ILGPU.IR
             /// <param name="type">The parameter type.</param>
             /// <param name="name">The parameter name (for debugging purposes).</param>
             /// <returns>The created parameter.</returns>
-            private Parameter CreateParam(TypeNode type, string name) =>
+            private Parameter CreateParam(TypeNode type, string? name) =>
                 new Parameter(
                     new ValueInitializer(
                         BaseContext,
@@ -451,7 +451,7 @@ namespace ILGPU.IR
             /// <param name="name">The block name.</param>
             /// <returns>The created basic block.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public BasicBlock.Builder CreateBasicBlock(Location location, string name)
+            public BasicBlock.Builder CreateBasicBlock(Location location, string? name)
             {
                 var block = new BasicBlock(Method, location, name);
                 block.BeginControlFlowUpdate(blockCounter++);

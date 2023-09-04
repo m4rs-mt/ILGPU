@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Method.cs
@@ -16,6 +16,7 @@ using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -280,7 +281,7 @@ namespace ILGPU.IR
             public Method this[Method source]
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => mapping != null && mapping.TryGetValue(source, out Method target)
+                get => mapping != null && mapping.TryGetValue(source, out Method? target)
                     ? target
                     : source;
             }
@@ -384,7 +385,7 @@ namespace ILGPU.IR
         private ImmutableArray<Parameter> parameters = ImmutableArray<Parameter>.Empty;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private volatile Builder builder = null;
+        private volatile Builder? builder = null;
 
         /// <summary>
         /// Creates a new method instance.
@@ -399,7 +400,7 @@ namespace ILGPU.IR
             : base(
                   location.IsKnown
                   ? location
-                  : new MethodLocation(declaration.Source))
+                  : new MethodLocation(declaration.Source.AsNotNull()))
         {
             Location.Assert(
                 declaration.HasHandle && declaration.ReturnType != null);
@@ -448,7 +449,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the original source method (may be null).
         /// </summary>
-        public MethodBase Source => Declaration.Source;
+        public MethodBase Source => Declaration.Source.AsNotNull();
 
         /// <summary>
         /// Returns true if the associated source method is not null.

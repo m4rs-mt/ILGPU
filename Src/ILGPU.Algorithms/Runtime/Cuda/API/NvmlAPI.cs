@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvmlAPI.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Text;
 
@@ -32,6 +33,7 @@ namespace ILGPU.Runtime.Cuda.API
         public static NvmlAPI Create(NvmlAPIVersion? version) =>
             version.HasValue
             ? CreateInternal(version.Value)
+                ?? throw new DllNotFoundException(nameof(NvmlAPI))
             : CreateLatest();
 
         /// <summary>
@@ -40,12 +42,15 @@ namespace ILGPU.Runtime.Cuda.API
         /// <returns>The created API wrapper.</returns>
         private static NvmlAPI CreateLatest()
         {
-            Exception firstException = null;
-            var versions = Enum.GetValues(typeof(NvmlAPIVersion));
-
+            Exception? firstException = null;
+#if NET5_0_OR_GREATER
+            var versions = Enum.GetValues<NvmlAPIVersion>();
+#else
+            var versions = (NvmlAPIVersion[])Enum.GetValues(typeof(NvmlAPIVersion));
+#endif
             for (var i = versions.Length - 1; i >= 0; i--)
             {
-                var version = (NvmlAPIVersion)versions.GetValue(i);
+                var version = versions[i];
                 var api = CreateInternal(version);
                 if (api is null)
                     continue;
@@ -80,7 +85,7 @@ namespace ILGPU.Runtime.Cuda.API
         internal unsafe static NvmlReturn GetNvmlString(
             Func<IntPtr, uint, NvmlReturn> interopFunc,
             uint length,
-            out string nvmlString)
+            out string? nvmlString)
         {
             NvmlReturn result;
             ReadOnlySpan<byte> buffer =
@@ -120,7 +125,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// <returns>The interop status code.</returns>
         internal unsafe static NvmlReturn GetNvmlArray<T>(
             GetNvmlArrayInterop<T> interopFunc,
-            out T[] nvmlArray)
+            out T[]? nvmlArray)
             where T : unmanaged
         {
             // Query the length of data available.
@@ -176,8 +181,8 @@ namespace ILGPU.Runtime.Cuda.API
         /// <returns>The interop status code.</returns>
         internal unsafe static NvmlReturn GetNvmlArray<T1, T2>(
             GetNvmlArrayInterop<T1, T2> interopFunc,
-            out T1[] nvmlArray1,
-            out T2[] nvmlArray2)
+            out T1[]? nvmlArray1,
+            out T2[]? nvmlArray2)
             where T1 : unmanaged
             where T2 : unmanaged
         {
@@ -242,7 +247,7 @@ namespace ILGPU.Runtime.Cuda.API
         internal unsafe static NvmlReturn FillNvmlArray<T>(
             FillNvmlArrayInterop<T> interopFunc,
             uint length,
-            out T[] nvmlArray)
+            out T[]? nvmlArray)
             where T : unmanaged
         {
             // Allocate enough space for the requested length.
@@ -266,7 +271,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetBoardPartNumber(
             IntPtr device,
-            out string partNumber) =>
+            out string? partNumber) =>
             GetNvmlString(
                 (str, len) => DeviceGetBoardPartNumber_Interop(device, str, len),
                 NvmlConstants.NVML_DEVICE_PART_NUMBER_BUFFER_SIZE,
@@ -307,7 +312,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetComputeRunningProcesses(
             IntPtr device,
-            out NvmlProcessInfo[] infos)
+            out NvmlProcessInfo[]? infos)
         {
             NvmlReturn Interop(ref uint len, NvmlProcessInfo* ptr) =>
                 DeviceGetComputeRunningProcesses_v2_Interop(device, ref len, ptr);
@@ -320,7 +325,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetEncoderSessions(
             IntPtr device,
-            out NvmlEncoderSessionInfo[] sessionInfos)
+            out NvmlEncoderSessionInfo[]? sessionInfos)
         {
             NvmlReturn Interop(ref uint len, NvmlEncoderSessionInfo* ptr) =>
                 DeviceGetEncoderSessions_Interop(device, ref len, ptr);
@@ -333,7 +338,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetInforomImageVersion(
             IntPtr device,
-            out string version) =>
+            out string? version) =>
             GetNvmlString(
                 (str, len) => DeviceGetInforomImageVersion_Interop(device, str, len),
                 NvmlConstants.NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE,
@@ -346,7 +351,7 @@ namespace ILGPU.Runtime.Cuda.API
         public unsafe NvmlReturn DeviceGetInforomVersion(
             IntPtr device,
             NvmlInforomObject inforomObject,
-            out string version) =>
+            out string? version) =>
             GetNvmlString(
                 (str, len) =>
                 {
@@ -365,7 +370,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetGraphicsRunningProcesses(
             IntPtr device,
-            out NvmlProcessInfo[] infos)
+            out NvmlProcessInfo[]? infos)
         {
             NvmlReturn Interop(ref uint len, NvmlProcessInfo* ptr) =>
                 DeviceGetGraphicsRunningProcesses_v2_Interop(device, ref len, ptr);
@@ -378,7 +383,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetName(
             IntPtr device,
-            out string name) =>
+            out string? name) =>
             GetNvmlString(
                 (str, len) => DeviceGetName_Interop(device, str, len),
                 NvmlConstants.NVML_DEVICE_NAME_V2_BUFFER_SIZE,
@@ -438,7 +443,7 @@ namespace ILGPU.Runtime.Cuda.API
         public unsafe NvmlReturn DeviceGetRetiredPages(
             IntPtr device,
             NvmlPageRetirementCause cause,
-            out ulong[] addresses)
+            out ulong[]? addresses)
         {
             NvmlReturn Interop(ref uint len, ulong* ptr) =>
                 DeviceGetRetiredPages_Interop(device, cause, ref len, ptr);
@@ -452,8 +457,8 @@ namespace ILGPU.Runtime.Cuda.API
         public unsafe NvmlReturn DeviceGetRetiredPages_v2(
             IntPtr device,
             NvmlPageRetirementCause cause,
-            out ulong[] addresses,
-            out ulong[] timestamps)
+            out ulong[]? addresses,
+            out ulong[]? timestamps)
         {
             NvmlReturn Interop(ref uint len, ulong* ptr1, ulong* ptr2) =>
                 DeviceGetRetiredPages_v2_Interop(device, cause, ref len, ptr1, ptr2);
@@ -470,7 +475,7 @@ namespace ILGPU.Runtime.Cuda.API
             ulong lastSeenTimeStamp,
             out NvmlValueType sampleValType,
             uint sampleCount,
-            out NvmlSample[] samples)
+            out NvmlSample[]? samples)
         {
             // Allocate enough space for sampleCount.
             uint length = sampleCount;
@@ -507,7 +512,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetSerial(
             IntPtr device,
-            out string serial) =>
+            out string? serial) =>
             GetNvmlString(
                 (str, len) => DeviceGetSerial_Interop(device, str, len),
                 NvmlConstants.NVML_DEVICE_SERIAL_BUFFER_SIZE,
@@ -520,7 +525,7 @@ namespace ILGPU.Runtime.Cuda.API
         public unsafe NvmlReturn DeviceGetSupportedGraphicsClocks(
             IntPtr device,
             uint memoryClockMHz,
-            out uint[] clocksMHz)
+            out uint[]? clocksMHz)
         {
             NvmlReturn Interop(ref uint len, uint* ptr) =>
                 DeviceGetSupportedGraphicsClocks_Interop(
@@ -537,7 +542,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetSupportedMemoryClocks(
             IntPtr device,
-            out uint[] clocksMHz)
+            out uint[]? clocksMHz)
         {
             NvmlReturn Interop(ref uint len, uint* ptr) =>
                 DeviceGetSupportedMemoryClocks_Interop(device, ref len, ptr);
@@ -551,7 +556,7 @@ namespace ILGPU.Runtime.Cuda.API
         public unsafe NvmlReturn DeviceGetTopologyNearestGpus(
             IntPtr device,
             NvmlGpuTopologyLevel level,
-            out IntPtr[] deviceArray)
+            out IntPtr[]? deviceArray)
         {
             NvmlReturn Interop(ref uint len, IntPtr* ptr) =>
                 DeviceGetTopologyNearestGpus_Interop(device, level, ref len, ptr);
@@ -564,7 +569,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetUUID(
             IntPtr device,
-            out string uuid) =>
+            out string? uuid) =>
             GetNvmlString(
                 (str, len) => DeviceGetUUID_Interop(device, str, len),
                 NvmlConstants.NVML_DEVICE_UUID_V2_BUFFER_SIZE,
@@ -576,7 +581,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn DeviceGetVbiosVersion(
             IntPtr device,
-            out string version) =>
+            out string? version) =>
             GetNvmlString(
                 (str, len) => DeviceGetVbiosVersion_Interop(device, str, len),
                 NvmlConstants.NVML_DEVICE_VBIOS_VERSION_BUFFER_SIZE,
@@ -588,7 +593,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn SystemGetTopologyGpuSet(
             uint cpuNumber,
-            out IntPtr[] deviceArray)
+            out IntPtr[]? deviceArray)
         {
             NvmlReturn Interop(ref uint len, IntPtr* ptr) =>
                 SystemGetTopologyGpuSet_Interop(cpuNumber, ref len, ptr);
@@ -601,7 +606,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn VgpuInstanceGetMdevUUID(
             uint vgpuInstance,
-            out string version) =>
+            out string? version) =>
             GetNvmlString(
                 (str, len) => VgpuInstanceGetMdevUUID_Interop(vgpuInstance, str, len),
                 NvmlConstants.NVML_DEVICE_UUID_V2_BUFFER_SIZE,
@@ -618,7 +623,7 @@ namespace ILGPU.Runtime.Cuda.API
         public unsafe NvmlReturn DeviceGetCpuAffinity(
             IntPtr device,
             uint cpuSetSize,
-            out ulong[] cpuSet)
+            out ulong[]? cpuSet)
         {
             NvmlReturn Interop(uint len, ulong* ptr) =>
                 DeviceGetCpuAffinity_Interop(device, len, ptr);
@@ -632,7 +637,7 @@ namespace ILGPU.Runtime.Cuda.API
         public unsafe NvmlReturn DeviceGetCpuAffinityWithinScope(
             IntPtr device,
             uint cpuSetSize,
-            out ulong[] cpuSet,
+            out ulong[]? cpuSet,
             NvmlAffinityScope scope)
         {
             NvmlReturn Interop(uint len, ulong* ptr) =>
@@ -647,7 +652,7 @@ namespace ILGPU.Runtime.Cuda.API
         public unsafe NvmlReturn DeviceGetMemoryAffinity(
             IntPtr device,
             uint nodeSetSize,
-            out ulong[] nodeSet,
+            out ulong[]? nodeSet,
             NvmlAffinityScope scope)
         {
             NvmlReturn Interop(uint len, ulong* ptr) =>
@@ -691,7 +696,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// Provides access to <see cref="SystemGetDriverVersion_Interop"/>
         /// without using raw pointers.
         /// </summary>
-        public NvmlReturn SystemGetDriverVersion(out string version) =>
+        public NvmlReturn SystemGetDriverVersion(out string? version) =>
             GetNvmlString(
                 (str, len) => SystemGetDriverVersion_Interop(str, len),
                 NvmlConstants.NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE,
@@ -701,7 +706,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// Provides access to <see cref="SystemGetNVMLVersion_Interop"/>
         /// without using raw pointers.
         /// </summary>
-        public NvmlReturn SystemGetNVMLVersion(out string version) =>
+        public NvmlReturn SystemGetNVMLVersion(out string? version) =>
             GetNvmlString(
                 (str, len) => SystemGetNVMLVersion_Interop(str, len),
                 NvmlConstants.NVML_SYSTEM_NVML_VERSION_BUFFER_SIZE,
@@ -713,7 +718,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public NvmlReturn SystemGetProcessName(
             uint pid,
-            out string name,
+            out string? name,
             uint length) =>
             GetNvmlString(
                 (str, len) => SystemGetProcessName_Interop(pid, str, len),
@@ -728,7 +733,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// Provides access to <see cref="SystemGetHicVersion_Interop"/>
         /// without using raw pointers.
         /// </summary>
-        public unsafe NvmlReturn SystemGetHicVersion(out NvmlHwbcEntry[] hwbcEntries)
+        public unsafe NvmlReturn SystemGetHicVersion(out NvmlHwbcEntry[]? hwbcEntries)
         {
             NvmlReturn Interop(ref uint len, NvmlHwbcEntry_Interop* ptr) =>
                 SystemGetHicVersion_Interop(ref len, ptr);
@@ -737,6 +742,7 @@ namespace ILGPU.Runtime.Cuda.API
                 out var interopResult);
             if (result == NvmlReturn.NVML_SUCCESS)
             {
+                interopResult = interopResult.AsNotNull();
                 hwbcEntries = new NvmlHwbcEntry[interopResult.Length];
                 for (int i = 0; i < interopResult.Length; i++)
                 {
@@ -770,7 +776,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         public unsafe NvmlReturn UnitGetDevices(
             IntPtr unit,
-            out IntPtr[] devices)
+            out IntPtr[]? devices)
         {
             NvmlReturn Interop(ref uint len, IntPtr* ptr) =>
                 UnitGetDevices_Interop(unit, ref len, ptr);

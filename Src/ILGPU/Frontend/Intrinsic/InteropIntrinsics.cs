@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InteropIntrinsics.cs
@@ -90,7 +90,7 @@ namespace ILGPU.Frontend.Intrinsic
             var builder = context.Builder;
             var typeInfo = builder.TypeContext.GetTypeInfo(
                 context.GetMethodGenericArguments()[0]);
-            var fieldName = context[0].ResolveAs<StringValue>();
+            var fieldName = context[0].ResolveAs<StringValue>().AsNotNull();
             int fieldIndex = 0;
             foreach (var field in typeInfo.Fields)
             {

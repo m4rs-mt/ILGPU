@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Structures.cs
@@ -47,8 +47,8 @@ namespace ILGPU.IR.Construction
             {
                 return CreateArrayValue(
                     location,
-                    instance as Array,
-                    managedType.GetElementType(),
+                    instance.AsNotNullCast<Array>(),
+                    managedType.GetElementType().AsNotNull(),
                     force: false);
             }
             // Check whether this type is an immutable array which might require special
@@ -79,14 +79,14 @@ namespace ILGPU.IR.Construction
                 return typeInfo.NumFields > 0
                     ? CreateObjectValue(
                         location,
-                        typeInfo.Fields[0].GetValue(instance))
+                        typeInfo.Fields[0].GetValue(instance).AsNotNull())
                     : CreateNull(location, type);
             }
             var instanceBuilder = CreateStructure(location, structureType);
             for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
             {
                 var field = typeInfo.Fields[i];
-                var rawFieldValue = field.GetValue(instance);
+                var rawFieldValue = field.GetValue(instance).AsNotNull();
                 Value fieldValue = CreateObjectValue(
                     location,
                     rawFieldValue);
@@ -152,7 +152,7 @@ namespace ILGPU.IR.Construction
             {
                 throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedLoadFromStaticArray,
-                    array.ToString());
+                    array.ToString().AsNotNull());
             }
 
             // Prepare element type and check of empty arrays
@@ -184,7 +184,8 @@ namespace ILGPU.IR.Construction
                     var source = baseAddr + elementSize * i;
                     var instance = Marshal.PtrToStructure(
                         new IntPtr(source),
-                        managedElementType);
+                        managedElementType)
+                        .AsNotNull();
                     var irValue = CreateValue(location, instance, managedElementType);
 
                     // Store element
@@ -227,7 +228,7 @@ namespace ILGPU.IR.Construction
 
             return CreateArrayValue(
                 location,
-                arrayInstance as Array,
+                arrayInstance.AsNotNullCast<Array>(),
                 managedElementType,
                 force: true);
         }
@@ -427,11 +428,12 @@ namespace ILGPU.IR.Construction
             Value objectValue,
             FieldSpan fieldSpan)
         {
-            var structureType = objectValue.Type as StructureType;
-            if (structureType == null && fieldSpan.Span < 2)
+            StructureType? nullableStructureType = objectValue.Type as StructureType;
+            if (nullableStructureType == null && fieldSpan.Span < 2)
                 return objectValue;
 
             // Must be a structure type
+            var structureType = nullableStructureType.AsNotNull();
             location.AssertNotNull(structureType);
 
             // Try to combine different get and set operations operating on similar spans

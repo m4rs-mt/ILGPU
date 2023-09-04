@@ -177,8 +177,8 @@ namespace ILGPU.Runtime.Cuda
         {
             // Get the device name
             ThrowIfFailed(
-                CurrentAPI.GetDeviceName(out string name, DeviceId));
-            Name = name;
+                CurrentAPI.GetDeviceName(out string? name, DeviceId));
+            Name = name ?? string.Empty;
 
             // Resolve clock rate
             ClockRate = CurrentAPI.GetDeviceAttribute(
@@ -602,7 +602,7 @@ namespace ILGPU.Runtime.Cuda
         #region Object
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is CudaDevice device &&
             device.PCIDomainId == PCIDomainId &&
             device.PCIBusId == PCIBusId &&

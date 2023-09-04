@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicImplementationManager.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -247,7 +248,7 @@ namespace ILGPU.IR.Intrinsics
             if (implementation == null)
                 throw new ArgumentNullException(nameof(implementation));
             var container = this[implementation.BackendType];
-            return container[kind] as TMatcher;
+            return container[kind].AsNotNullCast<TMatcher>();
         }
 
         /// <summary>

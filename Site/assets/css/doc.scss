@@ -5,10 +5,18 @@
 // loading partials from _sass/
 @import 'colors';
 @import 'override-colors';
-
+@import 'sidebar-collapse';
 
 #breadcrumbs .container {
-  margin-left: 316px;
+  margin-left: 340px;
+}
+
+#breadcrumbs .container.sidebar-collapsed {
+  margin-left: 85px;
+}
+
+#breadcrumbs .container.sidebar-animated {
+  @include sidebar-collapse-transition(margin-left);
 }
 
 {% if site.search.enabled %}

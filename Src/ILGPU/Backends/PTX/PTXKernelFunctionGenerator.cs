@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXKernelFunctionGenerator.cs
@@ -14,6 +14,7 @@ using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Text;
 
@@ -47,12 +48,12 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Returns the main index register.
             /// </summary>
-            public Register IndexRegister { get; private set; }
+            public Register? IndexRegister { get; private set; }
 
             /// <summary>
             /// Returns the length register of implicitly grouped kernels.
             /// </summary>
-            public Register LengthRegister { get; private set; }
+            public Register? LengthRegister { get; private set; }
 
             /// <summary>
             /// Returns the associated register allocator.
@@ -62,7 +63,7 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Updates index and length registers.
             /// </summary>
-            public Register HandleIntrinsicParameter(
+            public Register? HandleIntrinsicParameter(
                 int parameterOffset,
                 Parameter parameter)
             {
@@ -251,7 +252,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="lengthRegister">
         /// The length register of implicitly grouped kernels.
         /// </param>
-        private void SetupKernelIndex(Register indexRegister, Register lengthRegister)
+        private void SetupKernelIndex(Register? indexRegister, Register? lengthRegister)
         {
             // Skip this step for grouped kernels
             if (EntryPoint.IsExplicitlyGrouped)
@@ -260,19 +261,19 @@ namespace ILGPU.Backends.PTX
             {
                 EmitImplicitKernelIndex(
                     0,
-                    indexRegister as PrimitiveRegister,
-                    lengthRegister as PrimitiveRegister);
+                    indexRegister.AsNotNullCast<PrimitiveRegister>(),
+                    lengthRegister.AsNotNullCast<PrimitiveRegister>());
             }
             else
             {
-                var compoundIndex = indexRegister as CompoundRegister;
-                var compoundLength = lengthRegister as CompoundRegister;
+                var compoundIndex = indexRegister.AsNotNullCast<CompoundRegister>();
+                var compoundLength = lengthRegister.AsNotNullCast<CompoundRegister>();
                 for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
                 {
                     EmitImplicitKernelIndex(
                         i,
-                        compoundIndex.Children[i] as PrimitiveRegister,
-                        compoundLength.Children[i] as PrimitiveRegister);
+                        compoundIndex.Children[i].AsNotNullCast<PrimitiveRegister>(),
+                        compoundLength.Children[i].AsNotNullCast<PrimitiveRegister>());
                 }
             }
         }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaProfilingMarker.cs
@@ -23,7 +23,7 @@ namespace ILGPU.Runtime.Cuda
         #region Instance
 
         internal CudaProfilingMarker(Accelerator accelerator)
-            : base (accelerator)
+            : base(accelerator)
         {
             CudaException.ThrowIfFailed(
                 CurrentAPI.CreateEvent(

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXWarpExtensions.cs
@@ -25,7 +25,7 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Reduce<T, TReduction>(T value)
             where T : unmanaged
-            where TReduction : IScanReduceOperation<T>
+            where TReduction : struct, IScanReduceOperation<T>
         {
             TReduction reduction = default;
             for (int laneOffset = Warp.WarpSize / 2; laneOffset > 0; laneOffset >>= 1)
@@ -40,7 +40,7 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T AllReduce<T, TReduction>(T value)
             where T : unmanaged
-            where TReduction : IScanReduceOperation<T>
+            where TReduction : struct, IScanReduceOperation<T>
         {
             TReduction reduction = default;
             for (int laneMask = Warp.WarpSize / 2; laneMask > 0; laneMask >>= 1)

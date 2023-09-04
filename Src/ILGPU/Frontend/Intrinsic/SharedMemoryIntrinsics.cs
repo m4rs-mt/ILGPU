@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SharedMemoryIntrinsics.cs
@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -79,7 +80,9 @@ namespace ILGPU.Frontend.Intrinsic
                     var alloca = builder.CreateDynamicAllocaArray(
                         location,
                         allocationType,
-                        MemoryAddressSpace.Shared).ResolveAs<Alloca>();
+                        MemoryAddressSpace.Shared)
+                        .ResolveAs<Alloca>()
+                        .AsNotNull();
                     return builder.CreateNewView(
                         location,
                         alloca,

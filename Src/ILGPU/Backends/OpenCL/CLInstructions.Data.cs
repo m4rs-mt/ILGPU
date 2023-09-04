@@ -181,7 +181,7 @@ namespace ILGPU.Backends.OpenCL
             "private",
         };
 
-        private static readonly string[] AddressSpaceCastOperations =
+        private static readonly string?[] AddressSpaceCastOperations =
         {
             null,
             "to_global",
@@ -195,7 +195,7 @@ namespace ILGPU.Backends.OpenCL
             "work_group_barrier",
         };
 
-        private static readonly string[] PredicateBarrierOperations =
+        private static readonly string?[] PredicateBarrierOperations =
         {
             null,
             "work_group_all",

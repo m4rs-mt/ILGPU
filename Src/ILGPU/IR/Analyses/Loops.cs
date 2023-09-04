@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Loops.cs
@@ -18,6 +18,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 //
@@ -170,7 +171,7 @@ namespace ILGPU.IR.Analyses
             /// <param name="entries">All entry block that jump into this loop.</param>
             /// <param name="exits">All exit block that this loop can jump to.</param>
             internal Node(
-                Node parent,
+                Node? parent,
                 ref InlineList<BasicBlock> headerBlocks,
                 ref InlineList<BasicBlock> breakerBlocks,
                 ref InlineList<BasicBlock> backEdgeBlocks,
@@ -227,7 +228,7 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Returns the parent loop.
             /// </summary>
-            public Node Parent { get; }
+            public Node? Parent { get; }
 
             /// <summary>
             /// Returns all child loops.
@@ -706,7 +707,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="index">The current index value.</param>
         private void StrongConnect(
             List<NodeData> stack,
-            Node parent,
+            Node? parent,
             ref BasicBlockMap<NodeData> nodeMapping,
             NodeData v,
             ref int index)
@@ -756,7 +757,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="v">The current node.</param>
         private void RegisterLoop(
             List<NodeData> stack,
-            Node parent,
+            Node? parent,
             ref BasicBlockMap<NodeData> nodeMapping,
             NodeData v)
         {
@@ -851,7 +852,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="block">The block to map to a loop.</param>
         /// <param name="loop">The resulting loop.</param>
         /// <returns>True, if the node could be resolved to a loop.</returns>
-        public bool TryGetLoops(BasicBlock block, out Node loop) =>
+        public bool TryGetLoops(BasicBlock block, [NotNullWhen(true)] out Node? loop) =>
             loopMapping.TryGetValue(block, out loop);
 
         /// <summary>

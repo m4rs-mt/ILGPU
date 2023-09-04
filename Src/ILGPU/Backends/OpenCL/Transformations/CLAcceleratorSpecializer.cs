@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLAcceleratorSpecializer.cs
@@ -11,11 +11,11 @@
 
 using ILGPU.Frontend;
 using ILGPU.IR;
-using ILGPU.IR.Rewriting;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System.Reflection;
 
 namespace ILGPU.Backends.OpenCL.Transformations
@@ -44,7 +44,8 @@ namespace ILGPU.Backends.OpenCL.Transformations
         private static readonly MethodInfo PrintFMethod =
             typeof(CLAcceleratorSpecializer).GetMethod(
                 nameof(PrintF),
-                BindingFlags.Static | BindingFlags.NonPublic);
+                BindingFlags.Static | BindingFlags.NonPublic)
+            .ThrowIfNull();
 
         #endregion
 

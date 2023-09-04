@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaKernel.cs
@@ -45,13 +45,13 @@ namespace ILGPU.Runtime.Cuda
         internal CudaKernel(
             CudaAccelerator accelerator,
             PTXCompiledKernel kernel,
-            MethodInfo launcher)
+            MethodInfo? launcher)
             : base(accelerator, kernel, launcher)
         {
             var kernelLoaded = CurrentAPI.LoadModule(
                 out modulePtr,
                 kernel.PTXAssembly,
-                out string errorLog);
+                out string? errorLog);
             if (kernelLoaded != CudaError.CUDA_SUCCESS)
             {
                 Trace.WriteLine("PTX Kernel loading failed:");

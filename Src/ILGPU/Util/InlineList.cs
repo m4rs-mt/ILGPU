@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InlineList.cs
@@ -516,7 +516,7 @@ namespace ILGPU.Util
             /// </summary>
             /// <param name="item">The item to format.</param>
             /// <returns>The default string representation.</returns>
-            public readonly string Format(T item) => item.ToString();
+            public readonly string Format(T item) => item?.ToString() ?? string.Empty;
         }
 
         /// <summary>

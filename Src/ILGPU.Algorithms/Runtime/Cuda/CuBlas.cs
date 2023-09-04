@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuBlas.cs
@@ -13,6 +13,7 @@ using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.Cuda
@@ -148,7 +149,7 @@ namespace ILGPU.Runtime.Cuda
                 API.GetVersion(handle, out int currentVersion));
             Version = currentVersion;
 
-            Stream = accelerator.DefaultStream as CudaStream;
+            Stream = accelerator.DefaultStream.AsNotNullCast<CudaStream>();
         }
 
         #endregion
@@ -230,6 +231,7 @@ namespace ILGPU.Runtime.Cuda
         public CudaStream Stream
         {
             get => stream;
+            [MemberNotNull(nameof(stream))]
             set
             {
                 if (value == null)

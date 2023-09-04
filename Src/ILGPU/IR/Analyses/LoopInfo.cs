@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LoopInfo.cs
@@ -16,6 +16,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using static ILGPU.Util.InlineList;
 
@@ -157,7 +158,7 @@ namespace ILGPU.IR.Analyses
         /// <returns>True, if the resulting loop info object could be resolved.</returns>
         public static bool TryCreate(
             Loops<TOrder, TDirection>.Node loop,
-            out LoopInfo<TOrder, TDirection> loopInfo)
+            [NotNullWhen(true)] out LoopInfo<TOrder, TDirection>? loopInfo)
         {
             loopInfo = default;
 
@@ -195,7 +196,7 @@ namespace ILGPU.IR.Analyses
         /// <returns>True, if the given loop body could be resolved.</returns>
         private static bool TryGetLoopBody(
             Loops<TOrder, TDirection>.Node loop,
-            out BasicBlock body,
+            [NotNullWhen(true)] out BasicBlock? body,
             out bool isDoWhileLoop)
         {
             body = null;
@@ -324,8 +325,8 @@ namespace ILGPU.IR.Analyses
         private static bool TryGetPhiOperands(
             Loops<TOrder, TDirection>.Node loop,
             PhiValue phiValue,
-            out Value insideOperand,
-            out Value outsideOperand)
+            [NotNullWhen(true)] out Value? insideOperand,
+            [NotNullWhen(true)] out Value? outsideOperand)
         {
             insideOperand = null;
             outsideOperand = null;
@@ -355,7 +356,9 @@ namespace ILGPU.IR.Analyses
         /// <param name="value">The value to test.</param>
         /// <param name="phiValue">The resolved induction-variable phi (if any)..</param>
         /// <returns>True, if the given node is an induction-variable branch.</returns>
-        private static bool IsInductionVariable(Value value, out PhiValue phiValue)
+        private static bool IsInductionVariable(
+            Value value,
+            [NotNullWhen(true)] out PhiValue? phiValue)
         {
             phiValue = null;
             if (!(value is CompareValue compareValue))
@@ -632,7 +635,7 @@ namespace ILGPU.IR.Analyses
         /// <returns>True, if a loop information instance could be found.</returns>
         public readonly bool TryGetInfo(
             Loops<TOrder, TDirection>.Node loop,
-            out LoopInfo<TOrder, TDirection> value) =>
+            [NotNullWhen(true)] out LoopInfo<TOrder, TDirection>? value) =>
             mapping.TryGetValue(loop, out value);
 
         #endregion
@@ -654,7 +657,7 @@ namespace ILGPU.IR.Analyses
         /// <returns>The created loop analysis.</returns>
         public static bool TryGetLoopInfo<TOrder, TDirection>(
             this Loops<TOrder, TDirection>.Node loop,
-            out LoopInfo<TOrder, TDirection> loopInfo)
+            [NotNullWhen(true)] out LoopInfo<TOrder, TDirection>? loopInfo)
             where TOrder : struct, ITraversalOrder
             where TDirection : struct, IControlFlowDirection =>
             LoopInfo<TOrder, TDirection>.TryCreate(loop, out loopInfo);

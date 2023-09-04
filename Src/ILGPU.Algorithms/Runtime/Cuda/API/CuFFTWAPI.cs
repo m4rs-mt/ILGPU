@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTWAPI.cs
@@ -29,6 +29,7 @@ namespace ILGPU.Runtime.Cuda.API
         public static CuFFTWAPI Create(CuFFTWAPIVersion? version) =>
             version.HasValue
             ? CreateInternal(version.Value)
+                ?? throw new DllNotFoundException(nameof(CuFFTWAPI))
             : CreateLatest();
 
         /// <summary>
@@ -37,12 +38,15 @@ namespace ILGPU.Runtime.Cuda.API
         /// <returns>The created API wrapper.</returns>
         private static CuFFTWAPI CreateLatest()
         {
-            Exception firstException = null;
-            var versions = Enum.GetValues(typeof(CuFFTWAPIVersion));
-
+            Exception? firstException = null;
+#if NET5_0_OR_GREATER
+            var versions = Enum.GetValues<CuFFTWAPIVersion>();
+#else
+            var versions = (CuFFTWAPIVersion[])Enum.GetValues(typeof(CuFFTWAPIVersion));
+#endif
             for (var i = versions.Length - 1; i >= 0; i--)
             {
-                var version = (CuFFTWAPIVersion)versions.GetValue(i);
+                var version = versions[i];
                 var api = CreateInternal(version);
                 if (api is null)
                     continue;

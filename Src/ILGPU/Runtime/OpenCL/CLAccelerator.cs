@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLAccelerator.cs
@@ -35,7 +35,10 @@ namespace ILGPU.Runtime.OpenCL
         internal static readonly MethodInfo GetCLAPIMethod =
             typeof(CLAPI).GetProperty(
                 nameof(CurrentAPI),
-                BindingFlags.Public | BindingFlags.Static).GetGetMethod();
+                BindingFlags.Public | BindingFlags.Static)
+            .ThrowIfNull()
+            .GetGetMethod()
+            .ThrowIfNull();
 
         /// <summary>
         /// Represents the <see cref="CLAPI.LaunchKernelWithStreamBinding(
@@ -44,7 +47,8 @@ namespace ILGPU.Runtime.OpenCL
         private static readonly MethodInfo GenericLaunchKernelMethod =
             typeof(CLAPI).GetMethod(
                 nameof(CLAPI.LaunchKernelWithStreamBinding),
-                BindingFlags.NonPublic | BindingFlags.Instance);
+                BindingFlags.NonPublic | BindingFlags.Instance)
+            .ThrowIfNull();
 
         /// <summary>
         /// Represents the <see cref="CLException.ThrowIfFailed(CLError)" /> method.
@@ -52,7 +56,8 @@ namespace ILGPU.Runtime.OpenCL
         internal static readonly MethodInfo ThrowIfFailedMethod =
             typeof(CLException).GetMethod(
                 nameof(CLException.ThrowIfFailed),
-                BindingFlags.Public | BindingFlags.Static);
+                BindingFlags.Public | BindingFlags.Static)
+            .ThrowIfNull();
 
         /// <summary>
         /// Specifies the kernel entry point name for the following dummy kernels.
@@ -219,7 +224,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Returns the parent OpenCL device.
         /// </summary>
-        public new CLDevice Device => base.Device as CLDevice;
+        public new CLDevice Device => base.Device.AsNotNullCast<CLDevice>();
 
         /// <summary>
         /// Returns the native OpenCL platform id.
@@ -274,7 +279,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Returns the OpenCL backend of this accelerator.
         /// </summary>
-        public new CLBackend Backend => base.Backend as CLBackend;
+        public new CLBackend Backend => base.Backend.AsNotNullCast<CLBackend>();
 
         /// <summary>
         /// Returns the capabilities of this accelerator.
@@ -528,7 +533,7 @@ namespace ILGPU.Runtime.OpenCL
             if (maxGroupSize < 1)
                 maxGroupSize = MaxNumThreadsPerGroup;
 
-            var clKernel = kernel as CLKernel;
+            var clKernel = kernel.AsNotNullCast<CLKernel>();
             var workGroupSizeNative = CurrentAPI.GetKernelWorkGroupInfo<IntPtr>(
                 clKernel.KernelPtr,
                 DeviceId,

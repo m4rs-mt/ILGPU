@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -147,7 +148,9 @@ namespace ILGPU.IR.Types
             /// <param name="index">The target index.</param>
             /// <param name="field">The resolved field.</param>
             /// <returns>True, if the field could be resolved.</returns>
-            public bool TryResolveField(int index, out FieldInfo field)
+            public bool TryResolveField(
+                int index,
+                [NotNullWhen(true)] out FieldInfo? field)
             {
                 field = default;
                 if (index < 0 || index >= NumFields)
@@ -241,7 +244,7 @@ namespace ILGPU.IR.Types
             // Synchronize all accesses below using a read/write scope
             using var readWriteScope = cachingLock.EnterUpgradeableReadScope();
 
-            if (!typeInfoMapping.TryGetValue(type, out TypeInformation typeInfo))
+            if (!typeInfoMapping.TryGetValue(type, out TypeInformation? typeInfo))
             {
                 // Synchronize all accesses below using a write scope
                 using var writeScope = readWriteScope.EnterWriteScope();
@@ -258,7 +261,7 @@ namespace ILGPU.IR.Types
         /// <returns>The resolved type information.</returns>
         private TypeInformation GetTypeInfoInternal(Type type)
         {
-            if (!typeInfoMapping.TryGetValue(type, out TypeInformation typeInfo))
+            if (!typeInfoMapping.TryGetValue(type, out TypeInformation? typeInfo))
                 typeInfo = CreateTypeInfo(type);
             return typeInfo;
         }
@@ -315,7 +318,7 @@ namespace ILGPU.IR.Types
             // Check for pointers and arrays
             if (type.IsPointer || type.IsByRef || type.IsArray)
             {
-                var elementInfo = GetTypeInfoInternal(type.GetElementType());
+                var elementInfo = GetTypeInfoInternal(type.GetElementType().AsNotNull());
                 result = AddTypeInfo(type, elementInfo.IsBlittable);
             }
             // Check for enum types
@@ -325,7 +328,7 @@ namespace ILGPU.IR.Types
                 result = AddTypeInfo(type, baseInfo.IsBlittable);
             }
             // Check for opaque view types
-            else if (type.IsArrayViewType(out Type elementType))
+            else if (type.IsArrayViewType(out Type? elementType))
             {
                 var elementInfo = GetTypeInfoInternal(elementType);
                 result = AddTypeInfo(type, false, elementInfo.IsBlittable);

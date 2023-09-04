@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXContext.cs
@@ -12,6 +12,7 @@
 using ILGPU.Backends.PTX;
 using ILGPU.IR.Intrinsics;
 using ILGPU.Runtime.Cuda;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 
@@ -35,7 +36,8 @@ namespace ILGPU.Algorithms.PTX
         private static readonly MethodInfo MathCodeGenerator =
             PTXMathType.GetMethod(
                 nameof(PTXMath.GenerateMathIntrinsic),
-                AlgorithmContext.IntrinsicBindingFlags);
+                AlgorithmContext.IntrinsicBindingFlags)
+            .ThrowIfNull();
 
         /// <summary>
         /// Represents the intrinsic representation of the
@@ -44,7 +46,8 @@ namespace ILGPU.Algorithms.PTX
         private static readonly PTXIntrinsic MathCodeGeneratorIntrinsic =
             new PTXIntrinsic(
                 MathCodeGenerator,
-                IntrinsicImplementationMode.GenerateCode);
+                IntrinsicImplementationMode.GenerateCode)
+            .ThrowIfNull();
 
         /// <summary>
         /// The <see cref="PTXGroupExtensions"/> type.
@@ -82,7 +85,8 @@ namespace ILGPU.Algorithms.PTX
                 AlgorithmContext.IntrinsicBindingFlags,
                 null,
                 types,
-                null);
+                null)
+                .ThrowIfNull();
             return new PTXIntrinsic(targetMethod, IntrinsicImplementationMode.Redirect);
         }
 
@@ -101,7 +105,8 @@ namespace ILGPU.Algorithms.PTX
         {
             var sourceMethod = sourceType.GetMethod(
                 name,
-                AlgorithmContext.IntrinsicBindingFlags);
+                AlgorithmContext.IntrinsicBindingFlags)
+                .ThrowIfNull();
             manager.RegisterMethod(
                 sourceMethod,
                 new PTXIntrinsic(targetType, name, IntrinsicImplementationMode.Redirect));
@@ -130,14 +135,16 @@ namespace ILGPU.Algorithms.PTX
                     AlgorithmContext.IntrinsicBindingFlags,
                     null,
                     types,
-                    null),
+                    null)
+                    .ThrowIfNull(),
                 new PTXIntrinsic(
                     targetType.GetMethod(
                         replacementName,
                         AlgorithmContext.IntrinsicBindingFlags,
                         null,
                         types,
-                        null),
+                        null)
+                        .ThrowIfNull(),
                     IntrinsicImplementationMode.Redirect));
         }
     }

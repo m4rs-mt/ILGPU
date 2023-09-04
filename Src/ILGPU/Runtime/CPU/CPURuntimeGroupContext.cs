@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2022 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPURuntimeGroupContext.cs
@@ -29,7 +29,7 @@ namespace ILGPU.Runtime.CPU
         /// Represents the current context.
         /// </summary>
         [ThreadStatic]
-        private static CPURuntimeGroupContext currentContext;
+        private static CPURuntimeGroupContext? currentContext;
 
         /// <summary>
         /// Returns the current group runtime context.
@@ -42,7 +42,7 @@ namespace ILGPU.Runtime.CPU
                 Trace.Assert(
                     currentContext != null,
                     ErrorMessages.InvalidKernelOperation);
-                return currentContext;
+                return currentContext.AsNotNull();
             }
         }
 
@@ -79,8 +79,8 @@ namespace ILGPU.Runtime.CPU
         /// <see cref="SharedMemory.Allocate{T}(int)"/> instructions out of nested loops
         /// to provide the best debugging experience.
         /// </remarks>
-        private InlineList<CPUMemoryBuffer> sharedMemory =
-            InlineList<CPUMemoryBuffer>.Create(16);
+        private InlineList<CPUMemoryBuffer?> sharedMemory =
+            InlineList<CPUMemoryBuffer?>.Create(16);
 
         /// <summary>
         /// Shared-memory allocation lock object for synchronizing accesses to the
@@ -332,7 +332,7 @@ namespace ILGPU.Runtime.CPU
         private void ClearSharedMemoryAllocations()
         {
             foreach (var entry in sharedMemory)
-                entry.Dispose();
+                entry?.Dispose();
             sharedMemory.Clear();
             Array.Clear(groupAllocationIndices, 0, groupAllocationIndices.Length);
             Atomic.Exchange(ref groupAllocationIndexAccumulator, 0);

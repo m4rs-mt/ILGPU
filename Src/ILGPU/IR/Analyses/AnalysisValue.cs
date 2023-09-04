@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AnalysisValue.cs
@@ -180,7 +180,7 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current value.</returns>
-        public readonly override bool Equals(object obj) =>
+        public readonly override bool Equals(object? obj) =>
             obj is AnalysisValue<T> value && Equals(value);
 
         /// <summary>
@@ -193,7 +193,7 @@ namespace ILGPU.IR.Analyses
         /// Returns the string representation of this value.
         /// </summary>
         /// <returns>The string representation of this value.</returns>
-        public readonly override string ToString() =>
+        public readonly override string? ToString() =>
             childData.Length > 0
             ? $"{Data} [{string.Join(", ", childData)}]"
             : Data.ToString();

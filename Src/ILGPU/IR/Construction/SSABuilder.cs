@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SSABuilder.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -164,7 +165,7 @@ namespace ILGPU.IR.Construction
             /// <summary>
             /// Represents the current block builder.
             /// </summary>
-            private BasicBlock.Builder blockBuilder;
+            private BasicBlock.Builder? blockBuilder;
 
             /// <summary>
             /// Value cache for SSA GetValue and SetValue functionality.
@@ -211,8 +212,7 @@ namespace ILGPU.IR.Construction
             {
                 get
                 {
-                    if (blockBuilder == null)
-                        blockBuilder = Parent.MethodBuilder[Block];
+                    blockBuilder ??= Parent.MethodBuilder[Block];
                     return blockBuilder;
                 }
             }
@@ -279,7 +279,7 @@ namespace ILGPU.IR.Construction
             /// <param name="markerProvider">A provider of new marker values.</param>
             /// <returns>The value of the given variable.</returns>
             public Value GetValue(TVariable var, ref MarkerProvider markerProvider) =>
-                values.TryGetValue(var, out Value value)
+                values.TryGetValue(var, out Value? value)
                 ? value
                 : GetValueRecursive(var, ref markerProvider);
 
@@ -296,16 +296,16 @@ namespace ILGPU.IR.Construction
             /// <param name="var">The variable reference.</param>
             /// <param name="marker">The current marker to break cycles.</param>
             /// <returns></returns>
-            private Value PeekValue(TVariable var, int marker)
+            private Value? PeekValue(TVariable var, int marker)
             {
                 if (!IsProcessed || !Mark(marker))
                     return null;
-                if (values.TryGetValue(var, out Value value))
+                if (values.TryGetValue(var, out Value? value))
                     return value;
                 foreach (var predecessor in Block.Predecessors)
                 {
                     var valueContainer = Parent[predecessor];
-                    Value result;
+                    Value? result;
                     if ((result = valueContainer.PeekValue(var, marker)) != null)
                         return result;
                 }
@@ -338,10 +338,11 @@ namespace ILGPU.IR.Construction
                 else
                 {
                     // Insert the actual phi value
-                    var peekedValue = PeekValue(var, markerProvider.CreateMarker());
+                    var peekedValue =
+                        PeekValue(var, markerProvider.CreateMarker()).AsNotNull();
                     // Let the phi point to the beginning of the current block
                     var phiBuilder = Builder.CreatePhi(
-                        blockBuilder.BasicBlock.Location,
+                        Builder.BasicBlock.Location,
                         peekedValue.Type);
                     value = phiBuilder.PhiValue;
 

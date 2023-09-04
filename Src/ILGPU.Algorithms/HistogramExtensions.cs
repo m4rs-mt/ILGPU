@@ -12,6 +12,7 @@
 using ILGPU.Algorithms.HistogramOperations;
 using ILGPU.Algorithms.Resources;
 using ILGPU.Runtime;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 
@@ -145,12 +146,14 @@ namespace ILGPU.Algorithms
         private static readonly MethodInfo HistogramKernelMethod =
             typeof(HistogramExtensions).GetMethod(
                 nameof(HistogramKernel),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
         private static readonly MethodInfo HistogramUncheckedKernelMethod =
             typeof(HistogramExtensions).GetMethod(
                 nameof(HistogramUncheckedKernel),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Static)
+            .ThrowIfNull();
 
         /// <summary>
         /// The actual histogram kernel implementation.

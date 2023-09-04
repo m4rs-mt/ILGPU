@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CleanupBlocks.cs
@@ -124,7 +124,7 @@ namespace ILGPU.IR.Transformations
                 var successor = block.Successors[0];
                 foreach (var pred in block.Predecessors)
                 {
-                    pred.Terminator.RemapTargets(
+                    pred.Terminator.AsNotNull().RemapTargets(
                         builder[pred],
                         new Remapper(block, successor));
                 }

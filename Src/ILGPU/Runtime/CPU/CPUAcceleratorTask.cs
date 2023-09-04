@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUAcceleratorTask.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -63,7 +64,8 @@ namespace ILGPU.Runtime.CPU
                 BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance,
                 null,
                 ConstructorParameterTypes,
-                null);
+                null)
+            .AsNotNull();
 
         /// <summary>
         /// Returns the getter for the <see cref="TotalUserDim"/> of a specific task
@@ -75,7 +77,9 @@ namespace ILGPU.Runtime.CPU
             taskType.GetProperty(
                 nameof(TotalUserDim),
                 BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-            .GetGetMethod(true);
+            .AsNotNull()
+            .GetGetMethod(true)
+            .AsNotNull();
 
         /// <summary>
         /// Returns the getter for the <see cref="TotalUserDimXY"/> of a specific task
@@ -87,7 +91,9 @@ namespace ILGPU.Runtime.CPU
             taskType.GetProperty(
                 nameof(TotalUserDimXY),
                 BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-            .GetGetMethod(true);
+            .AsNotNull()
+            .GetGetMethod(true)
+            .AsNotNull();
 
         #endregion
 

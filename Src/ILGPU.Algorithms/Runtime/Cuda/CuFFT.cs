@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFT.cs
@@ -50,7 +50,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="type">The transform type.</param>
         /// <param name="batch">The number of transforms.</param>
         /// <returns>The error code.</returns>
-        public CuFFTResult Plan1D(out CuFFTPlan plan, int nx, CuFFTType type, int batch)
+        public CuFFTResult Plan1D(out CuFFTPlan? plan, int nx, CuFFTType type, int batch)
         {
             var errorCode = API.Plan1D(out var planHandle, nx, type, batch);
             plan = errorCode == CuFFTResult.CUFFT_SUCCESS
@@ -67,7 +67,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="ny">The transform size in the y dimension.</param>
         /// <param name="type">The transform type.</param>
         /// <returns>The error code.</returns>
-        public CuFFTResult Plan2D(out CuFFTPlan plan, int nx, int ny, CuFFTType type)
+        public CuFFTResult Plan2D(out CuFFTPlan? plan, int nx, int ny, CuFFTType type)
         {
             var errorCode = API.Plan2D(out var planHandle, nx, ny, type);
             plan = errorCode == CuFFTResult.CUFFT_SUCCESS
@@ -86,7 +86,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="type">The transform type.</param>
         /// <returns>The error code.</returns>
         public CuFFTResult Plan3D(
-            out CuFFTPlan plan,
+            out CuFFTPlan? plan,
             int nx,
             int ny,
             int nz,
@@ -115,7 +115,7 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="batch">The number of transforms.</param>
         /// <returns>The error code.</returns>
         public CuFFTResult PlanMany(
-            out CuFFTPlan plan,
+            out CuFFTPlan? plan,
             int rank,
             int[] n,
             int[] inembed,
@@ -152,7 +152,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Creates an extensible plan.
         /// </summary>
-        public CuFFTResult CreatePlan(out CuFFTPlan plan)
+        public CuFFTResult CreatePlan(out CuFFTPlan? plan)
         {
             var errorCode = API.Create(out var planHandle);
             plan = errorCode == CuFFTResult.CUFFT_SUCCESS

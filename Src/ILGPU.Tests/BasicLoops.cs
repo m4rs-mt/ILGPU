@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicLoops.cs
@@ -11,7 +11,6 @@
 
 using ILGPU.Runtime;
 using ILGPU.Util;
-using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;

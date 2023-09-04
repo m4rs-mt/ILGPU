@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: HandleType.cs
@@ -48,8 +48,8 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ 0xAA713C3;
 
-        /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj) =>
+        /// <summary cref="TypeNode.Equals(object?)"/>
+        public override bool Equals(object? obj) =>
             obj is HandleType && base.Equals(obj);
 
         #endregion

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: View.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using ILGPU.Util;
 
 namespace ILGPU.IR.Values
 {
@@ -52,12 +53,13 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the view's element type.
         /// </summary>
-        public TypeNode ViewElementType => (Type as ViewType).ElementType;
+        public TypeNode ViewElementType => Type.AsNotNullCast<ViewType>().ElementType;
 
         /// <summary>
         /// Returns the view's address space.
         /// </summary>
-        public MemoryAddressSpace ViewAddressSpace => (Type as ViewType).AddressSpace;
+        public MemoryAddressSpace ViewAddressSpace =>
+            Type.AsNotNullCast<ViewType>().AddressSpace;
 
         /// <summary>
         /// Returns the length of the view.

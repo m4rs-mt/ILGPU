@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerTypes.cs
@@ -12,6 +12,7 @@
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -54,10 +55,10 @@ namespace ILGPU.IR.Transformations
             var builder = context.Builder;
             var location = value.Location;
 
-            var sourceType = typeConverter[value] as StructureType;
+            var sourceType = typeConverter[value].AsNotNullCast<StructureType>();
             var instance = builder.CreateStructure(
                 location,
-                typeConverter.ConvertType(sourceType) as StructureType);
+                typeConverter.ConvertType(sourceType).AsNotNullCast<StructureType>());
 
             for (int i = 0, e = sourceType.NumFields; i < e; ++i)
             {
