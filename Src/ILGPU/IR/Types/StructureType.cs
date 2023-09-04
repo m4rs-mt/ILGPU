@@ -681,6 +681,14 @@ namespace ILGPU.IR.Types
             ? structureType.NumFields
             : 1;
 
+        /// <summary>
+        /// Gets the field name of a managed structure type.
+        /// </summary>
+        /// <param name="fieldIndex">The field index.</param>
+        /// <returns>The managed field name within a structure type.</returns>
+        public static string GetFieldName(int fieldIndex) =>
+            "Field" + fieldIndex;
+
         #endregion
 
         #region Instance
@@ -906,7 +914,8 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Creates a managed type that corresponds to this structure type.
         /// </summary>
-        protected override Type GetManagedType()
+        internal Type GetDefaultManagedType<TTypeProvider>(TTypeProvider typeProvider)
+            where TTypeProvider : IManagedTypeProvider
         {
             using var scopedLock = RuntimeSystem.DefineRuntimeStruct(
                 out var typeBuilder);
@@ -914,13 +923,20 @@ namespace ILGPU.IR.Types
             foreach (var type in DirectFields)
             {
                 typeBuilder.DefineField(
-                    "Field" + index++,
-                    type.LoadManagedType(),
+                    GetFieldName(index++),
+                    type.LoadManagedType(typeProvider),
                     FieldAttributes.Public);
 
             }
             return typeBuilder.CreateType();
         }
+
+        /// <summary>
+        /// Creates a managed type that corresponds to this structure type.
+        /// </summary>
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeProvider.GetStructureType(this);
 
         #endregion
 

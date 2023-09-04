@@ -64,8 +64,16 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Creates a managed array type.
         /// </summary>
-        protected override Type GetManagedType() =>
-            ElementType.LoadManagedType().MakeArrayType(NumDimensions);
+        internal Type GetDefaultManagedType<TTypeProvider>(TTypeProvider typeProvider)
+            where TTypeProvider : IManagedTypeProvider =>
+            ElementType.LoadManagedType(typeProvider).MakeArrayType(NumDimensions);
+
+        /// <summary>
+        /// Creates a managed array type.
+        /// </summary>
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeProvider.GetArrayType(this);
 
         #endregion
 
