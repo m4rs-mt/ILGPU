@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicJumps.cs
@@ -16,6 +16,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 #pragma warning disable CS0162
+#pragma warning disable CS0164
 
 namespace ILGPU.Tests
 {
@@ -164,25 +165,63 @@ namespace ILGPU.Tests
         }
 
         [Theory]
-        [InlineData(32, 0, 67)]
-        [InlineData(32, 2, 25)]
-        [InlineData(1024, 0, 67)]
-        [InlineData(1024, 2, 25)]
+        [InlineData(0, 67)]
+        [InlineData(2, 25)]
         [KernelMethod(nameof(BasicNestedLoopJumpKernel))]
-        public void BasicNestedLoopJump(int length, int c, int res)
+        public void BasicNestedLoopJump(int c, int res)
         {
-            using var buffer = Accelerator.Allocate1D<int>(length);
-            using var source = Accelerator.Allocate1D<int>(64);
+            const int Length = 64;
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            using var source = Accelerator.Allocate1D<int>(Length);
             var sourceData = Enumerable.Range(0, (int)source.Length).ToArray();
             sourceData[57] = 23;
             source.CopyFromCPU(Accelerator.DefaultStream, sourceData);
 
             Execute(buffer.Length, buffer.View, source.View, c);
 
-            var expected = Enumerable.Repeat(res, length).ToArray();
+            var expected = Enumerable.Repeat(res, Length).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        private static void BasicNestedLoopJumpKernel2(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> target,
+            ArrayView1D<int, Stride1D.Dense> source)
+        {
+            int k = 0;
+        entry:
+            for (int i = 0; i < source.Length; ++i)
+            {
+                goto exit;
+            }
+
+            target[index] = 42;
+            return;
+
+        nested:
+            k = 43;
+
+        exit:
+            if (k++ < 1)
+                goto entry;
+            target[index] = 23 + k;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(BasicNestedLoopJumpKernel2))]
+        public void BasicNestedLoopJump2()
+        {
+            const int Length = 32;
+            using var buffer = Accelerator.Allocate1D<int>(Length);
+            using var source = Accelerator.Allocate1D<int>(Length);
+
+            Execute(buffer.Length, buffer.View, source.View);
+
+            var expected = Enumerable.Repeat(25, Length).ToArray();
             Verify(buffer.View, expected);
         }
     }
 }
 
+#pragma warning restore CS0164
 #pragma warning restore CS0162
