@@ -44,7 +44,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the associated basic value type.
         /// </summary>
-        public new BasicValueType BasicValueType => PrimitiveType.BasicValueType;
+        public override BasicValueType BasicValueType => PrimitiveType.BasicValueType;
 
         /// <summary>
         /// Returns the associated basic value type.
