@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XMathTests.Rem.tt/XMathTests.Rem.cs
@@ -95,21 +95,12 @@ namespace ILGPU.Algorithms.Tests
                 .ToArray();
             var expected = inputArray
                 .Select(x =>
-#if NETFRAMEWORK
-                    <#= string.Format(
-                            function.ExpectedFormatString,
-                            "(" + function.DataType + ")Math",
-                            "x",
-                            "divisor")
-                    #>)
-#else
                     <#= string.Format(
                             function.ExpectedFormatString,
                             "Math" + function.MathSuffix,
                             "x",
                             "divisor")
                     #>)
-#endif
                 .ToArray();
             using var input =
                 Accelerator.Allocate1D<<#= function.DataType #>>(inputArray.Length);

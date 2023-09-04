@@ -38,11 +38,7 @@ namespace ILGPU.Runtime.Cuda.API
         private static CuBlasAPI CreateLatest()
         {
             Exception? firstException = null;
-#if NET5_0_OR_GREATER
             var versions = Enum.GetValues<CuBlasAPIVersion>();
-#else
-            var versions = (CuBlasAPIVersion[])Enum.GetValues(typeof(CuBlasAPIVersion));
-#endif
             for (var i = versions.Length - 1; i >= 0; i--)
             {
                 var version = versions[i];

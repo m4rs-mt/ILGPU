@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Abs.cs
@@ -39,7 +39,6 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>|value|.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static sbyte Abs(sbyte value) =>
             IntrinsicMath.Abs(value);

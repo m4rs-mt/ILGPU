@@ -472,6 +472,18 @@ namespace ILGPU.Tests
             for (int i = 0; i < Length; ++i)
                 info.AddValue(nameof(Data) + i, Data[i]);
         }
+
+        public override string ToString()
+        {
+            string result = string.Empty;
+            for (int i = 0; i < Length; ++i)
+            {
+                result += Data[i];
+                if (i + 1 < Length)
+                    result += ", ";
+            }
+            return result;
+        }
     }
 
     public unsafe struct LongFixedBufferStruct : IXunitSerializable
@@ -496,6 +508,18 @@ namespace ILGPU.Tests
         {
             for (int i = 0; i < Length; ++i)
                 info.AddValue(nameof(Data) + i, Data[i]);
+        }
+
+        public override string ToString()
+        {
+            string result = string.Empty;
+            for (int i = 0; i < Length; ++i)
+            {
+                result += Data[i];
+                if (i + 1 < Length)
+                    result += ", ";
+            }
+            return result;
         }
     }
 

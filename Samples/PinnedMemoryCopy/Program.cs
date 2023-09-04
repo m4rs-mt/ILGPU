@@ -51,7 +51,6 @@ namespace PinnedMemoryCopy
             }
         }
 
-#if NET5_0_OR_GREATER
         /// <summary>
         /// Uses System.GC.AllocateArray to allocate pinned chunks of memory in CPU host memory.
         /// </summary>
@@ -76,7 +75,6 @@ namespace PinnedMemoryCopy
             // Wait for the copy operation to finish
             stream.Synchronize();
         }
-#endif
 
         /// <summary>
         /// Uses Accelerator.AllocatePageLockedArray1D to allocate pinned chunks of memory in CPU host memory.
@@ -129,9 +127,7 @@ namespace PinnedMemoryCopy
                     Console.WriteLine($"Performing operations on {accelerator}");
 
                     PerformPinnedCopyUsingGCHandle(accelerator, DataSize);
-#if NET5_0_OR_GREATER
                     PerformPinnedCopyUsingGCAllocateArray(accelerator, DataSize);
-#endif
                     PerformPinnedCopyUsingAllocatePageLockedArray(accelerator, DataSize);
                 }
             }

@@ -124,7 +124,7 @@ namespace ILGPU.Runtime
             int customGroupSize = 0)
             where TEmitter : struct, IILEmitter
         {
-            if (entryPoint.IsImplictlyGrouped)
+            if (entryPoint.IsImplicitlyGrouped)
             {
                 Debug.Assert(customGroupSize >= 0, "Invalid custom group size");
 

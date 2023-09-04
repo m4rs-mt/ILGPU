@@ -291,7 +291,7 @@ namespace ILGPU.IR.Analyses
 
                 // Check whether this phi value is affected by the current loop; in
                 // other words, the phi value receives an argument via the backedge
-                if (loop.ContainsBackedgeBlock(phi.Sources))
+                if (loop.ContainsBackEdgeBlock(phi.Sources))
                 {
                     // Try to get the phi operands
                     if (!TryGetPhiOperands(loop, phi, out var _, out var outside))

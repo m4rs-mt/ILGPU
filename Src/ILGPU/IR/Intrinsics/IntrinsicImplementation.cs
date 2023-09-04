@@ -142,6 +142,5 @@ namespace ILGPU.IR.Intrinsics
     /// specialization.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-    [CLSCompliant(false)]
     public sealed class IntrinsicImplementationAttribute : Attribute { }
 }

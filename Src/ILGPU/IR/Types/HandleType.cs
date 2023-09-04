@@ -35,7 +35,9 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Creates an object type.
         /// </summary>
-        protected override Type GetManagedType() => typeof(object);
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeof(object);
 
         #endregion
 

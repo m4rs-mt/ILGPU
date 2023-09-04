@@ -12,6 +12,7 @@
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Types
 {
@@ -118,8 +119,9 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the corresponding managed basic value type.
         /// </summary>
-        protected override Type GetManagedType() =>
-            BasicValueType.GetManagedType().AsNotNull();
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeProvider.GetPrimitiveType(this);
 
         #endregion
 
@@ -133,7 +135,7 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ 0x2AB11613 ^ (int)BasicValueType;
 
-        /// <summary cref="TypeNode.Equals(object?)"/>
+        /// <summary cref="TypeNode.Equals(object)"/>
         public override bool Equals(object? obj) =>
             obj is PrimitiveType primitiveType &&
             primitiveType.BasicValueType == BasicValueType;
@@ -170,7 +172,9 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the corresponding managed basic value type.
         /// </summary>
-        protected override Type GetManagedType() => typeof(string);
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeof(string);
 
         #endregion
 
@@ -183,7 +187,7 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ 0x3D12C251;
 
-        /// <summary cref="TypeNode.Equals(object?)"/>
+        /// <summary cref="TypeNode.Equals(object)"/>
         public override bool Equals(object? obj) =>
             obj is StringType && base.Equals(obj);
 

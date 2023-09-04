@@ -292,7 +292,6 @@ namespace ILGPU.Backends.PTX
             /// Appends a constant.
             /// </summary>
             /// <param name="value">The constant to append.</param>
-            [CLSCompliant(false)]
             public void AppendConstant(ulong value)
             {
                 AppendArgument();

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvJpeg.cs
@@ -17,7 +17,6 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Wrapper over NvJpeg to simplify integration with ILGPU.
     /// </summary>
-    [CLSCompliant(false)]
     public sealed class NvJpeg
     {
         /// <summary>

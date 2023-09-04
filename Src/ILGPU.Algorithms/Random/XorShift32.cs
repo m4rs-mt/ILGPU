@@ -20,7 +20,6 @@ namespace ILGPU.Algorithms.Random
     /// Implements a simple and fast xor-shift rng.
     /// </summary>
     /// <remarks>https://en.wikipedia.org/wiki/Xorshift</remarks>
-    [CLSCompliant(false)]
     public struct XorShift32 : IEquatable<XorShift32>, IRandomProvider<XorShift32>
     {
         #region Static
@@ -84,7 +83,7 @@ namespace ILGPU.Algorithms.Random
         /// Generates a random ulong in [0..ulong.MaxValue].
         /// </summary>
         /// <returns>A random ulong in [0..ulong.MaxValue].</returns>
-        public ulong NextULong() => SeperateUInt(NextUInt());
+        public ulong NextULong() => SeparateUInt(NextUInt());
 
         /// <inheritdoc cref="IRandomProvider.Next"/>
         public int Next() => ToInt(NextUInt());

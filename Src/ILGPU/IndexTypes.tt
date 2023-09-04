@@ -339,11 +339,7 @@ namespace ILGPU
         /// </summary>
         /// <returns>The hash code of this index.</returns>
         public readonly override int GetHashCode() =>
-#if NETFRAMEWORK
-            <#= def.Expression(" ^ ", p => $"{p}.GetHashCode()") #>;
-#else
             HashCode.Combine(<#= def.Expression(", ", p => $"{p}") #>);
-#endif
 
         /// <summary>
         /// Returns the string representation of this index.
@@ -520,7 +516,6 @@ namespace ILGPU
         /// Implicitly converts an index to an unsigned value.
         /// </summary>
         /// <param name="idx">The index to convert.</param>
-        [CLSCompliant(false)]
         public static explicit operator u<#= baseType #>(<#= name #> idx) =>
             (u<#= baseType #>)idx.X;
     }

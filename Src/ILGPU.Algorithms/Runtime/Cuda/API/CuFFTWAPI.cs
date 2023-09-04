@@ -16,7 +16,6 @@ namespace ILGPU.Runtime.Cuda.API
     /// <summary>
     /// An implementation of the cuFFT API.
     /// </summary>
-    [CLSCompliant(false)]
     public abstract partial class CuFFTWAPI
     {
         #region Static
@@ -39,11 +38,7 @@ namespace ILGPU.Runtime.Cuda.API
         private static CuFFTWAPI CreateLatest()
         {
             Exception? firstException = null;
-#if NET5_0_OR_GREATER
             var versions = Enum.GetValues<CuFFTWAPIVersion>();
-#else
-            var versions = (CuFFTWAPIVersion[])Enum.GetValues(typeof(CuFFTWAPIVersion));
-#endif
             for (var i = versions.Length - 1; i >= 0; i--)
             {
                 var version = versions[i];

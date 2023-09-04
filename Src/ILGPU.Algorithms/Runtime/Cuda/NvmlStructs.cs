@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvmlStructs.cs
@@ -18,7 +18,6 @@ using System.Runtime.InteropServices;
 
 namespace ILGPU.Runtime.Cuda
 {
-    [CLSCompliant(false)]
     public struct NvmlDeviceAttributes
     {
         public uint MultiprocessorCount;
@@ -32,7 +31,6 @@ namespace ILGPU.Runtime.Cuda
         public ulong MemorySizeMB;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlBAR1Memory
     {
         public ulong Bar1Total;
@@ -40,7 +38,6 @@ namespace ILGPU.Runtime.Cuda
         public ulong Bar1Used;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlBridgeChipInfo
     {
         internal const int INTEROP_SIZE = sizeof(NvmlBridgeChipType) + sizeof(uint);
@@ -49,7 +46,6 @@ namespace ILGPU.Runtime.Cuda
         public uint FwVersion;
     }
 
-    [CLSCompliant(false)]
     [StructLayout(LayoutKind.Explicit, Size = INTEROP_SIZE)]
     public unsafe struct NvmlBridgeChipHierarchy_Interop
     {
@@ -65,14 +61,12 @@ namespace ILGPU.Runtime.Cuda
         public NvmlBridgeChipInfo* BridgeChipInfo;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlBridgeChipHierarchy
     {
         public byte BridgeCount;
         public NvmlBridgeChipInfo[] BridgeChipInfo;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlEccErrorCounts
     {
         public ulong L1Cache;
@@ -81,7 +75,6 @@ namespace ILGPU.Runtime.Cuda
         public ulong RegisterFile;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlEncoderSessionInfo
     {
         public uint SessionId;
@@ -94,7 +87,6 @@ namespace ILGPU.Runtime.Cuda
         public uint AverageLatency;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlFBCSessionInfo
     {
         public uint SessionId;
@@ -111,7 +103,6 @@ namespace ILGPU.Runtime.Cuda
         public uint AverageLatency;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlFBCStats
     {
         public uint SessionsCount;
@@ -119,7 +110,6 @@ namespace ILGPU.Runtime.Cuda
         public uint AverageLatency;
     }
 
-    [CLSCompliant(false)]
     public unsafe struct NvmlHwbcEntry_Interop
     {
         public const int NVML_MAX_FIRMWAREVERSION = 32;
@@ -128,14 +118,12 @@ namespace ILGPU.Runtime.Cuda
         public fixed byte FirmwareVersion[NVML_MAX_FIRMWAREVERSION];
     }
 
-    [CLSCompliant(false)]
     public struct NvmlHwbcEntry
     {
         public uint HwbcId;
         public string FirmwareVersion;
     }
 
-    [CLSCompliant(false)]
     public unsafe struct NvmlLedState_Interop
     {
         public const int NVML_MAX_CAUSE = 256;
@@ -150,7 +138,6 @@ namespace ILGPU.Runtime.Cuda
         public NvmlLedColor Color;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlMemory
     {
         public ulong Total;
@@ -158,7 +145,6 @@ namespace ILGPU.Runtime.Cuda
         public ulong Used;
     }
 
-    [CLSCompliant(false)]
     public unsafe struct NvmlPciInfo_Interop
     {
         public fixed byte BusIdLegacy[
@@ -171,7 +157,6 @@ namespace ILGPU.Runtime.Cuda
         public fixed byte BusId[(int)NvmlConstants.NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE];
     }
 
-    [CLSCompliant(false)]
     public unsafe struct NvmlPciInfo
     {
         public string BusIdLegacy;
@@ -183,7 +168,6 @@ namespace ILGPU.Runtime.Cuda
         public string BusId;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlProcessInfo
     {
         public uint Pid;
@@ -192,7 +176,6 @@ namespace ILGPU.Runtime.Cuda
         public uint ComputeInstanceId;
     }
 
-    [CLSCompliant(false)]
     public unsafe struct NvmlPSUInfo_Interop
     {
         public const int NVML_MAX_STATE = 80;
@@ -202,7 +185,6 @@ namespace ILGPU.Runtime.Cuda
         public uint Voltage;
     }
 
-    [CLSCompliant(false)]
     public unsafe struct NvmlPSUInfo
     {
         public uint Current;
@@ -211,7 +193,6 @@ namespace ILGPU.Runtime.Cuda
         public uint Voltage;
     }
 
-    [CLSCompliant(false)]
     [StructLayout(LayoutKind.Explicit)]
     public struct NvmlSample
     {
@@ -234,7 +215,6 @@ namespace ILGPU.Runtime.Cuda
         public long SllVal;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlUnitFanInfo
     {
         internal const int INTEROP_SIZE = sizeof(uint) + sizeof(NvmlFanState);
@@ -243,7 +223,6 @@ namespace ILGPU.Runtime.Cuda
         public NvmlFanState State;
     }
 
-    [CLSCompliant(false)]
     [StructLayout(LayoutKind.Explicit, Size = INTEROP_SIZE)]
     public unsafe struct NvmlUnitFanSpeeds_Interop
     {
@@ -259,14 +238,12 @@ namespace ILGPU.Runtime.Cuda
         public NvmlUnitFanInfo* Fans;
     }
 
-    [CLSCompliant(false)]
     public unsafe struct NvmlUnitFanSpeeds
     {
         public uint Count;
         public NvmlUnitFanInfo[] Fans;
     }
 
-    [CLSCompliant(false)]
     public unsafe struct NvmlUnitInfo_Interop
     {
         public const int NVML_MAX_STRLEN = 96;
@@ -277,7 +254,6 @@ namespace ILGPU.Runtime.Cuda
         public fixed byte Serial[NVML_MAX_STRLEN];
     }
 
-    [CLSCompliant(false)]
     public struct NvmlUnitInfo
     {
         public string FirmwareVersion;
@@ -286,14 +262,12 @@ namespace ILGPU.Runtime.Cuda
         public string Serial;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlUtilization
     {
         public uint Gpu;
         public uint Memory;
     }
 
-    [CLSCompliant(false)]
     public struct NvmlViolationTime
     {
         public ulong ReferenceTime;

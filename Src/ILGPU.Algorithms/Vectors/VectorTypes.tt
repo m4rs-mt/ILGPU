@@ -27,12 +27,12 @@ var accumulationTypes = new Dictionary<string, string[]>()
         { "byte", "sbyte", "short", "ushort", "int", "float", "double" }},
     {"Int64",  new string[]
         { "byte", "sbyte", "short", "ushort", "int", "uint", "float", "double" }},
-    
+
     {"UInt32", new string[]
         { "byte", "ushort", "uint", "float", "double" }},
     {"UInt64", new string[]
         { "byte", "ushort", "uint", "ulong", "float", "double" }},
-    
+
     {"Float",  new string[]
         { "float", "byte", "sbyte", "short", "ushort", "int", "uint", "long", "ulong" }},
     {"Double", new string[]
@@ -86,9 +86,6 @@ namespace ILGPU.Algorithms.Vectors
     /// <summary>
     /// Represents a vectorized <#= type.Type #> type with length <#= vectorLength #>.
     /// </summary>
-<#          if (!type.IsCLSCompliant) { #>
-    [CLSCompliant(false)]
-<#          } #>
     public readonly record struct <#= typeName #>(
         <#= string.Join(", ", vectorItemNames
             .Take(vectorLength)
@@ -111,7 +108,6 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// The offset of the <#= vectorItemNames[i] #> field in bytes.
         /// </summary>
-        [CLSCompliant(false)]
         public static UIntPtr OffsetPtr<#= vectorItemNames[i] #> =>
             new UIntPtr((uint)Offset<#= vectorItemNames[i] #>);
 <#          } #>
@@ -331,12 +327,10 @@ namespace ILGPU.Algorithms.Vectors
         /// <returns>The computed average.</returns>
         public <#= typeName #> ComputeAverage(long denominator) =>
             this / FromScalar((<#= type.Type #>)denominator);
-        
+
 <#          } #>
 <#          foreach (var accType in accumulations) { #>
 <#              var otherTypeName = GetTypeNameByName(accType, vectorLength); #>
-<#              string clsCompliant = type.IsCLSCompliant &&
-                    GetTypeByName(accType).IsCLSCompliant ? "true" : "false"; #>
 <#              if (accType != type.Type) { #>
         /// <summary>
         /// Adds an accumulation instance and a more coarse grained value instance.
@@ -344,43 +338,39 @@ namespace ILGPU.Algorithms.Vectors
         /// <param name="toAccumulate">The precise accumulation instance.</param>
         /// <param name="current">The value to add.</param>
         /// <returns>The accumulated instance.</returns>
-        [CLSCompliant(<#= clsCompliant #>)]
         public static <#= typeName #> operator +(
             <#= typeName #> current,
             <#= otherTypeName #> toAccumulate) =>
             current + ConvertFrom_<#= accType #>(toAccumulate);
-        
+
         /// <summary>
         /// Adds an accumulation instance and a more coarse grained value instance.
         /// </summary>
         /// <param name="toAccumulate">The precise accumulation instance.</param>
         /// <param name="current">The value to add.</param>
         /// <returns>The accumulated instance.</returns>
-        [CLSCompliant(<#= clsCompliant #>)]
         public static <#= typeName #> operator +(
             <#= otherTypeName #> toAccumulate,
             <#= typeName #> current) =>
             ConvertFrom_<#= accType #>(toAccumulate) + current;
-        
+
         /// <summary>
         /// Subtracts an accumulation instance and a more coarse grained value instance.
         /// </summary>
         /// <param name="toAccumulate">The precise accumulation instance.</param>
         /// <param name="current">The value to subtract.</param>
         /// <returns>The accumulated instance.</returns>
-        [CLSCompliant(<#= clsCompliant #>)]
         public static <#= typeName #> operator -(
             <#= typeName #> current,
             <#= otherTypeName #> toAccumulate) =>
             current - ConvertFrom_<#= accType #>(toAccumulate);
-        
+
         /// <summary>
         /// Subtracts an accumulation instance and a more coarse grained value instance.
         /// </summary>
         /// <param name="toAccumulate">The precise accumulation instance.</param>
         /// <param name="current">The value to subtract.</param>
         /// <returns>The accumulated instance.</returns>
-        [CLSCompliant(<#= clsCompliant #>)]
         public static <#= typeName #> operator -(
             <#= otherTypeName #> toAccumulate,
             <#= typeName #> current) =>
@@ -391,7 +381,6 @@ namespace ILGPU.Algorithms.Vectors
         /// </summary>
         /// <param name="target">The target memory address.</param>
         /// <param name="value">The current value to add.</param>
-        [CLSCompliant(<#= clsCompliant #>)]
         public static void AtomicAdd(
             ref <#= typeName #> target,
             <#= otherTypeName #> value) =>
@@ -452,7 +441,6 @@ namespace ILGPU.Algorithms.Vectors
         /// </summary>
         /// <param name="denominator">The denominator to use.</param>
         /// <returns>The computed average.</returns>
-        [CLSCompliant(<#= clsCompliant #>)]
         public <#= typeName #> ComputeAverage(<#= accType #> denominator) =>
             this / FromScalar((<#= type.Type #>)denominator);
 

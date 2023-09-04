@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -22,9 +22,7 @@ namespace Mandelbrot
         [STAThread]
         static void Main()
         {
-#if !NETFRAMEWORK
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
-#endif
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 #pragma warning disable CA2000 // Dispose objects before losing scope

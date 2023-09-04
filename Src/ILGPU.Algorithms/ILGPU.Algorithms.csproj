@@ -21,7 +21,6 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
     <LangVersion>11.0</LangVersion>
   </PropertyGroup>
 
@@ -30,10 +29,6 @@
     <DocumentationFile>../../Bin/$(Configuration)/$(TargetFramework)/ILGPU.Algorithms.xml</DocumentationFile>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="..\ILGPU\Util\NullableAttributes.cs" Link="Util\NullableAttributes.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="AlgorithmContextMappings.cs">
@@ -69,7 +64,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <EnablePackageValidation>true</EnablePackageValidation>
+    <!-- Turn off package validation for now to avoid checks against non-supported frameworks -->
+    <EnablePackageValidation>false</EnablePackageValidation>
     <PackageValidationBaselineVersion>$(LibraryPackageValidationBaselineVersion)</PackageValidationBaselineVersion>
   </PropertyGroup>
 
@@ -117,6 +113,10 @@
     <None Update="RadixSortOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
+    </None>
+    <None Update="Random\RandomRanges.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RandomRanges.cs</LastGenOutput>
     </None>
     <None Update="Runtime\Cuda\API\CuFFTAPI.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -255,6 +255,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>RadixSortOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Random\RandomRanges.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RandomRanges.tt</DependentUpon>
     </Compile>
     <Compile Update="Resources\ErrorMessages.Designer.cs">
       <DesignTime>True</DesignTime>

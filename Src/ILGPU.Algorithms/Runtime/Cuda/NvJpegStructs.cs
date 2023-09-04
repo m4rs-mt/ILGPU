@@ -18,14 +18,12 @@ using System;
 
 namespace ILGPU.Runtime.Cuda
 {
-    [CLSCompliant(false)]
     public unsafe struct NvJpegImage_Interop
     {
         public fixed ulong Channel[NvJpegConstants.NVJPEG_MAX_COMPONENT];
         public fixed ulong Pitch[NvJpegConstants.NVJPEG_MAX_COMPONENT];
     }
 
-    [CLSCompliant(false)]
     public struct NvJpegImage
     {
         #region Properties

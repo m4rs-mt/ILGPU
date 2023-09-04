@@ -394,9 +394,7 @@ namespace ILGPU.Backends
                 Architecture.X64 => TargetPlatform.Platform64Bit,
                 Architecture.Arm => TargetPlatform.Platform32Bit,
                 Architecture.Arm64 => TargetPlatform.Platform64Bit,
-#if NET5_0_OR_GREATER
                 Architecture.Wasm => TargetPlatform.Platform64Bit,
-#endif
                 _ => throw new NotSupportedException(),
             };
 
@@ -410,9 +408,7 @@ namespace ILGPU.Backends
                 Architecture.X64 => TargetPlatform.Platform64Bit,
                 Architecture.Arm => TargetPlatform.Platform32Bit,
                 Architecture.Arm64 => TargetPlatform.Platform64Bit,
-#if NET5_0_OR_GREATER
                 Architecture.Wasm => TargetPlatform.Platform64Bit,
-#endif
                 _ => throw new NotSupportedException(),
             };
 
@@ -696,7 +692,7 @@ namespace ILGPU.Backends
                     entry,
                     backendContext,
                     specialization);
-                if (entryPoint.IsImplictlyGrouped &&
+                if (entryPoint.IsImplicitlyGrouped &&
                     backendContext.SharedMemorySpecification.HasSharedMemory)
                 {
                     throw new NotSupportedException(

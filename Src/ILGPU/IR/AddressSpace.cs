@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AddressSpace.cs
@@ -50,7 +50,6 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents an address-space annotation.
     /// </summary>
-    [CLSCompliant(false)]
     [AttributeUsage(AttributeTargets.Struct)]
     public sealed class AddressSpaceAttribute : Attribute
     {

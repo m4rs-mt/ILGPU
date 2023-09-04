@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Rem.cs
@@ -57,10 +57,6 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static float IEEERemainder(float x, float y) =>
-#if !NETFRAMEWORK
             MathF.IEEERemainder(x, y);
-#else
-            (float)Math.IEEERemainder(x, y);
-#endif
     }
 }

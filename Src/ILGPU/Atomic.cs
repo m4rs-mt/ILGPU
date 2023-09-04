@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Atomic.cs
@@ -90,7 +90,6 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
-        [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.Unsigned)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint Exchange(ref uint target, uint value) =>
@@ -102,7 +101,6 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
-        [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.Unsigned)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong Exchange(ref ulong target, ulong value) =>
@@ -159,7 +157,6 @@ namespace ILGPU
         /// <param name="compare">The expected comparison value.</param>
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [AtomicIntrinsic(AtomicIntrinsicKind.CompareExchange, AtomicFlags.Unsigned)]
         public static uint CompareExchange(
@@ -178,7 +175,6 @@ namespace ILGPU
         /// <param name="compare">The expected comparison value.</param>
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
-        [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.CompareExchange, AtomicFlags.Unsigned)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong CompareExchange(

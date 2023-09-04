@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: GroupOperations.cs
@@ -32,13 +32,18 @@ namespace ILGPU.Tests
             data[2] = Group.DimZ;
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(1, 0, 0)]
         [InlineData(0, 1, 0)]
         [InlineData(0, 0, 1)]
         [KernelMethod(nameof(GroupDimensionKernel))]
         public void GroupDimension1D(int xMask, int yMask, int zMask)
         {
+            Skip.If(
+                xMask >= Accelerator.MaxGroupSize.X ||
+                yMask >= Accelerator.MaxGroupSize.Y ||
+                zMask >= Accelerator.MaxGroupSize.Z);
+
             for (int i = 2; i <= Math.Min(8, Accelerator.MaxNumThreadsPerGroup); i <<= 1)
             {
                 using var buffer = Accelerator.Allocate1D<int>(3);
@@ -61,13 +66,18 @@ namespace ILGPU.Tests
             }
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(1, 1, 0)]
         [InlineData(0, 1, 1)]
         [InlineData(1, 0, 1)]
         [KernelMethod(nameof(GroupDimensionKernel))]
         public void GroupDimension2D(int xMask, int yMask, int zMask)
         {
+            Skip.If(
+                xMask >= Accelerator.MaxGroupSize.X ||
+                yMask >= Accelerator.MaxGroupSize.Y ||
+                zMask >= Accelerator.MaxGroupSize.Z);
+
             var end = (int)Math.Sqrt(Accelerator.MaxNumThreadsPerGroup);
             for (int i = 2; i <= end; i <<= 1)
             {
@@ -121,6 +131,7 @@ namespace ILGPU.Tests
         }
 
         [SkippableTheory]
+        [InlineData(2)]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
@@ -129,7 +140,7 @@ namespace ILGPU.Tests
         {
             Skip.If(length > Accelerator.MaxNumThreadsPerGroup);
 
-            for (int i = 1; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
+            for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate1D<int>(length * i);
                 var extent = new KernelConfig(
@@ -151,6 +162,7 @@ namespace ILGPU.Tests
         }
 
         [SkippableTheory]
+        [InlineData(2)]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
@@ -184,6 +196,7 @@ namespace ILGPU.Tests
         }
 
         [SkippableTheory]
+        [InlineData(2)]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
@@ -219,6 +232,7 @@ namespace ILGPU.Tests
         }
 
         [SkippableTheory]
+        [InlineData(2)]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
@@ -250,6 +264,7 @@ namespace ILGPU.Tests
         }
 
         [SkippableTheory]
+        [InlineData(2)]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]
@@ -283,6 +298,7 @@ namespace ILGPU.Tests
         }
 
         [SkippableTheory]
+        [InlineData(2)]
         [InlineData(32)]
         [InlineData(256)]
         [InlineData(1024)]

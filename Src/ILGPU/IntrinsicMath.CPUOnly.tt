@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMath.CPUOnly.tt/IntrinsicMath.CPUOnly.cs
@@ -20,6 +20,7 @@
 string rootPath = Host.ResolvePath("Static");
 var unaryOps = GetUnaryMathOps(rootPath).Where(t => t.HasFloats && t.HasImplementation);
 var binaryOps = GetBinaryMathOps(rootPath).Where(t => t.HasFloats && t.HasImplementation);
+var ternaryOps = GetTernaryMathOps(rootPath).Where(t => t.HasFloats && t.HasImplementation);
 #>
 using ILGPU.Frontend.Intrinsic;
 using System;
@@ -58,12 +59,21 @@ namespace ILGPU
                 <#= op.GetImplementation("double", "Math", "1.0", "2.0", "left", "right") #>;
 
 <# } #>
-
+<# foreach (var op in ternaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="first">The first operand.</param>
+            /// <param name="second">The second operand.</param>
+            /// <param name="third">The third operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static double <#= op.MethodName #>(double first, double second, double third) =>
+                <#= op.GetImplementation("double", "Math", "1.0", "2.0", "first", "second", "third") #>;
+<# } #>
             #endregion
 
             #region Single Precision
 
-#if !NETFRAMEWORK
 <# foreach (var op in unaryOps) { #>
             /// <summary>
             /// <#= op.Summary #>
@@ -85,29 +95,17 @@ namespace ILGPU
                 <#= op.GetImplementation("float", "MathF", "1.0f", "2.0f", "left", "right") #>;
 
 <# } #>
-#else
-<# foreach (var op in unaryOps) { #>
+<# foreach (var op in ternaryOps) { #>
             /// <summary>
             /// <#= op.Summary #>
             /// </summary>
-            /// <param name="value">The value.</param>
+            /// <param name="first">The first operand.</param>
+            /// <param name="second">The second operand.</param>
+            /// <param name="third">The third operand.</param>
             [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
-            public static <#= op.IsPredicate ? "bool" : "float" #> <#= op.MethodName #>(float value) =>
-                <#= op.GetImplementation("float", "(float)Math", "1.0f", "2.0f", "value") #>;
-
+            public static float <#= op.MethodName #>(float first, float second, float third) =>
+                <#= op.GetImplementation("double", "MathF", "1.0f", "2.0f", "first", "second", "third") #>;
 <# } #>
-<# foreach (var op in binaryOps) { #>
-            /// <summary>
-            /// <#= op.Summary #>
-            /// </summary>
-            /// <param name="left">The left operand.</param>
-            /// <param name="right">The right operand.</param>
-            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
-            public static float <#= op.MethodName #>(float left, float right) =>
-                <#= op.GetImplementation("float", "(float)Math", "1.0f", "2.0f", "left", "right") #>;
-
-<# } #>
-#endif
 
             #endregion
 
@@ -134,6 +132,53 @@ namespace ILGPU
                 HalfExtensions.<#= op.MethodName #>FP32(left, right);
 
 <# } #>
+            #endregion
+
+            #region Integers
+
+<# foreach (var op in ternaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="first">The first operand.</param>
+            /// <param name="second">The second operand.</param>
+            /// <param name="third">The third operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static int <#= op.MethodName #>(int first, int second, int third) =>
+                <#= op.GetImplementation("int", "Math", "1", "2", "first", "second", "third") #>;
+
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="first">The first operand.</param>
+            /// <param name="second">The second operand.</param>
+            /// <param name="third">The third operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static uint <#= op.MethodName #>(uint first, uint second, uint third) =>
+                <#= op.GetImplementation("uint", "Math", "1U", "2U", "first", "second", "third") #>;
+
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="first">The first operand.</param>
+            /// <param name="second">The second operand.</param>
+            /// <param name="third">The third operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static long <#= op.MethodName #>(long first, long second, long third) =>
+                <#= op.GetImplementation("long", "Math", "1", "2", "first", "second", "third") #>;
+
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="first">The first operand.</param>
+            /// <param name="second">The second operand.</param>
+            /// <param name="third">The third operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static ulong <#= op.MethodName #>(ulong first, ulong second, ulong third) =>
+                <#= op.GetImplementation("ulong", "Math", "1UL", "2UL", "first", "second", "third") #>;
+
+<# } #>
+
             #endregion
         }
     }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: UnaryFloatOperations.cs
@@ -10,9 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
-#if NETFRAMEWORK
-using ILGPU.Util;
-#endif
 using Xunit;
 using Xunit.Abstractions;
 
@@ -49,7 +46,7 @@ namespace ILGPU.Tests
             data[index + 4] = Half.IsNaN(value) ? 1 : 0;
         }
 
-        [Theory]
+        [SkippableTheory]
         [MemberData(nameof(HalfData))]
         [KernelMethod(nameof(IsPredicateF16Kernel))]
         public void IsPredicateF16(
@@ -59,6 +56,8 @@ namespace ILGPU.Tests
             bool isPositiveInfinity,
             bool isNegativeInfinity)
         {
+            Skip.If(!Accelerator.Capabilities.Float16);
+
             using var buffer = Accelerator.Allocate1D<int>(5);
             Execute<Index1D>(1, buffer.View, value);
 
@@ -78,14 +77,7 @@ namespace ILGPU.Tests
             ArrayView1D<int, Stride1D.Dense> data,
             float value)
         {
-#if NETFRAMEWORK
-            data[index + 0] =
-                Bitwise.And(!float.IsNaN(value), !float.IsInfinity(value))
-                ? 1
-                : 0;
-#else
             data[index + 0] = float.IsFinite(value) ? 1 : 0;
-#endif
             data[index + 1] = float.IsInfinity(value) ? 1 : 0;
             data[index + 2] = float.IsPositiveInfinity(value) ? 1 : 0;
             data[index + 3] = float.IsNegativeInfinity(value) ? 1 : 0;
@@ -126,14 +118,7 @@ namespace ILGPU.Tests
             ArrayView1D<int, Stride1D.Dense> data,
             double value)
         {
-#if NETFRAMEWORK
-            data[index + 0] =
-                Bitwise.And(!double.IsNaN(value), !double.IsInfinity(value))
-                ? 1
-                : 0;
-#else
             data[index + 0] = double.IsFinite(value) ? 1 : 0;
-#endif
             data[index + 1] = double.IsInfinity(value) ? 1 : 0;
             data[index + 2] = double.IsPositiveInfinity(value) ? 1 : 0;
             data[index + 3] = double.IsNegativeInfinity(value) ? 1 : 0;

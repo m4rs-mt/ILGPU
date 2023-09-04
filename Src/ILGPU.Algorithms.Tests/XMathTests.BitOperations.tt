@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XMathTests.BitOperations.tt/XMathTests.BitOperations.cs
@@ -73,88 +73,6 @@ namespace ILGPU.Algorithms.Tests
 
 <# } #>
     }
-
-#if NETFRAMEWORK
-    /// <summary>
-    /// Naive implementation of BitOperations for .NET Framework.
-    /// </summary>
-    static class BitOperations
-    {
-        public static int LeadingZeroCount(uint value)
-        {
-            for (int i = 0; i < 32; i++)
-            {
-                var bitmask = 1 << 32 - i - 1;
-                if ((value & bitmask) != 0)
-                    return i;
-            }
-
-            return 32;
-        }
-
-        public static int LeadingZeroCount(ulong value)
-        {
-            for (int i = 0; i < 64; i++)
-            {
-                var bitmask = 1UL << 64 - i - 1;
-                if ((value & bitmask) != 0)
-                    return i;
-            }
-
-            return 64;
-        }
-
-        public static int TrailingZeroCount(uint value)
-        {
-            for (int i = 0; i < 32; i++)
-            {
-                var bitmask = 1 << i;
-                if ((value & bitmask) != 0)
-                    return i;
-            }
-
-            return 32;
-        }
-        
-        public static int TrailingZeroCount(ulong value)
-        {
-            for (int i = 0; i < 64; i++)
-            {
-                var bitmask = 1UL << i;
-                if ((value & bitmask) != 0)
-                    return i;
-            }
-
-            return 64;
-        }
-
-        public static int PopCount(uint value)
-        {
-            int count = 0;
-            for (int i = 0; i < 32; i++)
-            {
-                var bitmask = 1 << i;
-                if ((value & bitmask) != 0)
-                    count++;
-            }
-
-            return count;
-        }
-
-        public static int PopCount(ulong value)
-        {
-            int count = 0;
-            for (int i = 0; i < 64; i++)
-            {
-                var bitmask = 1UL << i;
-                if ((value & bitmask) != 0)
-                    count++;
-            }
-
-            return count;
-        }
-    }
-#endif
 }
 
 #pragma warning restore xUnit1025 // InlineData should be unique within the Theory it

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2022 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CapabilityContext.tt/CapabilityContext.cs
@@ -56,7 +56,9 @@ namespace ILGPU.Runtime
         /// </summary>
         public static Exception GetNotSupported<#= c.Name #>Exception() =>
             new CapabilityNotSupportedException(
-                ErrorMessages.CapabilityNotSupported<#= c.Name #>);
+                string.Format(
+                    ErrorMessages.CapabilityNotSupported,
+                    "<#= c.Name #>"));
 
 <# } #>
         #endregion

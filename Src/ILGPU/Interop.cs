@@ -166,7 +166,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to cast.</param>
         /// <returns>The int value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
         public static ushort FloatAsInt(Half value) =>
@@ -177,7 +176,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to cast.</param>
         /// <returns>The int value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
         public static uint FloatAsInt(float value) =>
@@ -188,7 +186,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to cast.</param>
         /// <returns>The int value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
         public static ulong FloatAsInt(double value) =>
@@ -199,7 +196,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to cast.</param>
         /// <returns>The float value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.IntAsFloat)]
         public static Half IntAsFloat(ushort value) =>
@@ -210,7 +206,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to cast.</param>
         /// <returns>The float value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.IntAsFloat)]
         public static float IntAsFloat(uint value) =>
@@ -221,7 +216,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value to cast.</param>
         /// <returns>The float value.</returns>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.IntAsFloat)]
         public static double IntAsFloat(ulong value) =>
@@ -250,7 +244,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="format">The expression format to write.</param>
         /// <param name="elements">All elements to write in string format.</param>
-        private static void WriteImplementation(
+        internal static void WriteImplementation(
             string format,
             params string[] elements) =>
             Console.Write(format, elements);

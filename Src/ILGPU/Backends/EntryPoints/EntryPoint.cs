@@ -82,7 +82,7 @@ namespace ILGPU.Backends.EntryPoints
         /// <summary>
         /// Returns true if the entry point represents an implicitly grouped kernel.
         /// </summary>
-        public bool IsImplictlyGrouped => !IsExplicitlyGrouped;
+        public bool IsImplicitlyGrouped => !IsExplicitlyGrouped;
 
         /// <summary>
         /// Returns the index type of the index parameter.

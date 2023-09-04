@@ -5,15 +5,15 @@
     <LibraryLatestTargetFramework>$(LibraryTargetFrameworks)</LibraryLatestTargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net471;netstandard2.1;net5.0;net6.0</LibraryTargetFrameworks>
+    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net6.0</LibraryTargetFrameworks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 
   <PropertyGroup>
-    <LibraryVersionPrefix>1.5.0-beta2</LibraryVersionPrefix>
-    <LibraryAssemblyVersion>1.5.0.0</LibraryAssemblyVersion>
-    <LibraryFileVersion>1.5.0.0</LibraryFileVersion>
-    <LibraryPackageValidationBaselineVersion>1.4.0</LibraryPackageValidationBaselineVersion>
+    <LibraryVersionPrefix>2.0.0-beta1</LibraryVersionPrefix>
+    <LibraryAssemblyVersion>2.0.0.0</LibraryAssemblyVersion>
+    <LibraryFileVersion>2.0.0.0</LibraryFileVersion>
+    <LibraryPackageValidationBaselineVersion>1.5.0</LibraryPackageValidationBaselineVersion>
   </PropertyGroup>
 
   <!-- Unit Test Project Configuration -->
@@ -22,7 +22,7 @@
     <LibraryLatestUnitTestTargetFramework>$(LibraryUnitTestTargetFrameworks)</LibraryLatestUnitTestTargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net471;netcoreapp3.1;net5.0;net6.0</LibraryUnitTestTargetFrameworks>
+    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net6.0</LibraryUnitTestTargetFrameworks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 

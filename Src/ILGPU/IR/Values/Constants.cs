@@ -147,7 +147,6 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the value as si8.
         /// </summary>
-        [CLSCompliant(false)]
         public sbyte Int8Value => (sbyte)(rawValue & 0xff);
 
         /// <summary>
@@ -173,19 +172,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the value as u16.
         /// </summary>
-        [CLSCompliant(false)]
         public ushort UInt16Value => (ushort)Int16Value;
 
         /// <summary>
         /// Returns the value as u32.
         /// </summary>
-        [CLSCompliant(false)]
         public uint UInt32Value => (uint)Int32Value;
 
         /// <summary>
         /// Returns the value as u64.
         /// </summary>
-        [CLSCompliant(false)]
         public ulong UInt64Value => (ulong)Int64Value;
 
         /// <summary>

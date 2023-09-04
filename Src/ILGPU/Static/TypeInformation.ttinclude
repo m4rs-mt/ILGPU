@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeInformation.ttinclude
@@ -27,6 +27,27 @@ public enum TypeInformationKind
 
 public class TypeInformation
 {
+    private static readonly Dictionary<string, string> BasicValueTypeMapping =
+        new Dictionary<string, string>()
+        {
+            { "UInt8", "Int8" },
+            { "UInt16", "Int16" },
+            { "UInt32", "Int32" },
+            { "UInt64", "Int64" },
+
+            { "Half", "Float16" },
+            { "Float", "Float32" },
+            { "Double", "Float64" },
+        };
+
+    private static readonly Dictionary<string, string> ArithmeticBasicValueTypeMapping =
+        new Dictionary<string, string>()
+        {
+            { "Half", "Float16" },
+            { "Float", "Float32" },
+            { "Double", "Float64" },
+        };
+
     public TypeInformation(
         string name,
         string type,
@@ -42,31 +63,32 @@ public class TypeInformation
     }
 
     public string Name { get; }
-
     public string Type { get; }
-
     public TypeInformationKind Kind { get; }
 
     public string Prefix { get; }
-
     public string Suffix { get; }
 
     public bool IsInt => IsSignedInt || IsUnsignedInt;
-
     public bool IsSignedInt => Kind == TypeInformationKind.SignedInt;
-
     public bool IsUnsignedInt => Kind == TypeInformationKind.UnsignedInt;
-
     public bool IsFloat => Kind == TypeInformationKind.Float;
 
-    public bool IsCLSCompliant => !(IsUnsignedInt || Name == "Int8");
-
     public string SizeOfType => Name == "Half" ? "sizeof(ushort)" : $"sizeof({Type})";
-
     public string DefaultValue => Name == "Half" ? "Half.Zero" : "0";
 
     public string FormatNumber(string number) =>
         Prefix + "(" + number + Suffix + ")";
+
+    public string GetBasicValueType() =>
+        BasicValueTypeMapping.TryGetValue(Name, out string mappedType)
+        ? mappedType
+        : Name;
+
+    public string GetArithmeticBasicValueType() =>
+        ArithmeticBasicValueTypeMapping.TryGetValue(Name, out string mappedType)
+        ? mappedType
+        : Name;
 };
 
 public static readonly TypeInformation[] SignedIntTypes =
@@ -114,6 +136,20 @@ public static readonly TypeInformation[] AtomicFloatTypes =
 
 public static readonly TypeInformation[] AtomicNumericTypes =
     AtomicIntTypes.Concat(AtomicFloatTypes).ToArray();
+
+public static readonly TypeInformation[] AtomicNumericTypes32 = new TypeInformation[]
+{
+    AtomicIntTypes[0],
+    AtomicIntTypes[2],
+    AtomicFloatTypes[0]
+};
+
+public static readonly TypeInformation[] AtomicNumericTypes64 = new TypeInformation[]
+{
+    AtomicIntTypes[1],
+    AtomicIntTypes[3],
+    AtomicFloatTypes[1]
+};
 
 // Index types
 
@@ -446,6 +482,19 @@ public static readonly (string, string)[] FP16ImplementationMethods =
         ("IsNaN", "IsNaNF"),
         ("IsInfinity", "IsInfF"),
         ("IsFinite", "IsFinF"),
+    };
+
+// Atomic operations
+
+public static readonly (string Operation, bool Binary)[] AtomicOperations =
+    {
+        ("Exchange", false),
+        ("Add",      false),
+        ("Max",      false),
+        ("Min",      false),
+        ("And",      true),
+        ("Or",       true),
+        ("Xor",      true),
     };
 
 // Shuffle operations

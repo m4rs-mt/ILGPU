@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTW.cs
@@ -17,7 +17,6 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Wrapper over cuFFTW to simplify integration with ILGPU.
     /// </summary>
-    [CLSCompliant(false)]
     public sealed partial class CuFFTW
     {
         /// <summary>

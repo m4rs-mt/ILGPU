@@ -44,7 +44,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the associated basic value type.
         /// </summary>
-        public new BasicValueType BasicValueType => PrimitiveType.BasicValueType;
+        public override BasicValueType BasicValueType => PrimitiveType.BasicValueType;
 
         /// <summary>
         /// Returns the associated basic value type.
@@ -58,8 +58,9 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the corresponding managed basic value type.
         /// </summary>
-        protected override Type GetManagedType() =>
-            BasicValueType.GetManagedType().AsNotNull();
+        protected override Type GetManagedType<TTypeProvider>(
+            TTypeProvider typeProvider) =>
+            typeProvider.GetPrimitiveType(PrimitiveType);
 
         #endregion
 
@@ -73,7 +74,7 @@ namespace ILGPU.IR.Types
         public override int GetHashCode() =>
             base.GetHashCode() ^ 0x2AB11613 ^ (int)BasicValueType;
 
-        /// <summary cref="TypeNode.Equals(object?)"/>
+        /// <summary cref="TypeNode.Equals(object)"/>
         public override bool Equals(object? obj) =>
             obj is PaddingType paddingType &&
             paddingType.BasicValueType == BasicValueType;

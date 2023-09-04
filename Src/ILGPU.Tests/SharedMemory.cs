@@ -149,7 +149,7 @@ namespace ILGPU.Tests
             data[idx] = value + DynamicSharedMemoryNested();
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(1)]
         [InlineData(10)]
         [InlineData(32)]

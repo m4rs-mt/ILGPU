@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: GridOperations.cs
@@ -37,7 +37,7 @@ namespace ILGPU.Tests
             Debug.Assert(Grid.IdxZ < Grid.DimZ);
         }
 
-        [Theory]
+        [SkippableTheory]
         [InlineData(1, 0, 0)]
         [InlineData(0, 1, 0)]
         [InlineData(0, 0, 1)]
@@ -53,6 +53,9 @@ namespace ILGPU.Tests
                         Math.Max(i * yMask, 1),
                         Math.Max(i * zMask, 1)),
                     Index3D.One);
+
+                Skip.If(extent.GridDim.Y > Accelerator.MaxGridSize.Y);
+                Skip.If(extent.GridDim.Z > Accelerator.MaxGridSize.Z);
 
                 Execute(extent, buffer.View);
 

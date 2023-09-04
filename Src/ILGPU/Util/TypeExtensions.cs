@@ -255,6 +255,29 @@ namespace ILGPU.Util
             };
 
         /// <summary>
+        /// Resolves the managed type for the given basic-value type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>The resolved managed type.</returns>
+        public static Type GetManagedType(this ArithmeticBasicValueType type) =>
+            type switch
+            {
+                ArithmeticBasicValueType.UInt1 => typeof(bool),
+                ArithmeticBasicValueType.Int8 => typeof(byte),
+                ArithmeticBasicValueType.Int16 => typeof(short),
+                ArithmeticBasicValueType.Int32 => typeof(int),
+                ArithmeticBasicValueType.Int64 => typeof(long),
+                ArithmeticBasicValueType.Float16 => typeof(Half),
+                ArithmeticBasicValueType.Float32 => typeof(float),
+                ArithmeticBasicValueType.Float64 => typeof(double),
+                ArithmeticBasicValueType.UInt8 => typeof(byte),
+                ArithmeticBasicValueType.UInt16 => typeof(short),
+                ArithmeticBasicValueType.UInt32 => typeof(int),
+                ArithmeticBasicValueType.UInt64 => typeof(long),
+                _ => throw new ArgumentOutOfRangeException(nameof(type)),
+            };
+
+        /// <summary>
         /// Resolves the basic-value type for the given managed type.
         /// </summary>
         /// <param name="type">The source type.</param>
@@ -379,6 +402,80 @@ namespace ILGPU.Util
                 BasicValueType.Float64 => ArithmeticBasicValueType.Float64,
                 _ => ArithmeticBasicValueType.None,
             };
+
+        /// <summary>
+        /// Forces the given basic type to 32 bits.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>The limited arithmetic basic value.</returns>
+        public static ArithmeticBasicValueType ForceTo32Bit(
+            this ArithmeticBasicValueType type) =>
+            type switch
+            {
+                ArithmeticBasicValueType.UInt1 => ArithmeticBasicValueType.UInt32,
+                ArithmeticBasicValueType.UInt8 => ArithmeticBasicValueType.UInt32,
+                ArithmeticBasicValueType.UInt16 => ArithmeticBasicValueType.UInt32,
+                ArithmeticBasicValueType.UInt32 => ArithmeticBasicValueType.UInt32,
+                ArithmeticBasicValueType.UInt64 => ArithmeticBasicValueType.UInt32,
+
+                ArithmeticBasicValueType.Int8 => ArithmeticBasicValueType.Int32,
+                ArithmeticBasicValueType.Int16 => ArithmeticBasicValueType.Int32,
+                ArithmeticBasicValueType.Int32 => ArithmeticBasicValueType.Int32,
+                ArithmeticBasicValueType.Int64 => ArithmeticBasicValueType.Int32,
+
+                ArithmeticBasicValueType.Float16 => ArithmeticBasicValueType.Float32,
+                ArithmeticBasicValueType.Float32 => ArithmeticBasicValueType.Float32,
+                ArithmeticBasicValueType.Float64 => ArithmeticBasicValueType.Float32,
+                _ => ArithmeticBasicValueType.None,
+            };
+
+        /// <summary>
+        /// Limits the given basic type to 32 bits.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>The limited arithmetic basic value.</returns>
+        public static ArithmeticBasicValueType LimitTo32Bit(
+            this ArithmeticBasicValueType type)
+        {
+            switch (type)
+            {
+                case ArithmeticBasicValueType.Int64:
+                    return ArithmeticBasicValueType.Int32;
+                case ArithmeticBasicValueType.UInt64:
+                    return ArithmeticBasicValueType.UInt32;
+                case ArithmeticBasicValueType.Float64:
+                    return ArithmeticBasicValueType.Float32;
+                default:
+                    return type;
+            }
+        }
+
+        /// <summary>
+        /// Forces the given basic type to 64 bits.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>The limited arithmetic basic value.</returns>
+        public static ArithmeticBasicValueType ForceTo64Bit(
+            this ArithmeticBasicValueType type)
+        {
+            switch (type)
+            {
+                case ArithmeticBasicValueType.Int8:
+                case ArithmeticBasicValueType.Int16:
+                case ArithmeticBasicValueType.Int32:
+                    return ArithmeticBasicValueType.Int64;
+                case ArithmeticBasicValueType.UInt1:
+                case ArithmeticBasicValueType.UInt8:
+                case ArithmeticBasicValueType.UInt16:
+                case ArithmeticBasicValueType.UInt32:
+                    return ArithmeticBasicValueType.UInt64;
+                case ArithmeticBasicValueType.Float16:
+                case ArithmeticBasicValueType.Float32:
+                    return ArithmeticBasicValueType.Float64;
+                default:
+                    return type;
+            }
+        }
 
         /// <summary>
         /// Returns true if the given type represents an int.

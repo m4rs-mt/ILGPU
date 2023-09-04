@@ -6,6 +6,7 @@
         <OpenCL>
             <Extension>cl_khr_fp16</Extension>
         </OpenCL>
+        <Cuda minPTX="SM_53" />
     </Capability>
 
     <Capability Name="Float16_Min">
@@ -29,7 +30,7 @@
         <FeatureName>Intrinsic 'TanH' for Float32</FeatureName>
         <Cuda minPTX="SM_75" />
     </Capability>
-    
+
     <Capability Name="Float64">
         <Summary>Supports Float64 (double) data type.</Summary>
         <FeatureName>Float64 (double) type</FeatureName>

@@ -586,7 +586,6 @@ namespace ILGPU.Backends.OpenCL
             /// Appends a constant.
             /// </summary>
             /// <param name="value">The constant to append.</param>
-            [CLSCompliant(false)]
             public void AppendConstant(ulong value) =>
                 stringBuilder.Append(value);
 

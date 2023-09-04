@@ -107,7 +107,7 @@ namespace ILGPU
             /// <summary>
             /// Returns the associated method builder.
             /// </summary>
-            private DynamicMethod Method { get; }
+            internal DynamicMethod Method { get; }
 
             /// <summary>
             /// Returns the internal IL generator.

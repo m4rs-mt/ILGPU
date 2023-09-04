@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ValueTuples.tt/ValueTuples.cs
@@ -45,54 +45,30 @@ namespace ILGPU.Tests
 
         private static unsafe byte GetRandomUInt8()
         {
-#if NETFRAMEWORK
-            byte[] bytes = new byte[1];
-            rnd.NextBytes(bytes);
-            return bytes[0];
-#else
             Span<byte> bytes = stackalloc byte[1];
             rnd.NextBytes(bytes);
             return bytes[0];
-#endif
         }
 
         private static unsafe short GetRandomInt16()
         {
-#if NETFRAMEWORK
-            byte[] bytes = new byte[2];
-            rnd.NextBytes(bytes);
-            return BitConverter.ToInt16(bytes, 0);
-#else
             Span<byte> bytes = stackalloc byte[2];
             rnd.NextBytes(bytes);
             return BitConverter.ToInt16(bytes);
-#endif
         }
 
         private static unsafe int GetRandomInt32()
         {
-#if NETFRAMEWORK
-            byte[] bytes = new byte[4];
-            rnd.NextBytes(bytes);
-            return BitConverter.ToInt32(bytes, 0);
-#else
             Span<byte> bytes = stackalloc byte[4];
             rnd.NextBytes(bytes);
             return BitConverter.ToInt32(bytes);
-#endif
         }
 
         private static unsafe long GetRandomInt64()
         {
-#if NETFRAMEWORK
-            byte[] bytes = new byte[8];
-            rnd.NextBytes(bytes);
-            return BitConverter.ToInt64(bytes, 0);
-#else
             Span<byte> bytes = stackalloc byte[8];
             rnd.NextBytes(bytes);
             return BitConverter.ToInt64(bytes);
-#endif
         }
 
 <#
@@ -149,7 +125,7 @@ namespace ILGPU.Tests
             return values.Select(x => new T[] { x });
         return GetPermutations(values, length - 1)
             .SelectMany(
-                x => values, 
+                x => values,
                 (list, next) => list.Concat(new T[] { next }));
     }
 #>

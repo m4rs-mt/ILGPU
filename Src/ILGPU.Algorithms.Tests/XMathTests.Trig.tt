@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XMathTests.Trig.tt/XMathTests.Trig.cs
@@ -82,11 +82,7 @@ namespace ILGPU.Algorithms.Tests
                 Enumerable.Range(
                     <#= startRange #>,
                     <#= endRange - startRange + 1 #>)<#= function.Condition #>
-#if NETFRAMEWORK
-                <#= string.Format(function.Projection, "(" + function.DataType + ")Math") #>
-#else
                 <#= string.Format(function.Projection, "Math" + function.MathSuffix) #>
-#endif
                 .Concat(new <#= function.DataType #>[]
                 {
                     0.0<#= function.ValueSuffix #>,
@@ -103,11 +99,7 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-#if NETFRAMEWORK
-                x => (<#= function.DataType #>)Math.<#= function.Name #>(x))
-#else
                 Math<#= function.MathSuffix #>.<#= function.Name #>)
-#endif
                 .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output.View, expected, <#= function.Precision.Cuda #>);
@@ -177,11 +169,7 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-#if NETFRAMEWORK
-                v => (<#= function.DataType #>)Math.<#= function.Name #>(v.X, v.Y))
-#else
                 v => Math<#= function.MathSuffix #>.<#= function.Name #>(v.X, v.Y))
-#endif
                     .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output.View, expected, <#= function.Precision.Cuda #>);

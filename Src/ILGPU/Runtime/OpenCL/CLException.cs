@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLException.cs
@@ -89,9 +89,6 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <summary cref="Exception.GetObjectData(SerializationInfo, StreamingContext)"/>
-#if !NET5_0_OR_GREATER
-        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
-#endif
         public override void GetObjectData(
             SerializationInfo info,
             StreamingContext context)

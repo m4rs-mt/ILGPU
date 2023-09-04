@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RemappedIntrinsics.cs
@@ -69,7 +69,6 @@ namespace ILGPU.Frontend.Intrinsic
                 nameof(double.IsInfinity),
                 typeof(double));
 
-#if !NETFRAMEWORK
             AddRemapping(
                 typeof(float),
                 CPUMathType,
@@ -81,7 +80,6 @@ namespace ILGPU.Frontend.Intrinsic
                 CPUMathType,
                 nameof(double.IsFinite),
                 typeof(double));
-#endif
 
             RegisterMathRemappings();
             RegisterBitConverterRemappings();
@@ -210,7 +208,6 @@ namespace ILGPU.Frontend.Intrinsic
             public static double Int64BitsToDouble(long value) =>
                 Interop.IntAsFloat((ulong)value);
 
-#if !NETFRAMEWORK
             /// <summary cref="System.BitConverter.SingleToInt32Bits(float)"/>
             public static int SingleToInt32Bits(float value) =>
                 (int)Interop.FloatAsInt(value);
@@ -218,11 +215,10 @@ namespace ILGPU.Frontend.Intrinsic
             /// <summary cref="System.BitConverter.Int32BitsToSingle(int)"/>
             public static float Int32BitsToSingle(int value) =>
                 Interop.IntAsFloat((uint)value);
-#endif
         }
 
         /// <summary>
-        /// Registers instrinsic mappings for BitConverter functions.
+        /// Registers intrinsics mappings for BitConverter functions.
         /// </summary>
         private static void RegisterBitConverterRemappings()
         {
@@ -237,7 +233,6 @@ namespace ILGPU.Frontend.Intrinsic
                 nameof(System.BitConverter.Int64BitsToDouble),
                 typeof(long));
 
-#if !NETFRAMEWORK
             AddRemapping(
                 typeof(System.BitConverter),
                 typeof(BitConverter),
@@ -248,7 +243,6 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(BitConverter),
                 nameof(System.BitConverter.Int32BitsToSingle),
                 typeof(int));
-#endif
         }
 
         #endregion
@@ -257,7 +251,6 @@ namespace ILGPU.Frontend.Intrinsic
 
         private static void RegisterCopySignRemappings()
         {
-#if !NETFRAMEWORK
             AddRemapping(
                 typeof(Math),
                 MathType,
@@ -270,7 +263,6 @@ namespace ILGPU.Frontend.Intrinsic
                 "CopySign",
                 typeof(float),
                 typeof(float));
-#endif
         }
 
         #endregion
@@ -304,20 +296,7 @@ namespace ILGPU.Frontend.Intrinsic
 
         private static void RegisterBitOperationsRemappings()
         {
-#if NETFRAMEWORK
-            // NB: net471 does not support System.Numerics.BitOperations.
-#elif NETSTANDARD
-            // NB: System.Numerics.BitOperations is available from netcoreapp3.1 onwards,
-            // but because we are using netstandard2.1 (which does not have support), we
-            // have to find the type at runtime.
-            var sourceType = Type.GetType("System.Numerics.BitOperations");
-            if (sourceType == null)
-                return;
-#else
             var sourceType = typeof(System.Numerics.BitOperations);
-#endif
-
-#if !NETFRAMEWORK
             var targetType = typeof(IntrinsicMath.BitOperations);
 
             AddRemapping(
@@ -362,7 +341,6 @@ namespace ILGPU.Frontend.Intrinsic
                 targetType,
                 "TrailingZeroCount",
                 typeof(ulong));
-#endif
         }
 
         #endregion

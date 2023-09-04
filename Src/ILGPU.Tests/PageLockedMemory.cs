@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PageLockedMemory.cs
@@ -72,7 +72,6 @@ namespace ILGPU.Tests
             }
         }
 
-#if NET5_0_OR_GREATER
         [Fact]
         [KernelMethod(nameof(PinnedMemoryKernel))]
         public void PinnedUsingGCAllocateArray()
@@ -89,7 +88,6 @@ namespace ILGPU.Tests
             Accelerator.Synchronize();
             Verify1D(array, expected);
         }
-#endif
 
         internal static void CopyKernel(
             Index1D index,

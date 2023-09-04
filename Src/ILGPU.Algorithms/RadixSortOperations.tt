@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RadixSortOperations.tt/RadixSortOperations.cs
@@ -27,9 +27,6 @@ namespace ILGPU.Algorithms.RadixSortOperations
     /// <summary>
     /// Represents an ascending radix sort operation of type <#= type.Type #>.
     /// </summary>
-<#      if (!type.IsCLSCompliant) { #>
-    [CLSCompliant(false)]
-<#      } #>
     public readonly struct Ascending<#=type.Name #> :
         IRadixSortOperation<<#= type.Type #>>
     {
@@ -100,9 +97,6 @@ namespace ILGPU.Algorithms.RadixSortOperations
     /// <summary>
     /// Represents a descending radix sort operation of type <#= type.Type #>.
     /// </summary>
-<#      if (!type.IsCLSCompliant) { #>
-    [CLSCompliant(false)]
-<#      } #>
     public readonly struct Descending<#= type.Name #> :
         IRadixSortOperation<<#= type.Type #>>
     {

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Bitwise.cs
@@ -45,7 +45,6 @@ namespace ILGPU.Util
         /// <summary>
         /// Performs bitwise operator &amp; on two values.
         /// </summary>\
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint And(uint first, uint second) =>
             first & second;
@@ -60,7 +59,6 @@ namespace ILGPU.Util
         /// <summary>
         /// Performs bitwise operator &amp; on two values.
         /// </summary>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong And(ulong first, ulong second) =>
             first & second;
@@ -89,7 +87,6 @@ namespace ILGPU.Util
         /// <summary>
         /// Performs bitwise operator | on two values.
         /// </summary>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint Or(uint first, uint second) =>
             first | second;
@@ -104,7 +101,6 @@ namespace ILGPU.Util
         /// <summary>
         /// Performs bitwise operator | on two values.
         /// </summary>
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong Or(ulong first, ulong second) =>
             first | second;

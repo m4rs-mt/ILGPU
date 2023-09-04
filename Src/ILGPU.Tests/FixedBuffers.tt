@@ -142,8 +142,9 @@ namespace ILGPU.Tests
             ref FixedBufferStruct<#= type.Name #> value,
             <#= type.Type #> scalarValue)
         {
-            for (int i = 0; i < Length; ++i)
-                value.Data[i] += scalarValue;
+<#      for (int i = 0; i < FixedBufferLength; ++i) { #>
+            value.Data[<#= i #>] += scalarValue;
+<#      } #>
         }
 
         internal static void FixedBuffer<#= type.Name #>Kernel(
@@ -265,7 +266,7 @@ namespace ILGPU.Tests
                 Accelerator.Allocate1D<MultiFixedBufferStruct<#= type.Name #>>(1);
 
             Execute(Length, buffer1.View, buffer2.View, buffer3.View, fixedBuffers.View);
-                
+
             <#= type.Type #> scalarValue = 2;
             var expected =
                 new[]
@@ -274,7 +275,7 @@ namespace ILGPU.Tests
                 };
             Verify(fixedBuffers.View, expected);
         }
-        
+
         internal static readonly MultiFixedBufferStruct<#= type.Name #>
             Local<#= type.Name #>Struct =
             new MultiFixedBufferStruct<#= type.Name #>((<#= type.Type #>)2);
@@ -289,7 +290,7 @@ namespace ILGPU.Tests
             data2[index] = Local<#= type.Name #>Struct.B[index];
             data3[index] = Local<#= type.Name #>Struct.C[index];
         }
-        
+
         [Fact]
         [KernelMethod(nameof(GetStaticMultiFixedBuffer<#= type.Name #>Kernel))]
         public void GetStaticMultiFixedBuffer<#= type.Name #>()
