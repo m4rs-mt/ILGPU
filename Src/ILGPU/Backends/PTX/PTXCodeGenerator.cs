@@ -190,37 +190,6 @@ namespace ILGPU.Backends.PTX
                 null;
         }
 
-        /// <summary>
-        /// Represents a specialized phi binding allocator.
-        /// </summary>
-        private readonly struct PhiBindingAllocator : IPhiBindingAllocator
-        {
-            /// <summary>
-            /// Constructs a new phi binding allocator.
-            /// </summary>
-            /// <param name="parent">The parent code generator.</param>
-            public PhiBindingAllocator(PTXCodeGenerator parent)
-            {
-                Parent = parent;
-            }
-
-            /// <summary>
-            /// Returns the parent code generator.
-            /// </summary>
-            public PTXCodeGenerator Parent { get; }
-
-            /// <summary>
-            /// Does not perform any operation.
-            /// </summary>
-            public void Process(BasicBlock block, Phis phis) { }
-
-            /// <summary>
-            /// Allocates a new phi node in the parent code generator.
-            /// </summary>
-            public void Allocate(BasicBlock block, PhiValue phiValue) =>
-                Parent.Allocate(phiValue);
-        }
-
         #endregion
 
         #region Static
@@ -518,7 +487,7 @@ namespace ILGPU.Backends.PTX
 
             // Find all phi nodes, allocate target registers and setup internal mapping
             var phiBindings = Schedule.ComputePhiBindings(
-                new PhiBindingAllocator(this));
+                (_, phiValue) => Allocate(phiValue));
             var intermediatePhiRegisters = new Dictionary<Value, Register>(
                 phiBindings.MaxNumIntermediatePhis);
             Builder.AppendLine();
