@@ -168,6 +168,24 @@ namespace ILGPU.Backends
             #region Methods
 
             /// <summary>
+            /// Returns true if the current binding configuration needs separate bindings
+            /// for individual target blocks.
+            /// </summary>
+            public bool NeedSeparateBindingsFor(BasicBlock target)
+            {
+                foreach (var (phiValue, _) in this)
+                {
+                    if (phiValue.BasicBlock != target &&
+                        !phiValue.Sources.Contains(target, new BasicBlock.Comparer()))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            /// <summary>
             /// Returns true if the given phi is an intermediate phi value that requires
             /// a temporary intermediate variable to be assigned to.
             /// </summary>
