@@ -22,7 +22,7 @@ namespace ILGPU.Backends.PTX
     /// Constructs mappings for PTX kernels.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed class PTXArgumentMapper : ViewArgumentMapper
+    public class PTXArgumentMapper : ViewArgumentMapper
     {
         #region Nested Types
 

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DefaultPTXBlockSchedule.cs
@@ -18,7 +18,7 @@ namespace ILGPU.Backends.PTX.Analyses
     /// <summary>
     /// Represents a default PTX-specific block schedule.
     /// </summary>
-    public sealed class DefaultPTXBlockSchedule :
+    sealed class DefaultPTXBlockSchedule :
         PTXBlockSchedule<ReversePostOrder, Forwards>
     {
         #region Instance
@@ -53,7 +53,7 @@ namespace ILGPU.Backends.PTX.Analyses
         #endregion
     }
 
-    public partial class PTXBlockScheduleExtensions
+    partial class PTXBlockScheduleExtensions
     {
         /// <summary>
         /// Creates a new default block schedule using the given blocks.
