@@ -418,7 +418,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns all blocks in an appropriate schedule.
         /// </summary>
-        public PTXBlockSchedule Schedule { get; }
+        internal PTXBlockSchedule Schedule { get; }
 
         #endregion
 

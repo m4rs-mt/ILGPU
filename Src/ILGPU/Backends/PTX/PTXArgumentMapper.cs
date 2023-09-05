@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXArgumentMapper.cs
@@ -22,7 +22,7 @@ namespace ILGPU.Backends.PTX
     /// Constructs mappings for PTX kernels.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed class PTXArgumentMapper : ViewArgumentMapper
+    public class PTXArgumentMapper : ViewArgumentMapper
     {
         #region Nested Types
 

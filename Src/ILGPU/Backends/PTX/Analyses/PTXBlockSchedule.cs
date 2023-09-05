@@ -19,7 +19,7 @@ namespace ILGPU.Backends.PTX.Analyses
     /// <summary>
     /// Represents a PTX-specific block schedule.
     /// </summary>
-    public abstract class PTXBlockSchedule
+    abstract class PTXBlockSchedule
     {
         #region Instance
 
@@ -96,7 +96,7 @@ namespace ILGPU.Backends.PTX.Analyses
     /// </summary>
     /// <typeparam name="TOrder">The current order.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    public abstract class PTXBlockSchedule<TOrder, TDirection> : PTXBlockSchedule
+    abstract class PTXBlockSchedule<TOrder, TDirection> : PTXBlockSchedule
         where TOrder : struct, ITraversalOrder
         where TDirection : struct, IControlFlowDirection
     {
@@ -140,5 +140,5 @@ namespace ILGPU.Backends.PTX.Analyses
     /// <summary>
     /// Extensions methods for the <see cref="PTXBlockSchedule"/> class.
     /// </summary>
-    public static partial class PTXBlockScheduleExtensions { }
+    static partial class PTXBlockScheduleExtensions { }
 }
