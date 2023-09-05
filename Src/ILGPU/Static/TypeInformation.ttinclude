@@ -315,6 +315,39 @@ public class MathOpRewriter
         MakeExpr(Target, values);
 }
 
+public class VelocityMathConfig
+{
+    [XmlText]
+    public string Implementation { get; set; }
+
+    [XmlAttribute]
+    public bool SoftwareEmulation { get; set; }
+
+    [XmlAttribute]
+    public bool ReturnAsWarp32 { get; set; }
+
+    [XmlIgnore]
+    public bool RequiresSpecialization =>
+        !string.IsNullOrWhiteSpace(Implementation) &&
+        Implementation.Contains("[");
+
+    public string GetImplementation(
+        string lowerAsExpression,
+        string suffix,
+        string typeName,
+        params string[] variables)
+    {
+        var result = new StringBuilder(Implementation);
+        result.Replace("[", $".{lowerAsExpression}<");
+        result.Replace("]", ">()");
+        result.Replace("{T}", suffix);
+        result.Replace("{Type}", typeName);
+        for (int i = 0; i < variables.Length; ++i)
+            result.Replace($"{{Value{i}}}", variables[i]);
+        return result.ToString();
+    }
+}
+
 public class MathOp
 {
     #region Data
@@ -378,7 +411,19 @@ public class MathOp
         {
             if (!HasCall)
                 throw new InvalidOperationException();
-            return Call.Split('.').Last();
+            int index = Call.LastIndexOf('.');
+            return index < 0 ? Call : Call.Substring(index + 1);
+        }
+    }
+
+    [XmlIgnore]
+    public string MethodTypeName
+    {
+        get
+        {
+            if (!HasCall)
+                throw new InvalidOperationException();
+            return Call.Substring(0, Call.LastIndexOf('.'));
         }
     }
 
@@ -386,6 +431,9 @@ public class MathOp
     public MathOpRewriter[] Rewriters { get; set; } = Array.Empty<MathOpRewriter>();
 
     public bool HasRewriters => (Rewriters?.Length ?? 0) > 0;
+
+    [XmlElement("Velocity")]
+    public VelocityMathConfig Velocity { get; set; }
 
     #endregion
 

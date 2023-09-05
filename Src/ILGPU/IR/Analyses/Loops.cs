@@ -302,7 +302,7 @@ namespace ILGPU.IR.Analyses
             /// </summary>
             /// <param name="blocks">The blocks to test.</param>
             /// <returns>
-            /// True, if the given block contain at least one back edge block.
+            /// True if the given block contain at least one back edge block.
             /// </returns>
             public bool ContainsBackEdgeBlock(ReadOnlySpan<BasicBlock> blocks)
             {
