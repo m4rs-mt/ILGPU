@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Terminators.cs
@@ -9,8 +9,10 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Backends.PTX
 {
@@ -24,15 +26,50 @@ namespace ILGPU.Backends.PTX
                 var resultRegister = Load(returnTerminator.ReturnValue);
                 EmitStoreParam(ReturnParamName, resultRegister);
             }
+
             Command(
                 Uniforms.IsUniform(returnTerminator)
                     ? PTXInstructions.UniformReturnOperation
                     : PTXInstructions.ReturnOperation);
         }
 
+        private bool NeedSeparatePhiBindings(
+            BasicBlock basicBlock,
+            BasicBlock target,
+            [NotNullWhen(true)]
+            out PhiBindings.PhiBindingCollection bindings)
+        {
+            if (!phiBindings.TryGetBindings(target, out bindings))
+                return false;
+
+            // Check whether there are bindings pointing to different blocks
+            foreach (var (phiValue, _) in bindings)
+            {
+                if (phiValue.BasicBlock != target)
+                    return true;
+            }
+
+            // We were not able to find misleading data
+            return false;
+        }
+
+        /// <summary>
+        /// Generates phi bindings for jumping to a specific target block.
+        /// </summary>
+        /// <param name="current">The current block.</param>
+        private void GeneratePhiBindings(BasicBlock current)
+        {
+            if (!phiBindings.TryGetBindings(current, out var bindings))
+                return;
+            BindPhis(bindings, target: null);
+        }
+
         /// <summary cref="IBackendCodeGenerator.GenerateCode(UnconditionalBranch)"/>
         public void GenerateCode(UnconditionalBranch branch)
         {
+            // Bind phis
+            GeneratePhiBindings(branch.BasicBlock);
+
             if (Schedule.IsImplicitSuccessor(branch.BasicBlock, branch.Target))
                 return;
 
@@ -59,6 +96,53 @@ namespace ILGPU.Backends.PTX
             var branchOperation = Uniforms.IsUniform(branch)
                 ? PTXInstructions.UniformBranchOperation
                 : PTXInstructions.BranchOperation;
+
+            // Gather phi bindings and test both, true and false targets
+            if (phiBindings.TryGetBindings(branch.BasicBlock, out var bindings) &&
+                (bindings.NeedSeparateBindingsFor(trueTarget) ||
+                bindings.NeedSeparateBindingsFor(falseTarget)))
+            {
+                // We need to emit different bindings in each branch
+                if (branch.IsInverted)
+                    Utilities.Swap(ref trueTarget, ref falseTarget);
+
+                // Declare a temporary jump target to skip true branches
+                var tempLabel = DeclareLabel();
+                using (var command = BeginCommand(
+                           branchOperation,
+                           new PredicateConfiguration(condition, isTrue: false)))
+                {
+                    command.AppendLabel(tempLabel);
+                }
+
+                // Bind all true phis
+                BindPhis(bindings, trueTarget);
+
+                // Jump to true target in the current case
+                using (var command = BeginCommand(branchOperation))
+                {
+                    var targetLabel = blockLookup[trueTarget];
+                    command.AppendLabel(targetLabel);
+                }
+
+                // Mark the false case label and bind all values
+                MarkLabel(tempLabel);
+                BindPhis(bindings, falseTarget);
+
+                if (!Schedule.IsImplicitSuccessor(branch.BasicBlock, falseTarget))
+                {
+                    // Jump to false target in the else case
+                    using var command = BeginCommand(branchOperation);
+                    var targetLabel = blockLookup[falseTarget];
+                    command.AppendLabel(targetLabel);
+                }
+
+                // Skip further bindings an branches
+                return;
+            }
+
+            // Generate phi bindings for all blocks
+            BindPhis(bindings, target: null);
 
             // The current schedule has inverted all if conditions with implicit branch
             // targets to simplify the work of the PTX assembler
@@ -150,6 +234,9 @@ namespace ILGPU.Backends.PTX
                     Builder.Append(", ");
             }
             Builder.AppendLine(";");
+
+            // Generate all phi bindings for all cases
+            GeneratePhiBindings(branch.BasicBlock);
 
             using (var command = BeginCommand(
                 isUniform
