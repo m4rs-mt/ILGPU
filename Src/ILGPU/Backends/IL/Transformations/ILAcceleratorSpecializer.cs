@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILAcceleratorSpecializer.cs
@@ -20,9 +20,31 @@ namespace ILGPU.Backends.IL.Transformations
     /// <summary>
     /// The IL accelerator specializer.
     /// </summary>
-    public sealed class ILAcceleratorSpecializer : AcceleratorSpecializer
+    public class ILAcceleratorSpecializer : AcceleratorSpecializer
     {
         #region Instance
+
+        /// <summary>
+        /// Constructs a new IL accelerator specializer.
+        /// </summary>
+        /// <param name="acceleratorType">The current accelerator type.</param>
+        /// <param name="pointerType">The actual pointer type to use.</param>
+        /// <param name="warpSize">The warp size to use.</param>
+        /// <param name="enableAssertions">True, if the assertions are enabled.</param>
+        /// <param name="enableIOOperations">True, if the IO is enabled.</param>
+        internal ILAcceleratorSpecializer(
+            AcceleratorType acceleratorType,
+            PrimitiveType pointerType,
+            int warpSize,
+            bool enableAssertions,
+            bool enableIOOperations)
+            : base(
+                  acceleratorType,
+                  warpSize,
+                  pointerType,
+                  enableAssertions,
+                  enableIOOperations)
+        { }
 
         /// <summary>
         /// Constructs a new IL accelerator specializer.
@@ -36,10 +58,10 @@ namespace ILGPU.Backends.IL.Transformations
             int warpSize,
             bool enableAssertions,
             bool enableIOOperations)
-            : base(
+            : this(
                   AcceleratorType.CPU,
-                  warpSize,
                   pointerType,
+                  warpSize,
                   enableAssertions,
                   enableIOOperations)
         { }
