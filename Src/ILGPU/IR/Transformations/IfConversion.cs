@@ -729,12 +729,20 @@ namespace ILGPU.IR.Transformations
             /// <param name="kinds">The set of all block kinds.</param>
             /// <param name="current">The current block.</param>
             /// <returns>The determined true block.</returns>
-            private static BasicBlock GetTrueExit(
+            private static BasicBlock? TryGetTrueExit(
                 in BasicBlockMap<BlockKind> kinds,
-                BasicBlock current) =>
-                kinds[current] == BlockKind.Exit
-                ? current
-                : GetTrueExit(kinds, GetIfBranch(current).TrueTarget);
+                BasicBlock current)
+            {
+                var next = current;
+                do
+                {
+                    if (kinds[next] == BlockKind.Exit)
+                        return next;
+                    next = GetIfBranch(next).TrueTarget;
+                }
+                while (next != current);
+                return null;
+            }
 
             /// <summary>
             /// Gets the primary false leaf that is used to created the merged branch.
@@ -767,8 +775,9 @@ namespace ILGPU.IR.Transformations
             /// <param name="current">The current root block to start the search.</param>
             public CaseBlocks(in BasicBlockMap<BlockKind> kinds, BasicBlock current)
             {
-                TrueBlock = GetTrueExit(kinds, current);
-                FalseBlock = GetFalseExit(kinds, TrueBlock);
+                TrueBlock = TryGetTrueExit(kinds, current);
+                if (TrueBlock is not null)
+                    FalseBlock = GetFalseExit(kinds, TrueBlock);
             }
 
             #endregion
@@ -778,16 +787,21 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Returns the true block.
             /// </summary>
-            public BasicBlock TrueBlock { get; }
+            public BasicBlock? TrueBlock { get; }
 
             /// <summary>
             /// Returns the false block.
             /// </summary>
-            public BasicBlock FalseBlock { get; }
+            public BasicBlock? FalseBlock { get; }
 
             #endregion
 
             #region Methods
+
+            /// <summary>
+            /// Returns true if this conversion phase is able to convert the pair.
+            /// </summary>
+            public bool IsValid => TrueBlock is not null && FalseBlock is not null;
 
             /// <summary>
             /// Returns true if the given block is the <see cref="TrueBlock"/>.
@@ -796,7 +810,7 @@ namespace ILGPU.IR.Transformations
             /// <returns>
             /// True, if the given block is the <see cref="TrueBlock"/>.
             /// </returns>
-            public readonly bool IsTrueBlock(BasicBlock block)
+            public bool IsTrueBlock(BasicBlock block)
             {
                 bool result = block == TrueBlock;
                 block.Assert(result || block == FalseBlock);
@@ -812,7 +826,7 @@ namespace ILGPU.IR.Transformations
             /// True, if the given block is either the <see cref="TrueBlock"/> or the
             /// <see cref="FalseBlock"/>.
             /// </returns>
-            public readonly bool Contains(BasicBlock block) =>
+            public bool Contains(BasicBlock block) =>
                 block == TrueBlock || block == FalseBlock;
 
             /// <summary>
@@ -820,7 +834,7 @@ namespace ILGPU.IR.Transformations
             /// <see cref="TrueBlock"/> or the <see cref="FalseBlock"/>.
             /// </summary>
             /// <param name="value">The value to test.</param>
-            public readonly void AssertInBlocks(Value value) =>
+            public void AssertInBlocks(Value value) =>
                 value.Assert(Contains(value.BasicBlock));
 
             #endregion
@@ -1098,6 +1112,8 @@ namespace ILGPU.IR.Transformations
                 // Get the true and false-branch leaf nodes that are used to build the
                 // conditional branch in the end
                 var caseBlocks = new CaseBlocks(kinds, current);
+                if (!caseBlocks.IsValid)
+                    return false;
 
                 // Check all phi-value references and determine all phis that need
                 // to be adjusted after folding all blocks
@@ -1244,7 +1260,7 @@ namespace ILGPU.IR.Transformations
         /// A conditional converter to perform the actual if/switch conversion into
         /// conditional value predicates.
         /// </summary>
-        private ref struct ConditionalConverter
+        private readonly ref struct ConditionalConverter
         {
             #region Instance
 
@@ -1320,13 +1336,13 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Returns true if the given block should be maintained.
             /// </summary>
-            private readonly bool IsBlockToKeep(BasicBlock block) =>
+            private bool IsBlockToKeep(BasicBlock block) =>
                 Bitwise.Or(block == EntryBlock, CaseBlocks.Contains(block));
 
             /// <summary>
             /// Returns true if the given block is an exit block.
             /// </summary>
-            private readonly bool IsExit(BasicBlock block) =>
+            private bool IsExit(BasicBlock block) =>
                 Kinds[block] == BlockKind.Exit;
 
             /// <summary>
@@ -1350,8 +1366,8 @@ namespace ILGPU.IR.Transformations
                 BlockBuilder.CreateIfBranch(
                     terminator.Location,
                     condition.AsNotNull(),
-                    CaseBlocks.TrueBlock,
-                    CaseBlocks.FalseBlock);
+                    CaseBlocks.TrueBlock.AsNotNull(),
+                    CaseBlocks.FalseBlock.AsNotNull());
 
                 // Adapt all phis
                 AdaptPhis();
