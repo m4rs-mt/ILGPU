@@ -262,8 +262,7 @@ namespace ILGPU.Backends.OpenCL
             Builder.AppendLine(")");
 
             // Emit code that moves view arguments into their appropriate targets
-            Builder.AppendLine("{");
-            PushIndent();
+            BeginFunctionBody();
             GenerateArgumentMapping();
 
             // Emit index computation
@@ -323,8 +322,7 @@ namespace ILGPU.Backends.OpenCL
 
             // Generate code
             GenerateCodeInternal();
-            PopIndent();
-            Builder.AppendLine("}");
+            FinishFunctionBody();
         }
 
         /// <summary>
