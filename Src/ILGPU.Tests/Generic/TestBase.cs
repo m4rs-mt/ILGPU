@@ -147,7 +147,20 @@ namespace ILGPU.Tests
             var entryPoint = typeof(TIndex) == typeof(KernelConfig)
                 ? EntryPointDescription.FromExplicitlyGroupedKernel(kernel)
                 : EntryPointDescription.FromImplicitlyGroupedKernel(kernel);
-            var compiled = backend.Compile(entryPoint, new KernelSpecialization());
+
+            var specialization = new KernelSpecialization();
+            if (arguments.Length > 0 &&
+                arguments[0] is KernelSpecialization userSpecialization)
+            {
+                // Use user-provided specialization
+                specialization = userSpecialization;
+
+                // Skip first argument
+                var newArguments = new object[arguments.Length - 1];
+                Array.Copy(arguments, 1, newArguments, 0, newArguments.Length);
+                arguments = newArguments;
+            }
+            var compiled = backend.Compile(entryPoint, specialization);
 
             // Load the compiled kernel
             Output.WriteLine($"Loading '{kernel.Name}'");
