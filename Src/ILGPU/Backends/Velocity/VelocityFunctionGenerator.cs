@@ -63,6 +63,30 @@ namespace ILGPU.Backends.Velocity
         }
 
         /// <summary>
+        /// Loads the current global index.
+        /// </summary>
+        protected override void LoadGlobalIndexScalar() =>
+            Emitter.Emit(
+                ArgumentOperation.Load,
+                VelocityCodeGenerator.GlobalIndexScalar);
+
+        /// <summary>
+        /// Loads the current group dimension.
+        /// </summary>
+        protected override void LoadGroupDimScalar() =>
+            Emitter.Emit(
+                ArgumentOperation.Load,
+                VelocityCodeGenerator.GroupDimIndexScalar);
+
+        /// <summary>
+        /// Loads the current grid dimension.
+        /// </summary>
+        protected override void LoadGridDimScalar() =>
+            Emitter.Emit(
+                ArgumentOperation.Load,
+                VelocityCodeGenerator.GridDimIndexScalar);
+
+        /// <summary>
         /// Generates Velocity code for this function.
         /// </summary>
         public override void GenerateCode()
