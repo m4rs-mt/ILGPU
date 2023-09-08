@@ -40,14 +40,29 @@ namespace ILGPU.Backends.Velocity
         public const int ExecutionContextIndex = 0;
 
         /// <summary>
+        /// The parameter index of the current global index.
+        /// </summary>
+        public const int GlobalIndexScalar = 1;
+
+        /// <summary>
+        /// The parameter index of the current group dimension.
+        /// </summary>
+        public const int GroupDimIndexScalar = 2;
+        /// <summary>
+        ///
+        /// The parameter index of the current grid dimension.
+        /// </summary>
+        public const int GridDimIndexScalar = 3;
+
+        /// <summary>
         /// The parameter index of all masks.
         /// </summary>
-        public const int MaskParameterIndex = 1;
+        public const int MaskParameterIndex = 4;
 
         /// <summary>
         /// The method parameter offset for all parameters.
         /// </summary>
-        public const int MethodParameterOffset = 2;
+        public const int MethodParameterOffset = 5;
 
         #endregion
     }
