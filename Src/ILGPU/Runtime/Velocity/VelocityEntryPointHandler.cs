@@ -17,9 +17,17 @@ namespace ILGPU.Runtime.Velocity
     /// Represents a single velocity kernel processing delegate.
     /// </summary>
     /// <param name="groupContext">The main group context.</param>
+    /// <param name="groupDim">The main group dimension.</param>
+    /// <param name="gridDim">The main grid dimension.</param>
+    /// <param name="startIndex">The global start index (inclusive).</param>
+    /// <param name="endIndex">The global end index (exclusive).</param>
     /// <param name="parameters">The current parameters.</param>
     delegate void VelocityEntryPointHandler(
         VelocityGroupExecutionContext groupContext,
+        int groupDim,
+        int gridDim,
+        long startIndex,
+        long endIndex,
         VelocityParameters parameters);
 
     /// <summary>
@@ -35,6 +43,10 @@ namespace ILGPU.Runtime.Velocity
         public static readonly Type[] EntryPointParameterTypes = new Type[]
         {
             typeof(VelocityGroupExecutionContext),
+            typeof(int),
+            typeof(int),
+            typeof(long),
+            typeof(long),
             typeof(VelocityParameters),
         };
     }
