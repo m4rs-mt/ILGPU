@@ -29,12 +29,17 @@ namespace ILGPU.Backends.Velocity
     {
         #region Constants
 
-        public const int GlobalParametersIndex = 1;
+        public const int GlobalGroupDimIndex = 1;
+        public const int GlobalGridDimIndex = 2;
+        public const int GlobalStartIndex = 3;
+        public const int GlobalEndIndex = 4;
+        public const int GlobalParametersIndex = 5;
 
         #endregion
 
-        private readonly ILLabel exitMarker;
+        private readonly ILLabel localExitMarker;
         private readonly ILLocal targetMaskCount;
+        private readonly ILLocal globalIndex;
 
         /// <summary>
         /// Creates a new Velocity kernel generator.
@@ -52,11 +57,14 @@ namespace ILGPU.Backends.Velocity
             ParametersType = args.Module.ParametersType;
 
             // Generate an exit marker to jump to when the kernel function returns
-            exitMarker = Emitter.DeclareLabel();
+            localExitMarker = Emitter.DeclareLabel();
 
             // We use this counter to remember the number of active threads that entered
             // the kernel successfully
             targetMaskCount = Emitter.DeclareLocal(typeof(int));
+
+            // Declare our global thread index local
+            globalIndex = Emitter.DeclareLocal(typeof(int));
         }
 
         /// <summary>
@@ -68,6 +76,24 @@ namespace ILGPU.Backends.Velocity
         /// Returns the current parameters type.
         /// </summary>
         public Type ParametersType { get; }
+
+        /// <summary>
+        /// Loads the current global index.
+        /// </summary>
+        protected override void LoadGlobalIndexScalar() =>
+            Emitter.Emit(LocalOperation.Load, globalIndex);
+
+        /// <summary>
+        /// Loads the current group dimension.
+        /// </summary>
+        protected override void LoadGroupDimScalar() =>
+            Emitter.Emit(ArgumentOperation.Load, GlobalGroupDimIndex);
+
+        /// <summary>
+        /// Loads the current grid dimension.
+        /// </summary>
+        protected override void LoadGridDimScalar() =>
+            Emitter.Emit(ArgumentOperation.Load, GlobalGridDimIndex);
 
         /// <summary>
         /// Generates Velocity code for this kernel.
@@ -98,55 +124,86 @@ namespace ILGPU.Backends.Velocity
                 Alias(Method.Parameters[i], parameterLocal);
             }
 
-            // Bind the current implicitly grouped kernel index (if any)
-            var offsetVector = Emitter.DeclareLocal(Specializer.WarpType32);
-            if (EntryPoint.IsImplicitlyGrouped)
-                Alias(Method.Parameters[0], offsetVector);
-
-            // Store the current global index
-            VelocityTargetSpecializer.ComputeGlobalBaseIndex(Emitter);
-            Specializer.ConvertScalarTo32(Emitter, VelocityWarpOperationMode.I);
-            Specializer.LoadLaneIndexVector32(Emitter);
-            Specializer.BinaryOperation32(
-                Emitter,
-                BinaryArithmeticKind.Add,
-                VelocityWarpOperationMode.I);
-            Emitter.Emit(LocalOperation.Store, offsetVector);
+            // Declare a local index counter and initialize it with the start index
+            Emitter.Emit(ArgumentOperation.Load, GlobalStartIndex);
+            Emitter.Emit(LocalOperation.Store, globalIndex);
 
             // Setup the current main kernel mask based on the current group size
+            var baseGroupMask = Emitter.DeclareLocal(Specializer.WarpType32);
             Specializer.LoadLaneIndexVector32(Emitter);
-            VelocityTargetSpecializer.GetGroupDim(Emitter);
+            Emitter.Emit(ArgumentOperation.Load, GlobalGroupDimIndex);
             Specializer.ConvertScalarTo32(Emitter, VelocityWarpOperationMode.I);
             Specializer.Compare32(
                 Emitter,
                 CompareKind.LessThan,
                 VelocityWarpOperationMode.I);
+            Emitter.Emit(LocalOperation.Store, baseGroupMask);
 
-            // Adjust the current main kernel mask based on the user grid size
-            Emitter.Emit(LocalOperation.Load, offsetVector);
-            VelocityTargetSpecializer.GetUserSize(Emitter);
-            Specializer.ConvertScalarTo32(Emitter, VelocityWarpOperationMode.I);
-            Specializer.Compare32(
-                Emitter,
-                CompareKind.LessThan,
-                VelocityWarpOperationMode.I);
-            Specializer.IntersectMask32(Emitter);
+            // Build our execution loop header
+            var iterationHeader = Emitter.DeclareLabel();
+            Emitter.MarkLabel(iterationHeader);
 
-            var entryPointMask = GetBlockMask(Method.EntryBlock);
-            Emitter.Emit(OpCodes.Dup);
-            Emitter.Emit(LocalOperation.Store, entryPointMask);
+            // Compare our global index against the exclusive end index
+            var exitMarker = Emitter.DeclareLabel();
+            Emitter.Emit(LocalOperation.Load, globalIndex);
+            Emitter.Emit(ArgumentOperation.Load, GlobalEndIndex);
+            Emitter.Emit(OpCodes.Bge, exitMarker);
 
-            // Determine the target mask count
-            Specializer.GetNumberOfActiveLanes(Emitter);
-            Emitter.Emit(LocalOperation.Store, targetMaskCount);
+            // Build our execution body
+            {
+                // Bind the current implicitly grouped kernel index (if any)
+                var offsetVector = Emitter.DeclareLocal(Specializer.WarpType32);
+                if (EntryPoint.IsImplicitlyGrouped)
+                    Alias(Method.Parameters[0], offsetVector);
 
-            // Emit the actual kernel code
-            GenerateCodeInternal();
+                // Compute the current global index
+                Emitter.Emit(LocalOperation.Load, globalIndex);
+                Specializer.ConvertScalarTo32(Emitter, VelocityWarpOperationMode.I);
+                Specializer.LoadLaneIndexVector32(Emitter);
+                Specializer.BinaryOperation32(
+                    Emitter,
+                    BinaryArithmeticKind.Add,
+                    VelocityWarpOperationMode.I);
+                Emitter.Emit(LocalOperation.Store, offsetVector);
 
-            // Emit the exit marker
-            Emitter.MarkLabel(exitMarker);
+                // Adjust the current main kernel mask based on the user grid size
+                Emitter.Emit(LocalOperation.Load, offsetVector);
+                Emitter.Emit(ArgumentOperation.Load, GlobalEndIndex);
+                Specializer.ConvertScalarTo32(Emitter, VelocityWarpOperationMode.I);
+                Specializer.Compare32(
+                    Emitter,
+                    CompareKind.LessThan,
+                    VelocityWarpOperationMode.I);
+                Emitter.Emit(LocalOperation.Load, baseGroupMask);
+                Specializer.IntersectMask32(Emitter);
+
+                var entryPointMask = GetBlockMask(Method.EntryBlock);
+                Emitter.Emit(OpCodes.Dup);
+                Emitter.Emit(LocalOperation.Store, entryPointMask);
+
+                // Determine the target mask count
+                Specializer.GetNumberOfActiveLanes(Emitter);
+                Emitter.Emit(LocalOperation.Store, targetMaskCount);
+
+                // Emit the actual kernel code
+                GenerateCodeInternal();
+
+                // Emit the exit marker
+                Emitter.MarkLabel(localExitMarker);
+            }
+
+            // Increase the processing index
+            Emitter.Emit(LocalOperation.Load, globalIndex);
+            Emitter.Emit(ArgumentOperation.Load, GlobalGroupDimIndex);
+            Emitter.Emit(OpCodes.Conv_I8);
+            Emitter.Emit(OpCodes.Add);
+            Emitter.Emit(LocalOperation.Store, globalIndex);
+
+            // Branch to the loop header
+            Emitter.Emit(OpCodes.Br, iterationHeader);
 
             // Return
+            Emitter.MarkLabel(exitMarker);
             Emitter.Emit(OpCodes.Ret);
         }
 
@@ -161,7 +218,7 @@ namespace ILGPU.Backends.Velocity
                 GetBlockMask(returnTerminator.BasicBlock));
             Specializer.GetNumberOfActiveLanes(Emitter);
             Emitter.Emit(LocalOperation.Load, targetMaskCount);
-            Emitter.Emit(OpCodes.Beq, exitMarker);
+            Emitter.Emit(OpCodes.Beq, localExitMarker);
         }
     }
 }
