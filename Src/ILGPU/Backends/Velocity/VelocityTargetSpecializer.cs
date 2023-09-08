@@ -35,14 +35,6 @@ namespace ILGPU.Backends.Velocity
 
         private static readonly MethodInfo MemoryBarrierMethod =
             GetMethod<VelocityTargetSpecializer>(nameof(MemoryBarrier));
-        private static readonly MethodInfo GetGridIndexMethod =
-            GetMethod<VelocityTargetSpecializer>(nameof(GetGridIndexImpl));
-        private static readonly MethodInfo GetGridDimMethod =
-            GetMethod<VelocityTargetSpecializer>(nameof(GetGridDimImpl));
-        private static readonly MethodInfo GetGroupDimMethod =
-            GetMethod<VelocityTargetSpecializer>(nameof(GetGroupDimImpl));
-        private static readonly MethodInfo GetUserSizeMethod =
-            GetMethod<VelocityTargetSpecializer>(nameof(GetUserSizeImpl));
 
         private static readonly MethodInfo GetDynamicSharedMemoryMethod =
             GetMethod<VelocityTargetSpecializer>(
@@ -54,8 +46,6 @@ namespace ILGPU.Backends.Velocity
             GetMethod<VelocityTargetSpecializer>(nameof(GetSharedMemoryFromPoolImpl));
         private static readonly MethodInfo GetLocalMemoryFromPoolMethod =
             GetMethod<VelocityTargetSpecializer>(nameof(GetLocalMemoryFromPoolImpl));
-        private static readonly MethodInfo ComputeGlobalBaseIndexMethod =
-            GetMethod<VelocityTargetSpecializer>(nameof(ComputeGlobalBaseIndexImpl));
         private static readonly MethodInfo DebuggerBreakMethod =
             GetMethod<VelocityTargetSpecializer>(nameof(DebuggerBreakImpl));
 
@@ -63,36 +53,6 @@ namespace ILGPU.Backends.Velocity
         /// Wrapper around an Interlocked memory barrier.
         /// </summary>
         internal static void MemoryBarrier() => Interlocked.MemoryBarrier();
-
-        /// <summary>
-        /// Wrapper around a group extension context.
-        /// </summary>
-        internal static int GetGridIndexImpl(VelocityGroupExecutionContext context) =>
-            context.GridIdx;
-
-        /// <summary>
-        /// Wrapper around a group extension context.
-        /// </summary>
-        internal static int GetGridDimImpl(VelocityGroupExecutionContext context) =>
-            context.GridDim;
-
-        /// <summary>
-        /// Wrapper around a group extension context.
-        /// </summary>
-        internal static int GetGroupDimImpl(VelocityGroupExecutionContext context) =>
-            context.GroupDim;
-
-        /// <summary>
-        /// Wrapper around a group extension context.
-        /// </summary>
-        internal static int GetUserSizeImpl(VelocityGroupExecutionContext context) =>
-            context.UserSize;
-
-        /// <summary>
-        /// Wrapper around a group extension context.
-        /// </summary>
-        internal static int ComputeGlobalBaseIndexImpl(
-            VelocityGroupExecutionContext context) => context.GroupOffset;
 
         /// <summary>
         /// Wrapper around a group extension context.
@@ -557,34 +517,6 @@ namespace ILGPU.Backends.Velocity
             where TILEmitter : struct, IILEmitter =>
             emitter.EmitCall(MemoryBarrierMethod);
 
-        public static void GetGridIndex<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter
-        {
-            emitter.Emit(OpCodes.Ldarg_0);
-            emitter.EmitCall(GetGridIndexMethod);
-        }
-
-        public static void GetGridDim<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter
-        {
-            emitter.Emit(OpCodes.Ldarg_0);
-            emitter.EmitCall(GetGridDimMethod);
-        }
-
-        public static void GetUserSize<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter
-        {
-            emitter.Emit(OpCodes.Ldarg_0);
-            emitter.EmitCall(GetUserSizeMethod);
-        }
-
-        public static void GetGroupDim<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter
-        {
-            emitter.Emit(OpCodes.Ldarg_0);
-            emitter.EmitCall(GetGroupDimMethod);
-        }
-
         public void GetDynamicSharedMemory<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter
         {
@@ -638,13 +570,6 @@ namespace ILGPU.Backends.Velocity
 
             // Convert the scalar version into a warp-wide value
             ConvertScalarTo64(emitter, VelocityWarpOperationMode.U);
-        }
-
-        public static void ComputeGlobalBaseIndex<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter
-        {
-            emitter.Emit(OpCodes.Ldarg_0);
-            emitter.EmitCall(ComputeGlobalBaseIndexMethod);
         }
 
         public static void DebuggerBreak<TILEmitter>(TILEmitter emitter)
