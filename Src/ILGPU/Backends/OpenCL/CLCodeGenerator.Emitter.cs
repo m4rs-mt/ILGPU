@@ -47,6 +47,7 @@ namespace ILGPU.Backends.OpenCL
             #region Instance
 
             private readonly StringBuilder stringBuilder;
+            private readonly StringBuilder variableBuilder;
             private bool argMode;
             private int argumentCount;
 
@@ -58,6 +59,7 @@ namespace ILGPU.Backends.OpenCL
             {
                 CodeGenerator = codeGenerator;
                 stringBuilder = codeGenerator.Builder;
+                variableBuilder = codeGenerator.VariableBuilder;
                 argumentCount = 0;
                 argMode = false;
 
@@ -85,11 +87,7 @@ namespace ILGPU.Backends.OpenCL
             private void BeginAppendTarget(Variable target, bool appendNew = true)
             {
                 if (appendNew)
-                {
-                    var variableType = CodeGenerator.GetVariableType(target);
-                    stringBuilder.Append(variableType);
-                    stringBuilder.Append(' ');
-                }
+                    AppendDeclaration(target);
                 stringBuilder.Append(target.ToString());
             }
 
@@ -97,8 +95,15 @@ namespace ILGPU.Backends.OpenCL
             /// Appends a target declaration.
             /// </summary>
             /// <param name="target">The target declaration.</param>
-            internal void AppendDeclaration(Variable target) =>
-                BeginAppendTarget(target);
+            internal void AppendDeclaration(Variable target)
+            {
+                var variableType = CodeGenerator.GetVariableType(target);
+                variableBuilder.Append('\t');
+                variableBuilder.Append(variableType);
+                variableBuilder.Append(' ');
+                variableBuilder.Append(target.ToString());
+                variableBuilder.AppendLine(";");
+            }
 
             /// <summary>
             /// Appends a target.
@@ -826,6 +831,50 @@ namespace ILGPU.Backends.OpenCL
             var emitter = new StatementEmitter(this);
             emitter.AppendOperation(command);
             return emitter;
+        }
+
+        /// <summary>
+        /// Begins the function body, switching to variable capturing mode.
+        /// </summary>
+        protected void BeginFunctionBody()
+        {
+            // Start the function body.
+            Builder.AppendLine("{");
+            PushIndent();
+
+#if DEBUG
+            Builder.AppendLine();
+            Builder.AppendLine("\t// Variable declarations");
+            Builder.AppendLine();
+#endif
+
+            // Switch to the alternate builder, so that we can capture the code and
+            // variable declarations separately.
+            prefixBuilder = Builder;
+            Builder = suffixBuilder;
+        }
+
+        /// <summary>
+        /// Finishes the function body, ending variable capturing mode.
+        /// </summary>
+        protected void FinishFunctionBody()
+        {
+            // Restore the original builder, containing code before the variable
+            // declarations.
+            Builder = prefixBuilder;
+
+            // Add the variable declarations at the start of the function, to avoid
+            // issues with OpenCL compilers that are not C99 compliant, and cannot
+            // handle variable declarations intermingled with other code.
+            Builder.Append(VariableBuilder);
+            Builder.AppendLine();
+
+            // Add the code that was generated along with the variable declarations.
+            Builder.Append(suffixBuilder);
+
+            // Close the function body.
+            PopIndent();
+            Builder.AppendLine("}");
         }
 
         #endregion

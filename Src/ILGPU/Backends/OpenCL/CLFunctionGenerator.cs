@@ -132,11 +132,9 @@ namespace ILGPU.Backends.OpenCL
             BindSharedMemoryAllocation(Allocas.DynamicSharedAllocations);
 
             // Generate code
-            Builder.AppendLine("{");
-            PushIndent();
+            BeginFunctionBody();
             GenerateCodeInternal();
-            PopIndent();
-            Builder.AppendLine("}");
+            FinishFunctionBody();
         }
 
         #endregion

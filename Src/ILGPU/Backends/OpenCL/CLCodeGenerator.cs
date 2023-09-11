@@ -279,6 +279,9 @@ namespace ILGPU.Backends.OpenCL
             new Dictionary<BasicBlock, string>();
         private readonly string labelPrefix;
 
+        private StringBuilder prefixBuilder = new StringBuilder();
+        private StringBuilder suffixBuilder = new StringBuilder();
+
         /// <summary>
         /// Constructs a new code generator.
         /// </summary>
@@ -295,7 +298,7 @@ namespace ILGPU.Backends.OpenCL
 
             labelPrefix = "L_" + Method.Id.ToString();
 
-            Builder = new StringBuilder();
+            Builder = prefixBuilder;
         }
 
         #endregion
@@ -327,7 +330,12 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Returns the associated string builder.
         /// </summary>
-        public StringBuilder Builder { get; }
+        public StringBuilder Builder { get; private set; }
+
+        /// <summary>
+        /// Returns the associated string builder.
+        /// </summary>
+        public StringBuilder VariableBuilder { get; } = new StringBuilder();
 
         #endregion
 
