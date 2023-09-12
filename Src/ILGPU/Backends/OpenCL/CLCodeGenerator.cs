@@ -156,83 +156,6 @@ namespace ILGPU.Backends.OpenCL
             Variable? HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
         }
 
-        /// <summary>
-        /// Represents a specialized phi binding allocator.
-        /// </summary>
-        private readonly struct PhiBindingAllocator : IPhiBindingAllocator
-        {
-            private readonly Dictionary<BasicBlock, List<Variable>> phiMapping;
-
-            /// <summary>
-            /// Constructs a new phi binding allocator.
-            /// </summary>
-            /// <param name="parent">The parent code generator.</param>
-            /// <param name="blocks">The blocks to use.</param>
-            public PhiBindingAllocator(
-                CLCodeGenerator parent,
-                in BasicBlockCollection<ReversePostOrder, Forwards> blocks)
-            {
-                phiMapping = new Dictionary<BasicBlock, List<Variable>>(
-                    blocks.Count);
-                Parent = parent;
-                Dominators = blocks.CreateDominators();
-            }
-
-            /// <summary>
-            /// Returns the parent code generator.
-            /// </summary>
-            public CLCodeGenerator Parent { get; }
-
-            /// <summary>
-            /// Returns the referenced dominators.
-            /// </summary>
-            public Dominators<Forwards> Dominators { get; }
-
-            /// <summary>
-            /// Does not perform any operation.
-            /// </summary>
-            public void Process(BasicBlock block, Phis phis) { }
-
-            /// <summary>
-            /// Allocates a new phi value in the dominator block.
-            /// </summary>
-            public void Allocate(BasicBlock block, PhiValue phiValue)
-            {
-                var variable = Parent.Allocate(phiValue);
-
-                var targetBlock = block;
-                foreach (var argument in phiValue)
-                {
-                    targetBlock = argument.BasicBlock == null
-                        ? Dominators.Root
-                        : Dominators.GetImmediateCommonDominator(
-                            targetBlock,
-                            argument.BasicBlock);
-
-                    if (targetBlock == Dominators.Root)
-                        break;
-                }
-
-                if (!phiMapping.TryGetValue(targetBlock, out var phiVariables))
-                {
-                    phiVariables = new List<Variable>();
-                    phiMapping.Add(targetBlock, phiVariables);
-                }
-                phiVariables.Add(variable);
-            }
-
-            /// <summary>
-            /// Tries to get phi variables to declare in the given block.
-            /// </summary>
-            /// <param name="block">The block.</param>
-            /// <param name="phisToDeclare">The variables to declare (if any).</param>
-            /// <returns>True, if there are some phi variables to declare.</returns>
-            public bool TryGetPhis(
-                BasicBlock block,
-                [NotNullWhen(true)] out List<Variable>? phisToDeclare) =>
-                phiMapping.TryGetValue(block, out phisToDeclare);
-        }
-
         #endregion
 
         #region Static
@@ -516,8 +439,34 @@ namespace ILGPU.Backends.OpenCL
                 blockLookup.Add(block, DeclareLabel());
 
             // Find all phi nodes, allocate target registers and setup internal mapping
-            var bindingAllocator = new PhiBindingAllocator(this, blocks);
-            var phiBindings = PhiBindings.Create(blocks, bindingAllocator);
+            var phiMapping = new Dictionary<BasicBlock, List<Variable>>();
+            var dominators = Method.Blocks.CreateDominators();
+            var phiBindings = PhiBindings.Create(
+                blocks,
+                (block, phiValue) =>
+                {
+                    var variable = Allocate(phiValue);
+
+                    var targetBlock = block;
+                    foreach (var argument in phiValue)
+                    {
+                        targetBlock = argument.BasicBlock == null
+                            ? dominators.Root
+                            : dominators.GetImmediateCommonDominator(
+                                targetBlock,
+                                argument.BasicBlock);
+
+                        if (targetBlock == dominators.Root)
+                            break;
+                    }
+
+                    if (!phiMapping.TryGetValue(targetBlock, out var phiVariables))
+                    {
+                        phiVariables = new List<Variable>();
+                        phiMapping.Add(targetBlock, phiVariables);
+                    }
+                    phiVariables.Add(variable);
+                });
             var intermediatePhiVariables = new Dictionary<Value, Variable>(
                 phiBindings.MaxNumIntermediatePhis);
 
@@ -528,7 +477,7 @@ namespace ILGPU.Backends.OpenCL
                 MarkLabel(blockLookup[block]);
 
                 // Declare phi variables (if any)
-                if (bindingAllocator.TryGetPhis(block, out var phisToDeclare))
+                if (phiMapping.TryGetValue(block, out var phisToDeclare))
                 {
                     foreach (var phiVariable in phisToDeclare)
                         Declare(phiVariable);

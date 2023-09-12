@@ -14,6 +14,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,30 +23,10 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.Backends
 {
     /// <summary>
-    /// An abstract binding allocator for the class <see cref="PhiBindings"/>.
-    /// </summary>
-    public interface IPhiBindingAllocator
-    {
-        /// <summary>
-        /// Processes all phis that are declared in the given node.
-        /// </summary>
-        /// <param name="block">The current block.</param>
-        /// <param name="phis">The phi nodes to process.</param>
-        void Process(BasicBlock block, Phis phis);
-
-        /// <summary>
-        /// Allocates the given phi node.
-        /// </summary>
-        /// <param name="block">The current block.</param>
-        /// <param name="phiValue">The phi node to allocate.</param>
-        void Allocate(BasicBlock block, PhiValue phiValue);
-    }
-
-    /// <summary>
     /// Maps phi nodes to basic blocks in order to emit move command during
     /// the final code generation phase.
     /// </summary>
-    public readonly struct PhiBindings
+    readonly struct PhiBindings
     {
         #region Nested Types
 
@@ -83,7 +64,6 @@ namespace ILGPU.Backends
                 void IDisposable.Dispose() { }
 
                 /// <summary cref="IEnumerator.MoveNext"/>
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 public bool MoveNext() => enumerator.MoveNext();
 
                 /// <summary cref="IEnumerator.Reset"/>
@@ -115,7 +95,7 @@ namespace ILGPU.Backends
             /// <returns>
             /// An enumerator to enumerate all entries in this collection.
             /// </returns>
-            public readonly Enumerator GetEnumerator() => new Enumerator(blockInfo);
+            public Enumerator GetEnumerator() => new(blockInfo);
 
             #endregion
         }
@@ -153,7 +133,6 @@ namespace ILGPU.Backends
                 void IDisposable.Dispose() { }
 
                 /// <summary cref="IEnumerator.MoveNext"/>
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 public bool MoveNext() => enumerator.MoveNext();
 
                 /// <summary cref="IEnumerator.Reset"/>
@@ -182,8 +161,7 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns all intermediate phi values that must be assigned to temporaries.
             /// </summary>
-            public readonly IntermediatePhiCollection Intermediates =>
-                new IntermediatePhiCollection(blockInfo);
+            public IntermediatePhiCollection Intermediates => new(blockInfo);
 
             #endregion
 
@@ -194,7 +172,7 @@ namespace ILGPU.Backends
             /// a temporary intermediate variable to be assigned to.
             /// </summary>
             /// <param name="phi">The phi value to test.</param>
-            public readonly bool IsIntermediate(PhiValue phi) =>
+            public bool IsIntermediate(PhiValue phi) =>
                 blockInfo.IntermediatePhis.Contains(phi);
 
             /// <summary>
@@ -203,7 +181,7 @@ namespace ILGPU.Backends
             /// <returns>
             /// An enumerator to enumerate all entries in this collection.
             /// </returns>
-            public readonly Enumerator GetEnumerator() => new Enumerator(this);
+            public Enumerator GetEnumerator() => new(this);
 
             #endregion
         }
@@ -252,8 +230,7 @@ namespace ILGPU.Backends
             /// </summary>
             /// <param name="phi">The phi value it has to be bound to.</param>
             /// <param name="value">The source value to read from.</param>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly void Add(PhiValue phi, Value value)
+            public void Add(PhiValue phi, Value value)
             {
                 LHSPhis.Add(phi);
                 // Check whether we are assigning the value of a phi value
@@ -272,8 +249,8 @@ namespace ILGPU.Backends
             /// Creates a new <see cref="List{T}"/> instance.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly BlockInfo GetValue(BasicBlock block, int traversalIndex) =>
-                new BlockInfo(block.Count);
+            public BlockInfo GetValue(BasicBlock block, int traversalIndex) =>
+                new(block.Count);
         }
 
         #endregion
@@ -285,30 +262,32 @@ namespace ILGPU.Backends
         /// </summary>
         /// <typeparam name="TOrder">The current order.</typeparam>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-        /// <typeparam name="TAllocator">The custom allocator type.</typeparam>
         /// <param name="collection">The source collection.</param>
         /// <param name="allocator">The allocator to use.</param>
         /// <returns>The created phi bindings.</returns>
-        public static PhiBindings Create<TOrder, TDirection, TAllocator>(
+        public static PhiBindings Create<TOrder, TDirection>(
             in BasicBlockCollection<TOrder, TDirection> collection,
-            TAllocator allocator)
+            Action<BasicBlock, PhiValue> allocator)
             where TOrder : struct, ITraversalOrder
             where TDirection : struct, IControlFlowDirection
-            where TAllocator : struct, IPhiBindingAllocator
         {
             var mapping = collection.CreateMap(new InfoProvider());
 
+            var allPhiValues = InlineList<PhiValue>.Create(
+                collection.Count);
             foreach (var block in collection)
             {
                 // Resolve phis
                 var phis = Phis.Create(block);
-                allocator.Process(block, phis);
 
                 // Map all phi arguments
                 foreach (var phi in phis)
                 {
+                    // Remember the current phi value
+                    allPhiValues.Add(phi);
+
                     // Allocate phi for further processing
-                    allocator.Allocate(block, phi);
+                    allocator(block, phi);
 
                     // Determine predecessor mapping
                     phi.Assert(block.Predecessors.Length == phi.Nodes.Length);
@@ -331,7 +310,10 @@ namespace ILGPU.Backends
                     info.IntermediatePhis.Count);
             }
 
-            return new PhiBindings(mapping, maxNumIntermediatePhis);
+            return new PhiBindings(
+                mapping,
+                maxNumIntermediatePhis,
+                ref allPhiValues);
         }
 
         #endregion
@@ -339,6 +321,7 @@ namespace ILGPU.Backends
         #region Instance
 
         private readonly BasicBlockMap<BlockInfo> phiMapping;
+        private readonly InlineList<PhiValue> allPhiValues;
 
         /// <summary>
         /// Constructs new phi bindings.
@@ -347,11 +330,17 @@ namespace ILGPU.Backends
         /// <param name="maxNumIntermediatePhis">
         /// The maximum number of intermediate phi values.
         /// </param>
+        /// <param name="phiValues">The list of all phi values.</param>
         private PhiBindings(
             in BasicBlockMap<BlockInfo> mapping,
-            int maxNumIntermediatePhis)
+            int maxNumIntermediatePhis,
+            ref InlineList<PhiValue> phiValues)
         {
             phiMapping = mapping;
+
+            allPhiValues = InlineList<PhiValue>.Empty;
+            phiValues.MoveTo(ref allPhiValues);
+
             MaxNumIntermediatePhis = maxNumIntermediatePhis;
         }
 
@@ -364,6 +353,11 @@ namespace ILGPU.Backends
         /// </summary>
         public int MaxNumIntermediatePhis { get; }
 
+        /// <summary>
+        /// Returns a span including all phi values.
+        /// </summary>
+        public ReadOnlySpan<PhiValue> PhiValues => allPhiValues;
+
         #endregion
 
         #region Methods
@@ -374,10 +368,7 @@ namespace ILGPU.Backends
         /// <param name="block">The block.</param>
         /// <param name="bindings">The resolved bindings (if any)</param>
         /// <returns>True, if phi bindings could be resolved.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool TryGetBindings(
-            BasicBlock block,
-            out PhiBindingCollection bindings)
+        public bool TryGetBindings(BasicBlock block, out PhiBindingCollection bindings)
         {
             bindings = default;
             if (!phiMapping.TryGetValue(block, out var info))
