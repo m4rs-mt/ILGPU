@@ -154,6 +154,12 @@ jobs:
         os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
         library: [ILGPU, ILGPU.Algorithms]
         framework: [net6.0, net7.0]
+        flavor: [CPU, Velocity]
+        exclude:
+          - library: ILGPU.Algorithms
+            flavor: Velocity
+          - os: cuda
+            flavor: Velocity
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -174,7 +180,7 @@ jobs:
       - name: Set test flavor
         id: test-flavor
         shell: bash
-        run: echo "flavor=$([[ "${{ matrix.os }}" == cuda ]] && echo "Cuda" || echo "CPU")" >> $GITHUB_OUTPUT
+        run: echo "flavor=$([[ "${{ matrix.os }}" == cuda ]] && echo "Cuda" || echo "${{ matrix.flavor }}")" >> $GITHUB_OUTPUT
 
       - name: Build and test
         run: dotnet test Src/${{ matrix.library }}.Tests.${{ steps.test-flavor.outputs.flavor }} --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true
