@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: OptimizedPTXBlockSchedule.cs
@@ -24,41 +24,11 @@ namespace ILGPU.Backends.PTX.Analyses
     /// </summary>
     /// <typeparam name="TOrder">The current order.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    public sealed class OptimizedPTXBlockSchedule<TOrder, TDirection> :
+    class OptimizedPTXBlockSchedule<TOrder, TDirection> :
         PTXBlockSchedule<TOrder, TDirection>
         where TOrder : struct, ITraversalOrder
         where TDirection : struct, IControlFlowDirection
     {
-        #region Nested Types
-
-        /// <summary>
-        /// A specific successor provider that inverts the successors of all
-        /// <see cref="IfBranch"/> terminators.
-        /// </summary>
-        private readonly struct SuccessorProvider :
-            ITraversalSuccessorsProvider<Forwards>
-        {
-            /// <summary>
-            /// Returns all successors in the default order except for
-            /// <see cref="IfBranch"/> terminators. The successors of these terminators
-            /// will be reversed to invert all if branch targets.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock)
-            {
-                var successors = basicBlock.Successors;
-                if (basicBlock.Terminator is IfBranch ifBranch && ifBranch.IsInverted)
-                {
-                    var tempList = successors.ToInlineList();
-                    tempList.Reverse();
-                    successors = tempList;
-                }
-                return successors;
-            }
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
@@ -135,7 +105,7 @@ namespace ILGPU.Backends.PTX.Analyses
         #endregion
     }
 
-    public partial class PTXBlockScheduleExtensions
+    partial class PTXBlockScheduleExtensions
     {
         #region Nested Types
 
@@ -143,16 +113,14 @@ namespace ILGPU.Backends.PTX.Analyses
         /// A specific successor provider that inverts the successors of all
         /// <see cref="IfBranch"/> terminators.
         /// </summary>
-        private readonly struct SuccessorProvider :
-            ITraversalSuccessorsProvider<Forwards>
+        private readonly struct SuccessorProvider : ITraversalSuccessorsProvider<Forwards>
         {
             /// <summary>
             /// Returns all successors in the default order except for
             /// <see cref="IfBranch"/> terminators. The successors of these terminators
             /// will be reversed to invert all if branch targets.
             /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock)
+            public ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock)
             {
                 var successors = basicBlock.Successors;
                 if (basicBlock.Terminator is IfBranch ifBranch && ifBranch.IsInverted)
