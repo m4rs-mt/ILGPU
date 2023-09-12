@@ -19,6 +19,10 @@
     <PackageReference Include="xunit" Version="2.5.0" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
     <PackageReference Include="T4.Build" Version="0.2.4" PrivateAssets="All" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
   </ItemGroup>
   <ItemGroup>
@@ -39,6 +43,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Configurations.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
   <ItemGroup>
