@@ -286,10 +286,11 @@ namespace ILGPU.Backends.PTX
         #region Instance
 
         private int labelCounter;
-        private readonly Dictionary<BasicBlock, string> blockLookup =
-            new Dictionary<BasicBlock, string>();
-        private readonly Dictionary<(Encoding, string), string> stringConstants =
-            new Dictionary<(Encoding, string), string>();
+        private readonly Dictionary<BasicBlock, string> blockLookup = new();
+
+        private readonly Dictionary<(Encoding, string), string> stringConstants = new();
+        private readonly PhiBindings phiBindings;
+        private readonly Dictionary<Value, Register> intermediatePhiRegisters;
         private readonly string labelPrefix;
 
         /// <summary>
@@ -321,6 +322,12 @@ namespace ILGPU.Backends.PTX
                 args.Properties.GetPTXBackendMode() == PTXBackendMode.Enhanced
                 ? Method.Blocks.CreateOptimizedPTXSchedule()
                 : Method.Blocks.CreateDefaultPTXSchedule();
+
+            // Create phi bindings and initialize temporary phi registers
+            phiBindings = Schedule.ComputePhiBindings(
+                (_, phiValue) => Allocate(phiValue));
+            intermediatePhiRegisters = new Dictionary<Value, Register>(
+                phiBindings.MaxNumIntermediatePhis);
         }
 
         #endregion
@@ -485,11 +492,6 @@ namespace ILGPU.Backends.PTX
                     blockLookup.Add(block, DeclareLabel());
             }
 
-            // Find all phi nodes, allocate target registers and setup internal mapping
-            var phiBindings = Schedule.ComputePhiBindings(
-                (_, phiValue) => Allocate(phiValue));
-            var intermediatePhiRegisters = new Dictionary<Value, Register>(
-                phiBindings.MaxNumIntermediatePhis);
             Builder.AppendLine();
 
             // Generate code
@@ -524,57 +526,66 @@ namespace ILGPU.Backends.PTX
 
                 DebugInfoGenerator.ResetLocation();
 
-                // Wire phi nodes
-                if (phiBindings.TryGetBindings(block, out var bindings))
-                {
-                    // Assign all phi values
-                    foreach (var (phiValue, value) in bindings)
-                    {
-                        // Load the current phi target register
-                        var phiTargetRegister = Load(phiValue);
-
-                        // Check for an intermediate phi value
-                        if (bindings.IsIntermediate(phiValue))
-                        {
-                            var intermediateRegister = AllocateType(phiValue.Type);
-                            intermediatePhiRegisters.Add(phiValue, intermediateRegister);
-
-                            // Move this phi value into a temporary register for reuse
-                            EmitComplexCommand(
-                                PTXInstructions.MoveOperation,
-                                new PhiMoveEmitter(),
-                                intermediateRegister,
-                                phiTargetRegister);
-                        }
-
-                        // Determine the source value from which we need to copy from
-                        var sourceRegister = intermediatePhiRegisters
-                            .TryGetValue(value, out var tempRegister)
-                            ? tempRegister
-                            : Load(value);
-
-                        // Move contents
-                        EmitComplexCommand(
-                            PTXInstructions.MoveOperation,
-                            new PhiMoveEmitter(),
-                            phiTargetRegister,
-                            sourceRegister);
-                    }
-
-                    // Free temporary registers
-                    foreach (var register in intermediatePhiRegisters.Values)
-                        Free(register);
-                    intermediatePhiRegisters.Clear();
-                }
-
                 // Build terminator
                 this.GenerateCodeFor(block.Terminator.AsNotNull());
                 Builder.AppendLine();
+
+                // Free temporary registers
+                foreach (var register in intermediatePhiRegisters.Values)
+                    Free(register);
+                intermediatePhiRegisters.Clear();
             }
 
             // Finish function and append register information
             Builder.AppendLine("}");
             Builder.Insert(registerOffset, GenerateRegisterInformation("\t"));
+        }
+
+        /// <summary>
+        /// Binds all phi values of the current block flowing through an edge to the
+        /// target block.
+        /// </summary>
+        private void BindPhis(
+            PhiBindings.PhiBindingCollection bindings,
+            BasicBlock? target)
+        {
+            // Assign all phi values
+            foreach (var (phiValue, value) in bindings)
+            {
+                // Reject phis not flowing to the target edge
+                if (target is not null && phiValue.BasicBlock != target)
+                    continue;
+
+                // Load the current phi target register
+                var phiTargetRegister = Load(phiValue);
+
+                // Check for an intermediate phi value
+                if (bindings.IsIntermediate(phiValue))
+                {
+                    var intermediateRegister = AllocateType(phiValue.Type);
+                    intermediatePhiRegisters.Add(phiValue, intermediateRegister);
+
+                    // Move this phi value into a temporary register for reuse
+                    EmitComplexCommand(
+                        PTXInstructions.MoveOperation,
+                        new PhiMoveEmitter(),
+                        intermediateRegister,
+                        phiTargetRegister);
+                }
+
+                // Determine the source value from which we need to copy from
+                var sourceRegister = intermediatePhiRegisters
+                    .TryGetValue(value, out var tempRegister)
+                    ? tempRegister
+                    : Load(value);
+
+                // Move contents
+                EmitComplexCommand(
+                    PTXInstructions.MoveOperation,
+                    new PhiMoveEmitter(),
+                    phiTargetRegister,
+                    sourceRegister);
+            }
         }
 
         /// <summary>
