@@ -77,6 +77,11 @@ jobs:
         uses: actions/upload-pages-artifact@v2
       ##### GitHub Pages #####
 
+  # Virtual job that can be configured as a required check before a PR can be
+  # merged.
+  # As GitHub considers a check as successful if it is skipped, we need to
+  # check its status in another workflow (check-required.yml) and create a
+  # check there.
   all-required-checks-done:
     needs:
       - build
