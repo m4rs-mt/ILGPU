@@ -1,0 +1,83 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2023 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: VelocityOperations.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ include file="../../Static/TypeInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#+
+public static readonly
+    (MathOpFlags Flags, string Prefix, string TypeName, string ImplTypeName)[]
+    ImplementationTypes32 = new (MathOpFlags, string, string, string)[]
+{
+    (MathOpFlags.Ints, "I", "int", "Int32"),
+    (MathOpFlags.BoolsAndInts, "U", "uint", "UInt32"),
+    (MathOpFlags.Floats, "F", "float", "Float")
+};
+public static readonly
+    (MathOpFlags Flags, string Prefix, string TypeName, string ImplTypeName)[]
+    ImplementationTypes64 = new (MathOpFlags, string, string, string)[]
+{
+    (MathOpFlags.Ints, "I", "long", "Int64"),
+    (MathOpFlags.BoolsAndInts, "U", "ulong", "UInt64"),
+    (MathOpFlags.Floats, "F", "double", "Double")
+};
+
+public static (MathOpFlags Flags, string Prefix, string TypeName, string ImplTypeName)
+    GetImplementationType32(TypeInformationKind kind) =>
+    kind == TypeInformationKind.SignedInt
+    ? ImplementationTypes32[0]
+    : kind == TypeInformationKind.UnsignedInt
+        ? ImplementationTypes32[1]
+        : ImplementationTypes32[2];
+
+public static (MathOpFlags Flags, string Prefix, string TypeName, string ImplTypeName)
+    GetImplementationType64(TypeInformationKind kind) =>
+    kind == TypeInformationKind.SignedInt
+    ? ImplementationTypes64[0]
+    : kind == TypeInformationKind.UnsignedInt
+        ? ImplementationTypes64[1]
+        : ImplementationTypes64[2];
+
+public static readonly int[] ConvTypeMultipliers = new int[] { 4, 8 };
+public static readonly TypeInformation[] Warp32ConvTypes = new TypeInformation[]
+{
+    SignedIntTypes[0],
+    SignedIntTypes[1],
+    SignedIntTypes[2],
+    UnsignedIntTypes[0],
+    UnsignedIntTypes[1],
+    UnsignedIntTypes[2],
+    FloatTypes[0],
+    FloatTypes[1],
+};
+public static readonly TypeInformation[] Warp64ConvTypes = new TypeInformation[]
+{
+    SignedIntTypes[3],
+    UnsignedIntTypes[3],
+    FloatTypes[2],
+};
+public static readonly TypeInformation[] Warp32IOTypes = new TypeInformation[]
+{
+    UnsignedIntTypes[0],
+    UnsignedIntTypes[1],
+    UnsignedIntTypes[2],
+    FloatTypes[0],
+    FloatTypes[1],
+};
+public static readonly TypeInformation[] Warp64IOTypes = new TypeInformation[]
+{
+    UnsignedIntTypes[3],
+    FloatTypes[2],
+};
+#>
