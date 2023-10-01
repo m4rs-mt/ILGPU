@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Context.Builder.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.Backends.OpenCL;
 using ILGPU.Backends.PTX;
+using ILGPU.Backends.Velocity;
 using ILGPU.IR.Intrinsics;
 using ILGPU.Resources;
 using ILGPU.Runtime;
@@ -49,6 +50,7 @@ namespace ILGPU
                 // Register intrinsics
                 PTXIntrinsics.Register(IntrinsicManager);
                 CLIntrinsics.Register(IntrinsicManager);
+                VelocityIntrinsics.Register(IntrinsicManager);
             }
 
             #endregion
