@@ -152,26 +152,18 @@ namespace ILGPU.Backends.Velocity
             Load(barrier.Predicate);
 
             // Load and call predicate operation
-            bool is32Bit = barrier.IsTreatedAs32Bit();
+            if (!barrier.IsTreatedAs32Bit())
+                throw new InternalCompilerException();
             switch (barrier.Kind)
             {
                 case PredicateBarrierKind.PopCount:
-                    if (is32Bit)
-                        Specializer.BarrierPopCount32(Emitter);
-                    else
-                        Specializer.BarrierPopCount64(Emitter);
+                    Specializer.BarrierPopCount32(Emitter);
                     break;
                 case PredicateBarrierKind.And:
-                    if (is32Bit)
-                        Specializer.BarrierAnd32(Emitter);
-                    else
-                        Specializer.BarrierAnd64(Emitter);
+                    Specializer.BarrierAnd32(Emitter);
                     break;
                 case PredicateBarrierKind.Or:
-                    if (is32Bit)
-                        Specializer.BarrierOr32(Emitter);
-                    else
-                        Specializer.BarrierOr64(Emitter);
+                    Specializer.BarrierOr32(Emitter);
                     break;
                 default:
                     throw new NotSupportedException();
@@ -185,21 +177,8 @@ namespace ILGPU.Backends.Velocity
             Specializer.Barrier(Emitter);
 
         /// <inheritdoc />
-        public void GenerateCode(Broadcast broadcast)
-        {
-            // Load the source variable
-            Emitter.Emit(LocalOperation.Load, GetBlockMask(broadcast.BasicBlock));
-            Load(broadcast.Variable);
-            Load(broadcast.Origin);
-
-            // Get the appropriate broadcast operation
-            if (broadcast.IsTreatedAs32Bit())
-                Specializer.Broadcast32(Emitter);
-            else
-                Specializer.Broadcast64(Emitter);
-
-            Store(broadcast);
-        }
+        public void GenerateCode(Broadcast broadcast) =>
+            throw new InternalCompilerException();
 
         /// <inheritdoc />
         public void GenerateCode(WarpShuffle shuffle)
@@ -209,33 +188,23 @@ namespace ILGPU.Backends.Velocity
             Load(shuffle.Variable);
             Load(shuffle.Origin);
 
-            // Get the appropriate broadcast operation
-            bool is32Bit = shuffle.IsTreatedAs32Bit();
+            // Make sure we are compiling 32bit versions only
+            if (!shuffle.IsTreatedAs32Bit())
+                throw new InternalCompilerException();
+
             switch (shuffle.Kind)
             {
                 case ShuffleKind.Generic:
-                    if (is32Bit)
-                        Specializer.Shuffle32(Emitter);
-                    else
-                        Specializer.Shuffle64(Emitter);
+                    Specializer.Shuffle32(Emitter);
                     break;
                 case ShuffleKind.Up:
-                    if (is32Bit)
-                        Specializer.ShuffleUp32(Emitter);
-                    else
-                        Specializer.ShuffleUp64(Emitter);
+                    Specializer.ShuffleUp32(Emitter);
                     break;
                 case ShuffleKind.Down:
-                    if (is32Bit)
-                        Specializer.ShuffleDown32(Emitter);
-                    else
-                        Specializer.ShuffleDown64(Emitter);
+                    Specializer.ShuffleDown32(Emitter);
                     break;
                 case ShuffleKind.Xor:
-                    if (is32Bit)
-                        Specializer.ShuffleXor32(Emitter);
-                    else
-                        Specializer.ShuffleXor64(Emitter);
+                    Specializer.ShuffleXor32(Emitter);
                     break;
                 default:
                     throw new NotSupportedException();
@@ -254,27 +223,21 @@ namespace ILGPU.Backends.Velocity
             Load(shuffle.Origin);
             Load(shuffle.Width);
 
+            // Make sure we are compiling 32bit versions only
+            if (!shuffle.IsTreatedAs32Bit())
+                throw new InternalCompilerException();
+
             // Get the appropriate broadcast operation
-            bool is32Bit = shuffle.IsTreatedAs32Bit();
             switch (shuffle.Kind)
             {
                 case ShuffleKind.Up:
-                    if (is32Bit)
-                        Specializer.SubShuffleUp32(Emitter);
-                    else
-                        Specializer.SubShuffleUp64(Emitter);
+                    Specializer.SubShuffleUp32(Emitter);
                     break;
                 case ShuffleKind.Down:
-                    if (is32Bit)
-                        Specializer.SubShuffleDown32(Emitter);
-                    else
-                        Specializer.SubShuffleDown64(Emitter);
+                    Specializer.SubShuffleDown32(Emitter);
                     break;
                 case ShuffleKind.Xor:
-                    if (is32Bit)
-                        Specializer.SubShuffleXor32(Emitter);
-                    else
-                        Specializer.SubShuffleXor64(Emitter);
+                    Specializer.SubShuffleXor32(Emitter);
                     break;
                 default:
                     throw new NotSupportedException();

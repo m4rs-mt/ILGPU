@@ -366,67 +366,31 @@ namespace ILGPU.Backends.Velocity
         public abstract void BarrierPopCount32<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
-        public abstract void BarrierPopCount64<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
         public abstract void BarrierAnd32<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
-        public abstract void BarrierAnd64<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
         public abstract void BarrierOr32<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
-        public abstract void BarrierOr64<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
-        public abstract void Broadcast32<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
-        public abstract void Broadcast64<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
         public abstract void Shuffle32<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
-        public abstract void Shuffle64<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
         public abstract void ShuffleUp32<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
-        public abstract void ShuffleUp64<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
         public abstract void SubShuffleUp32<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
-        public abstract void SubShuffleUp64<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
         public abstract void ShuffleDown32<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
-        public abstract void ShuffleDown64<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
         public abstract void SubShuffleDown32<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
-        public abstract void SubShuffleDown64<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
         public abstract void ShuffleXor32<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
-        public abstract void ShuffleXor64<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
         public abstract void SubShuffleXor32<TILEmitter>(TILEmitter emitter)
-            where TILEmitter : struct, IILEmitter;
-
-        public abstract void SubShuffleXor64<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
         #endregion
