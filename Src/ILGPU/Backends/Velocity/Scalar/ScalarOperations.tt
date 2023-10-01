@@ -994,18 +994,6 @@ namespace ILGPU.Backends.Velocity.Scalar
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> BarrierPopCount64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> warp)
-        {
-            int count = 0;
-<# for (int i = 1; i <= warpSize; ++i) { #>
-            count += mask.Item<#= i #> != 0 ? (warp.Item<#= i #> != 0 ? 1 : 0) : 0;
-<# } #>
-            return FromScalarI64((long)count);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static <#= warpType32 #> BarrierAnd32(
             <#= warpType32 #> mask,
             <#= warpType32 #> warp)
@@ -1018,18 +1006,6 @@ namespace ILGPU.Backends.Velocity.Scalar
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> BarrierAnd64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> warp)
-        {
-            long andMask = 1;
-<# for (int i = 1; i <= warpSize; ++i) { #>
-            andMask &= mask.Item<#= i #> != 0 ? warp.Item<#= i #> : 0;
-<# } #>
-            return FromScalarI64(andMask);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static <#= warpType32 #> BarrierOr32(
             <#= warpType32 #> mask,
             <#= warpType32 #> warp)
@@ -1039,18 +1015,6 @@ namespace ILGPU.Backends.Velocity.Scalar
             orMask |= mask.Item<#= i #> != 0 ? warp.Item<#= i #> : 0;
 <# } #>
             return FromScalarI32(orMask);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> BarrierOr64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> warp)
-        {
-            long orMask = 0;
-<# for (int i = 1; i <= warpSize; ++i) { #>
-            orMask |= mask.Item<#= i #> != 0 ? warp.Item<#= i #> : 0;
-<# } #>
-            return FromScalarI64(orMask);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1070,46 +1034,6 @@ namespace ILGPU.Backends.Velocity.Scalar
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType32 #> Broadcast32(
-            <#= warpType32 #> mask,
-            <#= warpType32 #> value,
-            <#= warpType32 #> sourceLane)
-        {
-            // Mask is unused at the moment
-            int sourceLaneIdx = sourceLane.Item1;
-            int result = GetShuffledLane32(value, sourceLaneIdx);
-            return Select32(mask, value, FromScalarI32(result));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static long GetShuffledLane64(
-            <#= warpType64 #> value,
-            int sourceLane)
-        {
-            switch (sourceLane)
-            {
-<# for (int i = 0; i < warpSize - 1; ++i) { #>
-            case <#= i #>:
-                return value.Item<#= i + 1 #>;
-<# } #>
-            default:
-                return value.Item<#= warpSize #>;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> Broadcast64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> value,
-            <#= warpType64 #> sourceLane)
-        {
-            // Mask is unused at the moment
-            int sourceLaneIdx = (int)sourceLane.Item1;
-            long result = GetShuffledLane64(value, sourceLaneIdx);
-            return Select64(mask, value, FromScalarI64(result));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static <#= warpType32 #> Shuffle32(
             <#= warpType32 #> mask,
             <#= warpType32 #> value,
@@ -1120,22 +1044,6 @@ namespace ILGPU.Backends.Velocity.Scalar
 <# for (int i = 1; i <= warpSize; ++i) { #>
             result.Item<#= i #> = mask.Item<#= i #> != 0
                 ? GetShuffledLane32(value, sourceLanes.Item<#= i #>)
-                : value.Item<#= i #>;
-<# } #>
-            return result;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> Shuffle64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> value,
-            <#= warpType64 #> sourceLanes)
-        {
-            // Mask is unused at the moment
-            Unsafe.SkipInit(out <#= warpType64 #> result);
-<# for (int i = 1; i <= warpSize; ++i) { #>
-            result.Item<#= i #> = mask.Item<#= i #> != 0
-                ? GetShuffledLane64(value, (int)sourceLanes.Item<#= i #>)
                 : value.Item<#= i #>;
 <# } #>
             return result;
@@ -1174,29 +1082,6 @@ namespace ILGPU.Backends.Velocity.Scalar
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> ShuffleUp64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> warp,
-            <#= warpType32 #> delta,
-            <#= warpType32 #> width)
-        {
-            var lane = SubI32(LoadLaneIndexVector32(), delta);
-            return Shuffle64(mask, warp, lane);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> SubShuffleUp64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> warp,
-            <#= warpType32 #> delta,
-            <#= warpType32 #> width)
-        {
-            ComputeShuffleConfig(width, out var lane, out var offset);
-            var adjustedLane = SubI32(lane, delta);
-            return Shuffle64(mask, warp, AddI32(adjustedLane, offset));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static <#= warpType32 #> ShuffleDown32(
             <#= warpType32 #> mask,
             <#= warpType32 #> warp,
@@ -1216,28 +1101,6 @@ namespace ILGPU.Backends.Velocity.Scalar
             ComputeShuffleConfig(width, out var lane, out var offset);
             var adjustedLane = AddI32(lane, delta);
             return Shuffle32(mask, warp, AddI32(adjustedLane, offset));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> ShuffleDown64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> warp,
-            <#= warpType32 #> delta)
-        {
-            var lane = AddI32(LoadLaneIndexVector32(), delta);
-            return Shuffle64(mask, warp, lane);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> SubShuffleDown64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> warp,
-            <#= warpType32 #> delta,
-            <#= warpType32 #> width)
-        {
-            ComputeShuffleConfig(width, out var lane, out var offset);
-            var adjustedLane = AddI32(lane, delta);
-            return Shuffle64(mask, warp, AddI32(adjustedLane, offset));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1262,72 +1125,26 @@ namespace ILGPU.Backends.Velocity.Scalar
             return Shuffle32(mask, warp, AddI32(adjustedLane, offset));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> ShuffleXor64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> warp,
-            <#= warpType32 #> laneMask)
-        {
-            var lane = XorU32(LoadLaneIndexVector32(), laneMask);
-            return Shuffle64(mask, warp, lane);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static <#= warpType64 #> SubShuffleXor64(
-            <#= warpType32 #> mask,
-            <#= warpType64 #> warp,
-            <#= warpType32 #> laneMask,
-            <#= warpType32 #> width)
-        {
-            ComputeShuffleConfig(width, out var lane, out var offset);
-            var adjustedLane = XorU32(lane, laneMask);
-            return Shuffle64(mask, warp, AddI32(adjustedLane, offset));
-        }
-
         public static readonly MethodInfo BarrierPopCount32Method =
             GetMethod(nameof(BarrierPopCount32));
-        public static readonly MethodInfo BarrierPopCount64Method =
-            GetMethod(nameof(BarrierPopCount64));
         public static readonly MethodInfo BarrierAnd32Method =
             GetMethod(nameof(BarrierAnd32));
-        public static readonly MethodInfo BarrierAnd64Method =
-            GetMethod(nameof(BarrierAnd64));
         public static readonly MethodInfo BarrierOr32Method =
             GetMethod(nameof(BarrierOr32));
-        public static readonly MethodInfo BarrierOr64Method =
-            GetMethod(nameof(BarrierOr64));
-        public static readonly MethodInfo Broadcast32Method =
-            GetMethod(nameof(Broadcast32));
-        public static readonly MethodInfo Broadcast64Method =
-            GetMethod(nameof(Broadcast64));
         public static readonly MethodInfo Shuffle32Method =
             GetMethod(nameof(Shuffle32));
-        public static readonly MethodInfo Shuffle64Method =
-            GetMethod(nameof(Shuffle64));
         public static readonly MethodInfo ShuffleUp32Method =
             GetMethod(nameof(ShuffleUp32));
         public static readonly MethodInfo SubShuffleUp32Method =
             GetMethod(nameof(SubShuffleUp32));
-        public static readonly MethodInfo ShuffleUp64Method =
-            GetMethod(nameof(ShuffleUp64));
-        public static readonly MethodInfo SubShuffleUp64Method =
-            GetMethod(nameof(SubShuffleUp64));
         public static readonly MethodInfo ShuffleDown32Method =
             GetMethod(nameof(ShuffleDown32));
         public static readonly MethodInfo SubShuffleDown32Method =
             GetMethod(nameof(SubShuffleDown32));
-        public static readonly MethodInfo ShuffleDown64Method =
-            GetMethod(nameof(ShuffleDown64));
-        public static readonly MethodInfo SubShuffleDown64Method =
-            GetMethod(nameof(SubShuffleDown64));
         public static readonly MethodInfo ShuffleXor32Method =
             GetMethod(nameof(ShuffleXor32));
         public static readonly MethodInfo SubShuffleXor32Method =
             GetMethod(nameof(SubShuffleXor32));
-        public static readonly MethodInfo ShuffleXor64Method =
-            GetMethod(nameof(ShuffleXor64));
-        public static readonly MethodInfo SubShuffleXor64Method =
-            GetMethod(nameof(SubShuffleXor64));
 
         #endregion
 
