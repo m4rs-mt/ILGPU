@@ -39,7 +39,11 @@ namespace ILGPU.Tests.Velocity
     public class VelocityTestContext<#= config #> : VelocityTestContext
     {
         public VelocityTestContext<#= config #>()
-            : base(OptimizationLevel.<#= level #>)
+            : base(
+                OptimizationLevel.<#= level #>,
+                enableAssertions: true,
+                forceDebugConfig: true,
+                _ => { })
         { }
     }
 
