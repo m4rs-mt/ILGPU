@@ -89,7 +89,7 @@ namespace ILGPU.Backends.Velocity
                         PointerType,
                         warpSize,
                         Context.Properties.EnableAssertions,
-                        Context.Properties.EnableIOOperations),
+                        enableIOOperations: false),
                     context.Properties.InliningMode,
                     context.Properties.OptimizationLevel);
 
