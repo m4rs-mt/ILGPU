@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -43,7 +43,7 @@ namespace SimpleDebugAssert
             // Create main context
             using var context = Context.Create(builder =>
             {
-                builder.Cuda().OpenCL().AutoAssertions();
+                builder.Cuda().OpenCL().DebugConfig(enableAssertions: true);
                 // Alternatives to explore:
                 //   builder.Default();
                 //   builder.AllAccelerators().Debug();
