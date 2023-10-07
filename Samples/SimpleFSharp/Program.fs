@@ -33,9 +33,11 @@ let main _argv =
 
         kernel.Invoke(Index1D(int(buffer.Length)), buffer.View, 42)
 
-        // Reads data from the GPU buffer into a new CPU array.
-        // Implicitly calls stream.Synchronize() to ensure
+        // Calls stream.Synchronize() to ensure
         // that the kernel and memory copy are completed first.        
+        accelerator.Synchronize();
+
+        // Reads data from the GPU buffer into a new CPU array.
         buffer.GetAsArray1D(stream)
         |> Array.iteri (fun index element -> printfn $"{index} = {element}")
 
