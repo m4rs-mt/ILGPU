@@ -96,6 +96,7 @@ namespace ILGPU.Backends.Velocity
                 // Transform all if and switch branches to make them compatible with
                 // the internal vectorization engine
                 transformerBuilder.Add(new VelocityBlockScheduling());
+                transformerBuilder.Add(new DeadCodeElimination());
 
                 builder.Add(transformerBuilder.ToTransformer());
             });

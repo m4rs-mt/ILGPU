@@ -435,6 +435,9 @@ namespace ILGPU.Backends.Velocity
                 // Convert all parameter types
                 parameterTypes[VelocityCodeGenerator.ExecutionContextIndex] =
                     typeof(VelocityGroupExecutionContext);
+                parameterTypes[VelocityCodeGenerator.GlobalIndexScalar] = typeof(int);
+                parameterTypes[VelocityCodeGenerator.GroupDimIndexScalar] = typeof(int);
+                parameterTypes[VelocityCodeGenerator.GridDimIndexScalar] = typeof(int);
                 parameterTypes[VelocityCodeGenerator.MaskParameterIndex] =
                     specializer.WarpType32;
                 for (int i = 0; i < method.NumParameters; ++i)

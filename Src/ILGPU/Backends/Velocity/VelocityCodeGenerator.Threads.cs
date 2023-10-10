@@ -65,8 +65,10 @@ namespace ILGPU.Backends.Velocity
             switch (value.Dimension)
             {
                 case DeviceConstantDimension3D.X:
-                    // Load the first context argument and query the grid index
-                    VelocityTargetSpecializer.GetGridIndex(Emitter);
+                    // Load global index and compute the actual grid index
+                    LoadGlobalIndexScalar();
+                    LoadGroupDimScalar();
+                    Emitter.Emit(OpCodes.Div);
                     break;
                 case DeviceConstantDimension3D.Y:
                 case DeviceConstantDimension3D.Z:
@@ -100,7 +102,7 @@ namespace ILGPU.Backends.Velocity
             switch (value.Dimension)
             {
                 case DeviceConstantDimension3D.X:
-                    VelocityTargetSpecializer.GetGridDim(Emitter);
+                    LoadGridDimScalar();
                     break;
                 case DeviceConstantDimension3D.Y:
                 case DeviceConstantDimension3D.Z:
@@ -117,7 +119,7 @@ namespace ILGPU.Backends.Velocity
             switch (value.Dimension)
             {
                 case DeviceConstantDimension3D.X:
-                    VelocityTargetSpecializer.GetGroupDim(Emitter);
+                    LoadGroupDimScalar();
                     break;
                 case DeviceConstantDimension3D.Y:
                 case DeviceConstantDimension3D.Z:

@@ -67,7 +67,11 @@ namespace ILGPU.Runtime.Velocity
                 .AsNotNullCast<VelocityTargetSpecializer>();
             WarpSize = TargetSpecializer.WarpSize;
             MaxNumThreadsPerGroup = MaxNumThreadsPerMultiprocessor = WarpSize;
+#if DEBUG
+            NumMultiprocessors = 1;
+#else
             NumMultiprocessors = Environment.ProcessorCount;
+#endif
             MaxGroupSize = new Index3D(
                 MaxNumThreadsPerGroup,
                 1,

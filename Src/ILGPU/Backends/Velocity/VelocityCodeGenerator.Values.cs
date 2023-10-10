@@ -22,11 +22,35 @@ namespace ILGPU.Backends.Velocity
 {
     partial class VelocityCodeGenerator<TILEmitter>
     {
+        /// <summary>
+        /// Loads the current global index.
+        /// </summary>
+        protected abstract void LoadGlobalIndexScalar();
+
+        /// <summary>
+        /// Loads the current group dimension.
+        /// </summary>
+        protected abstract void LoadGroupDimScalar();
+
+        /// <summary>
+        /// Loads the current grid dimension.
+        /// </summary>
+        protected abstract void LoadGridDimScalar();
+
         /// <inheritdoc/>
         public void GenerateCode(MethodCall methodCall)
         {
             // Load the execution context
             Emitter.Emit(OpCodes.Ldarg_0);
+
+            // Load the global index
+            LoadGlobalIndexScalar();
+
+            // Load the group dimension
+            LoadGroupDimScalar();
+
+            // Load the grid dimension
+            LoadGridDimScalar();
 
             // Load the current execution mask
             Emitter.Emit(LocalOperation.Load, GetBlockMask(methodCall.BasicBlock));

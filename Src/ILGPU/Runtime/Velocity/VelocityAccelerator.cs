@@ -87,7 +87,12 @@ namespace ILGPU.Runtime.Velocity
             /// <summary>
             /// Returns the parent user size.
             /// </summary>
-            public long UserSize { get; set; }
+            public int UserSize { get; set; }
+
+            /// <summary>
+            /// Returns the chunk size of each processing thread.
+            /// </summary>
+            public int ChunkSize { get; set; }
 
             /// <summary>
             /// Returns the dynamic shared memory length in bytes.
@@ -120,16 +125,17 @@ namespace ILGPU.Runtime.Velocity
                 ParallelLoopState? loopState,
                 VelocityGroupExecutionContext intermediateState)
             {
-                intermediateState.SetupThreadGrid(
-                    index,
-                    GroupDim,
-                    GridDim,
-                    (int)UserSize,
-                    DynamicSharedMemoryLengthInBytes);
+                intermediateState.SetupThreadGrid(DynamicSharedMemoryLengthInBytes);
 
                 // Invoke the actual kernel
+                int startIndex = index * ChunkSize;
+                int endIndex = Math.Min(startIndex + ChunkSize, UserSize);
                 EntryPointHandler.AsNotNull().Invoke(
                     intermediateState,
+                    GroupDim,
+                    GridDim,
+                    startIndex,
+                    endIndex,
                     Parameters.AsNotNull());
             }
 
@@ -178,11 +184,7 @@ namespace ILGPU.Runtime.Velocity
 
             parallelOptions = new ParallelOptions()
             {
-#if DEBUG
-                MaxDegreeOfParallelism = 1,
-#else
                 MaxDegreeOfParallelism = device.NumMultiprocessors,
-#endif
             };
             executionEngine = new ParallelExecutionEngine(this);
 
@@ -247,15 +249,26 @@ namespace ILGPU.Runtime.Velocity
 
                 // Setup engine properties
                 executionEngine.GroupDim = groupSize;
-                executionEngine.UserSize = userKernelConfig.Size;
+                executionEngine.UserSize = userKernelConfig.GetIntSize();
                 executionEngine.GridDim = gridSize;
                 executionEngine.DynamicSharedMemoryLengthInBytes =
                     runtimeKernelConfig.SharedMemoryConfig.DynamicArraySize;
                 executionEngine.EntryPointHandler = entryPointHandler;
                 executionEngine.Parameters = velocityParameters;
 
+                // Compute chunk size
+                int chunkSize = IntrinsicMath.DivRoundUp(gridSize, NumMultiprocessors);
+                int paddedChunkSize = IntrinsicMath.DivRoundUp(
+                    chunkSize,
+                    groupSize) * groupSize;
+                executionEngine.ChunkSize = paddedChunkSize;
+
+                // Compute num threads to launch
+                int totalSize = gridSize * groupSize;
+                int numChunks = IntrinsicMath.DivRoundUp(totalSize, paddedChunkSize);
+
                 // Launch all threads
-                executionEngine.ParallelFor(0, gridSize, parallelOptions);
+                executionEngine.ParallelFor(0, numChunks, parallelOptions);
             }
             finally
             {
