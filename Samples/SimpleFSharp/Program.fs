@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.fs
@@ -28,10 +28,10 @@ let main _argv =
         printfn "Performing operations on %O" accelerator
 
         use stream = accelerator.CreateStream()
-        let kernel = accelerator.LoadAutoGroupedStreamKernel<_, _, _>(Program.MyKernel)
+        let kernel = accelerator.LoadAutoGroupedKernel<_, _, _>(Program.MyKernel)
         use buffer = accelerator.Allocate1D<_>(1024L)
 
-        kernel.Invoke(Index1D(int(buffer.Length)), buffer.View, 42)
+        kernel.Invoke(stream, Index1D(int(buffer.Length)), buffer.View, 42)
 
         // Reads data from the GPU buffer into a new CPU array.
         // Implicitly calls stream.Synchronize() to ensure
