@@ -317,68 +317,32 @@ namespace ILGPU.Backends.Velocity.Scalar
         public override void BarrierPopCount32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.BarrierPopCount32Method);
 
-        public override void BarrierPopCount64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.BarrierPopCount64Method);
-
         public override void BarrierAnd32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.BarrierAnd32Method);
-
-        public override void BarrierAnd64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.BarrierAnd64Method);
 
         public override void BarrierOr32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.BarrierOr32Method);
 
-        public override void BarrierOr64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.BarrierOr64Method);
-
-        public override void Broadcast32<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.Broadcast32Method);
-
-        public override void Broadcast64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.Broadcast64Method);
-
         public override void Shuffle32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.Shuffle32Method);
-
-        public override void Shuffle64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.Shuffle64Method);
 
         public override void ShuffleUp32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.ShuffleUp32Method);
 
-        public override void ShuffleUp64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.ShuffleUp64Method);
-
         public override void SubShuffleUp32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.SubShuffleUp32Method);
-
-        public override void SubShuffleUp64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.SubShuffleUp64Method);
 
         public override void ShuffleDown32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.ShuffleDown32Method);
 
-        public override void ShuffleDown64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.ShuffleDown64Method);
-
         public override void SubShuffleDown32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.SubShuffleDown32Method);
-
-        public override void SubShuffleDown64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.SubShuffleDown64Method);
 
         public override void ShuffleXor32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.ShuffleXor32Method);
 
-        public override void ShuffleXor64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.ShuffleXor64Method);
-
         public override void SubShuffleXor32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.SubShuffleXor32Method);
-
-        public override void SubShuffleXor64<TILEmitter>(TILEmitter emitter) =>
-            emitter.EmitCall(ScalarOperations2.SubShuffleXor64Method);
 
         #endregion
 
