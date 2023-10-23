@@ -1,0 +1,34 @@
+name: Need Help?
+description: Ask a question or request help regarding ILGPU
+title: "[QUESTION]: <title>"
+labels: [ "help wanted", "question" ]
+
+body:
+  - type: textarea
+    id: question-details
+    attributes:
+      label: Question / Problem
+      description: Provide a clear and concise description of your question or the issue you're facing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "Please provide details about your environment:"
+      value: |
+        - ILGPU Version: [e.g., 1.5.1]
+        - .NET Version: [e.g., .NET Core 3.1]
+        - Operating System: [e.g., Windows 10]
+        - Hardware (if GPU-related): [e.g., NVIDIA GeForce GTX 1080]
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Include any relevant context, screenshots, or code snippets that can help us better understand and address your question or problem.
+    validations:
+      required: false
