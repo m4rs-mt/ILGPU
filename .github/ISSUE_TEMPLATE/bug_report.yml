@@ -1,13 +1,16 @@
 name: Bug report
 description: Create a report to help us improve ILGPU
-title: "[BUG]: "
+title: "[BUG]: <title>"
 labels: [ "bug" ]
+
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting this! Please provide as much info as you can about the issue, so we can best help you. 
-        As a general guidance, pointers from https://stackoverflow.com/help/mcve can help you craft a good bug report.
+        **Thank you for reporting this issue!**        
+        To help us understand and address the problem effectively, please provide detailed information. 
+        You can refer to [this guide](https://stackoverflow.com/help/mcve) for tips on creating a good bug report.
+
   - type: textarea
     id: describe-bug
     attributes:
@@ -15,24 +18,7 @@ body:
       description: A clear and concise description of what the bug is.
     validations:
       required: true
-  - type: textarea
-    id: steps-to-reproduce
-    attributes:
-      label: Steps To Reproduce
-      description: "Provide the steps to reproduce the behavior:"
-      placeholder: |
-        1. Share your minimal code
-        2. Specify the command used
-        3. Share the exact error message observed
-    validations:
-      required: true
-  - type: textarea
-    id: expected-behavior
-    attributes:
-      label: Expected behavior
-      description: A clear and concise description of what you expected to happen.
-    validations:
-      required: true
+
   - type: textarea
     id: environment
     attributes:
@@ -45,17 +31,31 @@ body:
         - Hardware (if GPU-related): [e.g., NVIDIA GeForce GTX 1080]
     validations:
       required: true
+
   - type: textarea
-    id: logs
+    id: steps-to-reproduce
     attributes:
-      label: Logs
-      description: If applicable, add screenshots or logs to help explain your problem.
+      label: Steps To Reproduce
+      description: "Detailed steps to reproduce the behavior:"
+      placeholder: |
+        1. Provide a minimal code example or steps.
+        2. Specify the command used to run the code.
+        3. Explain the exact error message or current behavior.
     validations:
-      required: false
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
   - type: textarea
     id: context
     attributes:
-      label: Additional context
-      description: Add any other context about the problem here.
+      label: Additional Context (Optional)
+      description: Add any other context about the problem here, including log outputs or screenshots if applicable.
     validations:
       required: false
