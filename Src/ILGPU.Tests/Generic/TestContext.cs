@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TestContext.cs
@@ -24,6 +24,12 @@ namespace ILGPU.Tests
         /// Constructs a new context provider.
         /// </summary>
         /// <param name="level">The optimization level.</param>
+        /// <param name="enableAssertions">
+        /// Enables use of assertions.
+        /// </param>
+        /// <param name="forceDebugConfig">
+        /// Forces use of debug configuration in O1 and O2 builds.
+        /// </param>
         /// <param name="prepareContext">
         /// Prepares the context by setting additional field/initializing specific
         /// items before the accelerator is created.
@@ -31,15 +37,21 @@ namespace ILGPU.Tests
         /// <param name="createAccelerator">Creates a new accelerator.</param>
         protected TestContext(
             OptimizationLevel level,
+            bool enableAssertions,
+            bool forceDebugConfig,
             Action<Context.Builder> prepareContext,
             Func<Context, Accelerator> createAccelerator)
         {
             Context = Context.Create(builder =>
                 prepareContext(
                     builder
-                    .Assertions()
+                    .DebugConfig(
+                        enableAssertions: enableAssertions,
+                        enableIOOperations: true,
+                        debugSymbolsMode: DebugSymbolsMode.Auto,
+                        forceDebuggingOfOptimizedKernels: forceDebugConfig,
+                        enableIRVerifier: true)
                     .Arrays(ArrayMode.InlineMutableStaticArrays)
-                    .Verify()
                     .Optimize(level)
                     .Profiling()));
             Accelerator = createAccelerator(Context);
