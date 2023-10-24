@@ -28,25 +28,25 @@ public class SPIRVOp
 
     public required int OpCode { get; set; }
 
-    public required List<SPIRVOperand>? Operands { get; set; }
+    public List<SPIRVOperand>? Operands { get; set; }
 }
 
 public class SPIRVOperand
 {
     public required string Kind { get; set; }
 
-    public required string? Name { get; set; }
+    public string? Name { get; set; }
 
-    public required string Quantifier { get; set; }
+    public string Quantifier { get; set; } = "";
 }
 
 public class SPIRVType
 {
-    public required List<string> Bases { get; set; }
+    public List<string> Bases { get; set; }
 
     public required string Category { get; set; }
 
-    public required List<SPIRVEnumerant>? Enumerants { get; set; }
+    public List<SPIRVEnumerant>? Enumerants { get; }
 
     [JsonPropertyName("kind")] public required string Name { get; set; }
 }
