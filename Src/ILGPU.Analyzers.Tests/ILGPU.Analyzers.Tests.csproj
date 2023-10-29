@@ -19,7 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ILGPU.Analyzers\ILGPU.Analyzers.csproj"/>
+      <ProjectReference Include="..\ILGPU.Analyzers\ILGPU.Analyzers\ILGPU.Analyzers.csproj" />
     </ItemGroup>
 
 </Project>

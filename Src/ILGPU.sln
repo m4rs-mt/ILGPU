@@ -29,7 +29,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Tests.Velocity", "ILG
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Analyzers", "ILGPU.Analyzers\ILGPU.Analyzers\ILGPU.Analyzers.csproj", "{3891249C-5DAC-473E-899D-416C407B7F16}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Analyzers.Tests", "ILGPU.Analyzers\ILGPU.Analyzers.Tests\ILGPU.Analyzers.Tests.csproj", "{D64D4D34-6221-42FA-8C3C-F368FE50E4A6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Analyzers.Tests", "ILGPU.Analyzers.Tests\ILGPU.Analyzers.Tests.csproj", "{D64D4D34-6221-42FA-8C3C-F368FE50E4A6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
