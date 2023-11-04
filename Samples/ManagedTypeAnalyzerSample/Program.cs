@@ -15,7 +15,10 @@ using System;
 
 namespace SimpleMath
 {
-    record ManagedType(int X);
+    record ManagedType(int X)
+    {
+        public static int Hello() => 1;
+    }
 
     static class Program
     {

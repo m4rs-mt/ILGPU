@@ -7,110 +7,101 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ILGPU.Analyzers
-{
+namespace ILGPU.Analyzers {
     using System;
-
-
-    [System.CodeDom.Compiler.GeneratedCodeAttribute(
-        "System.Resources.Tools.StronglyTypedResourceBuilder",
-        "4.0.0.0")]
+    
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Resources
-    {
+    internal class Resources {
+        
         private static System.Resources.ResourceManager resourceMan;
-
+        
         private static System.Globalization.CultureInfo resourceCulture;
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance",
-            "CA1811:AvoidUncalledPrivateCode")]
-        internal Resources() { }
-
-        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel
-            .EditorBrowsableState.Advanced)]
-        internal static System.Resources.ResourceManager ResourceManager
-        {
-            get
-            {
-                if (object.Equals(null, resourceMan))
-                {
-                    System.Resources.ResourceManager temp =
-                        new System.Resources.ResourceManager("ILGPU.Analyzers.Resources",
-                            typeof(Resources).Assembly);
+        
+        [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
+        internal Resources() {
+        }
+        
+        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+        internal static System.Resources.ResourceManager ResourceManager {
+            get {
+                if (object.Equals(null, resourceMan)) {
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("ILGPU.Analyzers.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
             }
         }
-
-        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel
-            .EditorBrowsableState.Advanced)]
-        internal static System.Globalization.CultureInfo Culture
-        {
-            get
-            {
+        
+        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+        internal static System.Globalization.CultureInfo Culture {
+            get {
                 return resourceCulture;
             }
-            set
-            {
+            set {
                 resourceCulture = value;
             }
         }
-
-        internal static string AB0001Description
-        {
-            get
-            {
+        
+        internal static string AB0001Description {
+            get {
                 return ResourceManager.GetString("AB0001Description", resourceCulture);
             }
         }
-
-        internal static string AB0001MessageFormat
-        {
-            get
-            {
+        
+        internal static string AB0001MessageFormat {
+            get {
                 return ResourceManager.GetString("AB0001MessageFormat", resourceCulture);
             }
         }
-
-        internal static string AB0001Title
-        {
-            get
-            {
+        
+        internal static string AB0001Title {
+            get {
                 return ResourceManager.GetString("AB0001Title", resourceCulture);
             }
         }
-
-        internal static string AB0001CodeFixTitle
-        {
-            get
-            {
+        
+        internal static string AB0001CodeFixTitle {
+            get {
                 return ResourceManager.GetString("AB0001CodeFixTitle", resourceCulture);
             }
         }
-
-        internal static string AB0002Description
-        {
-            get
-            {
+        
+        internal static string AB0002Description {
+            get {
                 return ResourceManager.GetString("AB0002Description", resourceCulture);
             }
         }
-
-        internal static string AB0002MessageFormat
-        {
-            get
-            {
+        
+        internal static string AB0002MessageFormat {
+            get {
                 return ResourceManager.GetString("AB0002MessageFormat", resourceCulture);
             }
         }
-
-        internal static string AB0002Title
-        {
-            get
-            {
+        
+        internal static string AB0002Title {
+            get {
                 return ResourceManager.GetString("AB0002Title", resourceCulture);
+            }
+        }
+        
+        internal static string IL0001Description {
+            get {
+                return ResourceManager.GetString("IL0001Description", resourceCulture);
+            }
+        }
+        
+        internal static string IL0001MessageFormat {
+            get {
+                return ResourceManager.GetString("IL0001MessageFormat", resourceCulture);
+            }
+        }
+        
+        internal static string IL0001Title {
+            get {
+                return ResourceManager.GetString("IL0001Title", resourceCulture);
             }
         }
     }

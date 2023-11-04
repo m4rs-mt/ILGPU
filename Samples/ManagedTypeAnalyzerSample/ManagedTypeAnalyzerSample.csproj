@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj"/>
+    <ProjectReference Include="..\..\Src\ILGPU.Analyzers\ILGPU.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
 </Project>

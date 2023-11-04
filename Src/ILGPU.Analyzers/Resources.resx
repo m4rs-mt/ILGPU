@@ -39,4 +39,13 @@
     <data name="AB0002Title" xml:space="preserve">
         <value>The impossible speed</value><comment>The title of the diagnostic.</comment>
     </data>
+    <data name="IL0001Description" xml:space="preserve">
+        <value>Managed types like classes cannot be used in kernels.</value>
+    </data>
+    <data name="IL0001MessageFormat" xml:space="preserve">
+        <value>Type '{0}' is a managed type. Managed types like classes cannot be used in kernels.</value>
+    </data>
+    <data name="IL0001Title" xml:space="preserve">
+        <value>Managed type in kernel</value>
+    </data>
 </root>
