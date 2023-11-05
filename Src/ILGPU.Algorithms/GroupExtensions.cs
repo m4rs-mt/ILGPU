@@ -10,8 +10,11 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.IL;
+using ILGPU.Algorithms.RadixSortOperations;
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.IR.Intrinsics;
+using ILGPU.Runtime;
+using ILGPU.Util;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms
@@ -252,6 +255,115 @@ namespace ILGPU.Algorithms
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public T Scan(T value, out ScanBoundaries<T> boundaries) =>
                 ExclusiveScanWithBoundaries<T, TScanOperation>(value, out boundaries);
+        }
+
+        #endregion
+
+        #region Sort
+
+        /// <summary>
+        /// Performs a group-wide radix sort pass.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TRadixSortOperation">The radix sort operation.</typeparam>
+        /// <param name="value">The original value in the current lane.</param>
+        /// <param name="sharedMemoryArray">The shared memory used for sorting.</param>
+        /// <returns>The sorted value in the current lane.</returns>
+        public static T RadixSort<T, TRadixSortOperation>(
+            T value,
+            ArrayView<byte> sharedMemoryArray)
+            where T : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<T>
+        {
+            var arrayLength = Interop.SizeOf<T>() * Group.DimX;
+            var keyOffset = arrayLength + arrayLength % sizeof(int);
+            var keyLength = Warp.WarpSize * sizeof(int);
+
+            var sharedArray = sharedMemoryArray.SubView(0, arrayLength).Cast<T>();
+            var keys0 = sharedMemoryArray.SubView(keyOffset, keyLength).Cast<int>();
+            var keys1 = sharedMemoryArray.SubView(
+                keyOffset + keyLength,
+                keyLength).Cast<int>();
+            ref var bitChangePosition = ref sharedMemoryArray.SubView(
+                keyOffset + 2 * keyLength,
+                sizeof(int)).Cast<int>()[0];
+
+            int i = Group.IdxX;
+            sharedArray[i] = value;
+            Group.Barrier();
+            TRadixSortOperation operation = default;
+
+            for (int bitIdx = 0; bitIdx < operation.NumBits; bitIdx++)
+            {
+                if (Warp.WarpIdx < 1)
+                {
+                    keys0[i] = 0;
+                    keys1[i] = 0;
+                }
+                Group.Barrier();
+                var element = sharedArray[i];
+                int key = operation.ExtractRadixBits(element, bitIdx, 1);
+                int key0 = key == 0 ? 1 : 0;
+                int key1 = 1 - key0;
+
+                for (int offset = 1; offset < Warp.WarpSize - 1; offset <<= 1)
+                {
+                    var partialKey0 = Warp.ShuffleUp(key0, offset);
+                    var partialKey1 = Warp.ShuffleUp(key1, offset);
+                    key0 += Utilities.Select(Warp.LaneIdx >= offset, partialKey0, 0);
+                    key1 += Utilities.Select(Warp.LaneIdx >= offset, partialKey1, 0);
+                }
+                if (Warp.IsLastLane)
+                {
+                    keys0[Warp.WarpIdx] = key0;
+                    keys1[Warp.WarpIdx] = key1;
+                }
+                Group.Barrier();
+
+                if (Warp.WarpIdx == 0)
+                {
+                    var globalKey0 = keys0[Warp.LaneIdx];
+                    var globalKey1 = keys1[Warp.LaneIdx];
+
+                    for (int offset = 1; offset < Warp.WarpSize - 1; offset <<= 1)
+                    {
+                        var partialKey0 = Warp.ShuffleUp(globalKey0, offset);
+                        var partialKey1 = Warp.ShuffleUp(globalKey1, offset);
+                        globalKey0 += Utilities.Select(
+                            Warp.LaneIdx >= offset,
+                            partialKey0,
+                            0);
+                        globalKey1 += Utilities.Select(
+                            Warp.LaneIdx >= offset,
+                            partialKey1,
+                            0);
+                    }
+
+                    if (Warp.IsLastLane)
+                        bitChangePosition = globalKey0;
+                    Warp.Barrier();
+
+                    globalKey0 = Warp.ShuffleUp(globalKey0, 1);
+                    globalKey1 = Warp.ShuffleUp(globalKey1, 1);
+                    keys0[Warp.LaneIdx] = globalKey0;
+                    keys1[Warp.LaneIdx] = globalKey1;
+
+                    if (Warp.IsFirstLane)
+                    {
+                        keys0[0] = 0;
+                        keys1[0] = 0;
+                    }
+                }
+                Group.Barrier();
+
+                var target = key == 0 ?
+                    keys0[Warp.WarpIdx] + key0 - 1 :
+                    bitChangePosition + keys1[Warp.WarpIdx] + key1 - 1;
+                sharedArray[target] = element;
+                Group.Barrier();
+            }
+
+            return sharedArray[i];
         }
 
         #endregion

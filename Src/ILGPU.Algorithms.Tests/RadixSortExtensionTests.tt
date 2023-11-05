@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RadixSortExtensionTests.tt/RadixSortExtensionTests.cs
@@ -20,7 +20,7 @@ using ILGPU.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
-#pragma warning disable xUnit1026 
+#pragma warning disable xUnit1026
 
 namespace ILGPU.Algorithms.Tests
 {
@@ -262,7 +262,7 @@ namespace ILGPU.Algorithms.Tests
             }
 #>
             input.CopyFromCPU(stream, sequence);
-            
+
             using var radixSortProvider =
                 Accelerator.CreateRadixSortProvider<T, Stride1D.Dense, TRadixSortOp>(
                 length);
@@ -303,7 +303,7 @@ namespace ILGPU.Algorithms.Tests
             }
 #>
             input.CopyFromCPU(stream, sequence);
-            
+
             using var radixSortProvider =
                 Accelerator.CreateRadixSortProvider<T, Stride1D.Dense, TRadixSortOp>(
                 length);
@@ -430,5 +430,275 @@ namespace ILGPU.Algorithms.Tests
 
             Verify(input.View, sequence);
         }
+    }
+
+    partial class WarpExtensionTests
+    {
+        public static TheoryData<object, object, object, object, object, object>
+            AscendingTestData => RadixSortExtensionTests.AscendingTestData;
+
+        public static TheoryData<object, object, object, object, object, object>
+            DescendingTestData => RadixSortExtensionTests.DescendingTestData;
+
+        internal static void WarpWideRadixSort<T, TRadixSortOperation>(
+            ArrayView1D<T, Stride1D.Dense> input)
+            where T : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<T>
+        {
+            var element = input[Warp.LaneIdx];
+            input[Warp.LaneIdx] =
+                WarpExtensions.RadixSort<T, TRadixSortOperation>(element);
+        }
+
+<#
+
+        foreach (var sorting in sortings) {
+#>
+        [Theory]
+        [MemberData(nameof(<#= sorting.Name #>TestData))]
+        [KernelMethod(nameof(WarpWideRadixSort))]
+        public void WarpWideRadixWorstCase<#= sorting.Name #><
+            T,
+            TRadixSortOp,
+            TSequencer>(
+            T _,
+            TRadixSortOp radixSortOp,
+            TSequencer sequencer,
+            T start,
+            T stepSize,
+            int length)
+            where T : unmanaged
+            where TRadixSortOp : unmanaged, IRadixSortOperation<T>
+            where TSequencer : struct, ITestSequencer<T>
+        {
+            using var input = Accelerator.Allocate1D<T>(Accelerator.WarpSize);
+            using var stream = Accelerator.CreateStream();
+
+<#
+            if (sorting.IsAscendingSorting) {
+#>
+            var sequence = sequencer.ComputeInvertedSequence(
+                start,
+                stepSize,
+                Accelerator.WarpSize);
+            var expected = sequencer.ComputeSequence(
+                start,
+                stepSize,
+                Accelerator.WarpSize);
+<#
+            } else {
+#>
+            var sequence = sequencer.ComputeSequence(
+                start,
+                stepSize,
+                Accelerator.WarpSize);
+            var expected = sequencer.ComputeInvertedSequence(
+                start,
+                stepSize,
+                Accelerator.WarpSize);
+<#
+            }
+#>
+            input.CopyFromCPU(stream, sequence);
+
+            Execute<KernelConfig, T, TRadixSortOp>(
+                (1, Accelerator.WarpSize),
+                new KernelSpecialization(Accelerator.WarpSize, 1),
+                input.View);
+            stream.Synchronize();
+
+            Verify(input.View, expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(<#= sorting.Name #>TestData))]
+        [KernelMethod(nameof(WarpWideRadixSort))]
+        public void WarpWideRadixBestCase<#= sorting.Name #><T, TRadixSortOp, TSequencer>(
+            T _,
+            TRadixSortOp radixSortOp,
+            TSequencer sequencer,
+            T start,
+            T stepSize,
+            int length)
+            where T : unmanaged
+            where TRadixSortOp : unmanaged, IRadixSortOperation<T>
+            where TSequencer : struct, ITestSequencer<T>
+        {
+            using var input = Accelerator.Allocate1D<T>(Accelerator.WarpSize);
+            using var stream = Accelerator.CreateStream();
+
+<#
+            if (sorting.IsDescendingSorting) {
+#>
+            var sequence = sequencer.ComputeInvertedSequence(
+                start,
+                stepSize,
+                Accelerator.WarpSize);
+<#
+            } else {
+#>
+            var sequence = sequencer.ComputeSequence(
+                start,
+                stepSize,
+                Accelerator.WarpSize);
+<#
+            }
+#>
+            input.CopyFromCPU(stream, sequence);
+
+            Execute<KernelConfig, T, TRadixSortOp>(
+                (1, Accelerator.WarpSize),
+                new KernelSpecialization(Accelerator.WarpSize, 1),
+                input.View);
+            stream.Synchronize();
+
+            Verify(input.View, sequence);
+        }
+<#
+        }
+#>
+    }
+
+    partial class GroupExtensionTests
+    {
+        public static TheoryData<object, object, object, object, object, object>
+            AscendingTestData => RadixSortExtensionTests.AscendingTestData;
+
+        public static TheoryData<object, object, object, object, object, object>
+            DescendingTestData => RadixSortExtensionTests.DescendingTestData;
+
+        internal static void GroupWideRadixSort<T, TRadixSortOperation>(
+            ArrayView1D<T, Stride1D.Dense> input)
+            where T : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<T>
+        {
+            var dynamicMemory = ILGPU.SharedMemory.GetDynamic<byte>();
+            var element = input[Group.IdxX];
+
+            input[Group.IdxX] = GroupExtensions.RadixSort<T, TRadixSortOperation>(
+                element,
+                dynamicMemory);
+        }
+
+<#
+
+        foreach (var sorting in sortings) {
+#>
+        [Theory]
+        [MemberData(nameof(<#= sorting.Name #>TestData))]
+        [KernelMethod(nameof(GroupWideRadixSort))]
+        public void GroupWideRadixWorstCase<#= sorting.Name #><
+            T,
+            TRadixSortOp,
+            TSequencer>(
+            T _,
+            TRadixSortOp radixSortOp,
+            TSequencer sequencer,
+            T start,
+            T stepSize,
+            int length)
+            where T : unmanaged
+            where TRadixSortOp : unmanaged, IRadixSortOperation<T>
+            where TSequencer : struct, ITestSequencer<T>
+        {
+            using var input =
+                Accelerator.Allocate1D<T>(Accelerator.MaxNumThreadsPerGroup);
+            using var stream = Accelerator.CreateStream();
+
+<#
+            if (sorting.IsAscendingSorting) {
+#>
+            var sequence = sequencer.ComputeInvertedSequence(
+                start,
+                stepSize,
+                Accelerator.MaxNumThreadsPerGroup);
+            var expected = sequencer.ComputeSequence(
+                start,
+                stepSize,
+                Accelerator.MaxNumThreadsPerGroup);
+<#
+            } else {
+#>
+            var sequence = sequencer.ComputeSequence(
+                start,
+                stepSize,
+                Accelerator.MaxNumThreadsPerGroup);
+            var expected = sequencer.ComputeInvertedSequence(
+                start,
+                stepSize,
+                Accelerator.MaxNumThreadsPerGroup);
+<#
+            }
+#>
+            input.CopyFromCPU(stream, sequence);
+            var arrayLength = Accelerator.ComputeGroupWideRadixSortSharedMemorySize<T>(
+                Accelerator.MaxNumThreadsPerGroup);
+            var config = SharedMemoryConfig.RequestDynamic<byte>(arrayLength);
+
+
+            Execute<KernelConfig, T, TRadixSortOp>(
+                (1, Accelerator.MaxNumThreadsPerGroup, config),
+                new KernelSpecialization(Accelerator.MaxNumThreadsPerGroup, 1),
+                input.View);
+            stream.Synchronize();
+
+            Verify(input.View, expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(<#= sorting.Name #>TestData))]
+        [KernelMethod(nameof(GroupWideRadixSort))]
+        public void GroupWideRadixBestCase<#= sorting.Name #><
+            T,
+            TRadixSortOp,
+            TSequencer>(
+            T _,
+            TRadixSortOp radixSortOp,
+            TSequencer sequencer,
+            T start,
+            T stepSize,
+            int length)
+            where T : unmanaged
+            where TRadixSortOp : unmanaged, IRadixSortOperation<T>
+            where TSequencer : struct, ITestSequencer<T>
+        {
+            using var input =
+                Accelerator.Allocate1D<T>(Accelerator.MaxNumThreadsPerGroup);
+            using var stream = Accelerator.CreateStream();
+
+<#
+            if (sorting.IsDescendingSorting) {
+#>
+            var sequence = sequencer.ComputeInvertedSequence(
+                start,
+                stepSize,
+                Accelerator.MaxNumThreadsPerGroup);
+<#
+            } else {
+#>
+            var sequence = sequencer.ComputeSequence(
+                start,
+                stepSize,
+                Accelerator.MaxNumThreadsPerGroup);
+<#
+            }
+#>
+            input.CopyFromCPU(stream, sequence);
+            var arrayLength = Accelerator.ComputeGroupWideRadixSortSharedMemorySize<T>(
+                Accelerator.MaxNumThreadsPerGroup);
+            var config = SharedMemoryConfig.RequestDynamic<byte>(arrayLength);
+
+            Execute<KernelConfig, T, TRadixSortOp>(
+                (1, Accelerator.MaxNumThreadsPerGroup, config),
+                new KernelSpecialization(Accelerator.MaxNumThreadsPerGroup, 1),
+                input.View);
+            stream.Synchronize();
+
+            Verify(input.View, sequence);
+        }
+<#
+        }
+#>
+
     }
 }

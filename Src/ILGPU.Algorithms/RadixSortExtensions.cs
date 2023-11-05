@@ -446,6 +446,25 @@ namespace ILGPU.Algorithms
             return numGroups * unrollFactor * 2 + numIntTElements + tempScanMemory;
         }
 
+        /// <summary>
+        /// Computes the amount of shared memory in bytes that is needed to perform a
+        /// group-wide radix sorting.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="accelerator">The accelerator.</param>
+        /// <param name="groupSize">The size of the group.</param>
+        /// <returns>The size of shared memory in bytes.</returns>
+        public static int ComputeGroupWideRadixSortSharedMemorySize<T>(
+            this Accelerator accelerator,
+            int groupSize)
+            where T : unmanaged
+        {
+            var arrayLength = Interop.SizeOf<T>() * groupSize;
+            var keyLength = accelerator.WarpSize * sizeof(int);
+
+            return arrayLength + arrayLength % sizeof(int) + 2 * keyLength + sizeof(int);
+        }
+
         #endregion
 
         #region Nested Types
