@@ -133,7 +133,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgorithmsOptimization", "A
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ILGPU.Analyzers", "ILGPU.Analyzers", "{4C8A00C2-0D56-4F96-B814-2EFB10E76A32}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ManagedTypeAnalyzerSample", "ManagedTypeAnalyzerSample\ManagedTypeAnalyzerSample.csproj", "{5BAFB298-2B69-48B5-928C-B89F9A90DAB8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReferenceTypeAnalyzerSample", "ReferenceTypeAnalyzerSample\ReferenceTypeAnalyzerSample.csproj", "{5BAFB298-2B69-48B5-928C-B89F9A90DAB8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
