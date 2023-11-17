@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -18,6 +19,20 @@ public abstract class KernelAnalyzer : DiagnosticAnalyzer
         "LoadAutoGroupedStreamKernel",
         "LoadImplicitlyGroupedStreamKernel"
     );
+
+    /// <summary>
+    /// Called for every operation potentially reachable from a kernel.
+    /// </summary>
+    /// <param name="context">
+    /// The analysis context used to report diagnostics.
+    /// </param>
+    /// <param name="operation">
+    /// The operation. Operations for subsequent calls may be parents or descendants of
+    /// an operation for a previous call.
+    /// </param>
+    protected abstract void AnalyzeKernelOperation(
+        OperationAnalysisContext context,
+        IOperation operation);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -41,46 +56,57 @@ public abstract class KernelAnalyzer : DiagnosticAnalyzer
             return;
 
         var kernelArg = invocationOperation.Arguments.FirstOrDefault(x =>
-            x.Parameter?.Type.TypeKind == TypeKind.Delegate); // TODO: any issues here?
+            x.Parameter?.Type.TypeKind == TypeKind.Delegate);
 
         if (kernelArg?.Value is
             IDelegateCreationOperation
-            delegateOp) // TODO: support expressions that return delegate
+            delegateOp) // TODO: support expressions that return delegate (probably requires dataflow)
         {
             var semanticModel = context.Operation.SemanticModel;
 
             var bodyOp = delegateOp.Target switch
             {
-                IMethodReferenceOperation { Method.IsPartialDefinition: false } refOp => semanticModel?.GetOperation(
-                    refOp.Method.DeclaringSyntaxReferences[0].GetSyntax()),
-                IMethodReferenceOperation { Method.PartialImplementationPart: not null } refOp => semanticModel?.GetOperation(
-                    refOp.Method.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax()),
+                IMethodReferenceOperation refOp => GetMethodBody(semanticModel, refOp.Method),
                 IAnonymousFunctionOperation anonymousOp => anonymousOp.Body,
                 _ => null
             };
 
-            if (bodyOp is not null)
+            RecursivelyAnalyzeKernelOperations(context, bodyOp); 
+        }
+    }
+
+    private void RecursivelyAnalyzeKernelOperations(OperationAnalysisContext context, IOperation? bodyOp,
+        HashSet<IOperation>? seen = null)
+    {
+        seen ??= new HashSet<IOperation>();
+
+        if (bodyOp is null) return;
+        if (seen.Contains(bodyOp)) return;
+        
+        var semanticModel = context.Operation.SemanticModel;
+
+        foreach (var descendant in bodyOp.DescendantsAndSelf())
+        {
+            seen.Add(descendant);
+            AnalyzeKernelOperation(context, descendant);
+
+            // Okay, so this doesn't cover every possible way other code can be called through a kernel.
+            // But this is in general quite difficult to do. We can improve things over time as necessary, perhaps.
+            // Thankfully, if we accept a degree of false positives, we probably don't need to solve the halting problem :)
+            if (descendant is IInvocationOperation kernelMethodCallOperation)
             {
-                // TODO: called methods should be analyzed as well
-                foreach (var descendant in bodyOp.Descendants())
-                {
-                    AnalyzeKernelOperation(context, descendant);
-                }
+                var innerBodyOp = GetMethodBody(semanticModel, kernelMethodCallOperation.TargetMethod);
+                RecursivelyAnalyzeKernelOperations(context, innerBodyOp, seen);
             }
         }
     }
 
-    /// <summary>
-    /// Called for every operation potentially reachable from a kernel.
-    /// </summary>
-    /// <param name="context">
-    /// The analysis context used to report diagnostics.
-    /// </param>
-    /// <param name="operation">
-    /// The operation. Operations for subsequent calls may be parents or descendants of
-    /// an operation for a previous call.
-    /// </param>
-    protected abstract void AnalyzeKernelOperation(
-        OperationAnalysisContext context,
-        IOperation operation);
+    private IOperation? GetMethodBody(SemanticModel? model, IMethodSymbol symbol) => symbol switch
+    {
+        { IsPartialDefinition: false } => model?.GetOperation(
+            symbol.DeclaringSyntaxReferences[0].GetSyntax()),
+        { PartialImplementationPart: not null } => model?.GetOperation(
+            symbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax()),
+        _ => null
+    };
 }

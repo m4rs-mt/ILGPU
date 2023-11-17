@@ -17,6 +17,7 @@ record ReferenceType(int X);
 
 static partial class ReferenceTypeAnalyzerSample
 {
+    // Works with partial methods
     static partial void ReferenceTypeKernel(Index1D index, ArrayView<int> dataView);
 }
 
@@ -24,11 +25,29 @@ static partial class ReferenceTypeAnalyzerSample
 {
     static partial void ReferenceTypeKernel(Index1D index, ArrayView<int> dataView)
     {
-        // TODO: sample for arrays (also need tests in general)
-        // TODO: should errors trace back to the point of creation?
+        // TODO: should errors trace back to the point of creation? Data flow analysis can potentially be used for this.
         // Analyzer should produce an error here
         ReferenceType type = new ReferenceType(dataView[index]);
         dataView[index] = type.X;
+        
+        // No error here
+        int[] array1 = { 10 };
+        
+        // But error here
+        ReferenceType[] array2 = { };
+        
+        // Also analyzes any called methods
+        dataView[index] = AnExternalMethod();
+    }
+
+    static int AnExternalMethod()
+    {
+        return AnotherExternalMethod();
+    }
+
+    static int AnotherExternalMethod()
+    {
+        return new ReferenceType(10).X;
     }
 
     static void Main()
@@ -41,21 +60,12 @@ static partial class ReferenceTypeAnalyzerSample
             accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<int>>(
                 ReferenceTypeKernel);
 
+        // Also works with lambdas
         var kernel2 = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<int>>(
             (index, dataView) =>
             {
                 ReferenceType type = new ReferenceType(dataView[index]);
                 dataView[index] = type.X;
             });
-
-        using var buffer = accelerator.Allocate1D<int>(128);
-        buffer.MemSetToZero();
-
-        kernel((int)buffer.Length, buffer.View);
-
-        accelerator.Synchronize();
-
-        int[] a = new int[128];
-        buffer.CopyToCPU(a);
     }
 }
