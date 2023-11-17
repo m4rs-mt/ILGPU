@@ -1,0 +1,9 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "DebugRoslynAnalyzers": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "../ILGPU.Analyzers.Samples/ILGPU.Analyzers.Samples.csproj"
+    }
+  }
+}
