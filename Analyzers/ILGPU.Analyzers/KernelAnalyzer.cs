@@ -47,12 +47,14 @@ public abstract class KernelAnalyzer : DiagnosticAnalyzer
             IDelegateCreationOperation
             delegateOp) // TODO: support expressions that return delegate
         {
+            var semanticModel = context.Operation.SemanticModel;
+
             var bodyOp = delegateOp.Target switch
             {
-                // TODO: Multiple declaring syntax references?
-                IMethodReferenceOperation refOp =>
-                    context.Operation.SemanticModel
-                    ?.GetOperation(refOp.Method.DeclaringSyntaxReferences[0].GetSyntax()),
+                IMethodReferenceOperation { Method.IsPartialDefinition: false } refOp => semanticModel?.GetOperation(
+                    refOp.Method.DeclaringSyntaxReferences[0].GetSyntax()),
+                IMethodReferenceOperation { Method.PartialImplementationPart: not null } refOp => semanticModel?.GetOperation(
+                    refOp.Method.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax()),
                 IAnonymousFunctionOperation anonymousOp => anonymousOp.Body,
                 _ => null
             };
