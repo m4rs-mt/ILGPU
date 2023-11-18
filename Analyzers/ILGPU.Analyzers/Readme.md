@@ -1,29 +1,20 @@
-# Roslyn Analyzers Sample
+# ILGPU.Analyzers
 
-A set of three sample projects that includes Roslyn analyzers with code fix providers. Enjoy this template to learn from and modify analyzers for your own needs.
+A set of custom Roslyn analyzers for ILGPU to make the experience smoother and more beginner friendly.
 
 ## Content
 ### ILGPU.Analyzers
-A .NET Standard project with implementations of sample analyzers and code fix providers.
+Includes the code for the actual analyzers.
 **You must build this project to see the results (warnings) in the IDE.**
 
-- [SampleSemanticAnalyzer.cs](SampleSemanticAnalyzer.cs): An analyzer that reports invalid values used for the `speed` parameter of the `SetSpeed` function.
-- [SampleSyntaxAnalyzer.cs](SampleSyntaxAnalyzer.cs): An analyzer that reports the company name used in class definitions.
-- [SampleCodeFixProvider.cs](SampleCodeFixProvider.cs): A code fix that renames classes with company name in their definition. The fix is linked to [SampleSyntaxAnalyzer.cs](SampleSyntaxAnalyzer.cs).
-
 ### ILGPU.Analyzers.Sample
-A project that references the sample analyzers. Note the parameters of `ProjectReference` in [ILGPU.Analyzers.Sample.csproj](../ILGPU.Analyzers.Sample/ILGPU.Analyzers.Sample.csproj), they make sure that the project is referenced as a set of analyzers. 
+A project that references the above project and provides samples for the types of analyses an analyzer may produce.
+It's also helpful for development and debugging.
 
 ### ILGPU.Analyzers.Tests
-Unit tests for the sample analyzers and code fix provider. The easiest way to develop language-related features is to start with unit tests.
+Unit tests.
 
 ## How To?
 ### How to debug?
-- Use the [launchSettings.json](Properties/launchSettings.json) profile.
-- Debug tests.
-
-### How can I determine which syntax nodes I should expect?
-Consider installing the Roslyn syntax tree viewer plugin [Rossynt](https://plugins.jetbrains.com/plugin/16902-rossynt/).
-
-### Learn more about wiring analyzers
-The complete set of information is available at [roslyn github repo wiki](https://github.com/dotnet/roslyn/blob/main/docs/wiki/README.md).
+- Use the [launchSettings.json](Properties/launchSettings.json) profile to debug samples.
+- Debug tests as usual.

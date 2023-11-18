@@ -25,7 +25,6 @@ static partial class ReferenceTypeAnalyzerSample
 {
     static partial void ReferenceTypeKernel(Index1D index, ArrayView<int> dataView)
     {
-        // TODO: should errors trace back to the point of creation? Data flow analysis can potentially be used for this.
         // Analyzer should produce an error here
         ReferenceType type = new ReferenceType(dataView[index]);
         dataView[index] = type.X;
