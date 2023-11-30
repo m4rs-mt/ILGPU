@@ -109,6 +109,27 @@ namespace ILGPU.Tests
         {
             output[index] = input[index];
         }
+        
+        internal static void EmptyView_Kernel<T>(
+            Index1D index,
+            ArrayView1D<T, Stride1D.Dense> output)
+            where T : unmanaged
+        {
+            if (index < output.Length)
+                output[index] = default(T);
+        }
+
+<#  foreach (var type in copyTypes) { #>
+        [Fact]
+        [KernelMethod(nameof(EmptyView_Kernel))]
+        public void EmptyView_<#= type.Name #>()
+        {
+            Execute<Index1D, <#= type.Type #>>(
+                42,
+                ArrayView1D<<#= type.Type #>, Stride1D.Dense>.Empty);
+        }
+
+<#  } #>
 
         internal static void ZeroLength_Kernel<T>(
             Index1D index,
