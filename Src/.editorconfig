@@ -126,3 +126,24 @@ dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
 dotnet_code_quality.ca1711.allowed_suffixes = Flag|Flags|Collection
 dotnet_code_quality.CAXXXX.api_surface = public, protected
+
+# -----------------------------------------------------------------------------
+# WORKAROUND: The following functionality requires NET8_0_OR_GREATER
+# -----------------------------------------------------------------------------
+# CA1865: Use char overload
+dotnet_diagnostic.CA1865.severity = none
+
+# CA1863: Use 'CompositeFormat'
+dotnet_diagnostic.CA1863.severity = none
+
+# CA1510: Use ArgumentNullException throw helper
+dotnet_diagnostic.CA1510.severity = none
+
+# CA1511:Use ArgumentException throw helper
+dotnet_diagnostic.CA1511.severity = none
+
+# CA1512: Use ArgumentOutOfRangeException throw helper
+dotnet_diagnostic.CA1512.severity = none
+
+# CA1513: Use ObjectDisposedException throw helper
+dotnet_diagnostic.CA1513.severity = none
