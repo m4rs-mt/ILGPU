@@ -1,11 +1,11 @@
 ﻿<Project>
   <!-- Library Project Configuration -->
   <PropertyGroup>
-    <LibraryTargetFrameworks>net7.0</LibraryTargetFrameworks>
+    <LibraryTargetFrameworks>net8.0</LibraryTargetFrameworks>
     <LibraryLatestTargetFramework>$(LibraryTargetFrameworks)</LibraryLatestTargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net6.0</LibraryTargetFrameworks>
+    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net6.0;net7.0</LibraryTargetFrameworks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 
@@ -18,11 +18,11 @@
 
   <!-- Unit Test Project Configuration -->
   <PropertyGroup>
-    <LibraryUnitTestTargetFrameworks>net7.0</LibraryUnitTestTargetFrameworks>
+    <LibraryUnitTestTargetFrameworks>net8.0</LibraryUnitTestTargetFrameworks>
     <LibraryLatestUnitTestTargetFramework>$(LibraryUnitTestTargetFrameworks)</LibraryLatestUnitTestTargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net6.0</LibraryUnitTestTargetFrameworks>
+    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net6.0;net7.0</LibraryUnitTestTargetFrameworks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 

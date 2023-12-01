@@ -66,10 +66,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup the latest .NET 7 SDK
+      - name: Setup the latest .NET 8 SDK
         uses: actions/setup-dotnet@v3.2.0
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: 8.0.x
 
       - name: Check Copyright Headers
         run: |
@@ -138,10 +138,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup the latest .NET 7 SDK
+      - name: Setup the latest .NET 8 SDK
         uses: actions/setup-dotnet@v3.2.0
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: 8.0.x
 
       - name: Build
         run: dotnet build ${{ matrix.path }} --configuration=Release -p:TreatWarningsAsErrors=true
@@ -153,7 +153,7 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
         library: [ILGPU, ILGPU.Algorithms]
-        framework: [net6.0, net7.0]
+        framework: [net6.0, net7.0, net8.0]
         flavor: [CPU, Velocity]
         exclude:
           - library: ILGPU.Algorithms
@@ -173,9 +173,15 @@ jobs:
           dotnet-version: 6.0.x
 
       - name: Setup the latest .NET 7 SDK
+        if: matrix.framework == 'net7.0'
         uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: 7.0.x
+
+      - name: Setup the latest .NET 8 SDK
+        uses: actions/setup-dotnet@v3.2.0
+        with:
+          dotnet-version: 8.0.x
 
       - name: Set test flavor
         id: test-flavor
@@ -234,10 +240,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup the latest .NET 7 SDK
+      - name: Setup the latest .NET 8 SDK
         uses: actions/setup-dotnet@v3.2.0
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: 8.0.x
 
       - name: Create NuGet packages
         run: |
@@ -265,10 +271,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup the latest .NET 7 SDK
+      - name: Setup the latest .NET 8 SDK
         uses: actions/setup-dotnet@v3.2.0
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: 8.0.x
 
       # Change the ILGPU project references to NuGet package references
       - name: Update sample references
