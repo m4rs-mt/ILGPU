@@ -92,7 +92,7 @@ namespace ILGPU.Backends.PointerViews
         /// <returns>The underlying native pointer.</returns>
         private static IntPtr GetNativePtr<T>(in ArrayView<T> view)
             where T : unmanaged =>
-            view.Buffer.NativePtr;
+            view.Buffer?.NativePtr ?? IntPtr.Zero;
 
         /// <summary>
         /// Gets the native-pointer method for the given element type.
