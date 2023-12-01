@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AcceleratorException.cs
@@ -63,6 +63,9 @@ namespace ILGPU.Runtime
         /// The System.Runtime.Serialization.StreamingContext that contains contextual
         /// information about the source or destination.
         /// </param>
+#if NET8_0_OR_GREATER
+        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
+#endif
         protected AcceleratorException(
             SerializationInfo serializationInfo,
             StreamingContext streamingContext)

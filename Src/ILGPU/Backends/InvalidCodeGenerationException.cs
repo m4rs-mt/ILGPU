@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InvalidCodeGenerationException.cs
@@ -51,6 +51,9 @@ namespace ILGPU.Backends
         /// <summary>
         /// Constructs a new code generation exception.
         /// </summary>
+#if NET8_0_OR_GREATER
+        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
+#endif
         private InvalidCodeGenerationException(
             SerializationInfo info,
             StreamingContext context)

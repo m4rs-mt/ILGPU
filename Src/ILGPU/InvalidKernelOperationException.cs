@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InvalidKernelOperationException.cs
@@ -39,6 +39,9 @@ namespace ILGPU
             : base(message, innerException)
         { }
 
+#if NET8_0_OR_GREATER
+        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
+#endif
         private InvalidKernelOperationException(
             SerializationInfo serializationInfo,
             StreamingContext streamingContext)

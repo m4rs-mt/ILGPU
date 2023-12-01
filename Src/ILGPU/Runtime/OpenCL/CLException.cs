@@ -64,6 +64,9 @@ namespace ILGPU.Runtime.OpenCL
         { }
 
         /// <summary cref="Exception(SerializationInfo, StreamingContext)"/>
+#if NET8_0_OR_GREATER
+        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
+#endif
         private CLException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
@@ -89,6 +92,9 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <summary cref="Exception.GetObjectData(SerializationInfo, StreamingContext)"/>
+#if NET8_0_OR_GREATER
+        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
+#endif
         public override void GetObjectData(
             SerializationInfo info,
             StreamingContext context)

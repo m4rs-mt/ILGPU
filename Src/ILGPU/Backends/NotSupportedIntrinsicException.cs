@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NotSupportedIntrinsicException.cs
@@ -65,6 +65,9 @@ namespace ILGPU.Backends
         /// <summary>
         /// Constructs a new intrinsic exception.
         /// </summary>
+#if NET8_0_OR_GREATER
+        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
+#endif
         private NotSupportedIntrinsicException(
             SerializationInfo info,
             StreamingContext context)
