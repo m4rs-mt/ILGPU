@@ -100,7 +100,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="context">The current invocation context.</param>
         /// <returns>The resulting value.</returns>
-        private static Value CreateEmptyArray(ref InvocationContext context)
+        private static NewArray CreateEmptyArray(ref InvocationContext context)
         {
             var location = context.Location;
             var builder = context.Builder;
@@ -154,7 +154,8 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="context">The current invocation context.</param>
         /// <returns>The resulting value.</returns>
-        private static Value CreateGetArrayLowerBound(ref InvocationContext context) =>
+        private static PrimitiveValue CreateGetArrayLowerBound(
+            ref InvocationContext context) =>
             context.Builder.CreatePrimitiveValue(
                 context.Location,
                 0);

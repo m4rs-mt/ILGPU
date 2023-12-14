@@ -451,7 +451,11 @@ namespace ILGPU.Algorithms.Vectors
         /// </summary>
         /// <returns>The readonly span instance.</returns>
         public unsafe ReadOnlySpan<<#= type.Type #>> AsSpan() =>
+#if NET8_0_OR_GREATER
+            new(Unsafe.AsPointer(ref Unsafe.AsRef(in this)), <#= vectorLength #>);
+#else
             new(Unsafe.AsPointer(ref Unsafe.AsRef(this)), <#= vectorLength #>);
+#endif
 
         /// <summary>
         /// Iterates over all elements by applying the given iterator to each element.

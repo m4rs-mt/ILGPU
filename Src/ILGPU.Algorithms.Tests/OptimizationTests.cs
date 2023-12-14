@@ -25,6 +25,7 @@ using Xunit.Abstractions;
 
 #pragma warning disable CA1034
 #pragma warning disable CA1819
+#pragma warning disable CA1861 // Avoid constant arrays as arguments
 #pragma warning disable xUnit1026
 
 namespace ILGPU.Algorithms.Tests
@@ -196,6 +197,6 @@ namespace ILGPU.Algorithms.Tests
 }
 
 #pragma warning restore xUnit1026
-#pragma warning restore CA1034
+#pragma warning restore CA1861 // Avoid constant arrays as arguments
 #pragma warning restore CA1819
-
+#pragma warning restore CA1034

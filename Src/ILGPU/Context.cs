@@ -435,7 +435,7 @@ namespace ILGPU
                 .Where(d => d.AcceleratorType != AcceleratorType.CPU)
                 .ToList();
 
-            if (sorted.Any())
+            if (sorted.Count > 0)
             {
                 if (matchingDevicesOnly)
                 {

@@ -397,7 +397,7 @@ namespace ILGPU.Runtime.Velocity
         /// <param name="kernel">The kernel to load.</param>
         /// <param name="customGroupSize">The custom group size.</param>
         /// <returns>The loaded kernel</returns>
-        private Kernel LoadKernel(CompiledKernel kernel, int customGroupSize)
+        private VelocityKernel LoadKernel(CompiledKernel kernel, int customGroupSize)
         {
             if (kernel is null)
                 throw new ArgumentNullException(nameof(kernel));

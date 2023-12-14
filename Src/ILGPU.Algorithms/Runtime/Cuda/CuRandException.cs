@@ -56,6 +56,9 @@ namespace ILGPU.Runtime.Cuda
         }
 
         /// <summary cref="Exception(SerializationInfo, StreamingContext)"/>
+#if NET8_0_OR_GREATER
+        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
+#endif
         private CuRandException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
@@ -76,6 +79,9 @@ namespace ILGPU.Runtime.Cuda
         #region Methods
 
         /// <summary cref="Exception.GetObjectData(SerializationInfo, StreamingContext)"/>
+#if NET8_0_OR_GREATER
+        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
+#endif
         public override void GetObjectData(
             SerializationInfo info,
             StreamingContext context)
