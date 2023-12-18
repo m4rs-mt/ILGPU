@@ -298,13 +298,19 @@
 }
 
 #wiki-main {
-  margin-left: 325px;
-  padding: 32px 50px 130px 50px;
+  padding: 16px;
   min-height: 92vh;
 }
 
-#wiki-main.sidebar-collapsed {
+#wiki-main, #wiki-main.sidebar-collapsed {
   margin-left: 70px;
+}
+
+@media (min-width: 576px) {
+  #wiki-main {
+    padding: 32px 50px 130px 50px;
+    margin-left: 325px;
+  }
 }
 
 #wiki-main.sidebar-animated {

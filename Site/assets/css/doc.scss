@@ -7,12 +7,14 @@
 @import 'override-colors';
 @import 'sidebar-collapse';
 
-#breadcrumbs .container {
-  margin-left: 340px;
+#breadcrumbs .container, #breadcrumbs .container.sidebar-collapsed {
+  margin-left: 85px;
 }
 
-#breadcrumbs .container.sidebar-collapsed {
-  margin-left: 85px;
+@media (min-width: 576px) {
+  #breadcrumbs .container {
+    margin-left: 340px;
+  }
 }
 
 #breadcrumbs .container.sidebar-animated {
