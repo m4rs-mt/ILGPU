@@ -123,7 +123,7 @@
 }
 
 .features-body > tr:nth-child(even) {
-   background-color: #00000004;
+  background-color: #00000004;
 }
 
 .features-body-col {
@@ -255,13 +255,14 @@
   overflow-y: scroll;
   height: calc(100vh - 100px);
   background: #002C5A;
-  z-index: 200;
+  z-index: 301;
   padding: 0;
 }
 
 #sidebar.sidebar-collapsed {
-  transform: translateX(calc(-75% - 12px));  // calculated from column ratios (9/12) and padding on sidebar header
-  overflow: hidden;  // disable scrolling
+  transform: translateX(calc(-75% - 12px)); // calculated from column ratios (9/12) and padding on sidebar header
+  z-index: 299;
+  overflow: hidden; // disable scrolling
 }
 
 #sidebar.sidebar-animated {
@@ -377,9 +378,8 @@
   margin-right: 4px;
 }
 
-.wiki #footer {
+#footer {
   z-index: 300;
-  position: relative;
 }
 
 /***** DOC LAYOUT *****/
