@@ -123,7 +123,7 @@
 }
 
 .features-body > tr:nth-child(even) {
-   background-color: #00000004;
+  background-color: #00000004;
 }
 
 .features-body-col {
@@ -255,13 +255,14 @@
   overflow-y: scroll;
   height: calc(100vh - 100px);
   background: #002C5A;
-  z-index: 200;
+  z-index: 301;
   padding: 0;
 }
 
 #sidebar.sidebar-collapsed {
-  transform: translateX(calc(-75% - 12px));  // calculated from column ratios (9/12) and padding on sidebar header
-  overflow: hidden;  // disable scrolling
+  transform: translateX(calc(-75% - 12px)); // calculated from column ratios (9/12) and padding on sidebar header
+  z-index: 299;
+  overflow: hidden; // disable scrolling
 }
 
 #sidebar.sidebar-animated {
@@ -298,13 +299,19 @@
 }
 
 #wiki-main {
-  margin-left: 325px;
-  padding: 32px 50px 130px 50px;
+  padding: 16px;
   min-height: 92vh;
 }
 
-#wiki-main.sidebar-collapsed {
+#wiki-main, #wiki-main.sidebar-collapsed {
   margin-left: 70px;
+}
+
+@media (min-width: 576px) {
+  #wiki-main {
+    padding: 32px 50px 130px 50px;
+    margin-left: 325px;
+  }
 }
 
 #wiki-main.sidebar-animated {
@@ -334,11 +341,8 @@
 }
 
 .contribution {
-  margin-top: 60px;
   box-shadow: 0 0 25px 0 rgba(0, 0, 0, 0.1);
-  width: 50%;
-  padding: 50px 30px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .wiki a.btn {
@@ -374,9 +378,8 @@
   margin-right: 4px;
 }
 
-.wiki #footer {
+#footer {
   z-index: 300;
-  position: relative;
 }
 
 /***** DOC LAYOUT *****/
