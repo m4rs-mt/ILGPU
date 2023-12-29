@@ -135,6 +135,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Analyzers", "..\Src\I
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterleaveFields", "InterleaveFields\InterleaveFields.csproj", "{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ILGPU.Analyzers", "ILGPU.Analyzers", "{6D111E09-49A1-492E-B4CE-E18CE27B56A8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
