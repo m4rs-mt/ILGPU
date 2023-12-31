@@ -17,7 +17,7 @@ using System;
 #pragma warning disable CA1034 // Nested types should not be visible
 #pragma warning disable CA1051 // Do not declare visible instance fields
 
-namespace StructureOfArrays
+namespace InterleaveFields
 {
     public struct MyPoint
     {
@@ -27,7 +27,7 @@ namespace StructureOfArrays
 
     public static partial class Program
     {
-        [GeneratedStructureOfArrays(typeof(MyPoint), 4)]
+        [InterleaveFields(typeof(MyPoint), 4)]
         public partial struct MyPoint4
         { }
 

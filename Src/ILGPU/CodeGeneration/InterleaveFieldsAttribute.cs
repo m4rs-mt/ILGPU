@@ -3,7 +3,7 @@
 //                           Copyright (c) 2023 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: GeneratedStructureOfArraysAttribute.cs
+// File: InterleaveFieldsAttribute.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -17,7 +17,7 @@ namespace ILGPU.CodeGeneration
     /// Generates a structure-of-arrays from a definition struct, for a given length.
     /// </summary>
     [AttributeUsage(AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
-    public sealed class GeneratedStructureOfArraysAttribute : Attribute
+    public sealed class InterleaveFieldsAttribute : Attribute
     {
         /// <summary>
         /// The structure type to use as a definition.
@@ -34,7 +34,7 @@ namespace ILGPU.CodeGeneration
         /// </summary>
         /// <param name="structureType">The definition struct.</param>
         /// <param name="length">The number of elements.</param>
-        public GeneratedStructureOfArraysAttribute(Type structureType, int length)
+        public InterleaveFieldsAttribute(Type structureType, int length)
         {
             StructureType = structureType;
             Length = length;

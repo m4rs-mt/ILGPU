@@ -21,7 +21,7 @@ using SF = Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace ILGPU.Analyzers
 {
     [Generator]
-    public class SourceGenerator : IIncrementalGenerator
+    public class InterleaveFieldsGenerator : IIncrementalGenerator
     {
         #region Statics
 
@@ -52,17 +52,17 @@ namespace ILGPU.Analyzers
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             var source = context.SyntaxProvider.ForAttributeWithMetadataName(
-                "ILGPU.CodeGeneration.GeneratedStructureOfArraysAttribute",
+                "ILGPU.CodeGeneration.InterleaveFieldsAttribute",
                 static (node, token) => node is StructDeclarationSyntax,
                 static (context, token) => context);
 
-            context.RegisterSourceOutput(source, EmitGeneratedStructureOfArraysAttribute);
+            context.RegisterSourceOutput(source, EmitInterleaveFieldsAttribute);
         }
 
         /// <summary>
-        /// Generates the source code for GeneratedStructureOfArraysAttribute.
+        /// Generates the source code for InterleaveFieldsAttribute.
         /// </summary>
-        private static void EmitGeneratedStructureOfArraysAttribute(
+        private static void EmitInterleaveFieldsAttribute(
             SourceProductionContext sourceProductionContext,
             GeneratorAttributeSyntaxContext generatorAttributeSyntaxContext)
         {

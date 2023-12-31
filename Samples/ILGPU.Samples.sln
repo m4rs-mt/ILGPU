@@ -133,7 +133,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlgorithmsOptimization", "A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Analyzers", "..\Src\ILGPU.Analyzers\ILGPU.Analyzers.csproj", "{1C5E9E39-3C14-4B52-8D97-04555D5F6331}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StructureOfArrays", "StructureOfArrays\StructureOfArrays.csproj", "{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterleaveFields", "InterleaveFields\InterleaveFields.csproj", "{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

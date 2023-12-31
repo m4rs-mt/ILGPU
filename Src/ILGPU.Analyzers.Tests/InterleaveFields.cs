@@ -3,7 +3,7 @@
 //                           Copyright (c) 2023 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: StructureOfArrays.cs
+// File: InterleaveFields.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -16,12 +16,12 @@ using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
 using VerifyCS =
-    ILGPU.Analyzers.Tests.IncrementalGeneratorVerifier<ILGPU.Analyzers.SourceGenerator>;
+    ILGPU.Analyzers.Tests.IncrementalGeneratorVerifier<ILGPU.Analyzers.InterleaveFieldsGenerator>;
 
 namespace ILGPU.Analyzers.Tests
 {
     [UsesVerify]
-    public class StructureOfArrays
+    public class InterleaveFields
     {
         [Fact]
         public async Task Simple()
@@ -35,7 +35,7 @@ public struct MyPoint
     public int Y;
 }
 
-[GeneratedStructureOfArrays(typeof(MyPoint), 4)]
+[InterleaveFields(typeof(MyPoint), 4)]
 partial struct MyPoint4
 { }
 ";
@@ -54,7 +54,7 @@ public struct MyPoint
     public int Y;
 }
 
-[GeneratedStructureOfArrays(typeof(MyPoint), 4)]
+[InterleaveFields(typeof(MyPoint), 4)]
 struct MyPoint4
 { }
 ";
@@ -75,7 +75,7 @@ namespace Alpha.Beta
         public int Y;
     }
 
-    [GeneratedStructureOfArrays(typeof(MyPoint), 4)]
+    [InterleaveFields(typeof(MyPoint), 4)]
     partial struct MyPoint4
     { }
 }
@@ -99,7 +99,7 @@ namespace Alpha.Beta
             public int Y;
         }
 
-        [GeneratedStructureOfArrays(typeof(MyPoint), 4)]
+        [InterleaveFields(typeof(MyPoint), 4)]
         partial struct MyPoint4
         { }
     }
@@ -124,7 +124,7 @@ namespace Alpha.Beta
             public int Y;
         }
 
-        [GeneratedStructureOfArrays(typeof(MyPoint), 4)]
+        [InterleaveFields(typeof(MyPoint), 4)]
         partial struct MyPoint4
         { }
     }
@@ -152,7 +152,7 @@ public struct InnerStruct
     public int B;
 }
 
-[GeneratedStructureOfArrays(typeof(MyPoint), 4)]
+[InterleaveFields(typeof(MyPoint), 4)]
 partial struct MyPoint4
 { }
 ";
@@ -178,7 +178,7 @@ public unsafe struct InnerStruct
     public fixed int B[2];
 }
 
-[GeneratedStructureOfArrays(typeof(MyPoint), 4)]
+[InterleaveFields(typeof(MyPoint), 4)]
 partial struct MyPoint4
 { }
 ";
@@ -197,7 +197,7 @@ public struct MyPoint
     private int Y;
 }
 
-[GeneratedStructureOfArrays(typeof(MyPoint), 4)]
+[InterleaveFields(typeof(MyPoint), 4)]
 partial struct MyPoint4
 { }
 ";

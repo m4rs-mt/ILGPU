@@ -41,7 +41,7 @@ namespace ILGPU.Analyzers.Tests
             var ilgpuReferences =
                 new[]
                 {
-                    typeof(GeneratedStructureOfArraysAttribute),
+                    typeof(InterleaveFieldsAttribute),
                     typeof(TIncrementalGenerator)
                 }
                 .Select(x => MetadataReference.CreateFromFile(x.Assembly.Location))
