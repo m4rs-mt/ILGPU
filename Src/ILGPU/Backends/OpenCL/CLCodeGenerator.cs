@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.cs
@@ -199,7 +199,7 @@ namespace ILGPU.Backends.OpenCL
 
         private int labelCounter;
         private readonly Dictionary<BasicBlock, string> blockLookup =
-            new Dictionary<BasicBlock, string>();
+            new Dictionary<BasicBlock, string>(new BasicBlock.Comparer());
         private readonly string labelPrefix;
 
         private StringBuilder prefixBuilder = new StringBuilder();
@@ -439,7 +439,8 @@ namespace ILGPU.Backends.OpenCL
                 blockLookup.Add(block, DeclareLabel());
 
             // Find all phi nodes, allocate target registers and setup internal mapping
-            var phiMapping = new Dictionary<BasicBlock, List<Variable>>();
+            var phiMapping = new Dictionary<BasicBlock, List<Variable>>(
+                new BasicBlock.Comparer());
             var dominators = Method.Blocks.CreateDominators();
             var phiBindings = PhiBindings.Create(
                 blocks,

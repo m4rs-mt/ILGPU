@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Loops.cs
@@ -757,8 +757,8 @@ namespace ILGPU.IR.Analyses
             // Initialize all lists and sets
             var headers = InlineList<BasicBlock>.Create(2);
             var breakers = InlineList<BasicBlock>.Create(2);
-            var entryBlocks = new HashSet<BasicBlock>();
-            var exitBlocks = new HashSet<BasicBlock>();
+            var entryBlocks = new HashSet<BasicBlock>(new BasicBlock.Comparer());
+            var exitBlocks = new HashSet<BasicBlock>(new BasicBlock.Comparer());
 
             // Gather all loop entries and exists
             foreach (var member in members)

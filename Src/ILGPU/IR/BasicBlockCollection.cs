@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlockCollection.cs
@@ -339,7 +339,7 @@ namespace ILGPU.IR
         public readonly HashSet<BasicBlock> ToSet<TPredicate>(TPredicate predicate)
             where TPredicate : InlineList.IPredicate<BasicBlock>
         {
-            var result = new HashSet<BasicBlock>();
+            var result = new HashSet<BasicBlock>(new BasicBlock.Comparer());
             foreach (var block in this)
             {
                 if (predicate.Apply(block))
