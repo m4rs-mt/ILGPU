@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.cs
@@ -286,7 +286,8 @@ namespace ILGPU.Backends.PTX
         #region Instance
 
         private int labelCounter;
-        private readonly Dictionary<BasicBlock, string> blockLookup = new();
+        private readonly Dictionary<BasicBlock, string> blockLookup = new(
+            new BasicBlock.Comparer());
 
         private readonly Dictionary<(Encoding, string), string> stringConstants = new();
         private readonly PhiBindings phiBindings;

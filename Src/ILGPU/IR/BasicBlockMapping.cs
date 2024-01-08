@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlockMapping.cs
@@ -746,7 +746,7 @@ namespace ILGPU.IR
 
         /// <summary cref="InitBlockSet"/>
         [MemberNotNull(nameof(blockSet))]
-        partial void InitBlockSet() => blockSet = new HashSet<BasicBlock>();
+        partial void InitBlockSet() => blockSet = new(new BasicBlock.Comparer());
 
         #endregion
 
@@ -785,7 +785,8 @@ namespace ILGPU.IR
 
         /// <summary cref="InitBlockMap"/>
         [MemberNotNull(nameof(blockMap))]
-        partial void InitBlockMap() => blockMap = new Dictionary<BasicBlock, T>();
+        partial void InitBlockMap() => blockMap =
+            new Dictionary<BasicBlock, T>(new BasicBlock.Comparer());
 
         #endregion
 

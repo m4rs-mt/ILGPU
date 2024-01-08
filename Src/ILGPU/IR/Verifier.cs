@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Verifier.cs
@@ -184,11 +184,11 @@ namespace ILGPU.IR
             private readonly List<BasicBlock> blocksInRpo =
                 new List<BasicBlock>();
             private readonly HashSet<BasicBlock> containedBlocks =
-                new HashSet<BasicBlock>();
+                new(new BasicBlock.Comparer());
             private readonly Dictionary<BasicBlock, HashSet<BasicBlock>> predecessors =
-                new Dictionary<BasicBlock, HashSet<BasicBlock>>();
+                new(new BasicBlock.Comparer());
             private readonly Dictionary<BasicBlock, HashSet<BasicBlock>> successors =
-                new Dictionary<BasicBlock, HashSet<BasicBlock>>();
+                new(new BasicBlock.Comparer());
 
             /// <summary>
             /// Constructs a new control-flow verifier.
@@ -204,15 +204,15 @@ namespace ILGPU.IR
             #region Methods
 
             /// <summary>
-            /// Creates new predecessor and successor ink sets.
+            /// Creates new predecessor and successor link sets.
             /// </summary>
             /// <param name="block">The current block.</param>
             private void CreateLinkSets(BasicBlock block)
             {
                 if (!predecessors.ContainsKey(block))
-                    predecessors.Add(block, new HashSet<BasicBlock>());
+                    predecessors.Add(block, new(new BasicBlock.Comparer()));
                 if (!successors.ContainsKey(block))
-                    successors.Add(block, new HashSet<BasicBlock>());
+                    successors.Add(block, new(new BasicBlock.Comparer()));
             }
 
             /// <summary>
@@ -325,7 +325,7 @@ namespace ILGPU.IR
 
             private readonly HashSet<Value> values = new HashSet<Value>();
             private readonly Dictionary<BasicBlock, HashSet<Value>> mapping =
-                new Dictionary<BasicBlock, HashSet<Value>>();
+                new Dictionary<BasicBlock, HashSet<Value>>(new BasicBlock.Comparer());
 
             /// <summary>
             /// Constructs a new value verifier.
@@ -465,7 +465,7 @@ namespace ILGPU.IR
                         phiValue.BasicBlock.Predecessors.Length);
 
                     // Verify nodes and sources
-                    var visited = new HashSet<BasicBlock>();
+                    var visited = new HashSet<BasicBlock>(new BasicBlock.Comparer());
                     for (int i = 0, e = phiValue.Nodes.Length; i < e; ++i)
                     {
                         Value value = phiValue.Nodes[i];

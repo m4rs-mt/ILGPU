@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Block.CFGBuilder.cs
@@ -71,7 +71,7 @@ namespace ILGPU.Frontend
             private readonly Dictionary<int, Block> blockMapping =
                 new Dictionary<int, Block>();
             private readonly Dictionary<BasicBlock, Block> basicBlockMapping =
-                new Dictionary<BasicBlock, Block>();
+                new Dictionary<BasicBlock, Block>(new BasicBlock.Comparer());
             private readonly Dictionary<Block, List<Block>> successorMapping =
                 new Dictionary<Block, List<Block>>();
 

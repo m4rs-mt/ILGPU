@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2022-2023 ILGPU Project
+//                        Copyright (c) 2022-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityCodeGenerator.cs
@@ -96,7 +96,8 @@ namespace ILGPU.Backends.Velocity
         /// <summary>
         /// Maps blocks to labels.
         /// </summary>
-        private readonly Dictionary<BasicBlock, ILLabel> blockLookup = new();
+        private readonly Dictionary<BasicBlock, ILLabel> blockLookup =
+            new(new BasicBlock.Comparer());
 
         /// <summary>
         /// The masks analysis holding information about the masks being required.
