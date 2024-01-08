@@ -9,9 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-// [ModuleInitializer] is only available from net5.0 and later.
-#if NET5_0_OR_GREATER
-
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
@@ -207,5 +204,3 @@ partial struct MyPoint4
 
     }
 }
-
-#endif
