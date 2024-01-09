@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PageLockedMemory.cs
@@ -59,10 +59,10 @@ namespace ILGPU.Tests
                 using var buffer = Accelerator.Allocate1D<int>(array.Length);
                 using var scope = Accelerator.CreatePageLockFromPinned(array);
 
-                buffer.View.CopyFromPageLockedAsync(scope);
+                buffer.View.CopyFrom(scope.ArrayView);
                 Execute(buffer.Length, buffer.View);
 
-                buffer.View.CopyToPageLockedAsync(scope);
+                buffer.View.CopyTo(scope.ArrayView);
                 Accelerator.Synchronize();
                 Verify1D(array, expected);
             }
@@ -81,10 +81,10 @@ namespace ILGPU.Tests
             using var buffer = Accelerator.Allocate1D<int>(array.Length);
             using var scope = Accelerator.CreatePageLockFromPinned(array);
 
-            buffer.View.CopyFromPageLockedAsync(scope);
+            buffer.View.CopyFrom(scope.ArrayView);
             Execute(buffer.Length, buffer.View);
 
-            buffer.View.CopyToPageLockedAsync(scope);
+            buffer.View.CopyTo(scope.ArrayView);
             Accelerator.Synchronize();
             Verify1D(array, expected);
         }
@@ -107,14 +107,14 @@ namespace ILGPU.Tests
             using var buff = Accelerator.Allocate1D<long>(Length);
 
             // Start copying, create the expected array in the meantime
-            buff.View.CopyFromPageLockedAsync(array);
+            buff.View.CopyFrom(array.ArrayView);
             var expected = Enumerable.Repeat(constant - 5, Length).ToArray();
             Accelerator.Synchronize();
 
             Execute(array.Extent.ToIntIndex(), buff.View);
             Accelerator.Synchronize();
 
-            buff.View.CopyToPageLockedAsync(array);
+            buff.View.CopyTo(array.ArrayView);
             Accelerator.Synchronize();
 
             Assert.Equal(expected.Length, array.Length);
@@ -132,7 +132,7 @@ namespace ILGPU.Tests
                 array[i] = 10;
 
             using var buff = Accelerator.Allocate1D<long>(Length);
-            buff.View.CopyFromPageLockedAsync(array);
+            buff.View.CopyFrom(array.ArrayView);
 
             var expected = new int[Length];
             for (int i = 0; i < Length; i++)

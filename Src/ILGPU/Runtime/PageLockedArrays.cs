@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PageLockedArrays.cs
@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
-using ILGPU.Runtime.CPU;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -35,16 +34,9 @@ namespace ILGPU.Runtime
         public abstract Span<T> Span { get; }
 
         /// <summary>
-        /// Returns the memory buffer wrapper of the .Net array.
-        /// </summary>
-        protected internal MemoryBuffer MemoryBuffer { get; private set; } =
-            Utilities.InitNotNullable<MemoryBuffer>();
-
-        /// <summary>
         /// Returns the page locking scope that includes the underlying array.
         /// </summary>
-        protected internal PageLockScope<T> Scope { get; private set; } =
-            Utilities.InitNotNullable<PageLockScope<T>>();
+        protected internal PageLockScope<T>? Scope { get; private set; }
 
         /// <summary>
         /// Returns the array view of the underlying .Net array.
@@ -76,13 +68,8 @@ namespace ILGPU.Runtime
 
             if (accelerator != null && length > 0L)
             {
-                MemoryBuffer = CPUMemoryBuffer.Create(
-                    accelerator,
-                    ptr,
-                    length,
-                    Interop.SizeOf<T>());
-                ArrayView = MemoryBuffer.AsArrayView<T>(0L, MemoryBuffer.Length);
                 Scope = accelerator.CreatePageLockFromPinned<T>(ptr, length);
+                ArrayView = Scope.ArrayView;
             }
         }
 
@@ -105,8 +92,9 @@ namespace ILGPU.Runtime
         {
             if (disposing)
             {
-                MemoryBuffer?.Dispose();
                 Scope?.Dispose();
+                Scope = null;
+                ArrayView = ArrayView<T>.Empty;
             }
             base.Dispose(disposing);
         }

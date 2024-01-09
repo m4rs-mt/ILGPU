@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -36,7 +36,7 @@ namespace PinnedMemoryCopy
 
                 // Page locked buffers enable async memory transfers
                 using var scope = accelerator.CreatePageLockFromPinned(array);
-                bufferOnGPU.View.CopyFromPageLockedAsync(stream, scope);
+                bufferOnGPU.View.CopyFrom(stream, scope.ArrayView);
 
                 //
                 // Perform other operations...
@@ -66,7 +66,7 @@ namespace PinnedMemoryCopy
 
             // Page locked buffers enable async memory transfers
             using var scope = accelerator.CreatePageLockFromPinned(array);
-            bufferOnGPU.View.CopyFromPageLockedAsync(stream, scope);
+            bufferOnGPU.View.CopyFrom(stream, scope.ArrayView);
 
             //
             // Perform other operations...
@@ -89,7 +89,7 @@ namespace PinnedMemoryCopy
             using var bufferOnGPU = accelerator.Allocate1D<int>(array.Length);
             var stream = accelerator.DefaultStream;
 
-            bufferOnGPU.View.CopyFromPageLockedAsync(stream, array);
+            bufferOnGPU.View.CopyFrom(stream, array.ArrayView);
 
             //
             // Perform other operations...
@@ -99,7 +99,7 @@ namespace PinnedMemoryCopy
             stream.Synchronize();
 
             // Retrieve the results into an existing page locked array
-            bufferOnGPU.View.CopyToPageLockedAsync(stream, array);
+            bufferOnGPU.View.CopyTo(stream, array.ArrayView);
 
             // Retrieve the results into a new array
             // Rely on disabled (default) or automatic page locking behavior

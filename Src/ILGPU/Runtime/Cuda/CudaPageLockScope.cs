@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaPageLockScope.cs
@@ -32,14 +32,31 @@ namespace ILGPU.Runtime
             CudaAccelerator accelerator,
             IntPtr hostPtr,
             long numElements)
-            : base(accelerator, numElements)
+            : base(
+                  accelerator,
+                  GetAddrOfLockedObject(accelerator, hostPtr, numElements),
+                  numElements)
+        {
+            HostPtr = hostPtr;
+        }
+
+        /// <summary>
+        /// Registers the page lock.
+        /// </summary>
+        /// <param name="accelerator">The associated accelerator.</param>
+        /// <param name="hostPtr">The host buffer pointer to page lock.</param>
+        /// <param name="numElements">The number of elements in the buffer.</param>
+        /// <returns>The page locked address.</returns>
+        private static IntPtr GetAddrOfLockedObject(
+            CudaAccelerator accelerator,
+            IntPtr hostPtr,
+            long numElements)
         {
             if (!accelerator.Device.SupportsMappingHostMemory)
             {
                 throw new NotSupportedException(
                     RuntimeErrorMessages.NotSupportedPageLock);
             }
-            HostPtr = hostPtr;
 
             bool supportsHostPointer = accelerator
                 .Device
@@ -51,17 +68,18 @@ namespace ILGPU.Runtime
                 flags |= MemHostRegisterFlags.CU_MEMHOSTREGISTER_DEVICEMAP;
 
             // Perform the memory registration.
+            var lengthInBytes = numElements * Interop.SizeOf<T>();
             CudaException.ThrowIfFailed(
                 CurrentAPI.MemHostRegister(
                     hostPtr,
-                    new IntPtr(LengthInBytes),
+                    new IntPtr(lengthInBytes),
                     flags));
 
             // Check whether we have to determine the actual device pointer or are able
             // to reuse the host pointer for all operations.
             if (supportsHostPointer)
             {
-                AddrOfLockedObject = hostPtr;
+                return hostPtr;
             }
             else
             {
@@ -70,7 +88,7 @@ namespace ILGPU.Runtime
                         out IntPtr devicePtr,
                         hostPtr,
                         0));
-                AddrOfLockedObject = devicePtr;
+                return devicePtr;
             }
         }
 
@@ -80,9 +98,12 @@ namespace ILGPU.Runtime
         private IntPtr HostPtr { get; }
 
         /// <inheritdoc/>
-        protected override void DisposeAcceleratorObject(bool disposing) =>
+        protected override void DisposeAcceleratorObject(bool disposing)
+        {
             CudaException.VerifyDisposed(
                 disposing,
                 CurrentAPI.MemHostUnregister(HostPtr));
+            base.DisposeAcceleratorObject(disposing);
+        }
     }
 }
