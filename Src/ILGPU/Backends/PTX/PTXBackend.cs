@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXBackend.cs
@@ -305,11 +305,6 @@ namespace ILGPU.Backends.PTX
                 ptxAssembly);
         }
 
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "string.Replace(string, string, StringComparison) not " +
-            "available in net471")]
         private unsafe void GenerateLibDeviceCode(
             in BackendContext backendContext,
             StringBuilder builder)
@@ -390,9 +385,12 @@ namespace ILGPU.Backends.PTX
                     {
                         var compiledString =
                             compiledPTX.AsNotNull()
-                            .Replace(".version", "//.version")
-                            .Replace(".target", "//.target")
-                            .Replace(".address_size", "//.address_size");
+                            .Replace(".version", "//.version", StringComparison.Ordinal)
+                            .Replace(".target", "//.target", StringComparison.Ordinal)
+                            .Replace(
+                                ".address_size",
+                                "//.address_size",
+                                StringComparison.Ordinal);
                         builder.Append(compiledString);
                     }
                 }

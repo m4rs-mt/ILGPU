@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LanguageValues.cs
@@ -176,15 +176,11 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "emit";
 
         /// <summary cref="Value.ToArgString"/>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "string.Replace(string, string, StringComparison) not " +
-            "available in net471")]
         protected override string ToArgString() =>
             ToStringExpression().Replace(
                 Environment.NewLine,
-                string.Empty) +
+                string.Empty,
+                StringComparison.Ordinal) +
             " " + base.ToArgString();
 
         /// <summary>

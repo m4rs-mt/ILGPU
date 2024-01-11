@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Values.cs
@@ -1240,11 +1240,6 @@ namespace ILGPU.Backends.PTX
             writeToOutput.Assert(false);
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(LanguageEmitValue)"/>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "string.Replace(string, string, StringComparison) not " +
-            "available in net471")]
         public void GenerateCode(LanguageEmitValue emit)
         {
             // Ignore non-PTX instructions.

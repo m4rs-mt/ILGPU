@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MethodHandle.cs
@@ -129,13 +129,8 @@ namespace ILGPU.IR
         /// Returns the hash code of this handle.
         /// </summary>
         /// <returns>The hash code of this handle.</returns>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "string.GetHashCode(StringComparison) not " +
-            "available in net471")]
         public override int GetHashCode() =>
-            Id.GetHashCode() ^ Name?.GetHashCode() ?? 0;
+            Id.GetHashCode() ^ Name?.GetHashCode(StringComparison.Ordinal) ?? 0;
 
         /// <summary>
         /// Returns the string representation of this handle.
