@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXLibDeviceNvvm.tt/PTXLibDeviceNvvm.cs
@@ -110,7 +110,7 @@ void WriteLibDeviceFunctionNvvm(LibDeviceFunction func)
     for (int i = 0; i < func.Parameters.Length; i++)
     {
         var param = func.Parameters[i];
-        WriteNvvmType(param.Type);
+        WriteNvvmType(param.Type, param.Flags);
         Write($" %{param.Name}");
         if (i < func.Parameters.Length - 1)
             Write(",");
@@ -128,7 +128,7 @@ void WriteLibDeviceFunctionNvvm(LibDeviceFunction func)
     for (int i = 0; i < func.Parameters.Length; i++)
     {
         var param = func.Parameters[i];
-        WriteNvvmType(param.Type);
+        WriteNvvmType(param.Type, param.Flags);
         Write($" %{param.Name}");
         if (i < func.Parameters.Length - 1)
             Write(",");
@@ -139,7 +139,10 @@ void WriteLibDeviceFunctionNvvm(LibDeviceFunction func)
     WriteLine("entry:");
 
     PushIndent();
-    Write("%call = call ");
+    if (func.ReturnType == "void")
+        Write("call ");
+    else
+        Write("%call = call ");
     WriteNvvmType(func.ReturnType);
     Write(" @");
     Write(func.Name);
@@ -147,7 +150,7 @@ void WriteLibDeviceFunctionNvvm(LibDeviceFunction func)
     for (int i = 0; i < func.Parameters.Length; i++)
     {
         var param = func.Parameters[i];
-        WriteNvvmType(param.Type);
+        WriteNvvmType(param.Type, param.Flags);
         Write($" %{param.Name}");
         if (i < func.Parameters.Length - 1)
             Write(",");
@@ -157,7 +160,10 @@ void WriteLibDeviceFunctionNvvm(LibDeviceFunction func)
     WriteLine();
     Write("ret ");
     WriteNvvmType(func.ReturnType);
-    WriteLine(" %call");
+    if (func.ReturnType == "void")
+        WriteLine();
+    else
+        WriteLine(" %call");
     PopIndent();
     WriteLine("}\";");
     WriteLine();
@@ -178,6 +184,13 @@ void WriteNvvmType(string type)
         Write("i64");
     else
         Write(type);
+}
+
+void WriteNvvmType(string type, string flags)
+{
+    WriteNvvmType(type);
+    if (flags == "Out")
+        Write("*");
 }
 
 #>
