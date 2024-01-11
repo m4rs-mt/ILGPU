@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IOValues.cs
@@ -20,8 +20,6 @@ using System.Text;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
     ILGPU.Util.FormatString.FormatExpression>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
-
-#pragma warning disable CA1307 // Specify StringComparison for clarity
 
 namespace ILGPU.IR.Values
 {
@@ -300,7 +298,8 @@ namespace ILGPU.IR.Values
                     result.Append(
                         expression.String.AsNotNull().Replace(
                             "%",
-                            PrintFPercentFormat));
+                            PrintFPercentFormat,
+                            StringComparison.Ordinal));
                 }
             }
             return result.ToString();
@@ -311,11 +310,11 @@ namespace ILGPU.IR.Values
         /// </summary>
         public string ToEscapedPrintFExpression() =>
             ToPrintFExpression()
-            .Replace("\t", @"\t")
-            .Replace("\r", @"\r")
-            .Replace("\n", @"\n")
-            .Replace("\"", "\\\"")
-            .Replace("\\", @"\\");
+            .Replace("\t", @"\t", StringComparison.Ordinal)
+            .Replace("\r", @"\r", StringComparison.Ordinal)
+            .Replace("\n", @"\n", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal)
+            .Replace("\\", @"\\", StringComparison.Ordinal);
 
         #endregion
 
@@ -329,11 +328,10 @@ namespace ILGPU.IR.Values
         protected override string ToArgString() =>
             ToPrintFExpression().Replace(
                 Environment.NewLine,
-                string.Empty) +
+                string.Empty,
+                StringComparison.Ordinal) +
             " " + base.ToArgString();
 
         #endregion
     }
 }
-
-#pragma warning restore CA1307 // Specify StringComparison for clarity

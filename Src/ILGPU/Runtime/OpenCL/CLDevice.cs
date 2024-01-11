@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLDevice.cs
@@ -318,11 +318,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Init vendor-specific features.
         /// </summary>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "string.GetHashCode(StringComparison) not " +
-            "available in net471")]
         [MemberNotNull(nameof(VendorName))]
         private void InitVendorAndWarpSizeInfo()
         {
@@ -360,9 +355,11 @@ namespace ILGPU.Runtime.OpenCL
             }
             else
             {
-                Vendor = VendorName.Contains(CLDeviceVendor.Intel.ToString()) ?
-                    CLDeviceVendor.Intel :
-                    CLDeviceVendor.Other;
+                Vendor = VendorName.Contains(
+                    CLDeviceVendor.Intel.ToString(),
+                    StringComparison.Ordinal)
+                    ? CLDeviceVendor.Intel
+                    : CLDeviceVendor.Other;
 
                 // Warp size cannot be resolve at this point
                 WarpSize = 0;

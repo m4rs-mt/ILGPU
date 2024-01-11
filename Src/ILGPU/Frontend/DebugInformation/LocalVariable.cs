@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LocalVariable.cs
@@ -80,12 +80,8 @@ namespace ILGPU.Frontend.DebugInformation
         /// Returns the hash code of this index.
         /// </summary>
         /// <returns>The hash code of this index.</returns>
-        [SuppressMessage(
-            "Globalization",
-            "CA1307:Specify StringComparison",
-            Justification = "string.GetHashCode(StringComparison) not " +
-            "available in net471")]
-        public override int GetHashCode() => Index.GetHashCode() ^ Name.GetHashCode();
+        public override int GetHashCode() =>
+            Index.GetHashCode() ^ Name.GetHashCode(StringComparison.Ordinal);
 
         /// <summary>
         /// Returns the string representation of this local variable.
