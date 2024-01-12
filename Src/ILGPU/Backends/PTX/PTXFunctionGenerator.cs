@@ -78,16 +78,16 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Generates a function declaration in PTX code.
         /// </summary>
-        public override void GenerateHeader(StringBuilder builder)
+        public override void GenerateHeader(PTXAssembly.Builder builder)
         {
-            static bool IsLibDeviceMethod(Method method) =>
-                method.HasSource &&
-                method.Source.DeclaringType == typeof(PTXLibDeviceMethods);
-            if (IsLibDeviceMethod(Method))
+            if (Method.HasSource &&
+                Method.Source.DeclaringType == typeof(PTXLibDeviceMethods))
+            {
                 return;
+            }
 
-            GenerateHeaderDeclaration(builder);
-            builder.AppendLine(";");
+            GenerateHeaderDeclaration(builder.KernelBuilder);
+            builder.KernelBuilder.AppendLine(";");
         }
 
         /// <summary>

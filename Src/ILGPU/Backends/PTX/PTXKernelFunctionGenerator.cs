@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXKernelFunctionGenerator.cs
@@ -115,7 +115,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Generates a function declaration in PTX code.
         /// </summary>
-        public override void GenerateHeader(StringBuilder builder)
+        public override void GenerateHeader(PTXAssembly.Builder builder)
         {
             // Generate global dynamic shared memory allocation information
             if (!EntryPoint.SharedMemory.HasDynamicMemory)
@@ -134,11 +134,11 @@ namespace ILGPU.Backends.PTX
                 PTXBackend.DefaultGlobalMemoryAlignment);
 
             // Use the proper alignment that is compatible with all types
-            builder.Append(".extern .shared .align ");
-            builder.Append(sharedAlignmentInBytes);
-            builder.Append(" .b8 ");
-            builder.Append(DynamicSharedMemoryAllocationName);
-            builder.AppendLine("[];");
+            builder.KernelBuilder.Append(".extern .shared .align ");
+            builder.KernelBuilder.Append(sharedAlignmentInBytes);
+            builder.KernelBuilder.Append(" .b8 ");
+            builder.KernelBuilder.Append(DynamicSharedMemoryAllocationName);
+            builder.KernelBuilder.AppendLine("[];");
         }
 
         /// <summary>

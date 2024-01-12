@@ -173,6 +173,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
     </None>
+    <None Update="Backends\PTX\PTXLibDevicePtx.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PTXLibDevicePtx.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Cuda\CudaArchitecture.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CudaArchitecture.Generated.cs</LastGenOutput>
@@ -197,6 +201,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PTXLibDeviceNvvm.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Backends\PTX\PTXLibDevicePtx.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PTXLibDevicePtx.tt</DependentUpon>
     </Compile>
     <Compile Update="Backends\Velocity\Scalar\ScalarOperations.cs">
       <DesignTime>True</DesignTime>

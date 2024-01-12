@@ -323,7 +323,17 @@ namespace ILGPU
             /// Automatically detects the CUDA SDK location.
             /// </summary>
             /// <returns>The current builder instance.</returns>
-            public Builder LibDevice()
+            [Obsolete("LibDevice is now embedded into ILGPU. Use LibDeviceOverride() if" +
+                " you want to load a specific version of LibDevice at runtime.")]
+            public Builder LibDevice() =>
+                this;
+
+            /// <summary>
+            /// Overrides the version of LibDevice embedded into ILGPU, and loads from the
+            /// CUDA SDK at runtime. Automatically detects the CUDA SDK location.
+            /// </summary>
+            /// <returns>The current builder instance.</returns>
+            public Builder LibDeviceOverride()
             {
                 PTXLibDevice.FindLibDevicePaths(
                     out var cudaEnvName,
@@ -357,7 +367,19 @@ namespace ILGPU
             /// <param name="libNvvmPath">Path to LibNvvm DLL.</param>
             /// <param name="libDevicePath">Path to LibDevice bitcode.</param>
             /// <returns>The current builder instance.</returns>
-            public Builder LibDevice(string libNvvmPath, string libDevicePath)
+            [Obsolete("LibDevice is now embedded into ILGPU. Use LibDeviceOverride() if" +
+                " you want to load a specific version of LibDevice at runtime.")]
+            public Builder LibDevice(string libNvvmPath, string libDevicePath) =>
+                this;
+
+            /// <summary>
+            /// Overrides the version of LibDevice embedded into ILGPU, and loads from the
+            /// CUDA SDK at runtime. Explicitly specifies the LibDevice location.
+            /// </summary>
+            /// <param name="libNvvmPath">Path to LibNvvm DLL.</param>
+            /// <param name="libDevicePath">Path to LibDevice bitcode.</param>
+            /// <returns>The current builder instance.</returns>
+            public Builder LibDeviceOverride(string libNvvmPath, string libDevicePath)
             {
                 LibNvvmPath = libNvvmPath;
                 LibDevicePath = libDevicePath;
