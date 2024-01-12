@@ -18,6 +18,7 @@ using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -71,6 +72,72 @@ namespace ILGPU.Backends.PTX
         /// vectorized IO operations in most cases.
         /// </summary>
         public const int DefaultSharedMemoryAlignment = 4;
+
+        #endregion
+
+        #region Nested Types
+
+        /// <summary>
+        /// An enumerator for LibDevice backend methods.
+        /// </summary>
+        public struct LibDeviceEnumerator : IEnumerator<string>
+        {
+            #region Instance
+
+            private References.Enumerator enumerator;
+
+            /// <summary>
+            /// Constructs a new enumerator.
+            /// </summary>
+            /// <param name="context">The current backend context.</param>
+            internal LibDeviceEnumerator(in BackendContext context)
+            {
+                enumerator = context.Methods.GetEnumerator();
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the current value.
+            /// </summary>
+            public string Current
+            {
+                get
+                {
+                    var method = enumerator.Current;
+                    return method.Source.Name;
+                }
+            }
+
+            /// <summary cref="IEnumerator.Current"/>
+            object IEnumerator.Current => Current;
+
+            #endregion
+
+            #region Methods
+
+            /// <summary cref="IDisposable.Dispose"/>
+            void IDisposable.Dispose() { }
+
+            /// <summary cref="IEnumerator.MoveNext"/>
+            public bool MoveNext()
+            {
+                while (enumerator.MoveNext())
+                {
+                    if (!enumerator.Current.HasSource)
+                        continue;
+                    return true;
+                }
+                return false;
+            }
+
+            /// <summary cref="IEnumerator.Reset"/>
+            void IEnumerator.Reset() => throw new InvalidOperationException();
+
+            #endregion
+        }
 
         #endregion
 
@@ -305,100 +372,34 @@ namespace ILGPU.Backends.PTX
                 ptxAssembly);
         }
 
-        private unsafe void GenerateLibDeviceCode(
+        /// <summary>
+        /// Generate the PTX code for LibDevice functions.
+        /// </summary>
+        /// <param name="backendContext">The backend context.</param>
+        /// <param name="builder">The kernel builder.</param>
+        private void GenerateLibDeviceCode(
             in BackendContext backendContext,
             StringBuilder builder)
         {
             if (NvvmAPI == null || backendContext.Count == 0)
                 return;
 
-            // Determine the NVVM IR Version to use.
-            var result = NvvmAPI.GetIRVersion(out int majorIR, out _, out _, out _);
-            if (result != NvvmResult.NVVM_SUCCESS)
-                return;
+            using var enumerator = new LibDeviceEnumerator(backendContext);
+            PTXLibDevice.GenerateLibDeviceCode(
+                NvvmAPI,
+                Architecture,
+                enumerator.AsEnumerable(),
+                out var ptx);
 
-            // Convert the methods in the context into NVVM.
-            var methods = backendContext.GetEnumerator().AsEnumerable();
-            var nvvmModule = PTXLibDeviceNvvm.GenerateNvvm(majorIR, methods);
-
-            if (string.IsNullOrEmpty(nvvmModule))
-                return;
-
-            // Create a new NVVM program.
-            result = NvvmAPI.CreateProgram(out var program);
-
-            try
-            {
-                // Add custom NVVM module.
-                if (result == NvvmResult.NVVM_SUCCESS)
-                {
-                    var nvvmModuleBytes = Encoding.ASCII.GetBytes(nvvmModule);
-                    fixed (byte* nvvmPtr = nvvmModuleBytes)
-                    {
-                        result = NvvmAPI.AddModuleToProgram(
-                            program,
-                            new IntPtr(nvvmPtr),
-                            new IntPtr(nvvmModuleBytes.Length),
-                            null);
-                    }
-                }
-
-                // Add the LibDevice bit code.
-                if (result == NvvmResult.NVVM_SUCCESS)
-                {
-                    fixed (byte* ptr = NvvmAPI.LibDeviceBytes)
-                    {
-                        result = NvvmAPI.LazyAddModuleToProgram(
-                            program,
-                            new IntPtr(ptr),
-                            new IntPtr(NvvmAPI.LibDeviceBytes.Length),
-                            null);
-                    }
-                }
-
-                // Compile the NVVM into PTX for the backend architecture.
-                if (result == NvvmResult.NVVM_SUCCESS)
-                {
-                    var major = Architecture.Major;
-                    var minor = Architecture.Minor;
-                    var archOption = $"-arch=compute_{major}{minor}";
-                    var archOptionAscii = Encoding.ASCII.GetBytes(archOption);
-                    fixed (byte* archOptionPtr = archOptionAscii)
-                    {
-                        var numOptions = 1;
-                        var optionValues = stackalloc byte[sizeof(void*) * numOptions];
-                        var values = (void**)optionValues;
-                        values[0] = archOptionPtr;
-
-                        result = NvvmAPI.CompileProgram(
-                            program,
-                            numOptions,
-                            new IntPtr(values));
-                    }
-                }
-
-                // Extract the PTX result and comment out the initial declarations.
-                if (result == NvvmResult.NVVM_SUCCESS)
-                {
-                    result = NvvmAPI.GetCompiledResult(program, out var compiledPTX);
-                    if (result == NvvmResult.NVVM_SUCCESS)
-                    {
-                        var compiledString =
-                            compiledPTX.AsNotNull()
-                            .Replace(".version", "//.version", StringComparison.Ordinal)
-                            .Replace(".target", "//.target", StringComparison.Ordinal)
-                            .Replace(
-                                ".address_size",
-                                "//.address_size",
-                                StringComparison.Ordinal);
-                        builder.Append(compiledString);
-                    }
-                }
-            }
-            finally
-            {
-                NvvmAPI.DestroyProgram(ref program);
-            }
+            var compiledString =
+                ptx.AsNotNull()
+                .Replace(".version", "//.version", StringComparison.Ordinal)
+                .Replace(".target", "//.target", StringComparison.Ordinal)
+                .Replace(
+                    ".address_size",
+                    "//.address_size",
+                    StringComparison.Ordinal);
+            builder.Append(compiledString);
         }
 
         #endregion
@@ -438,13 +439,13 @@ namespace ILGPU.Backends.PTX
                 : PTXBackendMode.Default);
 
         /// <summary>
-        /// Convenience method to get an IEnumerable of Method.
+        /// Convenience method to get an IEnumerable from an IEnumerator.
         /// </summary>
-        public static IEnumerable<Method> AsEnumerable(
-            this IEnumerator<(Method, Allocas)> enumerator)
+        public static IEnumerable<T> AsEnumerable<T>(
+            this IEnumerator<T> enumerator)
         {
             while (enumerator.MoveNext())
-                yield return enumerator.Current.Item1;
+                yield return enumerator.Current;
         }
     }
 }
