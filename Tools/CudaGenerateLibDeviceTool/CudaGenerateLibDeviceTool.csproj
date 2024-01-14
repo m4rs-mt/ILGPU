@@ -22,6 +22,12 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>CudaArchitecture.Generated.tt</DependentUpon>
     </Compile>
+    <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\CudaInstructionSet.cs" Link="Linked Files\CudaInstructionSet.cs" />
+    <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\CudaInstructionSet.Generated.cs" Link="Linked Files\CudaInstructionSet.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaInstructionSet.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\NvvmAPI.cs" Link="Linked Files\NvvmAPI.cs" />
     <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\NvvmEnums.cs" Link="Linked Files\NvvmEnums.cs" />
     <Compile Include="..\..\Src\ILGPU\Util\DisposeBase.cs" Link="Linked Files\DisposeBase.cs" />
@@ -37,10 +43,38 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CudaArchitecture.Generated.cs</LastGenOutput>
     </None>
+    <None Include="..\..\Src\ILGPU\Runtime\Cuda\CudaInstructionSet.Generated.tt" Link="Linked Files\CudaInstructionSet.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaInstructionSet.Generated.cs</LastGenOutput>
+    </None>
+    <None Include="CudaDriverVersionUtils.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaDriverVersionUtils.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="T4.Build" Version="0.2.4" />
   </ItemGroup>
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="CudaDriverVersionUtils.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaDriverVersionUtils.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="CudaDriverVersionUtils.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaDriverVersionUtils.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -14,6 +14,7 @@ using ILGPU.Backends.PTX.Transformations;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
+using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
@@ -21,6 +22,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace ILGPU.Backends.PTX
 {
@@ -405,8 +407,10 @@ namespace ILGPU.Backends.PTX
                         StringComparison.Ordinal);
                 builder.KernelBuilder.Append(compiledString);
             }
-            else
+            else if (Architecture >= PTXLibDevicePtx.MinArchtecture &&
+                InstructionSet >= PTXLibDevicePtx.MinInstructionSet)
             {
+                // If supported, use the pre-generated LibDevice PTX code.
                 var ptxModules = InlineList<string>.Create(backendContext.Count);
                 PTXLibDevicePtx.GetPtx(
                     enumerator.AsEnumerable(),
@@ -415,6 +419,26 @@ namespace ILGPU.Backends.PTX
 
                 builder.AddModule(ptxModules.AsReadOnlySpan());
                 builder.KernelBuilder.AppendLine(ptxDeclarations);
+            }
+            else if (enumerator.AsEnumerable().FirstOrDefault() != null)
+            {
+                // Handle any issues if a LibDevice function is used.
+                if (Architecture >= PTXLibDevicePtx.MinArchtecture)
+                {
+                    // The architecture is supported, but is using an older instruction
+                    // set. Can be solved by a driver update.
+                    throw new NotSupportedException(string.Format(
+                        RuntimeErrorMessages.NotSupportedLibDevicePreGeneratedNewer,
+                        PTXLibDevicePtx.MinDriverVersion.Major,
+                        PTXLibDevicePtx.MinDriverVersion.Minor));
+                }
+                else
+                {
+                    // The architecture is too older for the pre-generated LibDevice PTX.
+                    // Inform the user to manually initialize LibDevice.
+                    throw new NotSupportedException(
+                        RuntimeErrorMessages.NotSupportedLibDeviceNotInitialized);
+                }
             }
         }
 

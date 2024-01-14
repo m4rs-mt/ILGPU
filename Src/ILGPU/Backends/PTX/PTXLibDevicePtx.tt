@@ -20,9 +20,10 @@
 <#@ output extension=".cs" #>
 <#
 string rootPath = Host.ResolvePath(".");
-var functions = LibDevicePtxFunctions.Load(rootPath, "../../Static/CudaLibDevicePtx.xml");
+var lib = LibDevicePtxFunctions.Load(rootPath, "../../Static/CudaLibDevicePtx.xml");
 #>
 
+using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
 using System.Collections.Generic;
 using System.Text;
@@ -36,10 +37,28 @@ namespace ILGPU.Backends.PTX
     /// </summary>
     internal static class PTXLibDevicePtx
     {
+        /// <summary>
+        /// Minimum architecture required to use the pre-generated PTX.
+        /// </summary>
+        public static CudaArchitecture MinArchtecture { get; } =
+            new CudaArchitecture(<#= lib.MinArchitectureMajor #>, <#= lib.MinArchitectureMinor #>);
+            
+        /// <summary>
+        /// Minimum instruction set required to use the pre-generated PTX.
+        /// </summary>
+        public static CudaInstructionSet MinInstructionSet { get; } =
+            new CudaInstructionSet(<#= lib.MinInstructionSetMajor #>, <#= lib.MinInstructionSetMinor #>);
+
+        /// <summary>
+        /// Minimum instruction set required to use the pre-generated PTX.
+        /// </summary>
+        public static CudaDriverVersion MinDriverVersion { get; } =
+            CudaDriverVersion.FromValue(<#= lib.MinDriverVersion #>);
+
         #region Generated PTX
 
 <#
-    foreach (var func in functions)
+    foreach (var func in lib.Functions)
     {
         PushIndent(2);
         WriteLibDeviceFunctionPtx(func);
@@ -54,7 +73,7 @@ namespace ILGPU.Backends.PTX
             {
 <#
     PushIndent(4);
-    foreach (var func in functions)
+    foreach (var func in lib.Functions)
         WriteLine($"{{ \"{func.Name}\", {func.Name} }},");
     PopIndent();
 #>
@@ -65,7 +84,7 @@ namespace ILGPU.Backends.PTX
             {
 <#
     PushIndent(4);
-    foreach (var func in functions)
+    foreach (var func in lib.Functions)
         WriteLine($"{{ \"{func.Name}\", {func.Name}{DeclarationSuffix} }},");
     PopIndent();
 #>
@@ -135,8 +154,23 @@ void WriteLibDeviceFunctionPtx(LibDevicePtxFunction func)
 [XmlRoot("LibDevicePtx")]
 public class LibDevicePtxFunctions
 {
-    internal static LibDevicePtxFunction[] Load(string rootPath, string fileName) =>
-        XmlHelper.Load<LibDevicePtxFunctions>(rootPath, fileName).Functions;
+    internal static LibDevicePtxFunctions Load(string rootPath, string fileName) =>
+        XmlHelper.Load<LibDevicePtxFunctions>(rootPath, fileName);
+
+    [XmlAttribute]
+    public int MinArchitectureMajor { get; set; }
+
+    [XmlAttribute]
+    public int MinArchitectureMinor { get; set; }
+
+    [XmlAttribute]
+    public int MinInstructionSetMajor { get; set; }
+
+    [XmlAttribute]
+    public int MinInstructionSetMinor { get; set; }
+
+    [XmlAttribute]
+    public int MinDriverVersion { get; set; }
 
     [XmlElement("Function")]
     public LibDevicePtxFunction[] Functions { get; set; }

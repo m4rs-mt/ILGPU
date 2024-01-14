@@ -35,6 +35,11 @@ namespace CudaGenerateLibDeviceTool
 
             // Generate the PTX for each of the LibDevice methods.
             var filePath = Path.Combine(GetDefaultFolder(), "CudaLibDevicePtx.xml");
+            var minArchitecture = CudaArchitecture.SM_60;
+            var driverVersion = MinimalCudaAPI.GetCudaDriverVersion();
+            var instructionSet =
+                CudaDriverVersionUtils.DriverVersionLookup[driverVersion];
+
             using var doc = XmlWriter.Create(
                 filePath,
                 new XmlWriterSettings
@@ -43,6 +48,11 @@ namespace CudaGenerateLibDeviceTool
                     Encoding = Encoding.UTF8
                 });
             doc.WriteStartElement("LibDevicePtx");
+            doc.WriteAttributeString("MinArchitectureMajor", $"{minArchitecture.Major}");
+            doc.WriteAttributeString("MinArchitectureMinor", $"{minArchitecture.Minor}");
+            doc.WriteAttributeString("MinInstructionSetMajor", $"{instructionSet.Major}");
+            doc.WriteAttributeString("MinInstructionSetMinor", $"{instructionSet.Minor}");
+            doc.WriteAttributeString("MinDriverVersion", $"{driverVersion}");
 
             var methods = LoadMethodNames();
 
@@ -50,7 +60,7 @@ namespace CudaGenerateLibDeviceTool
             {
                 PTXLibDevice.GenerateLibDeviceCode(
                     nvvmAPI,
-                    CudaArchitecture.SM_60,
+                    minArchitecture,
                     new[] { method },
                     out var ptx);
 
