@@ -1232,13 +1232,13 @@
               DisplayName="Modf"
               ReturnType="double">
         <Parameter Name="x" Type="double" />
-        <Parameter Name="y" Type="double" />
+        <Parameter Name="b" Type="double" Flags="Out" />
     </Function>
     <Function Name="__nv_modff"
               DisplayName="Modf"
               ReturnType="float">
         <Parameter Name="x" Type="float" />
-        <Parameter Name="y" Type="float" />
+        <Parameter Name="b" Type="float" Flags="Out" />
     </Function>
     <Function Name="__nv_mul24"
               DisplayName="Mul24"
