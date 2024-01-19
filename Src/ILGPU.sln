@@ -1,9 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29424.173
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU", "ILGPU\ILGPU.csproj", "{30A409A1-B627-4ED0-9CDD-69BA19996E7B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{ED6D4369-EC01-4822-B94E-6C3DCFD26A35} = {ED6D4369-EC01-4822-B94E-6C3DCFD26A35}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Tests", "ILGPU.Tests\ILGPU.Tests.csproj", "{FD2580D6-C051-4F6B-8208-EE0EAAFD6392}"
 EndProject
@@ -26,6 +29,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms.Tests", "ILGPU.Algorithms.Tests\ILGPU.Algorithms.Tests.csproj", "{18F2225C-82FD-4B01-8AF9-CF746D16EDA1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Tests.Velocity", "ILGPU.Tests.Velocity\ILGPU.Tests.Velocity.csproj", "{4AFD2AAD-FA52-43EA-B9A8-10E948F9A139}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Analyzers.Tests", "ILGPU.Analyzers.Tests\ILGPU.Analyzers.Tests.csproj", "{B0101B27-F153-4041-8DEE-741B651453D5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Analyzers", "ILGPU.Analyzers\ILGPU.Analyzers.csproj", "{ED6D4369-EC01-4822-B94E-6C3DCFD26A35}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -77,6 +84,14 @@ Global
 		{4AFD2AAD-FA52-43EA-B9A8-10E948F9A139}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4AFD2AAD-FA52-43EA-B9A8-10E948F9A139}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4AFD2AAD-FA52-43EA-B9A8-10E948F9A139}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0101B27-F153-4041-8DEE-741B651453D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0101B27-F153-4041-8DEE-741B651453D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0101B27-F153-4041-8DEE-741B651453D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0101B27-F153-4041-8DEE-741B651453D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED6D4369-EC01-4822-B94E-6C3DCFD26A35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED6D4369-EC01-4822-B94E-6C3DCFD26A35}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED6D4369-EC01-4822-B94E-6C3DCFD26A35}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED6D4369-EC01-4822-B94E-6C3DCFD26A35}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -91,6 +106,7 @@ Global
 		{6ED7EDA1-E6DA-4867-8084-C0327EEFB7A9} = {7701FE3C-4187-401C-9612-44667203B0E5}
 		{18F2225C-82FD-4B01-8AF9-CF746D16EDA1} = {7701FE3C-4187-401C-9612-44667203B0E5}
 		{4AFD2AAD-FA52-43EA-B9A8-10E948F9A139} = {7701FE3C-4187-401C-9612-44667203B0E5}
+		{B0101B27-F153-4041-8DEE-741B651453D5} = {7701FE3C-4187-401C-9612-44667203B0E5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {22270DEE-D42D-479D-A76F-B2E7A5F7C949}

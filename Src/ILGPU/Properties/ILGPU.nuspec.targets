@@ -44,4 +44,24 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
     </ItemGroup>
+
+    <!--
+        Analyzers
+        https://learn.microsoft.com/en-us/nuget/guides/analyzers-conventions
+    -->
+    <ItemGroup>
+        <None Include="..\ILGPU.Analyzers\bin\$(Configuration)\netstandard2.0\ILGPU.Analyzers.dll"
+              Pack="true"
+              PackagePath="analyzers/dotnet/cs"
+              Visible="false" />
+        <None Include="..\ILGPU.Analyzers\Tools\install.ps1"
+              Pack="true"
+              PackagePath="tools"
+              Visible="false" />
+        <None Include="..\ILGPU.Analyzers\Tools\uninstall.ps1"
+              Pack="true"
+              PackagePath="tools"
+              Visible="false" />
+    </ItemGroup>
+
 </Project>
