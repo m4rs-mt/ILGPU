@@ -680,7 +680,7 @@ namespace ILGPU.Backends
             try
             {
                 // Import the all kernel functions into our kernel context
-                using var kernelContext = kernelMethod.ExtractToContext(out var method);
+                var kernelContext = kernelMethod.ExtractToContext(out var method);
 
                 // Mark this method as a new entry point
                 method.AddFlags(MethodFlags.EntryPoint);
@@ -880,7 +880,9 @@ namespace ILGPU.Backends
         protected override void Dispose(bool disposing)
         {
             if (disposing)
-                IntrinsicProvider.Dispose();
+            {
+              //  IntrinsicProvider.Dispose();
+            }
             base.Dispose(disposing);
         }
 
