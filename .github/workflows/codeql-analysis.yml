@@ -74,9 +74,6 @@ jobs:
                      -p:LibrarySamplesTargetFrameworks=$LibrarySamplesTargetFrameworks `
                      -p:LibrarySamplesTargetFrameworksWindows=$LibrarySamplesTargetFrameworksWindows `
                      ${{ matrix.solution }}
-      env:
-        ILGPU_DOTNET_PREVIEW: ${{ matrix.preview }}
-      continue-on-error: ${{ matrix.preview }}
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
