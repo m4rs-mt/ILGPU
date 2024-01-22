@@ -59,7 +59,7 @@ namespace ILGPU.Backends.PTX
             nvvmBinDir = Path.Combine(nvvmRoot, nvvmBinName);
             var nvvmSearchPattern =
                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? "nvvm*.dll"
+                ? "nvvm64*.dll"
                 : "libnvvm*.so";
             var nvvmFiles = Directory.EnumerateFiles(nvvmBinDir, nvvmSearchPattern);
             libNvvmPath = nvvmFiles.FirstOrDefault();
