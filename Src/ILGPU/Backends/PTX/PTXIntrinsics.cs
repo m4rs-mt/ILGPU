@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXIntrinsics.cs
@@ -13,7 +13,9 @@ using ILGPU.AtomicOperations;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.Cuda;
+using ILGPU.Util;
 using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.PTX
@@ -85,6 +87,49 @@ namespace ILGPU.Backends.PTX
             : new PTXIntrinsic(HalfType, name, IntrinsicImplementationMode.Redirect);
 
         /// <summary>
+        /// Creates a PTX intrinsic for the given math function.
+        /// </summary>
+        /// <param name="name">The intrinsic name.</param>
+        /// <param name="types">The parameter types.</param>
+        /// <returns>The resolved intrinsic representation.</returns>
+        private static PTXIntrinsic CreateMathIntrinsic(string name, params Type[] types)
+        {
+            var targetMethod = typeof(LibDevice).GetMethod(
+                name,
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                types,
+                null)
+                .ThrowIfNull();
+            return new PTXIntrinsic(
+                targetMethod,
+                IntrinsicImplementationMode.Redirect,
+                PTXLibDevicePtx.MinArchtecture);
+        }
+
+        /// <summary>
+        /// Creates a PTX intrinsic for the given math function.
+        /// </summary>
+        /// <param name="baseType">The source type containing the intrinsic.</param>
+        /// <param name="name">The intrinsic name.</param>
+        /// <param name="types">The parameter types.</param>
+        /// <returns>The resolved intrinsic representation.</returns>
+        private static PTXIntrinsic CreateMathIntrinsic(
+            Type baseType,
+            string name,
+            params Type[] types)
+        {
+            var targetMethod = baseType.GetMethod(
+                name,
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                types,
+                null)
+                .ThrowIfNull();
+            return new PTXIntrinsic(targetMethod, IntrinsicImplementationMode.Redirect);
+        }
+
+        /// <summary>
         /// Registers all PTX intrinsics with the given manager.
         /// </summary>
         /// <param name="manager">The target implementation manager.</param>
@@ -95,6 +140,7 @@ namespace ILGPU.Backends.PTX
             RegisterWarpShuffles(manager);
             RegisterFP16(manager);
             RegisterBitFunctions(manager);
+            RegisterMathFunctions(manager);
         }
 
         #endregion

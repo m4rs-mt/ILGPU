@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXIntrinsic.cs
@@ -51,6 +51,46 @@ namespace ILGPU.Backends.PTX
                   targetMethod,
                   mode)
         { }
+
+        /// <summary>
+        /// Constructs a new PTX intrinsic that can handle all architectures
+        /// newer or equal to <paramref name="minArchitecture"/>.
+        /// </summary>
+        /// <param name="targetMethod">The associated target method.</param>
+        /// <param name="mode">The code-generation mode.</param>
+        /// <param name="minArchitecture">The target/minimum architecture.</param>
+        public PTXIntrinsic(
+            MethodInfo targetMethod,
+            IntrinsicImplementationMode mode,
+            CudaArchitecture minArchitecture)
+            : base(
+                  BackendType.PTX,
+                  targetMethod,
+                  mode)
+        {
+            MinArchitecture = minArchitecture;
+        }
+
+        /// <summary>
+        /// Constructs a new PTX intrinsic.
+        /// </summary>
+        /// <param name="targetMethod">The associated target method.</param>
+        /// <param name="mode">The code-generation mode.</param>
+        /// <param name="minArchitecture">The target/minimum architecture.</param>
+        /// <param name="maxArchitecture">The max architecture (exclusive).</param>
+        public PTXIntrinsic(
+            MethodInfo targetMethod,
+            IntrinsicImplementationMode mode,
+            CudaArchitecture? minArchitecture,
+            CudaArchitecture? maxArchitecture)
+            : base(
+                  BackendType.PTX,
+                  targetMethod,
+                  mode)
+        {
+            MinArchitecture = minArchitecture;
+            MaxArchitecture = maxArchitecture;
+        }
 
         /// <summary>
         /// Constructs a new PTX intrinsic that can handle all architectures.

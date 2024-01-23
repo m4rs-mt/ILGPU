@@ -35,7 +35,7 @@ namespace ILGPU.Backends.PTX
     /// <summary>
     /// Contains the pre-generated PTX for Cuda LibDevice functions.
     /// </summary>
-    internal static class PTXLibDevicePtx
+    public static class PTXLibDevicePtx
     {
         /// <summary>
         /// Minimum architecture required to use the pre-generated PTX.
@@ -97,7 +97,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="ptxModules">Filled in with the PTX modules.</param>
         /// <param name="ptxDeclarations">Filled in with the PTX declarations.</param>
         /// <returns>The PTX modules.</returns>
-        public static void GetPtx(
+        internal static void GetPtx(
             IEnumerable<string> methods,
             ref InlineList<string> ptxModules,
             out string ptxDeclarations)

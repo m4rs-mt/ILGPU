@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXContext.Generated.tt/PTXContext.Generated.cs
@@ -18,34 +18,34 @@
 <#@ output extension=".cs" #>
 <#
 var hardwareMathFunctions =
-    new ValueTuple<ValueTuple<string, Type, string, string>, string>[]
+    new ValueTuple<string, Type, string, string>[]
     {
-        ( UnaryMathFunctions[10],   null ), // IsInfinity
-        ( UnaryMathFunctions[11],   null ), // IsInfinity
-        ( UnaryMathFunctions[12],   null ), // IsNaN
-        ( UnaryMathFunctions[13],   null ), // IsNaN
-
-        ( UnaryMathFunctions[18],   null ), // Rcp
-        ( UnaryMathFunctions[19],   null ), // Rcp
-
-        ( UnaryMathFunctions[20],   null ), // Sqrt
-        ( UnaryMathFunctions[21],   null ), // Sqrt
-
-        ( UnaryMathFunctions[24],   null ), // Sin
-        ( UnaryMathFunctions[30],   null ), // Cos
-
-        ( UnaryMathFunctions[16],   null ), // Exp2
-
-        ( UnaryMathFunctions[8],    null ), // Log2
-
-        ( UnaryMathFunctions[40],   "SM_75" ),  // TanH
+        UnaryMathFunctions[10], // IsInfinity
+        UnaryMathFunctions[11], // IsInfinity
+        UnaryMathFunctions[12], // IsNaN
+        UnaryMathFunctions[13], // IsNaN
+                              
+        UnaryMathFunctions[18], // Rcp
+        UnaryMathFunctions[19], // Rcp
+                              
+        UnaryMathFunctions[20], // Sqrt
+        UnaryMathFunctions[21], // Sqrt
+                              
+        UnaryMathFunctions[24], // Sin
+        UnaryMathFunctions[30], // Cos
+                              
+        UnaryMathFunctions[16], // Exp2
+                              
+        UnaryMathFunctions[8],  // Log2
+                              
+        UnaryMathFunctions[40], // TanH
     };
 var unaryMathFunctions = UnaryMathFunctions.Where(t =>
     !hardwareMathFunctions.Any(t2 => {
         var functionName = t.Item1;
         var dataType = t.Item2;
-        var hardwareFunctionName = t2.Item1.Item1;
-        var hardwareDataType = t2.Item1.Item2;
+        var hardwareFunctionName = t2.Item1;
+        var hardwareDataType = t2.Item2;
         return functionName == hardwareFunctionName && dataType == hardwareDataType;
     }));
 var binaryMathFunctions = BinaryMathFunctions;
@@ -87,29 +87,11 @@ namespace ILGPU.Algorithms.PTX
                     typeof(<#= type #>)));
 <# } #>
 
-<# foreach (var ((name, type, kind, basicType), sm) in hardwareMathFunctions) { #>
-<#
-       if (string.IsNullOrWhiteSpace(sm)) {
-           // Register hardware intrinsic
-#>
+<# foreach (var (name, type, kind, basicType) in hardwareMathFunctions) { #>
             manager.RegisterUnaryArithmetic(
                 UnaryArithmeticKind.<#= kind #>,
                 BasicValueType.<#= basicType #>,
                 MathCodeGeneratorIntrinsic);
-<#
-        } else {
-            // Register software fallback first, so that it gets replaced
-            // by the specialized hardware intrinsic.
-#>
-            manager.RegisterUnaryArithmetic(
-                UnaryArithmeticKind.<#= kind #>,
-                BasicValueType.<#= basicType #>,
-                GetMathIntrinsic("<#= name #>", typeof(<#= type #>)));
-            manager.RegisterUnaryArithmetic(
-                UnaryArithmeticKind.<#= kind #>,
-                BasicValueType.<#= basicType #>,
-                GetMathCodeGeneratorIntrinsic(CudaArchitecture.<#= sm #>));
-<#      } #>
 <# } #>
 
 <# foreach (var functionName in xmathUnaryRedirects) { #>
