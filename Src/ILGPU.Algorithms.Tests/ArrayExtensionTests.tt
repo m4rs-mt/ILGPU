@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayExtensionTests.tt/ArrayExtensionTests.cs
@@ -31,8 +31,8 @@ namespace ILGPU.Algorithms.Tests
 
         #region MemberData
 
-        public static TheoryData<object, object> TestDataLength1D =>
-            new TheoryData<object, object>
+        public static TheoryData<object, int> TestDataLength1D =>
+            new TheoryData<object, int>
         {
 <#
         // TODO: Ignoring Half type, otherwise XUnit complains about an
@@ -50,8 +50,8 @@ namespace ILGPU.Algorithms.Tests
 #>
         };
 
-        public static TheoryData<object, object, object> TestDataLength2D =>
-            new TheoryData<object, object, object>
+        public static TheoryData<object, int, int> TestDataLength2D =>
+            new TheoryData<object, int, int>
         {
 <#
         foreach (var type in types) {
@@ -64,8 +64,8 @@ namespace ILGPU.Algorithms.Tests
 #>
         };
 
-        public static TheoryData<object, object, object, object> TestDataLength3D =>
-            new TheoryData<object, object, object, object>
+        public static TheoryData<object, int, int, int> TestDataLength3D =>
+            new TheoryData<object, int, int, int>
         {
 <#
         foreach (var type in types) {

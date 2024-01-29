@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RandomTests.tt/RandomTests.cs
@@ -49,8 +49,8 @@ namespace ILGPU.Algorithms.Tests
             : base(output, testContext)
         { }
 
-        public static TheoryData<object, object, object> RandomTestData =>
-            new TheoryData<object, object, object>
+        public static TheoryData<object, int, int> RandomTestData =>
+            new TheoryData<object, int, int>
         {
 <# foreach (var rng in rngs) { #>
             { default(<#= rng #>), 1024, 16 },

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TransformerExtensionTests.tt/TransformerExtensionTests.cs
@@ -33,8 +33,8 @@ namespace ILGPU.Algorithms.Tests
 
         #region MemberData
 
-        public static TheoryData<object> TestDataLength =>
-            new TheoryData<object>
+        public static TheoryData<int> TestDataLength =>
+            new TheoryData<int>
         {
 <#
             foreach (var size in ArraySizes) {
@@ -45,8 +45,8 @@ namespace ILGPU.Algorithms.Tests
 #>
         };
 
-        public static TheoryData<object, object, object> CastFromIndex1TestData =>
-            new TheoryData<object, object, object>
+        public static TheoryData<object, object, int> CastFromIndex1TestData =>
+            new TheoryData<object, object, int>
         {
 <#
         var types = AtomicNumericTypes;

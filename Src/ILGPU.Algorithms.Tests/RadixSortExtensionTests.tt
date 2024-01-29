@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RadixSortExtensionTests.tt/RadixSortExtensionTests.cs
@@ -34,9 +34,9 @@ namespace ILGPU.Algorithms.Tests
 
         #region MemberData
 
-        public static TheoryData<object, object, object, object, object, object>
+        public static TheoryData<object, object, object, object, object, int>
             AscendingTestData =>
-            new TheoryData<object, object, object, object, object, object>
+            new TheoryData<object, object, object, object, object, int>
         {
             // Type, RadixSortOperation, Sequencer, Start of Sequencer,
             // StepSize of Sequencer, BufferLength
@@ -53,9 +53,9 @@ namespace ILGPU.Algorithms.Tests
 #>
         };
 
-        public static TheoryData<object, object, object, object>
+        public static TheoryData<object, object, object, int>
             AscendingPairsTestData =>
-            new TheoryData<object, object, object, object>
+            new TheoryData<object, object, object, int>
         {
             // Type, RadixSortOperation, Sequencer, Start of Sequencer, BufferLength
 <#
@@ -70,9 +70,9 @@ namespace ILGPU.Algorithms.Tests
 #>
         };
 
-        public static TheoryData<object, object, object, object, object, object>
+        public static TheoryData<object, object, object, object, object, int>
             DescendingTestData =>
-            new TheoryData<object, object, object, object, object, object>
+            new TheoryData<object, object, object, object, object, int>
         {
             // Type, RadixSortOperation, Sequencer, Start of Sequencer,
             // StepSize of Sequencer, BufferLength
@@ -88,9 +88,9 @@ namespace ILGPU.Algorithms.Tests
 #>
         };
 
-        public static TheoryData<object, object, object, object>
+        public static TheoryData<object, object, object, int>
             DescendingPairsTestData =>
-            new TheoryData<object, object, object, object>
+            new TheoryData<object, object, object, int>
         {
             // Type, RadixSortOperation, Sequencer, BufferLength
 <#
@@ -105,9 +105,9 @@ namespace ILGPU.Algorithms.Tests
 #>
         };
 
-        public static TheoryData<object, object, object, object, object, object>
+        public static TheoryData<object, object, object, object, object, int>
             ConstantTestData =>
-            new TheoryData<object, object, object, object, object, object>
+            new TheoryData<object, object, object, object, object, int>
         {
             // Type, RadixSortOperation, Sequencer, Start of Sequencer,
             // StepSize of Sequencer, BufferLength
@@ -434,10 +434,10 @@ namespace ILGPU.Algorithms.Tests
 
     partial class WarpExtensionTests
     {
-        public static TheoryData<object, object, object, object, object, object>
+        public static TheoryData<object, object, object, object, object, int>
             AscendingTestData => RadixSortExtensionTests.AscendingTestData;
 
-        public static TheoryData<object, object, object, object, object, object>
+        public static TheoryData<object, object, object, object, object, int>
             DescendingTestData => RadixSortExtensionTests.DescendingTestData;
 
         internal static void WarpWideRadixSort<T, TRadixSortOperation>(
@@ -561,10 +561,10 @@ namespace ILGPU.Algorithms.Tests
 
     partial class GroupExtensionTests
     {
-        public static TheoryData<object, object, object, object, object, object>
+        public static TheoryData<object, object, object, object, object, int>
             AscendingTestData => RadixSortExtensionTests.AscendingTestData;
 
-        public static TheoryData<object, object, object, object, object, object>
+        public static TheoryData<object, object, object, object, object, int>
             DescendingTestData => RadixSortExtensionTests.DescendingTestData;
 
         internal static void GroupWideRadixSort<T, TRadixSortOperation>(

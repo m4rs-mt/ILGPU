@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: UnaryFloatOperations.cs
@@ -23,12 +23,12 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        public static TheoryData<object, object, object, object, object> HalfData =>
-            new TheoryData<object, object, object, object, object>
+        public static TheoryData<Half, bool, bool, bool, bool> HalfData =>
+            new TheoryData<Half, bool, bool, bool, bool>
         {
             { Half.PositiveInfinity, false, false, true, false },
             { Half.NegativeInfinity, false, false, false, true },
-            { 0.0f, true, false, false, false },
+            { Half.Zero, true, false, false, false },
             { Half.MaxValue, true, false, false, false },
             { Half.MinValue, true, false, false, false },
             { Half.NaN, false, true, false, false },
