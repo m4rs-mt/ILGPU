@@ -74,7 +74,7 @@ jobs:
           source: ./Site
           destination: ./_site
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
       ##### GitHub Pages #####
 
   # Virtual job that can be configured as a required check before a PR can be
