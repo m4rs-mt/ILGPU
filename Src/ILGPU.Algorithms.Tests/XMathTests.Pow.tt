@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XMathTests.Pow.tt/XMathTests.Pow.cs
@@ -48,6 +48,32 @@ namespace ILGPU.Algorithms.Tests
     // and ensures a minimum error on each accelerator type.
     partial class XMathTests
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Workaround for different output of LibDevice __nv_pow(double, double) and
+        /// .NET Math.Pow(double, double) on Cuda Test Runner.
+        /// </summary>
+        private class CudaPowDoubleRelativeErrorComparer : DoubleRelativeErrorComparer
+        {
+            public CudaPowDoubleRelativeErrorComparer(double relativeError)
+                : base(relativeError)
+            { }
+
+            public override bool Equals(double x, double y)
+            {
+                if ((double.IsPositiveInfinity(x) && double.IsNegativeInfinity(y)) ||
+                    (double.IsNegativeInfinity(x) && double.IsPositiveInfinity(y)))
+                {
+                    return true;
+                }
+
+                return base.Equals(x, y);
+            }
+        }
+
+        #endregion
+
 <# foreach (var function in powFunctions) { #>
         internal static void <#= function.KernelName #>(
             Index1D index,
@@ -120,10 +146,24 @@ namespace ILGPU.Algorithms.Tests
                 v => Math<#= function.MathSuffix #>.<#= function.Name #>(v.X, v.Y))
                 .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+<#
+            if (function.DataType == "double") {
+#>
+                VerifyUsingComparer(
+                    output.View,
+                    expected,
+                    new CudaPowDoubleRelativeErrorComparer(
+                        (<#= function.DataType #>)<#= function.RelativeError.Cuda #>));
+<#
+            } else {
+#>
                 VerifyWithinRelativeError(
                     output.View,
                     expected,
                     <#= function.RelativeError.Cuda #>);
+<#
+            }
+#>
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
                 VerifyWithinRelativeError(
                     output.View,
