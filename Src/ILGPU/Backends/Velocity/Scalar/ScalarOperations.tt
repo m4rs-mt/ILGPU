@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ScalarOperations.tt/ScalarOperations.cs
@@ -1179,7 +1179,7 @@ namespace ILGPU.Backends.Velocity.Scalar
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe <#= warpType32 #> Load32(
+        internal static unsafe <#= warpType32 #> Load32(
             <#= warpType32 #> mask,
             <#= warpType64 #> address)
         {
@@ -1243,7 +1243,7 @@ namespace ILGPU.Backends.Velocity.Scalar
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void Store64(
+        internal static unsafe void Store64(
             <#= warpType32 #> mask,
             <#= warpType64 #> address,
             <#= warpType64 #> value)
