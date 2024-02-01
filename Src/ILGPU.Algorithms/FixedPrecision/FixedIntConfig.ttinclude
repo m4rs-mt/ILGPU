@@ -1,0 +1,59 @@
+// ---------------------------------------------------------------------------------------
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2023-2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: FixedIntConfig.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#+
+private readonly struct FixedIntConfig
+{
+    public FixedIntConfig(
+        int bits,
+        string baseName,
+        string typeName,
+        string calcTypeName,
+        int[] variants)
+    {
+        Bits = bits;
+        BaseName = baseName;
+        TypeName = typeName;
+        CalcTypeName = calcTypeName;
+        Variants = variants;
+    }
+
+    public int Bits { get; }
+    public string BaseName { get; }
+    public string TypeName { get; }
+    public string CalcTypeName { get; }
+    public int[] Variants { get; }
+
+    public string GetName(int variant) => $"Fixed{BaseName}{variant}DP";
+
+    public TypeInformation ToBasicTypeInformation(int variant) => new TypeInformation(
+        GetName(variant),
+        GetName(variant),
+        TypeInformationKind.SignedInt,
+        prefix: "(int)");
+
+    public IEnumerable<TypeInformation> ToBasicTypeInformation() =>
+        Variants.Select(ToBasicTypeInformation);
+}
+
+private static FixedIntConfig[] FixedPrecisionIntTypes =
+{
+    new FixedIntConfig(32, "Int", "int", "long", new int[]
+        {
+            2, 4, 6
+        }),
+    new FixedIntConfig(64, "Long", "long", "long", new int[]
+        {
+            2, 4, 6, 8
+        })
+};
+
+#>
