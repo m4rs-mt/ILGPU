@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: MetaOptimizer.Evaluator.cs
+// File: SGOOptimizer.Evaluator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace ILGPU.Algorithms.Optimization.CPU
 {
-    partial class MetaOptimizer<T, TEvalType>
+    partial class SGOOptimizer<T, TEvalType>
     {
         /// <summary>
         /// A parallel evaluation state storing temporary best result and position
@@ -147,7 +147,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             /// The best known position provided by the user.
             /// </param>
             public ResultManager(
-                MetaOptimizer<T, TEvalType> optimizer,
+                SGOOptimizer<T, TEvalType> optimizer,
                 in TEvalType bestUserKnownResult,
                 ReadOnlyMemory<T>? bestKnownPosition)
             {
@@ -253,7 +253,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             where TIntermediate : class
             where TModifier : ICPUPositionModifier<T>
         {
-            private readonly MetaOptimizer<T, TEvalType> parent;
+            private readonly SGOOptimizer<T, TEvalType> parent;
             private TFunction function;
             private TModifier modifier;
 
@@ -273,7 +273,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             /// The best known position provided by the user.
             /// </param>
             public Evaluator(
-                MetaOptimizer<T, TEvalType> optimizer,
+                SGOOptimizer<T, TEvalType> optimizer,
                 in TFunction optimizationFunction,
                 in TModifier positionModifier,
                 in TEvalType bestUserKnownResult,

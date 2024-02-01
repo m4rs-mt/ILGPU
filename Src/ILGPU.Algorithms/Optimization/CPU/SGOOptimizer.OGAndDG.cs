@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: MetaOptimizer.OGAndDG.cs
+// File: SGOOptimizer.OGAndDG.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace ILGPU.Algorithms.Optimization.CPU
 {
-    partial class MetaOptimizer<T, TEvalType>
+    partial class SGOOptimizer<T, TEvalType>
     {
         /// <summary>
         /// Represents an intermediate parallel processing state for OG and DG state.
@@ -66,14 +66,14 @@ namespace ILGPU.Algorithms.Optimization.CPU
             where TProcessor : struct, IProcessor<TProcessor, TType>
             where TType : unmanaged
         {
-            private readonly MetaOptimizer<T, TEvalType> parent;
+            private readonly SGOOptimizer<T, TEvalType> parent;
             private readonly T convertedM;
 
             /// <summary>
             /// Creates a new OG and DG computer.
             /// </summary>
             /// <param name="optimizer">The parent optimizer.</param>
-            public OGAndDG(MetaOptimizer<T, TEvalType> optimizer)
+            public OGAndDG(SGOOptimizer<T, TEvalType> optimizer)
             {
                 parent = optimizer;
                 convertedM = T.CreateTruncating(optimizer.M);

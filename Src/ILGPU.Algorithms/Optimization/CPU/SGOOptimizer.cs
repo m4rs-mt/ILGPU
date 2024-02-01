@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: MetaOptimizer.cs
+// File: SGOOptimizer.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -38,7 +38,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
     /// parallelized and has the ability to use SIMD vector instructions to improve
     /// runtime performance.
     /// </remarks>
-    public abstract partial class MetaOptimizer<T, TEvalType> : DisposeBase
+    public abstract partial class SGOOptimizer<T, TEvalType> : DisposeBase
         where T : unmanaged, INumber<T>
         where TEvalType : struct, IEquatable<TEvalType>
     {
@@ -290,7 +290,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             "CA1031:Do not catch general exception types",
             Justification = "Catch is used to initialize step sizes to logical 0.5 " +
                 "which may lead to exceptions depending on the value type")]
-        protected MetaOptimizer(
+        protected SGOOptimizer(
             System.Random inputRandom,
             int numPlayers,
             int numDimensions,

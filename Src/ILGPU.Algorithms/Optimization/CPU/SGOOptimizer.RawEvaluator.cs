@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: MetaOptimizer.RawEvaluator.cs
+// File: SGOOptimizer.RawEvaluator.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace ILGPU.Algorithms.Optimization.CPU
 {
-    partial class MetaOptimizer<T, TEvalType>
+    partial class SGOOptimizer<T, TEvalType>
     {
         /// <summary>
         /// Represents a comparison interface wrapper around a delegate comparison
@@ -72,7 +72,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             IParallelProcessingBody<EvaluatorState<RawComparisonWrapper, object>>,
             IEvaluator
         {
-            private readonly MetaOptimizer<T, TEvalType> parent;
+            private readonly SGOOptimizer<T, TEvalType> parent;
             private readonly RawCPUOptimizationFunction<T, TEvalType> function;
             private readonly CPUEvaluationComparison<TEvalType> comparison;
 
@@ -92,7 +92,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             /// The best known position provided by the user.
             /// </param>
             public RawEvaluator(
-                MetaOptimizer<T, TEvalType> optimizer,
+                SGOOptimizer<T, TEvalType> optimizer,
                 RawCPUOptimizationFunction<T, TEvalType> optimizationFunction,
                 CPUEvaluationComparison<TEvalType> evaluationComparison,
                 in TEvalType bestUserKnownResult,

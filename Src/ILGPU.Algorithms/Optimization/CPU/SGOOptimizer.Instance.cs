@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: MetaOptimizer.Instance.cs
+// File: SGOOptimizer.Instance.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 
 namespace ILGPU.Algorithms.Optimization.CPU
 {
-    partial class MetaOptimizer<T, TEvalType>
+    partial class SGOOptimizer<T, TEvalType>
     {
         /// <summary>
         /// Holds intermediate and run-specific optimizer instances that depend on
@@ -50,7 +50,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             where TType : unmanaged
             where TRandom : struct, IRandomRangeProvider<T>
         {
-            private readonly MetaOptimizer<T, TEvalType> optimizer;
+            private readonly SGOOptimizer<T, TEvalType> optimizer;
             private readonly TEvaluator evaluator;
             private readonly UpdatePlayers<
                 TFunction,
@@ -68,8 +68,8 @@ namespace ILGPU.Algorithms.Optimization.CPU
             /// <param name="function">The objective function.</param>
             /// <param name="evaluatorInstance">The evaluator instance.</param>
             public RuntimeInstance(
-                MetaOptimizer<T, TEvalType> parent,
-                Func<MetaOptimizer<T, TEvalType>, TRandom> createRandom,
+                SGOOptimizer<T, TEvalType> parent,
+                Func<SGOOptimizer<T, TEvalType>, TRandom> createRandom,
                 in TFunction function,
                 TEvaluator evaluatorInstance)
             {
@@ -135,7 +135,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             TProcessor,
             TType,
             TRandom,
-            TTypeRandom> : MetaOptimizer<T, TEvalType>
+            TTypeRandom> : SGOOptimizer<T, TEvalType>
             where TProcessor : struct, IProcessor<TProcessor, TType>
             where TType : unmanaged
             where TRandom : struct, IRandomRangeProvider<T>
@@ -152,7 +152,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
                 TType,
                 TTypeRandom> initializePlayers;
 
-            private readonly Func<MetaOptimizer<T, TEvalType>, TRandom> getRandom;
+            private readonly Func<SGOOptimizer<T, TEvalType>, TRandom> getRandom;
 
             /// <summary>
             /// Creates a new meta optimizer instance.
@@ -174,8 +174,8 @@ namespace ILGPU.Algorithms.Optimization.CPU
                 int numPlayers,
                 int numDimensions,
                 int? maxNumParallelThreads,
-                Func<MetaOptimizer<T, TEvalType>, TRandom> createRandom,
-                Func<MetaOptimizer<T, TEvalType>, TTypeRandom> createTTypeRandom)
+                Func<SGOOptimizer<T, TEvalType>, TRandom> createRandom,
+                Func<SGOOptimizer<T, TEvalType>, TTypeRandom> createTTypeRandom)
                 : base(
                     inputRandom,
                     numPlayers,
@@ -411,7 +411,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
         /// number of threads means using as many threads as possible.
         /// </param>
         /// <returns>The created meta optimizer instance.</returns>
-        public static MetaOptimizer<T, TEvalType> CreateScalar<TRandom>(
+        public static SGOOptimizer<T, TEvalType> CreateScalar<TRandom>(
             System.Random inputRandom,
             int numPlayers,
             int numDimensions,
@@ -419,7 +419,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             where TRandom : struct, IRandomRangeProvider<TRandom, T>
         {
             // Creates new random range generators using the scalar type T
-            TRandom CreateRandom(MetaOptimizer<T, TEvalType> parent) =>
+            TRandom CreateRandom(SGOOptimizer<T, TEvalType> parent) =>
                 TRandom.Create(parent.random, T.Zero, T.One);
 
             return new Instance<ScalarProcessor, T, TRandom, TRandom>(
@@ -447,7 +447,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
         /// number of threads means using as many threads as possible.
         /// </param>
         /// <returns>The created meta optimizer instance.</returns>
-        public static MetaOptimizer<T, TEvalType> CreateVectorized<TRandom>(
+        public static SGOOptimizer<T, TEvalType> CreateVectorized<TRandom>(
             System.Random inputRandom,
             int numPlayers,
             int numDimensions,
@@ -455,12 +455,12 @@ namespace ILGPU.Algorithms.Optimization.CPU
             where TRandom : struct, IRandomRangeProvider<TRandom, T>
         {
             // Creates new random range generators using the scalar type T
-            TRandom CreateRandom(MetaOptimizer<T, TEvalType> parent) =>
+            TRandom CreateRandom(SGOOptimizer<T, TEvalType> parent) =>
                 TRandom.Create(parent.random, T.Zero, T.One);
 
             // Creates new random range generators using the vectorized type TType
             RandomRangeVectorProvider<T, TRandom> CreateVectorizedRandom(
-                MetaOptimizer<T, TEvalType> parent) =>
+                SGOOptimizer<T, TEvalType> parent) =>
                 CreateRandom(parent).CreateVectorProvider();
 
             return new Instance<
@@ -478,9 +478,9 @@ namespace ILGPU.Algorithms.Optimization.CPU
     }
 
     /// <summary>
-    /// A static helper class for <see cref="MetaOptimizer{T,TEvalType}"/> instances.
+    /// A static helper class for <see cref="SGOOptimizer{T,TEvalType}"/> instances.
     /// </summary>
-    public static class MetaOptimizer
+    public static class SGOOptimizer
     {
         #region Static
 
@@ -504,7 +504,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
         /// number of threads means using as many threads as possible.
         /// </param>
         /// <returns>The created meta optimizer instance.</returns>
-        public static MetaOptimizer<T, TEvalType> CreateScalar<T, TEvalType, TRandom>(
+        public static SGOOptimizer<T, TEvalType> CreateScalar<T, TEvalType, TRandom>(
             System.Random inputRandom,
             int numPlayers,
             int numDimensions,
@@ -512,7 +512,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             where T : unmanaged, INumber<T>
             where TEvalType : struct, IEquatable<TEvalType>
             where TRandom : struct, IRandomRangeProvider<TRandom, T> =>
-            MetaOptimizer<T, TEvalType>.CreateScalar<TRandom>(
+            SGOOptimizer<T, TEvalType>.CreateScalar<TRandom>(
                 inputRandom,
                 numPlayers,
                 numDimensions,
@@ -538,7 +538,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
         /// number of threads means using as many threads as possible.
         /// </param>
         /// <returns>The created meta optimizer instance.</returns>
-        public static MetaOptimizer<T, TEvalType> CreateVectorized<
+        public static SGOOptimizer<T, TEvalType> CreateVectorized<
             T,
             TEvalType,
             TRandom>(
@@ -549,7 +549,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
             where T : unmanaged, INumber<T>
             where TEvalType : struct, IEquatable<TEvalType>
             where TRandom : struct, IRandomRangeProvider<TRandom, T> =>
-            MetaOptimizer<T, TEvalType>.CreateVectorized<TRandom>(
+            SGOOptimizer<T, TEvalType>.CreateVectorized<TRandom>(
                 inputRandom,
                 numPlayers,
                 numDimensions,

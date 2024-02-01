@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: MetaOptimizer.InitializePlayers.cs
+// File: SGOOptimizer.InitializePlayers.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace ILGPU.Algorithms.Optimization.CPU
 {
-    partial class MetaOptimizer<T, TEvalType>
+    partial class SGOOptimizer<T, TEvalType>
     {
         /// <summary>
         /// A parallel processing state for player initialization based on random number
@@ -65,8 +65,8 @@ namespace ILGPU.Algorithms.Optimization.CPU
             where TType : unmanaged
             where TRandom : struct, IRandomRangeProvider<TType>
         {
-            private readonly MetaOptimizer<T, TEvalType> parent;
-            private readonly Func<MetaOptimizer<T, TEvalType>, TRandom> getRandom;
+            private readonly SGOOptimizer<T, TEvalType> parent;
+            private readonly Func<SGOOptimizer<T, TEvalType>, TRandom> getRandom;
 
             /// <summary>
             /// Creates a new player initializer.
@@ -74,8 +74,8 @@ namespace ILGPU.Algorithms.Optimization.CPU
             /// <param name="optimizer">The parent optimizer.</param>
             /// <param name="createRandom">A function creating a new RNG instance.</param>
             public InitializePlayers(
-                MetaOptimizer<T, TEvalType> optimizer,
-                Func<MetaOptimizer<T, TEvalType>, TRandom> createRandom)
+                SGOOptimizer<T, TEvalType> optimizer,
+                Func<SGOOptimizer<T, TEvalType>, TRandom> createRandom)
             {
                 parent = optimizer;
                 getRandom = createRandom;

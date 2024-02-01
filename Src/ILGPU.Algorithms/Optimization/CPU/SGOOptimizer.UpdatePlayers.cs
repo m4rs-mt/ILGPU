@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: MetaOptimizer.UpdatePlayers.cs
+// File: SGOOptimizer.UpdatePlayers.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 
 namespace ILGPU.Algorithms.Optimization.CPU
 {
-    partial class MetaOptimizer<T, TEvalType>
+    partial class SGOOptimizer<T, TEvalType>
     {
         /// <summary>
         /// Represents an intermediate parallel processing state for updating players.
@@ -118,8 +118,8 @@ namespace ILGPU.Algorithms.Optimization.CPU
             where TType : unmanaged
             where TRandom : struct, IRandomRangeProvider<T>
         {
-            private readonly MetaOptimizer<T, TEvalType> parent;
-            private readonly Func<MetaOptimizer<T, TEvalType>, TRandom> getRandom;
+            private readonly SGOOptimizer<T, TEvalType> parent;
+            private readonly Func<SGOOptimizer<T, TEvalType>, TRandom> getRandom;
             private readonly TFunction function;
 
             private volatile bool hasSOGAndSDG;
@@ -131,8 +131,8 @@ namespace ILGPU.Algorithms.Optimization.CPU
             /// <param name="createRandom">A function creating a new RNG instance.</param>
             /// <param name="optimizationFunction">The objective function.</param>
             public UpdatePlayers(
-                MetaOptimizer<T, TEvalType> optimizer,
-                Func<MetaOptimizer<T, TEvalType>, TRandom> createRandom,
+                SGOOptimizer<T, TEvalType> optimizer,
+                Func<SGOOptimizer<T, TEvalType>, TRandom> createRandom,
                 in TFunction optimizationFunction)
             {
                 parent = optimizer;
