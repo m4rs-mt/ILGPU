@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2022-2023 ILGPU Project
+//                        Copyright (c) 2022-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityAccelerator.cs
@@ -181,6 +181,7 @@ namespace ILGPU.Runtime.Velocity
 
             NativePtr = new IntPtr(2);
             DefaultStream = CreateStreamInternal();
+            DataAlignment = 32; // We always safely assume 32 byte alignment
 
             parallelOptions = new ParallelOptions()
             {
@@ -210,6 +211,11 @@ namespace ILGPU.Runtime.Velocity
         /// </summary>
         internal new VelocityBackend<ILEmitter> Backend =>
             base.Backend.AsNotNullCast<VelocityBackend<ILEmitter>>();
+
+        /// <summary>
+        /// Returns the required data alignment in bytes.
+        /// </summary>
+        public int DataAlignment { get; }
 
         #endregion
 
@@ -266,6 +272,9 @@ namespace ILGPU.Runtime.Velocity
                 // Compute num threads to launch
                 int totalSize = gridSize * groupSize;
                 int numChunks = IntrinsicMath.DivRoundUp(totalSize, paddedChunkSize);
+
+                // Propagate changes to other threads
+                Thread.MemoryBarrier();
 
                 // Launch all threads
                 executionEngine.ParallelFor(0, numChunks, parallelOptions);
