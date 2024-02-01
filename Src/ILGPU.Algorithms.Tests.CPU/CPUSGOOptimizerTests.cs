@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: CPUMetaOptimizerTests.cs
+// File: CPUSGOOptimizerTests.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -24,9 +24,9 @@ namespace ILGPU.Algorithms.Tests.CPU
 {
     /// <summary>
     /// Contains tests to verify the functionality of the CPU-specialized
-    /// <see cref="MetaOptimizer{T,TEvalType}"/> class.
+    /// <see cref="SGOOptimizer{T,TEvalType}"/> class.
     /// </summary>
-    public class CPUMetaOptimizerTests
+    public class CPUSGOOptimizerTests
     {
         #region CPU Functions
 
@@ -155,18 +155,8 @@ namespace ILGPU.Algorithms.Tests.CPU
 
         #region MemberData
 
-        public static TheoryData<
-            object,
-            object,
-            object,
-            object,
-            object> TestData =>
-            new TheoryData<
-                object,
-                object,
-                object,
-                object,
-                object>
+        public static TheoryData<object, int, float, float, float> TestData =>
+            new TheoryData<object, int, float, float, float>
         {
             { new HimmelblauFunction(), 8192, 0.5f, 0.5f, 0.5f },
             { new EasomFunction(), 81920, 0.5f, 0.5f, 0.5f },
@@ -190,7 +180,7 @@ namespace ILGPU.Algorithms.Tests.CPU
             int numDimensions = objective.LowerBounds.Length;
             var random = new System.Random(13377331);
 
-            using var optimizer = MetaOptimizer.CreateScalar<
+            using var optimizer = SGOOptimizer.CreateScalar<
                 float,
                 float,
                 RandomRanges.RandomRangeFloatProvider<XorShift64Star>>(
@@ -232,7 +222,7 @@ namespace ILGPU.Algorithms.Tests.CPU
             int numDimensions = objective.LowerBounds.Length;
             var random = new System.Random(13377331);
 
-            using var optimizer = MetaOptimizer.CreateVectorized<
+            using var optimizer = SGOOptimizer.CreateVectorized<
                 float,
                 float,
                 RandomRanges.RandomRangeFloatProvider<XorShift64Star>>(
@@ -276,7 +266,7 @@ namespace ILGPU.Algorithms.Tests.CPU
             int numDimensions = objective.LowerBounds.Length;
             var random = new System.Random(13377331);
 
-            using var optimizer = MetaOptimizer.CreateScalar<
+            using var optimizer = SGOOptimizer.CreateScalar<
                 float,
                 float,
                 RandomRanges.RandomRangeFloatProvider<XorShift64Star>>(
