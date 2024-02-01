@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Scalar.cs
@@ -140,10 +140,13 @@ namespace ILGPU.Backends.Velocity.Scalar
         public override void LoadWarpSize64<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitConstant((long)WarpSize);
 
-        public override void ConvertBoolScalar<TILEmitter>(TILEmitter emitter) =>
+        public override void ConvertBoolScalar<TILEmitter>(TILEmitter emitter, bool value)
+        {
+            emitter.Emit(value ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
             // As the initial bool value was already converted to an integer, we can
             // simply reuse the integer value
             ConvertScalarTo32(emitter, VelocityWarpOperationMode.I);
+        }
 
         public override void ConvertScalarTo32<TILEmitter>(
             TILEmitter emitter,
@@ -314,14 +317,23 @@ namespace ILGPU.Backends.Velocity.Scalar
         #region Threads
 
 
-        public override void BarrierPopCount32<TILEmitter>(TILEmitter emitter) =>
+        public override void BarrierPopCount32<TILEmitter>(TILEmitter emitter)
+        {
+            emitter.Emit(OpCodes.Pop);
             emitter.EmitCall(ScalarOperations2.BarrierPopCount32Method);
+        }
 
-        public override void BarrierAnd32<TILEmitter>(TILEmitter emitter) =>
+        public override void BarrierAnd32<TILEmitter>(TILEmitter emitter)
+        {
+            emitter.Emit(OpCodes.Pop);
             emitter.EmitCall(ScalarOperations2.BarrierAnd32Method);
+        }
 
-        public override void BarrierOr32<TILEmitter>(TILEmitter emitter) =>
+        public override void BarrierOr32<TILEmitter>(TILEmitter emitter)
+        {
+            emitter.Emit(OpCodes.Pop);
             emitter.EmitCall(ScalarOperations2.BarrierOr32Method);
+        }
 
         public override void Shuffle32<TILEmitter>(TILEmitter emitter) =>
             emitter.EmitCall(ScalarOperations2.Shuffle32Method);
