@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <TargetFramework>$(LibraryTargetFrameworks)</TargetFramework>
   </PropertyGroup>
 
+  <!-- $(LibraryTargetFrameworks) for quick debugging-->
+  
   <PropertyGroup>
     <VersionPrefix>$(LibraryVersionPrefix)</VersionPrefix>
     <AssemblyVersion>$(LibraryAssemblyVersion)</AssemblyVersion>
