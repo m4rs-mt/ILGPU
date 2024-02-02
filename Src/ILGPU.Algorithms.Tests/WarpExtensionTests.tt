@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: WarpExtensionTests.tt/WarpExtensionTests.cs
@@ -63,9 +63,9 @@ namespace ILGPU.Algorithms.Tests
 <#
         foreach (var srOp in ScanReduceOperations) {
 #>
-        public static TheoryData<object, object, object, object, object, object>
+        public static TheoryData<object, object, object, object, object, int>
             <#= srOp.Name #>TestData =>
-            new TheoryData<object, object, object, object, object, object>
+            new TheoryData<object, object, object, object, object, int>
         {
             // Type, ScanReduceOperation, Sequencer, Start of Sequence,
             // StepSize of Sequence, Fraction of Size

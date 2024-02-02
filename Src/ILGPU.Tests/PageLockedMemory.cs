@@ -25,7 +25,7 @@ namespace ILGPU.Tests
 
         private const int Length = 1024;
 
-        public static TheoryData<object> Numbers => new TheoryData<object>
+        public static TheoryData<long> Numbers => new TheoryData<long>
         {
             { 10 },
             { -10 },

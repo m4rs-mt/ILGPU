@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayViews.cs
@@ -863,8 +863,8 @@ namespace ILGPU.Tests
             }
         }
 
-        public static TheoryData<object, object> AlignToData =>
-            new TheoryData<object, object>
+        public static TheoryData<int, object> AlignToData =>
+            new TheoryData<int, object>
             {
                 { 8, int.MaxValue },
                 { 16, int.MaxValue },

@@ -6,8 +6,6 @@
       Severity: Error,
       WarningLevel: 0,
       Location: : (10,7)-(10,15),
-      Description: ,
-      HelpLink: ,
       MessageFormat: The struct '{0}' must be partial,
       Message: The struct 'MyPoint4' must be partial,
       Category: Usage

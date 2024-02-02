@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InitializeTests.cs
@@ -24,8 +24,8 @@ namespace ILGPU.Algorithms.Tests
 
         #region MemberData
 
-        public static TheoryData<object, object> SimpleTestData =>
-            new TheoryData<object, object>
+        public static TheoryData<object, int> SimpleTestData =>
+            new TheoryData<object, int>
         {
             { sbyte.MinValue, 1 },
             { byte.MaxValue, 1 },
