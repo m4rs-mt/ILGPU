@@ -4,8 +4,6 @@
     <TargetFramework>$(LibraryTargetFrameworks)</TargetFramework>
   </PropertyGroup>
 
-  <!-- $(LibraryTargetFrameworks) for quick debugging-->
-  
   <PropertyGroup>
     <VersionPrefix>$(LibraryVersionPrefix)</VersionPrefix>
     <AssemblyVersion>$(LibraryAssemblyVersion)</AssemblyVersion>
