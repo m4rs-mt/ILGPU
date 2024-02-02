@@ -559,7 +559,10 @@ namespace ILGPU.Tests
             if (e.InnerException is not NotSupportedException)
             {
                 string? exceptionType = e.InnerException?.GetType().FullName;
-                string compareType = exceptionType == "JetBrains.ReSharper.TestRunner.Logging.TraceListener+AssertionException" ? "JetBrains.ReSharper.TestRunner.Logging.TraceListener+AssertionException": "Microsoft.VisualStudio.TestPlatform.TestHost.DebugAssertException";
+                string compareType = exceptionType ==
+                "JetBrains.ReSharper.TestRunner.Logging.TraceListener+AssertionException"
+              ? "JetBrains.ReSharper.TestRunner.Logging.TraceListener+AssertionException"
+              : "Microsoft.VisualStudio.TestPlatform.TestHost.DebugAssertException";
                 Assert.Equal(
                     compareType,
                     e.InnerException?.GetType().FullName);
