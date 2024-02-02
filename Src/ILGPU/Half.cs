@@ -24,69 +24,72 @@ namespace ILGPU
     /// A half precision floating point value with 16 bit precision.
     /// </summary>
     [Serializable]
-    public readonly partial struct Half : IEquatable<Half>, IComparable<Half>
+    public readonly partial struct Half
+#if NET5 || NET6
+        : IEquatable<Half>, IComparable<Half>
+#endif
     {
         #region Static
 
         /// <summary>
         /// Returns the absolute value of the given half value.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>The absolute value.</returns>
         [MathIntrinsic(MathIntrinsicKind.Abs)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Abs(Half half) => HalfExtensions.Abs(half);
+        public static Half Abs(Half value) => HalfExtensions.Abs(value);
 
         /// <summary>
         /// Returns true if the given half value represents a NaN value.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half represents a NaN value.</returns>
         [MathIntrinsic(MathIntrinsicKind.IsNaNF)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNaN(Half half) => HalfExtensions.IsNaN(half);
+        public static bool IsNaN(Half value) => HalfExtensions.IsNaN(value);
 
         /// <summary>
         /// Returns true if the given half value represents 0.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half represents 0.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsZero(Half half) => HalfExtensions.IsZero(half);
+        public static bool IsZero(Half value) => HalfExtensions.IsZero(value);
 
         /// <summary>
         /// Returns true if the given half value represents +infinity.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half value represents +infinity.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsPositiveInfinity(Half half) =>
-            HalfExtensions.IsPositiveInfinity(half);
+        public static bool IsPositiveInfinity(Half value) =>
+            HalfExtensions.IsPositiveInfinity(value);
 
         /// <summary>
         /// Returns true if the given half value represents -infinity.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half value represents -infinity.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNegativeInfinity(Half half) =>
-            HalfExtensions.IsNegativeInfinity(half);
+        public static bool IsNegativeInfinity(Half value) =>
+            HalfExtensions.IsNegativeInfinity(value);
 
         /// <summary>
         /// Returns true if the given half value represents infinity.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half value represents infinity.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsInfinity(Half half) => HalfExtensions.IsInfinity(half);
+        public static bool IsInfinity(Half value) => HalfExtensions.IsInfinity(value);
 
         /// <summary>
         /// Returns true if the given half value represents a finite number.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half value represents a finite number.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsFinite(Half half) => HalfExtensions.IsFinite(half);
+        public static bool IsFinite(Half value) => HalfExtensions.IsFinite(value);
 
         #endregion
 
