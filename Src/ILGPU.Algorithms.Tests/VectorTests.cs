@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VectorTests.cs
@@ -29,8 +29,8 @@ namespace ILGPU.Algorithms.Tests
 
         #region MemberData
 
-        public static TheoryData<object, object> Vector2dTestData =>
-            new TheoryData<object, object>
+        public static TheoryData<int, object> Vector2dTestData =>
+            new TheoryData<int, object>
             {
                 { 1, default(Vector2Zero) },
                 { 32, default(Vector2One) },
@@ -38,8 +38,8 @@ namespace ILGPU.Algorithms.Tests
                 { 128, default(Vector2UnitY) },
             };
 
-        public static TheoryData<object, object> Vector3dTestData =>
-            new TheoryData<object, object>
+        public static TheoryData<int, object> Vector3dTestData =>
+            new TheoryData<int, object>
             {
                 { 1, default(Vector3Zero) },
                 { 32, default(Vector3One) },
@@ -48,8 +48,8 @@ namespace ILGPU.Algorithms.Tests
                 { 65, default(Vector3UnitZ) },
             };
 
-        public static TheoryData<object, object> Vector4dTestData =>
-            new TheoryData<object, object>
+        public static TheoryData<int, object> Vector4dTestData =>
+            new TheoryData<int, object>
             {
                 { 1, default(Vector4Zero) },
                 { 32, default(Vector4One) },

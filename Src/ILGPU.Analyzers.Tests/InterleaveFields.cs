@@ -18,7 +18,6 @@ using VerifyCS =
 
 namespace ILGPU.Analyzers.Tests
 {
-    [UsesVerify]
     public class InterleaveFields
     {
         [Fact]

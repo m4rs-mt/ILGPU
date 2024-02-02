@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MatrixTests.cs
@@ -29,8 +29,8 @@ namespace ILGPU.Algorithms.Tests
 
         #region MemberData
 
-        public static TheoryData<object, object, object, object, object> DimensionsData =>
-            new TheoryData<object, object, object, object, object>
+        public static TheoryData<int, int, int, int, float> DimensionsData =>
+            new TheoryData<int, int, int, int, float>
             {
                 { 39, 42, 17, 2918291, 0.8f },
                 { 39, 42, 17, 2918291, 0.5f },

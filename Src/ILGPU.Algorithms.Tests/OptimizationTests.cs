@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: OptimizationTests.cs
@@ -138,7 +138,7 @@ namespace ILGPU.Algorithms.Tests
             TElementType,
             TEvalType,
             TRandom>(
-            OptimizerConfig<TElementType> optimizerConfig,
+            object optimizerConfigObj,
             TFunc function,
             TElementType lower,
             TElementType upper,
@@ -154,11 +154,13 @@ namespace ILGPU.Algorithms.Tests
             where TFunc : struct,
                 IOptimizationFunction<TNumericType, TElementType, TEvalType>
         {
+            var optimizerConfig = (OptimizerConfig<TElementType>)optimizerConfigObj;
+
             // Skip larger problems on the CPU
             Skip.If(
                 Accelerator.AcceleratorType == AcceleratorType.CPU &&
                 optimizerConfig.NumIterations * optimizerConfig.NumParticles > 2048);
-            
+
             const int Seed = 24404699;
             using var pso = new PSO<
                 TNumericType,
