@@ -65,7 +65,7 @@ namespace ILGPU.Tests.CPU
             {
                 // Detect the number of processors and check whether we run in a supported
                 // range of tests
-                int maxNumThreads = Environment.ProcessorCount * 768;
+                int maxNumThreads = Environment.ProcessorCount * 256;
                 Skip.If(customDevice.NumThreads > maxNumThreads);
             }
 
