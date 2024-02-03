@@ -448,7 +448,8 @@
       <LastGenOutput>Memory.cs</LastGenOutput>
     </None>
     <None Update="Static\CapabilitiesImporter.ttinclude">
-      <Generator></Generator>
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CapabilitiesImporter.cs</LastGenOutput>
     </None>
     <None Update="Static\DllImports.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
