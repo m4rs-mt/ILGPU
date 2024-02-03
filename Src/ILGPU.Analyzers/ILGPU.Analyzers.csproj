@@ -41,15 +41,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ErrorMessages.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\ILA004_ReferenceTypeArrayInKernel.Designer.cs">
+    <Compile Update="Resources\DiagnosticCategory.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>ILA004_ReferenceTypeArrayInKernel.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Resources\ILA003_ReferenceTypeInKernel.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ILA003_ReferenceTypeInKernel.resx</DependentUpon>
+      <DependentUpon>DiagnosticCategory.resx</DependentUpon>
     </Compile>
   </ItemGroup>
 
@@ -58,13 +53,9 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="Resources\ILA004_ReferenceTypeArrayInKernel.resx">
+    <EmbeddedResource Update="Resources\DiagnosticCategory.resx">
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ILA004_ReferenceTypeArrayInKernel.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\ILA003_ReferenceTypeInKernel.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ILA003_ReferenceTypeInKernel.Designer.cs</LastGenOutput>
+      <LastGenOutput>DiagnosticCategory.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

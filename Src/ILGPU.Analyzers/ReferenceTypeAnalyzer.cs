@@ -10,22 +10,20 @@ namespace ILGPU.Analyzers
     {
         private static readonly DiagnosticDescriptor GeneralDiagnosticRule = new(
             id: "ILA003",
-            title: ILA003_ReferenceTypeInKernel.Title,
-            messageFormat: ILA003_ReferenceTypeInKernel.MessageFormat,
+            title: ErrorMessages.RefTypeInKernel_Title,
+            messageFormat: ErrorMessages.RefTypeInKernel_Message,
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
-            isEnabledByDefault: true,
-            description: ILA003_ReferenceTypeInKernel.Description
+            isEnabledByDefault: true
         );
 
         private static readonly DiagnosticDescriptor ArrayDiagnosticRule = new(
             id: "ILA004",
-            title: ILA004_ReferenceTypeArrayInKernel.Title,
-            messageFormat: ILA004_ReferenceTypeArrayInKernel.MessageFormat,
+            title: ErrorMessages.RefTypeArrInKernel_Title,
+            messageFormat: ErrorMessages.RefTypeArrInKernel_Message,
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
-            isEnabledByDefault: true,
-            description: ILA004_ReferenceTypeArrayInKernel.Description
+            isEnabledByDefault: true
         );
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
