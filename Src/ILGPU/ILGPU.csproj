@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(LibraryTargetFrameworks)</TargetFramework>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -448,8 +448,7 @@
       <LastGenOutput>Memory.cs</LastGenOutput>
     </None>
     <None Update="Static\CapabilitiesImporter.ttinclude">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>CapabilitiesImporter.cs</LastGenOutput>
+      <Generator></Generator>
     </None>
     <None Update="Static\DllImports.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
