@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelEntryPoints.cs
@@ -558,8 +558,13 @@ namespace ILGPU.Tests
 #if DEBUG
             if (e.InnerException is not NotSupportedException)
             {
+                string? exceptionType = e.InnerException?.GetType().FullName;
+                string compareType = exceptionType ==
+                "JetBrains.ReSharper.TestRunner.Logging.TraceListener+AssertionException"
+              ? "JetBrains.ReSharper.TestRunner.Logging.TraceListener+AssertionException"
+              : "Microsoft.VisualStudio.TestPlatform.TestHost.DebugAssertException";
                 Assert.Equal(
-                    "Microsoft.VisualStudio.TestPlatform.TestHost.DebugAssertException",
+                    compareType,
                     e.InnerException?.GetType().FullName);
                 return;
             }
