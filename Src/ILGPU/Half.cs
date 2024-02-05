@@ -13,6 +13,7 @@ using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
+using System.Globalization;
 #if !DEBUG
 using System.Diagnostics;
 #endif
@@ -33,67 +34,74 @@ namespace ILGPU
         : IEquatable<Half>, IComparable<Half>
 #endif
     {
+        #region Constants
+
+        internal const ushort SignMask = 0x8000;
+
+
+        #endregion
+
         #region Static
 
         /// <summary>
         /// Returns the absolute value of the given half value.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>The absolute value.</returns>
         [MathIntrinsic(MathIntrinsicKind.Abs)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Abs(Half half) => HalfExtensions.Abs(half);
+        public static Half Abs(Half value) => HalfExtensions.Abs(value);
 
         /// <summary>
         /// Returns true if the given half value represents a NaN value.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half represents a NaN value.</returns>
         [MathIntrinsic(MathIntrinsicKind.IsNaNF)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNaN(Half half) => HalfExtensions.IsNaN(half);
+        public static bool IsNaN(Half value) => HalfExtensions.IsNaN(value);
 
         /// <summary>
         /// Returns true if the given half value represents 0.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half represents 0.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsZero(Half half) => HalfExtensions.IsZero(half);
+        public static bool IsZero(Half value) => HalfExtensions.IsZero(value);
 
         /// <summary>
         /// Returns true if the given half value represents +infinity.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half value represents +infinity.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsPositiveInfinity(Half half) =>
-            HalfExtensions.IsPositiveInfinity(half);
+        public static bool IsPositiveInfinity(Half value) =>
+            HalfExtensions.IsPositiveInfinity(value);
 
         /// <summary>
         /// Returns true if the given half value represents -infinity.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half value represents -infinity.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNegativeInfinity(Half half) =>
-            HalfExtensions.IsNegativeInfinity(half);
+        public static bool IsNegativeInfinity(Half value) =>
+            HalfExtensions.IsNegativeInfinity(value);
 
         /// <summary>
         /// Returns true if the given half value represents infinity.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half value represents infinity.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsInfinity(Half half) => HalfExtensions.IsInfinity(half);
+        public static bool IsInfinity(Half value) => HalfExtensions.IsInfinity(value);
 
         /// <summary>
         /// Returns true if the given half value represents a finite number.
         /// </summary>
-        /// <param name="half">The half value.</param>
+        /// <param name="value">The half value.</param>
         /// <returns>True, if the given half value represents a finite number.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsFinite(Half half) => HalfExtensions.IsFinite(half);
+        public static bool IsFinite(Half value) => HalfExtensions.IsFinite(value);
 
         #endregion
 
@@ -165,7 +173,8 @@ namespace ILGPU
         /// Returns the string representation of this half.
         /// </summary>
         /// <returns>The string representation of this half.</returns>
-        public readonly override string ToString() => ((float)this).ToString();
+        public readonly override string ToString() =>
+            ((float)this).ToString(NumberFormatInfo.CurrentInfo);
 
         #endregion
 
@@ -232,8 +241,26 @@ namespace ILGPU
         /// <returns>True, if the first and second half are the same.</returns>
         [CompareIntrinisc(CompareKind.Equal)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Half first, Half second) =>
-            (float)first == second;
+        public static bool operator ==(Half first, Half second)
+        {
+            if (IsNaN(first) || IsNaN(second))
+            {
+                // IEEE defines that NaN is not equal to anything, including itself.
+                return false;
+            }
+
+            // IEEE defines that positive and negative zero are equivalent.
+            return (first.RawValue == second.RawValue) || AreZero(first, second);
+        }
+
+
+        private static bool AreZero(Half left, Half right)
+
+            // IEEE defines that positive and negative zero are equal, this gives us a quick equality check
+            // for two values by or'ing the private bits together and stripping the sign. They are both zero,
+            // and therefore equivalent, if the resulting value is still zero.
+            => (ushort)((left.RawValue | right.RawValue) & ~SignMask) == 0;
+
 
         /// <summary>
         /// Returns true if the first and second half represent not the same value.
@@ -243,8 +270,8 @@ namespace ILGPU
         /// <returns>True, if the first and second half are not the same.</returns>
         [CompareIntrinisc(CompareKind.NotEqual, CompareFlags.UnsignedOrUnordered)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Half first, Half second) =>
-            (float)first != second;
+        public static bool operator !=(Half first, Half second)
+            => !(first == second);
 
         /// <summary>
         /// Returns true if the first half is smaller than the second half.

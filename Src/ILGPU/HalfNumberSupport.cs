@@ -21,8 +21,18 @@ namespace ILGPU;
 // System.Half has several equality and casting errors.
 #if USESYSTEMHALF && NET7_0_OR_GREATER
 #elif NET7_0_OR_GREATER
+
 public readonly partial struct Half : INumber<Half>
 {
+
+    #region constants
+
+    private const ushort PositiveInfinityBits = 0x7C00;
+    internal const ushort BiasedExponentMask = 0x7C00;
+
+    #endregion
+
+
     /// <summary>
     /// CompareTo
     /// </summary>
@@ -160,9 +170,12 @@ public readonly partial struct Half : INumber<Half>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNormal(Half value)
     {
-        uint num = Half.StripSign(value);
-        return num < 31744U && num != 0U && (num & 31744U) > 0U;
+        uint absValue = StripSign(value);  // Assuming this correctly strips the sign bit
+        return (absValue < PositiveInfinityBits)    // Checks if it's less than infinity (hence, finite)
+               && (absValue != 0)                      // Checks that it's not zero
+               && ((absValue & BiasedExponentMask) != 0);    // Checks that the exponent is not all zeros (hence, not subnormal)
     }
+
 
     /// <summary>
     /// IsOddInteger
@@ -200,8 +213,10 @@ public readonly partial struct Half : INumber<Half>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsSubnormal(Half value)
     {
-        uint num = Half.StripSign(value);
-        return num < 31744U && num != 0U && ((int) num & 31744) == 0;
+        uint absValue = StripSign(value);
+        return (absValue < PositiveInfinityBits)    // is finite
+               && (absValue != 0)                      // is not zero
+               && ((absValue & BiasedExponentMask) == 0);    // is subnormal (has a zero exponent)
     }
 
     /// <summary>
