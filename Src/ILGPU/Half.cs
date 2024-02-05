@@ -20,11 +20,18 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU
 {
+    // for testing System.Half, System.Half has several equality and casting errors.
+#if USESYSTEMHALF && NET7_0_OR_GREATER
+#else
+
     /// <summary>
     /// A half precision floating point value with 16 bit precision.
     /// </summary>
     [Serializable]
-    public readonly partial struct Half : IEquatable<Half>, IComparable<Half>
+    public readonly partial struct Half
+#if NET6_0 || NET5_0
+        : IEquatable<Half>, IComparable<Half>
+#endif
     {
         #region Static
 
@@ -451,4 +458,5 @@ namespace ILGPU
         public static Half FmaFP32(Half first, Half second, Half third) =>
             (Half)((float)first * second + third);
     }
+#endif
 }
