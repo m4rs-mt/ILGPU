@@ -524,6 +524,14 @@ public readonly struct BFloat16 : INumber<BFloat16>
             return true;
         }
 
+        if (ofOther == typeof(Half))
+        {
+            float num = (float)value;  // Direct conversion to float
+            result = (TOther)Convert.ChangeType((Half) num, ofOther);
+            return true;
+        }
+
+
         if (ofOther == typeof(float))
         {
             float num = (float)value;  // Direct conversion to float
@@ -544,13 +552,85 @@ public readonly struct BFloat16 : INumber<BFloat16>
 
 
     public static bool TryConvertToChecked<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
-        => throw new NotImplementedException();
+    {
+        Type ofOther = typeof(TOther);
+        if (ofOther == typeof (byte))
+        {
+            byte num = checked ((byte) value);
+            result = (TOther) Convert.ChangeType((ValueType) num, ofOther);
+            return true;
+        }
+        if (ofOther == typeof (char))
+        {
+            char ch = checked ((char) value);
+            result = (TOther)  Convert.ChangeType((ValueType) ch, ofOther);
+            return true;
+        }
+        if (ofOther == typeof (decimal))
+        {
+            decimal num = (decimal) (float) value;
+            result = (TOther)  Convert.ChangeType((ValueType) num, ofOther);;
+            return true;
+        }
+        if (ofOther == typeof(BFloat16))
+        {
+            float num = checked((float)value);  // Direct conversion to float
+            result = (TOther)Convert.ChangeType(num, ofOther);
+            return true;
+        }
+        if (ofOther == typeof(float))
+        {
+            float num = checked((float)value);  // Direct conversion to float
+            result = (TOther)Convert.ChangeType(num, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(double))
+        {
+            double num = checked((double)value);  // Direct conversion to double
+            result = (TOther)Convert.ChangeType(num, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof (ushort))
+        {
+            ushort num = checked ((ushort) value);
+            result = (TOther)  Convert.ChangeType((ValueType) num, ofOther);;
+            return true;
+        }
+        if (ofOther == typeof (uint))
+        {
+            uint num = checked ((uint) value);
+            result = (TOther)  Convert.ChangeType((ValueType) num, ofOther);;
+            return true;
+        }
+        if (ofOther == typeof (ulong))
+        {
+            ulong num = checked ((ulong) value);
+            result = (TOther)  Convert.ChangeType((ValueType) num, ofOther);;
+            return true;
+        }
+        if (ofOther == typeof (UInt128))
+        {
+            UInt128 uint128 = checked ((UInt128) (float) value);
+            result = (TOther)  Convert.ChangeType((ValueType) uint128, ofOther);;
+            return true;
+        }
+        if (ofOther == typeof (UIntPtr))
+        {
+            UIntPtr num = checked ((UIntPtr) value);
+            result = (TOther) Convert.ChangeType((ValueType) num, ofOther);
+            return true;
+        }
+        result = default (TOther);
+        return false;
+    }
 
     public static bool TryConvertToSaturating<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
-        => throw new NotImplementedException();
+        =>  BFloat16.TryConvertTo<TOther>(value, out result);
 
     public static bool TryConvertToTruncating<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
-        => throw new NotImplementedException();
+        =>  BFloat16.TryConvertTo<TOther>(value, out result);
 
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
         out BFloat16 result)
