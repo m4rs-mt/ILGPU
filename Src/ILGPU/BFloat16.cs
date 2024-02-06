@@ -2,6 +2,7 @@ using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -49,6 +50,9 @@ public readonly struct BFloat16 : INumber<BFloat16>
     public static explicit operator float(BFloat16 value) => BFloat16ToSingle(value);
     public static explicit operator double(BFloat16 value) =>
         (double)BFloat16ToSingle(value);
+
+    public static explicit operator BFloat16(Half halfValue)
+        => SingleToBFloat16((float)halfValue);
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -324,7 +328,7 @@ public readonly struct BFloat16 : INumber<BFloat16>
 
     public static bool IsPositive(BFloat16 value) => (value.RawValue & 0x8000) == 0;
 
-    public static bool IsPositiveInfinity(BFloat16 value) => throw new NotImplementedException();
+    public static bool IsPositiveInfinity(BFloat16 value) => value == PositiveInfinity;
 
     public static bool IsRealNumber(BFloat16 value)
     {
@@ -364,17 +368,189 @@ public readonly struct BFloat16 : INumber<BFloat16>
     public static BFloat16 Parse(string s, NumberStyles style, IFormatProvider? provider)
         => (BFloat16)float.Parse(s, style, provider);
 
-    public static bool TryConvertFromChecked<TOther>(TOther value, out BFloat16 result) where TOther : INumberBase<TOther> => throw new NotImplementedException();
 
-    public static bool TryConvertFromSaturating<TOther>(TOther value, out BFloat16 result) where TOther : INumberBase<TOther> => throw new NotImplementedException();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryConvertFrom<TOther>(TOther value, out BFloat16 result)
+        where TOther : INumberBase<TOther>
+    {
+        Type ofOther = typeof(TOther);
+        if (ofOther == typeof (double))
+        {
+            double num = (double) (object) value;
+            result = (BFloat16) num;
+            return true;
+        }
+        if (ofOther == typeof (short))
+        {
+            short num = (short) (object) value;
+            result = (BFloat16) num;
+            return true;
+        }
+        if (ofOther == typeof (int))
+        {
+            int num = (int) (object) value;
+            result = (BFloat16) num;
+            return true;
+        }
+        if (ofOther == typeof (long))
+        {
+            long num = (long) (object) value;
+            result = (BFloat16) num;
+            return true;
+        }
+        if (ofOther == typeof (Int128))
+        {
+            Int128 int128 = (Int128) (object) value;
+            result = (BFloat16)(float) int128;
+            return true;
+        }
+        if (ofOther == typeof (IntPtr))
+        {
+            IntPtr num = (IntPtr) (object) value;
+            result = (BFloat16) num;
+            return true;
+        }
+        if (ofOther == typeof (sbyte))
+        {
+            sbyte num = (sbyte) (object) value;
+            result = (BFloat16) num;
+            return true;
+        }
+        if (ofOther == typeof (float))
+        {
+            float num = (float) (object) value;
+            result = (BFloat16) num;
+            return true;
+        }
+        if (ofOther == typeof (Half))
+        {
+            Half num = (Half) (object) value;
+            result = (BFloat16) num;
+            return true;
+        }
 
-    public static bool TryConvertFromTruncating<TOther>(TOther value, out BFloat16 result) where TOther : INumberBase<TOther> => throw new NotImplementedException();
+        result = new BFloat16();
+        return false;
+    }
 
-    public static bool TryConvertToChecked<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther> => throw new NotImplementedException();
 
-    public static bool TryConvertToSaturating<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther> => throw new NotImplementedException();
+    public static bool TryConvertFromChecked<TOther>(TOther value, out BFloat16 result) where TOther : INumberBase<TOther>
+        => TryConvertFrom(value, out result);
 
-    public static bool TryConvertToTruncating<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther> => throw new NotImplementedException();
+    public static bool TryConvertFromSaturating<TOther>(TOther value, out BFloat16 result) where TOther : INumberBase<TOther>
+        => TryConvertFrom(value, out result);
+
+    public static bool TryConvertFromTruncating<TOther>(TOther value, out BFloat16 result) where TOther : INumberBase<TOther>
+        => TryConvertFrom(value, out result);
+
+
+
+     private static bool TryConvertTo<TOther>(BFloat16 value,
+        [MaybeNullWhen(false)] out TOther result)
+        where TOther : INumberBase<TOther>
+    {
+        Type ofOther = typeof(TOther);
+        if (ofOther == typeof(byte))
+        {
+            byte num = value >= (BFloat16)byte.MaxValue
+                ? byte.MaxValue
+                : (value <= (BFloat16)(byte)0 ? (byte)0 : (byte)value);
+            result = (TOther)Convert.ChangeType((ValueType)num, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(char))
+        {
+            char ch = value == BFloat16.PositiveInfinity
+                ? char.MaxValue
+                : (value <= BFloat16.Zero ? char.MinValue : (char)value);
+            result = (TOther)Convert.ChangeType((ValueType)ch, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(decimal))
+        {
+            decimal num = value == BFloat16.PositiveInfinity
+                ? decimal.MaxValue
+                : (value == BFloat16.NegativeInfinity
+                    ? decimal.MinValue
+                    : (BFloat16.IsNaN(value) ? 0.0M : (decimal)(float)value));
+            result = (TOther)Convert.ChangeType((ValueType)num, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(ushort))
+        {
+            ushort num = value == BFloat16.PositiveInfinity
+                ? ushort.MaxValue
+                : (value <= BFloat16.Zero ? (ushort)0 : (ushort)value);
+            result = (TOther)Convert.ChangeType((ValueType)num, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(uint))
+        {
+            uint num = value == BFloat16.PositiveInfinity
+                ? uint.MaxValue
+                : (value <= BFloat16.Zero ? 0U : (uint)value);
+            result = (TOther)Convert.ChangeType((ValueType)num, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(ulong))
+        {
+            ulong num = value == BFloat16.PositiveInfinity
+                ? ulong.MaxValue
+                : (value <= BFloat16.Zero ? 0UL : (BFloat16.IsNaN(value) ? 0UL : (ulong)value));
+            result = (TOther)Convert.ChangeType((ValueType)num, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(UInt128))
+        {
+            UInt128 uint128 = value == BFloat16.PositiveInfinity
+                ? UInt128.MaxValue
+                : (value <= BFloat16.Zero ? UInt128.MinValue : (UInt128)(float)value);
+            result = (TOther)Convert.ChangeType((ValueType)uint128, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(UIntPtr))
+        {
+            UIntPtr num = value == BFloat16.PositiveInfinity
+                ? UIntPtr.MaxValue
+                : (value <= BFloat16.Zero ? UIntPtr.MinValue : (UIntPtr)value);
+            result = (TOther)Convert.ChangeType((ValueType)num, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(float))
+        {
+            float num = (float)value;  // Direct conversion to float
+            result = (TOther)Convert.ChangeType(num, ofOther);
+            return true;
+        }
+
+        if (ofOther == typeof(double))
+        {
+            double num = (double)value;  // Direct conversion to double
+            result = (TOther)Convert.ChangeType(num, ofOther);
+            return true;
+        }
+
+        result = default(TOther);
+        return false;
+    }
+
+
+    public static bool TryConvertToChecked<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
+        => throw new NotImplementedException();
+
+    public static bool TryConvertToSaturating<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
+        => throw new NotImplementedException();
+
+    public static bool TryConvertToTruncating<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
+        => throw new NotImplementedException();
 
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
         out BFloat16 result)

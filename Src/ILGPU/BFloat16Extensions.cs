@@ -2,6 +2,9 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU;
 
+/// <summary>
+/// Extension class for BFloat16
+/// </summary>
 public static class BFloat16Extensions
 {
     /// <summary>
