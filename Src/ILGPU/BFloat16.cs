@@ -23,12 +23,9 @@ public readonly struct BFloat16 : INumber<BFloat16>
 
     public static int Radix => 2;
 
-    private static readonly BFloat16  _zero = new BFloat16(0x0000);
+    public static BFloat16 Zero  {get; } = new BFloat16(0x0000);
 
-    private static readonly BFloat16  _one = new BFloat16(0x3F80);
-
-    public static BFloat16 Zero  { get { return _zero; } }
-    public static BFloat16 One { get { return _one; } }
+    public static BFloat16 One { get; } = new BFloat16(0x3F80);
 
 
     /// <summary>
