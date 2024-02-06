@@ -214,9 +214,9 @@ public readonly partial struct Half : INumber<Half>
     public static bool IsSubnormal(Half value)
     {
         uint absValue = StripSign(value);
-        return (absValue < PositiveInfinityBits)    // is finite
-               && (absValue != 0)                      // is not zero
-               && ((absValue & BiasedExponentMask) == 0);    // is subnormal (has a zero exponent)
+        return (absValue < PositiveInfinityBits)
+               && (absValue != 0)
+               && ((absValue & BiasedExponentMask) == 0);
     }
 
     /// <summary>
