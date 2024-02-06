@@ -23,11 +23,11 @@ public readonly struct BFloat16 : INumber<BFloat16>
 
     public static int Radix => 2;
 
-    static BFloat16 _zero = new BFloat16(0x0000);
+    private static readonly BFloat16  _zero = new BFloat16(0x0000);
 
-    static BFloat16 _one = new BFloat16(0x3F80);
+    private static readonly BFloat16  _one = new BFloat16(0x3F80);
 
-    public static BFloat16 Zero { get { return _zero; } }
+    public static BFloat16 Zero  { get { return _zero; } }
     public static BFloat16 One { get { return _one; } }
 
 
@@ -313,9 +313,9 @@ public readonly struct BFloat16 : INumber<BFloat16>
         (value.RawValue & 0x7F80) == 0x7F80 && (value.RawValue & 0x007F) == 0;
     public static bool IsInteger(BFloat16 value) => float.IsInteger((float)value);
 
-    public static bool IsNaN(BFloat16 bfloat16)
+    public static bool IsNaN(BFloat16 value)
         // NaN if all exponent bits are 1 and there is a non-zero value in the mantissa
-        =>  (bfloat16.RawValue & ExponentMask) == ExponentMask && (bfloat16.RawValue & MantissaMask) != 0;
+        =>  (value.RawValue & ExponentMask) == ExponentMask && (value.RawValue & MantissaMask) != 0;
 
     public static bool IsNegative(BFloat16 value) =>  (value.RawValue & 0x8000) != 0;
     public static bool IsNegativeInfinity(BFloat16 value) => value == NegativeInfinity;
@@ -550,6 +550,7 @@ public readonly struct BFloat16 : INumber<BFloat16>
         return false;
     }
 
+     #nullable disable
 
     public static bool TryConvertToChecked<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
     {
@@ -632,6 +633,7 @@ public readonly struct BFloat16 : INumber<BFloat16>
     public static bool TryConvertToTruncating<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
         =>  BFloat16.TryConvertTo<TOther>(value, out result);
 
+    #nullable enable
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
         out BFloat16 result)
     {
