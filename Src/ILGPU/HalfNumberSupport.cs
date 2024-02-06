@@ -170,10 +170,10 @@ public readonly partial struct Half : INumber<Half>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNormal(Half value)
     {
-        uint absValue = StripSign(value);  // Assuming this correctly strips the sign bit
-        return (absValue < PositiveInfinityBits)    // Checks if it's less than infinity (hence, finite)
-               && (absValue != 0)                      // Checks that it's not zero
-               && ((absValue & BiasedExponentMask) != 0);    // Checks that the exponent is not all zeros (hence, not subnormal)
+        uint absValue = StripSign(value);
+        return (absValue < PositiveInfinityBits)
+               && (absValue != 0)
+               && ((absValue & BiasedExponentMask) != 0);
     }
 
 

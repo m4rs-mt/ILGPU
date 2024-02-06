@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Half.cs
@@ -254,11 +254,18 @@ namespace ILGPU
         }
 
 
+        /// <summary>
+        /// AreZero
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="right"></param>
+        /// <returns></returns>
         private static bool AreZero(Half left, Half right)
 
-            // IEEE defines that positive and negative zero are equal, this gives us a quick equality check
-            // for two values by or'ing the private bits together and stripping the sign. They are both zero,
-            // and therefore equivalent, if the resulting value is still zero.
+            // IEEE defines that positive and negative zero are equal, this gives us a
+            // quick equality check for two values by or'ing the private bits together
+            // and stripping the sign. They are both zero, and therefore equivalent,
+            // if the resulting value is still zero.
             => (ushort)((left.RawValue | right.RawValue) & ~SignMask) == 0;
 
 
