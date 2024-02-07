@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2024 ILGPU Project
+//                         Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BFloat16Extensions.cs
@@ -16,7 +16,7 @@ namespace ILGPU;
 /// <summary>
 /// Extension class for BFloat16
 /// </summary>
-public static class BFloat16Extensions
+public static partial class BFloat16Extensions
 {
     /// <summary>
     /// The bit mask of the sign bit.
