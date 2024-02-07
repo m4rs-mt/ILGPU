@@ -45,7 +45,7 @@ namespace ILGPU
         /// <param name="right">The right value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static BFloat16 <#= op.MethodName #>FP32(BFloat16 left, BFloat16 right) =>
-            (BFloat16)IntrinsicMath.CPUOnly.<#= op.MethodName #>((float)left, (float)right);
+          (BFloat16)IntrinsicMath.CPUOnly.<#= op.MethodName #>((float)left, (float)right);
 
 <# } #>
 
