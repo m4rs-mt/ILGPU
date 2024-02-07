@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BFloat16.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
 using ILGPU.Util;
@@ -24,8 +35,10 @@ public readonly struct BFloat16
     #region constants
 
 
-    private const ushort ExponentMantissaMask = 0x7FFF; // 0111 1111 1111 1111 (ignores the sign bit)
-    private const ushort ExponentMask = 0x7F80;        // 0111 1111 1000 0000 (covers only the exponent)
+    private const ushort ExponentMantissaMask = 0x7FFF;
+        // 0111 1111 1111 1111 (ignores the sign bit)
+    private const ushort ExponentMask = 0x7F80;
+        // 0111 1111 1000 0000 (covers only the exponent)
     private const ushort MantissaMask = 0x007F;
 
     /// <summary>
@@ -122,8 +135,8 @@ public readonly struct BFloat16
     /// <param name="format"></param>
     /// <param name="provider"></param>
     /// <returns></returns>
-    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format,
-        IFormatProvider? provider)
+    public bool TryFormat(Span<char> destination, out int charsWritten,
+        ReadOnlySpan<char> format, IFormatProvider? provider)
         => ((float)this).TryFormat(destination, out charsWritten, format, provider );
 
 
@@ -517,7 +530,8 @@ public readonly struct BFloat16
     /// <returns></returns>
     public static bool IsNaN(BFloat16 value)
         // NaN if all exponent bits are 1 and there is a non-zero value in the mantissa
-        =>  (value.RawValue & ExponentMask) == ExponentMask && (value.RawValue & MantissaMask) != 0;
+        =>  (value.RawValue & ExponentMask) == ExponentMask
+            && (value.RawValue & MantissaMask) != 0;
 
     /// <summary>
     /// Is negative?
@@ -586,7 +600,8 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    public static bool IsZero(BFloat16 value) => (value.RawValue & ExponentMantissaMask) == 0;
+    public static bool IsZero(BFloat16 value)
+        => (value.RawValue & ExponentMantissaMask) == 0;
 
     /// <summary>
     /// MaxMagnitude
@@ -696,8 +711,8 @@ public readonly struct BFloat16
     /// <param name="provider"></param>
     /// <param name="result"></param>
     /// <returns></returns>
-    public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
-        out BFloat16 result)
+    public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style,
+        IFormatProvider? provider, out BFloat16 result)
     {
         float floatResult;
         bool isGood = float.TryParse(s, style, provider, out floatResult);
@@ -774,7 +789,8 @@ public readonly struct BFloat16
     /// <param name="provider"></param>
     /// <param name="result"></param>
     /// <returns></returns>
-    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out BFloat16 result)
+    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider,
+        out BFloat16 result)
     {
         float floatResult;
         bool isGood = float.TryParse(s, provider, out floatResult);
@@ -862,8 +878,8 @@ public readonly struct BFloat16
     /// <param name="result"></param>
     /// <typeparam name="TOther"></typeparam>
     /// <returns></returns>
-    public static bool TryConvertFromChecked<TOther>(TOther value, out BFloat16 result) where TOther : INumberBase<TOther>
-        => TryConvertFrom(value, out result);
+    public static bool TryConvertFromChecked<TOther>(TOther value, out BFloat16 result)
+        where TOther : INumberBase<TOther> => TryConvertFrom(value, out result);
 
     /// <summary>
     /// TryConvertFromSaturating
@@ -872,8 +888,8 @@ public readonly struct BFloat16
     /// <param name="result"></param>
     /// <typeparam name="TOther"></typeparam>
     /// <returns></returns>
-    public static bool TryConvertFromSaturating<TOther>(TOther value, out BFloat16 result) where TOther : INumberBase<TOther>
-        => TryConvertFrom(value, out result);
+    public static bool TryConvertFromSaturating<TOther>(TOther value, out BFloat16 result)
+        where TOther : INumberBase<TOther> => TryConvertFrom(value, out result);
 
 
     /// <summary>
@@ -883,8 +899,8 @@ public readonly struct BFloat16
     /// <param name="result"></param>
     /// <typeparam name="TOther"></typeparam>
     /// <returns></returns>
-    public static bool TryConvertFromTruncating<TOther>(TOther value, out BFloat16 result) where TOther : INumberBase<TOther>
-        => TryConvertFrom(value, out result);
+    public static bool TryConvertFromTruncating<TOther>(TOther value, out BFloat16 result)
+        where TOther : INumberBase<TOther> => TryConvertFrom(value, out result);
 
 
 
@@ -951,7 +967,8 @@ public readonly struct BFloat16
         {
             ulong num = value == BFloat16.PositiveInfinity
                 ? ulong.MaxValue
-                : (value <= BFloat16.Zero ? 0UL : (BFloat16.IsNaN(value) ? 0UL : (ulong)value));
+                : (value <= BFloat16.Zero ? 0UL : (BFloat16.IsNaN(value) ?
+                    0UL : (ulong)value));
             result = (TOther)Convert.ChangeType((ValueType)num, ofOther);
             return true;
         }
@@ -1009,7 +1026,8 @@ public readonly struct BFloat16
     /// <param name="result"></param>
     /// <typeparam name="TOther"></typeparam>
     /// <returns></returns>
-    public static bool TryConvertToChecked<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
+    public static bool TryConvertToChecked<TOther>(BFloat16 value, out TOther result)
+        where TOther : INumberBase<TOther>
     {
         Type ofOther = typeof(TOther);
         if (ofOther == typeof (byte))
@@ -1091,7 +1109,8 @@ public readonly struct BFloat16
     /// <param name="result"></param>
     /// <typeparam name="TOther"></typeparam>
     /// <returns></returns>
-    public static bool TryConvertToSaturating<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
+    public static bool TryConvertToSaturating<TOther>(BFloat16 value, out TOther result)
+        where TOther : INumberBase<TOther>
         =>  BFloat16.TryConvertTo<TOther>(value, out result);
 
     /// <summary>
@@ -1101,7 +1120,8 @@ public readonly struct BFloat16
     /// <param name="result"></param>
     /// <typeparam name="TOther"></typeparam>
     /// <returns></returns>
-    public static bool TryConvertToTruncating<TOther>(BFloat16 value, out TOther result) where TOther : INumberBase<TOther>
+    public static bool TryConvertToTruncating<TOther>(BFloat16 value, out TOther result)
+        where TOther : INumberBase<TOther>
         =>  BFloat16.TryConvertTo<TOther>(value, out result);
 
     #nullable enable
