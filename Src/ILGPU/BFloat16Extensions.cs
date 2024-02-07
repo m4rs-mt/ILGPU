@@ -12,6 +12,11 @@ public static class BFloat16Extensions
     /// </summary>
     private const ushort SignBitMask = 0x8000;
 
+    /// <summary>
+    /// Negate value
+    /// </summary>
+    /// <param name="bFloat16Value"></param>
+    /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BFloat16 Neg(BFloat16 bFloat16Value) =>
         new BFloat16((ushort)(bFloat16Value.RawValue ^ SignBitMask));
@@ -22,6 +27,11 @@ public static class BFloat16Extensions
     private const ushort ExponentMantissaMask = 0x7FFF;
 
 
+    /// <summary>
+    /// Absolute value
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BFloat16 Abs(BFloat16 value) =>
         new BFloat16((ushort)(value.RawValue & ExponentMantissaMask));
