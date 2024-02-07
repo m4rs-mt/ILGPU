@@ -9,12 +9,16 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU;
 
-#if NET7_0_OR_GREATER
 
 /// <summary>
 /// BFloat16 Implementation
 /// </summary>
-public readonly struct BFloat16 : INumber<BFloat16>
+public readonly struct BFloat16
+#if NET7_0_OR_GREATER
+    : INumber<BFloat16>
+#else
+    : IComparable, IEquatable<BFloat16>, IComparable<BFloat16>
+#endif
 {
 
     #region constants
@@ -449,11 +453,6 @@ public readonly struct BFloat16 : INumber<BFloat16>
 
     #endregion
 
-    /// <summary>
-    /// IAdditiveIdentity
-    /// </summary>
-    static BFloat16 IAdditiveIdentity<BFloat16, BFloat16>.AdditiveIdentity
-        => new BFloat16((ushort) 0);
 
 
     /// <summary>
@@ -486,14 +485,6 @@ public readonly struct BFloat16 : INumber<BFloat16>
     /// <returns></returns>
     public static bool IsComplexNumber(BFloat16 value) => false;
 
-    /// <summary>
-    /// Is an even integer
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsEvenInteger(BFloat16 value) =>
-         float.IsEvenInteger((float) value);
 
     /// <summary>
     /// Is value finite
@@ -518,12 +509,6 @@ public readonly struct BFloat16 : INumber<BFloat16>
     public static bool IsInfinity(BFloat16 value) =>
         (value.RawValue & 0x7F80) == 0x7F80 && (value.RawValue & 0x007F) == 0;
 
-    /// <summary>
-    /// Is value an integer?
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public static bool IsInteger(BFloat16 value) => float.IsInteger((float)value);
 
     /// <summary>
     /// Is NaN
@@ -559,12 +544,6 @@ public readonly struct BFloat16 : INumber<BFloat16>
         return num < 0x7F80 && num != 0 && (num & 0x7F80) != 0;
     }
 
-    /// <summary>
-    /// Is odd integer?
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public static bool IsOddInteger(BFloat16 value) => float.IsOddInteger((float) value);
 
     /// <summary>
     /// Is positive?
@@ -684,29 +663,6 @@ public readonly struct BFloat16 : INumber<BFloat16>
 
     }
 
-    /// <summary>
-    /// Parse Span of char
-    /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
-    public static BFloat16 Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
-        => (BFloat16) float.Parse(s, provider);
-
-    /// <summary>
-    /// TryParse Span of char
-    /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
-    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out BFloat16 result)
-    {
-        float floatResult;
-        bool isGood = float.TryParse(s, provider, out floatResult);
-        result = (BFloat16)floatResult;
-        return isGood;
-    }
 
 
 
@@ -762,6 +718,66 @@ public readonly struct BFloat16 : INumber<BFloat16>
     {
         float floatResult;
         bool isGood = float.TryParse(s, style, provider, out floatResult);
+        result = (BFloat16)floatResult;
+        return isGood;
+    }
+
+
+#if NET7_0_OR_GREATER
+
+    /// <summary>
+    /// IAdditiveIdentity
+    /// </summary>
+    static BFloat16 IAdditiveIdentity<BFloat16, BFloat16>.AdditiveIdentity
+        => new BFloat16((ushort) 0);
+
+
+    /// <summary>
+    /// Is value an integer?
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static bool IsInteger(BFloat16 value) => float.IsInteger((float)value);
+
+
+    /// <summary>
+    /// Is an even integer
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsEvenInteger(BFloat16 value) =>
+         float.IsEvenInteger((float) value);
+
+    /// <summary>
+    /// Is odd integer?
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static bool IsOddInteger(BFloat16 value) => float.IsOddInteger((float) value);
+
+
+    /// <summary>
+    /// Parse Span of char
+    /// </summary>
+    /// <param name="s"></param>
+    /// <param name="provider"></param>
+    /// <returns></returns>
+    public static BFloat16 Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
+        => (BFloat16) float.Parse(s, provider);
+
+
+    /// <summary>
+    /// TryParse Span of char
+    /// </summary>
+    /// <param name="s"></param>
+    /// <param name="provider"></param>
+    /// <param name="result"></param>
+    /// <returns></returns>
+    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out BFloat16 result)
+    {
+        float floatResult;
+        bool isGood = float.TryParse(s, provider, out floatResult);
         result = (BFloat16)floatResult;
         return isGood;
     }
@@ -1090,5 +1106,9 @@ public readonly struct BFloat16 : INumber<BFloat16>
 
     #nullable enable
 
-}
+
+
 #endif
+
+}
+
