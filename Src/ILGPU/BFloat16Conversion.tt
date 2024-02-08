@@ -36,6 +36,7 @@ namespace ILGPU
    {
 
 
+
 <# foreach (var op in unaryOps) { #>
         /// <summary>
         /// <#= op.Summary #>
