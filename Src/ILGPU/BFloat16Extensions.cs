@@ -3,7 +3,7 @@
 //                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: BFloat16Conversion.tt/BFloat16Conversion.cs
+// File: BFloat16Extensions.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
