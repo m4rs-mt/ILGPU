@@ -1,4 +1,14 @@
-﻿
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2021-2023 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: RuntimeTests.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using System;
@@ -55,7 +65,7 @@ namespace ILGPU.Tests.CPU
             {
                 // Detect the number of processors and check whether we run in a supported
                 // range of tests
-                int maxNumThreads = Environment.ProcessorCount * 768;
+                int maxNumThreads = Environment.ProcessorCount * 256;
                 Skip.If(customDevice.NumThreads > maxNumThreads);
             }
 
