@@ -40,8 +40,10 @@ namespace ILGPU.IR.Transformations
             Method method,
             DisassembledMethod disassembledMethod)
         {
-            // Check whether we can inline this method
-            if (!method.HasImplementation)
+            var inliningMode = context.Properties.InliningMode;
+
+            // Check whether we are allowed to inline this method
+            if (inliningMode == InliningMode.Disabled || !method.HasImplementation)
                 return;
 
             if (method.HasSource)
@@ -64,7 +66,7 @@ namespace ILGPU.IR.Transformations
             }
 
             // Evaluate a simple inlining heuristic
-            if (context.Properties.InliningMode != InliningMode.Conservative ||
+            if (inliningMode != InliningMode.Conservative ||
                 disassembledMethod.Instructions.Length <= MaxNumILInstructionsToInline)
             {
                 method.AddFlags(MethodFlags.Inline);

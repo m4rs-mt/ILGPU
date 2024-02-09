@@ -23,25 +23,23 @@ namespace ILGPU.Tests.Velocity
         /// Creates a new test context instance.
         /// </summary>
         /// <param name="optimizationLevel">The optimization level to use.</param>
-        /// <param name="enableAssertions">
-        /// Enables use of assertions.
-        /// </param>
-        /// <param name="forceDebugConfig">
-        /// Forces use of debug configuration in O1 and O2 builds.
-        /// </param>
         /// <param name="prepareContext">The context preparation handler.</param>
         protected VelocityTestContext(
             OptimizationLevel optimizationLevel,
-            bool enableAssertions,
-            bool forceDebugConfig,
             Action<Context.Builder> prepareContext)
             : base(
                   optimizationLevel,
-                  enableAssertions,
-                  forceDebugConfig,
                   builder => prepareContext(
                       builder.Velocity(VelocityDeviceType.Scalar2)),
                   context => context.CreateVelocityAccelerator())
+        { }
+
+        /// <summary>
+        /// Creates a new test context instance.
+        /// </summary>
+        /// <param name="optimizationLevel">The optimization level to use.</param>
+        protected VelocityTestContext(OptimizationLevel optimizationLevel)
+            : this(optimizationLevel, _ => { })
         { }
     }
 }

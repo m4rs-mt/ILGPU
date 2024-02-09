@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                           Copyright (c) 2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RuntimeTests.cs
@@ -69,9 +69,8 @@ namespace ILGPU.Tests.CPU
                 Skip.If(customDevice.NumThreads > maxNumThreads);
             }
 
-            using var context = Context.Create(builder => builder
-                .DebugConfig(enableAssertions: true)
-                .CPU(customDevice));
+            using var context = Context.Create(builder =>
+                builder.Assertions().CPU(customDevice));
 
             // Spawn a new accelerator and invoke a simple sequence kernel to check
             // whether all threads are actually executed

@@ -63,7 +63,8 @@ namespace ILGPU.IR.Transformations
             this Transformer.Builder builder,
             InliningMode inliningMode)
         {
-            builder.Add(new Inliner());
+            if (inliningMode != InliningMode.Disabled)
+                builder.Add(new Inliner());
             builder.Add(new SimplifyControlFlow());
             builder.Add(new SSAConstruction());
             builder.Add(new DeadCodeElimination());
@@ -148,7 +149,8 @@ namespace ILGPU.IR.Transformations
 
             // Perform an additional inlining pass to specialize small device-specific
             // functions that could have been introduced
-            builder.Add(new Inliner());
+            if (inliningMode != InliningMode.Disabled)
+                builder.Add(new Inliner());
 
             // Apply UCE and DCE passes to avoid dead branches and fold conditionals that
             // do not affect the actual code being executed

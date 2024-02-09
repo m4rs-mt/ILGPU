@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -51,7 +50,6 @@ namespace ILGPU
         /// <summary>
         /// No functions will be inlined at all.
         /// </summary>
-        [Obsolete("Disabling inlining is no longer supported")]
         Disabled,
     }
 
@@ -253,7 +251,7 @@ namespace ILGPU
     }
 
     /// <summary>
-    /// Internal flags to specify the behavior of automatic page locking.
+    /// Internal flags to specificy the behavior of automatic page locking.
     /// </summary>
     public enum PageLockingMode
     {
@@ -319,18 +317,6 @@ namespace ILGPU
             DebugSymbolsMode.Auto;
 
         /// <summary>
-        /// Returns true if the optimized kernels should be debugged.
-        /// </summary>
-        /// <remarks>Disabled by default.</remarks>
-        public bool ForceDebuggingOfOptimizedKernels { get; protected set; }
-
-        /// <summary>
-        /// Returns true if the internal IR verifier is enabled.
-        /// </summary>
-        /// <remarks>Disabled by default.</remarks>
-        public bool EnableVerifier { get; protected set; }
-
-        /// <summary>
         /// Returns true if assertions are enabled.
         /// </summary>
         /// <remarks>Disabled by default.</remarks>
@@ -347,6 +333,12 @@ namespace ILGPU
         /// </summary>
         /// <remarks>Disabled by default.</remarks>
         public bool EnableKernelInformation { get; protected set; }
+
+        /// <summary>
+        /// Returns true if the internal IR verifier is enabled.
+        /// </summary>
+        /// <remarks>Disabled by default.</remarks>
+        public bool EnableVerifier { get; protected set; }
 
         /// <summary>
         /// Returns true if multiple threads should be used to generate code for
@@ -451,23 +443,18 @@ namespace ILGPU
         /// Instantiates all properties by replacing the automatic detection modes
         /// with more specific enumeration values.
         /// </summary>
-        internal ContextProperties InstantiateProperties()
-        {
-            bool useDebugConfiguration =
-                OptimizationLevel < OptimizationLevel.O1 ||
-                ForceDebuggingOfOptimizedKernels;
-            return new(extensionProperties)
+        internal ContextProperties InstantiateProperties() =>
+            new ContextProperties(extensionProperties)
             {
                 DebugSymbolsMode = DebugSymbolsMode == DebugSymbolsMode.Auto
-                    ? Debugger.IsAttached || EnableAssertions && useDebugConfiguration
-                        ? DebugSymbolsMode.Basic
-                        : DebugSymbolsMode.Disabled
-                    : DebugSymbolsMode,
-                EnableAssertions = EnableAssertions && useDebugConfiguration,
-                EnableIOOperations = EnableIOOperations && useDebugConfiguration,
-                EnableVerifier = EnableVerifier && useDebugConfiguration,
-                ForceDebuggingOfOptimizedKernels = ForceDebuggingOfOptimizedKernels,
+                        ? Debugger.IsAttached
+                            ? DebugSymbolsMode.Basic
+                            : DebugSymbolsMode.Disabled
+                        : DebugSymbolsMode,
+                EnableAssertions = EnableAssertions,
+                EnableIOOperations = EnableIOOperations,
                 EnableKernelInformation = EnableKernelInformation,
+                EnableVerifier = EnableVerifier,
                 EnableParallelCodeGenerationInFrontend =
                     EnableParallelCodeGenerationInFrontend,
                 OptimizationLevel = OptimizationLevel,
@@ -481,7 +468,6 @@ namespace ILGPU
                 LibNvvmPath = LibNvvmPath,
                 LibDevicePath = LibDevicePath,
             };
-        }
 
         #endregion
     }

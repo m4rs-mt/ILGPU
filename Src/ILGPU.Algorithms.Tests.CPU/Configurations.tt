@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                           Copyright (c) 2021 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Configurations.tt/Configurations.cs
@@ -44,8 +44,6 @@ namespace ILGPU.Algorithms.Tests.CPU
         public CPUTestContext<#= config #>()
             : base(
                 OptimizationLevel.<#= level #>,
-                enableAssertions: true,
-                forceDebugConfig: true,
                 builder => builder.EnableAlgorithms())
         { }
     }
