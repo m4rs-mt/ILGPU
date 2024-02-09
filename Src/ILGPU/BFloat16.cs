@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2024 ILGPU Project
+//                           Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BFloat16.cs
@@ -8,6 +8,7 @@
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
+
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
