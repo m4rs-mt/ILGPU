@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelEntryPoints.cs
@@ -559,7 +559,7 @@ namespace ILGPU.Tests
             if (e.InnerException is not NotSupportedException)
             {
                 string riderException =
-                 "JetBrains.ReSharper.TestRunner.Logging.TraceListener+AssertionException";
+              "JetBrains.ReSharper.TestRunner.Logging.TraceListener+AssertionException";
                 string vsException =
                     "Microsoft.VisualStudio.TestPlatform.TestHost.DebugAssertException";
                 string debugException = riderException ==
