@@ -80,7 +80,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         private async void CanvasInitComplete(BasicCanvas supercanvas)
         {
-          
+
 
             displayPort[0] = Canvas2D.Width;
             displayPort[1] = Canvas2D.Height;
@@ -103,7 +103,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         private Device _lastDevice = null;
 
-      
+
 
         List<string> SystemDevices = new List<string>();
 
@@ -117,7 +117,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
             {
                 if (device.AcceleratorType != AcceleratorType.CPU)
                 {
-                   
+
                     if (icnt == 0)
                     {
                         DeviceName = device.Name;
@@ -127,7 +127,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 }
             }
 
-           
+
         }
 
         private static Stopwatch _stopWatch;
@@ -145,7 +145,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
-      
+
 
         public string DeviceName { get; set; } = "CPUOnly";
 
@@ -157,19 +157,19 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         public async Task RenderDevice(string deviceName)
         {
-         
+
             areaView[0] = -2.0f;
             areaView[1] = 1.0f;
             areaView[2] = -1.0f;
             areaView[3] = 1.0f;
             maxIterations = 1000;
-            
+
             int[] data = Crunch();
             await MandelbrotExtensions.Draw(Canvas2D, data, displayPort[0], displayPort[1], maxIterations, Color.Blue);
             StateHasChanged();
         }
 
-    
+
 
         float[] areaView = new float[4];
         int[] displayPort = new int[2];
@@ -210,10 +210,10 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 MandelbrotInstance.CalcGPU(ref data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
                 ExecutionsDetails3 = ElapsedTime("IL Run - " + DeviceName);
 
-              
+
             }
 
-           
+
             return data;
         }
 
@@ -245,24 +245,24 @@ namespace BlazorSampleApp.MandelbrotExplorer
             for (int i = 0; i < 500; i++)
             {
                 // here we are in a long running loop, a user can navigate away or close a window which will
-                // eventually result in an exception as this loop will continue to run 
-               
+                // eventually result in an exception as this loop will continue to run
+
 
                 if (_disposing || MandelbrotInstance.IsDisposing)
                 {
-                    
+
                     break;
                 }
                 RestartWatch();
                 MandelbrotInstance.CalcGPURepeat(ref data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
                 ExecutionsDetails2 = ElapsedTime($"IL Run - {DeviceName}");
-               
+
                 areaView[0] = areaView[0] * 0.98f + offsetX;
                 areaView[1] = areaView[1] * 0.98f + offsetX;
                 areaView[2] = areaView[2] * 0.98f + offsetY;
                 areaView[3] = areaView[3] * 0.98f + offsetY;
 
-               
+
                 if (_disposing || MandelbrotInstance.IsDisposing)
                 {
                     break;
@@ -272,13 +272,13 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 ExecutionsDetails3 = ElapsedTime("Web Server Render");
                 StateHasChanged();
 
-                
+
 
             }
 
             MandelbrotInstance.CleanupGPURepeat();
 
-        
+
         }
 
 
@@ -293,5 +293,5 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
 
     }
-   
+
 }

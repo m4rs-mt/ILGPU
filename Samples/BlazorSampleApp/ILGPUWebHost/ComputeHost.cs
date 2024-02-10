@@ -18,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPU.Runtime.Velocity;
 
 namespace BlazorSampleApp.ILGPUWebHost
 {
@@ -27,24 +28,24 @@ namespace BlazorSampleApp.ILGPUWebHost
     /// </summary>
     /// <details>
     /// We assume a server can have multiple GPUs, this object's job would be to manage the load
-    /// across all GPUs on this server. Imagine a farm with 1000 server each with 4 GPUs, 
-    /// how do we manage a GPU farm? At a single "blazor" server, sharing GPU's is not too hard to 
-    /// imagine how we spread the load across the 4 GPUs but at a farm level; networking, routing and 
+    /// across all GPUs on this server. Imagine a farm with 1000 server each with 4 GPUs,
+    /// how do we manage a GPU farm? At a single "blazor" server, sharing GPU's is not too hard to
+    /// imagine how we spread the load across the 4 GPUs but at a farm level; networking, routing and
     /// bandwidth become important very important.
-    /// 
-    /// 
+    ///
+    ///
     /// We could in theory re-establish streams between GPUs and clients to balance
     /// the computational load. It is a trivial task counting accelerator streams per GPU
-    /// should we want to balance similar compute tasks. 
-    /// 
+    /// should we want to balance similar compute tasks.
+    ///
     /// We will note the Mandelbrot set computed here uses approximately 100 MB of memory per session
-    /// therefor we should secure buffer allocation as part of the session. 
+    /// therefor we should secure buffer allocation as part of the session.
     /// </details>
 
 #nullable disable
     public class ComputeHost : IComputeHost, IDisposable
     {
-        // the context for session and accelerator instantiation 
+        // the context for session and accelerator instantiation
         private Context _context;
 
         private bool _disposing;
@@ -69,7 +70,7 @@ namespace BlazorSampleApp.ILGPUWebHost
         {
             _disposing = false;
 
-            _context = Context.Create(builder => builder.Default());
+            _context = Context.Create(builder => builder.Default().AllVelocity());
 
             _computeSessions = new List<ComputeSession>();
 
@@ -91,10 +92,10 @@ namespace BlazorSampleApp.ILGPUWebHost
             {
 
                 List<AcceleratorType> types = allowedAcceleratorTypes.ToList();
-                
+
                 foreach (var device in _context)
                 {
-                    
+
                     if (types.Exists(x => x == device.AcceleratorType))
                     {
                         if (device.MemorySize > minimumMemory && device.NumMultiprocessors >= multiProcessors)
@@ -118,7 +119,7 @@ namespace BlazorSampleApp.ILGPUWebHost
         }
 
         /// <summary>
-        /// Here we assume only one accelerator on the system. If there were multiple accelerators we could do a 
+        /// Here we assume only one accelerator on the system. If there were multiple accelerators we could do a
         /// check of how many sessions were on each accelerator and return a new compute session on the leased
         /// used accelerator.
         /// </summary>
@@ -137,8 +138,8 @@ namespace BlazorSampleApp.ILGPUWebHost
 
 
         /// <summary>
-        /// If for some reason a blazor compute session end without notice, we can attempt to 
-        /// connect back the our original session provided we stored the session ID in the 
+        /// If for some reason a blazor compute session end without notice, we can attempt to
+        /// connect back the our original session provided we stored the session ID in the
         /// client browser. Note if we have a server farm, we may need to keep a server session map.
         /// </summary>
         /// <param name="sessionID"></param>
@@ -157,9 +158,9 @@ namespace BlazorSampleApp.ILGPUWebHost
         }
 
         /// <summary>
-        /// We are tracking all compute sessions on the host for GPU resource allocation. Sessions must be removed 
+        /// We are tracking all compute sessions on the host for GPU resource allocation. Sessions must be removed
         /// from the host otherwise when disposed otherwise we will take the GPU down on all sessions by overallocation
-        /// or resources. 
+        /// or resources.
         /// </summary>
         /// <param name="session"></param>
 
@@ -207,7 +208,7 @@ namespace BlazorSampleApp.ILGPUWebHost
 
         /// <summary>
         /// clean up accelerators.
-        /// 
+        ///
         /// </summary>
         private void CleanUpAcceleratorHosts()
         {
@@ -215,7 +216,7 @@ namespace BlazorSampleApp.ILGPUWebHost
             {
                 // we assume and accelerator could be active
                 accelerator?.Synchronize();
-                
+
             }
             foreach (var accelerator in _accelerators)
             {
@@ -236,7 +237,7 @@ namespace BlazorSampleApp.ILGPUWebHost
             CleanUpSessions();
 
             CleanUpAcceleratorHosts();
-            
+
             _context?.Dispose();
 
         }

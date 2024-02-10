@@ -18,18 +18,19 @@ using ILGPU;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
+using ILGPU.Runtime.Velocity;
 
 
 namespace BlazorSampleApp.MandelbrotExplorer
 {
     /// <summary>
     /// This loads the scoped dependency injected instance of ILGPU per razor page which is similar coding to a command line application.
-    /// 
-    /// Blazor has difference levels of dependency injection, this should be scoped 
+    ///
+    /// Blazor has difference levels of dependency injection, this should be scoped
     /// "services.AddScoped<ILGPU.BlazorSamples.MandelbrotExplorer.IMandelbrotBasic, ILGPU.BlazorSamples.MandelbrotExplorer.MandelbrotBasic>();"
     /// in the Blazor server startup file.
     /// </summary>
-    
+
 #nullable disable
     public class MandelbrotBasic : IMandelbrotBasic, IDisposable
     {
@@ -37,7 +38,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         private Accelerator _accelerator = null;
         private System.Action<Index1D, ArrayView1D<int, Stride1D.Dense>, ArrayView1D<float, Stride1D.Dense>, int, ArrayView<int>> mandelbrot_kernel;
 
-     
+
         // If we are disposing do not start new processes
         private bool _disposing = false;
 
@@ -49,10 +50,10 @@ namespace BlazorSampleApp.MandelbrotExplorer
         public bool IsDisposing { get {  return _disposing; }  }
 
         public Context ContextInstance {
-            get 
+            get
             {
                 return _context;
-            } 
+            }
         }
 
 
@@ -66,7 +67,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         public MandelbrotBasic()
         {
-            _context = Context.CreateDefault();
+            _context = Context.Create(builder => builder.Default().AllVelocity());
             _accelerator = null;
         }
 
@@ -78,7 +79,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         public void CompileKernel(Device device)
         {
             _accelerator?.Dispose();
-            _accelerator = device.CreateAccelerator(_context);            
+            _accelerator = device.CreateAccelerator(_context);
 
             mandelbrot_kernel = _accelerator.LoadAutoGroupedStreamKernel<
                 Index1D, ArrayView1D<int, Stride1D.Dense>, ArrayView1D<float, Stride1D.Dense>, int, ArrayView<int>>(MandelbrotExtensions.MandelbrotKernel);
@@ -105,7 +106,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// </summary>
         public async void Dispose()
         {
-         
+
             _disposing = true;
 
             bool computeFinished = await ComputeFinished();
@@ -114,7 +115,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
             mandelbrot_kernel = null;
             _accelerator?.Dispose();
             _context?.Dispose();
-           
+
         }
 
         /// <summary>
@@ -219,7 +220,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// Clean up compute resources.
         /// </summary>
         public void CleanupGPURepeat()
-        {           
+        {
             _display?.Dispose();
             _display = null;
             _area?.Dispose();
@@ -229,9 +230,9 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         }
 
-       
+
 
     }
 
-   
+
 }

@@ -26,7 +26,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         /// <summary>
         /// This "kernel" function will compile to IL code which ILGPU will ingest and convert to GPU compute shader code.
-        /// 
+        ///
         /// </summary>
         /// <param name="index"></param>
         /// <param name="displayParams"></param> displayPort int[] {width, height }
@@ -70,7 +70,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// <param name="max_iterations"></param>
         public static void CalcCPUSingle(int[] buffer, int[] display, float[] view, int max_iterations)
         {
-            
+
             for (int i=0; i < display[0]; i++ )
             {
                 for (int j = 0; j < display[1]; j++)
@@ -108,7 +108,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         {
             int icnt = display[0];
 
-            Parallel.For( 0, icnt, i => 
+            Parallel.For( 0, icnt, i =>
             {
                 for (int j = 0; j < display[1]; j++)
                 {
@@ -134,14 +134,18 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
+        private static byte[]? drawBuffer;
+        private static int lastWidth = 0;
+        private static int lastHeight = 0;
+
         /// <summary>
         /// This creates and passes an array to webgl for rendering to the canvas using "2D" webgl interface
-        /// 
+        ///
         /// There are two possibilities for showing our result:
-        /// 
+        ///
         /// First is the "direct" draw approach where we pass a color map and create an ImageData object
         /// in JavaScript, copying each pixels color to the image data object.
-        /// 
+        ///
         /// Second is we generate a compressed PNG image in memory and tell the webgl context
         /// to download the compressed PNG image as a file like any other web page process.
         ///
@@ -158,7 +162,13 @@ namespace BlazorSampleApp.MandelbrotExplorer
         public static async Task Draw(BasicCanvas basicCanvas, int[] data, int width, int height, int iterations, Color color)
         {
 
-            byte[] result = new byte[width * height * 4];
+            if (drawBuffer is null || width != lastWidth || height != lastHeight)
+            {
+                drawBuffer = null;
+                drawBuffer = new byte[width * height * 4];
+                lastWidth = width;
+                lastHeight = height;
+            }
 
             for (int i = 0; i < width * height; i++)
             {
@@ -180,15 +190,15 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
                 }
 
-              
-                result[i * 4] = fillColor.R;
-                result[i * 4 + 1] = fillColor.G;
-                result[i * 4 + 2] = fillColor.B;
-                result[i * 4 + 3] = fillColor.A;
-                
+
+                drawBuffer[i * 4] = fillColor.R;
+                drawBuffer[i * 4 + 1] = fillColor.G;
+                drawBuffer[i * 4 + 2] = fillColor.B;
+                drawBuffer[i * 4 + 3] = fillColor.A;
+
             }
 
-            await basicCanvas.CreateImageDataCopyByteArray("Mandelbrot", width, height, result);
+            await basicCanvas.CreateImageDataCopyByteArray("Mandelbrot", width, height, drawBuffer);
             await basicCanvas.PutImageData("Mandelbrot", 0, 0);
         }
     }

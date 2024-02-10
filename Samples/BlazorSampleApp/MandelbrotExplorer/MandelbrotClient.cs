@@ -21,9 +21,9 @@ using BlazorSampleApp.ILGPUWebHost;
 namespace BlazorSampleApp.MandelbrotExplorer
 {
     /// <summary>
-    /// This object's job is to provide access/state/parameters to a compute session, this object is loaded via 
-    /// Blazor "scoped" dependency injected in a razor page. 
-    /// 
+    /// This object's job is to provide access/state/parameters to a compute session, this object is loaded via
+    /// Blazor "scoped" dependency injected in a razor page.
+    ///
     /// IDisposable is implemented to notify the a "hosted" compute session is no longer needed a user's razor page.
     /// </summary>
     ///
@@ -35,11 +35,11 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         public bool IsActive { get { return _session?.IsActive ?? false; }  }
 
-        // In Blazor server app or any web  a 
-        private string SessionId = Guid.NewGuid().ToString();   
+        // In Blazor server app or any web  a
+        private string SessionId = Guid.NewGuid().ToString();
 
         private bool _disposing = false;
-      
+
         public int ViewWidth { get; private set; }
 
         public int ViewHeight {  get; private set; }
@@ -98,7 +98,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
             Top = top;
             Bottom = bottom;
 
-         
+
 
             if (_session.IsActive && !_session.IsComputing && !_disposing)
             {
@@ -115,17 +115,17 @@ namespace BlazorSampleApp.MandelbrotExplorer
         public MandelbrotClient(IComputeHost computeHost)
         {
             // method for dependency injection otherwise this blows up on a web server.
-            
+
             if (!computeHost.HostConfigured)
             {
-                computeHost.ConfigureAcceleration(new AcceleratorType[2] { AcceleratorType.OpenCL, AcceleratorType.Cuda }, int.MaxValue, 20);
+                computeHost.ConfigureAcceleration(new AcceleratorType[3] { AcceleratorType.OpenCL, AcceleratorType.Cuda, AcceleratorType.Velocity }, int.MaxValue, 20);
             }
 
             _session = computeHost.NewComputeStream(SessionId);
 
         }
 
-        public string AcceleratorName() 
+        public string AcceleratorName()
         {
             return _session?.Stream?.Accelerator?.Name ?? "n/a";
         }
@@ -134,7 +134,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         public void Dispose()
         {
             _disposing = true;
-          
+
 
             if (!_session?.IsDisposing ?? false)
             {
