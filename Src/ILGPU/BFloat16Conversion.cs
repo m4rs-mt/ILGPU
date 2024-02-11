@@ -1,4 +1,26 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BFloat16Conversion.tt/BFloat16Conversion.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 
+
+
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2023 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: TypeInformation.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
