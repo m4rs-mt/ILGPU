@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TestContext.cs
@@ -52,22 +52,24 @@ namespace ILGPU.Tests.CPU
         /// Creates a new test context instance.
         /// </summary>
         /// <param name="optimizationLevel">The optimization level to use.</param>
+        /// <param name="enableAssertions">
+        /// Enables use of assertions.
+        /// </param>
+        /// <param name="forceDebugConfig">
+        /// Forces use of debug configuration in O1 and O2 builds.
+        /// </param>
         /// <param name="prepareContext">The context preparation handler.</param>
         protected CPUTestContext(
             OptimizationLevel optimizationLevel,
+            bool enableAssertions,
+            bool forceDebugConfig,
             Action<Context.Builder> prepareContext)
             : base(
                   optimizationLevel,
+                  enableAssertions,
+                  forceDebugConfig,
                   builder => prepareContext(builder.CPU(GetCPUDeviceKind())),
                   context => context.CreateCPUAccelerator(0))
-        { }
-
-        /// <summary>
-        /// Creates a new test context instance.
-        /// </summary>
-        /// <param name="optimizationLevel">The optimization level to use.</param>
-        protected CPUTestContext(OptimizationLevel optimizationLevel)
-            : this(optimizationLevel, _ => { })
         { }
     }
 }
