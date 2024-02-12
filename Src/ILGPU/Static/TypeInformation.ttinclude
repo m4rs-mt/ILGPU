@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeInformation.ttinclude
@@ -34,7 +34,7 @@ public class TypeInformation
             { "UInt16", "Int16" },
             { "UInt32", "Int32" },
             { "UInt64", "Int64" },
-
+            { "BFloat16", "Float16" },
             { "Half", "Float16" },
             { "Float", "Float32" },
             { "Double", "Float64" },
@@ -43,6 +43,7 @@ public class TypeInformation
     private static readonly Dictionary<string, string> ArithmeticBasicValueTypeMapping =
         new Dictionary<string, string>()
         {
+            { "BFloat16", "Float16" },
             { "Half", "Float16" },
             { "Float", "Float32" },
             { "Double", "Float64" },
@@ -74,8 +75,35 @@ public class TypeInformation
     public bool IsUnsignedInt => Kind == TypeInformationKind.UnsignedInt;
     public bool IsFloat => Kind == TypeInformationKind.Float;
 
-    public string SizeOfType => Name == "Half" ? "sizeof(ushort)" : $"sizeof({Type})";
-    public string DefaultValue => Name == "Half" ? "Half.Zero" : "0";
+    public string SizeOfType
+    {
+        get
+        {
+            switch (Name)
+            {
+                case "Half": case "BFloat16":
+                    return "sizeof(ushort)";
+                default:
+                    return  $"sizeof({Type})";
+            }
+        }
+    }
+
+    public string DefaultValue
+    {
+        get
+        {
+            switch (Name)
+            {
+                case "Half":
+                    return "Half.Zero";
+                case "BFloat16":
+                    return "BFloat16.Zero";
+                default:
+                    return  "0";
+            }
+        }
+    }
 
     public string FormatNumber(string number) =>
         Prefix + "(" + number + Suffix + ")";
@@ -112,6 +140,7 @@ public static readonly TypeInformation[] IntTypes =
 
 public static readonly TypeInformation[] FloatTypes =
     {
+       // new TypeInformation("BFloat16", "BFloat16", TypeInformationKind.Float, "(BFloat16)", "f"),
         new TypeInformation("Half", "Half", TypeInformationKind.Float, "(Half)", "f"),
         new TypeInformation("Float", "float", TypeInformationKind.Float, null, "f"),
         new TypeInformation("Double", "double", TypeInformationKind.Float),
