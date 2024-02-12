@@ -23,7 +23,12 @@ public static partial class BFloat16Extensions
     /// <summary>
     /// The bit mask of the sign bit.
     /// </summary>
-    private const ushort SignBitMask = 0x8000;
+    internal const ushort SignBitMask = 0x8000;
+
+    /// <summary>
+    /// The bit mask of the exponent and the mantissa.
+    /// </summary>
+    internal const ushort ExponentMantissaMask = 0x7FFF;
 
     /// <summary>
     /// Negate value
@@ -34,10 +39,6 @@ public static partial class BFloat16Extensions
     public static BFloat16 Neg(BFloat16 bFloat16Value) =>
         new BFloat16((ushort)(bFloat16Value.RawValue ^ SignBitMask));
 
-    /// <summary>
-    /// The bit mask of the exponent and the mantissa.
-    /// </summary>
-    private const ushort ExponentMantissaMask = 0x7FFF;
 
 
     /// <summary>

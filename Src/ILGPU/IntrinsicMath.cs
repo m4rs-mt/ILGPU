@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMath.cs
@@ -58,6 +58,16 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>|value|.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Abs)]
+        public static BFloat16 Abs(BFloat16 value) =>
+            BFloat16.Abs(value);
+
+
+        /// <summary>
+        /// Computes |value|.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>|value|.</returns>
         public static sbyte Abs(sbyte value) =>
             (sbyte)Abs((int)value);
 
@@ -109,7 +119,29 @@ namespace ILGPU
         /// <returns>The minimum of first and second value.</returns>
         [MathIntrinsic(MathIntrinsicKind.Min)]
         public static float Min(float first, float second) =>
-            Math.Min(first, second);
+            MathF.Min(first, second);
+
+        /// <summary>
+        /// Computes min(first, second).
+        /// </summary>
+        /// <param name="first">The first argument.</param>
+        /// <param name="second">The second argument.</param>
+        /// <returns>The minimum of first and second value.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Min)]
+        public static Half Min(Half first, Half second) =>
+            (Half) MathF.Min(first, second);
+
+        /// <summary>
+        /// Computes min(first, second).
+        /// </summary>
+        /// <param name="first">The first argument.</param>
+        /// <param name="second">The second argument.</param>
+        /// <returns>The minimum of first and second value.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Min)]
+        public static BFloat16 Min(BFloat16 first, BFloat16 second) =>
+            (BFloat16) MathF.Min( (float)first, (float) second);
+
+
 
         /// <summary>
         /// Computes min(first, second).
@@ -205,7 +237,29 @@ namespace ILGPU
         /// <returns>The maximum of first and second value.</returns>
         [MathIntrinsic(MathIntrinsicKind.Max)]
         public static float Max(float first, float second) =>
-            Math.Max(first, second);
+            MathF.Max(first, second);
+
+
+        /// <summary>
+        /// Computes max(first, second).
+        /// </summary>
+        /// <param name="first">The first argument.</param>
+        /// <param name="second">The second argument.</param>
+        /// <returns>The maximum of first and second value.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Max)]
+        public static Half Max(Half first, Half second) =>
+            (Half) MathF.Max(first, second);
+
+        /// <summary>
+        /// Computes max(first, second).
+        /// </summary>
+        /// <param name="first">The first argument.</param>
+        /// <param name="second">The second argument.</param>
+        /// <returns>The maximum of first and second value.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Max)]
+        public static BFloat16 Max(BFloat16 first, BFloat16 second) =>
+           (BFloat16)  MathF.Max((float)first, (float) second);
+
 
         /// <summary>
         /// Computes max(first, second).
