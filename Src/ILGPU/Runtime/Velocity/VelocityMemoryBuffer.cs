@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2022-2023 ILGPU Project
+//                        Copyright (c) 2022-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityMemoryBuffer.cs
@@ -10,11 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.CPU;
-using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace ILGPU.Runtime.Velocity
 {
@@ -31,34 +29,19 @@ namespace ILGPU.Runtime.Velocity
         /// <param name="accelerator">The parent accelerator (if any).</param>
         /// <param name="length">The length of this source.</param>
         /// <param name="elementSize">The element size.</param>
-        internal VelocityMemoryBuffer(
+        internal unsafe VelocityMemoryBuffer(
             Accelerator accelerator,
             long length,
             int elementSize)
             : base(accelerator, length, elementSize)
         {
             // Ensure that all element accesses will be properly aligned
-            long nativeLength = length * elementSize;
-            int alignmentOffset = Interop.ComputeAlignmentOffset(
-                nativeLength,
-                elementSize * accelerator.WarpSize);
-            // Pad the length to ensure a valid buffer size
-            long paddedLength = nativeLength + alignmentOffset;
+            var nativeLength = (UIntPtr)(length * elementSize);
+            var alignment = (UIntPtr)(accelerator as VelocityAccelerator)!.DataAlignment;
 
             // Allocate resources and assign pointers
-            NativeBufferPtr = Marshal.AllocHGlobal(new IntPtr(paddedLength));
-            NativePtr = NativeBufferPtr + alignmentOffset;
+            NativePtr = new IntPtr(NativeMemory.AlignedAlloc(nativeLength, alignment));
         }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the natively allocated underlying buffer pointer which may not be
-        /// aligned in all cases.
-        /// </summary>
-        public IntPtr NativeBufferPtr { get; private set; }
 
         #endregion
 
@@ -96,10 +79,9 @@ namespace ILGPU.Runtime.Velocity
         /// <summary>
         /// Disposes the underlying memory buffer.
         /// </summary>
-        protected override void DisposeAcceleratorObject(bool disposing)
+        protected override unsafe void DisposeAcceleratorObject(bool disposing)
         {
-            Marshal.FreeHGlobal(NativeBufferPtr);
-            NativeBufferPtr = IntPtr.Zero;
+            NativeMemory.AlignedFree(NativePtr.ToPointer());
             NativePtr = IntPtr.Zero;
         }
 
