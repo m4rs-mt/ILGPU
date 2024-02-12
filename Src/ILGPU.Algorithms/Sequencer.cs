@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Sequencer.cs
@@ -39,6 +39,16 @@ namespace ILGPU.Algorithms.Sequencers
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
         public readonly Index1D ComputeSequenceElement(LongIndex1D sequenceIndex) =>
             (Index1D)sequenceIndex;
+    }
+
+    /// <summary>
+    /// Represents an identity implementation of a half sequencer.
+    /// </summary>
+    public readonly struct BFloat16Sequencer : ISequencer<BFloat16>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public readonly BFloat16 ComputeSequenceElement(LongIndex1D sequenceIndex) =>
+            (BFloat16)sequenceIndex.X;
     }
 
     /// <summary>

@@ -59,7 +59,7 @@ namespace ILGPU.Tests
 
 <# foreach (var (operationName, infix) in operationConfigurations) { #>
 <#      foreach (var type in FloatTypes) { #>
-<#         bool isFP16 = type == FloatTypes[0]; #>
+<#         bool isFP16 = ( type == FloatTypes[0]) || (type == FloatTypes[1]); #>
 <#         var floatRanges = GetFloatRanges(type, true, true, true, false); #>
 <#         var baseName = "_" + operationName + "_" + type.Name; #>
 <#         var testName = "CompareOperation" + baseName; #>
@@ -116,7 +116,7 @@ namespace ILGPU.Tests
 <# } #>
 
 <# foreach (var type in FloatTypes) { #>
-<#      bool isFP16 = type == FloatTypes[0]; #>
+<#      bool isFP16 = (type == FloatTypes[0] || type == FloatTypes[1]); #>
 <#      foreach (var (limitName, limitFormat) in floatLimits) { #>
 <#          var baseName = "_" + limitName + "_" + type.Name; #>
 <#          var testName = "Constant" + baseName; #>

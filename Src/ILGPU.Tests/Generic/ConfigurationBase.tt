@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ConfigurationBase.tt/ConfigurationBase.cs
@@ -24,8 +24,8 @@ public static IEnumerable<string> GetFloatRanges(
     bool useMultiplesOfPi = true,
     bool useNaN = true)
 {
-    var isFloat = type == FloatTypes[1];
-    var pi = isFloat ? "(float)Math.PI" : "Math.PI";
+    var isFloat = type == FloatTypes[2];
+    var pi = isFloat ? "MathF.PI" : "Math.PI";
     IEnumerable<string> result = new string[]
         {
             type.FormatNumber("-1.0"),

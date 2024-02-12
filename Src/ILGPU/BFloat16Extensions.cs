@@ -16,6 +16,22 @@ using System.Runtime.CompilerServices;
 namespace ILGPU;
 
 /// <summary>
+/// temp half operator
+/// </summary>
+public readonly partial struct Half
+{
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static explicit operator Half(BFloat16 value) =>
+        (Half)(float)value;
+    
+}
+
+
+/// <summary>
 /// Extension class for BFloat16
 /// </summary>
 public static partial class BFloat16Extensions
@@ -29,6 +45,10 @@ public static partial class BFloat16Extensions
     /// The bit mask of the exponent and the mantissa.
     /// </summary>
     internal const ushort ExponentMantissaMask = 0x7FFF;
+    // 0111 1111 1111 1111 (ignores the sign bit)
+    internal const ushort ExponentMask = 0x7F80;
+    // 0111 1111 1000 0000 (covers only the exponent)
+    internal const ushort MantissaMask = 0x007F;
 
     /// <summary>
     /// Negate value

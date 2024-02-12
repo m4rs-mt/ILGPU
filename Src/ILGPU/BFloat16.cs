@@ -35,13 +35,6 @@ public readonly struct BFloat16
 
     #region constants
 
-
-    private const ushort ExponentMantissaMask = 0x7FFF;
-        // 0111 1111 1111 1111 (ignores the sign bit)
-    private const ushort ExponentMask = 0x7F80;
-        // 0111 1111 1000 0000 (covers only the exponent)
-    private const ushort MantissaMask = 0x007F;
-
     /// <summary>
     /// Radix
     /// </summary>
@@ -71,8 +64,31 @@ public readonly struct BFloat16
     public static readonly BFloat16 NegativeInfinity = new BFloat16(
         0xFF80);
 
+    /// <summary>
+    /// Epsilon - smallest positive value
+    /// </summary>
+    public static readonly BFloat16 Epsilon = new BFloat16(0x0001);
+
+    /// <summary>
+    /// MaxValue - most positive value
+    /// </summary>
+    public static readonly BFloat16 MaxValue = new BFloat16(0x7F7F);
+
+    /// <summary>
+    /// MinValue ~ most negative value
+    /// </summary>
+    public static readonly BFloat16 MinValue = new BFloat16(0xFF7F);
+
+    /// <summary>
+    /// NaN ~ value with all exponent bits set to 1 and a non-zero mantissa
+    /// </summary>
+    public static readonly BFloat16 NaN = new BFloat16(0x7FC0);
 
     #endregion
+
+    #region Comparable
+
+
 
     /// <summary>
     /// CompareTo
@@ -91,12 +107,21 @@ public readonly struct BFloat16
 
     }
 
+
+
     /// <summary>
     /// CompareTo
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
     public int CompareTo(BFloat16 other) => ((float)this).CompareTo(other);
+
+    #endregion
+
+    #region Equality
+
+
+
 
     /// <summary>
     /// Equals
@@ -118,6 +143,9 @@ public readonly struct BFloat16
     /// </summary>
     /// <returns></returns>
     public readonly override int GetHashCode() => RawValue;
+
+    #endregion
+
 
     /// <summary>
     /// ToString
@@ -148,6 +176,13 @@ public readonly struct BFloat16
     {
         RawValue = rawValue;
     }
+
+
+    /// <summary>
+    /// Raw value
+    /// </summary>
+    /// <returns>internal ushort value</returns>
+    public ushort ToRawUShort => RawValue;
 
 
     /// <summary>
@@ -264,9 +299,6 @@ public readonly struct BFloat16
 
 
     #region operators
-
-
-
 
     /// <summary>
     /// Cast float to BFloat16
@@ -531,8 +563,8 @@ public readonly struct BFloat16
     /// <returns></returns>
     public static bool IsNaN(BFloat16 value)
         // NaN if all exponent bits are 1 and there is a non-zero value in the mantissa
-        =>  (value.RawValue & ExponentMask) == ExponentMask
-            && (value.RawValue & MantissaMask) != 0;
+        =>  (value.RawValue & BFloat16Extensions.ExponentMask) == BFloat16Extensions.ExponentMask
+            && (value.RawValue & BFloat16Extensions.MantissaMask) != 0;
 
     /// <summary>
     /// Is negative?
@@ -581,8 +613,8 @@ public readonly struct BFloat16
     /// <returns></returns>
     public static bool IsRealNumber(BFloat16 value)
     {
-        bool isExponentAllOnes = (value.RawValue & ExponentMask) == ExponentMask;
-        bool isMantissaNonZero = (value.RawValue & MantissaMask) != 0;
+        bool isExponentAllOnes = (value.RawValue & BFloat16Extensions.ExponentMask) == BFloat16Extensions.ExponentMask;
+        bool isMantissaNonZero = (value.RawValue & BFloat16Extensions.MantissaMask) != 0;
 
         // If exponent is all ones and mantissa is non-zero, it's NaN, so return false
         return !(isExponentAllOnes && isMantissaNonZero);
@@ -602,7 +634,7 @@ public readonly struct BFloat16
     /// <param name="value"></param>
     /// <returns></returns>
     public static bool IsZero(BFloat16 value)
-        => (value.RawValue & ExponentMantissaMask) == 0;
+        => (value.RawValue & BFloat16Extensions.ExponentMantissaMask) == 0;
 
     /// <summary>
     /// MaxMagnitude

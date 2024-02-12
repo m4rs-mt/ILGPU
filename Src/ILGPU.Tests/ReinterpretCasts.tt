@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ReinterpretCasts.tt/ReinterpretCasts.cs
@@ -32,20 +32,32 @@ namespace ILGPU.Tests
         { }
 
 <# foreach (var (floatType, intType) in Enumerable.Range(0, FloatTypes.Length).
-    Select(t => (FloatTypes[t], UnsignedIntTypes[t + 1]))) { #>
+    Select(t => (FloatTypes[t], UnsignedIntTypes[t==0?1:t]))) { #>
         internal static void <#= floatType.Name #>AsIntKernel(
             Index1D index,
             ArrayView1D<<#= intType.Type #>, Stride1D.Dense> data,
             <#= floatType.Type #> value)
         {
+<#
+    if (floatType != FloatTypes[0])
+    {
+#>
             data[index] = Interop.FloatAsInt(value);
+<#
+    }
+    if (floatType == FloatTypes[0]) {
+#>
+            data[index] = value.ToRawUShort;
+<#
+    }
+#>
         }
 
         [SkippableFact]
         [KernelMethod(nameof(<#= floatType.Name #>AsIntKernel))]
         public void <#= floatType.Name #>AsInt()
         {
-<#      if (floatType == FloatTypes[0]) { #>
+<#      if (floatType == FloatTypes[0] || floatType == FloatTypes[1] ) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
             var floatValue = (<#= floatType.Type #>)2.0;
@@ -53,7 +65,19 @@ namespace ILGPU.Tests
             Execute(Length, data.View, floatValue);
 
             var reference = Enumerable.Repeat(
+<#
+    if (floatType != FloatTypes[0])
+    {
+#>
                 Interop.FloatAsInt(floatValue),
+<#
+    }
+    if (floatType == FloatTypes[0]) {
+#>
+                floatValue.ToRawUShort,
+<#
+    }
+#>
                 Length).ToArray();
             Verify(data.View, reference);
         }
@@ -63,22 +87,58 @@ namespace ILGPU.Tests
             ArrayView1D<<#= floatType.Type #>, Stride1D.Dense> data,
             <#= intType.Type #> value)
         {
+<#
+    if (floatType != FloatTypes[0])
+    {
+#>
             data[index] = Interop.IntAsFloat(value);
+<#
+    }
+    if (floatType == FloatTypes[0]) {
+#>
+            data[index] = (BFloat16) value;
+<#
+    }
+#>
         }
 
         [SkippableFact]
         [KernelMethod(nameof(IntAs<#= floatType.Name #>Kernel))]
         public void IntAs<#= floatType.Name #>()
         {
-<#      if (floatType == FloatTypes[0]) { #>
+<#      if (floatType == FloatTypes[0] || floatType == FloatTypes[1]) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
+<#
+    if (floatType != FloatTypes[0])
+    {
+#>
             var intValue = Interop.FloatAsInt((<#= floatType.Type #>)2.0);
+<#
+    }
+    if (floatType == FloatTypes[0]) {
+#>
+            var intValue = ((<#= floatType.Type #>)2.0).ToRawUShort;
+<#
+    }
+#>
             using var data = Accelerator.Allocate1D<<#= floatType.Type #>>(Length);
             Execute(Length, data.View, intValue);
 
             var reference = Enumerable.Repeat(
+<#
+    if (floatType != FloatTypes[0])
+    {
+#>
                 Interop.IntAsFloat(intValue),
+<#
+    }
+    if (floatType == FloatTypes[0]) {
+#>
+                (BFloat16) intValue,
+<#
+    }
+#>
                 Length).ToArray();
             Verify(data.View, reference);
         }
