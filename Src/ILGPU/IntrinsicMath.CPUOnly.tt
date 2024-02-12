@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMath.CPUOnly.tt/IntrinsicMath.CPUOnly.cs
@@ -130,6 +130,31 @@ namespace ILGPU
             [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
             public static Half <#= op.MethodName #>(Half left, Half right) =>
                 HalfExtensions.<#= op.MethodName #>FP32(left, right);
+
+<# } #>
+            #endregion
+
+            #region BFloat16 Precision
+
+<# foreach (var op in unaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="value">The value.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static <#= op.IsPredicate ? "bool" : "BFloat16" #> <#= op.MethodName #>(BFloat16 value) =>
+                <#= op.IsPredicate ? string.Empty : "(BFloat16)" #><#= op.MethodName #>((float)value);
+
+<# } #>
+<# foreach (var op in binaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="left">The left operand.</param>
+            /// <param name="right">The right operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static BFloat16 <#= op.MethodName #>(BFloat16 left, BFloat16 right) =>
+                BFloat16Extensions.<#= op.MethodName #>FP32(left, right);
 
 <# } #>
             #endregion

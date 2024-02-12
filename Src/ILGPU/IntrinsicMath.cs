@@ -368,6 +368,28 @@ namespace ILGPU
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
+        public static Half Clamp(Half value, Half min, Half max) =>
+            Max(Min(value, max), min);
+
+
+        /// <summary>
+        /// Computes clamp(value, min, max) = Max(Min(clamp, max), min).
+        /// </summary>
+        /// <param name="value">The value to clamp.</param>
+        /// <param name="min">The first argument.</param>
+        /// <param name="max">The second argument.</param>
+        /// <returns>The clamped value in the interval [min, max].</returns>
+        public static BFloat16 Clamp(BFloat16 value, BFloat16 min, BFloat16 max) =>
+            Max(Min(value, max), min);
+
+
+        /// <summary>
+        /// Computes clamp(value, min, max) = Max(Min(clamp, max), min).
+        /// </summary>
+        /// <param name="value">The value to clamp.</param>
+        /// <param name="min">The first argument.</param>
+        /// <param name="max">The second argument.</param>
+        /// <returns>The clamped value in the interval [min, max].</returns>
         public static sbyte Clamp(sbyte value, sbyte min, sbyte max) =>
             Max(Min(value, max), min);
 
@@ -706,6 +728,29 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.CopySignF)]
         public static float CopySign(float x, float y) =>
             MathF.CopySign(x, y);
+
+        /// <summary>
+        /// Returns a value with the magnitude of x and the sign of y.
+        /// </summary>
+        /// <param name="x">A number whose magnitude is used in the result.</param>
+        /// <param name="y">A number whose sign is the used in the result.</param>
+        /// <returns>A value with the magnitude of x and the sign of y.</returns>
+        [MathIntrinsic(MathIntrinsicKind.CopySignF)]
+        public static Half CopySign(Half x, Half y) =>
+            (Half) MathF.CopySign(x, y);
+
+
+        /// <summary>
+        /// Returns a value with the magnitude of x and the sign of y.
+        /// </summary>
+        /// <param name="x">A number whose magnitude is used in the result.</param>
+        /// <param name="y">A number whose sign is the used in the result.</param>
+        /// <returns>A value with the magnitude of x and the sign of y.</returns>
+        [MathIntrinsic(MathIntrinsicKind.CopySignF)]
+        public static BFloat16 CopySign(BFloat16 x, BFloat16 y) =>
+            (BFloat16)MathF.CopySign((float) x, (float) y);
+
+
 
         #endregion
     }
