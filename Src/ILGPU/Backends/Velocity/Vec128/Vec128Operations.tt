@@ -52,8 +52,18 @@ string GetWarpTypeName64(string elementTypeName) =>
 string GetItemRef64(string name, int counter) => counter < 2
     ? $"{name}.Item1.GetElement({counter})"
     : $"{name}.Item2.GetElement({counter - 2})";
+string GetCastIToX32(string prefix, string variable) =>
+    prefix != "I" ? $"CastITo{prefix}32({variable})" : variable;
+string GetCastIToX64(string prefix, string variable) =>
+    prefix != "I" ? $"CastITo{prefix}64({variable})" : variable;
+string GetCastXToI32(string prefix, string variable) =>
+    prefix != "I" ? $"Cast{prefix}ToI32({variable})" : variable;
+string GetCastXToI64(string prefix, string variable) =>
+    prefix != "I" ? $"Cast{prefix}ToI64({variable})" : variable;
+
 var warpType32 = GetWarpTypeName32("int");
 var warpType64 = GetWarpTypeName64("long");
+string inliningAttribute = "AggressiveInlining";
 #>
 using ILGPU.IR.Values;
 using ILGPU.Util;
@@ -83,8 +93,7 @@ namespace ILGPU.Backends.Velocity.Vec128
 
         public static int WarpSize => Vector128<int>.Count;
         public static readonly Type WarpType32 = typeof(<#= warpType32 #>);
-        public static readonly Type WarpType64 = typeof(
-            ValueTuple<<#= warpType64 #>, <#= warpType64 #>>);
+        public static readonly Type WarpType64 = typeof(<#= warpType64 #>);
 
         #endregion
 
@@ -114,38 +123,38 @@ namespace ILGPU.Backends.Velocity.Vec128
 
         #region Creation
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static Vector128<TTarget> CastWarp32<T, TTarget>(Vector128<T> source)
             where T : struct
             where TTarget : struct =>
             source.As<T, TTarget>();
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static (Vector128<TTarget>, Vector128<TTarget>) CastWarp64<T, TTarget>(
             (Vector128<T>, Vector128<T>) source)
             where T : struct
             where TTarget : struct =>
             (source.Item1.As<T, TTarget>(), source.Item2.As<T, TTarget>());
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> MaskTo64(Vector128<int> mask) =>
             Vector128.Widen(mask);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static bool CheckForAnyActiveLane(<#= warpType32 #> warp) =>
             Vector128.EqualsAny(<#= warpType32 #>.AllBitsSet, warp);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static bool CheckForNoActiveLane(<#= warpType32 #> warp) =>
             !CheckForAnyActiveLane(warp);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static bool CheckForEqualMasks(
             <#= warpType32 #> firstMask,
             <#= warpType32 #> secondMask) =>
             Vector128.EqualsAll(firstMask, secondMask);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static int GetNumberOfActiveLanes(<#= warpType32 #> warp) =>
             -Vector128.Sum(warp);
 
@@ -161,13 +170,13 @@ namespace ILGPU.Backends.Velocity.Vec128
         private static readonly <#= warpType32 #> LaneIndexVector32 =
             Vector128.Create(0, 1, 2, 3);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> LoadLaneIndexVector32() => LaneIndexVector32;
 
         private static readonly <#= warpType64 #> LaneIndexVector64 =
             (Vector128.Create(0L, 1L), Vector128.Create(2L, 3L));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> LoadLaneIndexVector64() => LaneIndexVector64;
 
         public static readonly MethodInfo LoadLaneIndexVector32Method =
@@ -178,10 +187,10 @@ namespace ILGPU.Backends.Velocity.Vec128
         private static readonly <#= warpType32 #> LaneLengthVector32 =
             Vector128.Create(Vector<int>.Count);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> LoadVectorLengthVector32() => LaneLengthVector32;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> LoadVectorLengthVector64()
         {
             long count = Vector<int>.Count;
@@ -193,11 +202,11 @@ namespace ILGPU.Backends.Velocity.Vec128
         public static readonly MethodInfo LoadVectorLengthVector64Method =
             GetMethod(nameof(LoadVectorLengthVector64));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> LoadAllLanesMask32() =>
             <#= warpType32 #>.AllBitsSet;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> LoadAllLanesMask64() =>
             (Vector128<long>.AllBitsSet, Vector128<long>.AllBitsSet);
 
@@ -206,10 +215,10 @@ namespace ILGPU.Backends.Velocity.Vec128
         public static readonly MethodInfo LoadAllLanesMask64Method =
             GetMethod(nameof(LoadAllLanesMask64));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> LoadNoLanesMask32() => default;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> LoadNoLanesMask64() => default;
 
         public static readonly MethodInfo LoadNoLanesMask32Method =
@@ -222,13 +231,13 @@ namespace ILGPU.Backends.Velocity.Vec128
         #region Generic Casts
 
 <# foreach (var (_, prefix, typeName, _) in ImplementationTypes32) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> Cast<#= prefix #>ToI32(
             <#= GetWarpTypeName32(typeName) #> input) =>
             CastWarp32<<#= typeName #>, int>(input);
 
 <#      if (typeName != "int") { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= GetWarpTypeName32(typeName) #> CastITo<#= prefix #>32(
             <#= warpType32 #> input) =>
             CastWarp32<int, <#= typeName #>>(input);
@@ -243,13 +252,13 @@ namespace ILGPU.Backends.Velocity.Vec128
 <# } #>
 
 <# foreach (var (_, prefix, typeName, _) in ImplementationTypes64) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> Cast<#= prefix #>ToI64(
             <#= GetWarpTypeName64(typeName) #> input) =>
             CastWarp64<<#= typeName #>, long>(input);
 
 <#      if (typeName != "long") { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= GetWarpTypeName64(typeName) #> CastITo<#= prefix #>64(
             <#= warpType64 #> input) =>
             CastWarp64<long, <#= typeName #>>(input);
@@ -268,11 +277,11 @@ namespace ILGPU.Backends.Velocity.Vec128
         #region Scalar Operations
 
 <# foreach (var (_, prefix, typeName, _) in ImplementationTypes32) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> FromScalar<#= prefix #>32(<#= typeName #> scalar)
         {
             var result = Vector128.Create(scalar);
-            return Cast<#= prefix #>ToI32(result);
+            return <#= GetCastXToI32(prefix, "result") #>;
         }
 
         public static readonly MethodInfo FromScalar<#= prefix #>32Method =
@@ -281,11 +290,11 @@ namespace ILGPU.Backends.Velocity.Vec128
 <# } #>
 
 <# foreach (var (_, prefix, typeName, _) in ImplementationTypes64) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> FromScalar<#= prefix #>64(<#= typeName #> scalar)
         {
             var result = Vector128.Create(scalar);
-            return Cast<#= prefix #>ToI64((result, result));
+            return <#= GetCastXToI64(prefix, "(result, result)") #>;
         }
 
         public static readonly MethodInfo FromScalar<#= prefix #>64Method =
@@ -297,14 +306,14 @@ namespace ILGPU.Backends.Velocity.Vec128
 
         #region Select Operations
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> Select32(
             <#= warpType32 #> mask,
             <#= warpType32 #> left,
             <#= warpType32 #> right) =>
             Vector128.ConditionalSelect(mask, right, left);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> Select64(
             <#= warpType32 #> mask,
             <#= warpType64 #> left,
@@ -327,11 +336,11 @@ namespace ILGPU.Backends.Velocity.Vec128
 <#      foreach (var (_, prefix, typeName, _) in
             ImplementationTypes32.Where(t => (t.Flags & op.Flags) != 0)) { #>
 <#          var velocity = op.Velocity.Velocity128; #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> <#= op.Name #><#= prefix #>32(
             <#= warpType32 #> warp)
         {
-            var value = CastITo<#= prefix #>32(warp);
+            var value = <#= GetCastIToX32(prefix, "warp") #>;
 <#              if (velocity.SoftwareEmulation) { #>
             var result = Vector128.Create(
                 <#= velocity.GetImplementation(op, 0, "value") #>
@@ -346,7 +355,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             var result = <#= velocity.GetImplementation(op, variables: "value") #>;
 <#              } #>
 <#              if (!op.IsPredicate && !op.Velocity.ReturnAsWarp32) { #>
-            return Cast<#= prefix #>ToI32(result);
+            return <#= GetCastXToI32(prefix, "result") #>;
 <#              } else { #>
             return result;
 <#              } #>
@@ -358,11 +367,11 @@ namespace ILGPU.Backends.Velocity.Vec128
 <#          bool use32BitResult = op.Velocity.ReturnAsWarp32 | op.IsPredicate; #>
 <#          var returnType = use32BitResult ? warpType32 : warpType64; #>
 <#          var velocity = op.Velocity.Velocity128; #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= returnType #> <#= op.Name #><#= prefix #>64(
             <#= warpType64 #> warp)
         {
-            var value = CastITo<#= prefix #>64(warp);
+            var value = <#= GetCastIToX64(prefix, "warp") #>;
 <#              if (velocity.SoftwareEmulation && use32BitResult) { #>
             var result = Vector128.Create(
                 <#= velocity.GetImplementation(op, 0, "value.Item1") #>
@@ -393,7 +402,7 @@ namespace ILGPU.Backends.Velocity.Vec128
                     <#= velocity.GetImplementation(op, variables: "value.Item2") #>);
 <#              } #>
 <#              if (!op.IsPredicate && !op.Velocity.ReturnAsWarp32) { #>
-            return Cast<#= prefix #>ToI64(result);
+            return <#= GetCastXToI64(prefix, "result") #>;
 <#              } else { #>
             return result;
 <#              } #>
@@ -444,13 +453,13 @@ namespace ILGPU.Backends.Velocity.Vec128
 <#      foreach (var (_, prefix, typeName, _) in
             ImplementationTypes32.Where(t => (t.Flags & op.Flags) != 0)) { #>
 <#          var velocity = op.Velocity?.Velocity128; #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> <#= op.Name #><#= prefix #>32(
             <#= warpType32 #> first,
             <#= warpType32 #> second)
         {
-            var left = CastITo<#= prefix #>32(first);
-            var right = CastITo<#= prefix #>32(second);
+            var left = <#= GetCastIToX32(prefix, "first") #>;
+            var right = <#= GetCastIToX32(prefix, "second") #>;
 
 <#          if (velocity == null) { #>
             var result = <#= op.GetOpOrCall(isBool: false, "left", "right") #>;
@@ -463,20 +472,20 @@ namespace ILGPU.Backends.Velocity.Vec128
 <#          } else { #>
             var result = <#= velocity.GetImplementation(op, null, "left", "right") #>;
 <#          } #>
-            return Cast<#= prefix #>ToI32(result);
+            return <#= GetCastXToI32(prefix, "result") #>;
         }
 
 <#      } #>
 <#      foreach (var (_, prefix, typeName, _) in
             ImplementationTypes64.Where(t => (t.Flags & op.Flags) != 0)) { #>
 <#          var velocity = op.Velocity?.Velocity128; #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> <#= op.Name #><#= prefix #>64(
             <#= warpType64 #> first,
             <#= warpType64 #> second)
         {
-            var left = CastITo<#= prefix #>64(first);
-            var right = CastITo<#= prefix #>64(second);
+            var left = <#= GetCastIToX64(prefix, "first") #>;
+            var right = <#= GetCastIToX64(prefix, "second") #>;
 
 <#          if (velocity == null) { #>
             var result = (
@@ -496,7 +505,7 @@ namespace ILGPU.Backends.Velocity.Vec128
                 <#= velocity.GetImplementation(op, null, "left.Item2", "right.Item2") #>);
 <#          } #>
 
-            return Cast<#= prefix #>ToI64(result);
+            return <#= GetCastXToI64(prefix, "result") #>;
         }
 
 <#      } #>
@@ -542,36 +551,36 @@ namespace ILGPU.Backends.Velocity.Vec128
 <# foreach (var op in ternaryOps) { #>
 <#      foreach (var (_, prefix, typeName, _) in
             ImplementationTypes32.Where(t => (t.Flags & op.Flags) != 0)) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> <#= op.Name #><#= prefix #>32(
             <#= warpType32 #> first,
             <#= warpType32 #> second,
             <#= warpType32 #> third)
         {
-            var a = CastITo<#= prefix #>32(first);
-            var b = CastITo<#= prefix #>32(second);
-            var c = CastITo<#= prefix #>32(third);
+            var a = <#= GetCastIToX32(prefix, "first") #>;
+            var b = <#= GetCastIToX32(prefix, "second") #>;
+            var c = <#= GetCastIToX32(prefix, "third") #>;
 
             var result = <#= op.Velocity.Velocity128.GetImplementation(
                 op,
                 null,
                 "a", "b", "c") #>;
 
-            return Cast<#= prefix #>ToI32(result);
+            return <#= GetCastXToI32(prefix, "result") #>;
         }
 
 <#      } #>
 <#      foreach (var (_, prefix, typeName, _) in
             ImplementationTypes64.Where(t => (t.Flags & op.Flags) != 0)) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> <#= op.Name #><#= prefix #>64(
             <#= warpType64 #> first,
             <#= warpType64 #> second,
             <#= warpType64 #> third)
         {
-            var a = CastITo<#= prefix #>64(first);
-            var b = CastITo<#= prefix #>64(second);
-            var c = CastITo<#= prefix #>64(third);
+            var a = <#= GetCastIToX64(prefix, "first") #>;
+            var b = <#= GetCastIToX64(prefix, "second") #>;
+            var c = <#= GetCastIToX64(prefix, "third") #>;
 
             var result1 = <#= op.Velocity.Velocity128.GetImplementation(
                 op,
@@ -582,7 +591,7 @@ namespace ILGPU.Backends.Velocity.Vec128
                 null,
                 "a.Item2", "b.Item2", "c.Item2") #>;
 
-            return Cast<#= prefix #>ToI64((result1, result2));
+            return <#= GetCastXToI64(prefix, "(result1, result2)") #>;
         }
 
 <#      } #>
@@ -627,26 +636,26 @@ namespace ILGPU.Backends.Velocity.Vec128
 
 <# foreach (var (kind, op) in compareOperations) { #>
 <#      foreach (var (_, prefix, _, _) in ImplementationTypes32) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> Compare<#= kind #><#= prefix #>32(
             <#= warpType32 #> first,
             <#= warpType32 #> second)
         {
-            var left = CastITo<#= prefix #>32(first);
-            var right = CastITo<#= prefix #>32(second);
+            var left = <#= GetCastIToX32(prefix, "first") #>;
+            var right = <#= GetCastIToX32(prefix, "second") #>;
 
             return <#= string.Format(op, "left", "right") #>;
         }
 
 <#      } #>
 <#      foreach (var (_, prefix, _, _) in ImplementationTypes64) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> Compare<#= kind #><#= prefix #>64(
             <#= warpType64 #> first,
             <#= warpType64 #> second)
         {
-            var left = CastITo<#= prefix #>64(first);
-            var right = CastITo<#= prefix #>64(second);
+            var left = <#= GetCastIToX64(prefix, "first") #>;
+            var right = <#= GetCastIToX64(prefix, "second") #>;
 
             var result1 =  <#= string.Format(op, "left.Item1", "right.Item1") #>;
             var result2 =  <#= string.Format(op, "left.Item2", "right.Item2") #>;
@@ -695,17 +704,17 @@ namespace ILGPU.Backends.Velocity.Vec128
 <#      var sourceImplType32 = GetImplementationType32(sourceType.Kind); #>
 <#      var acceleratedOp = acceleratedConvTypes32.FirstOrDefault(
                 t => t.Left == sourceType && t.Right == targetType); #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> Convert<#= sourceType.Name #>To<#= targetType.Name #>_32(
             <#= warpType32 #> warp)
         {
 <#      if (sourceType.GetBasicValueType() == targetType.GetBasicValueType()) { #>
             return warp;
 <#      } else if (acceleratedOp.Op != null) { #>
-            var value = CastITo<#= sourceImplType32.Prefix #>32(warp);
+            var value = <#= GetCastIToX32(sourceImplType32.Prefix, "warp") #>;
             return <#= acceleratedOp.Op #>(value).AsInt32();
 <#      } else { #>
-            var value = CastITo<#= sourceImplType32.Prefix #>32(warp);
+            var value = <#= GetCastIToX32(sourceImplType32.Prefix, "warp") #>;
             return Vector128.Create(
                 (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(0),
                 (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(1),
@@ -723,19 +732,19 @@ namespace ILGPU.Backends.Velocity.Vec128
 <#      var sourceImplType64 = GetImplementationType64(sourceType.Kind); #>
 <#      var acceleratedOp = acceleratedConvTypes64.FirstOrDefault(
                 t => t.Left == sourceType && t.Right == targetType); #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> Convert<#= sourceType.Name #>To<#= targetType.Name #>_64(
             <#= warpType64 #> warp)
         {
 <#      if (sourceType.GetBasicValueType() == targetType.GetBasicValueType()) { #>
             return warp;
 <#      } else if (acceleratedOp.Op != null) { #>
-            var value = CastITo<#= sourceImplType64.Prefix #>64(warp);
+            var value = <#= GetCastIToX64(sourceImplType64.Prefix, "warp") #>;
             return (
                 <#= acceleratedOp.Op #>(value.Item1).AsInt64(),
                 <#= acceleratedOp.Op #>(value.Item2).AsInt64());
 <#      } else { #>
-            var value = CastITo<#= sourceImplType64.Prefix #>64(warp);
+            var value = <#= GetCastIToX64(sourceImplType64.Prefix, "warp") #>;
             var result1 = Vector128.Create(
                 (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item1.GetElement(0),
                 (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item1.GetElement(1));
@@ -794,22 +803,22 @@ namespace ILGPU.Backends.Velocity.Vec128
         #region Vector Convert Operations
 
 <# foreach (var (_, prefix, typeName, _) in ImplementationTypes32) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> Convert64To32<#= prefix #>(<#= warpType64 #> warp)
         {
-            var value = CastITo<#= prefix #>64(warp);
+            var value = <#= GetCastIToX64(prefix, "warp") #>;
             var result = Vector128.Narrow(value.Item1, value.Item2);
-            return Cast<#= prefix #>ToI32(result);
+            return <#= GetCastXToI32(prefix, "result") #>;
         }
 
 <# } #>
 <# foreach (var (_, prefix, typeName, _) in ImplementationTypes64) { #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> Convert32To64<#= prefix #>(<#= warpType32 #> warp)
         {
-            var value = CastITo<#= prefix #>32(warp);
+            var value = <#= GetCastIToX32(prefix, "warp") #>;
             var result = Vector128.Widen(value);
-            return Cast<#= prefix #>ToI64(result);
+            return <#= GetCastXToI64(prefix, "result") #>;
         }
 
 <# } #>
@@ -843,9 +852,7 @@ namespace ILGPU.Backends.Velocity.Vec128
 
         #region Atomic Operations
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe <#= warpType32 #> AtomicCompareExchange32(
             <#= warpType32 #> mask,
             <#= warpType64 #> target,
@@ -853,8 +860,11 @@ namespace ILGPU.Backends.Velocity.Vec128
             <#= warpType32 #> value)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
             int result<#= i #> = default;
-            if (mask.GetElement(0) != 0)
+            if (mask<#= i #> != 0)
             {
                 result<#= i #> = Atomic.CompareExchange(
                     ref Unsafe.AsRef<int>((void*)<#= GetItemRef64("target", i) #>),
@@ -868,9 +878,7 @@ namespace ILGPU.Backends.Velocity.Vec128
         public static readonly MethodInfo AtomicCompareExchange32Method =
             GetMethod(nameof(AtomicCompareExchange32));
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe <#= warpType64 #> AtomicCompareExchange64(
             <#= warpType32 #> mask,
             <#= warpType64 #> target,
@@ -878,8 +886,11 @@ namespace ILGPU.Backends.Velocity.Vec128
             <#= warpType64 #> value)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
             long result<#= i #> = default;
-            if (mask.GetElement(<#= i #>) != 0)
+            if (mask<#= i #> != 0)
             {
                 result<#= i #> = Atomic.CompareExchange(
                     ref Unsafe.AsRef<long>((void*)<#= GetItemRef64("target", i) #>),
@@ -897,26 +908,27 @@ namespace ILGPU.Backends.Velocity.Vec128
 <#      foreach (var (_, prefix, typeName, _) in ImplementationTypes32) { #>
 <#          var targetPrefix = isBinary ? "U" : prefix; #>
 <#          var targetTypeName = isBinary ? "uint" : typeName; #>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe <#= warpType32 #> Atomic<#= op #><#= prefix #>32(
             <#= warpType32 #> mask,
             <#= warpType64 #> target,
             <#= warpType32 #> value)
         {
-            var sourceValue = CastITo<#= targetPrefix #>32(value);
+            var sourceValue = <#= GetCastIToX32(targetPrefix, "value") #>;
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
 <#          for (int i = 0; i < warpSize; ++i) { #>
             <#= targetTypeName #> result<#= i #> = default;
-            if (mask.GetElement(<#= i #>) != 0)
+            if (mask<#= i #> != 0)
             {
                 result<#= i #> = Atomic.<#= op #>(
                     ref Unsafe.AsRef<<#= targetTypeName #>>((void*)<#= GetItemRef64("target", i) #>),
                     sourceValue.GetElement(<#= i #>));
             }
 <#          } #>
-            return Cast<#= targetPrefix #>ToI32(
-                Vector128.Create(result0, result1, result2, result3));
+            return <#= GetCastXToI32(targetPrefix,
+                "Vector128.Create(result0, result1, result2, result3)") #>;
         }
 
 <#      } #>
@@ -924,26 +936,27 @@ namespace ILGPU.Backends.Velocity.Vec128
 <#      foreach (var (_, prefix, typeName, _) in ImplementationTypes64) { #>
 <#          var targetPrefix = isBinary ? "U" : prefix; #>
 <#          var targetTypeName = isBinary ? "ulong" : typeName; #>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe <#= warpType64 #> Atomic<#= op #><#= prefix #>64(
             <#= warpType32 #> mask,
             <#= warpType64 #> target,
             <#= warpType64 #> value)
         {
-            var sourceValue = CastITo<#= targetPrefix #>64(value);
+            var sourceValue = <#= GetCastIToX64(targetPrefix, "value") #>;
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
 <#          for (int i = 0; i < warpSize; ++i) { #>
             <#= targetTypeName #> result<#= i #> = default;
-            if (mask.GetElement(<#= i #>) != 0)
+            if (mask<#= i #> != 0)
             {
                 result<#= i #> = Atomic.<#= op #>(
                     ref Unsafe.AsRef<<#= targetTypeName #>>((void*)<#= GetItemRef64("target", i) #>),
                     <#= GetItemRef64("sourceValue", i) #>);
             }
 <#          } #>
-            return Cast<#= targetPrefix #>ToI64((
-                Vector128.Create(result0, result1), Vector128.Create(result2, result3)));
+            return <#= GetCastXToI64(targetPrefix,
+        "(Vector128.Create(result0, result1), Vector128.Create(result2, result3))") #>;
         }
 
 <#      } #>
@@ -983,7 +996,7 @@ namespace ILGPU.Backends.Velocity.Vec128
 
         #region Thread Operations
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static void ComputeShuffleConfig(
             <#= warpType32 #> width,
             out <#= warpType32 #> lane,
@@ -993,7 +1006,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             offset = MulI32(DivI32(lane, width), width);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> ShuffleUp32(
             <#= warpType32 #> mask,
             <#= warpType32 #> warp,
@@ -1003,7 +1016,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle32(mask, warp, lane);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> SubShuffleUp32(
             <#= warpType32 #> mask,
             <#= warpType32 #> warp,
@@ -1026,7 +1039,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle64(mask, warp, lane);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> SubShuffleUp64(
             <#= warpType32 #> mask,
             <#= warpType64 #> warp,
@@ -1038,7 +1051,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle64(mask, warp, AddI32(adjustedLane, offset));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> ShuffleDown32(
             <#= warpType32 #> mask,
             <#= warpType32 #> warp,
@@ -1048,7 +1061,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle32(mask, warp, lane);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> SubShuffleDown32(
             <#= warpType32 #> mask,
             <#= warpType32 #> warp,
@@ -1060,7 +1073,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle32(mask, warp, AddI32(adjustedLane, offset));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> ShuffleDown64(
             <#= warpType32 #> mask,
             <#= warpType64 #> warp,
@@ -1070,7 +1083,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle64(mask, warp, lane);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> SubShuffleDown64(
             <#= warpType32 #> mask,
             <#= warpType64 #> warp,
@@ -1082,7 +1095,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle64(mask, warp, AddI32(adjustedLane, offset));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> ShuffleXor32(
             <#= warpType32 #> mask,
             <#= warpType32 #> warp,
@@ -1092,7 +1105,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle32(mask, warp, lane);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType32 #> SubShuffleXor32(
             <#= warpType32 #> mask,
             <#= warpType32 #> warp,
@@ -1104,7 +1117,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle32(mask, warp, AddI32(adjustedLane, offset));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> ShuffleXor64(
             <#= warpType32 #> mask,
             <#= warpType64 #> warp,
@@ -1114,7 +1127,7 @@ namespace ILGPU.Backends.Velocity.Vec128
             return Shuffle64(mask, warp, lane);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static <#= warpType64 #> SubShuffleXor64(
             <#= warpType32 #> mask,
             <#= warpType64 #> warp,
@@ -1175,115 +1188,159 @@ namespace ILGPU.Backends.Velocity.Vec128
 
         #region IO
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe <#= warpType32 #> Load8(
             <#= warpType32 #> mask,
             <#= warpType64 #> address)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
-            var result<#= i #> = mask.GetElement(<#= i #>) != 0
-                ? (uint)Unsafe.AsRef<byte>((void*)<#= GetItemRef64("address", i) #>)
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var result<#= i #> = mask<#= i #> != 0
+                ? (uint)*(byte*)<#= GetItemRef64("address", i) #>
                 : 0;
 <# } #>
             return Vector128.Create(result0, result1, result2, result3).AsInt32();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe <#= warpType32 #> Load16(
             <#= warpType32 #> mask,
             <#= warpType64 #> address)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
-            var result<#= i #> = mask.GetElement(<#= i #>) != 0
-                ? (uint)Unsafe.AsRef<ushort>((void*)<#= GetItemRef64("address", i) #>)
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var result<#= i #> = mask<#= i #> != 0
+                ? (uint)*(ushort*)<#= GetItemRef64("address", i) #>
                 : 0;
 <# } #>
             return Vector128.Create(result0, result1, result2, result3).AsInt32();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
         private static unsafe <#= warpType32 #> Load32(
             <#= warpType32 #> mask,
             <#= warpType64 #> address)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
-            int result<#= i #> = mask.GetElement(<#= i #>) != 0
-                ? Unsafe.AsRef<int>((void*)<#= GetItemRef64("address", i) #>)
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int result<#= i #> = mask<#= i #> != 0
+                ? *(int*)<#= GetItemRef64("address", i) #>
                 : 0;
 <# } #>
             return Vector128.Create(result0, result1, result2, result3);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe <#= warpType64 #> Load64(
             <#= warpType32 #> mask,
             <#= warpType64 #> address)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
-            long result<#= i #> = mask.GetElement(<#= i #>) != 0
-                ? Unsafe.AsRef<long>((void*)<#= GetItemRef64("address", i) #>)
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            long result<#= i #> = mask<#= i #> != 0
+                ? *(long*)<#= GetItemRef64("address", i) #>
                 : 0;
 <# } #>
             return (Vector128.Create(result0, result1), Vector128.Create(result2, result3));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe void Store8(
             <#= warpType32 #> mask,
             <#= warpType64 #> address,
             <#= warpType32 #> value)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
-            if (mask.GetElement(<#= i #>) != 0)
-            {
-                Unsafe.AsRef<byte>((void*)<#= GetItemRef64("address", i) #>) =
-                    (byte)(value.GetElement(<#= i #>) & 0xff);
-            }
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            byte* addr<#= i #> = (byte*)<#= GetItemRef64("address", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var value<#= i #> = (byte)(value.GetElement(<#= i #>) & 0xff);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            if (mask<#= i #> != 0)
+                *addr<#= i #> = value<#= i #>;
 <# } #>
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe void Store16(
             <#= warpType32 #> mask,
             <#= warpType64 #> address,
             <#= warpType32 #> value)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
-            if (mask.GetElement(<#= i #>) != 0)
-            {
-                Unsafe.AsRef<ushort>((void*)<#= GetItemRef64("address", i) #>) =
-                    (ushort)(value.GetElement(<#= i #>) & 0xffff);
-            }
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            short* addr<#= i #> = (short*)<#= GetItemRef64("address", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var value<#= i #> = (short)(value.GetElement(<#= i #>) & 0xffff);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            if (mask<#= i #> != 0)
+                *addr<#= i #> = value<#= i #>;
 <# } #>
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe void Store32(
             <#= warpType32 #> mask,
             <#= warpType64 #> address,
             <#= warpType32 #> value)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
-            if (mask.GetElement(<#= i #>) != 0)
-            {
-                Unsafe.AsRef<int>((void*)<#= GetItemRef64("address", i) #>) =
-                    value.GetElement(<#= i #>);
-            }
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int* addr<#= i #> = (int*)<#= GetItemRef64("address", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var value<#= i #> = value.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            if (mask<#= i #> != 0)
+                *addr<#= i #> = value<#= i #>;
 <# } #>
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
         internal static unsafe void Store64(
             <#= warpType32 #> mask,
             <#= warpType64 #> address,
             <#= warpType64 #> value)
         {
 <# for (int i = 0; i < warpSize; ++i) { #>
-            if (mask.GetElement(<#= i #>) != 0)
-            {
-                Unsafe.AsRef<long>((void*)<#= GetItemRef64("address", i) #>) =
-                    <#= GetItemRef64("value", i) #>;
-            }
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            long* addr<#= i #> = (long*)<#= GetItemRef64("address", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var value<#= i #> = <#= GetItemRef64("value", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            if (mask<#= i #> != 0)
+                *addr<#= i #> = value<#= i #>;
 <# } #>
         }
 
@@ -1309,7 +1366,7 @@ namespace ILGPU.Backends.Velocity.Vec128
 
         #region Misc
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
         internal static void DebugAssertFailed(
             <#= warpType32 #> mask,
             <#= warpType32 #> value,
