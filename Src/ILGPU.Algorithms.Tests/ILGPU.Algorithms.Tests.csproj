@@ -134,6 +134,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>HistogramTests.cs</LastGenOutput>
     </None>
+    <None Update="PermutationExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PermutationExtensionTests.cs</LastGenOutput>
+    </None>
     <None Update="RadixSortExtensionTests.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortExtensionTests.cs</LastGenOutput>
@@ -238,6 +242,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>HistogramTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PermutationExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PermutationExtensionTests.tt</DependentUpon>
     </Compile>
     <Compile Update="RadixSortExtensionTests.cs">
       <DesignTime>True</DesignTime>
