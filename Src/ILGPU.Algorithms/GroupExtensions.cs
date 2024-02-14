@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: GroupExtensions.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.Algorithms.IL;
 using ILGPU.Algorithms.RadixSortOperations;
+using ILGPU.Algorithms.Random;
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.IR.Intrinsics;
 using ILGPU.Runtime;
@@ -364,6 +365,42 @@ namespace ILGPU.Algorithms
             }
 
             return sharedArray[i];
+        }
+
+        #endregion
+
+        #region Permute
+
+        /// <summary>
+        /// Permutes the given value within a warp.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TRandomProvider">
+        /// The random number provider type.
+        /// </typeparam>
+        /// <param name="value">The value to permute.</param>
+        /// <param name="sharedMemoryArray">The shared memory used for sorting.</param>
+        /// <param name="rngView">The random number generator.</param>
+        /// <returns>A permuted value from another random group index.</returns>
+        public static T Permute<T, TRandomProvider>(
+            T value,
+            ArrayView<byte> sharedMemoryArray,
+            RNGView<TRandomProvider> rngView)
+            where T : unmanaged
+            where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
+        {
+            var arrayLength = Interop.SizeOf<T>() * Group.DimX;
+            var radixMemory = arrayLength + arrayLength % sizeof(int);
+            var sharedArray = sharedMemoryArray.SubView(0, arrayLength).Cast<T>();
+
+            sharedArray[Group.IdxX] = value;
+            Group.Barrier();
+
+            int lane = (rngView.Next() & 0x7ffffc00) + Group.IdxX;
+            lane = GroupExtensions.RadixSort<int, AscendingInt32>(
+                lane,
+                sharedMemoryArray.SubView(radixMemory));
+            return sharedArray[lane & 0x000003ff];
         }
 
         #endregion
