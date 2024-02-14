@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RandomRanges.tt/RandomRanges.cs
@@ -23,7 +23,7 @@ var functionMapping = new Dictionary<string, string>()
         { "Int16", "(short)randomProvider.Next(0, short.MaxValue)" },
         { "Int32", "randomProvider.Next()" },
         { "Int64", "randomProvider.NextLong()" },
-
+        { "BFloat16", "(BFloat16)randomProvider.NextFloat()" },
         { "Half", "(Half)randomProvider.NextFloat()" },
         { "Float", "randomProvider.NextFloat()" },
         { "Double", "randomProvider.NextDouble()" },

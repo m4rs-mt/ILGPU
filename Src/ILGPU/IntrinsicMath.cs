@@ -49,25 +49,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>|value|.</returns>
-        [MathIntrinsic(MathIntrinsicKind.Abs)]
-        public static Half Abs(Half value) =>
-            Half.Abs(value);
-
-        /// <summary>
-        /// Computes |value|.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>|value|.</returns>
-        [MathIntrinsic(MathIntrinsicKind.Abs)]
-        public static BFloat16 Abs(BFloat16 value) =>
-            BFloat16.Abs(value);
-
-
-        /// <summary>
-        /// Computes |value|.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>|value|.</returns>
         public static sbyte Abs(sbyte value) =>
             (sbyte)Abs((int)value);
 
@@ -120,28 +101,6 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.Min)]
         public static float Min(float first, float second) =>
             MathF.Min(first, second);
-
-        /// <summary>
-        /// Computes min(first, second).
-        /// </summary>
-        /// <param name="first">The first argument.</param>
-        /// <param name="second">The second argument.</param>
-        /// <returns>The minimum of first and second value.</returns>
-        [MathIntrinsic(MathIntrinsicKind.Min)]
-        public static Half Min(Half first, Half second) =>
-            (Half) MathF.Min(first, second);
-
-        /// <summary>
-        /// Computes min(first, second).
-        /// </summary>
-        /// <param name="first">The first argument.</param>
-        /// <param name="second">The second argument.</param>
-        /// <returns>The minimum of first and second value.</returns>
-        [MathIntrinsic(MathIntrinsicKind.Min)]
-        public static BFloat16 Min(BFloat16 first, BFloat16 second) =>
-            (BFloat16) MathF.Min( (float)first, (float) second);
-
-
 
         /// <summary>
         /// Computes min(first, second).
@@ -238,28 +197,6 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.Max)]
         public static float Max(float first, float second) =>
             MathF.Max(first, second);
-
-
-        /// <summary>
-        /// Computes max(first, second).
-        /// </summary>
-        /// <param name="first">The first argument.</param>
-        /// <param name="second">The second argument.</param>
-        /// <returns>The maximum of first and second value.</returns>
-        [MathIntrinsic(MathIntrinsicKind.Max)]
-        public static Half Max(Half first, Half second) =>
-            (Half) MathF.Max(first, second);
-
-        /// <summary>
-        /// Computes max(first, second).
-        /// </summary>
-        /// <param name="first">The first argument.</param>
-        /// <param name="second">The second argument.</param>
-        /// <returns>The maximum of first and second value.</returns>
-        [MathIntrinsic(MathIntrinsicKind.Max)]
-        public static BFloat16 Max(BFloat16 first, BFloat16 second) =>
-           (BFloat16)  MathF.Max((float)first, (float) second);
-
 
         /// <summary>
         /// Computes max(first, second).
@@ -360,28 +297,6 @@ namespace ILGPU
         /// <returns>The clamped value in the interval [min, max].</returns>
         public static float Clamp(float value, float min, float max) =>
             Max(Min(value, max), min);
-
-        /// <summary>
-        /// Computes clamp(value, min, max) = Max(Min(clamp, max), min).
-        /// </summary>
-        /// <param name="value">The value to clamp.</param>
-        /// <param name="min">The first argument.</param>
-        /// <param name="max">The second argument.</param>
-        /// <returns>The clamped value in the interval [min, max].</returns>
-        public static Half Clamp(Half value, Half min, Half max) =>
-            Max(Min(value, max), min);
-
-
-        /// <summary>
-        /// Computes clamp(value, min, max) = Max(Min(clamp, max), min).
-        /// </summary>
-        /// <param name="value">The value to clamp.</param>
-        /// <param name="min">The first argument.</param>
-        /// <param name="max">The second argument.</param>
-        /// <returns>The clamped value in the interval [min, max].</returns>
-        public static BFloat16 Clamp(BFloat16 value, BFloat16 min, BFloat16 max) =>
-            Max(Min(value, max), min);
-
 
         /// <summary>
         /// Computes clamp(value, min, max) = Max(Min(clamp, max), min).
@@ -728,29 +643,6 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.CopySignF)]
         public static float CopySign(float x, float y) =>
             MathF.CopySign(x, y);
-
-        /// <summary>
-        /// Returns a value with the magnitude of x and the sign of y.
-        /// </summary>
-        /// <param name="x">A number whose magnitude is used in the result.</param>
-        /// <param name="y">A number whose sign is the used in the result.</param>
-        /// <returns>A value with the magnitude of x and the sign of y.</returns>
-        [MathIntrinsic(MathIntrinsicKind.CopySignF)]
-        public static Half CopySign(Half x, Half y) =>
-            (Half) MathF.CopySign(x, y);
-
-
-        /// <summary>
-        /// Returns a value with the magnitude of x and the sign of y.
-        /// </summary>
-        /// <param name="x">A number whose magnitude is used in the result.</param>
-        /// <param name="y">A number whose sign is the used in the result.</param>
-        /// <returns>A value with the magnitude of x and the sign of y.</returns>
-        [MathIntrinsic(MathIntrinsicKind.CopySignF)]
-        public static BFloat16 CopySign(BFloat16 x, BFloat16 y) =>
-            (BFloat16)MathF.CopySign((float) x, (float) y);
-
-
 
         #endregion
     }
