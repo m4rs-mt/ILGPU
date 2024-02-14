@@ -4,6 +4,7 @@ HistogramTests
 InitializeTests
 MatrixTests
 OptimizationTests
+PermutationExtensionTests
 RadixSortExtensionTests
 RandomTests
 ReductionExtensionTests

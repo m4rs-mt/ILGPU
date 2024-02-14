@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: WarpExtensions.cs
@@ -11,6 +11,7 @@
 
 using ILGPU.Algorithms.IL;
 using ILGPU.Algorithms.RadixSortOperations;
+using ILGPU.Algorithms.Random;
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.IR.Intrinsics;
 using ILGPU.Util;
@@ -126,6 +127,40 @@ namespace ILGPU.Algorithms
                 value = newElement;
             }
             return value;
+        }
+
+        #endregion
+
+        #region Permute
+
+        /// <summary>
+        /// Permutes the given value within a warp.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TRandomProvider">
+        /// The random number provider type.
+        /// </typeparam>
+        /// <param name="value">The value to permute.</param>
+        /// <param name="rngView">The random number generator.</param>
+        /// <returns>A permuted value from another random warp lane.</returns>
+        public static T Permute<T, TRandomProvider>(
+            T value,
+            RNGView<TRandomProvider> rngView)
+            where T : unmanaged
+            where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
+        {
+            int lane = (rngView.Next() & 0x7fffffc0) + Warp.LaneIdx;
+            lane = WarpExtensions.RadixSort<int, AscendingInt32>(lane);
+            var newLane = lane & 0x0000003F;
+            T newElement = default;
+            for (int i = 0; i < Warp.WarpSize; i++)
+            {
+                var targetLane = Warp.Shuffle(newLane, i);
+                var retrievedElement = Warp.Shuffle(value, i);
+                if (targetLane == Warp.LaneIdx)
+                    newElement = retrievedElement;
+            }
+            return newElement;
         }
 
         #endregion
