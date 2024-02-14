@@ -15,19 +15,42 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU;
 
+
 /// <summary>
 /// temp half operator
 /// </summary>
 public readonly partial struct Half
 {
     /// <summary>
-    ///
+    /// Cast BFloat16 to Half
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
     public static explicit operator Half(BFloat16 value) =>
-        (Half)(float)value;
-    
+        AsHalf(value);
+
+    internal static Half AsHalf(BFloat16 bfloat16)
+    {
+        ushort bFloat16Bits = bfloat16.RawValue;
+
+        // Extracting sign (1 bit) - directly copied
+        ushort sign = (ushort)(bFloat16Bits & 0x8000);
+
+        // Extracting and adjusting the exponent (8 bits in BFloat16 to 5 bits in Half)
+        // Assuming direct copying for simplicity, but you might need to adjust based on the actual bias if different
+        ushort exponent = (ushort)((bFloat16Bits >> 7) & 0xFF);
+        exponent <<= 10; // Move to correct position for Half by shifting left
+
+        // Extracting and adjusting the mantissa (7 bits in BFloat16 expanded to 10 bits in Half)
+        // Simply shift the mantissa to the most significant bits of the Half mantissa
+        ushort mantissa = (ushort)((bFloat16Bits & 0x007F) << (10 - 7));
+
+        // Combining sign, adjusted exponent, and adjusted mantissa into Half format
+        ushort halfBits = (ushort)(sign | exponent | mantissa);
+
+        // Convert the ushort back to Half
+        return new Half(halfBits);
+    }
 }
 
 

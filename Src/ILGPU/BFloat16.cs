@@ -172,6 +172,11 @@ public readonly struct BFloat16
 
     internal ushort RawValue { get; }
 
+    /// <summary>
+    /// AsUShort - returns internal value
+    /// </summary>
+    public ushort AsUShort => RawValue;
+
     internal BFloat16(ushort rawValue)
     {
         RawValue = rawValue;
@@ -191,7 +196,7 @@ public readonly struct BFloat16
     /// <param name="bFloat16"></param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float BFloat16ToSingle(BFloat16 bFloat16)
+    private static float BFloat16ToSingle(BFloat16 bFloat16)
     {
 
         int sign = (ushort)(Unsafe.As<BFloat16, ushort>(ref bFloat16) >> 15) & 0x1;
@@ -209,7 +214,7 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="bFloat16"></param>
     /// <returns></returns>
-    public static double ConvertToDouble(BFloat16 bFloat16)
+    private static double ConvertToDouble(BFloat16 bFloat16)
     {
         // Extracting sign, exponent, and mantissa from BFloat16
         long sign = ((ushort)Unsafe.As<BFloat16, ushort>(ref bFloat16) >> 15) & 0x1;
@@ -244,7 +249,7 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    public static BFloat16 SingleToBFloat16(float value)
+    private static BFloat16 SingleToBFloat16(float value)
     {
         // Extracting the binary representation of the float value
         uint floatBits = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
@@ -261,7 +266,36 @@ public readonly struct BFloat16
         // Combining into BFloat16 format (1 bit sign, 8 bits exponent, 7 bits mantissa)
         ushort bfloat16 = (ushort)((sign << 15) | (exponent << 7) | mantissa);
 
-        return (BFloat16)bfloat16;
+        return new (bfloat16);
+    }
+
+    /// <summary>
+    /// Convert float to BFloat16
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    private static BFloat16 HalfToBFloat16(Half value)
+    {
+        // Extracting the binary representation of the float value
+        ushort halfBits = value.RawValue;
+
+        // Extracting sign (1 bit)
+        ushort sign = (ushort)(halfBits & 0x8000);
+
+        // Adjusting the exponent from Half (5 bits) to BFloat16 (8 bits)
+        // This involves shifting and possibly adjusting for the different exponent bias
+        // This example assumes no bias adjustment for simplicity
+        ushort exponent = (ushort)((halfBits >> 10) & 0x1F);
+        exponent <<= 3; // Shift left to align with BFloat16's exponent position
+
+        // Adjusting the mantissa from Half (10 bits) to BFloat16 (7 bits)
+        // This involves truncating the 3 least significant bits
+        ushort mantissa = (ushort)((halfBits & 0x3FF) >> 3);
+
+        // Combining sign, exponent, and mantissa into BFloat16 format
+        ushort bFloat16Bits = (ushort)(sign | exponent | mantissa);
+
+        return new BFloat16(bFloat16Bits);
     }
 
     /// <summary>
@@ -269,7 +303,7 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    public static BFloat16 DoubleToBFloat16(double value)
+    private static BFloat16 DoubleToBFloat16(double value)
     {
         // Extracting the binary representation of the double value
         ulong doubleBits = BitConverter.ToUInt64(BitConverter.GetBytes(value), 0);
@@ -294,7 +328,7 @@ public readonly struct BFloat16
         ushort bfloat16 =
             (ushort)((sign << 15) | ((uint)exponentAdjustment << 7) | (uint)mantissa);
 
-        return (BFloat16)bfloat16;
+        return new BFloat16(bfloat16);
     }
 
 
@@ -305,21 +339,25 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="value"></param>
     /// <returns>BFloat16</returns>
-    public static explicit operator BFloat16(float value) => SingleToBFloat16(value);
+    public static explicit operator BFloat16(float value)
+        => SingleToBFloat16(value);
+
 
     /// <summary>
     /// Cast double to BFloat16
     /// </summary>
     /// <param name="value"></param>
     /// <returns>BFloat16</returns>
-    public static explicit operator BFloat16(double value) => DoubleToBFloat16(value);
+    public static explicit operator BFloat16(double value)
+        => DoubleToBFloat16(value);
 
     /// <summary>
     /// Cast BFloat16 to float
     /// </summary>
     /// <param name="value"></param>
     /// <returns>float</returns>
-    public static explicit operator float(BFloat16 value) => BFloat16ToSingle(value);
+    public static explicit operator float(BFloat16 value)
+        => BFloat16ToSingle(value);
 
     /// <summary>
     /// Cast BFloat16 to double
@@ -328,14 +366,6 @@ public readonly struct BFloat16
     /// <returns>double</returns>
     public static explicit operator double(BFloat16 value) =>
         (double)BFloat16ToSingle(value);
-
-    /// <summary>
-    /// Cast Half to BFloat16
-    /// </summary>
-    /// <param name="halfValue"></param>
-    /// <returns>BFloat16</returns>
-    public static explicit operator BFloat16(Half halfValue)
-        => SingleToBFloat16((float)halfValue);
 
 
 
@@ -712,6 +742,13 @@ public readonly struct BFloat16
     }
 
 
+    /// <summary>
+    /// Cast double to BFloat16
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns>BFloat16</returns>
+    public static explicit operator BFloat16(Half value)
+        => HalfToBFloat16(value);
 
 
     /// <summary>

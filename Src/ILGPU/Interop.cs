@@ -168,6 +168,16 @@ namespace ILGPU
         /// <returns>The int value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
+        public static ushort FloatAsInt(BFloat16 value) =>
+            value.RawValue;
+
+        /// <summary>
+        /// Casts the given float to an int via a reinterpret cast.
+        /// </summary>
+        /// <param name="value">The value to cast.</param>
+        /// <returns>The int value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
         public static ushort FloatAsInt(Half value) =>
             value.RawValue;
 
@@ -200,6 +210,8 @@ namespace ILGPU
         [InteropIntrinsic(InteropIntrinsicKind.IntAsFloat)]
         public static Half IntAsFloat(ushort value) =>
             new Half(value);
+
+
 
         /// <summary>
         /// Casts the given int to a float via a reinterpret cast.

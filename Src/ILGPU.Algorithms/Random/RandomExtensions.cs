@@ -106,7 +106,7 @@ namespace ILGPU.Algorithms.Random
             Debug.Assert(minValue < maxValue, "Values out of range");
             float dist = (float)(maxValue - minValue);
             return (BFloat16) Math.Min(
-                randomProvider.NextFloat() * dist +(float) minValue,
+                 randomProvider.NextFloat() * dist + (float) minValue,
                 (float) maxValue);
         }
 

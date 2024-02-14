@@ -93,7 +93,13 @@ namespace ILGPU.Algorithms.Tests
             public readonly Index1D ComputeHistogramBin(
                 <#= inputType.Type #> value,
                 Index1D numBins) =>
-<#      if (inputType.IsFloat) { #>
+<#
+       if (inputType.Name == "BFloat16")
+       {
+#>
+                (int)XMath.Abs(XMath.Rem((float)value, numBins));
+<#
+       } else if (inputType.IsFloat) { #>
 <#
     if (inputType.Name != "BFloat16")
     {

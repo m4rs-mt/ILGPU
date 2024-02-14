@@ -186,6 +186,29 @@ namespace ILGPU
                 (long)compare,
                 (long)value);
 
+
+        /// <summary>
+        /// Represents an atomic compare-exchange operation.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="compare">The expected comparison value.</param>
+        /// <param name="value">The target value.</param>
+        /// <returns>The old value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half CompareExchange(
+            ref Half target,
+            Half compare,
+            Half value)
+        {
+            var result = CompareExchange(
+                ref Unsafe.As<Half, uint>(ref target),
+                Interop.FloatAsInt(compare),
+                Interop.FloatAsInt(value));
+            return (Half) Interop.IntAsFloat(result);
+        }
+
+
+
         /// <summary>
         /// Represents an atomic compare-exchange operation.
         /// </summary>
