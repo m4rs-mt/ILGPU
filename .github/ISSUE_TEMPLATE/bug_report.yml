@@ -1,0 +1,61 @@
+name: Bug report
+description: Create a report to help us improve ILGPU
+title: "[BUG]: <title>"
+labels: [ "bug" ]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Thank you for reporting this issue!**        
+        To help us understand and address the problem effectively, please provide detailed information. 
+        You can refer to [this guide](https://stackoverflow.com/help/mcve) for tips on creating a good bug report.
+
+  - type: textarea
+    id: describe-bug
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "Please complete the following information:"
+      value: |
+        - ILGPU version: [e.g., 1.5.1]
+        - .NET version: [e.g., .NET 8]
+        - Operating system: [e.g., Windows 10]
+        - Hardware (if GPU-related): [e.g., NVIDIA GeForce GTX 1080]
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description: "Detailed steps to reproduce the behavior:"
+      placeholder: |
+        1. Provide a minimal code example or steps.
+        2. Specify the command used to run the code.
+        3. Explain the exact error message or current behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here, including log outputs or screenshots if applicable.
+    validations:
+      required: false
