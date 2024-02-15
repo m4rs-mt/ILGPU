@@ -32,13 +32,14 @@ public readonly partial struct Half : INumber<Half>
 
     #endregion
 
+    #region IComparable
 
     /// <summary>
     /// CompareTo
     /// </summary>
-    /// <param name="obj"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentException"></exception>
+    /// <param name="obj">value for comparison</param>
+    /// <returns>true Half comparison of object when object is half value</returns>
+    /// <exception cref="ArgumentException">Thrown when not Half value</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CompareTo(object? obj)
     {
@@ -50,12 +51,14 @@ public readonly partial struct Half : INumber<Half>
     }
 
 
+    #endregion
+
     /// <summary>
     /// Parse
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
+    /// <param name="s">String to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>Float value of parse</returns>
     public static Half Parse(string s, IFormatProvider? provider)
         => (Half) float.Parse(s, NumberStyles.Float | NumberStyles.AllowThousands,
             provider);
@@ -64,10 +67,10 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryParse
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
+    /// <param name="s">String to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">Parsed value</param>
+    /// <returns>True when parse worked</returns>
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider?
             provider, out Half result)
     {
@@ -76,15 +79,14 @@ public readonly partial struct Half : INumber<Half>
             NumberStyles.Float | NumberStyles.AllowThousands, provider, out value);
         result = (Half)value;
         return itWorked;
-
     }
 
     /// <summary>
     /// Parse
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
+    /// <param name="s">String to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>Half value</returns>
     public static Half Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
         => (Half) float.Parse(s, provider);
 
@@ -92,10 +94,10 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryParse
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
+    /// <param name="s">String to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">Out Half value</param>
+    /// <returns>True when successful</returns>
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider,
         out Half result)
     {
@@ -107,56 +109,57 @@ public readonly partial struct Half : INumber<Half>
 
     }
 
+
     /// <summary>
     /// IsCanonical
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>True based on type</returns>
     public static bool IsCanonical(Half value) => true;
 
     /// <summary>
     /// IsComplexNumber
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>Returns false based on type</returns>
     public static bool IsComplexNumber(Half value) => false;
 
     /// <summary>
     /// IsEvenInteger
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>True if value is an even integer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsEvenInteger(Half value) => float.IsEvenInteger((float) value);
 
     /// <summary>
     /// IsImaginaryNumber
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>Returns false for Half type</returns>
     public static bool IsImaginaryNumber(Half value) => false;
 
     /// <summary>
     /// IsInteger
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>Returns true when value is an integer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsInteger(Half value) => float.IsInteger((float) value);
 
     /// <summary>
     /// IsNegative
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>True when value is less than 0</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNegative(Half value) =>  (short) value < (short) 0;
 
     /// <summary>
     /// StripSign
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Half to check sign</param>
+    /// <returns>Sign bit</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint StripSign(Half value)
         => (uint) (ushort) ((uint) value & 4294934527U);
@@ -165,8 +168,8 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// IsNormal
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>True when value is normal</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNormal(Half value)
     {
@@ -180,16 +183,16 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// IsOddInteger
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>True when value is an odd integer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsOddInteger(Half value) => float.IsOddInteger((float) value);
 
     /// <summary>
     /// IsPositive
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>True when value greater than or equal to zero</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsPositive(Half value) => (short) value >= (short) 0;
 
@@ -197,8 +200,8 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// IsRealNumber
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>True when value is exact match with itself</returns>
     public static bool IsRealNumber(Half value)
 #pragma warning disable CS1718
         => (value == value);
@@ -208,8 +211,8 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// IsSubnormal
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to test</param>
+    /// <returns>True when value is subnormal</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsSubnormal(Half value)
     {
@@ -222,9 +225,9 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// MaxMagnitude
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <returns></returns>
+    /// <param name="x">Half 1 to compare</param>
+    /// <param name="y">Half 2 to compare</param>
+    /// <returns>Larger value or NaN when equal</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half MaxMagnitude(Half x, Half y) =>
         (Half) MathF.MaxMagnitude((float) x, (float) y);
@@ -233,9 +236,9 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// MaxMagnitudeNumber
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <returns></returns>
+    /// <param name="x">Half 1 to compare</param>
+    /// <param name="y">Half 2 to compare</param>
+    /// <returns>Largest absolute number that is not NaN </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half MaxMagnitudeNumber(Half x, Half y)
     {
@@ -248,9 +251,9 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// MinMagnitude
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <returns></returns>
+    /// <param name="x">Half 1 to compare</param>
+    /// <param name="y">Half 2 to compare</param>
+    /// <returns>Smallest number or NaN when equal</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half MinMagnitude(Half x, Half y) =>
         (Half) MathF.MinMagnitude((float) x, (float) y);
@@ -258,9 +261,9 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// MinMagnitudeNumber
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <returns></returns>
+    /// <param name="x">Half 1 to compare</param>
+    /// <param name="y">Half 2 to compare</param>
+    /// <returns>Smallest absolute number</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half MinMagnitudeNumber(Half x, Half y)
     {
@@ -273,42 +276,44 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// Parse
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="style"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
+    /// <param name="s">String to parse</param>
+    /// <param name="style">Style formating attributes</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>Parsed Half Value</returns>
     public static Half Parse(ReadOnlySpan<char> s, NumberStyles style,
         IFormatProvider? provider) => (Half) float.Parse(s, style, provider);
 
     /// <summary>
     /// Parse
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="style"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
+    /// <param name="s">String to parse</param>
+    /// <param name="style">Style formatting attributes</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>Parsed Half value</returns>
     public static Half Parse(string s, NumberStyles style, IFormatProvider? provider)
         => (Half) float.Parse(s, style, provider);
 
 #if NET8_0_OR_GREATER
+
+    #region INumberBase
+
+
     /// <summary>
     /// Parse
     /// </summary>
-    /// <param name="utf8Text"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
+    /// <param name="utf8Text">Uft8 encoded by span to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>Parsed Half Value</returns>
     public static Half Parse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider)
         => (Half) float.Parse(utf8Text, provider);
 
     /// <summary>
     /// TryParse
     /// </summary>
-    /// <param name="utf8Text"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
+    /// <param name="utf8Text">Utf8 encoded byte span to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">True when successful</param>
+    /// <returns>True when successful</returns>
     public static bool TryParse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider,
         out Half result)
     {
@@ -318,15 +323,15 @@ public readonly partial struct Half : INumber<Half>
         result = (Half)value;
         return itWorked;
     }
-#endif
+
 
     /// <summary>
     /// TryConvertFrom
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Value to convert</param>
+    /// <param name="result">Have value result</param>
+    /// <typeparam name="TOther">Type to convert from</typeparam>
+    /// <returns>Try is successful</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryConvertFrom<TOther>(TOther value, out Half result)
         where TOther : INumberBase<TOther>
@@ -388,10 +393,10 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryConvertFromChecked
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Value to convert</param>
+    /// <param name="result">Half result</param>
+    /// <typeparam name="TOther">Type to convert from</typeparam>
+    /// <returns>True when successful</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Half>.TryConvertFromChecked<TOther>(TOther value,
         out Half result)
@@ -400,10 +405,10 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryConvertFromSaturating
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Value to convert</param>
+    /// <param name="result">Half value result</param>
+    /// <typeparam name="TOther">Type to convert from</typeparam>
+    /// <returns>True when successful</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Half>.TryConvertFromSaturating<TOther>(TOther value,
         out Half result)
@@ -413,10 +418,10 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryConvertFromTruncating
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Value to convert</param>
+    /// <param name="result">Half value when successful</param>
+    /// <typeparam name="TOther">Type to convert</typeparam>
+    /// <returns>True when successful</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Half>.TryConvertFromTruncating<TOther>(TOther value,
         out Half result)
@@ -426,10 +431,10 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryConvertToChecked
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Value to convert</param>
+    /// <param name="result">value in desired type</param>
+    /// <typeparam name="TOther">Type to convert to</typeparam>
+    /// <returns>True when successful</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Half>.TryConvertToChecked<TOther>(Half value,
         [MaybeNullWhen(false)] out TOther result)
@@ -490,10 +495,10 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryConvertTo
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Value to convert</param>
+    /// <param name="result">Value converted</param>
+    /// <typeparam name="TOther">Type to convert to</typeparam>
+    /// <returns>True when successful</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryConvertTo<TOther>(Half value,
         [MaybeNullWhen(false)] out TOther result)
@@ -581,10 +586,10 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryConvertToSaturating
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Value to convert</param>
+    /// <param name="result">Value converted</param>
+    /// <typeparam name="TOther">Type to convert to</typeparam>
+    /// <returns>True when successful</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Half>.TryConvertToSaturating<TOther>(Half value,
         [MaybeNullWhen(false)] out TOther result)
@@ -593,10 +598,10 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryConvertToTruncating
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Value to convert</param>
+    /// <param name="result">Value converted</param>
+    /// <typeparam name="TOther">Type to convert to</typeparam>
+    /// <returns>True when successful</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Half>.TryConvertToTruncating<TOther>(Half value,
         [MaybeNullWhen(false)] out TOther result)
@@ -605,11 +610,11 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryParse
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="style"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
+    /// <param name="s">String to parse</param>
+    /// <param name="style">Number style to consider</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">Out Half when successful</param>
+    /// <returns>True when successful</returns>
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style,
         IFormatProvider? provider,
         out Half result)
@@ -624,11 +629,11 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// TryParse
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="style"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
+    /// <param name="s">String to parse</param>
+    /// <param name="style">Number style to consider</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">Out half when successful</param>
+    /// <returns>True when successful</returns>
     public static bool TryParse([NotNullWhen(true)] string? s, NumberStyles style,
         IFormatProvider? provider,
         out Half result)
@@ -641,9 +646,7 @@ public readonly partial struct Half : INumber<Half>
         return isGood;
     }
 
-    //
-    // INumberBase
-    //
+
 
     /// <summary>
     /// One
@@ -671,25 +674,25 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// Decrement
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to decrement</param>
+    /// <returns>Decremented Half</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half operator --(Half value) => (Half) ((float) value - 1f);
 
     /// <summary>
     /// Increment
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Value to increment</param>
+    /// <returns>Incremented value</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half operator ++(Half value) => (Half) ((float) value + 1f);
 
     /// <summary>
     /// Modulus
     /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns></returns>
+    /// <param name="left">First Half value</param>
+    /// <param name="right">Second Half value</param>
+    /// <returns>Modulus of Left via right</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half operator %(Half left, Half right)
         =>  (Half) ((float) left % (float) right);
@@ -702,20 +705,22 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// Addition
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Half Value</param>
+    /// <returns>Half Value</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half operator +(Half value) => value;
+
+    #endregion
 
 
     /// <summary>
     /// TryFormat
     /// </summary>
-    /// <param name="destination"></param>
-    /// <param name="charsWritten"></param>
-    /// <param name="format"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
+    /// <param name="destination">Target span to fill when sucessful</param>
+    /// <param name="charsWritten">Number of chars when successful</param>
+    /// <param name="format">Format string as Span</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>True when successful</returns>
     public bool TryFormat(Span<char> destination, out int charsWritten,
         ReadOnlySpan<char> format, IFormatProvider? provider) =>
         ((float)this).TryFormat(destination, out charsWritten, format, provider );
@@ -723,12 +728,14 @@ public readonly partial struct Half : INumber<Half>
     /// <summary>
     /// ToString
     /// </summary>
-    /// <param name="format"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    /// <param name="format">Desired format</param>
+    /// <param name="formatProvider">Culture specific parsing provider</param>
+    /// <returns>Half as string per format/culture</returns>
     public string ToString([StringSyntax("NumericFormat")] string? format,
         IFormatProvider? formatProvider)
         => ((float) this).ToString(format, formatProvider);
+
+#endif
 }
 
 
