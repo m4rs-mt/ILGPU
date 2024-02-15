@@ -199,9 +199,9 @@ public readonly struct BFloat16
     private static float BFloat16ToSingle(BFloat16 bFloat16)
     {
         uint rawBFloat16 = bFloat16.RawValue;
-        uint sign = (rawBFloat16 & 0x8000) << 16; // Move sign bit to correct position for float
-        uint exponent = ((rawBFloat16 >> 7) & 0xFF) - 15 + 127; // Adjust exponent from BFloat16 to float format
-        uint mantissa = (rawBFloat16 & 0x7F) << (23 - 7); // Scale mantissa from 7 bits to 23 bits
+        uint sign = (rawBFloat16 & 0x8000) << 16; // Move sign bit to correct position
+        uint exponent = ((rawBFloat16 >> 7) & 0xFF) - 15 + 127; // Adjust exponent format
+        uint mantissa = (rawBFloat16 & 0x7F) << (23 - 7); // Scale mantissa
 
         // Combine sign, exponent, and mantissa into a 32-bit float representation
         uint floatBits = sign | (exponent << 23) | mantissa;
@@ -220,8 +220,8 @@ public readonly struct BFloat16
         ushort bFloat16Raw = bFloat16.RawValue;
 
         // Extracting sign, exponent, and mantissa from BFloat16
-        ulong sign = (ulong)(bFloat16Raw & 0x8000) << 48; // Shift left to position for double
-        int exponentBits = ((bFloat16Raw >> 7) & 0xFF) - 127 + 1023; // Adjusting the exponent
+        ulong sign = (ulong)(bFloat16Raw & 0x8000) << 48; // Shift left for double
+        int exponentBits = ((bFloat16Raw >> 7) & 0xFF) - 127 + 1023; // Adjusting exponent
 
         // Ensuring exponent does not underflow or overflow the valid range for double
         if (exponentBits < 0) exponentBits = 0;
@@ -292,7 +292,8 @@ public readonly struct BFloat16
         ushort sign = (ushort)((floatBits >> 16) & 0x8000);
 
         // Extracting exponent (8 bits)
-        ushort exponent = (ushort)(((floatBits >> 23) & 0xFF) - 127 + 127); // Adjust exponent and re-bias if necessary
+        ushort exponent = (ushort)(((floatBits >> 23) & 0xFF) - 127 + 127);
+        // Adjust exponent and re-bias if necessary
         exponent = (ushort)(exponent << 7);
 
         // Extracting mantissa (top 7 bits of the float's 23-bit mantissa)
@@ -316,15 +317,17 @@ public readonly struct BFloat16
         ulong doubleBits = BitConverter.ToUInt64(BitConverter.GetBytes(value), 0);
 
         // Extracting leading sign (1 bit)
-        ushort sign = (ushort)((doubleBits >> 48) & 0x8000); // Extract and position the sign bit
+        ushort sign = (ushort)((doubleBits >> 48) & 0x8000); // Extract sign bit
 
 
-        long exponentBits = (long)((doubleBits >> 52) & 0x7FF) - 1023 + 127; // Adjust exponent
-        uint exponent = (uint)(exponentBits < 0 ? 0 : exponentBits > 0xFF ? 0xFF : exponentBits);
+        long exponentBits
+            = (long)((doubleBits >> 52) & 0x7FF) - 1023 + 127; // Adjust exponent
+        uint exponent
+            = (uint)(exponentBits < 0 ? 0 : exponentBits > 0xFF ? 0xFF : exponentBits);
 
 
         // Extracting the top 7 bits of the mantissa from the double and position it
-        ushort mantissa = (ushort)((doubleBits >> (52 - 7)) & 0x7F); // Shift and mask top 7 bits
+        ushort mantissa = (ushort)((doubleBits >> (52 - 7)) & 0x7F); // Shift and mask
 
 
         // Combining into BFloat16 format (1 bit sign, 8 bits exponent, 7 bits mantissa)
@@ -604,7 +607,8 @@ public readonly struct BFloat16
     /// <returns></returns>
     public static bool IsNaN(BFloat16 value)
         // NaN if all exponent bits are 1 and there is a non-zero value in the mantissa
-        =>  (value.RawValue & BFloat16Extensions.ExponentMask) == BFloat16Extensions.ExponentMask
+        =>  (value.RawValue & BFloat16Extensions.ExponentMask)
+            == BFloat16Extensions.ExponentMask
             && (value.RawValue & BFloat16Extensions.MantissaMask) != 0;
 
     /// <summary>
@@ -654,7 +658,8 @@ public readonly struct BFloat16
     /// <returns></returns>
     public static bool IsRealNumber(BFloat16 value)
     {
-        bool isExponentAllOnes = (value.RawValue & BFloat16Extensions.ExponentMask) == BFloat16Extensions.ExponentMask;
+        bool isExponentAllOnes = (value.RawValue & BFloat16Extensions.ExponentMask)
+                                 == BFloat16Extensions.ExponentMask;
         bool isMantissaNonZero = (value.RawValue & BFloat16Extensions.MantissaMask) != 0;
 
         // If exponent is all ones and mantissa is non-zero, it's NaN, so return false

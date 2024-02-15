@@ -37,13 +37,14 @@ public readonly partial struct Half
         ushort sign = (ushort)(bFloat16Bits & 0x8000);
 
         // Adjusting the exponent from BFloat16 to Half, considering bias differences
-        int exponent = ((bFloat16Bits >> 7) & 0xFF) - 127 + 15; // Adjust for bias difference
+        int exponent = ((bFloat16Bits >> 7) & 0xFF) - 127 + 15; // Adjust for bias
         if (exponent < 0) exponent = 0; // Clamp to zero if underflow
         if (exponent > 0x1F) exponent = 0x1F; // Clamp to max if overflow
         exponent <<= 10; // Position the exponent for Half
 
         // Extracting and positioning the mantissa bits (no need to expand, just align)
-        ushort mantissa = (ushort)((bFloat16Bits & 0x007F) << (13 - 7)); // Align with Half's mantissa
+        ushort mantissa = (ushort)((bFloat16Bits & 0x007F) << (13 - 7));
+        // Align with Half's mantissa
 
         // Combining sign, adjusted exponent, and mantissa into Half format
         ushort halfBits = (ushort)(sign | exponent | mantissa);

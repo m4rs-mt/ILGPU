@@ -140,7 +140,8 @@ public static readonly TypeInformation[] IntTypes =
 
 public static readonly TypeInformation[] FloatTypes =
     {
-        new TypeInformation("BFloat16", "BFloat16", TypeInformationKind.Float, "(BFloat16)", "f"),
+        new TypeInformation("BFloat16", "BFloat16",
+            TypeInformationKind.Float, "(BFloat16)", "f"),
         new TypeInformation("Half", "Half", TypeInformationKind.Float, "(Half)", "f"),
         new TypeInformation("Float", "float", TypeInformationKind.Float, null, "f"),
         new TypeInformation("Double", "double", TypeInformationKind.Float),
