@@ -641,9 +641,7 @@ public readonly partial struct Half : INumber<Half>
         return isGood;
     }
 
-    //
-    // INumberBase
-    //
+
 
     /// <summary>
     /// One
@@ -656,18 +654,24 @@ public readonly partial struct Half : INumber<Half>
     public static Half Zero => new Half(0x0);
 
 
+    // INumberBase.Radix
+
     /// <inheritdoc cref="INumberBase{TSelf}.Radix" />
     static int INumberBase<Half>.Radix => 2;
 
 
 
-
+    // INumberBase.IAdditiveIdentity
 
     /// <summary>
     /// IAdditiveIdentity
     /// </summary>
     static Half IAdditiveIdentity<Half, Half>.AdditiveIdentity => new Half((ushort) 0);
 
+
+    // INumberBase.IDecrementOperators
+
+    //
     /// <summary>
     /// Decrement
     /// </summary>
@@ -676,6 +680,8 @@ public readonly partial struct Half : INumber<Half>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half operator --(Half value) => (Half) ((float) value - 1f);
 
+    // INumberBase.IIncrementOperators
+
     /// <summary>
     /// Increment
     /// </summary>
@@ -683,6 +689,8 @@ public readonly partial struct Half : INumber<Half>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half operator ++(Half value) => (Half) ((float) value + 1f);
+
+
 
     /// <summary>
     /// Modulus
@@ -694,10 +702,15 @@ public readonly partial struct Half : INumber<Half>
     public static Half operator %(Half left, Half right)
         =>  (Half) ((float) left % (float) right);
 
+    // INumberBase.IMultiplicativeIdentity
+
     /// <summary>
     /// MultiplicativeIdentity
     /// </summary>
     public static Half MultiplicativeIdentity  => new Half((ushort) 15360);
+
+
+    // INumberBase.IAdditionOperators
 
     /// <summary>
     /// Addition
@@ -733,4 +746,3 @@ public readonly partial struct Half : INumber<Half>
 
 
 #endif
-
