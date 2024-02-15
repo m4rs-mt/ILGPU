@@ -198,15 +198,16 @@ public readonly struct BFloat16
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float BFloat16ToSingle(BFloat16 bFloat16)
     {
+        uint rawBFloat16 = bFloat16.RawValue;
+        uint sign = (rawBFloat16 & 0x8000) << 16; // Move sign bit to correct position for float
+        uint exponent = ((rawBFloat16 >> 7) & 0xFF) - 15 + 127; // Adjust exponent from BFloat16 to float format
+        uint mantissa = (rawBFloat16 & 0x7F) << (23 - 7); // Scale mantissa from 7 bits to 23 bits
 
-        int sign = (ushort)(Unsafe.As<BFloat16, ushort>(ref bFloat16) >> 15) & 0x1;
-        int exponent = (ushort)(Unsafe.As<BFloat16, ushort>(ref bFloat16) >> 7) & 0xFF;
-        int mantissa = (ushort)Unsafe.As<BFloat16, ushort>(ref bFloat16) & 0x7F;
+        // Combine sign, exponent, and mantissa into a 32-bit float representation
+        uint floatBits = sign | (exponent << 23) | mantissa;
 
-        int floatBits = (sign << 31) | (exponent << 23) | (mantissa << 16);
-
+        // Convert the 32-bit representation into a float
         return BitConverter.ToSingle(BitConverter.GetBytes(floatBits), 0);
-
     }
 
     /// <summary>
@@ -214,25 +215,27 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="bFloat16"></param>
     /// <returns></returns>
-    private static double ConvertToDouble(BFloat16 bFloat16)
+    private static double BFloat16ToDouble(BFloat16 bFloat16)
     {
+        ushort bFloat16Raw = bFloat16.RawValue;
+
         // Extracting sign, exponent, and mantissa from BFloat16
-        long sign = ((ushort)Unsafe.As<BFloat16, ushort>(ref bFloat16) >> 15) & 0x1;
-        long exponent = ((ushort)Unsafe.As<BFloat16, ushort>(ref bFloat16) >> 7) & 0xFF;
-        long mantissa = (ushort)Unsafe.As<BFloat16, ushort>(ref bFloat16) & 0x7F;
+        ulong sign = (ulong)(bFloat16Raw & 0x8000) << 48; // Shift left to position for double
+        int exponentBits = ((bFloat16Raw >> 7) & 0xFF) - 127 + 1023; // Adjusting the exponent
 
-        // Adjusting the exponent from BFloat16 bias to double bias
-        // BFloat16 and float bias is 127, double bias is 1023
-        long adjustedExponent = exponent - 127 + 1023;
+        // Ensuring exponent does not underflow or overflow the valid range for double
+        if (exponentBits < 0) exponentBits = 0;
+        if (exponentBits > 0x7FF) exponentBits = 0x7FF;
 
-        if (adjustedExponent < 0) adjustedExponent = 0; // Underflow
-        if (adjustedExponent > 0x7FF) adjustedExponent = 0x7FF; // Overflow
+        ulong exponent = (ulong)exponentBits << 52; // Positioning exponent for double
 
-        // Assembling the double (1 bit sign, 11 bits exponent, 52 bits mantissa)
-        // Mantissa needs to be shifted to align with double's mantissa
-        long doubleBits = (sign << 63) | (adjustedExponent << 52) | (mantissa << 45);
+        // Extracting and positioning the mantissa bits
+        ulong mantissa = ((ulong)(bFloat16Raw & 0x7F)) << 45; // Align mantissa for double
 
-        return BitConverter.Int64BitsToDouble(doubleBits);
+        // Assembling the double
+        ulong doubleBits = sign | exponent | mantissa;
+
+        return BitConverter.UInt64BitsToDouble(doubleBits);
     }
 
     /// <summary>
@@ -244,30 +247,6 @@ public readonly struct BFloat16
     private static uint StripSign(BFloat16 value)
         => (ushort)((uint)value & 0x7FFF);
 
-    /// <summary>
-    /// Convert float to BFloat16
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    private static BFloat16 SingleToBFloat16(float value)
-    {
-        // Extracting the binary representation of the float value
-        uint floatBits = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
-
-        // Extracting sign (1 bit)
-        uint sign = (floatBits >> 31) & 0x1;
-
-        // Extracting exponent (8 bits)
-        uint exponent = (floatBits >> 23) & 0xFF;
-
-        // Extracting mantissa (7 bits)
-        uint mantissa = (floatBits >> 16) & 0x7F;
-
-        // Combining into BFloat16 format (1 bit sign, 8 bits exponent, 7 bits mantissa)
-        ushort bfloat16 = (ushort)((sign << 15) | (exponent << 7) | mantissa);
-
-        return new (bfloat16);
-    }
 
     /// <summary>
     /// Convert float to BFloat16
@@ -285,18 +264,46 @@ public readonly struct BFloat16
         // Adjusting the exponent from Half (5 bits) to BFloat16 (8 bits)
         // This involves shifting and possibly adjusting for the different exponent bias
         // This example assumes no bias adjustment for simplicity
-        ushort exponent = (ushort)((halfBits >> 10) & 0x1F);
-        exponent <<= 3; // Shift left to align with BFloat16's exponent position
+        ushort exponent = (ushort)(((halfBits >> 10) & 0x1F) << 7);
+        // Shift left to align with BFloat16's exponent position
 
         // Adjusting the mantissa from Half (10 bits) to BFloat16 (7 bits)
         // This involves truncating the 3 least significant bits
-        ushort mantissa = (ushort)((halfBits & 0x3FF) >> 3);
+        ushort mantissa = (ushort)((halfBits & 0x03FF) >> (10 - 7));
+
 
         // Combining sign, exponent, and mantissa into BFloat16 format
         ushort bFloat16Bits = (ushort)(sign | exponent | mantissa);
 
         return new BFloat16(bFloat16Bits);
     }
+
+    /// <summary>
+    /// Convert float to BFloat16
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    private static BFloat16 SingleToBFloat16(float value)
+    {
+        // Extracting the binary representation of the float value
+        uint floatBits = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
+
+        // Extracting sign (1 bit)
+        ushort sign = (ushort)((floatBits >> 16) & 0x8000);
+
+        // Extracting exponent (8 bits)
+        ushort exponent = (ushort)(((floatBits >> 23) & 0xFF) - 127 + 127); // Adjust exponent and re-bias if necessary
+        exponent = (ushort)(exponent << 7);
+
+        // Extracting mantissa (top 7 bits of the float's 23-bit mantissa)
+        ushort mantissa = (ushort)((floatBits >> (23 - 7)) & 0x7F);
+
+        // Combining into BFloat16 format (1 bit sign, 8 bits exponent, 7 bits mantissa)
+        ushort bFloat16 = (ushort)(sign | exponent | mantissa);
+
+        return new (bFloat16);
+    }
+
 
     /// <summary>
     /// Convert double to BFloat16
@@ -308,27 +315,23 @@ public readonly struct BFloat16
         // Extracting the binary representation of the double value
         ulong doubleBits = BitConverter.ToUInt64(BitConverter.GetBytes(value), 0);
 
-        // Extracting sign (1 bit)
-        ulong sign = (doubleBits >> 63) & 0x1;
+        // Extracting leading sign (1 bit)
+        ushort sign = (ushort)((doubleBits >> 48) & 0x8000); // Extract and position the sign bit
 
-        // Extracting exponent (8 bits)
-        // Note: The exponent of a double is 11 bits, so we need to adjust it for BFloat16
-        ulong exponent = (doubleBits >> 52) & 0x7FF;
-        int exponentAdjustment =
-            ((int)exponent - 1023) + 127; // Adjust from double's exponent bias to float's
-        if (exponentAdjustment < 0) exponentAdjustment = 0; // Clamp to zero if underflow
-        if (exponentAdjustment > 0xFF)
-            exponentAdjustment = 0xFF; // Clamp to max if overflow
 
-        // Extracting mantissa (7 bits)
-        // Note: We only take the top 7 bits of the mantissa
-        ulong mantissa = (doubleBits >> 45) & 0x7F;
+        long exponentBits = (long)((doubleBits >> 52) & 0x7FF) - 1023 + 127; // Adjust exponent
+        uint exponent = (uint)(exponentBits < 0 ? 0 : exponentBits > 0xFF ? 0xFF : exponentBits);
+
+
+        // Extracting the top 7 bits of the mantissa from the double and position it
+        ushort mantissa = (ushort)((doubleBits >> (52 - 7)) & 0x7F); // Shift and mask top 7 bits
+
 
         // Combining into BFloat16 format (1 bit sign, 8 bits exponent, 7 bits mantissa)
-        ushort bfloat16 =
-            (ushort)((sign << 15) | ((uint)exponentAdjustment << 7) | (uint)mantissa);
+        ushort bFloat16 =
+            (ushort)(sign | (ushort)(exponent << 7) | mantissa);
 
-        return new BFloat16(bfloat16);
+        return new BFloat16(bFloat16);
     }
 
 
@@ -339,6 +342,8 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="value"></param>
     /// <returns>BFloat16</returns>
+    [ConvertIntrinisc]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static explicit operator BFloat16(float value)
         => SingleToBFloat16(value);
 
@@ -348,6 +353,8 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="value"></param>
     /// <returns>BFloat16</returns>
+    [ConvertIntrinisc]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static explicit operator BFloat16(double value)
         => DoubleToBFloat16(value);
 
@@ -356,7 +363,9 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="value"></param>
     /// <returns>float</returns>
-    public static explicit operator float(BFloat16 value)
+    [ConvertIntrinisc]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator float(BFloat16 value)
         => BFloat16ToSingle(value);
 
     /// <summary>
@@ -364,7 +373,9 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="value"></param>
     /// <returns>double</returns>
-    public static explicit operator double(BFloat16 value) =>
+    [ConvertIntrinisc]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator double(BFloat16 value) =>
         (double)BFloat16ToSingle(value);
 
 

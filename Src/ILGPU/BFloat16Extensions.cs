@@ -27,29 +27,28 @@ public readonly partial struct Half
     /// <param name="value"></param>
     /// <returns></returns>
     public static explicit operator Half(BFloat16 value) =>
-        AsHalf(value);
+        BFloat16ToHalf(value);
 
-    internal static Half AsHalf(BFloat16 bfloat16)
+    internal static Half BFloat16ToHalf(BFloat16 bFloat16)
     {
-        ushort bFloat16Bits = bfloat16.RawValue;
+        ushort bFloat16Bits = bFloat16.RawValue;
 
         // Extracting sign (1 bit) - directly copied
         ushort sign = (ushort)(bFloat16Bits & 0x8000);
 
-        // Extracting and adjusting the exponent (8 bits in BFloat16 to 5 bits in Half)
-        // Assuming direct copying for simplicity, but you might need to adjust based on the actual bias if different
-        ushort exponent = (ushort)((bFloat16Bits >> 7) & 0xFF);
-        exponent <<= 10; // Move to correct position for Half by shifting left
+        // Adjusting the exponent from BFloat16 to Half, considering bias differences
+        int exponent = ((bFloat16Bits >> 7) & 0xFF) - 127 + 15; // Adjust for bias difference
+        if (exponent < 0) exponent = 0; // Clamp to zero if underflow
+        if (exponent > 0x1F) exponent = 0x1F; // Clamp to max if overflow
+        exponent <<= 10; // Position the exponent for Half
 
-        // Extracting and adjusting the mantissa (7 bits in BFloat16 expanded to 10 bits in Half)
-        // Simply shift the mantissa to the most significant bits of the Half mantissa
-        ushort mantissa = (ushort)((bFloat16Bits & 0x007F) << (10 - 7));
+        // Extracting and positioning the mantissa bits (no need to expand, just align)
+        ushort mantissa = (ushort)((bFloat16Bits & 0x007F) << (13 - 7)); // Align with Half's mantissa
 
-        // Combining sign, adjusted exponent, and adjusted mantissa into Half format
+        // Combining sign, adjusted exponent, and mantissa into Half format
         ushort halfBits = (ushort)(sign | exponent | mantissa);
 
-        // Convert the ushort back to Half
-        return new Half(halfBits);
+        return Unsafe.As<ushort, Half>(ref halfBits);
     }
 }
 
