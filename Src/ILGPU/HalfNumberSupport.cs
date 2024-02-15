@@ -293,10 +293,11 @@ public readonly partial struct Half : INumber<Half>
     public static Half Parse(string s, NumberStyles style, IFormatProvider? provider)
         => (Half) float.Parse(s, style, provider);
 
-#if NET8_0_OR_GREATER
+
 
     #region INumberBase
 
+#if NET8_0_OR_GREATER
 
     /// <summary>
     /// Parse
@@ -323,7 +324,7 @@ public readonly partial struct Half : INumber<Half>
         result = (Half)value;
         return itWorked;
     }
-
+#endif
 
     /// <summary>
     /// TryConvertFrom
@@ -750,7 +751,7 @@ public readonly partial struct Half : INumber<Half>
         IFormatProvider? formatProvider)
         => ((float) this).ToString(format, formatProvider);
 
-#endif
+
 }
 
 
