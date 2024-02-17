@@ -364,6 +364,8 @@ public readonly struct BFloat16
         ReadOnlySpan<char> format, IFormatProvider? provider)
         => ((float)this).TryFormat(destination, out charsWritten, format, provider );
 
+#if NET7_0_OR_GREATER
+
     /// <summary>
     /// TryFormat
     /// </summary>
@@ -376,7 +378,7 @@ public readonly struct BFloat16
         ReadOnlySpan<char> format, IFormatProvider? provider)
         => ((float)this).TryFormat(destination, out charsWritten, format, provider );
 
-
+#endif
     #endregion
 
     #region parsing
@@ -409,6 +411,8 @@ public readonly struct BFloat16
 
     }
 
+#if NET7_0_OR_GREATER
+
     /// <summary>
     /// Parse Span of char
     /// </summary>
@@ -434,6 +438,7 @@ public readonly struct BFloat16
         result = (BFloat16)floatResult;
         return isGood;
     }
+
 
 
     /// <summary>
@@ -464,6 +469,9 @@ public readonly struct BFloat16
         return isGood;
     }
 
+#endif
+
+#if NET8_0_OR_GREATER
     /// <summary>
     /// Parse
     /// </summary>
@@ -489,6 +497,8 @@ public readonly struct BFloat16
         result = (BFloat16)value;
         return itWorked;
     }
+
+#endif
 
     #endregion
 
