@@ -364,7 +364,7 @@ public readonly struct BFloat16
         ReadOnlySpan<char> format, IFormatProvider? provider)
         => ((float)this).TryFormat(destination, out charsWritten, format, provider );
 
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
 
     /// <summary>
     /// TryFormat
