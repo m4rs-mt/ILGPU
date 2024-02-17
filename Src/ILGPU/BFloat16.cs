@@ -55,34 +55,32 @@ public readonly struct BFloat16
     /// <summary>
     /// Represents positive infinity.
     /// </summary>
-    public static readonly BFloat16 PositiveInfinity = new BFloat16(
-        0x7F80);
+    public static BFloat16 PositiveInfinity { get; } = new BFloat16(0x7F80);
 
     /// <summary>
     /// Represents negative infinity.
     /// </summary>
-    public static readonly BFloat16 NegativeInfinity = new BFloat16(
-        0xFF80);
+    public static BFloat16 NegativeInfinity{ get; } = new BFloat16(0xFF80);
 
     /// <summary>
     /// Epsilon - smallest positive value
     /// </summary>
-    public static readonly BFloat16 Epsilon = new BFloat16(0x0001);
+    public static BFloat16 Epsilon { get; } = new BFloat16(0x0001);
 
     /// <summary>
     /// MaxValue - most positive value
     /// </summary>
-    public static readonly BFloat16 MaxValue = new BFloat16(0x7F7F);
+    public static BFloat16 MaxValue { get; } = new BFloat16(0x7F7F);
 
     /// <summary>
     /// MinValue ~ most negative value
     /// </summary>
-    public static readonly BFloat16 MinValue = new BFloat16(0xFF7F);
+    public static BFloat16 MinValue { get; } = new BFloat16(0xFF7F);
 
     /// <summary>
     /// NaN ~ value with all exponent bits set to 1 and a non-zero mantissa
     /// </summary>
-    public static readonly BFloat16 NaN = new BFloat16(0x7FC0);
+    public static BFloat16 NaN { get; } = new BFloat16(0x7FC0);
 
     #endregion
 
@@ -93,9 +91,9 @@ public readonly struct BFloat16
     /// <summary>
     /// CompareTo
     /// </summary>
-    /// <param name="obj"></param>
-    /// <returns>0:1</returns>
-    /// <exception cref="ArgumentException"></exception>
+    /// <param name="obj">Object to compare</param>
+    /// <returns>Zero when equal</returns>
+    /// <exception cref="ArgumentException">Thrown when not BFloat16</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CompareTo(object? obj)
     {
@@ -104,7 +102,6 @@ public readonly struct BFloat16
         if (obj != null)
             throw new ArgumentException("Must be " + nameof(BFloat16));
         return 1;
-
     }
 
 
@@ -112,8 +109,8 @@ public readonly struct BFloat16
     /// <summary>
     /// CompareTo
     /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <param name="other">BFloat16 to compare</param>
+    /// <returns>Zero when successful</returns>
     public int CompareTo(BFloat16 other) => ((float)this).CompareTo(other);
 
     #endregion
@@ -126,7 +123,7 @@ public readonly struct BFloat16
     /// <summary>
     /// Equals
     /// </summary>
-    /// <param name="obj"></param>
+    /// <param name="obj">Object to compare</param>
     /// <returns>bool</returns>
     public readonly override bool Equals(object? obj) =>
         obj is BFloat16 bFloat16 && Equals(bFloat16);
@@ -134,41 +131,368 @@ public readonly struct BFloat16
     /// <summary>
     /// Equals
     /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <param name="other">Other to compare</param>
+    /// <returns>True when successful</returns>
     public bool Equals(BFloat16 other) => this == other;
 
     /// <summary>
-    /// GetHasCode
+    /// GetHashCode
     /// </summary>
-    /// <returns></returns>
+    /// <returns>RawValue as hashcode</returns>
     public readonly override int GetHashCode() => RawValue;
 
     #endregion
+
+    #region ComparisonOperators
+
+    /// <summary>
+    /// Operator Equals
+    /// </summary>
+    /// <param name="first">First BFloat16 value</param>
+    /// <param name="second">Second BFloat16 value</param>
+    /// <returns>True when equal</returns>
+    [CompareIntrinisc(CompareKind.Equal)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator ==(BFloat16 first, BFloat16 second) =>
+        (ushort)Unsafe.As<BFloat16, ushort>(ref first) ==
+        (ushort)Unsafe.As<BFloat16, ushort>(ref second);
+
+
+    /// <summary>
+    /// Operator Not Equals
+    /// </summary>
+    /// <param name="first">First BFloat16 value</param>
+    /// <param name="second">Second BFloat16 value</param>
+    /// <returns>True when not equal</returns>
+    [CompareIntrinisc(CompareKind.NotEqual)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator != (BFloat16 first, BFloat16 second) =>
+        (ushort)Unsafe.As<BFloat16, ushort>(ref first) !=
+        (ushort)Unsafe.As<BFloat16, ushort>(ref second);
+
+
+    /// <summary>
+    /// Operator less than
+    /// </summary>
+    /// <param name="first">First BFloat16 value</param>
+    /// <param name="second">Second BFloat16 value</param>
+    /// <returns>True when less than</returns>
+    [CompareIntrinisc(CompareKind.LessThan)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator <(BFloat16 first, BFloat16 second) =>
+        (float)first < (float)second;
+
+
+    /// <summary>
+    /// Operator less than or equals
+    /// </summary>
+    /// <param name="first">First BFloat16 value</param>
+    /// <param name="second">Second BFloat16 value</param>
+    /// <returns>True when less than or equal</returns>
+    [CompareIntrinisc(CompareKind.LessEqual)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator <=(BFloat16 first, BFloat16 second) =>
+        (float)first <= (float)second;
+
+
+    /// <summary>
+    /// Operator greater than
+    /// </summary>
+    /// <param name="first">First BFloat16 value</param>
+    /// <param name="second">Second BFloat16 value</param>
+    /// <returns>True when greater than</returns>
+    [CompareIntrinisc(CompareKind.GreaterThan)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator >(BFloat16 first, BFloat16 second) =>
+        (float)first > (float)second;
+
+
+    /// <summary>
+    /// Operator greater than or equals
+    /// </summary>
+    /// <param name="first">First BFloat16 value</param>
+    /// <param name="second">Second BFloat16 value</param>
+    /// <returns>True when greater than or equal</returns>
+    [CompareIntrinisc(CompareKind.LessThan)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator >=(BFloat16 first, BFloat16 second) =>
+        (float)first >= (float)second;
+
+
+
+    #endregion
+
+
+    #region AdditionAndIncrement
+
+    /// <summary>
+    /// Increment operator
+    /// </summary>
+    /// <param name="value">BFloat16 value to increment</param>
+    /// <returns>Incremented value</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BFloat16 operator ++(BFloat16 value) => (BFloat16) ((float) value + 1f);
+
+
+
+    /// <summary>
+    /// Addition
+    /// </summary>
+    /// <param name="value">BFloat16 self to add</param>
+    /// <returns>BFloat16 value</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BFloat16 operator +(BFloat16 value) => value;
+
+    /// <summary>
+    /// Addition
+    /// </summary>
+    /// <param name="left">First BFloat16 value</param>
+    /// <param name="right">Second BFloat16 value</param>
+    /// <returns>Returns addition</returns>
+    public static BFloat16 operator +(BFloat16 left, BFloat16 right)
+        => BFloat16Extensions.AddFP32(left, right);
+
+
+#if NET7_0_OR_GREATER
+
+    /// <summary>
+    /// IAdditiveIdentity
+    /// </summary>
+    static BFloat16 IAdditiveIdentity<BFloat16, BFloat16>.AdditiveIdentity
+        => new BFloat16((ushort) 0);
+#endif
+
+    #endregion
+
+
+    #region DecrementAndSubtraction
+
+    /// <summary>
+    /// Decrement operator
+    /// </summary>
+    /// <param name="value">Value to be decremented by 1</param>
+    /// <returns>Decremented value</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BFloat16 operator --(BFloat16 value) => (BFloat16) ((float) value - 1f);
+
+
+    /// <summary>
+    /// Subtraction
+    /// </summary>
+    /// <param name="left">First BFloat16 value</param>
+    /// <param name="right">Second BFloat16 value</param>
+    /// <returns>left - right</returns>
+    public static BFloat16 operator -(BFloat16 left, BFloat16 right)
+        => BFloat16Extensions.SubFP32(left, right);
+
+
+
+
+    /// <summary>
+    /// Negation
+    /// </summary>
+    /// <param name="value">BFloat16 to Negate</param>
+    /// <returns>Negated value</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BFloat16 operator -(BFloat16 value)
+        => BFloat16Extensions.Neg(value);
+
+    #endregion
+
+
+    #region MultiplicationDivisionAndModulus
+
+    /// <summary>
+    /// Multiplication
+    /// </summary>
+    /// <param name="left">First BFloat16 value</param>
+    /// <param name="right">Second BFloat16 value</param>
+    /// <returns>Multiplication of left * right</returns>
+    public static BFloat16 operator *(BFloat16 left, BFloat16 right)
+        => BFloat16Extensions.MulFP32(left,right);
+
+    /// <summary>
+    /// Division
+    /// </summary>
+    /// <param name="left">First BFloat16 value</param>
+    /// <param name="right">Second BFloat16 value</param>
+    /// <returns>Left / right</returns>
+    public static BFloat16 operator /(BFloat16 left, BFloat16 right)
+        => BFloat16Extensions.DivFP32(left, right);
+
+
+    /// <summary>
+    /// Multiplicative Identity
+    /// </summary>
+    public static BFloat16 MultiplicativeIdentity  => new BFloat16(0x3F80);
+
+    /// <summary>
+    /// Modulus operator
+    /// </summary>
+    /// <param name="left">First BFloat16 value</param>
+    /// <param name="right">Second BFloat16 value</param>
+    /// <returns>Left modulus right</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BFloat16 operator %(BFloat16 left, BFloat16 right)
+        =>  (BFloat16) ((float) left % (float) right);
+
+
+    #endregion
+
+
+    #region Formatting
 
 
     /// <summary>
     /// ToString
     /// </summary>
-    /// <param name="format"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    /// <param name="format">Numeric format</param>
+    /// <param name="formatProvider">Culture specific parsing provider</param>
+    /// <returns>String conversion</returns>
     public string ToString(string? format, IFormatProvider? formatProvider) =>
         ((float)this).ToString(format, formatProvider);
 
     /// <summary>
     /// TryFormat
     /// </summary>
-    /// <param name="destination"></param>
-    /// <param name="charsWritten"></param>
-    /// <param name="format"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
+    /// <param name="destination">Span to update</param>
+    /// <param name="charsWritten">length written</param>
+    /// <param name="format">Numeric format</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>True when successful</returns>
     public bool TryFormat(Span<char> destination, out int charsWritten,
         ReadOnlySpan<char> format, IFormatProvider? provider)
         => ((float)this).TryFormat(destination, out charsWritten, format, provider );
 
+    /// <summary>
+    /// TryFormat
+    /// </summary>
+    /// <param name="destination">Span to update</param>
+    /// <param name="charsWritten">length written</param>
+    /// <param name="format">Numeric format</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>True when successful</returns>
+    public bool TryFormat(Span<byte> destination, out int charsWritten,
+        ReadOnlySpan<char> format, IFormatProvider? provider)
+        => ((float)this).TryFormat(destination, out charsWritten, format, provider );
 
+
+    #endregion
+
+    #region parsing
+
+
+    /// <summary>
+    /// Parse string to BFloat16
+    /// </summary>
+    /// <param name="s">String to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>BFloat16 value when successful</returns>
+    public static BFloat16 Parse(string s, IFormatProvider? provider)
+        => (BFloat16)float.Parse(s, NumberStyles.Float | NumberStyles.AllowThousands,
+            provider);
+
+    /// <summary>
+    /// TryParse string to BFloat16
+    /// </summary>
+    /// <param name="s">String to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">BFloat16 out param</param>
+    /// <returns>True when successful</returns>
+    public static bool TryParse(string? s, IFormatProvider? provider, out BFloat16 result)
+    {
+        float value;
+        bool itWorked = float.TryParse(s,
+            NumberStyles.Float | NumberStyles.AllowThousands, provider, out value);
+        result = (BFloat16)value;
+        return itWorked;
+
+    }
+
+    /// <summary>
+    /// Parse Span of char
+    /// </summary>
+    /// <param name="s">String to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>Value if parsed successfully</returns>
+    public static BFloat16 Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
+        => (BFloat16) float.Parse(s, provider);
+
+
+    /// <summary>
+    /// TryParse Span of char
+    /// </summary>
+    /// <param name="s">String to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">BFloat16 out param</param>
+    /// <returns>True if parsed successfully</returns>
+    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider,
+        out BFloat16 result)
+    {
+        float floatResult;
+        bool isGood = float.TryParse(s, provider, out floatResult);
+        result = (BFloat16)floatResult;
+        return isGood;
+    }
+
+
+    /// <summary>
+    /// Parse Span char
+    /// </summary>
+    /// <param name="s">String to parse</param>
+    /// <param name="style">Style formating attributes</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>Value if parsed successfully</returns>
+    public static BFloat16 Parse(ReadOnlySpan<char> s, NumberStyles style,
+        IFormatProvider? provider)
+        => (BFloat16)float.Parse(s, style, provider);
+
+    /// <summary>
+    /// TryParse
+    /// </summary>
+    /// <param name="s">String to parse</param>
+    /// <param name="style">Style formating attributes</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">BFloat16 out param</param>
+    /// <returns>True when successful</returns>
+    public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style,
+        IFormatProvider? provider, out BFloat16 result)
+    {
+        float floatResult;
+        bool isGood = float.TryParse(s, style, provider, out floatResult);
+        result = (BFloat16)floatResult;
+        return isGood;
+    }
+
+    /// <summary>
+    /// Parse
+    /// </summary>
+    /// <param name="utf8Text">Uft8 encoded by span to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>Parsed Half Value</returns>
+    public static BFloat16 Parse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider)
+        => (BFloat16) float.Parse(utf8Text, provider);
+
+    /// <summary>
+    /// TryParse
+    /// </summary>
+    /// <param name="utf8Text">Utf8 encoded byte span to parse</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">BFloat16 out param</param>
+    /// <returns>True when successful</returns>
+    public static bool TryParse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider,
+        out BFloat16 result)
+    {
+        float value;
+        bool itWorked = float.TryParse(utf8Text,
+            NumberStyles.Float | NumberStyles.AllowThousands, provider, out value);
+        result = (BFloat16)value;
+        return itWorked;
+    }
+
+    #endregion
+
+    #region object
 
     internal ushort RawValue { get; }
 
@@ -189,12 +513,18 @@ public readonly struct BFloat16
     /// <returns>internal ushort value</returns>
     public ushort ToRawUShort => RawValue;
 
+   #endregion
+
+
+   #region Conversions
+
+
 
     /// <summary>
     /// Convert BFloat16 to float
     /// </summary>
-    /// <param name="bFloat16"></param>
-    /// <returns></returns>
+    /// <param name="bFloat16">BFloat16 value to convert</param>
+    /// <returns>Value converted to float</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float BFloat16ToSingle(BFloat16 bFloat16)
     {
@@ -214,7 +544,7 @@ public readonly struct BFloat16
     /// Convert BFloat16 to double
     /// </summary>
     /// <param name="bFloat16"></param>
-    /// <returns></returns>
+    /// <returns>Double</returns>
     private static double BFloat16ToDouble(BFloat16 bFloat16)
     {
         ushort bFloat16Raw = bFloat16.RawValue;
@@ -241,18 +571,18 @@ public readonly struct BFloat16
     /// <summary>
     /// StripSign
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>sign bit as BFloat16</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint StripSign(BFloat16 value)
         => (ushort)((uint)value & 0x7FFF);
 
 
     /// <summary>
-    /// Convert float to BFloat16
+    /// Convert Half to BFloat16
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">Half to convert</param>
+    /// <returns>BFloat16</returns>
     private static BFloat16 HalfToBFloat16(Half value)
     {
         // Extracting the binary representation of the float value
@@ -281,8 +611,8 @@ public readonly struct BFloat16
     /// <summary>
     /// Convert float to BFloat16
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">float to convert</param>
+    /// <returns>BFloat16</returns>
     private static BFloat16 SingleToBFloat16(float value)
     {
         // Extracting the binary representation of the float value
@@ -309,8 +639,8 @@ public readonly struct BFloat16
     /// <summary>
     /// Convert double to BFloat16
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">double to convert</param>
+    /// <returns>BFloat16</returns>
     private static BFloat16 DoubleToBFloat16(double value)
     {
         // Extracting the binary representation of the double value
@@ -336,14 +666,14 @@ public readonly struct BFloat16
 
         return new BFloat16(bFloat16);
     }
-
+    #endregion
 
     #region operators
 
     /// <summary>
     /// Cast float to BFloat16
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">float to cast</param>
     /// <returns>BFloat16</returns>
     [ConvertIntrinisc]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -354,7 +684,7 @@ public readonly struct BFloat16
     /// <summary>
     /// Cast double to BFloat16
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">double to cast</param>
     /// <returns>BFloat16</returns>
     [ConvertIntrinisc]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -364,7 +694,7 @@ public readonly struct BFloat16
     /// <summary>
     /// Cast BFloat16 to float
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">BFloat16 value to cast</param>
     /// <returns>float</returns>
     [ConvertIntrinisc]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -374,7 +704,7 @@ public readonly struct BFloat16
     /// <summary>
     /// Cast BFloat16 to double
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">BFloat16 value to cast</param>
     /// <returns>double</returns>
     [ConvertIntrinisc]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -382,180 +712,18 @@ public readonly struct BFloat16
         (double)BFloat16ToSingle(value);
 
 
-
-
-        /// <summary>
-    /// Operator Equals
-    /// </summary>
-    /// <param name="first"></param>
-    /// <param name="second"></param>
-    /// <returns></returns>
-    [CompareIntrinisc(CompareKind.Equal)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(BFloat16 first, BFloat16 second) =>
-        (ushort)Unsafe.As<BFloat16, ushort>(ref first) ==
-        (ushort)Unsafe.As<BFloat16, ushort>(ref second);
-
-
-    /// <summary>
-    /// Operator Not Equals
-    /// </summary>
-    /// <param name="first"></param>
-    /// <param name="second"></param>
-    /// <returns></returns>
-    [CompareIntrinisc(CompareKind.NotEqual)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator != (BFloat16 first, BFloat16 second) =>
-        (ushort)Unsafe.As<BFloat16, ushort>(ref first) !=
-        (ushort)Unsafe.As<BFloat16, ushort>(ref second);
-
-
-    /// <summary>
-    /// Operator less than
-    /// </summary>
-    /// <param name="first"></param>
-    /// <param name="second"></param>
-    /// <returns></returns>
-    [CompareIntrinisc(CompareKind.LessThan)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator <(BFloat16 first, BFloat16 second) =>
-        (float)first < (float)second;
-
-
-    /// <summary>
-    /// Operator less than or equals
-    /// </summary>
-    /// <param name="first"></param>
-    /// <param name="second"></param>
-    /// <returns></returns>
-    [CompareIntrinisc(CompareKind.LessThan)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator <=(BFloat16 first, BFloat16 second) =>
-        (float)first <= (float)second;
-
-
-    /// <summary>
-    /// Operator greater than
-    /// </summary>
-    /// <param name="first"></param>
-    /// <param name="second"></param>
-    /// <returns></returns>
-    [CompareIntrinisc(CompareKind.LessThan)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator >(BFloat16 first, BFloat16 second) =>
-        (float)first > (float)second;
-
-
-    /// <summary>
-    /// Operator greater than or equals
-    /// </summary>
-    /// <param name="first"></param>
-    /// <param name="second"></param>
-    /// <returns></returns>
-    [CompareIntrinisc(CompareKind.LessThan)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator >=(BFloat16 first, BFloat16 second) =>
-        (float)first >= (float)second;
-
-
-
-    /// <summary>
-    /// Decrement operator
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BFloat16 operator --(BFloat16 value) => (BFloat16) ((float) value - 1f);
-
-
-    /// <summary>
-    /// Increment operator
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BFloat16 operator ++(BFloat16 value) => (BFloat16) ((float) value + 1f);
-
-
-    /// <summary>
-    /// Modulus operator
-    /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BFloat16 operator %(BFloat16 left, BFloat16 right)
-        =>  (BFloat16) ((float) left % (float) right);
-
-
-    /// <summary>
-    /// Addition
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BFloat16 operator +(BFloat16 value) => value;
-
-    /// <summary>
-    /// Subtraction
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BFloat16 operator -(BFloat16 value)
-        => BFloat16Extensions.Neg(value);
-
-    /// <summary>
-    /// Subtraction
-    /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns></returns>
-    public static BFloat16 operator -(BFloat16 left, BFloat16 right)
-        => BFloat16Extensions.SubFP32(left, right);
-
-    /// <summary>
-    /// Addition
-    /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns></returns>
-    public static BFloat16 operator +(BFloat16 left, BFloat16 right)
-        => BFloat16Extensions.AddFP32(left, right);
-
-    /// <summary>
-    /// Multiplication
-    /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns></returns>
-    public static BFloat16 operator *(BFloat16 left, BFloat16 right)
-        => BFloat16Extensions.MulFP32(left,right);
-
-    /// <summary>
-    /// Division
-    /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns></returns>
-    public static BFloat16 operator /(BFloat16 left, BFloat16 right)
-        => BFloat16Extensions.DivFP32(left, right);
-
     #endregion
 
+    #region INumberbase
 
 
-    /// <summary>
-    /// MultiplicativeIdentity
-    /// </summary>
-    public static BFloat16 MultiplicativeIdentity  => new BFloat16(0x3F80);
 
 
     /// <summary>
     /// Absolute Value
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>Absolute of BFloat16</returns>
     [MathIntrinsic(MathIntrinsicKind.Abs)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BFloat16 Abs(BFloat16 value) => BFloat16Extensions.Abs(value);
@@ -563,39 +731,39 @@ public readonly struct BFloat16
     /// <summary>
     /// Is Bfloat16 Canonical
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True based on type</returns>
     public static bool IsCanonical(BFloat16 value) => true;
 
 
     /// <summary>
     /// Is Bfloat16 a complex number
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>False based on type</returns>
     public static bool IsComplexNumber(BFloat16 value) => false;
 
 
     /// <summary>
     /// Is value finite
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when finite</returns>
     public static bool IsFinite(BFloat16 value)
         => Bitwise.And(!IsNaN(value), !IsInfinity(value));
 
     /// <summary>
     /// Is imaginary number
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>False based on type</returns>
     public static bool IsImaginaryNumber(BFloat16 value) => false;
 
     /// <summary>
     /// Is an infinite value?
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when finite</returns>
     public static bool IsInfinity(BFloat16 value) =>
         (value.RawValue & 0x7F80) == 0x7F80 && (value.RawValue & 0x007F) == 0;
 
@@ -603,8 +771,8 @@ public readonly struct BFloat16
     /// <summary>
     /// Is NaN
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when NaN</returns>
     public static bool IsNaN(BFloat16 value)
         // NaN if all exponent bits are 1 and there is a non-zero value in the mantissa
         =>  (value.RawValue & BFloat16Extensions.ExponentMask)
@@ -614,22 +782,22 @@ public readonly struct BFloat16
     /// <summary>
     /// Is negative?
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when negative</returns>
     public static bool IsNegative(BFloat16 value) =>  (value.RawValue & 0x8000) != 0;
 
     /// <summary>
     /// Is negative infinity
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when negative infinity</returns>
     public static bool IsNegativeInfinity(BFloat16 value) => value == NegativeInfinity;
 
     /// <summary>
     /// Is normal
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when normal</returns>
     public static bool IsNormal(BFloat16 value)
     {
         uint num = StripSign(value);
@@ -640,22 +808,22 @@ public readonly struct BFloat16
     /// <summary>
     /// Is positive?
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when positive</returns>
     public static bool IsPositive(BFloat16 value) => (value.RawValue & 0x8000) == 0;
 
     /// <summary>
     /// Is positive infinity?
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when positive</returns>
     public static bool IsPositiveInfinity(BFloat16 value) => value == PositiveInfinity;
 
     /// <summary>
     /// Is real number
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when real number</returns>
     public static bool IsRealNumber(BFloat16 value)
     {
         bool isExponentAllOnes = (value.RawValue & BFloat16Extensions.ExponentMask)
@@ -669,34 +837,34 @@ public readonly struct BFloat16
     /// <summary>
     /// Is subnormal
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when subnormal</returns>
     public static bool IsSubnormal(BFloat16 value)
         => (value.RawValue & 0x7F80) == 0 && (value.RawValue & 0x007F) != 0;
 
     /// <summary>
     /// Is Zero?
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16</param>
+    /// <returns>True when Zero</returns>
     public static bool IsZero(BFloat16 value)
         => (value.RawValue & BFloat16Extensions.ExponentMantissaMask) == 0;
 
     /// <summary>
     /// MaxMagnitude
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <returns></returns>
+    /// <param name="x">x parameter</param>
+    /// <param name="y">y parameter</param>
+    /// <returns>Returns larger of x or y, NaN when equal</returns>
     public static BFloat16 MaxMagnitude(BFloat16 x, BFloat16 y)
         =>(BFloat16) MathF.MaxMagnitude((float) x, (float) y);
 
     /// <summary>
     /// MaxMagnitudeNumber
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <returns></returns>
+    /// <param name="x">x parameter</param>
+    /// <param name="y">y parameter</param>
+    /// <returns>Returns x or y based on larger of Abs(x) vs Abs(Y) </returns>
     public static BFloat16 MaxMagnitudeNumber(BFloat16 x, BFloat16 y)
     {
         BFloat16 bf1 = BFloat16.Abs(x);
@@ -708,18 +876,18 @@ public readonly struct BFloat16
     /// <summary>
     /// MinMagnitude
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <returns></returns>
+    /// <param name="x">x parameter</param>
+    /// <param name="y">y parameter</param>
+    /// <returns>returns smaller of x or y or NaN when equal</returns>
     public static BFloat16 MinMagnitude(BFloat16 x, BFloat16 y)
         =>(BFloat16) MathF.MinMagnitude((float) x, (float) y);
 
     /// <summary>
     /// MinMagnitudeNumber
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <returns></returns>
+    /// <param name="x">x parameter</param>
+    /// <param name="y">y parameter</param>
+    /// <returns>Returns x or y based on smaller of Abs(x) vs Abs(Y)</returns>
     public static BFloat16 MinMagnitudeNumber(BFloat16 x, BFloat16 y)
     {
         BFloat16 bf1 = BFloat16.Abs(x);
@@ -731,89 +899,37 @@ public readonly struct BFloat16
 
 
     /// <summary>
-    /// Parse string to BFloat16
-    /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
-    public static BFloat16 Parse(string s, IFormatProvider? provider)
-        => (BFloat16)float.Parse(s, NumberStyles.Float | NumberStyles.AllowThousands,
-            provider);
-
-    /// <summary>
-    /// TryParse string to BFloat16
-    /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
-    public static bool TryParse(string? s, IFormatProvider? provider, out BFloat16 result)
-    {
-        float value;
-        bool itWorked = float.TryParse(s,
-            NumberStyles.Float | NumberStyles.AllowThousands, provider, out value);
-        result = (BFloat16)value;
-        return itWorked;
-
-    }
-
-
-    /// <summary>
     /// Cast double to BFloat16
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">Half value to convert</param>
     /// <returns>BFloat16</returns>
     public static explicit operator BFloat16(Half value)
         => HalfToBFloat16(value);
 
 
-    /// <summary>
-    /// Parse Span char
-    /// </summary>
-    /// <param name="s"></param>
-    /// <param name="style"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
-    public static BFloat16 Parse(ReadOnlySpan<char> s, NumberStyles style,
-        IFormatProvider? provider)
-        => (BFloat16)float.Parse(s, style, provider);
+
 
     /// <summary>
     /// Parse string
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="style"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
+    /// <param name="s">String to parse</param>
+    /// <param name="style">Style formating attributes</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <returns>Parsed BFloat16 value when successful</returns>
     public static BFloat16 Parse(string s, NumberStyles style, IFormatProvider? provider)
         => (BFloat16)float.Parse(s, style, provider);
 
 
-    /// <summary>
-    /// TryParse
-    /// </summary>
-    /// <param name="s"></param>
-    /// <param name="style"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
-    public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style,
-        IFormatProvider? provider, out BFloat16 result)
-    {
-        float floatResult;
-        bool isGood = float.TryParse(s, style, provider, out floatResult);
-        result = (BFloat16)floatResult;
-        return isGood;
-    }
+
 
     /// <summary>
     /// TryParse
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="style"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
+    /// <param name="s">String to parse</param>
+    /// <param name="style">Style formating attributes</param>
+    /// <param name="provider">Culture specific parsing provider</param>
+    /// <param name="result">BFloat16 out param</param>
+    /// <returns>True when successful</returns>
     public static bool TryParse(string? s, NumberStyles style, IFormatProvider? provider,
         out BFloat16 result)
     {
@@ -826,26 +942,20 @@ public readonly struct BFloat16
 
 #if NET7_0_OR_GREATER
 
-    /// <summary>
-    /// IAdditiveIdentity
-    /// </summary>
-    static BFloat16 IAdditiveIdentity<BFloat16, BFloat16>.AdditiveIdentity
-        => new BFloat16((ushort) 0);
-
 
     /// <summary>
     /// Is value an integer?
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16 to test</param>
+    /// <returns>True when integer</returns>
     public static bool IsInteger(BFloat16 value) => float.IsInteger((float)value);
 
 
     /// <summary>
     /// Is an even integer
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16 to test</param>
+    /// <returns>True when an even integer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsEvenInteger(BFloat16 value) =>
          float.IsEvenInteger((float) value);
@@ -853,45 +963,18 @@ public readonly struct BFloat16
     /// <summary>
     /// Is odd integer?
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">BFloat16 to test</param>
+    /// <returns>True when off integer</returns>
     public static bool IsOddInteger(BFloat16 value) => float.IsOddInteger((float) value);
-
-
-    /// <summary>
-    /// Parse Span of char
-    /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <returns></returns>
-    public static BFloat16 Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
-        => (BFloat16) float.Parse(s, provider);
-
-
-    /// <summary>
-    /// TryParse Span of char
-    /// </summary>
-    /// <param name="s"></param>
-    /// <param name="provider"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
-    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider,
-        out BFloat16 result)
-    {
-        float floatResult;
-        bool isGood = float.TryParse(s, provider, out floatResult);
-        result = (BFloat16)floatResult;
-        return isGood;
-    }
 
 
     /// <summary>
     /// TryConvertFrom
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Typed Value to convert</param>
+    /// <param name="result">BFloat16 out param</param>
+    /// <typeparam name="TOther">Type to convert from</typeparam>
+    /// <returns>True when successful</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryConvertFrom<TOther>(TOther value, out BFloat16 result)
         where TOther : INumberBase<TOther>
@@ -960,20 +1043,20 @@ public readonly struct BFloat16
     /// <summary>
     /// TryConvertFromChecked
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Typed value to convert</param>
+    /// <param name="result">BFloat16 out param</param>
+    /// <typeparam name="TOther">Type to convert from</typeparam>
+    /// <returns>True when successful</returns>
     public static bool TryConvertFromChecked<TOther>(TOther value, out BFloat16 result)
         where TOther : INumberBase<TOther> => TryConvertFrom(value, out result);
 
     /// <summary>
     /// TryConvertFromSaturating
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Typed value to convert</param>
+    /// <param name="result">BFloat16 out param</param>
+    /// <typeparam name="TOther">Type to convert from</typeparam>
+    /// <returns>True when successful</returns>
     public static bool TryConvertFromSaturating<TOther>(TOther value, out BFloat16 result)
         where TOther : INumberBase<TOther> => TryConvertFrom(value, out result);
 
@@ -981,10 +1064,10 @@ public readonly struct BFloat16
     /// <summary>
     /// TryConvertFromTruncating
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">Typed value to convert</param>
+    /// <param name="result">BFlaot16 out param</param>
+    /// <typeparam name="TOther">Type to convert from</typeparam>
+    /// <returns>True when successful</returns>
     public static bool TryConvertFromTruncating<TOther>(TOther value, out BFloat16 result)
         where TOther : INumberBase<TOther> => TryConvertFrom(value, out result);
 
@@ -993,10 +1076,10 @@ public readonly struct BFloat16
     /// <summary>
     /// TryConvertTo
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">BFloat16 value to convert</param>
+    /// <param name="result">Typed out param</param>
+    /// <typeparam name="TOther">Type to convert to</typeparam>
+    /// <returns>True when successful</returns>
      private static bool TryConvertTo<TOther>(BFloat16 value,
         [MaybeNullWhen(false)] out TOther result)
         where TOther : INumberBase<TOther>
@@ -1108,10 +1191,10 @@ public readonly struct BFloat16
     /// <summary>
     /// TryConvertToChecked
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">BFloat16 value to convert</param>
+    /// <param name="result">Typed out param</param>
+    /// <typeparam name="TOther">Type to convert to</typeparam>
+    /// <returns>True when successful</returns>
     public static bool TryConvertToChecked<TOther>(BFloat16 value, out TOther result)
         where TOther : INumberBase<TOther>
     {
@@ -1191,10 +1274,10 @@ public readonly struct BFloat16
     /// <summary>
     /// TryConvertToSaturating
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">BFloat16 value to convert</param>
+    /// <param name="result">Typed out param</param>
+    /// <typeparam name="TOther">Type to convert to</typeparam>
+    /// <returns>True when successful</returns>
     public static bool TryConvertToSaturating<TOther>(BFloat16 value, out TOther result)
         where TOther : INumberBase<TOther>
         =>  BFloat16.TryConvertTo<TOther>(value, out result);
@@ -1202,19 +1285,18 @@ public readonly struct BFloat16
     /// <summary>
     /// TryConvertToTruncating
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <typeparam name="TOther"></typeparam>
-    /// <returns></returns>
+    /// <param name="value">BFloat16 value to convert</param>
+    /// <param name="result">Typed out param</param>
+    /// <typeparam name="TOther">Type to convert to</typeparam>
+    /// <returns>True when successful</returns>
     public static bool TryConvertToTruncating<TOther>(BFloat16 value, out TOther result)
         where TOther : INumberBase<TOther>
         =>  BFloat16.TryConvertTo<TOther>(value, out result);
 
     #nullable enable
 
-
-
 #endif
+    #endregion
 
 }
 
