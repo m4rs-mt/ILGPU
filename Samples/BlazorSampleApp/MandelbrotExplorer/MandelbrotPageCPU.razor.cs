@@ -52,7 +52,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         private List<Device> cpuBasedDevices = new List<Device>();
 
-
+        private ElementReference DeviceSelect { get; set; }
 
         /// <summary>
         /// Ready Blazor page once component loading is complete
@@ -317,11 +317,12 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
-        private void ProfileMandelbrot()
+        private async void ProfileMandelbrot()
         {
             foreach (string deviceName in SystemDeviceNames)
             {
                 DeviceName = deviceName;
+                await Canvas2D.SetElementValue(DeviceSelect, "value", deviceName);
                 StateHasChanged();
             }
 

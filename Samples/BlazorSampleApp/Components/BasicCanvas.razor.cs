@@ -153,13 +153,31 @@ namespace BlazorSampleApp.Components
 
             if (module != null)
             {
-                module.InvokeVoid(methodName,"callElementMethod", elementRef, args);
+                module.InvokeVoid("callElementMethod",elementRef,methodName,  args);
             }
             else
             {
-                await asyncModule.InvokeVoidAsync(methodName,"callElementMethod", elementRef, args);
+                await asyncModule.InvokeVoidAsync("callElementMethod",methodName, args);
             }
         }
+
+
+#nullable enable
+        public async ValueTask SetElementValue(ElementReference elementReference, string valueName, params object?[]? args)
+        {
+#nullable disable
+            if (IsDisposing) return;
+
+            if (module != null)
+            {
+                module.InvokeVoid("setElementValue", elementReference, valueName, args);
+            }
+            else
+            {
+                await asyncModule.InvokeVoidAsync("setElementValue", elementReference, valueName, args);
+            }
+        }
+
 
 
 #nullable enable

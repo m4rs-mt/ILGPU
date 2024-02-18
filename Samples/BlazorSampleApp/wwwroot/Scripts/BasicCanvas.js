@@ -35,9 +35,16 @@ export function InjectScript(scriptText) {
 
 }
 
+function setElementValue(elementRef, valueName, values) {
+    if (Array.isArray(values)) {
+        if (Array.isArray(values[0])) {
 
-
-function callElementMethod(functionName, elementRef, values) {
+            values = values[0];
+        }
+    }
+    elementRef[valueName] = values;
+}
+function callElementMethod(elementRef, functionName, values) {
     if (Array.isArray(values)) {
 
         switch (values.length) {

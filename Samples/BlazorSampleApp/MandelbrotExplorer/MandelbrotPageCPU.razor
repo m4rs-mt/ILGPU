@@ -17,7 +17,7 @@
 
 <br />
     <Tooltip Text="Select Accelerator">
-    <select name="DeviceSelect" @onchange="@UpdateSelected" disabled="@DisabledButtons">
+    <select ref="DeviceSelect" @onchange="@UpdateSelected" disabled="@DisabledButtons">
         @foreach (var deviceName in SystemDeviceNames)
             {
                <option value="@deviceName">@deviceName</option>
@@ -29,7 +29,7 @@
             <button class="btn btn-primary m-1" @onclick="ProfileMandelbrot" disabled="@DisabledButtons">Profile All CPU based Accelerators</button>
     </Tooltip>
 
-    <Tooltip Text='CPU based "slow motion" Mandelbrot animation'>
+    <Tooltip Text='CPU based Mandelbrot animation'>
         <button class="btn btn-primary m-1" @onclick="AnimateMandelbrot" disabled="@DisabledButtons">Mandelbrot Animation</button>
     </Tooltip>
 
