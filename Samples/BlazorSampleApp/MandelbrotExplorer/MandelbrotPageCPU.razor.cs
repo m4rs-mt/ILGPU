@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using System.Drawing;
+using System.Threading;
 using BlazorSampleApp.Components;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
@@ -46,13 +47,27 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         public bool _disposing = false;
 
-        public bool _computing = false;
+        static bool _computing = false;
 
         private Device _lastDevice = null;
 
         private List<Device> cpuBasedDevices = new List<Device>();
 
-        private ElementReference DeviceSelect { get; set; }
+        private string lastDeviceName = "Single Thread";
+        private string DeviceName
+        {
+            get { return lastDeviceName; }
+            set
+            {
+                if (value != lastDeviceName)
+                {
+                    lastDeviceName = value;
+                    UpdateSelected();
+                }
+            }
+        }
+
+
 
         /// <summary>
         /// Ready Blazor page once component loading is complete
@@ -62,6 +77,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         {
             if (firstRender)
             {
+                GetAvailableDevices();
                 // we can't call any webgl functions until the page is fully rendered and the canvas is complete.
                 Canvas2D.CanvasInitComplete += CanvasInitComplete;
                 _stopWatch = new Stopwatch();
@@ -83,8 +99,6 @@ namespace BlazorSampleApp.MandelbrotExplorer
         {
             // we could start the rendering process here rather than having a button click to start rendering.
             DisabledButtons = false;
-            GetAvailableDevices();
-
             displayPort[0] = Canvas2D.Width;
             displayPort[1] = Canvas2D.Height;
             areaView[0] = -2.0f;
@@ -119,13 +133,13 @@ namespace BlazorSampleApp.MandelbrotExplorer
         private async Task<bool> ComputeFinished()
         {
             int iCount = 0;
-            while ((iCount < 3000) && _computing)
+            while ((iCount < 6000) && _computing)
             {
                 await Task.Delay(10);
                 iCount += 1;
             }
 
-            return (iCount < 1000);
+            return (iCount < 6000);
         }
 
         // Remove navigation detection if this page is ending.
@@ -192,13 +206,9 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
-        private string DeviceName { get; set; } = "Single Thread";
 
-        private async void UpdateSelected(ChangeEventArgs e)
+        private async void UpdateSelected()
         {
-
-            DeviceName = e.Value.ToString();
-
             areaView[0] = -2.0f;
             areaView[1] = 1.0f;
             areaView[2] = -1.0f;
@@ -210,6 +220,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 displayPort[1], maxIterations, Color.Blue);
             _computing = false;
             StateHasChanged();
+           
         }
 
 
@@ -317,15 +328,17 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
-        private async void ProfileMandelbrot()
+        private void ProfileMandelbrot()
         {
+            DisabledButtons = true;
+            StateHasChanged();
+           
             foreach (string deviceName in SystemDeviceNames)
             {
                 DeviceName = deviceName;
-                await Canvas2D.SetElementValue(DeviceSelect, "value", deviceName);
-                StateHasChanged();
             }
-
+            DisabledButtons = false;
+            StateHasChanged();
 
         }
 

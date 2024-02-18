@@ -17,7 +17,7 @@
 
 <br />
     <Tooltip Text="Select Accelerator">
-    <select ref="DeviceSelect" @onchange="@UpdateSelected" disabled="@DisabledButtons">
+    <select @bind="DeviceName" disabled="@DisabledButtons">
         @foreach (var deviceName in SystemDeviceNames)
             {
                <option value="@deviceName">@deviceName</option>
