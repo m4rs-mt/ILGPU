@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                        Copyright (c) 2022-2024 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MandelbrotPageCPU.razor.cs
@@ -220,7 +220,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 displayPort[1], maxIterations, Color.Blue);
             _computing = false;
             StateHasChanged();
-           
+
         }
 
 
@@ -332,7 +332,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         {
             DisabledButtons = true;
             StateHasChanged();
-           
+
             foreach (string deviceName in SystemDeviceNames)
             {
                 DeviceName = deviceName;
