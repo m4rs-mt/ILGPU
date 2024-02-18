@@ -67,7 +67,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         public MandelbrotBasic()
         {
-            _context = Context.Create(builder => builder.Default().AllVelocity());
+            _context = Context.Create(builder => builder.Default().Velocity());
             _accelerator = null;
         }
 

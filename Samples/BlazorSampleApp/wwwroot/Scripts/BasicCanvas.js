@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
 export function initializeBasicCanvas(canvasid, isWebassemblyClient, isTransparent, isDesynchronized) {
     "use strict";
 
@@ -35,13 +36,54 @@ export function InjectScript(scriptText) {
 }
 
 
+
+function callElementMethod(functionName, elementRef, values) {
+    if (Array.isArray(values)) {
+
+        switch (values.length) {
+            case 0: //no parameters empty array
+                elementRef[functionName]();
+                break;
+            case 1:
+                elementRef[functionName](values[0]);
+                break;
+            case 2:
+                elementRef[functionName](values[0], values[1]);
+                break;
+            case 3:
+                elementRef[functionName](values[0], values[1], values[2]);
+                break;
+            case 4:
+                elementRef[functionName](values[0], values[1], values[2], values[3]);
+                break;
+            case 5:
+                elementRef[functionName](values[0], values[1], values[2], values[3], values[4]);
+                break;
+            case 6:
+                elementRef[functionName](values[0], values[1], values[2], values[3], values[4], values[5]);
+                break;
+            case 7:
+                elementRef[functionName](values[0], values[1], values[2], values[3], values[4], values[5], values[6]);
+                break;
+            default:
+                elementRef[functionName](values); // arrays longer than 7 terms have to be managed by the receiving function
+                break;
+        }
+    }
+    else {
+        elementRef[functionName]();
+    }
+    return;
+}
+
+
 export function setValueBasicContext(drawcanvas, valueName, values) {
     "use strict";
     if (drawcanvas && drawcanvas.drawingBasis) {
 
         const context = drawcanvas.drawingBasis.context;
 
-        // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
+        // Blazor "params object?[]? args" as values can be passed as an array of arrays.
         // When the first element is an array substitute the first element as the array.
         if (Array.isArray(values)) {
 
@@ -62,7 +104,7 @@ export function setFunctionBasicContext(drawcanvas, functionName, values) {
         const context = drawcanvas.drawingBasis.context;
 
         if (Array.isArray(values)) {
-            // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
+            // Blazor "params object?[]? args" as values can be passed as an array of arrays.
             // When the first element is an array substitute the first element as the array.
             if (Array.isArray(values[0])) {
                 values = values[0];
@@ -115,7 +157,7 @@ export function setFunctionDrawingBasis(drawcanvas, functionName, values) {
 
         const drawingBasis = drawcanvas.drawingBasis;
 
-        // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
+        // Blazor "params object?[]? args" as values can be passed as an array of arrays.
         // When the first element is an array substitute the first element as the array.
         if (Array.isArray(values)) {
 
@@ -162,7 +204,7 @@ export function setFunctionDrawingBasis(drawcanvas, functionName, values) {
 
 export function getValueBasicContext(drawcanvas, valueName) {
     "use strict";
-    // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
+    // Blazor "params object?[]? args" as values can be passed as an array of arrays.
     // When the first element is an array substitute the first element as the array.
     if (Array.isArray(valueName)) {
         valueName = valueName[0];
@@ -185,7 +227,7 @@ export function getFunctionBasicContext(drawcanvas, functionName, values) {
         const context = drawcanvas.drawingBasis.context;
 
         if (Array.isArray(values)) {
-            // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
+            // Blazor "params object?[]? args" as values can be passed as an array of arrays.
             // When the first element is an array substitute the first element as the array.
             if (Array.isArray(values[0])) {
                 values = values[0];
@@ -227,7 +269,7 @@ export function getFunctionDrawingBasis(drawcanvas, functionName, values) {
 
         const drawingBasis = drawcanvas.drawingBasis;
 
-        // Blazor "params object?[]? args" as values can be passed as an array of arrays. 
+        // Blazor "params object?[]? args" as values can be passed as an array of arrays.
         // When the first element is an array substitute the first element as the array.
         if (Array.isArray(values)) {
 
@@ -265,9 +307,9 @@ export function getFunctionDrawingBasis(drawcanvas, functionName, values) {
 
 
 /// <summary>
-/// DrawingBasis is a wrapper class to simplify use of the CanvasRenderingContext2D 
+/// DrawingBasis is a wrapper class to simplify use of the CanvasRenderingContext2D
 ///
-/// Remember everything in Javascript is executing in the client browser therefore 
+/// Remember everything in Javascript is executing in the client browser therefore
 /// all resources have to be "pushed" to the browser to be accessible to the
 /// webgl context and rendering javascript.
 /// </summary>
@@ -279,7 +321,7 @@ export class DrawingBasis {
     constructor(canvasContext, isWebAssemblyClient, canvas) {
         // reference for GLContext
         this.context = canvasContext;
-        // reference for .NetCalls  
+        // reference for .NetCalls
 
         this.canvas = canvas;
 
@@ -309,7 +351,7 @@ export class DrawingBasis {
             "fontBoundingBoxAscent": textMetrics.fontBoundingBoxAscent,
             "fontBoundingBoxDescent": textMetrics.fontBoundingBoxDescent
         };
-       
+
 
         return result;
     }
@@ -320,7 +362,7 @@ export class DrawingBasis {
         this.pixelImageStorage[name] = this.context.createImageData(width, height);
     }
 
-   
+
     // create an image and copy an large array of data, less than optimal
     createImageDataCopyByteArray(name, width, height, values) // r,g,b,a array
     {
@@ -335,7 +377,7 @@ export class DrawingBasis {
 
         // Different runtimes will return either a based64 encoded string or the actual Uint8Array
         if (values instanceof Uint8Array) {
-            // Copy contents from the source.          
+            // Copy contents from the source.
             for (let i = 0; i < length; i += 1) {
                 imageData.data[i] = values[i];
             }
@@ -358,7 +400,7 @@ export class DrawingBasis {
         img.onload = function () {
             img.loadComplete = true;
         };
-  
+
         this.imageStorage[name] = img;
     }
 
@@ -372,7 +414,7 @@ export class DrawingBasis {
             img.loadComplete = true;
             this.context.drawImage(img, x, y);
         };
-        
+
         this.imageStorage[name] = img;
     }
 
@@ -388,17 +430,17 @@ export class DrawingBasis {
         this.context.putImageData(this.pixelImageStorage[name], x, y);
     }
 
-    
+
     // paint part of the source image to the destination canvas
     putImageDataPartial(name, x, y, dx, dy, dWidth, dHeight) {
         this.context.putImageData(this.pixelImageStorage[name], x, y, dx, dy, dWidth, dHeight);
     }
 
-    
 
 
 
-    // webgl supports an assortment of functions for loading image files 
+
+    // webgl supports an assortment of functions for loading image files
 
     setTransform(name) {
         this.context.setTransform(this.transformStorage[name]);

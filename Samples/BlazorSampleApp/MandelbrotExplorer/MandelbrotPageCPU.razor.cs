@@ -35,24 +35,14 @@ namespace BlazorSampleApp.MandelbrotExplorer
         public bool DisabledButtons { get; set; } = true;
 
 
-        [Inject]
-        IJSRuntime JSRuntime { get; set; }
+        [Inject] IJSRuntime JSRuntime { get; set; }
 
-        [Inject]
-        IMandelbrotBasic MandelbrotInstance { get; set; }
+        [Inject] IMandelbrotBasic MandelbrotInstance { get; set; }
 
 
-        [Inject]
-        NavigationManager NavManager { get; set; }
+        [Inject] NavigationManager NavManager { get; set; }
 
-        public string ExecutionsDetails1 { get; set; }
-
-
-        public string ExecutionsDetails2 { get; set; }
-
-        public string ExecutionsDetails3 { get; set; }
-
-        public string ExecutionsDetails4 { get; set; }
+        public string ExecutionsDetails { get; set; }
 
         public bool _disposing = false;
 
@@ -60,9 +50,9 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         private Device _lastDevice = null;
 
-        private Device _CPUDevice = null;
+        private List<Device> cpuBasedDevices = new List<Device>();
 
-        private Device _velocityDevice = null;
+
 
         /// <summary>
         /// Ready Blazor page once component loading is complete
@@ -78,8 +68,12 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
 
             }
+
             base.OnAfterRender(firstRender);
         }
+
+
+
 
         /// <summary>
         /// Initialize Mandelbrot view and render a Mandelbrot set
@@ -100,7 +94,8 @@ namespace BlazorSampleApp.MandelbrotExplorer
             maxIterations = 1000;
 
             int[] data = Crunch(DeviceName);
-            await MandelbrotExtensions.Draw(Canvas2D, data, displayPort[0], displayPort[1], maxIterations, Color.Blue);
+            await MandelbrotExtensions.Draw(Canvas2D, data, displayPort[0],
+                displayPort[1], maxIterations, Color.Blue);
 
             StateHasChanged();
         }
@@ -129,6 +124,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 await Task.Delay(10);
                 iCount += 1;
             }
+
             return (iCount < 1000);
         }
 
@@ -153,32 +149,29 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// </summary>
         private void GetAvailableDevices()
         {
-            SystemDevices.Add("Single Thread");
-            SystemDevices.Add("Parallel CPU");
+            SystemDeviceNames.Add("Single Thread");
+            SystemDeviceNames.Add("Parallel CPU");
 
 
             foreach (Device device in MandelbrotInstance.ContextInstance.Devices)
             {
-                if (device.AcceleratorType == AcceleratorType.CPU)
+                switch (device.AcceleratorType)
                 {
-                    _CPUDevice = device;
+                    case AcceleratorType.Velocity:
+                    case AcceleratorType.CPU:
+                        cpuBasedDevices.Add(device);
+                        SystemDeviceNames.Add(device.Name);
+                        break;
 
-                    SystemDevices.Add(_CPUDevice.Name);
                 }
 
-                if (device.AcceleratorType == AcceleratorType.Velocity)
-                {
-                    _velocityDevice = device;
-
-                    SystemDevices.Add(_velocityDevice.Name);
-                }
             }
 
 
         }
 
 
-        List<string> SystemDevices = new List<string>();
+        readonly List<string> SystemDeviceNames = new List<string>();
 
 
 
@@ -191,16 +184,17 @@ namespace BlazorSampleApp.MandelbrotExplorer
             _stopWatch.Start();
         }
 
-        private string ElapsedTime(string title = "Elapsed Time")
+        private string ElapsedTime()
         {
             _stopWatch.Stop();
-            return title + " " + $"{_stopWatch.Elapsed.Minutes:00}:{_stopWatch.Elapsed.Seconds:00}.{_stopWatch.Elapsed.Milliseconds:000} ";
+            return
+                   $"{_stopWatch.Elapsed.Minutes:00}:{_stopWatch.Elapsed.Seconds:00}.{_stopWatch.Elapsed.Milliseconds:000} ";
         }
 
 
-        public string DeviceName { get; set; } = "Single Thread";
+        private string DeviceName { get; set; } = "Single Thread";
 
-        protected async void UpdateSelected(ChangeEventArgs e)
+        private async void UpdateSelected(ChangeEventArgs e)
         {
 
             DeviceName = e.Value.ToString();
@@ -212,7 +206,8 @@ namespace BlazorSampleApp.MandelbrotExplorer
             maxIterations = 1000;
             _computing = true;
             int[] data = Crunch(DeviceName);
-            await MandelbrotExtensions.Draw(Canvas2D, data, displayPort[0], displayPort[1], maxIterations, Color.Blue);
+            await MandelbrotExtensions.Draw(Canvas2D, data, displayPort[0],
+                displayPort[1], maxIterations, Color.Blue);
             _computing = false;
             StateHasChanged();
         }
@@ -224,84 +219,121 @@ namespace BlazorSampleApp.MandelbrotExplorer
         int maxIterations = 1000;
 
 
+        private readonly List<string> executionDetails = new List<string>();
+
+
+        private void PopulateExecutionDetails()
+        {
+            string result = String.Empty;
+
+            foreach (string s in executionDetails)
+            {
+                result = result + s + "<br/>";
+            }
+
+            ExecutionsDetails = result;
+        }
+
+        private void SetExecutionDetailCompile(int position, string acceleratorName, string compileTime)
+        {
+            for (int i = executionDetails.Count; i < SystemDeviceNames.Count*2; i++)
+            {
+                executionDetails.Add(string.Empty);
+            }
+
+            executionDetails[position*2] = acceleratorName + " Compile: " + compileTime;
+
+            PopulateExecutionDetails();
+        }
+
+        private void SetExecutionDetailRun(int position, string acceleratorName, string runTime)
+        {
+            for (int i = executionDetails.Count; i < SystemDeviceNames.Count*2; i++)
+            {
+                executionDetails.Add(string.Empty);
+            }
+            executionDetails[position*2+1] = acceleratorName + " Run: " + runTime;
+
+            PopulateExecutionDetails();
+
+        }
+
 
 
         /// <summary>
         ///
         /// </summary>
-        /// <param name="device"></param>
+        /// <param name="deviceName"></param>
         /// <returns></returns>
-        protected int[] Crunch(string device)
+        private int[] Crunch(string deviceName)
         {
             int[] data = new int[displayPort[0] * displayPort[1]];
 
             if (DeviceName == "Single Thread")
             {
                 RestartWatch();
-                MandelbrotExtensions.CalcCPUSingle(data, displayPort, areaView, maxIterations); // Single thread CPU
-                ExecutionsDetails1 = ElapsedTime("Single Thread");
-
-
-            } else if (DeviceName == "Parallel CPU")
-            {
-                RestartWatch();
-                MandelbrotExtensions.CalcCPUParallel(data, displayPort, areaView, maxIterations); // Single thread CPU
-                ExecutionsDetails2 = ElapsedTime("Parallel CPU");
+                MandelbrotExtensions.CalcCPUSingle(data, displayPort, areaView,
+                    maxIterations); // Single thread CPU
+                SetExecutionDetailRun(0,DeviceName, ElapsedTime());
 
 
             }
-            else if (DeviceName.Contains("Velocity"))
+            else if (DeviceName == "Parallel CPU")
             {
-                _computing = true;
-                if (_lastDevice != _velocityDevice)
-                {
-                    RestartWatch();
-                    MandelbrotInstance.CompileKernel(_velocityDevice);
-                    ExecutionsDetails3 = ElapsedTime("IL Compile - " + _velocityDevice.Name);
-                    _lastDevice = _velocityDevice;
-                }
-
-
                 RestartWatch();
+                MandelbrotExtensions.CalcCPUParallel(data, displayPort, areaView,
+                    maxIterations); // parallel thread CPU
+                SetExecutionDetailRun(1,DeviceName, ElapsedTime());
 
-                MandelbrotInstance.CalcGPU(ref data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
-                _computing = false;
-                ExecutionsDetails4 = ElapsedTime("IL Run - " + _velocityDevice.Name);
 
             }
             else
             {
                 _computing = true;
-                if (_lastDevice != _CPUDevice)
+                var device = cpuBasedDevices.Find(x => x.Name == deviceName);
+
+                if (_lastDevice != device)
                 {
                     RestartWatch();
-                    MandelbrotInstance.CompileKernel(_CPUDevice);
-                    ExecutionsDetails3 = ElapsedTime("IL Compile - " + _CPUDevice.Name);
-                    _lastDevice = _CPUDevice;
+                    MandelbrotInstance.CompileKernel(device);
+                    SetExecutionDetailCompile(SystemDeviceNames.IndexOf(DeviceName),DeviceName, ElapsedTime());
+                    _lastDevice = device;
                 }
 
 
                 RestartWatch();
 
-                MandelbrotInstance.CalcGPU(ref data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
+                MandelbrotInstance.CalcGPU(ref data, displayPort, areaView,
+                    maxIterations); // ILGPU-CPU-Mode
                 _computing = false;
-                ExecutionsDetails4 = ElapsedTime("IL Run - " + _CPUDevice.Name);
+                SetExecutionDetailRun(SystemDeviceNames.IndexOf(DeviceName),DeviceName, ElapsedTime());
+
 
 
 
             }
+
             return data;
         }
 
 
+        private void ProfileMandelbrot()
+        {
+            foreach (string deviceName in SystemDeviceNames)
+            {
+                DeviceName = deviceName;
+                StateHasChanged();
+            }
 
+
+        }
 
 
         /// <summary>
         /// Animate 500 frames while narrowing view to small subsection of the Mandelbrot set.
         /// </summary>
 
-        public async void AnimateMandelbrot()
+        private async void AnimateMandelbrot()
         {
             int[] data = new int[displayPort[0] * displayPort[1]];
 
@@ -309,195 +341,137 @@ namespace BlazorSampleApp.MandelbrotExplorer
             float offsetX = -0.02f;
             float offsetY = 0.00562f;
 
-            if (DeviceName.Contains("Velocity"))
+            switch (DeviceName)
             {
-                _computing = true;
+                case "Single Thread":
 
-                if (_lastDevice != _velocityDevice)
-                {
-                    RestartWatch();
-                    MandelbrotInstance.CompileKernel(_velocityDevice);
-                    ExecutionsDetails2 =
-                        ElapsedTime("IL Compile - " + _velocityDevice.Name);
-                    _lastDevice = _velocityDevice;
+                    for (int i = 0; i < 500; i++)
+                    {
+                        if (_disposing)
+                            break;
+                        RestartWatch();
 
-                }
-
-                MandelbrotInstance.InitGPURepeat(ref data, displayPort, areaView,
-                    maxIterations);
-
-                for (int i = 0; i < 500; i++)
-                {
-                    if (_disposing)
-                        break;
-
-                    RestartWatch();
-
-                    MandelbrotInstance.CalcGPURepeat(ref data, displayPort,
-                        areaView, maxIterations); // ILGPU-CPU-Mode
-                    ExecutionsDetails3 = ElapsedTime($"IL Run - {DeviceName}");
-
-                    areaView[0] = areaView[0] * 0.98f + offsetX;
-                    areaView[1] = areaView[1] * 0.98f + offsetX;
-                    areaView[2] = areaView[2] * 0.98f + offsetY;
-                    areaView[3] = areaView[3] * 0.98f + offsetY;
-
-                    if (_disposing)
-                        break;
-                    RestartWatch();
-
-                    await MandelbrotExtensions.Draw(Canvas2D, data,
-                        displayPort[0], displayPort[1], maxIterations,
-                        Color.Blue);
+                        MandelbrotExtensions.CalcCPUSingle(data, displayPort,
+                            areaView, maxIterations); // ILGPU-CPU-Mode
 
 
-                    ExecutionsDetails4 = ElapsedTime("Render Time");
+                        areaView[0] = areaView[0] * 0.98f + offsetX;
+                        areaView[1] = areaView[1] * 0.98f + offsetX;
+                        areaView[2] = areaView[2] * 0.98f + offsetY;
+                        areaView[3] = areaView[3] * 0.98f + offsetY;
 
-                    StateHasChanged();
+                        if (_disposing)
+                            break;
+                        RestartWatch();
 
-                }
+                        await MandelbrotExtensions.Draw(Canvas2D, data,
+                            displayPort[0], displayPort[1], maxIterations,
+                            Color.Blue);
 
-                MandelbrotInstance.CleanupGPURepeat();
-                _computing = false;
 
 
+                        StateHasChanged();
+
+
+                    }
+
+
+
+                    break;
+
+
+                case "Parallel CPU":
+
+
+                    for (int i = 0; i < 500; i++)
+                    {
+                        if (_disposing)
+                            break;
+
+                        RestartWatch();
+                        MandelbrotExtensions.CalcCPUParallel(data, displayPort,
+                            areaView, maxIterations); // ILGPU-CPU-Mode
+
+                        areaView[0] = areaView[0] * 0.98f + offsetX;
+                        areaView[1] = areaView[1] * 0.98f + offsetX;
+                        areaView[2] = areaView[2] * 0.98f + offsetY;
+                        areaView[3] = areaView[3] * 0.98f + offsetY;
+
+                        if (_disposing)
+                            break;
+
+                        RestartWatch();
+                        await MandelbrotExtensions.Draw(Canvas2D, data,
+                            displayPort[0], displayPort[1], maxIterations,
+                            Color.Blue);
+
+
+
+                        StateHasChanged();
+
+
+                    }
+
+
+                    break;
+
+
+                default:
+                    _computing = true;
+
+                    var device = cpuBasedDevices.Find(x => x.Name == DeviceName);
+
+
+                    if (_lastDevice != device)
+                    {
+                        RestartWatch();
+                        MandelbrotInstance.CompileKernel(device);
+                        _lastDevice = device;
+
+                    }
+
+                    MandelbrotInstance.InitGPURepeat(ref data, displayPort, areaView,
+                        maxIterations);
+
+                    for (int i = 0; i < 500; i++)
+                    {
+                        if (_disposing)
+                            break;
+
+                        RestartWatch();
+
+                        MandelbrotInstance.CalcGPURepeat(ref data, displayPort,
+                            areaView, maxIterations); // ILGPU-CPU-Mode
+
+                        areaView[0] = areaView[0] * 0.98f + offsetX;
+                        areaView[1] = areaView[1] * 0.98f + offsetX;
+                        areaView[2] = areaView[2] * 0.98f + offsetY;
+                        areaView[3] = areaView[3] * 0.98f + offsetY;
+
+                        if (_disposing)
+                            break;
+                        RestartWatch();
+
+                        await MandelbrotExtensions.Draw(Canvas2D, data,
+                            displayPort[0], displayPort[1], maxIterations,
+                            Color.Blue);
+
+
+
+                        StateHasChanged();
+
+
+                    }
+
+                    MandelbrotInstance.CleanupGPURepeat();
+                    _computing = false;
+                    break;
             }
-            else
-            {
-                switch (DeviceName)
-                {
-                    case "Single Thread":
-
-                        for (int i = 0; i < 500; i++)
-                        {
-                            if (_disposing)
-                                break;
-                            RestartWatch();
-
-                            MandelbrotExtensions.CalcCPUSingle(data, displayPort,
-                                areaView, maxIterations); // ILGPU-CPU-Mode
-                            ExecutionsDetails3 = ElapsedTime($"Single Thread");
-
-                            areaView[0] = areaView[0] * 0.98f + offsetX;
-                            areaView[1] = areaView[1] * 0.98f + offsetX;
-                            areaView[2] = areaView[2] * 0.98f + offsetY;
-                            areaView[3] = areaView[3] * 0.98f + offsetY;
-
-                            if (_disposing)
-                                break;
-                            RestartWatch();
-
-                            await MandelbrotExtensions.Draw(Canvas2D, data,
-                                displayPort[0], displayPort[1], maxIterations,
-                                Color.Blue);
-
-                            ExecutionsDetails4 = ElapsedTime("Render Time");
-
-                            StateHasChanged();
-
-
-                        }
-
-
-
-                        break;
-
-
-                    case "Parallel CPU":
-
-
-                        for (int i = 0; i < 500; i++)
-                        {
-                            if (_disposing)
-                                break;
-
-                            RestartWatch();
-                            MandelbrotExtensions.CalcCPUParallel(data, displayPort,
-                                areaView, maxIterations); // ILGPU-CPU-Mode
-                            ExecutionsDetails3 = ElapsedTime($"CPU Parallel");
-
-                            areaView[0] = areaView[0] * 0.98f + offsetX;
-                            areaView[1] = areaView[1] * 0.98f + offsetX;
-                            areaView[2] = areaView[2] * 0.98f + offsetY;
-                            areaView[3] = areaView[3] * 0.98f + offsetY;
-
-                            if (_disposing)
-                                break;
-
-                            RestartWatch();
-                            await MandelbrotExtensions.Draw(Canvas2D, data,
-                                displayPort[0], displayPort[1], maxIterations,
-                                Color.Blue);
-
-                            ExecutionsDetails4 = ElapsedTime("Render Time");
-
-
-                            StateHasChanged();
-
-
-                        }
-
-
-                        break;
-
-
-                    default:
-                        _computing = true;
-
-                        if (_lastDevice != _CPUDevice)
-                        {
-                            RestartWatch();
-                            MandelbrotInstance.CompileKernel(_CPUDevice);
-                            ExecutionsDetails2 =
-                                ElapsedTime("IL Compile - " + _CPUDevice.Name);
-                            _lastDevice = _CPUDevice;
-
-                        }
-
-                        MandelbrotInstance.InitGPURepeat(ref data, displayPort, areaView,
-                            maxIterations);
-
-                        for (int i = 0; i < 500; i++)
-                        {
-                            if (_disposing)
-                                break;
-
-                            RestartWatch();
-
-                            MandelbrotInstance.CalcGPURepeat(ref data, displayPort,
-                                areaView, maxIterations); // ILGPU-CPU-Mode
-                            ExecutionsDetails3 = ElapsedTime($"IL Run - {DeviceName}");
-
-                            areaView[0] = areaView[0] * 0.98f + offsetX;
-                            areaView[1] = areaView[1] * 0.98f + offsetX;
-                            areaView[2] = areaView[2] * 0.98f + offsetY;
-                            areaView[3] = areaView[3] * 0.98f + offsetY;
-
-                            if (_disposing)
-                                break;
-                            RestartWatch();
-
-                            await MandelbrotExtensions.Draw(Canvas2D, data,
-                                displayPort[0], displayPort[1], maxIterations,
-                                Color.Blue);
-
-
-                            ExecutionsDetails4 = ElapsedTime("Render Time");
-
-                            StateHasChanged();
-
-
-                        }
-
-                        MandelbrotInstance.CleanupGPURepeat();
-                        _computing = false;
-                        break;
-                }
-            }
-
-
         }
+
 
     }
 
 }
+
+

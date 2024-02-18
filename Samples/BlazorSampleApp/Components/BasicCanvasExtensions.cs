@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using Microsoft.AspNetCore.Components;
 using System.Text.Json.Nodes;
 
 
@@ -16,10 +17,10 @@ namespace BlazorSampleApp.Components;
 
 /// <summary>
 /// All webgl context methods are setup as extension methods to the BasicCanvas
-/// 
+///
 /// This approach is taken for clarity of inter-operation with JavaScript.
-/// 
-/// Documentation about 2d webgl rendering methods can be Googled, though Mozilla 
+///
+/// Documentation about 2d webgl rendering methods can be Googled, though Mozilla
 /// documentation is fairly easy to read.
 /// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
 /// </summary>
@@ -29,8 +30,14 @@ namespace BlazorSampleApp.Components;
 public static class BasicCanvasExtensions
 {
 
+
+
+    public async static ValueTask CallElementMethod(this BasicCanvas basicCanvas,
+        string methodName, ElementReference elementRef, params object?[]? args)
+        => await basicCanvas.CallElementMethod(elementRef, methodName, args);
+
     public async static ValueTask<JsonObject> GetContextAttributes(this BasicCanvas basicCanvas) => await basicCanvas.GetFunctionBasicContext<JsonObject>("getContextAttributes");
-    
+
 
     // basic values
     public async static ValueTask GlobalAlpha(this BasicCanvas basicCanvas, float alpha) => await basicCanvas.SetValueBasicContext("globalAlpha", alpha);
@@ -142,7 +149,7 @@ public static class BasicCanvasExtensions
     public async static ValueTask<string> TextAlign(this BasicCanvas basicCanvas) => await basicCanvas.GetValueBasicContext<string>("textAlign");
     public async static ValueTask TextBaseline(this BasicCanvas basicCanvas, CanvasTextBaseline baseline) => await basicCanvas.SetValueBasicContext("textBaseline", baseline.ToString());
     public async static ValueTask<string> TextBaseline(this BasicCanvas basicCanvas) => await basicCanvas.GetValueBasicContext<string>("textBaseline");
-    public async static ValueTask Direction(this BasicCanvas basicCanvas, CanvasDirection direction) => await basicCanvas.SetValueBasicContext("direction", direction.ToString()); 
+    public async static ValueTask Direction(this BasicCanvas basicCanvas, CanvasDirection direction) => await basicCanvas.SetValueBasicContext("direction", direction.ToString());
     public async static ValueTask<string> Direction(this BasicCanvas basicCanvas) => await basicCanvas.GetValueBasicContext<string>("direction");
 
 

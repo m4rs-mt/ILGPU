@@ -74,7 +74,7 @@ namespace BlazorSampleApp.Components
                 if (IsWebAssembley)
                 {
                     _jsInProcessRuntime = (IJSInProcessRuntime)value;
-                 
+
                 }
             }
         }
@@ -93,7 +93,7 @@ namespace BlazorSampleApp.Components
                 {
                     if (IsWebAssembley)
                     {
-                        
+
                         module = await _jsInProcessRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./Scripts/BasicCanvas.js");
 
                         module.InvokeVoid("initializeBasicCanvas", CanvasId, IsWebAssembley, IsTransparent, IsDesyncronized);
@@ -113,9 +113,9 @@ namespace BlazorSampleApp.Components
                 catch (Exception ex)
                 {
                     var crap = ex.Message;
-                }               
+                }
 
-            }        
+            }
 
         }
 
@@ -144,7 +144,25 @@ namespace BlazorSampleApp.Components
             }
         }
 
-#nullable enable       
+
+#nullable enable
+        public async ValueTask CallElementMethod(ElementReference elementRef, string methodName, params object?[]? args)
+        {
+#nullable disable
+            if (IsDisposing) return;
+
+            if (module != null)
+            {
+                module.InvokeVoid(methodName,"callElementMethod", elementRef, args);
+            }
+            else
+            {
+                await asyncModule.InvokeVoidAsync(methodName,"callElementMethod", elementRef, args);
+            }
+        }
+
+
+#nullable enable
         public async ValueTask SetValueBasicContext(string ValueName, params object?[]? args)
         {
 #nullable disable
@@ -155,7 +173,7 @@ namespace BlazorSampleApp.Components
                 module.InvokeVoid("setValueBasicContext", CanvasReference, ValueName, args);
             }
             else
-            {                
+            {
                 await asyncModule.InvokeVoidAsync("setValueBasicContext", CanvasReference, ValueName, args);
             }
         }
@@ -178,7 +196,7 @@ namespace BlazorSampleApp.Components
         }
 
 
-#nullable enable 
+#nullable enable
         public async ValueTask SetFunctionBasicContext(string FunctionName, params object?[]? args)
         {
 #nullable disable
@@ -194,7 +212,7 @@ namespace BlazorSampleApp.Components
             }
         }
 
-#nullable enable 
+#nullable enable
         public async ValueTask<T> GetFunctionBasicContext<T>(string FunctionName, params object?[]? args)
         {
 #nullable disable
@@ -210,7 +228,7 @@ namespace BlazorSampleApp.Components
             }
         }
 
-#nullable enable 
+#nullable enable
         public async ValueTask SetFunctionDrawingBasis(string FunctionName, params object?[]? args)
         {
 #nullable disable
@@ -226,7 +244,7 @@ namespace BlazorSampleApp.Components
             }
         }
 
-#nullable enable 
+#nullable enable
         public async ValueTask<T> GetFunctionDrawingBasis<T>(string FunctionName, params object?[]? args)
         {
 #nullable disable
