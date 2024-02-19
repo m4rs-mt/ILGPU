@@ -83,7 +83,7 @@ namespace ILGPU.Runtime.CPU
 
         internal CPUCapabilityContext()
         {
-            Float8 = false;
+            Float8 = true;
 
 <# foreach (var c in commonCapabilities) { #>
             <#= c.Name #> = true;
