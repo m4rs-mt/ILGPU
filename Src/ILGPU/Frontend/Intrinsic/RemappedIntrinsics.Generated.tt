@@ -23,23 +23,23 @@ var unaryMathFunctions = new (string, TypeInformation, TypeInformation, string)[
         ("Abs",     null,          SignedIntTypes[1], "MathType"),
         ("Abs",     null,          SignedIntTypes[2], "MathType"),
         ("Abs",     null,          SignedIntTypes[3], "MathType"),
-        ("Abs",     FloatTypes[2], FloatTypes[2],     "MathType"),
-        ("Abs",     null,          FloatTypes[3],     "MathType"),
-        ("Sqrt",    FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Sin",     FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Sinh",    FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Asin",    FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Cos",     FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Cosh",    FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Acos",    FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Tan",     FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Tanh",    FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Atan",    FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Exp",     FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Floor",   FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Ceiling", FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Log",     FloatTypes[2], FloatTypes[3],     "CPUMathType"),
-        ("Log10",   FloatTypes[2], FloatTypes[3],     "CPUMathType")
+        ("Abs",     FloatTypes[4], FloatTypes[4],     "MathType"),
+        ("Abs",     null,          FloatTypes[5],     "MathType"),
+        ("Sqrt",    FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Sin",     FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Sinh",    FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Asin",    FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Cos",     FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Cosh",    FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Acos",    FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Tan",     FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Tanh",    FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Atan",    FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Exp",     FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Floor",   FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Ceiling", FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Log",     FloatTypes[4], FloatTypes[5],     "CPUMathType"),
+        ("Log10",   FloatTypes[4], FloatTypes[5],     "CPUMathType")
     };
 
 var binaryMathFunctions = new (string, TypeInformation, TypeInformation, string)[]
@@ -52,8 +52,8 @@ var binaryMathFunctions = new (string, TypeInformation, TypeInformation, string)
         ("Min",   null,          UnsignedIntTypes[1], "MathType"),
         ("Min",   null,          UnsignedIntTypes[2], "MathType"),
         ("Min",   null,          UnsignedIntTypes[3], "MathType"),
-        ("Min",   FloatTypes[2], FloatTypes[2],       "MathType"),
-        ("Min",   null,          FloatTypes[3],       "MathType"),
+        ("Min",   FloatTypes[4], FloatTypes[4],       "MathType"),
+        ("Min",   null,          FloatTypes[5],       "MathType"),
         ("Max",   null,          SignedIntTypes[0],   "MathType"),
         ("Max",   null,          SignedIntTypes[1],   "MathType"),
         ("Max",   null,          SignedIntTypes[2],   "MathType"),
@@ -62,11 +62,11 @@ var binaryMathFunctions = new (string, TypeInformation, TypeInformation, string)
         ("Max",   null,          UnsignedIntTypes[1], "MathType"),
         ("Max",   null,          UnsignedIntTypes[2], "MathType"),
         ("Max",   null,          UnsignedIntTypes[3], "MathType"),
-        ("Max",   FloatTypes[2], FloatTypes[2],       "MathType"),
-        ("Max",   null,          FloatTypes[3],       "MathType"),
-        ("Atan2", FloatTypes[2], FloatTypes[3],       "CPUMathType"),
-        ("Pow",   FloatTypes[2], FloatTypes[3],       "CPUMathType"),
-        ("Log",   FloatTypes[2], FloatTypes[3],       "CPUMathType")
+        ("Max",   FloatTypes[4], FloatTypes[4],       "MathType"),
+        ("Max",   null,          FloatTypes[5],       "MathType"),
+        ("Atan2", FloatTypes[4], FloatTypes[5],       "CPUMathType"),
+        ("Pow",   FloatTypes[4], FloatTypes[5],       "CPUMathType"),
+        ("Log",   FloatTypes[4], FloatTypes[5],       "CPUMathType")
     };
 
 

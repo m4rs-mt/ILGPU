@@ -40,6 +40,12 @@ namespace ILGPU.Runtime
     {
         #region Properties
 
+        /// <summary>
+        /// Supports Float16 (Half) data type.
+        /// </summary>
+        public bool Float8 { get; internal set; }
+
+
 <# foreach (var c in commonCapabilities) { #>
         /// <summary>
         /// <#= c.Summary #>
@@ -77,6 +83,8 @@ namespace ILGPU.Runtime.CPU
 
         internal CPUCapabilityContext()
         {
+            Float8 = false;
+
 <# foreach (var c in commonCapabilities) { #>
             <#= c.Name #> = true;
 <# } #>
@@ -97,6 +105,8 @@ namespace ILGPU.Runtime.Velocity
 
         internal VelocityCapabilityContext()
         {
+            Float8 = false;
+
 <# foreach (var c in velocityCapabilities.Concat(commonCapabilities)) { #>
             <#= c.Name #> = <#= c.Velocity.Supported ? "true" : "false" #>;
 <# } #>
@@ -145,6 +155,8 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         public CudaCapabilityContext(CudaArchitecture arch)
         {
+            Float8 = false;
+
 <# foreach (var c in commonCapabilities.Concat(cudaCapabilities)) { #>
             <#= c.Name #> = arch >= CudaArchitecture.<#= c.Cuda.MinPTX #>;
 <# } #>
@@ -188,6 +200,7 @@ namespace ILGPU.Runtime.OpenCL
     public sealed class CLCapabilityContext : CapabilityContext
     {
         #region Static
+
 
 <#
     var allClCapabilities = commonCapabilities.Concat(clCapabilities).ToArray();
@@ -242,6 +255,9 @@ namespace ILGPU.Runtime.OpenCL
 
         internal CLCapabilityContext(CLDevice device)
         {
+
+            Float8 = false;
+
             var extensions = ImmutableArray.CreateBuilder<string>();
 <#
     foreach (var c in allClCapabilities) {
