@@ -3,7 +3,7 @@
 //                           Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: Mini43Float8Conversion.tt/Mini43Float8Conversion.cs
+// File: Mini52Float8Conversion.tt/Mini52Float8Conversion.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
