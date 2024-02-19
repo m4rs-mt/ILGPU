@@ -536,7 +536,7 @@ public readonly struct Mini43Float8
     {
         uint rawMini43Float8 = mini43Float8.RawValue;
         uint sign = (rawMini43Float8 & 0x80) << 24; // Move sign bit to correct position
-        uint exponent = ((rawMini43Float8 >> 4) & 0x07) + 127 - 3; // Adjust exponent format
+        uint exponent = (((rawMini43Float8 >> 4) & 0x07) + 127) - 3; // Adjust exponent
         uint mantissa = (rawMini43Float8 & 0x0F) << (23 - 4); // Scale mantissa
 
         // Combine sign, exponent, and mantissa into a 32-bit float representation
@@ -557,7 +557,7 @@ public readonly struct Mini43Float8
 
         // Extracting sign, exponent, and mantissa from Mini43Float8
         ulong sign = (ulong)(mini43Float8Raw & 0x80) << 55; // Shift left for double
-        int exponentBits = ((mini43Float8Raw >> 4) & 0x07) + 127 - 3; // Adjusting exponent
+        int exponentBits = (((mini43Float8Raw >> 4) & 0x07) + 127) - 3; // Adjust exponent
 
         // Ensuring exponent does not underflow or overflow the valid range for double
         if (exponentBits < 0) exponentBits = 0;
@@ -566,7 +566,7 @@ public readonly struct Mini43Float8
         ulong exponent = (ulong)exponentBits << 52; // Positioning exponent for double
 
         // Extracting and positioning the mantissa bits
-        ulong mantissa = ((ulong)(mini43Float8Raw & 0x0F)) << 48; // Align mantissa for double
+        ulong mantissa = ((ulong)(mini43Float8Raw & 0x0F)) << 48; // Align mantissa
 
         // Assembling the double
         ulong doubleBits = sign | exponent | mantissa;
@@ -599,7 +599,7 @@ public readonly struct Mini43Float8
 
         // Adjusting the exponent from BFloat16 (8 bits) to Mini43Float8 (3 bits)
         // This involves adjusting for bias differences
-        byte exponent = (byte)(((bFloat16Bits >> 7) & 0xFF) - 127 + 3); // Adjusting exponent and bias
+        byte exponent = (byte)((((bFloat16Bits >> 7) & 0xFF) - 127) + 3); // Adjust exponent
 
         // Adjusting the mantissa from BFloat16 (7 bits) to Mini43Float8 (4 bits)
         // This involves truncating the least significant bits
@@ -628,14 +628,15 @@ public readonly struct Mini43Float8
 
         // Adjusting the exponent from Half (5 bits) to Mini43Float8 (3 bits)
         // This involves adjusting for bias differences
-        byte exponent = (byte)(((halfBits >> 10) & 0x1F) - 15 + 3); // Adjusting exponent and bias
+        byte exponent = (byte)((((halfBits >> 10) & 0x1F) - 15) + 3); // Adjust exponent
 
         // Adjusting the mantissa from Half (10 bits) to Mini43Float8 (4 bits)
         // This involves truncating the least significant bits
-        byte mantissa = (byte)((halfBits & 0x03FF) >> (10 - 4)); // Truncate mantissa to fit Mini43Float8
+        byte mantissa = (byte)((halfBits & 0x03FF) >> (10 - 4)); // Truncate mantissa
 
         // Combining sign, exponent, and mantissa into Mini43Float8 format
-        byte mini43Float8Bits = (byte)((sign << 7) | (exponent << 4) | mantissa); // Shift and combine bits
+        byte mini43Float8Bits = (byte)((sign << 7) | (exponent << 4) | mantissa);
+        // Shift and combine bits
 
         return new Mini43Float8(mini43Float8Bits);
     }
@@ -654,12 +655,13 @@ public readonly struct Mini43Float8
         byte sign = (byte)((floatBits >> 16) & 0x80); // Extracting the sign bit (MSB)
 
         // Extracting exponent (8 bits)
-        byte exponent = (byte)(((floatBits >> 23) & 0xFF) - 127 + 3); // Adjusting exponent and bias for Mini43Float8
+        byte exponent = (byte)(((floatBits >> 23) & 0xFF) - 127 + 3); // Adjust exponent
         // Shift left to align with Mini43Float8's exponent position
         exponent = (byte)(exponent << 4);
 
         // Extracting mantissa (top 4 bits of the float's 23-bit mantissa)
-        byte mantissa = (byte)((floatBits >> (23 - 4)) & 0x0F); // Extracting top 4 bits of mantissa
+        byte mantissa = (byte)((floatBits >> (23 - 4)) & 0x0F);
+        // Extracting top 4 bits of mantissa
 
         // Combining into Mini43Float8 format (1 bit sign, 4 bits exponent, 4 bits mantissa)
         byte mini43Float8 = (byte)(sign | exponent | mantissa);
@@ -682,16 +684,19 @@ public readonly struct Mini43Float8
         // Extracting sign bit
         byte sign = (byte)((doubleBits >> 48) & 0x80); // Extracting the sign bit (MSB)
 
-        // Adjusting exponent
-        long exponentBits = (long)((doubleBits >> 52) & 0x7FF) - 1023 + 3; // Adjusting exponent and bias for Mini43Float8
+        // Adjusting exponent for Mini43Float8
+        long exponentBits = (long)((doubleBits >> 52) & 0x7FF) - 1023 + 3;
+
         // Ensure the exponent does not overflow or underflow the valid range
         exponentBits = exponentBits < 0 ? 0 : exponentBits > 0x0F ? 0x0F : exponentBits;
-        byte exponent = (byte)(exponentBits << 4); // Shift to align with Mini43Float8's exponent position
+        byte exponent = (byte)(exponentBits << 4);
+        // Shift to align with Mini43Float8's exponent position
 
         // Extracting mantissa (top 4 bits of the double's 52-bit mantissa)
-        byte mantissa = (byte)((doubleBits >> (52 - 4)) & 0x0F); // Extracting top 4 bits of mantissa
+        byte mantissa = (byte)((doubleBits >> (52 - 4)) & 0x0F);
+        // Extracting top 4 bits of mantissa
 
-        // Combining into Mini43Float8 format (1 bit sign, 4 bits exponent, 4 bits mantissa)
+        // Combining into Mini43Float8 (1 bit sign, 4 bits exponent, 4 bits mantissa)
         byte mini43Float8 = (byte)(sign | exponent | mantissa);
 
         return new Mini43Float8(mini43Float8);
@@ -789,7 +794,8 @@ public readonly struct Mini43Float8
     /// <returns>Absolute of Mini43Float8</returns>
     [MathIntrinsic(MathIntrinsicKind.Abs)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Mini43Float8 Abs(Mini43Float8 value) => Mini43Float8Extensions.Abs(value);
+    public static Mini43Float8 Abs(Mini43Float8 value)
+        => Mini43Float8Extensions.Abs(value);
 
     /// <summary>
     /// Is Mini43Float8 Canonical
@@ -892,7 +898,8 @@ public readonly struct Mini43Float8
     {
         bool isExponentAllOnes = (value.RawValue & Mini43Float8Extensions.ExponentMask)
                                  == Mini43Float8Extensions.ExponentMask;
-        bool isMantissaNonZero = (value.RawValue & Mini43Float8Extensions.MantissaMask) != 0;
+        bool isMantissaNonZero
+            = (value.RawValue & Mini43Float8Extensions.MantissaMask) != 0;
 
         // If exponent is all ones and mantissa is non-zero, it's NaN, so return false
         return !(isExponentAllOnes && isMantissaNonZero);
@@ -980,7 +987,8 @@ public readonly struct Mini43Float8
     /// <param name="style">Style formating attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <returns>Parsed Mini43Float8 value when successful</returns>
-    public static Mini43Float8 Parse(string s, NumberStyles style, IFormatProvider? provider)
+    public static Mini43Float8 Parse(string s, NumberStyles style,
+        IFormatProvider? provider)
         => (Mini43Float8)float.Parse(s, style, provider);
 
 
@@ -1029,7 +1037,8 @@ public readonly struct Mini43Float8
     /// </summary>
     /// <param name="value">Mini43Float8 to test</param>
     /// <returns>True when off integer</returns>
-    public static bool IsOddInteger(Mini43Float8 value) => float.IsOddInteger((float) value);
+    public static bool IsOddInteger(Mini43Float8 value)
+        => float.IsOddInteger((float) value);
 
 
     /// <summary>
@@ -1111,7 +1120,8 @@ public readonly struct Mini43Float8
     /// <param name="result">Mini43Float8 out param</param>
     /// <typeparam name="TOther">Type to convert from</typeparam>
     /// <returns>True when successful</returns>
-    public static bool TryConvertFromChecked<TOther>(TOther value, out Mini43Float8 result)
+    public static bool TryConvertFromChecked<TOther>(TOther value,
+        out Mini43Float8 result)
         where TOther : INumberBase<TOther> => TryConvertFrom(value, out result);
 
     /// <summary>
@@ -1121,7 +1131,8 @@ public readonly struct Mini43Float8
     /// <param name="result">Mini43Float8 out param</param>
     /// <typeparam name="TOther">Type to convert from</typeparam>
     /// <returns>True when successful</returns>
-    public static bool TryConvertFromSaturating<TOther>(TOther value, out Mini43Float8 result)
+    public static bool TryConvertFromSaturating<TOther>(TOther value,
+        out Mini43Float8 result)
         where TOther : INumberBase<TOther> => TryConvertFrom(value, out result);
 
 
@@ -1132,7 +1143,8 @@ public readonly struct Mini43Float8
     /// <param name="result">BFlaot16 out param</param>
     /// <typeparam name="TOther">Type to convert from</typeparam>
     /// <returns>True when successful</returns>
-    public static bool TryConvertFromTruncating<TOther>(TOther value, out Mini43Float8 result)
+    public static bool TryConvertFromTruncating<TOther>(TOther value,
+        out Mini43Float8 result)
         where TOther : INumberBase<TOther> => TryConvertFrom(value, out result);
 
 
@@ -1342,8 +1354,8 @@ public readonly struct Mini43Float8
     /// <param name="result">Typed out param</param>
     /// <typeparam name="TOther">Type to convert to</typeparam>
     /// <returns>True when successful</returns>
-    public static bool TryConvertToSaturating<TOther>(Mini43Float8 value, out TOther result)
-        where TOther : INumberBase<TOther>
+    public static bool TryConvertToSaturating<TOther>(Mini43Float8 value,
+        out TOther result) where TOther : INumberBase<TOther>
         =>  Mini43Float8.TryConvertTo<TOther>(value, out result);
 
     /// <summary>
@@ -1353,8 +1365,8 @@ public readonly struct Mini43Float8
     /// <param name="result">Typed out param</param>
     /// <typeparam name="TOther">Type to convert to</typeparam>
     /// <returns>True when successful</returns>
-    public static bool TryConvertToTruncating<TOther>(Mini43Float8 value, out TOther result)
-        where TOther : INumberBase<TOther>
+    public static bool TryConvertToTruncating<TOther>(Mini43Float8 value,
+        out TOther result) where TOther : INumberBase<TOther>
         =>  Mini43Float8.TryConvertTo<TOther>(value, out result);
 
     #nullable enable

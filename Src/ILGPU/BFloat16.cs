@@ -538,15 +538,25 @@ public readonly struct BFloat16
     {
         uint rawBFloat16 = bFloat16.RawValue;
         uint sign = (rawBFloat16 & 0x8000) << 16; // Move sign bit to correct position
-        uint exponent = ((rawBFloat16 >> 7) & 0xFF) - 15 + 7; // Adjust exponent format for Mini43Float8
-        uint mantissa = (rawBFloat16 & 0x7F) << (23 - 7); // Scale mantissa
+
+        // Correctly adjust the exponent from BFloat16's format to float's format
+        // Assuming BFloat16's bias is 127 to simplify, which might not be accurate
+        // depending on its definition
+        int exponent = ((int)((rawBFloat16 >> 7) & 0xFF) - 127) + 127;
+        // No actual adjustment needed if both biases are 127
+        uint exponentBits = (uint)(exponent << 23); // Position exponent bits
+                                                    // correctly for a float
+
+        // Scale the 7-bit mantissa of BFloat16 to fit into the 23-bit mantissa of a float
+        uint mantissa = (rawBFloat16 & 0x7F) << (23 - 7);
 
         // Combine sign, exponent, and mantissa into a 32-bit float representation
-        uint floatBits = sign | (exponent << 23) | mantissa;
+        uint floatBits = sign | exponentBits | mantissa;
 
         // Convert the 32-bit representation into a float
         return BitConverter.ToSingle(BitConverter.GetBytes(floatBits), 0);
     }
+
 
     /// <summary>
     /// Convert BFloat16 to double

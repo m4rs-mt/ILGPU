@@ -1,4 +1,15 @@
-﻿using System.Runtime.CompilerServices;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Mini43Float8Extensions.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using System.Runtime.CompilerServices;
 
 namespace ILGPU;
 
@@ -93,7 +104,8 @@ public static partial class Mini43Float8Extensions
     /// <param name="third">The third Mini43Float8.</param>
     /// <returns>The resulting Mini43Float8 value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Mini43Float8 FmaFP32(Mini43Float8 first, Mini43Float8 second, Mini43Float8 third) =>
+    public static Mini43Float8 FmaFP32(Mini43Float8 first, Mini43Float8 second,
+        Mini43Float8 third) =>
         (Mini43Float8)((float)first * (float)second + (float)third);
 
 

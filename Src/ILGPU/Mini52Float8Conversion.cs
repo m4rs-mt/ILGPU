@@ -3,7 +3,7 @@
 //                           Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: BFloat16Conversion.tt/BFloat16Conversion.cs
+// File: Mini43Float8Conversion.tt/Mini43Float8Conversion.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -195,8 +195,9 @@ namespace ILGPU
         /// <param name="left">The left value.</param>
         /// <param name="right">The right value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Mini52Float8 RemFP32(Mini52Float8 left, BFloat16 right) =>
-          (Mini52Float8)IntrinsicMath.CPUOnly.Rem((float)left, (float)right);
+        public static Mini52Float8 RemFP32(Mini52Float8 left,
+            BFloat16 right)
+            => (Mini52Float8)IntrinsicMath.CPUOnly.Rem((float)left, (float)right);
 
         /// <summary>
         /// The min operation.
@@ -204,8 +205,9 @@ namespace ILGPU
         /// <param name="left">The left value.</param>
         /// <param name="right">The right value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Mini52Float8 MinFP32(Mini52Float8 left, BFloat16 right) =>
-          (Mini52Float8)IntrinsicMath.CPUOnly.Min((float)left, (float)right);
+        public static Mini52Float8 MinFP32(Mini52Float8 left,
+            BFloat16 right)
+            => (Mini52Float8)IntrinsicMath.CPUOnly.Min((float)left, (float)right);
 
         /// <summary>
         /// The max operation.
@@ -213,8 +215,9 @@ namespace ILGPU
         /// <param name="left">The left value.</param>
         /// <param name="right">The right value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Mini52Float8 MaxFP32(Mini52Float8 left, BFloat16 right) =>
-          (Mini52Float8)IntrinsicMath.CPUOnly.Max((float)left, (float)right);
+        public static Mini52Float8 MaxFP32(Mini52Float8 left,
+            BFloat16 right)
+            => (Mini52Float8)IntrinsicMath.CPUOnly.Max((float)left, (float)right);
 
         /// <summary>
         /// The atan2 operation.
@@ -222,8 +225,9 @@ namespace ILGPU
         /// <param name="left">The left value.</param>
         /// <param name="right">The right value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Mini52Float8 Atan2FP32(Mini52Float8 left, BFloat16 right) =>
-          (Mini52Float8)IntrinsicMath.CPUOnly.Atan2((float)left, (float)right);
+        public static Mini52Float8 Atan2FP32(Mini52Float8 left,
+            BFloat16 right)
+            => (Mini52Float8)IntrinsicMath.CPUOnly.Atan2((float)left, (float)right);
 
         /// <summary>
         /// The pow operation.
@@ -231,8 +235,9 @@ namespace ILGPU
         /// <param name="left">The left value.</param>
         /// <param name="right">The right value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Mini52Float8 PowFP32(Mini52Float8 left, BFloat16 right) =>
-          (Mini52Float8)IntrinsicMath.CPUOnly.Pow((float)left, (float)right);
+        public static Mini52Float8 PowFP32(Mini52Float8 left,
+            BFloat16 right)
+            => (Mini52Float8)IntrinsicMath.CPUOnly.Pow((float)left, (float)right);
 
         /// <summary>
         /// The binary log operation.
@@ -240,8 +245,9 @@ namespace ILGPU
         /// <param name="left">The left value.</param>
         /// <param name="right">The right value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Mini52Float8 LogFP32(Mini52Float8 left, BFloat16 right) =>
-          (Mini52Float8)IntrinsicMath.CPUOnly.Log((float)left, (float)right);
+        public static Mini52Float8 LogFP32(Mini52Float8 left,
+            BFloat16 right)
+            => (Mini52Float8)IntrinsicMath.CPUOnly.Log((float)left, (float)right);
 
 
     }
