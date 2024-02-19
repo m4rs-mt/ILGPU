@@ -481,7 +481,8 @@ public readonly struct Mini43Float8
     /// <param name="utf8Text">Uft8 encoded by span to parse</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <returns>Parsed Half Value</returns>
-    public static Mini43Float8 Parse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider)
+    public static Mini43Float8 Parse(ReadOnlySpan<byte> utf8Text,
+        IFormatProvider? provider)
         => (Mini43Float8) float.Parse(utf8Text, provider);
 
     /// <summary>
