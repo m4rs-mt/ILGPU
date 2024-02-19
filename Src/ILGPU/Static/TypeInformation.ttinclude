@@ -34,6 +34,8 @@ public class TypeInformation
             { "UInt16", "Int16" },
             { "UInt32", "Int32" },
             { "UInt64", "Int64" },
+            { "Mini43Float8", "Float8" },
+            { "Mini52Float8", "Float8" },
             { "BFloat16", "Float16" },
             { "Half", "Float16" },
             { "Float", "Float32" },
@@ -43,6 +45,8 @@ public class TypeInformation
     private static readonly Dictionary<string, string> ArithmeticBasicValueTypeMapping =
         new Dictionary<string, string>()
         {
+            { "Mini43Float8", "Float8" },
+            { "Mini52Float8", "Float8" },
             { "BFloat16", "Float16" },
             { "Half", "Float16" },
             { "Float", "Float32" },
@@ -81,6 +85,8 @@ public class TypeInformation
         {
             switch (Name)
             {
+                case "Mini43Float8": case "Mini52Float8":
+                    return "sizeof(byte)";
                 case "Half": case "BFloat16":
                     return "sizeof(ushort)";
                 default:
@@ -95,6 +101,10 @@ public class TypeInformation
         {
             switch (Name)
             {
+                case "Mini43Float8":
+                    return "Mini43Float8.Zero";
+                case "Mini52Float8":
+                    return "Mini52Float8.Zero";
                 case "Half":
                     return "Half.Zero";
                 case "BFloat16":

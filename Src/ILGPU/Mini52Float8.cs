@@ -42,44 +42,46 @@ public readonly struct Mini52Float8
     /// <summary>
     /// Zero
     /// </summary>
-    public static Mini52Float8 Zero  {get; } = new Mini52Float8(0x0000);
+    public static Mini52Float8 Zero  {get; } = new Mini52Float8(0x00);
 
     /// <summary>
     /// One
     /// </summary>
 
-    public static Mini52Float8 One { get; } = new Mini52Float8(0x3F80);
+    public static Mini52Float8 One { get; } = new Mini52Float8(0xF0);
 
 
     /// <summary>
     /// Represents positive infinity.
     /// </summary>
-    public static Mini52Float8 PositiveInfinity { get; } = new Mini52Float8(0x7F80);
+    public static Mini52Float8 PositiveInfinity { get; } = new Mini52Float8(0xFF);
 
     /// <summary>
     /// Represents negative infinity.
     /// </summary>
-    public static Mini52Float8 NegativeInfinity{ get; } = new Mini52Float8(0xFF80);
+    public static Mini52Float8 NegativeInfinity{ get; } = new Mini52Float8(0xF8);
 
     /// <summary>
     /// Epsilon - smallest positive value
     /// </summary>
-    public static Mini52Float8 Epsilon { get; } = new Mini52Float8(0x0001);
+    public static Mini52Float8 Epsilon { get; } = new Mini52Float8(0x21);
 
     /// <summary>
     /// MaxValue - most positive value
     /// </summary>
-    public static Mini52Float8 MaxValue { get; } = new Mini52Float8(0x7F7F);
+    public static Mini52Float8 MaxValue { get; } = new Mini52Float8(0x7F);
 
     /// <summary>
     /// MinValue ~ most negative value
     /// </summary>
-    public static Mini52Float8 MinValue { get; } = new Mini52Float8(0xFF7F);
+    public static Mini52Float8 MinValue { get; } = new Mini52Float8(0xFF);
 
     /// <summary>
     /// NaN ~ value with all exponent bits set to 1 and a non-zero mantissa
     /// </summary>
-    public static Mini52Float8 NaN { get; } = new Mini52Float8(0x7FC0);
+    public static Mini52Float8 NaN { get; } = new Mini52Float8(0xF8);
+
+
 
     #endregion
 
@@ -125,7 +127,7 @@ public readonly struct Mini52Float8
     /// <param name="obj">Object to compare</param>
     /// <returns>bool</returns>
     public readonly override bool Equals(object? obj) =>
-        obj is Mini52Float8 Mini52Float8 && Equals(Mini52Float8);
+        obj is Mini52Float8 mini52Float8 && Equals(mini52Float8);
 
     /// <summary>
     /// Equals
@@ -153,8 +155,8 @@ public readonly struct Mini52Float8
     [CompareIntrinisc(CompareKind.Equal)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Mini52Float8 first, Mini52Float8 second) =>
-        (ushort)Unsafe.As<Mini52Float8, ushort>(ref first) ==
-        (ushort)Unsafe.As<Mini52Float8, ushort>(ref second);
+        (byte)Unsafe.As<Mini52Float8, byte>(ref first) ==
+        (byte)Unsafe.As<Mini52Float8, byte>(ref second);
 
 
     /// <summary>
@@ -166,8 +168,8 @@ public readonly struct Mini52Float8
     [CompareIntrinisc(CompareKind.NotEqual)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator != (Mini52Float8 first, Mini52Float8 second) =>
-        (ushort)Unsafe.As<Mini52Float8, ushort>(ref first) !=
-        (ushort)Unsafe.As<Mini52Float8, ushort>(ref second);
+        (byte)Unsafe.As<Mini52Float8, byte>(ref first) !=
+        (byte)Unsafe.As<Mini52Float8, byte>(ref second);
 
 
     /// <summary>
@@ -258,7 +260,7 @@ public readonly struct Mini52Float8
     /// IAdditiveIdentity
     /// </summary>
     static Mini52Float8 IAdditiveIdentity<Mini52Float8, Mini52Float8>.AdditiveIdentity
-        => new Mini52Float8((ushort) 0);
+        => new Mini52Float8((byte) 0);
 #endif
 
     #endregion
@@ -323,7 +325,7 @@ public readonly struct Mini52Float8
     /// <summary>
     /// Multiplicative Identity
     /// </summary>
-    public static Mini52Float8 MultiplicativeIdentity  => new Mini52Float8(0x3F80);
+    public static Mini52Float8 MultiplicativeIdentity  => new Mini52Float8(0x39);
 
     /// <summary>
     /// Modulus operator
@@ -503,14 +505,14 @@ public readonly struct Mini52Float8
 
     #region object
 
-    internal ushort RawValue { get; }
+    internal byte RawValue { get; }
 
     /// <summary>
     /// AsUShort - returns internal value
     /// </summary>
-    public ushort AsUShort => RawValue;
+    public byte AsByte => RawValue;
 
-    internal Mini52Float8(ushort rawValue)
+    internal Mini52Float8(byte rawValue)
     {
         RawValue = rawValue;
     }
@@ -520,7 +522,7 @@ public readonly struct Mini52Float8
     /// Raw value
     /// </summary>
     /// <returns>internal ushort value</returns>
-    public ushort ToRawUShort => RawValue;
+    public byte ToRawByte => RawValue;
 
    #endregion
 
@@ -532,15 +534,15 @@ public readonly struct Mini52Float8
     /// <summary>
     /// Convert Mini52Float8 to float
     /// </summary>
-    /// <param name="Mini52Float8">Mini52Float8 value to convert</param>
+    /// <param name="mini52Float8">Mini52Float8 value to convert</param>
     /// <returns>Value converted to float</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float Mini52Float8ToSingle(Mini52Float8 Mini52Float8)
+    private static float Mini52Float8ToSingle(Mini52Float8 mini52Float8)
     {
-        uint rawMini52Float8 = Mini52Float8.RawValue;
-        uint sign = (rawMini52Float8 & 0x8000) << 16; // Move sign bit to correct position
-        uint exponent = ((rawMini52Float8 >> 7) & 0xFF) - 15 + 127; // Adjust exponent format
-        uint mantissa = (rawMini52Float8 & 0x7F) << (23 - 7); // Scale mantissa
+        byte rawMini52Float8 = mini52Float8.RawValue;
+        uint sign = (uint)(rawMini52Float8 & 0x80) << 24; // Move sign bit to correct position
+        uint exponent = ((uint)(rawMini52Float8 >> 4) & 0x0F) - 15 + 127; // Adjust exponent format
+        uint mantissa = (uint)(rawMini52Float8 & 0x0F) << (23 - 4); // Scale mantissa
 
         // Combine sign, exponent, and mantissa into a 32-bit float representation
         uint floatBits = sign | (exponent << 23) | mantissa;
@@ -552,15 +554,17 @@ public readonly struct Mini52Float8
     /// <summary>
     /// Convert Mini52Float8 to double
     /// </summary>
-    /// <param name="Mini52Float8"></param>
+    /// <param name="mini52Float8"></param>
     /// <returns>Double</returns>
-    private static double Mini52Float8ToDouble(Mini52Float8 Mini52Float8)
+    private static double Mini52Float8ToDouble(Mini52Float8 mini52Float8)
     {
-        ushort Mini52Float8Raw = Mini52Float8.RawValue;
+        byte mini52Float8Raw = mini52Float8.RawValue;
 
-        // Extracting sign, exponent, and mantissa from Mini52Float8
-        ulong sign = (ulong)(Mini52Float8Raw & 0x8000) << 48; // Shift left for double
-        int exponentBits = ((Mini52Float8Raw >> 7) & 0xFF) - 127 + 1023; // Adjusting exponent
+        // Extracting sign bit
+        ulong sign = (ulong)(mini52Float8Raw & 0x80) << 55; // Shift left for double
+
+        // Extracting exponent (4 bits) and adjusting for bias
+        int exponentBits = ((mini52Float8Raw >> 3) & 0x0F) - 7 + 1023;
 
         // Ensuring exponent does not underflow or overflow the valid range for double
         if (exponentBits < 0) exponentBits = 0;
@@ -569,13 +573,14 @@ public readonly struct Mini52Float8
         ulong exponent = (ulong)exponentBits << 52; // Positioning exponent for double
 
         // Extracting and positioning the mantissa bits
-        ulong mantissa = ((ulong)(Mini52Float8Raw & 0x7F)) << 45; // Align mantissa for double
+        ulong mantissa = ((ulong)(mini52Float8Raw & 0x07)) << 49; // Align mantissa for double
 
         // Assembling the double
         ulong doubleBits = sign | exponent | mantissa;
 
-        return BitConverter.UInt64BitsToDouble(doubleBits);
+        return BitConverter.Int64BitsToDouble((long)doubleBits);
     }
+
 
     /// <summary>
     /// StripSign
@@ -583,8 +588,36 @@ public readonly struct Mini52Float8
     /// <param name="value">Mini52Float8</param>
     /// <returns>sign bit as Mini52Float8</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint StripSign(Mini52Float8 value)
-        => (ushort)((uint)value & 0x7FFF);
+    private static byte StripSign(Mini52Float8 value)
+    => (byte)(value.RawValue & 0x7F);
+
+
+    /// <summary>
+    /// Convert BFloat16 to Mini52Float8
+    /// </summary>
+    /// <param name="value">Half to convert</param>
+    /// <returns>Mini52Float8</returns>
+    private static Mini52Float8 BFloat16ToMini52Float8(BFloat16 value)
+    {
+        // Extracting the binary representation of the BFloat16 value
+        ushort bFloat16Bits = value.RawValue;
+
+        // Extracting sign bit
+        byte sign = (byte)((bFloat16Bits >> 15) & 0x01); // Extracting the sign bit (MSB)
+
+        // Adjusting the exponent from BFloat16 (8 bits) to Mini52Float8 (8 bits)
+        // This involves adjusting for bias differences
+        byte exponent = (byte)(((bFloat16Bits >> 7) & 0xFF) - 127 + 127); // Adjusting exponent and bias
+
+        // Adjusting the mantissa from BFloat16 (7 bits) to Mini52Float8 (7 bits)
+        // This involves no changes as the mantissa size is the same
+
+        // Combining sign, exponent, and mantissa into Mini52Float8 format
+        byte mini52Float8Bits = (byte)((sign << 7) | exponent | (bFloat16Bits & 0x7F)); // Shift and combine bits
+
+        return new Mini52Float8(mini52Float8Bits);
+    }
+
 
 
     /// <summary>
@@ -594,28 +627,26 @@ public readonly struct Mini52Float8
     /// <returns>Mini52Float8</returns>
     private static Mini52Float8 HalfToMini52Float8(Half value)
     {
-        // Extracting the binary representation of the float value
+        // Extracting the binary representation of the half value
         ushort halfBits = value.RawValue;
 
-        // Extracting sign (1 bit)
-        ushort sign = (ushort)(halfBits & 0x8000);
+        // Extracting sign bit
+        byte sign = (byte)((halfBits >> 15) & 0x01); // Extracting the sign bit (MSB)
 
         // Adjusting the exponent from Half (5 bits) to Mini52Float8 (8 bits)
-        // This involves shifting and possibly adjusting for the different exponent bias
-        // This example assumes no bias adjustment for simplicity
-        ushort exponent = (ushort)(((halfBits >> 10) & 0x1F) << 7);
+        byte exponent = (byte)(((halfBits >> 10) & 0x1F) - 15 + 127); // Adjusting exponent and bias for Mini52Float8
         // Shift left to align with Mini52Float8's exponent position
+        exponent = (byte)(exponent << 3);
 
         // Adjusting the mantissa from Half (10 bits) to Mini52Float8 (7 bits)
-        // This involves truncating the 3 least significant bits
-        ushort mantissa = (ushort)((halfBits & 0x03FF) >> (10 - 7));
-
+        byte mantissa = (byte)((halfBits & 0x03FF) >> (10 - 7)); // Truncate mantissa to fit Mini52Float8
 
         // Combining sign, exponent, and mantissa into Mini52Float8 format
-        ushort Mini52Float8Bits = (ushort)(sign | exponent | mantissa);
+        byte mini52Float8Bits = (byte)((sign << 7) | (exponent) | mantissa); // Shift and combine bits
 
-        return new Mini52Float8(Mini52Float8Bits);
+        return new Mini52Float8(mini52Float8Bits);
     }
+
 
     /// <summary>
     /// Convert float to Mini52Float8
@@ -628,21 +659,23 @@ public readonly struct Mini52Float8
         uint floatBits = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
 
         // Extracting sign (1 bit)
-        ushort sign = (ushort)((floatBits >> 16) & 0x8000);
+        byte sign = (byte)((floatBits >> 16) & 0x80); // Extracting the sign bit (MSB)
 
         // Extracting exponent (8 bits)
-        ushort exponent = (ushort)(((floatBits >> 23) & 0xFF) - 127 + 127);
-        // Adjust exponent and re-bias if necessary
-        exponent = (ushort)(exponent << 7);
+        byte exponent = (byte)(((floatBits >> 23) & 0xFF) - 127 + 127); // Adjusting exponent and re-biasing
+
+        // Ensuring exponent does not underflow or overflow the valid range for Mini52Float8
+        exponent = (byte)(exponent < 0 ? 0 : exponent > 0xFF ? 0xFF : exponent);
 
         // Extracting mantissa (top 7 bits of the float's 23-bit mantissa)
-        ushort mantissa = (ushort)((floatBits >> (23 - 7)) & 0x7F);
+        byte mantissa = (byte)((floatBits >> (23 - 7)) & 0x7F); // Extracting top 7 bits of mantissa
 
         // Combining into Mini52Float8 format (1 bit sign, 8 bits exponent, 7 bits mantissa)
-        ushort Mini52Float8 = (ushort)(sign | exponent | mantissa);
+        byte mini52Float8 = (byte)(sign | exponent | mantissa);
 
-        return new (Mini52Float8);
+        return new Mini52Float8(mini52Float8);
     }
+
 
 
     /// <summary>
@@ -655,26 +688,24 @@ public readonly struct Mini52Float8
         // Extracting the binary representation of the double value
         ulong doubleBits = BitConverter.ToUInt64(BitConverter.GetBytes(value), 0);
 
-        // Extracting leading sign (1 bit)
-        ushort sign = (ushort)((doubleBits >> 48) & 0x8000); // Extract sign bit
+        // Extracting sign bit
+        byte sign = (byte)((doubleBits >> 48) & 0x80); // Extracting the sign bit (MSB)
 
+        // Extracting exponent (11 bits)
+        long exponentBits = (long)((doubleBits >> 52) & 0x7FF) - 1023 + 127; // Adjusting exponent and bias for Mini52Float8
+        // Ensure the exponent does not overflow or underflow the valid range
+        exponentBits = exponentBits < 0 ? 0 : exponentBits > 0xFF ? 0xFF : exponentBits;
+        byte exponent = (byte)(exponentBits >> 4); // Shift to align with Mini52Float8's exponent position
 
-        long exponentBits
-            = (long)((doubleBits >> 52) & 0x7FF) - 1023 + 127; // Adjust exponent
-        uint exponent
-            = (uint)(exponentBits < 0 ? 0 : exponentBits > 0xFF ? 0xFF : exponentBits);
-
-
-        // Extracting the top 7 bits of the mantissa from the double and position it
-        ushort mantissa = (ushort)((doubleBits >> (52 - 7)) & 0x7F); // Shift and mask
-
+        // Extracting mantissa (top 7 bits of the double's 52-bit mantissa)
+        byte mantissa = (byte)((doubleBits >> (52 - 7)) & 0x7F); // Extracting top 7 bits of mantissa
 
         // Combining into Mini52Float8 format (1 bit sign, 8 bits exponent, 7 bits mantissa)
-        ushort Mini52Float8 =
-            (ushort)(sign | (ushort)(exponent << 7) | mantissa);
+        byte mini52Float8 = (byte)(sign | exponent | mantissa);
 
-        return new Mini52Float8(Mini52Float8);
+        return new Mini52Float8(mini52Float8);
     }
+
     #endregion
 
     #region operators
@@ -774,7 +805,8 @@ public readonly struct Mini52Float8
     /// <param name="value">Mini52Float8</param>
     /// <returns>True when finite</returns>
     public static bool IsInfinity(Mini52Float8 value) =>
-        (value.RawValue & 0x7F80) == 0x7F80 && (value.RawValue & 0x007F) == 0;
+        (value.RawValue & 0x80) != 0 && (value.RawValue & 0x7F) == 0;
+
 
 
     /// <summary>
@@ -782,18 +814,18 @@ public readonly struct Mini52Float8
     /// </summary>
     /// <param name="value">Mini52Float8</param>
     /// <returns>True when NaN</returns>
-    public static bool IsNaN(Mini52Float8 value)
-        // NaN if all exponent bits are 1 and there is a non-zero value in the mantissa
-        =>  (value.RawValue & Mini52Float8Extensions.ExponentMask)
-            == Mini52Float8Extensions.ExponentMask
-            && (value.RawValue & Mini52Float8Extensions.MantissaMask) != 0;
+    public static bool IsNaN(Mini52Float8 value) =>
+        ((value.RawValue & 0x80) == 0x80) && ((value.RawValue & 0x7F) != 0);
+
+
 
     /// <summary>
     /// Is negative?
     /// </summary>
     /// <param name="value">Mini52Float8</param>
     /// <returns>True when negative</returns>
-    public static bool IsNegative(Mini52Float8 value) =>  (value.RawValue & 0x8000) != 0;
+    public static bool IsNegative(Mini52Float8 value) => (value.RawValue & 0x80) != 0;
+
 
     /// <summary>
     /// Is negative infinity
@@ -809,9 +841,10 @@ public readonly struct Mini52Float8
     /// <returns>True when normal</returns>
     public static bool IsNormal(Mini52Float8 value)
     {
-        uint num = StripSign(value);
-        return num < 0x7F80 && num != 0 && (num & 0x7F80) != 0;
+        byte num = StripSign(value);
+        return num < 0x80 && num != 0 && (num & 0x80) != 0;
     }
+
 
 
     /// <summary>

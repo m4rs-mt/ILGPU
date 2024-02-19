@@ -39,6 +39,7 @@ namespace ILGPU.IR.Types
                 BasicValueType.Int16,
                 BasicValueType.Int32,
                 BasicValueType.Int64,
+                BasicValueType.Float8,
                 BasicValueType.Float16,
                 BasicValueType.Float32,
                 BasicValueType.Float64);
@@ -191,6 +192,7 @@ namespace ILGPU.IR.Types
             switch (basicValueType)
             {
                 case BasicValueType.Int8:
+                case BasicValueType.Float8:
                     return Padding8Type;
 
                 case BasicValueType.Int16:

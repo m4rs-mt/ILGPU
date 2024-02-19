@@ -540,7 +540,7 @@ public readonly struct BFloat16
     {
         uint rawBFloat16 = bFloat16.RawValue;
         uint sign = (rawBFloat16 & 0x8000) << 16; // Move sign bit to correct position
-        uint exponent = ((rawBFloat16 >> 7) & 0xFF) - 15 + 127; // Adjust exponent format
+        uint exponent = ((rawBFloat16 >> 7) & 0xFF) - 15 + 7; // Adjust exponent format for Mini43Float8
         uint mantissa = (rawBFloat16 & 0x7F) << (23 - 7); // Scale mantissa
 
         // Combine sign, exponent, and mantissa into a 32-bit float representation

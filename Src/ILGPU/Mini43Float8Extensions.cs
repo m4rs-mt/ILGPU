@@ -11,16 +11,19 @@ public static partial class Mini43Float8Extensions
     /// <summary>
     /// The bit mask of the sign bit.
     /// </summary>
-    internal const ushort SignBitMask = 0x8000;
+    internal const byte SignBitMask = 0x80;
 
     /// <summary>
     /// The bit mask of the exponent and the mantissa.
     /// </summary>
-    internal const ushort ExponentMantissaMask = 0x7FFF;
-    // 0111 1111 1111 1111 (ignores the sign bit)
-    internal const ushort ExponentMask = 0x7F80;
-    // 0111 1111 1000 0000 (covers only the exponent)
-    internal const ushort MantissaMask = 0x007F;
+    internal const byte ExponentMantissaMask = 0x7F;
+    // 0111 1111 (ignores the sign bit)
+
+    internal const byte ExponentMask = 0x78;
+    // 0111 1000 (covers only the exponent)
+
+    internal const byte MantissaMask = 0x07;
+    // 0000 0111 (covers only the mantissa)
 
     /// <summary>
     /// Negate value
@@ -29,7 +32,7 @@ public static partial class Mini43Float8Extensions
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Mini43Float8 Neg(Mini43Float8 Mini43Float8Value) =>
-        new Mini43Float8((ushort)(Mini43Float8Value.RawValue ^ SignBitMask));
+        new Mini43Float8((byte)(Mini43Float8Value.RawValue ^ SignBitMask));
 
 
 
@@ -40,7 +43,7 @@ public static partial class Mini43Float8Extensions
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Mini43Float8 Abs(Mini43Float8 value) =>
-        new Mini43Float8((ushort)(value.RawValue & ExponentMantissaMask));
+        new Mini43Float8((byte)(value.RawValue & ExponentMantissaMask));
 
     /// <summary>
     /// Implements a FP16 addition using FP32.
