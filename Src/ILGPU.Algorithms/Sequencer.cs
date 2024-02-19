@@ -42,7 +42,27 @@ namespace ILGPU.Algorithms.Sequencers
     }
 
     /// <summary>
-    /// Represents an identity implementation of a half sequencer.
+    /// Represents an identity implementation of a Mini43Float8 sequencer.
+    /// </summary>
+    public readonly struct Mini43Float8Sequencer : ISequencer<Mini43Float8>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public readonly Mini43Float8 ComputeSequenceElement(LongIndex1D sequenceIndex) =>
+            (Mini43Float8)sequenceIndex.X;
+    }
+
+    /// <summary>
+    /// Represents an identity implementation of a Mini52Float8 sequencer.
+    /// </summary>
+    public readonly struct Mini52Float8Sequencer : ISequencer<Mini52Float8>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public readonly Mini52Float8 ComputeSequenceElement(LongIndex1D sequenceIndex) =>
+            (Mini52Float8)sequenceIndex.X;
+    }
+
+    /// <summary>
+    /// Represents an identity implementation of a BFloat16 sequencer.
     /// </summary>
     public readonly struct BFloat16Sequencer : ISequencer<BFloat16>
     {

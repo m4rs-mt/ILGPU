@@ -150,6 +150,10 @@ public static readonly TypeInformation[] IntTypes =
 
 public static readonly TypeInformation[] FloatTypes =
     {
+        new TypeInformation("Mini43Float8", "Mini43Float8",
+            TypeInformationKind.Float, "(Mini43Float8)", "f"),
+        new TypeInformation("Mini52Float8", "Mini52Float8",
+            TypeInformationKind.Float, "(Mini52Float8)", "f"),
         new TypeInformation("BFloat16", "BFloat16",
             TypeInformationKind.Float, "(BFloat16)", "f"),
         new TypeInformation("Half", "Half", TypeInformationKind.Float, "(Half)", "f"),
@@ -172,7 +176,7 @@ public static readonly TypeInformation[] AtomicIntTypes =
     AtomicSignedIntTypes.Concat(AtomicUnsignedIntTypes).ToArray();
 
 public static readonly TypeInformation[] AtomicFloatTypes =
-    FloatTypes.Skip(2).ToArray();
+    FloatTypes.Skip(4).ToArray();
 
 public static readonly TypeInformation[] AtomicNumericTypes =
     AtomicIntTypes.Concat(AtomicFloatTypes).ToArray();
@@ -559,6 +563,18 @@ public MathOp[] GetBinaryMathOps(string rootPath) =>
 
 public MathOp[] GetTernaryMathOps(string rootPath) =>
     MathOperations.Load(rootPath, "TernaryMathOperations.xml");
+
+// FP8 raw implementations that can be implemented without the use of emulated FP32
+// operations.
+
+    public static readonly (string, string)[] FP8ImplementationMethods =
+    {
+        ("Abs", "Abs"),
+        ("Neg", "Neg"),
+        ("IsNaN", "IsNaNF"),
+        ("IsInfinity", "IsInfF"),
+        ("IsFinite", "IsFinF")
+    };
 
 // FP16 raw implementations that can be implemented without the use of emulated FP32
 // operations.

@@ -32,22 +32,29 @@ namespace ILGPU.Tests
         { }
 
 <# foreach (var (floatType, intType) in Enumerable.Range(0, FloatTypes.Length).
-    Select(t => (FloatTypes[t], UnsignedIntTypes[t==0?1:t]))) { #>
+    Select(t => (FloatTypes[t], UnsignedIntTypes[t<2?0:(t<4?1:t-2)]))) { #>
         internal static void <#= floatType.Name #>AsIntKernel(
             Index1D index,
             ArrayView1D<<#= intType.Type #>, Stride1D.Dense> data,
             <#= floatType.Type #> value)
         {
 <#
-    if (floatType != FloatTypes[0])
+    if (floatType == FloatTypes[0] || floatType == FloatTypes[1]) {
+#>
+            data[index] = value.AsByte;
+<#
+    }
+    else if (floatType == FloatTypes[2])
+    {
+#>
+            data[index] = value.AsUShort;
+<#
+    }
+    else
     {
 #>
             data[index] = Interop.FloatAsInt(value);
-<#
-    }
-    if (floatType == FloatTypes[0]) {
-#>
-            data[index] = value.AsUShort;
+
 <#
     }
 #>
@@ -58,23 +65,33 @@ namespace ILGPU.Tests
         public void <#= floatType.Name #>AsInt()
         {
 <#      if (floatType == FloatTypes[0] || floatType == FloatTypes[1] ) { #>
+            Skip.If(!Accelerator.Capabilities.Float8);
+<#      } #>
+<#      if (floatType == FloatTypes[2] || floatType == FloatTypes[3] ) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
+
             var floatValue = (<#= floatType.Type #>)2.0;
             using var data = Accelerator.Allocate1D<<#= intType.Type #>>(Length);
             Execute(Length, data.View, floatValue);
 
             var reference = Enumerable.Repeat(
 <#
-    if (floatType != FloatTypes[0])
-    {
+    if (floatType == FloatTypes[0] || floatType == FloatTypes[1]) {
 #>
-                Interop.FloatAsInt(floatValue),
+            floatValue.AsByte,
 <#
     }
-    if (floatType == FloatTypes[0]) {
+    else if (floatType == FloatTypes[2])
+    {
 #>
-                floatValue.AsUShort,
+            floatValue.AsUShort,
+<#
+    }
+    else
+    {
+#>
+            Interop.FloatAsInt(floatValue),
 <#
     }
 #>
@@ -88,18 +105,32 @@ namespace ILGPU.Tests
             <#= intType.Type #> value)
         {
 <#
-    if (floatType != FloatTypes[0])
-    {
+    if (floatType == FloatTypes[0]) {
 #>
-            data[index] = Interop.IntAsFloat(value);
+            data[index] = (Mini43Float8) value;
 <#
     }
-    if (floatType == FloatTypes[0]) {
+    else if (floatType == FloatTypes[1])
+    {
+#>
+            data[index] = (Mini52Float8) value;
+<#
+    }
+    else if (floatType == FloatTypes[2])
+    {
 #>
             data[index] = (BFloat16) value;
 <#
     }
+    else
+    {
 #>
+            data[index] = Interop.IntAsFloat(value);
+
+<#
+    }
+#>
+
         }
 
         [SkippableFact]
@@ -107,18 +138,31 @@ namespace ILGPU.Tests
         public void IntAs<#= floatType.Name #>()
         {
 <#      if (floatType == FloatTypes[0] || floatType == FloatTypes[1]) { #>
+            Skip.If(!Accelerator.Capabilities.Float8);
+<#      } #>
+
+<#      if (floatType == FloatTypes[2] || floatType == FloatTypes[3]) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
+
 <#
-    if (floatType != FloatTypes[0])
+    if (floatType == FloatTypes[0] || floatType == FloatTypes[1]) {
+#>
+            var intValue = ((<#= floatType.Type #>)2.0).AsByte;
+<#
+    }
+
+    else if (floatType == FloatTypes[2])
+    {
+#>
+            var intValue = ((<#= floatType.Type #>)2.0).AsUShort;
+<#
+    }
+    else
     {
 #>
             var intValue = Interop.FloatAsInt((<#= floatType.Type #>)2.0);
-<#
-    }
-    if (floatType == FloatTypes[0]) {
-#>
-            var intValue = ((<#= floatType.Type #>)2.0).AsUShort;
+
 <#
     }
 #>
@@ -127,15 +171,28 @@ namespace ILGPU.Tests
 
             var reference = Enumerable.Repeat(
 <#
-    if (floatType != FloatTypes[0])
-    {
-#>
-                Interop.IntAsFloat(intValue),
-<#
-    }
     if (floatType == FloatTypes[0]) {
 #>
-                (BFloat16) intValue,
+            (Mini43Float8) intValue,
+<#
+    }
+    else if (floatType == FloatTypes[1])
+    {
+#>
+            (Mini52Float8) intValue,
+<#
+    }
+    else if (floatType == FloatTypes[2])
+    {
+#>
+            (BFloat16) intValue,
+<#
+    }
+    else
+    {
+#>
+            Interop.IntAsFloat(intValue),
+
 <#
     }
 #>

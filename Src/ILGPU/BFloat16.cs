@@ -506,22 +506,20 @@ public readonly struct BFloat16
 
     internal ushort RawValue { get; }
 
-    /// <summary>
-    /// AsUShort - returns internal value
-    /// </summary>
-    public ushort AsUShort => RawValue;
+
 
     internal BFloat16(ushort rawValue)
     {
         RawValue = rawValue;
     }
 
-
     /// <summary>
-    /// Raw value
+    /// AsUShort - returns internal value
     /// </summary>
-    /// <returns>internal ushort value</returns>
-    public ushort ToRawUShort => RawValue;
+    public ushort AsUShort => RawValue;
+
+
+
 
    #endregion
 
@@ -700,6 +698,26 @@ public readonly struct BFloat16
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static explicit operator BFloat16(double value)
         => DoubleToBFloat16(value);
+
+    /// <summary>
+    /// Cast BFloat16 to Mini43Float8
+    /// </summary>
+    /// <param name="value">BFloat16 value to cast</param>
+    /// <returns>float</returns>
+    [ConvertIntrinisc]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Mini43Float8(BFloat16 value)
+        => (Mini43Float8) BFloat16ToSingle(value);
+
+    /// <summary>
+    /// Cast BFloat16 to Mini52Float8
+    /// </summary>
+    /// <param name="value">BFloat16 value to cast</param>
+    /// <returns>float</returns>
+    [ConvertIntrinisc]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Mini52Float8(BFloat16 value)
+        => (Mini52Float8) BFloat16ToSingle(value);
 
     /// <summary>
     /// Cast BFloat16 to float

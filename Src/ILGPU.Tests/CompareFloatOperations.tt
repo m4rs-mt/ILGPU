@@ -59,8 +59,10 @@ namespace ILGPU.Tests
 
 <# foreach (var (operationName, infix) in operationConfigurations) { #>
 <#      foreach (var type in FloatTypes) { #>
-<#         bool isFP16 = ( type == FloatTypes[0]) || (type == FloatTypes[1]); #>
-<#         var floatRanges = GetFloatRanges(type, true, true, true, false); #>
+<#         bool isFP8 = ( type == FloatTypes[0]) || (type == FloatTypes[1]); #>
+<#         bool isFP16 = ( type == FloatTypes[2]) || (type == FloatTypes[3]); #>
+<#         var floatRanges = GetFloatRanges(type, true, true,
+    type != FloatTypes[0], false); #>
 <#         var baseName = "_" + operationName + "_" + type.Name; #>
 <#         var testName = "CompareOperation" + baseName; #>
 <#         var kernelName = "CompareOperationKernel" + testName; #>
@@ -85,7 +87,7 @@ namespace ILGPU.Tests
 <#          } #>
             };
 
-<#      if (isFP16) { #>
+<#      if (isFP16 || isFP8) { #>
         [SkippableTheory]
 <#      } else { #>
         [Theory]
@@ -96,7 +98,14 @@ namespace ILGPU.Tests
             <#= type.Type #> left,
             <#= type.Type #> right)
         {
-<#      if (isFP16) { #>
+<#
+        if (isFP8)
+        {
+#>
+            Skip.If(!Accelerator.Capabilities.Float8);
+<#
+        }
+        if (isFP16) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
             const int Length = 32;
@@ -116,7 +125,8 @@ namespace ILGPU.Tests
 <# } #>
 
 <# foreach (var type in FloatTypes) { #>
-<#      bool isFP16 = (type == FloatTypes[0] || type == FloatTypes[1]); #>
+<#      bool isFP8 = (type == FloatTypes[0] || type == FloatTypes[1]); #>
+<#      bool isFP16 = (type == FloatTypes[2] || type == FloatTypes[3]); #>
 <#      foreach (var (limitName, limitFormat) in floatLimits) { #>
 <#          var baseName = "_" + limitName + "_" + type.Name; #>
 <#          var testName = "Constant" + baseName; #>
@@ -134,7 +144,7 @@ namespace ILGPU.Tests
             output[index] = input[index] == <#= testValue #> ? 1 : 0;
         }
 
-<#      if (isFP16) { #>
+<#      if (isFP16 || isFP8) { #>
         [SkippableFact]
 <#      } else { #>
         [Fact]
@@ -142,7 +152,14 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>()
         {
-<#      if (isFP16) { #>
+<#
+        if (isFP8)
+        {
+#>
+            Skip.If(!Accelerator.Capabilities.Float8);
+<#
+        }
+        if (isFP16) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
             var inputArray = new [] { <#= type.FormatNumber("0.0") #>, <#= testValue #> };

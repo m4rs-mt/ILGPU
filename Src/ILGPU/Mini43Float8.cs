@@ -506,10 +506,6 @@ public readonly struct Mini43Float8
 
     internal byte RawValue { get; }
 
-    /// <summary>
-    /// AsUShort - returns internal value
-    /// </summary>
-    public byte AsUShort => RawValue;
 
     internal Mini43Float8(byte rawValue)
     {
@@ -520,8 +516,8 @@ public readonly struct Mini43Float8
     /// <summary>
     /// Raw value
     /// </summary>
-    /// <returns>internal ushort value</returns>
-    public byte ToRawByte => RawValue;
+    /// <returns>internal byte value</returns>
+    public byte AsByte => RawValue;
 
    #endregion
 
@@ -725,6 +721,38 @@ public readonly struct Mini43Float8
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static explicit operator Mini43Float8(double value)
         => DoubleToMini43Float8(value);
+
+    /// <summary>
+    /// Cast Mini43Float8 to Half
+    /// </summary>
+    /// <param name="value">Mini43Float8 value to cast</param>
+    /// <returns>float</returns>
+    [ConvertIntrinisc]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Half(Mini43Float8 value)
+        => (Half) Mini43Float8ToSingle(value);
+
+
+    /// <summary>
+    /// Cast Mini43Float8 to Mini52Float8
+    /// </summary>
+    /// <param name="value">Mini43Float8 value to cast</param>
+    /// <returns>float</returns>
+    [ConvertIntrinisc]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Mini52Float8(Mini43Float8 value)
+        => (Mini52Float8) Mini43Float8ToSingle(value);
+
+    /// <summary>
+    /// Cast Mini43Float8 to BFloat16
+    /// </summary>
+    /// <param name="value">Mini43Float8 value to cast</param>
+    /// <returns>float</returns>
+    [ConvertIntrinisc]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator BFloat16(Mini43Float8 value)
+        => (BFloat16) Mini43Float8ToSingle(value);
+
 
     /// <summary>
     /// Cast Mini43Float8 to float
