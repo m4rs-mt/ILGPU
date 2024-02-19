@@ -231,7 +231,8 @@ public readonly struct Mini43Float8
     /// <param name="value">Mini43Float8 value to increment</param>
     /// <returns>Incremented value</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Mini43Float8 operator ++(Mini43Float8 value) => (Mini43Float8) ((float) value + 1f);
+    public static Mini43Float8 operator ++(Mini43Float8 value)
+        => (Mini43Float8) ((float) value + 1f);
 
 
 
@@ -273,7 +274,8 @@ public readonly struct Mini43Float8
     /// <param name="value">Value to be decremented by 1</param>
     /// <returns>Decremented value</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Mini43Float8 operator --(Mini43Float8 value) => (Mini43Float8) ((float) value - 1f);
+    public static Mini43Float8 operator --(Mini43Float8 value)
+        => (Mini43Float8) ((float) value - 1f);
 
 
     /// <summary>
@@ -401,7 +403,8 @@ public readonly struct Mini43Float8
     /// <param name="provider">Culture specific parsing provider</param>
     /// <param name="result">Mini43Float8 out param</param>
     /// <returns>True when successful</returns>
-    public static bool TryParse(string? s, IFormatProvider? provider, out Mini43Float8 result)
+    public static bool TryParse(string? s, IFormatProvider? provider,
+        out Mini43Float8 result)
     {
         float value;
         bool itWorked = float.TryParse(s,
@@ -599,14 +602,17 @@ public readonly struct Mini43Float8
 
         // Adjusting the exponent from BFloat16 (8 bits) to Mini43Float8 (3 bits)
         // This involves adjusting for bias differences
-        byte exponent = (byte)((((bFloat16Bits >> 7) & 0xFF) - 127) + 3); // Adjust exponent
+        byte exponent = (byte)((((bFloat16Bits >> 7) & 0xFF) - 127) + 3);
+        // Adjust exponent
 
         // Adjusting the mantissa from BFloat16 (7 bits) to Mini43Float8 (4 bits)
         // This involves truncating the least significant bits
-        byte mantissa = (byte)((bFloat16Bits & 0x7F) >> (7 - 4)); // Truncate mantissa to fit Mini43Float8
+        byte mantissa = (byte)((bFloat16Bits & 0x7F) >> (7 - 4));
+        // Truncate mantissa to fit Mini43Float8
 
         // Combining sign, exponent, and mantissa into Mini43Float8 format
-        byte mini43Float8Bits = (byte)((sign << 7) | (exponent << 4) | mantissa); // Shift and combine bits
+        byte mini43Float8Bits = (byte)((sign << 7) | (exponent << 4) | mantissa);
+        // Shift and combine bits
 
         return new Mini43Float8(mini43Float8Bits);
     }
@@ -663,7 +669,8 @@ public readonly struct Mini43Float8
         byte mantissa = (byte)((floatBits >> (23 - 4)) & 0x0F);
         // Extracting top 4 bits of mantissa
 
-        // Combining into Mini43Float8 format (1 bit sign, 4 bits exponent, 4 bits mantissa)
+        // Combining into Mini43Float8 format (1 bit sign, 4 bits exponent,
+        // 4 bits mantissa)
         byte mini43Float8 = (byte)(sign | exponent | mantissa);
 
         return new Mini43Float8(mini43Float8);
