@@ -17,6 +17,11 @@ class Program
             Hello = 42;
         }
     }
+
+    static int AnotherFunction()
+    {
+        return new MyRefType().Hello;
+    }
     
     static void Kernel(Index1D index, ArrayView<int> input, ArrayView<int> output)
     {
@@ -30,16 +35,19 @@ class Program
         
         // But arrays of reference types are still disallowed
         MyRefType[] refs = [new MyRefType()];
+        
+        // Any functions that may be called are also analyzed
+        int result = AnotherFunction();
     }
     
     static void Main(string[] args)
     {
-        var context = Context.CreateDefault();
+        using var context = Context.CreateDefault();
         var device = context.GetPreferredDevice(false);
-        var accelerator = device.CreateAccelerator(context);
+        using var accelerator = device.CreateAccelerator(context);
 
-        var input = accelerator.Allocate1D<int>(1024);
-        var output = accelerator.Allocate1D<int>(1024);
+        using var input = accelerator.Allocate1D<int>(1024);
+        using var output = accelerator.Allocate1D<int>(1024);
         
         var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<int>, ArrayView<int>>(Kernel);
 
