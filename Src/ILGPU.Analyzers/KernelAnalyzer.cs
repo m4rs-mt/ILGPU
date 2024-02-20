@@ -10,14 +10,15 @@ namespace ILGPU.Analyzers
 {
     public abstract class KernelAnalyzer : DiagnosticAnalyzer
     {
-        private readonly ImmutableHashSet<string> kernelLoadNames = ImmutableHashSet.Create(
-            "LoadKernel",
-            "LoadAutoGroupedKernel",
-            "LoadImplicitlyGroupedKernel",
-            "LoadStreamKernel",
-            "LoadAutoGroupedStreamKernel",
-            "LoadImplicitlyGroupedStreamKernel"
-        );
+        private readonly ImmutableHashSet<string> _kernelLoadNames =
+            ImmutableHashSet.Create(
+                "LoadKernel",
+                "LoadAutoGroupedKernel",
+                "LoadImplicitlyGroupedKernel",
+                "LoadStreamKernel",
+                "LoadAutoGroupedStreamKernel",
+                "LoadImplicitlyGroupedStreamKernel"
+                );
 
         /// <summary>
         /// Called for every operation potentially reachable from a kernel.
@@ -26,8 +27,8 @@ namespace ILGPU.Analyzers
         /// The analysis context used to report diagnostics.
         /// </param>
         /// <param name="operation">
-        /// The operation. Operations for subsequent calls may be parents or descendants of
-        /// an operation for a previous call.
+        /// The operation. Operations for subsequent calls may be parents or descendants
+        /// of an operation for a previous call.
         /// </param>
         protected abstract void AnalyzeKernelOperation(
             OperationAnalysisContext context,
@@ -51,21 +52,23 @@ namespace ILGPU.Analyzers
             var methodSymbol = invocationOperation.TargetMethod;
 
             if (methodSymbol.MethodKind != MethodKind.Ordinary
-                || !kernelLoadNames.Contains(methodSymbol.Name))
+                || !_kernelLoadNames.Contains(methodSymbol.Name))
                 return;
 
             var kernelArg = invocationOperation.Arguments.FirstOrDefault(x =>
                 x.Parameter?.Type.TypeKind == TypeKind.Delegate);
 
+            // TODO: support expressions that return delegate (probably requires dataflow)
             if (kernelArg?.Value is
                 IDelegateCreationOperation
-                delegateOp) // TODO: support expressions that return delegate (probably requires dataflow)
+                delegateOp)
             {
                 var semanticModel = context.Operation.SemanticModel;
 
                 var bodyOp = delegateOp.Target switch
                 {
-                    IMethodReferenceOperation refOp => GetMethodBody(semanticModel, refOp.Method),
+                    IMethodReferenceOperation refOp => GetMethodBody(semanticModel,
+                        refOp.Method),
                     IAnonymousFunctionOperation anonymousOp => anonymousOp.Body,
                     _ => null
                 };
@@ -75,7 +78,8 @@ namespace ILGPU.Analyzers
         }
 
         // TODO: iterative using stack
-        private void RecursivelyAnalyzeKernelOperations(OperationAnalysisContext context, IOperation? bodyOp,
+        private void RecursivelyAnalyzeKernelOperations(OperationAnalysisContext context,
+            IOperation? bodyOp,
             HashSet<IOperation>? seen = null)
         {
             seen ??= new HashSet<IOperation>();
@@ -90,24 +94,29 @@ namespace ILGPU.Analyzers
                 seen.Add(descendant);
                 AnalyzeKernelOperation(context, descendant);
 
-                // Okay, so this doesn't cover every possible way other code can be called through a kernel.
-                // But this is in general quite difficult to do. We can improve things over time as necessary, perhaps.
-                // Thankfully, if we accept a degree of false positives, we probably don't need to solve the halting problem :)
+                // Okay, so this doesn't cover every possible way other code can be called
+                // through a kernel. But this is in general quite difficult to do. We can
+                // improve things over time as necessary, perhaps. Thankfully, if we
+                // accept a degree of false positives, we probably don't need to solve the
+                // halting problem :)
                 if (descendant is IInvocationOperation kernelMethodCallOperation)
                 {
-                    var innerBodyOp = GetMethodBody(semanticModel, kernelMethodCallOperation.TargetMethod);
+                    var innerBodyOp = GetMethodBody(semanticModel,
+                        kernelMethodCallOperation.TargetMethod);
                     RecursivelyAnalyzeKernelOperations(context, innerBodyOp, seen);
                 }
             }
         }
 
-        private IOperation? GetMethodBody(SemanticModel? model, IMethodSymbol symbol) => symbol switch
-        {
-            { IsPartialDefinition: false } => model?.GetOperation(
-                symbol.DeclaringSyntaxReferences[0].GetSyntax()),
-            { PartialImplementationPart: not null } => model?.GetOperation(
-                symbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax()),
-            _ => null
-        };
+        private IOperation? GetMethodBody(SemanticModel? model, IMethodSymbol symbol) =>
+            symbol switch
+            {
+                { IsPartialDefinition: false } => model?.GetOperation(
+                    symbol.DeclaringSyntaxReferences[0].GetSyntax()),
+                { PartialImplementationPart: not null } => model?.GetOperation(
+                    symbol.PartialImplementationPart.DeclaringSyntaxReferences[0]
+                        .GetSyntax()),
+                _ => null
+            };
     }
 }
