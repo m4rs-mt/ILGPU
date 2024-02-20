@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+namespace RefTypeAnalyzers;
 
 class Program
 {
