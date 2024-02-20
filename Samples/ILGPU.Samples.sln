@@ -137,6 +137,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterleaveFields", "Interle
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ILGPU.Analyzers", "ILGPU.Analyzers", "{6D111E09-49A1-492E-B4CE-E18CE27B56A8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RefTypeAnalyzer", "RefTypeAnalyzer\RefTypeAnalyzer.csproj", "{6176F0D0-4A34-42DB-BDFB-2D8ED80868C3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -383,6 +385,10 @@ Global
 		{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6176F0D0-4A34-42DB-BDFB-2D8ED80868C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6176F0D0-4A34-42DB-BDFB-2D8ED80868C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6176F0D0-4A34-42DB-BDFB-2D8ED80868C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6176F0D0-4A34-42DB-BDFB-2D8ED80868C3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -451,6 +457,7 @@ Global
 		{70B69CE3-24A9-463C-B14C-E2934988BBEE} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 		{1C5E9E39-3C14-4B52-8D97-04555D5F6331} = {03FCC663-945D-4982-90D8-B14BE52D8FCD}
 		{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A} = {C1D99632-ED4A-4B08-A14D-4C8DB375934F}
+		{6176F0D0-4A34-42DB-BDFB-2D8ED80868C3} = {6D111E09-49A1-492E-B4CE-E18CE27B56A8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {30E502BD-3826-417F-888F-1CE19CF5C6DA}
