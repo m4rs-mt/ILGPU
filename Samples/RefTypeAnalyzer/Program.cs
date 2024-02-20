@@ -18,7 +18,7 @@ class Program
         }
     }
     
-    void Kernel(Index1D index, ArrayView<int> input, ArrayView<int> output)
+    static void Kernel(Index1D index, ArrayView<int> input, ArrayView<int> output)
     {
         // This is disallowed, since MyRefType is a reference type
         var refType = new MyRefType();
@@ -32,7 +32,7 @@ class Program
         MyRefType[] refs = [new MyRefType()];
     }
     
-    void Main(string[] args)
+    static void Main(string[] args)
     {
         var context = Context.CreateDefault();
         var device = context.GetPreferredDevice(false);
