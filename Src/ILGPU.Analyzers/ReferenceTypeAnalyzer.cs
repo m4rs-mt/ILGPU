@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2023-2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: ReferenceTypeAnalyzer.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 using ILGPU.Analyzers.Resources;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
