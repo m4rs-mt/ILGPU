@@ -15,16 +15,16 @@ namespace RefTypeAnalyzers;
 
 class Program
 {
-    class MyRefType
+    class RefType
     {
         public int Hello => 42;
     }
 
-    struct MyUnmanagedType
+    struct ValueType
     {
         public int Hello;
 
-        public MyUnmanagedType()
+        public ValueType()
         {
             Hello = 42;
         }
@@ -32,23 +32,24 @@ class Program
 
     static int AnotherFunction()
     {
-        return new MyRefType().Hello;
+        return new RefType().Hello;
     }
 
     // TODO: tests needed: normal, using stuff from the class context, arrays, arrays of
-    // ref types, constructor calls, method/function calls
+    // ref types, constructor calls, method/function calls, structs with ref types in
+    // them, structs that use ref types in constructors/methods, partial definitions
     static void Kernel(Index1D index, ArrayView<int> input, ArrayView<int> output)
     {
         // This is disallowed, since MyRefType is a reference type
-        var refType = new MyRefType();
+        var refType = new RefType();
         output[index] = input[index] + refType.Hello;
 
         // Allocating arrays of unmanaged types is fine
-        MyUnmanagedType[] array = [new MyUnmanagedType()];
+        ValueType[] array = [new ValueType()];
         int[] ints = [0, 1, 2];
 
         // But arrays of reference types are still disallowed
-        MyRefType[] refs = [new MyRefType()];
+        RefType[] refs = [new RefType()];
 
         // Any functions that may be called are also analyzed
         int result = AnotherFunction();

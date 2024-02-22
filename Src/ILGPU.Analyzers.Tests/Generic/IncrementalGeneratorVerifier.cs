@@ -16,6 +16,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using ILGPU.Analyzers.Tests.Generic;
 using VerifyTests;
 using VerifyXunit;
 
@@ -26,32 +27,16 @@ namespace ILGPU.Analyzers.Tests
     {
         public static Task Verify(string source)
         {
-            // Parse syntax tree.
-            var syntaxTree = CSharpSyntaxTree.ParseText(source);
-
-            // Add system references.
-            var trustedAssembliesPaths =
-                (string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
-            var systemReferences =
-                trustedAssembliesPaths
-                .Split(Path.PathSeparator)
-                .Select(x => MetadataReference.CreateFromFile(x))
-                .ToArray();
-
-            var ilgpuReferences =
+            var ilgpuAssemblies =
                 new[]
                 {
-                    typeof(InterleaveFieldsAttribute),
-                    typeof(TIncrementalGenerator)
-                }
-                .Select(x => MetadataReference.CreateFromFile(x.Assembly.Location))
-                .ToArray();
+                    typeof(InterleaveFieldsAttribute).Assembly,
+                    typeof(TIncrementalGenerator).Assembly
+                };
 
-            // Create a roslyn compilation for the syntax tree.
-            var compilation = CSharpCompilation.Create(
-                "Tests",
-                new[] { syntaxTree },
-                references: systemReferences.Concat(ilgpuReferences));
+            var compilation =
+                SourceCompiler.CreateCompilationWithAssemblies("Tests", source,
+                    ilgpuAssemblies);
 
             // Create an instance of the incremental source generator.
             var generator = new TIncrementalGenerator();
