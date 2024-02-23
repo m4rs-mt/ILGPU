@@ -27,4 +27,11 @@
     <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Programs\**" />
+    <Content Include="Programs\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

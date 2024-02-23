@@ -12,15 +12,12 @@
 using ILGPU.CodeGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using ILGPU.Analyzers.Tests.Generic;
 using VerifyTests;
 using VerifyXunit;
 
-namespace ILGPU.Analyzers.Tests
+namespace ILGPU.Analyzers.Tests.Generic
 {
     public static class IncrementalGeneratorVerifier<TIncrementalGenerator>
         where TIncrementalGenerator : IIncrementalGenerator, new()
