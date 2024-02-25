@@ -534,27 +534,13 @@ public readonly struct BFloat16
     /// <param name="bFloat16">BFloat16 value to convert</param>
     /// <returns>Value converted to float</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float BFloat16ToSingle(BFloat16 bFloat16)
+    public static float BFloat16ToSingle(BFloat16 bFloat16)
     {
-        uint rawBFloat16 = bFloat16.RawValue;
-        uint sign = (rawBFloat16 & 0x8000) << 16; // Move sign bit to correct position
+        // Combine and shift the sign, exponent and mantissa bits together.
+        uint floatBits = (uint)(bFloat16.RawValue) << 16;
 
-        // Correctly adjust the exponent from BFloat16's format to float's format
-        // Assuming BFloat16's bias is 127 to simplify, which might not be accurate
-        // depending on its definition
-        int exponent = ((int)((rawBFloat16 >> 7) & 0xFF) - 127) + 127;
-        // No actual adjustment needed if both biases are 127
-        uint exponentBits = (uint)(exponent << 23); // Position exponent bits
-                                                    // correctly for a float
-
-        // Scale the 7-bit mantissa of BFloat16 to fit into the 23-bit mantissa of a float
-        uint mantissa = (rawBFloat16 & 0x7F) << (23 - 7);
-
-        // Combine sign, exponent, and mantissa into a 32-bit float representation
-        uint floatBits = sign | exponentBits | mantissa;
-
-        // Convert the 32-bit representation into a float
-        return BitConverter.ToSingle(BitConverter.GetBytes(floatBits), 0);
+        // Convert the 32-bit representation back to a float
+        return Unsafe.As<uint, float>(ref floatBits);
     }
 
 
@@ -631,26 +617,29 @@ public readonly struct BFloat16
     /// </summary>
     /// <param name="value">float to convert</param>
     /// <returns>BFloat16</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BFloat16 SingleToBFloat16(float value)
     {
-        // Extracting the binary representation of the float value
-        uint floatBits = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
+        // Convert the 32-bit float to its binary representation
+        uint floatBits = Unsafe.As<float, uint>(ref value);
 
-        // Extracting sign (1 bit)
-        ushort sign = (ushort)((floatBits >> 16) & 0x8000);
+        // Truncate the float's representation to BFLOAT16 by shifting and keeping the upper 16 bits
+        ushort truncatedBits = (ushort)(floatBits >> 16);
 
-        // Extracting exponent (8 bits)
-        ushort exponent = (ushort)(((floatBits >> 23) & 0xFF) - 127 + 127);
-        // Adjust exponent and re-bias if necessary
-        exponent = (ushort)(exponent << 7);
+        // Check the most significant bit of the bits being truncated to decide on rounding
+        bool shouldRoundUp = (floatBits & 0x8000) != 0;
 
-        // Extracting mantissa (top 7 bits of the float's 23-bit mantissa)
-        ushort mantissa = (ushort)((floatBits >> (23 - 7)) & 0x7F);
+        if (shouldRoundUp)
+        {
+            // Increment the BFLOAT16 representation if rounding is needed
+            // This increment could lead to mantissa overflow, which naturally increments the exponent
+            truncatedBits++;
 
-        // Combining into BFloat16 format (1 bit sign, 8 bits exponent, 7 bits mantissa)
-        ushort bFloat16 = (ushort)(sign | exponent | mantissa);
+            // Note: No specific handling for overflow into infinity is provided here,
+            // which could be relevant for the maximum representable float values.
+        }
 
-        return new (bFloat16);
+        return Unsafe.As<ushort,BFloat16>(ref truncatedBits);  //      return new (bFloat16);
     }
 
 
