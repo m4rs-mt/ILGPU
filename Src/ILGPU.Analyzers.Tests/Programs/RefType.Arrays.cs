@@ -24,7 +24,10 @@ class Arrays
         ValueType[] array = [new ValueType()];
         int[] ints = [0, 1, 2];
 
-        RefType[] refs = [new RefType()];
+        // TODO: the new collection expressions seem to have an issue where analyses
+        // will be produced twice. If anyone has any information on this, please
+        // let me know.
+        RefType[] refs = { new RefType() };
     }
 
     static void Run()
