@@ -1,5 +1,4 @@
 using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 using Xunit;
 using VerifyCS =
@@ -22,6 +21,13 @@ public class RefTypeAnalyzer
     public async Task Arrays()
     {
         var code = await File.ReadAllTextAsync("Programs/RefType.Arrays.cs");
+        await VerifyCS.Verify(code);
+    }
+
+    [Fact]
+    public async Task Functions()
+    {
+        var code = await File.ReadAllTextAsync("Programs/RefType.Functions.cs");
         await VerifyCS.Verify(code);
     }
 }

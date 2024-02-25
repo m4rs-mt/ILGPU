@@ -25,7 +25,7 @@ public static class DiagnosticAnalyzerVerifier<TDiagnosticAnalyzer>
 
         var analyzer = new TDiagnosticAnalyzer();
         var options = new AnalyzerOptions([]);
-        CompilationWithAnalyzers analyzerCompilation = new CompilationWithAnalyzers(
+        var analyzerCompilation = new CompilationWithAnalyzers(
             compilation,
             [analyzer], options);
 
