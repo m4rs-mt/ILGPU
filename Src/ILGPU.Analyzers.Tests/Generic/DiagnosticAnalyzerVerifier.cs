@@ -25,12 +25,11 @@ public static class DiagnosticAnalyzerVerifier<TDiagnosticAnalyzer>
 
         var analyzer = new TDiagnosticAnalyzer();
         var options = new AnalyzerOptions([]);
-        var analyzerCompilation = new CompilationWithAnalyzers(
-            compilation,
-            [analyzer], options);
+        var analyzerCompilation =
+            new CompilationWithAnalyzers(compilation, [analyzer], options);
 
         var diagnostics = await analyzerCompilation.GetAnalyzerDiagnosticsAsync();
-        
+
         var settings = new VerifySettings();
         settings.UseDirectory(Path.Combine("..", "Snapshots"));
         await Verifier.Verify(diagnostics, settings);

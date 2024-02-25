@@ -30,4 +30,11 @@ public class RefTypeAnalyzer
         var code = await File.ReadAllTextAsync("Programs/RefType.Functions.cs");
         await VerifyCS.Verify(code);
     }
+
+    [Fact]
+    public async Task Constructors()
+    {
+        var code = await File.ReadAllTextAsync("Programs/RefType.Constructors.cs");
+        await VerifyCS.Verify(code);
+    }
 }

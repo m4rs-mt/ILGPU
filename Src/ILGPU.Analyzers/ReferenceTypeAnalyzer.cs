@@ -28,7 +28,7 @@ namespace ILGPU.Analyzers
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true
-        );
+            );
 
         private static readonly DiagnosticDescriptor ArrayDiagnosticRule = new(
             id: "ILA004",
@@ -37,7 +37,7 @@ namespace ILGPU.Analyzers
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true
-        );
+            );
 
         public override ImmutableArray<DiagnosticDescriptor>
             SupportedDiagnostics { get; } =
@@ -113,6 +113,14 @@ namespace ILGPU.Analyzers
             if (op is IInvocationOperation invocationOperation)
             {
                 return MethodUtil.GetMethodBody(model, invocationOperation.TargetMethod);
+            }
+
+            if (op is IObjectCreationOperation creationOperation)
+            {
+                if (creationOperation.Constructor is not null)
+                {
+                    return MethodUtil.GetMethodBody(model, creationOperation.Constructor);
+                }
             }
 
             return null;

@@ -8,11 +8,13 @@ namespace ILGPU.Analyzers
         {
             return symbol switch
             {
-                { IsPartialDefinition: false } => model.GetOperation(
-                    symbol.DeclaringSyntaxReferences[0].GetSyntax()),
-                { PartialImplementationPart: not null } => model.GetOperation(
-                    symbol.PartialImplementationPart.DeclaringSyntaxReferences[0]
-                        .GetSyntax()),
+                {
+                    IsPartialDefinition: false,
+                    DeclaringSyntaxReferences: var refs,
+                } => refs.Length > 0 ? model.GetOperation(refs[0].GetSyntax()) : null,
+                {
+                    PartialImplementationPart: { DeclaringSyntaxReferences: var refs },
+                } => refs.Length > 0 ? model.GetOperation(refs[0].GetSyntax()) : null,
                 _ => null
             };
         }
