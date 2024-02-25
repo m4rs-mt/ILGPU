@@ -565,6 +565,15 @@ public readonly struct Mini52Float8
 
        uint mantissa = (uint)(rawMini52Float8 & 0x07) << (23 - 2); // Correctly scale mantissa, considering 2 mantissa bits
 
+       // Check for special cases: NaN and Infinity
+       if (exponentIndex == 0x1F) { // All exponent bits are 1
+           if (mantissa >> 21 != 0) { // Non-zero mantissa means NaN
+               return float.NaN;
+           } else { // Zero mantissa means Infinity
+               return sign == 0 ? float.PositiveInfinity : float.NegativeInfinity;
+           }
+       }
+
        // Combine sign, exponent, and mantissa into a 32-bit float representation
        uint floatBits = sign | exponent | mantissa;
 
@@ -572,9 +581,8 @@ public readonly struct Mini52Float8
        return Unsafe.As<uint, float>(ref floatBits);
    }
 
-// uint exponent =  (((uint)(rawMini52Float8 >> 3) & 0x1F)+ 127 - 7 )<<23;
 
-    private static readonly byte[] exponentToMiniLookupTable = GenerateToMiniExponentLookupTable();
+   private static readonly byte[] exponentToMiniLookupTable = GenerateToMiniExponentLookupTable();
 
 // Generates the lookup table for exponent conversion from single-precision float to Mini52Float8 format.
     private static byte[] GenerateToMiniExponentLookupTable()
@@ -590,21 +598,44 @@ public readonly struct Mini52Float8
         return table;
     }
 
+    /// <summary>
+    /// Convert float to Mini52Float8
+    /// </summary>
+    /// <param name="float">float value to convert</param>
+    /// <returns>Value converted to Mini52Float8</returns>
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Mini52Float8 SingleToMini52Float8(float value)
     {
         // Extracting the binary representation of the float value
         uint floatBits = Unsafe.As<float, uint>(ref value);
 
+        byte exponentIndex = (byte)((floatBits >> 23) & 0xFF); // Extract 8-bit exponent
+
         // Extracting sign (1 bit)
         byte sign = (byte)((floatBits >> 24) & 0x80); // Extract sign bit
 
-        // Using the lookup table to convert the exponent
-        byte exponentIndex = (byte)((floatBits >> 23) & 0xFF); // Extract 8-bit exponent
-        byte exponent = exponentToMiniLookupTable[exponentIndex]; // Convert using the lookup table
-
-
         // Extract mantissa bits for rounding
         uint mantissaBits = (floatBits & 0x007FFFFF);
+
+        if (exponentIndex == 0xFF)
+        {
+            if (mantissaBits == 0) // Infinity check
+            {
+                if (sign != 0) // Positive Infinity
+                    return Mini52Float8.NegativeInfinity;
+                else // Negative Infinity
+                    return Mini52Float8.PositiveInfinity;
+            }
+            else // NaN check
+            {
+                return Mini52Float8.NaN;
+            }
+        }
+
+        // Using the lookup table to convert the exponent
+        byte exponent = exponentToMiniLookupTable[exponentIndex]; // Convert using the lookup table
+
         byte mantissa = (byte)((mantissaBits >> 21) & 0x3); // Direct extraction
         byte roundBit = (byte)((mantissaBits >> 20) & 0x1);
         byte stickyBit = (byte)((mantissaBits & 0x000FFFFF) > 0 ? 1 : 0);
