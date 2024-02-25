@@ -38,6 +38,18 @@ namespace ILGPU
 
         internal const ushort SignMask = 0x8000;
 
+        /// <summary>
+        /// One
+        /// </summary>
+        public static Half One { get; } = new Half(0x3C00);
+
+
+        /// <summary>
+        /// Zero
+        /// </summary>
+        public static Half Zero { get; } = new Half(0x0);
+
+
 
         #endregion
 

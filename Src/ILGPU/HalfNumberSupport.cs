@@ -649,16 +649,6 @@ public readonly partial struct Half : INumber<Half>
 
 
 
-    /// <summary>
-    /// One
-    /// </summary>
-    public static Half One  => new Half(0x1);
-
-    /// <summary>
-    /// Zero
-    /// </summary>
-    public static Half Zero => new Half(0x0);
-
 
     // INumberBase.Radix
 
