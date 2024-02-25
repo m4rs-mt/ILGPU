@@ -49,7 +49,10 @@ class Program
         int[] ints = [0, 1, 2];
 
         // But arrays of reference types are still disallowed
-        RefType[] refs = [new RefType()];
+        RefType[] other =
+        [
+            new RefType(),
+        ];
 
         // Any functions that may be called are also analyzed
         int result = AnotherFunction();

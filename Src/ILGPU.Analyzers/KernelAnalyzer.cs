@@ -29,21 +29,20 @@ namespace ILGPU.Analyzers
                 "LoadStreamKernel",
                 "LoadAutoGroupedStreamKernel",
                 "LoadImplicitlyGroupedStreamKernel"
-                );
+            );
 
         /// <summary>
-        /// Called for every operation potentially reachable from a kernel.
+        /// Called for every kernel body.
         /// </summary>
         /// <param name="context">
         /// The analysis context used to report diagnostics.
         /// </param>
-        /// <param name="operation">
-        /// The operation. Operations for subsequent calls may be parents or descendants
-        /// of an operation for a previous call.
+        /// <param name="bodyOp">
+        /// The operation. 
         /// </param>
-        protected abstract void AnalyzeKernelOperation(
+        protected abstract void AnalyzeKernelBody(
             OperationAnalysisContext context,
-            IOperation operation);
+            IOperation bodyOp);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -81,68 +80,18 @@ namespace ILGPU.Analyzers
 
                 var bodyOp = delegateOp.Target switch
                 {
-                    IMethodReferenceOperation refOp => GetMethodBody(semanticModel,
+                    IMethodReferenceOperation refOp => MethodUtil.GetMethodBody(
+                        semanticModel,
                         refOp.Method),
                     IAnonymousFunctionOperation anonymousOp => anonymousOp.Body,
-                    _ => null
+                    _ => null,
                 };
 
                 if (bodyOp is not null)
                 {
-                    RecursivelyAnalyzeKernelOperations(context, bodyOp);
+                    AnalyzeKernelBody(context, bodyOp);
                 }
             }
         }
-
-        private void RecursivelyAnalyzeKernelOperations(OperationAnalysisContext context,
-            IOperation bodyOp)
-        {
-            HashSet<IOperation> seen = new HashSet<IOperation>();
-            Stack<IOperation> stack = new Stack<IOperation>();
-            stack.Push(bodyOp);
-
-            var semanticModel = context.Operation.SemanticModel!;
-
-            while (stack.Count != 0)
-            {
-                var op = stack.Pop();
-                if (seen.Contains(op)) continue;
-
-                foreach (var descendant in op.DescendantsAndSelf())
-                {
-                    seen.Add(descendant);
-                    AnalyzeKernelOperation(context, descendant);
-
-                    var innerBodyOp = GetInvokedOp(semanticModel, descendant);
-
-                    if (innerBodyOp is not null)
-                    {
-                        stack.Push(innerBodyOp);
-                    }
-                }
-            }
-        }
-
-        private IOperation? GetInvokedOp(SemanticModel model, IOperation op)
-        {
-            // TODO: Are there more ways code can be called?
-            if (op is IInvocationOperation invocationOperation)
-            {
-                return GetMethodBody(model, invocationOperation.TargetMethod);
-            }
-
-            return null;
-        }
-
-        private IOperation? GetMethodBody(SemanticModel model, IMethodSymbol symbol) =>
-            symbol switch
-            {
-                { IsPartialDefinition: false } => model.GetOperation(
-                    symbol.DeclaringSyntaxReferences[0].GetSyntax()),
-                { PartialImplementationPart: not null } => model.GetOperation(
-                    symbol.PartialImplementationPart.DeclaringSyntaxReferences[0]
-                        .GetSyntax()),
-                _ => null
-            };
     }
 }

@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <Compile Remove="Programs\**" />
+    <Compile Include="Programs\RefType.Arrays.cs" />
     <Content Include="Programs\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

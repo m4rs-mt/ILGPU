@@ -6,7 +6,7 @@
     },
     "RefType": {
       "commandName": "DebugRoslynComponent",
-      "targetProject": "..\\..\\Samples\\\\RefType.csproj"
+      "targetProject": "..\\..\\Samples\\RefTypeAnalyzer\\RefTypeAnalyzer.csproj"
     }
   }
 }

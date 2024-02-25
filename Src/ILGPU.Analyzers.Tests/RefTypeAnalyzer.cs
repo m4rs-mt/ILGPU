@@ -17,4 +17,11 @@ public class RefTypeAnalyzer
         var code = await File.ReadAllTextAsync("Programs/RefType.Simple.cs");
         await VerifyCS.Verify(code);
     }
+
+    [Fact]
+    public async Task Arrays()
+    {
+        var code = await File.ReadAllTextAsync("Programs/RefType.Arrays.cs");
+        await VerifyCS.Verify(code);
+    }
 }

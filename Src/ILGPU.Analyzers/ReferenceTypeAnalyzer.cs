@@ -13,6 +13,8 @@ using ILGPU.Analyzers.Resources;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System.Collections.Generic;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace ILGPU.Analyzers
 {
@@ -37,42 +39,83 @@ namespace ILGPU.Analyzers
             isEnabledByDefault: true
         );
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
+        public override ImmutableArray<DiagnosticDescriptor>
+            SupportedDiagnostics { get; } =
             ImmutableArray.Create(GeneralDiagnosticRule, ArrayDiagnosticRule);
 
-        protected override void AnalyzeKernelOperation(OperationAnalysisContext context,
-            IOperation operation)
+        protected override void AnalyzeKernelBody(OperationAnalysisContext context,
+            IOperation bodyOp)
         {
-            if (operation.Type is null)
-            {
-                return;
-            }
+            Stack<IOperation> bodies = new Stack<IOperation>();
+            // To catch mutual recursion
+            HashSet<IOperation> seenBodies = new HashSet<IOperation>();
+            bodies.Push(bodyOp);
 
-            if (operation.Type.IsValueType)
-            {
-                return;
-            }
+            // We will always have a semantic model because KernelAnalyzer subscribes
+            // to semantic analysis
+            var semanticModel = context.Operation.SemanticModel!;
 
-            if (operation.Type is IArrayTypeSymbol arrayTypeSymbol)
+            while (bodies.Count != 0)
             {
-                if (!arrayTypeSymbol.ElementType.IsValueType)
+                var op = bodies.Pop();
+
+                foreach (var descendant in op.DescendantsAndSelf())
                 {
-                    var arrayDiagnostic =
-                        Diagnostic.Create(ArrayDiagnosticRule,
-                            operation.Syntax.GetLocation(),
-                            operation.Type.ToDisplayString(),
-                            arrayTypeSymbol.ElementType.ToDisplayString());
-                    context.ReportDiagnostic(arrayDiagnostic);
-                }
+                    AnalyzeKernelOperation(context, descendant);
 
+                    var innerBodyOp = GetInvokedOp(semanticModel, descendant);
+                    if (innerBodyOp is null) continue;
+
+                    if (!seenBodies.Contains(innerBodyOp))
+                    {
+                        bodies.Push(innerBodyOp);
+                        seenBodies.Add(innerBodyOp);
+                    }
+                }
+            }
+        }
+
+        private void AnalyzeKernelOperation(OperationAnalysisContext context,
+            IOperation op)
+        {
+            if (op.Type is null)
                 return;
+
+            if (op.Type.IsValueType)
+                return;
+
+            if (op.Type is IArrayTypeSymbol arrayTypeSymbol)
+            {
+                if (arrayTypeSymbol.ElementType.IsValueType)
+                    return;
+
+                string first = arrayTypeSymbol.ToDisplayString();
+                string second = arrayTypeSymbol.ElementType.ToDisplayString();
+
+                var arrayDiagnostic =
+                    Diagnostic.Create(ArrayDiagnosticRule,
+                        op.Syntax.GetLocation(), first, second);
+                context.ReportDiagnostic(arrayDiagnostic);
+            }
+            else
+            {
+                var generalDiagnostic =
+                    Diagnostic.Create(GeneralDiagnosticRule,
+                        op.Syntax.GetLocation(),
+                        op.Type.ToDisplayString());
+                context.ReportDiagnostic(generalDiagnostic);
+            }
+        }
+
+        private IOperation? GetInvokedOp(SemanticModel model, IOperation op)
+        {
+            // TODO: Are there more ways code can be called?
+            if (op is IInvocationOperation invocationOperation)
+            {
+                return MethodUtil.GetMethodBody(model, invocationOperation.TargetMethod);
             }
 
-            var generalDiagnostic =
-                Diagnostic.Create(GeneralDiagnosticRule,
-                    operation.Syntax.GetLocation(),
-                    operation.Type.ToDisplayString());
-            context.ReportDiagnostic(generalDiagnostic);
+            return null;
         }
     }
 }
