@@ -1,0 +1,865 @@
+// ---------------------------------------------------------------------------------------
+//                                   ILGPU Algorithms
+//                        Copyright (c) 2023-2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: FixedInts.tt/FixedInts.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../TypeInformation.ttinclude"#>
+<#@ include file="FixedIntConfig.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+var basicConversionTypes = new string[]
+    {
+        "sbyte",
+        "byte",
+        "short",
+        "ushort",
+        "int",
+        "uint",
+        "long",
+        "ulong",
+        "System.Int128",
+        "System.UInt128",
+        "nint",
+        "nuint",
+        "System.Half",
+        "float",
+        "double",
+    };
+#>
+using ILGPU.Algorithms.Random;
+using ILGPU.Runtime;
+using System;
+using System.Globalization;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+#if NET7_0_OR_GREATER
+
+// disable: max_line_length
+
+#pragma warning disable IDE0004 // Cast is redundant
+#pragma warning disable CA2225 // Friendly operator names
+
+namespace ILGPU.Algorithms.FixedPrecision
+{
+<#  foreach (var config in FixedPrecisionIntTypes) { #>
+<#      foreach (int variant in config.Variants) { #>
+<#          long resolution =  (int)Math.Ceiling(Math.Pow(10, variant)); #>
+<#          long approximationBits = (int)Math.Ceiling(Math.Log(resolution, 2.0)); #>
+<#          string formatString = string.Join(string.Empty, Enumerable.Repeat("0", variant)); #>
+<#          string name = config.GetName(variant); #>
+    /// <summary>
+    /// A fixed precision integer with <#= config.Bits #>bits using <#= approximationBits #> bits
+    /// to represent a number with <#= variant #> decimal places.
+    /// </summary>
+    /// <param name="RawValue">The nested raw integer value.</param>
+    public readonly record struct <#= name #>(<#= config.TypeName #> RawValue) :
+        INumber<<#= name #>>,
+        ISignedNumber<<#= name #>>,
+        IMinMaxValue<<#= name #>>
+    {
+        #region Static
+
+        /// <summary>
+        /// Returns the number of decimal places used.
+        /// </summary>
+        public const int DecimalPlaces = <#= variant #>;
+
+        /// <summary>
+        /// Returns the number of decimal places used to perform rounding.
+        /// </summary>
+        private const int RoundingDecimalPlaces = <#= Math.Min(variant, 6) #>;
+
+        /// <summary>
+        /// Returns the integer-based resolution radix.
+        /// </summary>
+        public const int Resolution = <#= resolution #>;
+
+        /// <summary>
+        /// Returns a float denominator used to convert fixed point values into floats.
+        /// </summary>
+        public const float FloatDenominator = 1.0f / Resolution;
+
+        /// <summary>
+        /// Returns a double denominator used to convert fixed point values into doubles.
+        /// </summary>
+        public const double DoubleDenominator = 1.0 / Resolution;
+
+        /// <summary>
+        /// Returns a decimal denominator used to convert fixed point values into decimals.
+        /// </summary>
+        public const decimal DecimalDenominator = 1m / Resolution;
+
+        /// <inheritdoc cref="IMinMaxValue{TSelf}.MinValue" />
+        public static <#= name #> MinValue => new(<#= config.TypeName #>.MinValue);
+
+        /// <inheritdoc cref="IMinMaxValue{TSelf}.MaxValue" />
+        public static <#= name #> MaxValue => new(<#= config.TypeName #>.MaxValue);
+
+        /// <summary>
+        /// Returns the value 1.
+        /// </summary>
+        public static <#= name #> One => new(Resolution);
+
+        /// <summary>
+        /// Returns the radix 2.
+        /// </summary>
+        public static int Radix => 2;
+
+        /// <summary>
+        /// Returns the value 0.
+        /// </summary>
+        public static <#= name #> Zero => new(0);
+
+        /// <summary>
+        /// Returns the value 0.
+        /// </summary>
+        public static <#= name #> AdditiveIdentity => Zero;
+
+        /// <summary>
+        /// Returns the value -1.
+        /// </summary>
+        public static <#= name #> NegativeOne => new(-Resolution);
+
+        /// <inheritdoc cref="IMultiplicativeIdentity{TSelf, TResult}.MultiplicativeIdentity" />
+        public static <#= name #> MultiplicativeIdentity => One;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the main mantissa.
+        /// </summary>
+        public <#= config.TypeName #> Mantissa => RawValue / Resolution;
+
+        /// <summary>
+        /// Returns all decimal places of this number.
+        /// </summary>
+        public <#= config.TypeName #> Remainder => RawValue % Resolution;
+
+        #endregion
+
+        #region Operators
+
+        /// <inheritdoc cref="IAdditionOperators{TSelf, TOther, TResult}.op_Addition(TSelf, TOther)" />
+        public static <#= name #> operator +(<#= name #> left, <#= name #> right) =>
+            new(left.RawValue + right.RawValue);
+
+        /// <inheritdoc cref="ISubtractionOperators{TSelf, TOther, TResult}.op_Subtraction(TSelf, TOther)" />
+        public static <#= name #> operator -(<#= name #> left, <#= name #> right) =>
+            new(left.RawValue - right.RawValue);
+
+        /// <inheritdoc cref="IComparisonOperators{TSelf, TOther, TResult}.op_GreaterThan(TSelf, TOther)" />
+        public static bool operator >(<#= name #> left, <#= name #> right) =>
+            left.RawValue > right.RawValue;
+        /// <inheritdoc cref="IComparisonOperators{TSelf, TOther, TResult}.op_GreaterThanOrEqual(TSelf, TOther)" />
+        public static bool operator >=(<#= name #> left, <#= name #> right) =>
+            left.RawValue >= right.RawValue;
+
+        /// <inheritdoc cref="IComparisonOperators{TSelf, TOther, TResult}.op_LessThan(TSelf, TOther)" />
+        public static bool operator <(<#= name #> left, <#= name #> right) =>
+            left.RawValue < right.RawValue;
+
+        /// <inheritdoc cref="IComparisonOperators{TSelf, TOther, TResult}.op_LessThanOrEqual(TSelf, TOther)" />
+        public static bool operator <=(<#= name #> left, <#= name #> right) =>
+            left.RawValue <= right.RawValue;
+
+        /// <inheritdoc cref="IDecrementOperators{TSelf}.op_Decrement(TSelf)" />
+        public static <#= name #> operator --(<#= name #> value) => value - One;
+        /// <inheritdoc cref="IIncrementOperators{TSelf}.op_Increment(TSelf)" />
+        public static <#= name #> operator ++(<#= name #> value) => value + One;
+
+        /// <inheritdoc cref="IDivisionOperators{TSelf, TOther, TResult}.op_Division(TSelf, TOther)" />
+        public static <#= name #> operator /(<#= name #> left, <#= name #> right) =>
+            new((<#= config.TypeName #>)(left.RawValue * (<#= config.CalcTypeName #>)Resolution / right.RawValue));
+
+        /// <inheritdoc cref="IMultiplyOperators{TSelf, TOther, TResult}.op_Multiply(TSelf, TOther)" />
+        public static <#= name #> operator *(<#= name #> left, <#= name #> right) =>
+            new((<#= config.TypeName #>)((<#= config.CalcTypeName #>)left.RawValue * right.RawValue / Resolution));
+
+        /// <inheritdoc cref="IModulusOperators{TSelf, TOther, TResult}.op_Modulus(TSelf, TOther)" />
+        public static <#= name #> operator %(<#= name #> left, <#= name #> right) =>
+            new(left.RawValue % right.RawValue);
+
+        /// <inheritdoc cref="IUnaryNegationOperators{TSelf, TResult}.op_UnaryNegation(TSelf)" />
+        public static <#= name #> operator -(<#= name #> value) => new(-value.RawValue);
+
+        /// <inheritdoc cref="IUnaryPlusOperators{TSelf, TResult}.op_UnaryPlus(TSelf)" />
+        public static <#= name #> operator +(<#= name #> value) => value;
+
+        #endregion
+
+        #region Generic INumberBase Methods
+
+        /// <inheritdoc cref="INumberBase{TSelf}.Abs(TSelf)" />
+        public static <#= name #> Abs(<#= name #> value) => new(Math.Abs(value.RawValue));
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsCanonical(TSelf)" />
+        public static bool IsCanonical(<#= name #> value) => true;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsComplexNumber(TSelf)" />
+        public static bool IsComplexNumber(<#= name #> value) => false;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsFinite(TSelf)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsEvenInteger(<#= name #> value) =>
+            IsInteger(value) & (value.Mantissa & 1) == 0;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsFinite(TSelf)" />
+        public static bool IsFinite(<#= name #> value) => true;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsImaginaryNumber(TSelf)" />
+        public static bool IsImaginaryNumber(<#= name #> value) => false;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsInfinity(TSelf)" />
+        public static bool IsInfinity(<#= name #> value) => false;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsInteger(TSelf)" />
+        public static bool IsInteger(<#= name #> value) => value.Remainder == 0;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsNaN(TSelf)" />
+        public static bool IsNaN(<#= name #> value) => false;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsNegative(TSelf)" />
+        public static bool IsNegative(<#= name #> value) => value.RawValue < 0;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsNegativeInfinity(TSelf)" />
+        public static bool IsNegativeInfinity(<#= name #> value) => false;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsNormal(TSelf)" />
+        public static bool IsNormal(<#= name #> value) => value.RawValue != 0;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsOddInteger(TSelf)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsOddInteger(<#= name #> value) =>
+            IsInteger(value) & (value.Mantissa & 1) != 0;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsPositive(TSelf)" />
+        public static bool IsPositive(<#= name #> value) => value.RawValue >= 0;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsPositiveInfinity(TSelf)" />
+        public static bool IsPositiveInfinity(<#= name #> value) => false;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsRealNumber(TSelf)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsRealNumber(<#= name #> value) => true;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsSubnormal(TSelf)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsSubnormal(<#= name #> value) => false;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.IsZero(TSelf)" />
+        public static bool IsZero(<#= name #> value) => value.RawValue == 0;
+
+        /// <inheritdoc cref="INumberBase{TSelf}.MaxMagnitude(TSelf, TSelf)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= name #> MaxMagnitude(<#= name #> x, <#= name #> y) =>
+            new(<#= config.TypeName #>.MaxMagnitude(x.RawValue, y.RawValue));
+
+        /// <inheritdoc cref="INumberBase{TSelf}.MaxMagnitudeNumber(TSelf, TSelf)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= name #> MaxMagnitudeNumber(<#= name #> x, <#= name #> y) =>
+            MaxMagnitude(x, y);
+
+        /// <inheritdoc cref="INumberBase{TSelf}.MinMagnitude(TSelf, TSelf)" />
+        public static <#= name #> MinMagnitude(<#= name #> x, <#= name #> y) =>
+            new(<#= config.TypeName #>.MinMagnitude(x.RawValue, y.RawValue));
+
+        /// <inheritdoc cref="INumberBase{TSelf}.MinMagnitudeNumber(TSelf, TSelf)" />
+        public static <#= name #> MinMagnitudeNumber(<#= name #> x, <#= name #> y) =>
+            MinMagnitude(x, y);
+
+        /// <summary>
+        /// Computes the min value of both.
+        /// </summary>
+        /// <param name="x">The first value.</param>
+        /// <param name="y">The second value.</param>
+        /// <returns>The min value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= name #> Min(<#= name #> x, <#= name #> y) =>
+            new(Math.Min(x.RawValue, y.RawValue));
+
+        /// <summary>
+        /// Computes the max value of both.
+        /// </summary>
+        /// <param name="x">The first value.</param>
+        /// <param name="y">The second value.</param>
+        /// <returns>The max value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= name #> Max(<#= name #> x, <#= name #> y) =>
+            new(Math.Max(x.RawValue, y.RawValue));
+
+        #endregion
+
+        #region TryConvert
+
+        /// <inheritdoc cref="INumberBase{TSelf}.TryConvertFromChecked{TOther}(TOther, out TSelf)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryConvertFromChecked<TOther>(TOther value, out <#= name #> result)
+            where TOther : INumberBase<TOther> =>
+            TryConvertFrom(value, out result);
+
+        /// <inheritdoc cref="INumberBase{TSelf}.TryConvertFromSaturating{TOther}(TOther, out TSelf)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryConvertFromSaturating<TOther>(TOther value, out <#= name #> result)
+            where TOther : INumberBase<TOther> =>
+            TryConvertFrom(value, out result);
+
+        /// <inheritdoc cref="INumberBase{TSelf}.TryConvertFromTruncating{TOther}(TOther, out TSelf)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryConvertFromTruncating<TOther>(TOther value, out <#= name #> result)
+            where TOther : INumberBase<TOther> =>
+            TryConvertFrom(value, out result);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool TryConvertFrom<TOther>(TOther value, out <#= name #> result)
+            where TOther : INumberBase<TOther>
+        {
+            if (typeof(TOther) == typeof(bool))
+            {
+                result = Unsafe.As<TOther, bool>(ref value) ? One : Zero;
+                return true;
+            }
+<#          foreach (var conversionType in basicConversionTypes) { #>
+            if (typeof(TOther) == typeof(<#= conversionType #>))
+            {
+                result = (<#= name #>)Unsafe.As<TOther, <#= conversionType #>>(ref value);
+                return true;
+            }
+<#          } #>
+<#          foreach (var otherConfig in FixedPrecisionIntTypes) { #>
+<#              foreach (int otherVariant in otherConfig.Variants) { #>
+<#                  string otherName = otherConfig.GetName(otherVariant); #>
+            if (typeof(TOther) == typeof(<#= otherConfig.TypeName #>))
+            {
+                result = (<#= name #>)Unsafe.As<TOther, <#= otherConfig.TypeName #>>(ref value);
+                return true;
+            }
+<#              } #>
+<#          } #>
+
+            result = default;
+            return false;
+        }
+
+        /// <inheritdoc cref="INumberBase{TSelf}.TryConvertToChecked{TOther}(TSelf, out TOther)" />
+        public static bool TryConvertToChecked<TOther>(<#= name #> value, out TOther result)
+            where TOther : INumberBase<TOther> =>
+            TryConvertTo(value, out result);
+
+        /// <inheritdoc cref="INumberBase{TSelf}.TryConvertToSaturating{TOther}(TSelf, out TOther)" />
+        public static bool TryConvertToSaturating<TOther>(<#= name #> value, out TOther result)
+            where TOther : INumberBase<TOther> =>
+            TryConvertTo(value, out result);
+
+        /// <inheritdoc cref="INumberBase{TSelf}.TryConvertToTruncating{TOther}(TSelf, out TOther)" />
+        public static bool TryConvertToTruncating<TOther>(<#= name #> value, out TOther result)
+            where TOther : INumberBase<TOther> =>
+            TryConvertTo(value, out result);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool TryConvertTo<TOther>(<#= name #> value, out TOther result)
+            where TOther : INumberBase<TOther>
+        {
+            result = default!;
+            if (typeof(TOther) == typeof(bool))
+            {
+                Unsafe.As<TOther, bool>(ref result) = (bool)value;
+                return true;
+            }
+<#          foreach (var conversionType in basicConversionTypes) { #>
+            if (typeof(TOther) == typeof(<#= conversionType #>))
+            {
+                Unsafe.As<TOther, <#= conversionType #>>(ref result) = (<#= conversionType #>)value;
+                return true;
+            }
+<#          } #>
+<#          foreach (var otherConfig in FixedPrecisionIntTypes) { #>
+<#              foreach (int otherVariant in otherConfig.Variants) { #>
+<#                  string otherName = otherConfig.GetName(otherVariant); #>
+            if (typeof(TOther) == typeof(<#= otherName #>))
+            {
+                Unsafe.As<TOther, <#= otherName #>>(ref result) = (<#= otherName #>)value;
+                return true;
+            }
+<#              } #>
+<#          } #>
+
+            result = default!;
+            return false;
+        }
+
+        #endregion
+
+        #region Parse
+
+        /// <inheritdoc cref="IParsable{TSelf}.TryParse(string?, IFormatProvider?, out TSelf)"/>
+        public static bool TryParse(string? s, IFormatProvider? provider, out <#= name #> result)
+        {
+            result = default;
+            if (string.IsNullOrWhiteSpace(s))
+                return false;
+            return TryParse(s.AsSpan(), provider, out result);
+        }
+
+        /// <inheritdoc cref="INumberBase{TSelf}.TryParse(ReadOnlySpan{char}, NumberStyles, IFormatProvider?, out TSelf)"/>
+        public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out <#= name #> result) =>
+            TryParse(s, NumberStyles.Integer, provider, out result);
+
+        /// <inheritdoc cref="INumberBase{TSelf}.TryParse(string?, NumberStyles, IFormatProvider? ,out TSelf)"/>
+        public static bool TryParse(string? s, NumberStyles style, IFormatProvider? provider, out <#= name #> result)
+        {
+            result = default;
+            if (string.IsNullOrWhiteSpace(s))
+                return false;
+            return TryParse(s.AsSpan(), style, provider, out result);
+        }
+
+        /// <inheritdoc cref="ISpanParsable{TSelf}.TryParse(ReadOnlySpan{char}, IFormatProvider?, out TSelf)" />
+        public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider, out <#= name #> result)
+        {
+            result = default;
+
+            var separator = GetDecimalSeparator(provider);
+            int decimalSeparator = s.IndexOf(separator.AsSpan());
+            if (decimalSeparator < 0)
+            {
+                // Try parse mantissa part only
+                if (!<#= config.TypeName #>.TryParse(s, style, provider, out <#= config.TypeName #> mantissaOnly))
+                    return false;
+                result = new(mantissaOnly);
+                return true;
+            }
+
+            var mantissaPart = s[..decimalSeparator];
+            var remainderPart = s[decimalSeparator..];
+
+            if (!<#= config.TypeName #>.TryParse(mantissaPart, style, provider, out <#= config.TypeName #> mantissa) ||
+                !<#= config.TypeName #>.TryParse(remainderPart, style, provider, out <#= config.TypeName #> remainder))
+            {
+                return false;
+            }
+
+            result = new(mantissa * Resolution + remainder);
+            return true;
+        }
+
+        /// <inheritdoc cref="IParsable{TSelf}.Parse(string, IFormatProvider?)"/>
+        public static <#= name #> Parse(string s, IFormatProvider? provider) =>
+            Parse(s.AsSpan(), provider);
+
+        /// <inheritdoc cref="INumberBase{TSelf}.Parse(string, NumberStyles, System.IFormatProvider?)"/>
+        public static <#= name #> Parse(string s, NumberStyles style, IFormatProvider? provider) =>
+            Parse(s.AsSpan(), style, provider);
+
+        /// <inheritdoc cref="ISpanParsable{TSelf}.Parse(ReadOnlySpan{char}, IFormatProvider?)" />
+        public static <#= name #> Parse(ReadOnlySpan<char> s, IFormatProvider? provider) =>
+            Parse(s, NumberStyles.Integer, provider);
+
+        /// <inheritdoc cref="INumberBase{TSelf}.Parse(ReadOnlySpan{char}, NumberStyles, System.IFormatProvider?)"/>
+        public static <#= name #> Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider)
+        {
+            if (!TryParse(s, style, provider, out var result))
+                throw new FormatException();
+            return result;
+        }
+
+        #endregion
+
+        #region IComparable
+
+        /// <summary>
+        /// Compares the given object to the current instance.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareTo(object? obj) => obj is <#= name #> fixedInt ? CompareTo(fixedInt) : 1;
+
+        /// <summary>
+        /// Compares the given fixed integer to the current instance.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareTo(<#= name #> other) => RawValue.CompareTo(other.RawValue);
+
+        #endregion
+
+        #region ToString and Formats
+
+        /// <summary>
+        /// Returns the default string representation of this fixed point value.
+        /// </summary>
+        public override string ToString() => ToString(null, null);
+
+        /// <summary>
+        /// Returns the string representation of this value while taking the given separator into account.
+        /// </summary>
+        /// <param name="decimalSeparator">The decimal separator to use.</param>
+        private string ToString(string decimalSeparator) =>
+            $"{Mantissa}{decimalSeparator}{Remainder:<#= formatString #>}";
+
+        /// <summary>
+        /// Helper function to get a number format provider instance.
+        /// </summary>
+        private static string GetDecimalSeparator(IFormatProvider? formatProvider) =>
+            NumberFormatInfo.GetInstance(formatProvider).NumberDecimalSeparator;
+
+        /// <inheritdoc cref="IFormattable.ToString(string?,System.IFormatProvider?)"/>
+        public string ToString(string? format, IFormatProvider? formatProvider) =>
+            ToString(GetDecimalSeparator(formatProvider));
+
+        /// <inheritdoc cref="ISpanFormattable.TryFormat(Span{char}, out int, ReadOnlySpan{char}, IFormatProvider?)"/>
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            if (!Mantissa.TryFormat(destination, out charsWritten, format, provider))
+                return false;
+
+            var remainingTarget = destination[charsWritten..];
+            var separator = GetDecimalSeparator(provider);
+            if (separator.Length > remainingTarget.Length)
+                return false;
+
+            separator.CopyTo(remainingTarget);
+            charsWritten += separator.Length;
+
+            var decimalPlacesTarget = remainingTarget[separator.Length..];
+            bool result = Remainder.TryFormat(
+                decimalPlacesTarget,
+                out int remainderCharsWritten,
+                format,
+                provider);
+            charsWritten += remainderCharsWritten;
+            return result;
+        }
+
+        #endregion
+
+        #region Conversion Operators
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator bool(<#= name #> fixedInt) => fixedInt.RawValue != 0;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator char(<#= name #> fixedInt) => (char)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator sbyte(<#= name #> fixedInt) => (sbyte)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator byte(<#= name #> fixedInt) => (byte)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator short(<#= name #> fixedInt) => (short)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator ushort(<#= name #> fixedInt) => (ushort)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator int(<#= name #> fixedInt) => (int)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator uint(<#= name #> fixedInt) => (uint)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator long(<#= name #> fixedInt) => (long)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator Int128(<#= name #> fixedInt) => (Int128)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator ulong(<#= name #> fixedInt) => (ulong)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator UInt128(<#= name #> fixedInt) => (UInt128)fixedInt.Mantissa;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator System.Half(<#= name #> fixedInt) =>
+            (System.Half)(float)fixedInt;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator float(<#= name #> fixedInt) => fixedInt.RawValue * FloatDenominator;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator double(<#= name #> fixedInt) =>
+            fixedInt.RawValue * DoubleDenominator;
+
+        /// <summary>
+        /// Converts the given fixed-point value into the designated target type.
+        /// </summary>
+        /// <param name="fixedInt">The fixed value to convert.</param>
+        /// <returns>The converted target value.</returns>
+        public static explicit operator decimal(<#= name #> fixedInt) =>
+            fixedInt.RawValue * DecimalDenominator;
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(bool value) => value ? One : Zero;
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(char value) => new((<#= config.TypeName #>)value);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(sbyte value) => new(value * Resolution);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(byte value) => new(value * Resolution);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(short value) => new(value * Resolution);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(ushort value) => new(value * Resolution);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(int value) => new(value);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(uint value) => new((<#= config.TypeName #>)value);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(long value) => new((<#= config.TypeName #>)value);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(Int128 value) => new((<#= config.TypeName #>)value);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(ulong value) => new((<#= config.TypeName #>)value);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        public static explicit operator <#= name #>(UInt128 value) => new((<#= config.TypeName #>)value);
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator <#= name #>(System.Half value) =>
+            (<#= name #>)(float)value;
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator <#= name #>(float value)
+        {
+            <#= config.TypeName #> mantissa = (<#= config.TypeName #>)value;
+            <#= config.TypeName #> remainder = (<#= config.TypeName #>)(
+                MathF.Round(value - MathF.Truncate(value), RoundingDecimalPlaces) * Resolution);
+            return new(mantissa * Resolution + remainder);
+        }
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator <#= name #>(double value)
+        {
+            <#= config.TypeName #> mantissa = (<#= config.TypeName #>)value;
+            <#= config.TypeName #> remainder = (<#= config.TypeName #>)(
+                Math.Round(value - Math.Truncate(value), RoundingDecimalPlaces) * Resolution);
+            return new(mantissa * Resolution + remainder);
+        }
+
+        /// <summary>
+        /// Converts the given value into its fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator <#= name #>(decimal value)
+        {
+            <#= config.TypeName #> mantissa = (<#= config.TypeName #>)value;
+            <#= config.TypeName #> remainder = (<#= config.TypeName #>)(
+                Math.Round(value - Math.Truncate(value), RoundingDecimalPlaces) * Resolution);
+            return new(mantissa * Resolution + remainder);
+        }
+
+<#          foreach (var otherConfig in FixedPrecisionIntTypes) { #>
+<#              foreach (int oVariant in otherConfig.Variants) { #>
+<#                  string oName = otherConfig.GetName(oVariant); #>
+<#                  if (oName == name) continue; #>
+        /// <summary>
+        /// Converts the given value into its specified fixed-point value equivalent.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted fixed point value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator <#= oName #>(<#= name #> value)
+        {
+<#                  if (config.Bits >= otherConfig.Bits) { #>
+            var computeVal = (<#= config.CalcTypeName #>)value.RawValue;
+<#                  } else { #>
+            var computeVal = (<#= otherConfig.CalcTypeName #>)value.RawValue;
+<#                  } #>
+            var newValue = computeVal * <#= oName #>.Resolution / Resolution;
+            return new((<#= otherConfig.TypeName #>)newValue);
+        }
+
+<#              } #>
+<#          } #>
+        #endregion
+    }
+
+<#      } #>
+<#  } #>
+}
+
+namespace ILGPU.Algorithms.Random
+{
+    using ILGPU.Algorithms.FixedPrecision;
+
+    partial class RandomExtensions
+    {
+<#  foreach (var config in FixedPrecisionIntTypes) { #>
+<#      foreach (int variant in config.Variants) { #>
+<#          var name = config.GetName(variant); #>
+        /// <summary>
+        /// Generates a random <#= name #> in [minValue..maxValue).
+        /// </summary>
+        /// <param name="randomProvider">The random provider.</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
+        /// <returns>A random <#= name #> in [minValue..maxValue).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= name #> Next<TRandomProvider>(
+            ref TRandomProvider randomProvider,
+            <#= name #> minValue,
+            <#= name #> maxValue)
+            where TRandomProvider : struct, IRandomProvider
+        {
+            <#= config.CalcTypeName #> next = Next(
+                ref randomProvider,
+                (<#= config.CalcTypeName #>)minValue.RawValue,
+                (<#= config.CalcTypeName #>)maxValue.RawValue);
+            return new((<#= config.TypeName #>)next);
+        }
+<#      } #>
+<#  } #>
+    }
+}
+
+#pragma warning restore CA2225
+#pragma warning restore IDE0004
+
+#endif
