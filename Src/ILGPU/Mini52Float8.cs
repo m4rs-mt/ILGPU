@@ -48,38 +48,38 @@ public readonly struct Mini52Float8
     /// One
     /// </summary>
 
-    public static Mini52Float8 One { get; } = new Mini52Float8(0xF0);
+    public static Mini52Float8 One { get; } = new Mini52Float8(0x3C);
 
 
     /// <summary>
     /// Represents positive infinity.
     /// </summary>
-    public static Mini52Float8 PositiveInfinity { get; } = new Mini52Float8(0xFF);
+    public static Mini52Float8 PositiveInfinity { get; } = new Mini52Float8(0xFC);
 
     /// <summary>
     /// Represents negative infinity.
     /// </summary>
-    public static Mini52Float8 NegativeInfinity{ get; } = new Mini52Float8(0xF8);
+    public static Mini52Float8 NegativeInfinity{ get; } = new Mini52Float8(0xFC);
 
     /// <summary>
     /// Epsilon - smallest positive value
     /// </summary>
-    public static Mini52Float8 Epsilon { get; } = new Mini52Float8(0x21);
+    public static Mini52Float8 Epsilon { get; } = new Mini52Float8(0x04);
 
     /// <summary>
     /// MaxValue - most positive value
     /// </summary>
-    public static Mini52Float8 MaxValue { get; } = new Mini52Float8(0x7F);
+    public static Mini52Float8 MaxValue { get; } = new Mini52Float8(0x7B);
 
     /// <summary>
     /// MinValue ~ most negative value
     /// </summary>
-    public static Mini52Float8 MinValue { get; } = new Mini52Float8(0xFF);
+    public static Mini52Float8 MinValue { get; } = new Mini52Float8(0xFB);
 
     /// <summary>
     /// NaN ~ value with all exponent bits set to 1 and a non-zero mantissa
     /// </summary>
-    public static Mini52Float8 NaN { get; } = new Mini52Float8(0xF8);
+    public static Mini52Float8 NaN { get; } = new Mini52Float8(0x7F);
 
 
 
@@ -514,7 +514,7 @@ public readonly struct Mini52Float8
 
 
 
-    internal Mini52Float8(byte rawValue)
+    public Mini52Float8(byte rawValue)
     {
         RawValue = rawValue;
     }
@@ -530,30 +530,102 @@ public readonly struct Mini52Float8
 
    #region Conversions
 
+   private static uint[] exponentToSingleLookupTable = GenerateToSingleExponentLookupTable();
 
+// Generates the lookup table for exponent conversion from Mini52Float8 to single-precision float.
+   private static uint[] GenerateToSingleExponentLookupTable()
+   {
+       uint[] table = new uint[32]; // 5-bit exponent can have 32 different values
+       for (int i = 0; i < 32; i++)
+       {
+           // Adjust the exponent from Mini52Float8 bias (15) to single-precision float bias (127)
+           int adjustedExponent = (i - 15) + 127;
+           // Ensure adjusted exponent is not negative. If it is, set it to 0 (which represents a denormalized number in IEEE 754)
+           adjustedExponent = Math.Max(0, adjustedExponent);
+           table[i] = (uint)adjustedExponent << 23; // Shift adjusted exponent into the correct position for single-precision
+       }
+       return table;
+   }
 
-    /// <summary>
-    /// Convert Mini52Float8 to float
-    /// </summary>
-    /// <param name="mini52Float8">Mini52Float8 value to convert</param>
-    /// <returns>Value converted to float</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float Mini52Float8ToSingle(Mini52Float8 mini52Float8)
+   /// <summary>
+   /// Convert Mini52Float8 to float
+   /// </summary>
+   /// <param name="mini52Float8">Mini52Float8 value to convert</param>
+   /// <returns>Value converted to float</returns>
+
+   [MethodImpl(MethodImplOptions.AggressiveInlining)]
+   private static float Mini52Float8ToSingle(Mini52Float8 mini52Float8)
+   {
+       byte rawMini52Float8 = mini52Float8.RawValue;
+       uint sign = (uint)(rawMini52Float8 & 0x80) << 24; // Move sign bit to correct position
+
+       uint exponentIndex = (uint)(rawMini52Float8 >> 2) & 0x1F;
+
+       uint exponent = exponentToSingleLookupTable[exponentIndex];
+
+       uint mantissa = (uint)(rawMini52Float8 & 0x07) << (23 - 2); // Correctly scale mantissa, considering 2 mantissa bits
+
+       // Combine sign, exponent, and mantissa into a 32-bit float representation
+       uint floatBits = sign | exponent | mantissa;
+
+       // Convert the 32-bit representation into a float
+       return Unsafe.As<uint, float>(ref floatBits);
+   }
+
+// uint exponent =  (((uint)(rawMini52Float8 >> 3) & 0x1F)+ 127 - 7 )<<23;
+
+    private static readonly byte[] exponentToMiniLookupTable = GenerateToMiniExponentLookupTable();
+
+// Generates the lookup table for exponent conversion from single-precision float to Mini52Float8 format.
+    private static byte[] GenerateToMiniExponentLookupTable()
     {
-        byte rawMini52Float8 = mini52Float8.RawValue;
-        uint sign = (uint)(rawMini52Float8 & 0x80) << 24;
-        // Move sign bit to correct position
-        uint exponent = ((uint)(rawMini52Float8 >> 4) & 0x0F) - 15 + 127;
-        // Adjust exponent format
-        uint mantissa = (uint)(rawMini52Float8 & 0x0F) << (23 - 4);
-        // Scale mantissa
-
-        // Combine sign, exponent, and mantissa into a 32-bit float representation
-        uint floatBits = sign | (exponent << 23) | mantissa;
-
-        // Convert the 32-bit representation into a float
-        return BitConverter.ToSingle(BitConverter.GetBytes(floatBits), 0);
+        byte[] table = new byte[256]; // 8-bit exponent field can have 256 different values
+        for (int i = 0; i < 256; i++)
+        {
+            // Adjusting from single-precision bias (127) to Mini52Float8 bias (15) and clamping
+            int adjustedExponent = i - 127 + 15; // Adjust for Mini52Float8 format
+            adjustedExponent = Math.Max(0, Math.Min(31, adjustedExponent)); // Clamp to [0, 31] for 5-bit exponent
+            table[i] = (byte)adjustedExponent;
+        }
+        return table;
     }
+
+    private static Mini52Float8 SingleToMini52Float8(float value)
+    {
+        // Extracting the binary representation of the float value
+        uint floatBits = Unsafe.As<float, uint>(ref value);
+
+        // Extracting sign (1 bit)
+        byte sign = (byte)((floatBits >> 24) & 0x80); // Extract sign bit
+
+        // Using the lookup table to convert the exponent
+        byte exponentIndex = (byte)((floatBits >> 23) & 0xFF); // Extract 8-bit exponent
+        byte exponent = exponentToMiniLookupTable[exponentIndex]; // Convert using the lookup table
+
+
+        // Extract mantissa bits for rounding
+        uint mantissaBits = (floatBits & 0x007FFFFF);
+        byte mantissa = (byte)((mantissaBits >> 21) & 0x3); // Direct extraction
+        byte roundBit = (byte)((mantissaBits >> 20) & 0x1);
+        byte stickyBit = (byte)((mantissaBits & 0x000FFFFF) > 0 ? 1 : 0);
+
+        // Rounding
+        if (roundBit == 1 && (stickyBit == 1 || (mantissa & 0x1) == 1)) {
+            mantissa++;
+            if (mantissa == 0x4) {
+                mantissa = 0;
+                if (++exponent == 0x20) { // Simplified handling for overflow
+                    exponent = 0x1F; // Max value for 5-bit exponent
+                }
+            }
+        }
+
+        // Combining into Mini52Float8 format (1 bit sign, 5 bits exponent, 2 bits mantissa)
+        byte mini52Float8 = (byte)(sign | (exponent << 2) | mantissa);
+
+        return new Mini52Float8(mini52Float8);
+    }
+
 
     /// <summary>
     /// Convert Mini52Float8 to double
@@ -567,14 +639,10 @@ public readonly struct Mini52Float8
         // Extracting sign bit
         ulong sign = (ulong)(mini52Float8Raw & 0x80) << 55; // Shift left for double
 
-        // Extracting exponent (4 bits) and adjusting for bias
-        int exponentBits = ((mini52Float8Raw >> 3) & 0x0F) - 7 + 1023;
 
-        // Ensuring exponent does not underflow or overflow the valid range for double
-        if (exponentBits < 0) exponentBits = 0;
-        if (exponentBits > 0x7FF) exponentBits = 0x7FF;
 
-        ulong exponent = (ulong)exponentBits << 52; // Positioning exponent for double
+        uint exponent = 0;// (((rawMini52Float8 >> 3) & 0x1F) - 15 + 127) << 23;
+        // Positioning exponent for double
 
         // Extracting and positioning the mantissa bits
         ulong mantissa = ((ulong)(mini52Float8Raw & 0x07)) << 49;
@@ -655,39 +723,6 @@ public readonly struct Mini52Float8
         // Shift and combine bits
 
         return new Mini52Float8(mini52Float8Bits);
-    }
-
-
-    /// <summary>
-    /// Convert float to Mini52Float8
-    /// </summary>
-    /// <param name="value">float to convert</param>
-    /// <returns>Mini52Float8</returns>
-    private static Mini52Float8 SingleToMini52Float8(float value)
-    {
-        // Extracting the binary representation of the float value
-        uint floatBits = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
-
-        // Extracting sign (1 bit)
-        byte sign = (byte)((floatBits >> 16) & 0x80); // Extracting the sign bit (MSB)
-
-        // Extracting exponent (8 bits)
-        byte exponent = (byte)(((floatBits >> 23) & 0xFF) - 127 + 127);
-        // Adjusting exponent and re-biasing
-
-        // Ensuring exponent does not underflow or overflow
-        // the valid range for Mini52Float8
-        exponent = (byte)(exponent < 0 ? 0 : exponent > 0xFF ? 0xFF : exponent);
-
-        // Extracting mantissa (top 7 bits of the float's 23-bit mantissa)
-        byte mantissa = (byte)((floatBits >> (23 - 7)) & 0x7F);
-        // Extracting top 7 bits of mantissa
-
-        // Combining into Mini52Float8 format (1 bit sign, 8 bits exponent,
-        // 7 bits mantissa)
-        byte mini52Float8 = (byte)(sign | exponent | mantissa);
-
-        return new Mini52Float8(mini52Float8);
     }
 
 
