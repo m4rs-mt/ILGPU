@@ -17,6 +17,9 @@ using System.Threading.Tasks;
 using BlazorSampleApp.Components;
 using ILGPU;
 using ILGPU.Runtime;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using Half = ILGPU.Half;
 
 
 namespace BlazorSampleApp.MandelbrotExplorer
@@ -26,7 +29,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         /// <summary>
         /// This "kernel" function will compile to IL code which ILGPU will ingest and convert to GPU compute shader code.
-        /// 
+        ///
         /// </summary>
         /// <param name="index"></param>
         /// <param name="displayParams"></param> displayPort int[] {width, height }
@@ -61,6 +64,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
+
         /// <summary>
         /// Calculate the Mandelbrot set single threaded on the CPU.
         /// </summary>
@@ -68,9 +72,174 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// <param name="width"></param>
         /// <param name="height"></param>
         /// <param name="max_iterations"></param>
-        public static void CalcCPUSingle(int[] buffer, int[] display, float[] view, int max_iterations)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CalcCPUSingleThreadMini52Float8(int[] buffer, int[] display, float[] view, int max_iterations)
         {
-            
+
+            Mini43Float8 two = Mini43Float8.One + Mini43Float8.One;
+            Mini43Float8 four = two * two;
+
+            for (int i=0; i < display[0]; i++ )
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    Mini43Float8 x0 = (Mini43Float8)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    Mini43Float8 y0 = (Mini43Float8)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    Mini43Float8 x = Mini43Float8.Zero;
+                    Mini43Float8 y = Mini43Float8.Zero;
+                    int iteration = 0;
+                    while ((x * x + y * y < four) && (iteration < max_iterations))
+                    {
+                        Mini43Float8 xtemp = x * x - y * y + x0;
+                        y = two * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+
+                    buffer[index] = iteration;
+
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Calculate the Mandelbrot set single threaded on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CalcCPUSingleThreadMini52Float8(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+
+            Mini52Float8 two = Mini52Float8.One + Mini52Float8.One;
+            Mini52Float8 four = two * two;
+
+            for (int i=0; i < display[0]; i++ )
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    Mini52Float8 x0 = (Mini52Float8)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    Mini52Float8 y0 = (Mini52Float8)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    Mini52Float8 x = Mini52Float8.Zero;
+                    Mini52Float8 y = Mini52Float8.Zero;
+                    int iteration = 0;
+                    while ((x * x + y * y < four) && (iteration < max_iterations))
+                    {
+                        Mini52Float8 xtemp = x * x - y * y + x0;
+                        y = two * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+
+                    buffer[index] = iteration;
+
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Calculate the Mandelbrot set single threaded on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CalcCPUSingleThreadBFloat16(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+            BFloat16 two = BFloat16.One + BFloat16.One;
+            BFloat16 four = two * two;
+
+            for (int i=0; i < display[0]; i++ )
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    BFloat16 x0 = (BFloat16)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    BFloat16 y0 = (BFloat16)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    BFloat16 x = BFloat16.Zero;
+                    BFloat16 y = BFloat16.Zero;
+                    int iteration = 0;
+                    while ((x * x + y * y < four) && (iteration < max_iterations))
+                    {
+                        BFloat16 xtemp = x * x - y * y + x0;
+                        y = two * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+
+                    buffer[index] = iteration;
+
+                }
+            }
+        }
+
+        /// <summary>
+        /// Calculate the Mandelbrot set single threaded on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void CalcCPUSingleThreadHalf(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+            Half two = Half.One + Half.One;
+            Half four = two * two;
+
+            for (int i=0; i < display[0]; i++ )
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    Half x0 = (Half)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    Half y0 = (Half)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    Half x = Half.Zero;
+                    Half y = Half.Zero;
+                    int iteration = 0;
+                    while ((x * x + y * y < four) && (iteration < max_iterations))
+                    {
+                        Half xtemp = x * x - y * y + x0;
+                        y = two * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+
+                    buffer[index] = iteration;
+
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Calculate the Mandelbrot set single threaded on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        public static void CalcCPUSingleThreadFloat(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+
             for (int i=0; i < display[0]; i++ )
             {
                 for (int j = 0; j < display[1]; j++)
@@ -98,17 +267,215 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
 
         /// <summary>
+        /// Calculate the Mandelbrot set single threaded on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        public static void CalcCPUSingleThreadDouble(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+
+            for (int i=0; i < display[0]; i++ )
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    double x0 = view[0] + img_x * (view[1] - view[0]) / display[0];
+                    double y0 = view[2] + img_y * (view[3] - view[2]) / display[1];
+                    double x = 0.0f;
+                    double y = 0.0f;
+                    int iteration = 0;
+                    while ((x * x + y * y < 2 * 2) && (iteration < max_iterations))
+                    {
+                        double xtemp = x * x - y * y + x0;
+                        y = 2 * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+                    buffer[index] = iteration;
+                }
+            }
+        }
+
+        /// <summary>
         /// Calculate the Mandelbrot set using multiple parallel threads on the CPU.
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="width"></param>
         /// <param name="height"></param>
         /// <param name="max_iterations"></param>
-        public static void CalcCPUParallel(int[] buffer, int[] display, float[] view, int max_iterations)
+        public static void CalcCPUParallelForMini43Float8(int[] buffer, int[] display, float[] view, int max_iterations)
         {
             int icnt = display[0];
 
-            Parallel.For( 0, icnt, i => 
+            Mini43Float8 two = Mini43Float8.One + Mini43Float8.One;
+            Mini43Float8 four = two + two;
+
+
+            Parallel.For( 0, icnt, i =>
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    Mini43Float8 x0 = (Mini43Float8)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    Mini43Float8 y0 = (Mini43Float8)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    Mini43Float8 x = Mini43Float8.Zero;
+                    Mini43Float8 y = Mini43Float8.Zero;
+                    int iteration = 0;
+                    while ((x * x + y * y < four) && (iteration < max_iterations))
+                    {
+                        Mini43Float8 xtemp = x * x - y * y + x0;
+                        y = two * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+                    buffer[index] = iteration;
+                }
+            });
+        }
+
+
+        /// <summary>
+        /// Calculate the Mandelbrot set using multiple parallel threads on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        public static void CalcCPUParallelForMini52Float8(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+            int icnt = display[0];
+
+            Mini52Float8 two = Mini52Float8.One + Mini52Float8.One;
+            Mini52Float8 four = two + two;
+
+
+            Parallel.For( 0, icnt, i =>
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    Mini52Float8 x0 = (Mini52Float8)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    Mini52Float8 y0 = (Mini52Float8)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    Mini52Float8 x = Mini52Float8.Zero;
+                    Mini52Float8 y = Mini52Float8.Zero;
+                    int iteration = 0;
+                    while ((x * x + y * y < four) && (iteration < max_iterations))
+                    {
+                        Mini52Float8 xtemp = x * x - y * y + x0;
+                        y = two * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+                    buffer[index] = iteration;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Calculate the Mandelbrot set using multiple parallel threads on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        public static void CalcCPUParallelForBFloat16(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+            int icnt = display[0];
+
+            BFloat16 two = BFloat16.One + BFloat16.One;
+            BFloat16 four = two + two;
+
+
+            Parallel.For( 0, icnt, i =>
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    BFloat16 x0 = (BFloat16)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    BFloat16 y0 = (BFloat16)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    BFloat16 x = BFloat16.Zero;
+                    BFloat16 y = BFloat16.Zero;
+                    int iteration = 0;
+                    while ((x * x + y * y < four) && (iteration < max_iterations))
+                    {
+                        BFloat16 xtemp = x * x - y * y + x0;
+                        y = two * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+                    buffer[index] = iteration;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Calculate the Mandelbrot set using multiple parallel threads on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        public static void CalcCPUParallelForHalf(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+            int icnt = display[0];
+
+            Half two = Half.One + Half.One;
+            Half four = two + two;
+
+
+            Parallel.For( 0, icnt, i =>
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    Half x0 = (Half)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    Half y0 = (Half)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    Half x = Half.Zero;
+                    Half y = Half.Zero;
+                    int iteration = 0;
+                    while ((x * x + y * y < four) && (iteration < max_iterations))
+                    {
+                        Half xtemp = x * x - y * y + x0;
+                        y = two * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+                    buffer[index] = iteration;
+                }
+            });
+        }
+
+
+
+        /// <summary>
+        /// Calculate the Mandelbrot set using multiple parallel threads on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        public static void CalcCPUParallelForFloat(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+            int icnt = display[0];
+
+            Parallel.For( 0, icnt, i =>
             {
                 for (int j = 0; j < display[1]; j++)
                 {
@@ -135,13 +502,50 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
 
         /// <summary>
+        /// Calculate the Mandelbrot set using multiple parallel threads on the CPU.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="max_iterations"></param>
+        public static void CalcCPUParallelForDouble(int[] buffer, int[] display, float[] view, int max_iterations)
+        {
+            int icnt = display[0];
+
+            Parallel.For( 0, icnt, i =>
+            {
+                for (int j = 0; j < display[1]; j++)
+                {
+                    int index = i + j * display[0];  // ILGPU-like index
+                    int img_x = index % display[0];
+                    int img_y = index / display[0];
+
+                    double x0 = view[0] + img_x * (view[1] - view[0]) / display[0];
+                    double y0 = view[2] + img_y * (view[3] - view[2]) / display[1];
+                    double x = 0.0f;
+                    double y = 0.0f;
+                    int iteration = 0;
+                    while ((x * x + y * y < 2 * 2) && (iteration < max_iterations))
+                    {
+                        double xtemp = x * x - y * y + x0;
+                        y = 2 * x * y + y0;
+                        x = xtemp;
+                        iteration += 1;
+                    }
+                    buffer[index] = iteration;
+                }
+            });
+        }
+
+
+        /// <summary>
         /// This creates and passes an array to webgl for rendering to the canvas using "2D" webgl interface
-        /// 
+        ///
         /// There are two possibilities for showing our result:
-        /// 
+        ///
         /// First is the "direct" draw approach where we pass a color map and create an ImageData object
         /// in JavaScript, copying each pixels color to the image data object.
-        /// 
+        ///
         /// Second is we generate a compressed PNG image in memory and tell the webgl context
         /// to download the compressed PNG image as a file like any other web page process.
         ///
@@ -180,12 +584,12 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
                 }
 
-              
+
                 result[i * 4] = fillColor.R;
                 result[i * 4 + 1] = fillColor.G;
                 result[i * 4 + 2] = fillColor.B;
                 result[i * 4 + 3] = fillColor.A;
-                
+
             }
 
             await basicCanvas.CreateImageDataCopyByteArray("Mandelbrot", width, height, result);
