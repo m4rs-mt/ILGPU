@@ -41,7 +41,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         [Inject]
         IMandelbrotBasic MandelbrotInstance { get; set; }
 
-        
+
         [Inject]
         NavigationManager NavManager { get; set; }
 
@@ -73,8 +73,8 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 // we can't call any webgl functions until the page is fully rendered and the canvas is complete.
                 Canvas2D.CanvasInitComplete += CanvasInitComplete;
                 _stopWatch = new Stopwatch();
-               
-               
+
+
             }
             base.OnAfterRender(firstRender);
         }
@@ -99,12 +99,12 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
             int[] data = Crunch(DeviceName);
             await MandelbrotExtensions.Draw(Canvas2D, data, displayPort[0], displayPort[1], maxIterations, Color.Blue);
-        
+
             StateHasChanged();
         }
 
 
-        // Initialize navigation tracking razor page 
+        // Initialize navigation tracking razor page
         protected override void OnInitialized()
         {
             _stopWatch = new Stopwatch();
@@ -171,7 +171,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         List<string> SystemDevices = new List<string>();
 
 
-        
+
         // Measure performance
         private static Stopwatch _stopWatch;
 
@@ -188,13 +188,13 @@ namespace BlazorSampleApp.MandelbrotExplorer
         }
 
 
-        public string DeviceName { get; set; } = "Single Thread"; 
+        public string DeviceName { get; set; } = "Single Thread";
 
         protected async void UpdateSelected(ChangeEventArgs e)
         {
 
             DeviceName = e.Value.ToString();
-       
+
             areaView[0] = -2.0f;
             areaView[1] = 1.0f;
             areaView[2] = -1.0f;
@@ -207,17 +207,17 @@ namespace BlazorSampleApp.MandelbrotExplorer
             StateHasChanged();
         }
 
-    
+
 
         float[] areaView = new float[4];
         int[] displayPort = new int[2];
         int maxIterations = 1000;
 
 
-       
+
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="device"></param>
         /// <returns></returns>
@@ -228,16 +228,20 @@ namespace BlazorSampleApp.MandelbrotExplorer
             if (DeviceName == "Single Thread")
             {
                 RestartWatch();
-                MandelbrotExtensions.CalcCPUSingle(data, displayPort, areaView, maxIterations); // Single thread CPU
+
+                MandelbrotExtensions.CalcCPUSingleThreadMini43Float8(data, displayPort,
+                        areaView, maxIterations); // Single thread CPU
+
                 ExecutionsDetails1 = ElapsedTime("Single Thread");
 
 
-            } else if (DeviceName == "Parallel CPU")
+            }
+            else if (DeviceName == "Parallel CPU")
             {
                 RestartWatch();
-                MandelbrotExtensions.CalcCPUParallel(data, displayPort, areaView, maxIterations); // Single thread CPU
+                MandelbrotExtensions.CalcCPUSingleThreadMini52Float8(data, displayPort, areaView, maxIterations); // Single thread CPU
                 ExecutionsDetails2 = ElapsedTime("Parallel CPU");
-             
+
 
             }
             else
@@ -257,7 +261,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
                 MandelbrotInstance.CalcGPU(ref data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
                 _computing = false;
                 ExecutionsDetails4 = ElapsedTime("IL Run - " + _CPUDevice.Name);
-               
+
 
 
             }
@@ -283,14 +287,14 @@ namespace BlazorSampleApp.MandelbrotExplorer
             switch (DeviceName)
             {
                 case "Single Thread":
-                 
+
                     for (int i = 0; i < 500; i++)
                     {
                         if (_disposing)
                             break;
                         RestartWatch();
 
-                        MandelbrotExtensions.CalcCPUSingle(data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
+                        MandelbrotExtensions.CalcCPUSingleThreadHalf(data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
                         ExecutionsDetails3 = ElapsedTime($"Single Thread");
 
                         areaView[0] = areaView[0] * 0.98f + offsetX;
@@ -317,21 +321,21 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
                 case "Parallel CPU":
 
-                 
+
                     for (int i = 0; i < 500; i++)
                     {
                         if (_disposing)
                             break;
 
                         RestartWatch();
-                        MandelbrotExtensions.CalcCPUParallel(data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
+                        MandelbrotExtensions.CalcCPUParallelForHalf(data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
                         ExecutionsDetails3 = ElapsedTime($"CPU Parallel");
 
                         areaView[0] = areaView[0] * 0.98f + offsetX;
                         areaView[1] = areaView[1] * 0.98f + offsetX;
                         areaView[2] = areaView[2] * 0.98f + offsetY;
                         areaView[3] = areaView[3] * 0.98f + offsetY;
-                        
+
                         if (_disposing)
                             break;
 
@@ -361,12 +365,12 @@ namespace BlazorSampleApp.MandelbrotExplorer
                     }
 
                     MandelbrotInstance.InitGPURepeat(ref data, displayPort, areaView, maxIterations);
-                 
+
                     for (int i = 0; i < 500; i++)
                     {
                         if (_disposing)
                             break;
-                        
+
                         RestartWatch();
 
                         MandelbrotInstance.CalcGPURepeat(ref data, displayPort, areaView, maxIterations); // ILGPU-CPU-Mode
@@ -393,9 +397,9 @@ namespace BlazorSampleApp.MandelbrotExplorer
                     break;
             }
 
-        
+
         }
-        
+
     }
-   
+
 }
