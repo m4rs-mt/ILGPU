@@ -101,7 +101,6 @@ namespace BlazorSampleApp.MandelbrotExplorer
                     }
 
                     buffer[index] = iteration;
-
                 }
             }
         }
