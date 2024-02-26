@@ -73,7 +73,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// <param name="height"></param>
         /// <param name="max_iterations"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CalcCPUSingleThreadMini52Float8(int[] buffer, int[] display, float[] view, int max_iterations)
+        public static void CalcCPUSingleThreadMini43Float8(int[] buffer, int[] display, float[] view, int max_iterations)
         {
 
             Mini43Float8 two = Mini43Float8.One + Mini43Float8.One;

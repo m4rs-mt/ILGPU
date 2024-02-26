@@ -563,7 +563,7 @@ public readonly struct Mini52Float8
 
        uint exponent = exponentToSingleLookupTable[exponentIndex];
 
-       uint mantissa = (uint)(rawMini52Float8 & 0x07) << (23 - 2); // Correctly scale mantissa, considering 2 mantissa bits
+       uint mantissa = (uint)(rawMini52Float8 & 0x03) << (23 - 2); // Correctly scale mantissa, considering 2 mantissa bits
 
        // Check for special cases: NaN and Infinity
        if (exponentIndex == 0x1F) { // All exponent bits are 1
