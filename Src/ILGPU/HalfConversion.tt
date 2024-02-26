@@ -78,15 +78,14 @@ namespace ILGPU
             <#= Assemble(true, -1, 0) #>);
 
         /// <summary>
-        /// One
+        /// Represents a positive zero <see cref="Half"/> value.
         /// </summary>
-        public static Half One { get; } = new Half(0x3C00);
-
+        public static readonly Half Zero {get;}= new Half(0x0);
 
         /// <summary>
-        /// Zero
+        /// Represents a positive zero <see cref="Half"/> value.
         /// </summary>
-        public static Half Zero { get; } = new Half(0x0);
+        public static readonly Half One = new Half(0x3C00);
 
         #endregion
 
