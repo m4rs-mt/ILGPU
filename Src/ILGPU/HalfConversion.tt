@@ -77,17 +77,6 @@ namespace ILGPU
         public static readonly Half NegativeInfinity = new Half(
             <#= Assemble(true, -1, 0) #>);
 
-#if NET6_0 || NET5_0
-        /// <summary>
-        /// Represents a positive zero <see cref="Half"/> value.
-        /// </summary>
-        public static readonly Half Zero = new Half(<#= Assemble(false, 0, 0) #>);
-
-        /// <summary>
-        /// Represents a positive zero <see cref="Half"/> value.
-        /// </summary>
-        public static readonly Half One = new Half(<#= Assemble(false, 0, 1) #>);
-#endif
         #endregion
 
         #region Operators
