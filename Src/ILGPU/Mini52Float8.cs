@@ -512,8 +512,10 @@ public readonly struct Mini52Float8
 
     internal byte RawValue { get; }
 
-
-
+    /// <summary>
+    /// create Mini52Float8 from byte value
+    /// </summary>
+    /// <param name="rawValue">byte value to create new Mini52Float8</param>
     public Mini52Float8(byte rawValue)
     {
         RawValue = rawValue;
@@ -601,7 +603,7 @@ public readonly struct Mini52Float8
     /// <summary>
     /// Convert float to Mini52Float8
     /// </summary>
-    /// <param name="float">float value to convert</param>
+    /// <param name="value">float value to convert</param>
     /// <returns>Value converted to Mini52Float8</returns>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
