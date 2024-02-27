@@ -46,35 +46,35 @@ namespace ILGPU
         /// Represents the smallest positive <see cref="Half"/> value that is greater
         /// than zero.
         /// </summary>
-        public static readonly Half Epsilon = new Half(<#= Assemble(false, 0, 1) #>);
+        public static Half Epsilon {get;} = new Half(<#= Assemble(false, 0, 1) #>);
 
         /// <summary>
         /// Represents the largest possible <see cref="Half"/> value.
         /// </summary>
-        public static readonly Half MaxValue = new Half(
+        public static Half MaxValue  {get;} = new Half(
             <#= Assemble(false, RawExponentMask << 1, MantissaMask) #>);
 
         /// <summary>
         /// Represents the smallest possible <see cref="Half"/> value.
         /// </summary>
-        public static readonly Half MinValue = new Half(
+        public static Half MinValue  {get;} = new Half(
             <#= Assemble(true, RawExponentMask << 1, MantissaMask) #>);
 
         /// <summary>
         /// Represents not a number (NaN).
         /// </summary>
-        public static readonly Half NaN = new Half(<#= Assemble(true, -1, 1) #>);
+        public static Half NaN  {get;} = new Half(<#= Assemble(true, -1, 1) #>);
 
         /// <summary>
         /// Represents positive infinity.
         /// </summary>
-        public static readonly Half PositiveInfinity = new Half(
+        public static Half PositiveInfinity  {get;} = new Half(
             <#= Assemble(false, -1, 0) #>);
 
         /// <summary>
         /// Represents negative infinity.
         /// </summary>
-        public static readonly Half NegativeInfinity = new Half(
+        public static Half NegativeInfinity  {get;} = new Half(
             <#= Assemble(true, -1, 0) #>);
 
         #endregion
