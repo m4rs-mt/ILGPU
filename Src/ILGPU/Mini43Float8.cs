@@ -536,18 +536,23 @@ public readonly struct Mini43Float8
 
 
 
-   private static uint[] exponentToSingleLookupTable = GenerateToSingleExponentLookupTable();
+   private static uint[] exponentToSingleLookupTable
+       = GenerateToSingleExponentLookupTable();
 
-// Generates the lookup table for exponent conversion from Mini52Float8 to single-precision float.
+// Generates the lookup table for exponent conversion
+// from Mini52Float8 to single-precision float.
    private static uint[] GenerateToSingleExponentLookupTable()
    {
        uint[] table = new uint[16]; // 4-bit exponent can have 16 different values
        for (int i = 0; i < 16; i++)
        {
-           // Adjust the exponent from Mini52Float8 bias (15) to single-precision float bias (127)
+           // Adjust the exponent from Mini52Float8 bias (15)
+           // to single-precision float bias (127)
            int adjustedExponent = i - 7 + 127;
-           // Ensure adjusted exponent is not negative. If it is, set it to 0 (which represents a denormalized number in IEEE 754)
-           table[i] = (uint)adjustedExponent << 23; // Shift adjusted exponent into the correct position for single-precision
+           // Ensure adjusted exponent is not negative. If it is, set it to 0
+           // (which represents a denormalized number in IEEE 754)
+           table[i] = (uint)adjustedExponent << 23;
+           // Shift adjusted exponent into the correct position for single-precision
        }
        return table;
    }
@@ -561,14 +566,16 @@ public readonly struct Mini43Float8
    private static float Mini43Float8ToSingle(Mini43Float8 mini43Float8)
    {
        byte rawMini43Float8 = mini43Float8.RawValue;
-       uint sign = (uint)(rawMini43Float8 & 0x80) << 24; // Move sign bit to correct position
+       uint sign = (uint)(rawMini43Float8 & 0x80) << 24;
+       // Move sign bit to correct position
 
        uint exponentIndex = (uint)(rawMini43Float8 >> 3) & 0x0F;
 
 
        uint exponent = exponentToSingleLookupTable[exponentIndex];
 
-       uint mantissa = (uint)(rawMini43Float8 & 0x07) << (23 - 3); // Correctly scale mantissa, considering 2 mantissa bits
+       uint mantissa = (uint)(rawMini43Float8 & 0x07) << (23 - 3);
+       // Correctly scale mantissa, considering 2 mantissa bits
 
        if (exponentIndex == 0xF && mantissa != 0)
        {
@@ -583,16 +590,20 @@ public readonly struct Mini43Float8
    }
 
 
-   private static readonly byte[] exponentToMiniLookupTable = GenerateToMiniExponentLookupTable();
+   private static readonly byte[] exponentToMiniLookupTable
+       = GenerateToMiniExponentLookupTable();
 
-    // Generates the lookup table for exponent conversion from single-precision float to Mini52Float8 format.
+    // Generates the lookup table for exponent conversion from
+    // single-precision float to Mini52Float8 format.
     private static byte[] GenerateToMiniExponentLookupTable()
     {
         byte[] table = new byte[256]; // 8-bit exponent can have 256 different values
         for (int i = 0; i < 256; i++)
         {
-            // Adjusting from IEEE 754 single-precision bias (127) to Mini43Float8 bias (7)
-            int adjustedExponent = i - 127 + 7; // Correct adjustment for Mini43Float8 format
+            // Adjusting from IEEE 754 single-precision bias (127)
+            // to Mini43Float8 bias (7)
+            int adjustedExponent = i - 127 + 7; // Correct adjustment
+                                                // for Mini43Float8 format
             // Clamp to [0, 15] for 4-bit exponent
             adjustedExponent = Math.Max(0, Math.Min(15, adjustedExponent));
             table[i] = (byte)adjustedExponent;
@@ -616,7 +627,8 @@ public readonly struct Mini43Float8
 
         if (exponentIndex == 0xFF && (floatBits & 0x007FFFFF) != 0)
         {
-            return Mini43Float8.NaN; // Assuming Mini43Float8.NaN is a predefined value for NaN
+            return Mini43Float8.NaN;
+            // Assuming Mini43Float8.NaN is a predefined value for NaN
         }
 
         // Extracting sign (1 bit)
@@ -627,7 +639,8 @@ public readonly struct Mini43Float8
 
 
         // Using the lookup table to convert the exponent
-        byte exponent = exponentToMiniLookupTable[exponentIndex]; // Convert using the lookup table
+        byte exponent = exponentToMiniLookupTable[exponentIndex];
+        // Convert using the lookup table
 
         byte mantissa = (byte)((mantissaBits >> 20) & 0x7); // Direct extraction
         byte roundBit = (byte)((mantissaBits >> 19) & 0x1);
@@ -644,7 +657,8 @@ public readonly struct Mini43Float8
             }
         }
 
-        // Combining into Mini43Float8 format (1 bit sign, 5 bits exponent, 2 bits mantissa)
+        // Combining into Mini43Float8 format
+        // (1 bit sign, 5 bits exponent, 2 bits mantissa)
         byte mini43Float8 = (byte)(sign | (exponent << 3) | mantissa);
 
         return new Mini43Float8(mini43Float8);

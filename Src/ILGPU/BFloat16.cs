@@ -623,23 +623,26 @@ public readonly struct BFloat16
         // Convert the 32-bit float to its binary representation
         uint floatBits = Unsafe.As<float, uint>(ref value);
 
-        // Truncate the float's representation to BFLOAT16 by shifting and keeping the upper 16 bits
+        // Truncate the float's representation to BFLOAT16 by shifting
+        // and keeping the upper 16 bits
         ushort truncatedBits = (ushort)(floatBits >> 16);
 
-        // Check the most significant bit of the bits being truncated to decide on rounding
+        // Check the most significant bit of the bits being truncated
+        // to decide on rounding
         bool shouldRoundUp = (floatBits & 0x8000) != 0;
 
         if (shouldRoundUp)
         {
             // Increment the BFLOAT16 representation if rounding is needed
-            // This increment could lead to mantissa overflow, which naturally increments the exponent
+            // This increment could lead to mantissa overflow, which naturally
+            // increments the exponent
             truncatedBits++;
 
             // Note: No specific handling for overflow into infinity is provided here,
             // which could be relevant for the maximum representable float values.
         }
 
-        return Unsafe.As<ushort,BFloat16>(ref truncatedBits);  //      return new (bFloat16);
+        return Unsafe.As<ushort,BFloat16>(ref truncatedBits);  //return new (bFloat16);
     }
 
 
