@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RandomRanges.tt/RandomRanges.cs
@@ -11,12 +11,15 @@
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="../TypeInformation.ttinclude"#>
+<#@ include file="../FixedPrecision/FixedIntConfig.ttinclude"#>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 <#
-var rngTypes = SignedIntTypes.Concat(FloatTypes);
+var rngTypes = SignedIntTypes
+    .Concat(FloatTypes)
+    .Concat(FixedPrecisionIntTypes.SelectMany(t => t.ToBasicTypeInformation()));
 var functionMapping = new Dictionary<string, string>()
     {
         { "Int8",  "(byte)randomProvider.Next(0, byte.MaxValue)" },
@@ -29,6 +32,9 @@ var functionMapping = new Dictionary<string, string>()
         { "Double", "randomProvider.NextDouble()" },
     };
 #>
+#if NET7_0_OR_GREATER
+using ILGPU.Algorithms.FixedPrecision;
+#endif
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;

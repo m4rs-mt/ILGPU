@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VectorTypes.tt/VectorTypes.cs
@@ -11,6 +11,7 @@
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="../TypeInformation.ttinclude"#>
+<#@ include file="../FixedPrecision/FixedIntConfig.ttinclude"#>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
@@ -19,7 +20,11 @@
 // Please note that this code does not support FP16 at the moment because ILGPU.Half does
 // not support the INumberBase<T> and INumber<T> interfaces and will be considered
 // obsolete in the future anyway.
-var allTypes = IntTypes.Concat(FloatTypes.Skip(1));
+var fixedPrecisionTypes = FixedPrecisionIntTypes
+    .SelectMany(t => t.ToBasicTypeInformation()).ToHashSet();
+var allTypes = IntTypes
+    .Concat(FloatTypes.Skip(1))
+    .Concat(fixedPrecisionTypes);
 var typesByRawName = allTypes.ToDictionary(t => t.Type);
 var accumulationTypes = new Dictionary<string, string[]>()
 {
@@ -62,6 +67,9 @@ string GetTypeName(TypeInformation type, int vectorLength)
     return $"{baseTypeName}{postFix}x{vectorLength}";
 }
 #>
+#if NET7_0_OR_GREATER
+using ILGPU.Algorithms.FixedPrecision;
+#endif
 using ILGPU.Algorithms.Random;
 using ILGPU.Runtime;
 using System;
@@ -81,6 +89,7 @@ namespace ILGPU.Algorithms.Vectors
 <#  foreach (var type in allTypes) { #>
 <#      var accumulations = accumulationTypes.TryGetValue(type.Name, out var accTypes)
                 ? accTypes : Array.Empty<string>(); #>
+<#      var propPostfix = fixedPrecisionTypes.Contains(type) ? ".RawValue" : "" ; #>
 <#      foreach (var vectorLength in vectorLengths) { #>
 <#          var typeName = GetTypeName(type, vectorLength); #>
     /// <summary>
@@ -103,7 +112,7 @@ namespace ILGPU.Algorithms.Vectors
         /// The offset of the <#= vectorItemNames[i] #> field in bytes.
         /// </summary>
         public static readonly int Offset<#= vectorItemNames[i] #> =
-            sizeof(<#= type.Type #>) * <#= i #>;
+            Interop.SizeOf<<#= type.Type #>>() * <#= i #>;
 
         /// <summary>
         /// The offset of the <#= vectorItemNames[i] #> field in bytes.
@@ -120,7 +129,7 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Returns the radix of the underlying value.
         /// </summary>
-        public static int Radix => 10;
+        public static int Radix => 2;
 
         /// <summary>
         /// Returns an invalid value (min [signed types], max value [unsigned] or NaN).
@@ -143,7 +152,8 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Returns the value one.
         /// </summary>
-        public static <#= typeName #> One => FromScalar(<#= type.FormatNumber("1") #>);
+        public static <#= typeName #> One =>
+            FromScalar((<#= type.Type #>)<#= type.FormatNumber("1") #>);
 
         /// <summary>
         /// Returns the value zero.
@@ -161,12 +171,13 @@ namespace ILGPU.Algorithms.Vectors
         /// <param name="first">The first value.</param>
         /// <param name="second">The second value.</param>
         /// <returns>The min value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> Min(
             <#= typeName #> first,
             <#= typeName #> second) =>
             new <#= typeName #>(<#= string.Join(", ", vectorItemNames
                 .Take(vectorLength)
-                .Select(t => $"({type.Type})Math.Min(first.{t}, second.{t})")) #>);
+                .Select(t => $"({type.Type})Math.Min(first.{t}{propPostfix}, second.{t}{propPostfix})")) #>);
 
         /// <summary>
         /// Computes the max value of both.
@@ -174,12 +185,13 @@ namespace ILGPU.Algorithms.Vectors
         /// <param name="first">The first value.</param>
         /// <param name="second">The second value.</param>
         /// <returns>The max value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> Max(
             <#= typeName #> first,
             <#= typeName #> second) =>
             new <#= typeName #>(<#= string.Join(", ", vectorItemNames
                 .Take(vectorLength)
-                .Select(t => $"({type.Type})Math.Max(first.{t}, second.{t})")) #>);
+                .Select(t => $"({type.Type})Math.Max(first.{t}{propPostfix}, second.{t}{propPostfix})")) #>);
 
         /// <summary>
         /// Clamps the given value.
@@ -307,6 +319,7 @@ namespace ILGPU.Algorithms.Vectors
         /// </summary>
         /// <param name="target">The target memory address.</param>
         /// <param name="value">The current value to add.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AtomicAdd(ref <#= typeName #> target, <#= typeName #> value)
         {
             ref var elementRef = ref Unsafe.As<<#= typeName #>, <#= type.Type #>>(
@@ -662,13 +675,14 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Returns the absolute value.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> Abs(<#= typeName #> value) =>
 <#          if (type.IsUnsignedInt) { #>
             value;
 <#          } else { #>
             new <#= typeName #>(<#= string.Join(", ", vectorItemNames
                 .Take(vectorLength)
-                .Select(t => $"Math.Abs(value.{t})")) #>);
+                .Select(t => $"({type.Type})Math.Abs(value.{t}{propPostfix})")) #>);
 <#          } #>
 
         /// <summary>
@@ -682,11 +696,13 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> operator --(<#= typeName #> value) => value - One;
 
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> operator /(<#= typeName #> left, <#= typeName #> right) =>
             new <#= typeName #>(<#= string.Join(", ", vectorItemNames
                 .Take(vectorLength)
@@ -695,11 +711,13 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> operator ++(<#= typeName #> value) => value + One;
 
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> operator *(<#= typeName #> left, <#= typeName #> right) =>
             new <#= typeName #>(<#= string.Join(", ", vectorItemNames
                 .Take(vectorLength)
@@ -708,6 +726,7 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> operator -(<#= typeName #> left, <#= typeName #> right) =>
             new <#= typeName #>(<#= string.Join(", ", vectorItemNames
                 .Take(vectorLength)
@@ -717,6 +736,7 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Not supported operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static <#= typeName #> IUnaryNegationOperators<<#= typeName #>, <#= typeName #>>.
             operator -(<#= typeName #> value) => value;
 <#          } else { #>
@@ -726,17 +746,19 @@ namespace ILGPU.Algorithms.Vectors
         public static <#= typeName #> operator -(<#= typeName #> value) =>
             new <#= typeName #>(<#= string.Join(", ", vectorItemNames
                 .Take(vectorLength)
-                .Select(t => $"({type.Type})-value.{t}")) #>);
+                .Select(t => $"({type.Type})(-value.{t})")) #>);
 <#          } #>
 
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> operator +(<#= typeName #> value) => value;
 
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> MaxMagnitude(<#= typeName #> x, <#= typeName #> y) =>
 <#          if (type.IsUnsignedInt) { #>
             Max(x, y);
@@ -749,6 +771,7 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> MaxMagnitudeNumber(<#= typeName #> x, <#= typeName #> y) =>
 <#          if (type.IsInt) { #>
             MaxMagnitude(x, y);
@@ -761,6 +784,7 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> MinMagnitude(<#= typeName #> x, <#= typeName #> y) =>
 <#          if (type.IsUnsignedInt) { #>
             Min(x, y);
@@ -773,6 +797,7 @@ namespace ILGPU.Algorithms.Vectors
         /// <summary>
         /// Performs the specified operation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static <#= typeName #> MinMagnitudeNumber(<#= typeName #> x, <#= typeName #> y) =>
 <#          if (type.IsInt) { #>
             MinMagnitude(x, y);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RandomExtensions.cs
@@ -21,7 +21,7 @@ namespace ILGPU.Algorithms.Random
     /// <summary>
     /// Represents useful helpers for random generators.
     /// </summary>
-    public static class RandomExtensions
+    public static partial class RandomExtensions
     {
         /// <summary>
         /// 1.0 / int.MaxValue
@@ -174,6 +174,30 @@ namespace ILGPU.Algorithms.Random
                 ? (long)(randomProvider.NextFloat() * dist)
                 : (long)(randomProvider.NextDouble() * dist);
             return Math.Min(intermediate + minValue, maxValue - 1);
+        }
+
+        /// <summary>
+        /// Generates a random long in [minValue..maxValue).
+        /// </summary>
+        /// <param name="randomProvider">The random provider.</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
+        /// <returns>A random long in [minValue..maxValue).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ulong Next<TRandomProvider>(
+            ref TRandomProvider randomProvider,
+            ulong minValue,
+            ulong maxValue)
+            where TRandomProvider : struct, IRandomProvider
+        {
+            Debug.Assert(minValue < maxValue, "Values out of range");
+            ulong dist = maxValue - minValue;
+
+            // Check whether the bit range matches in theory
+            ulong intermediate = dist > 1UL << 23
+                ? (ulong)(randomProvider.NextFloat() * dist)
+                : (ulong)(randomProvider.NextDouble() * dist);
+            return Math.Min(intermediate + minValue, maxValue - 1UL);
         }
 
 #if NET7_0_OR_GREATER
