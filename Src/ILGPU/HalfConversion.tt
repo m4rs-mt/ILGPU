@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: HalfConversion.tt/HalfConversion.cs
@@ -38,7 +38,7 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU
 {
-    partial struct Half
+    public partial struct Half
     {
         #region Constants
 
@@ -77,16 +77,17 @@ namespace ILGPU
         public static readonly Half NegativeInfinity = new Half(
             <#= Assemble(true, -1, 0) #>);
 
+#if NET6_0 || NET5_0
         /// <summary>
         /// Represents a positive zero <see cref="Half"/> value.
         /// </summary>
-        public static Half Zero {get;} = new Half(0x0);
+        public static readonly Half Zero = new Half(<#= Assemble(false, 0, 0) #>);
 
         /// <summary>
         /// Represents a positive zero <see cref="Half"/> value.
         /// </summary>
-        public static Half One  {get;} = new Half(0x3C00);
-
+        public static readonly Half One = new Half(<#= Assemble(false, 0, 1) #>);
+#endif
         #endregion
 
         #region Operators

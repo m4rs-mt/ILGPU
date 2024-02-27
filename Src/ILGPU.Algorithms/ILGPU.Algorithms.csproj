@@ -59,6 +59,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
     </None>
+    <None Update="FixedPrecision\FixedIntConfig.ttinclude">
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+      <LastGenOutput>FixedIntConfig.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <PropertyGroup>
@@ -96,6 +100,10 @@
     <None Update="ComparisonOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ComparisonOperations.cs</LastGenOutput>
+    </None>
+    <None Update="FixedPrecision\FixedInts.tt">
+      <LastGenOutput>FixedInts.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Update="HistogramLaunchers.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -234,6 +242,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ComparisonOperations.tt</DependentUpon>
     </Compile>
+    <None Update="FixedPrecision\FixedInts.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FixedInts.tt</DependentUpon>
+    </None>
     <Compile Update="HistogramLaunchers.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -396,6 +409,7 @@
       <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
+
 
   <Import Project="Properties\ILGPU.Algorithms.nuspec.targets" />
 </Project>
