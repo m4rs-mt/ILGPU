@@ -20,6 +20,10 @@ namespace ILGPU;
 /// </summary>
 public static partial class Mini52Float8Extensions
 {
+    #region Static
+
+
+
     /// <summary>
     /// The bit mask of the sign bit.
     /// </summary>
@@ -98,6 +102,9 @@ public static partial class Mini52Float8Extensions
        return Unsafe.As<uint, float>(ref floatBits);
    }
 
+
+
+   #endregion
 
 
 

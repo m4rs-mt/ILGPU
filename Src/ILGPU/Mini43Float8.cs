@@ -626,6 +626,57 @@ public readonly struct Mini43Float8
         return new Mini43Float8(mini43Float8);
     }
 
+  //  static byte[] BaseTable = MiniFloatSupport.GenerateBaseTable(4);
+
+
+  //  static byte[] ShiftTable = MiniFloatSupport.GenerateShiftTable(3);
+
+/*
+    public static Mini43Float8 ConvertFloatToMini43Float8(float floatValue)
+    {
+        uint rawValue = Interop.FloatAsInt(floatValue);
+        uint rawUpperValue = rawValue >> 23;
+
+        byte baseEntry = BaseTable[rawUpperValue];
+        byte shiftAmount = ShiftTable[rawUpperValue];
+        uint mantissaOffset = rawValue & 0x7FFFFF;
+
+        byte result = baseEntry + (byte) (mantissaOffset >> shiftAmount);
+        return new Mini43Float8(result);
+    }
+  */
+/*
+    /// <summary>
+    /// Convert float to Mini43Float
+    /// </summary>
+    /// <param name="floatValue">value to convert</param>
+    /// <returns></returns>
+    public static Mini43Float8 ConvertFloatToMini43Float8(float floatValue)
+    {
+        // Convert the float value to a uint representation to manipulate its bits
+        uint rawValue = Unsafe.As<float, uint>(ref floatValue);
+        // Extract the exponent part of the float (bits 23-30) and adjust for the lookup table index
+        byte exponentIndex = (byte)((rawValue >> 23) & 0xFF);
+        // Extract the sign bit
+        byte sign = (byte)((rawValue >> 24) & 0x80);
+
+        // Use the exponent index to get the base exponent entry and shift amount from the tables
+        byte baseEntry = BaseTable[exponentIndex]; // Assume BaseTable is defined elsewhere
+        byte shiftAmount = ShiftTable[exponentIndex]; // Assume ShiftTable is defined elsewhere
+
+        // Mask to get the mantissa (lower 23 bits)
+        uint mantissaOffset = rawValue & 0x7FFFFF;
+
+        // Depending on your mini float format, adjust the mantissa
+        byte mantissa = (byte)(mantissaOffset >> shiftAmount);
+
+        // Combine the sign, base entry (exponent), and mantissa to form the mini float
+        // This step depends on your mini float's specific bit layout
+        byte miniFloatValue = (byte)(sign | (baseEntry << 3) | mantissa); // Example layout: 1 sign bit, 4 exponent bits, 3 mantissa bits
+
+        return new Mini43Float8(miniFloatValue);
+    }
+*/
 
     /// <summary>
     /// Convert Mini43Float8 to double
