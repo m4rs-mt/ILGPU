@@ -70,7 +70,7 @@ public static partial class Mini52Float8Extensions
    /// <summary>
    /// Convert Mini52Float8 to float
    /// </summary>
-   /// <param name="mini52Float8">Mini52Float8 value to convert</param>
+   /// <param name="rawMini52Float8">raw Mini52Float8 byte value to convert</param>
    /// <returns>Value converted to float</returns>
 
    [MethodImpl(MethodImplOptions.AggressiveInlining)]
