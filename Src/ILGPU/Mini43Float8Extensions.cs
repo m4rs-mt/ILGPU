@@ -72,15 +72,16 @@ public static partial class Mini43Float8Extensions
         uint exponentIndex = (uint)(rawMini43Float8 >> 3) & 0x0F;
 
 
+        if ((exponentIndex == 0x0F) && ((rawMini43Float8 & 0x7) != 0x0))
+        {
+            return float.NaN;
+        }
+
         uint exponent = exponentToSingleLookupTable[exponentIndex];
 
         uint mantissa = (uint)(rawMini43Float8 & 0x07) << (23 - 3);
         // Correctly scale mantissa, considering 2 mantissa bits
 
-        if (exponentIndex == 0xF && mantissa != 0)
-        {
-            return float.NaN;
-        }
 
         // Combine sign, exponent, and mantissa into a 32-bit float representation
         uint floatBits = sign | exponent | mantissa;

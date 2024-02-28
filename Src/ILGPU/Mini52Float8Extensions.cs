@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -35,6 +36,70 @@ public static partial class Mini52Float8Extensions
 
     internal const byte MantissaMask = 0x01;
     // 0000 0001 (covers only the mantissa)
+
+
+
+   private static uint[] exponentToSingleLookupTable
+       = GenerateToSingleExponentLookupTable();
+
+// Generates the lookup table for exponent conversion from
+// Mini52Float8 to single-precision float.
+   private static uint[] GenerateToSingleExponentLookupTable()
+   {
+       uint[] table = new uint[32]; // 5-bit exponent can have 32 different values
+       for (int i = 0; i < 32; i++)
+       {
+           // Adjust the exponent from Mini52Float8 bias (15) to
+           // single-precision float bias (127)
+           int adjustedExponent = (i - 15) + 127;
+           // Ensure adjusted exponent is not negative. If it is, set it to 0
+           // (which represents a denormalized number in IEEE 754)
+
+           adjustedExponent = Math.Max(0, adjustedExponent);
+
+           table[i] = (uint)adjustedExponent << 23;
+           // Shift adjusted exponent into the correct position for single-precision
+       }
+       return table;
+   }
+
+   /// <summary>
+   /// Convert Mini52Float8 to float
+   /// </summary>
+   /// <param name="mini52Float8">Mini52Float8 value to convert</param>
+   /// <returns>Value converted to float</returns>
+
+   [MethodImpl(MethodImplOptions.AggressiveInlining)]
+   internal static float ByteToSingleForMiniFloat52(byte rawMini52Float8)
+   {
+       uint sign = (uint)(rawMini52Float8 & 0x80) << 24;
+       // Move sign bit to correct position
+
+       uint exponentIndex = (uint)(rawMini52Float8 >> 2) & 0x1F;
+
+       uint exponent = exponentToSingleLookupTable[exponentIndex];
+
+       uint mantissa = (uint)(rawMini52Float8 & 0x03) << (23 - 2);
+       // Correctly scale mantissa, considering 2 mantissa bits
+
+       // Check for special cases: NaN and Infinity
+       if (exponentIndex == 0x1F) { // All exponent bits are 1
+           if (mantissa >> 21 != 0) { // Non-zero mantissa means NaN
+               return float.NaN;
+           } else { // Zero mantissa means Infinity
+               return sign == 0 ? float.PositiveInfinity : float.NegativeInfinity;
+           }
+       }
+
+       // Combine sign, exponent, and mantissa into a 32-bit float representation
+       uint floatBits = sign | exponent | mantissa;
+
+       // Convert the 32-bit representation into a float
+       return Unsafe.As<uint, float>(ref floatBits);
+   }
+
+
+
 
     /// <summary>
     /// Negate value

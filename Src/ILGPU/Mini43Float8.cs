@@ -537,7 +537,7 @@ public readonly struct Mini43Float8
 
    private static float[] generateMiniFloatToFloatLookup()
    {
-       float[] result = new float[255];
+       float[] result = new float[256];
        for (int i = 0; i < 256; i++)
        {
            result[i] = Mini43Float8Extensions.ByteToSingleForMiniFloat43((byte)i);
@@ -546,6 +546,7 @@ public readonly struct Mini43Float8
        return result;
    }
 
+   [MethodImpl(MethodImplOptions.AggressiveInlining)]
    private static float Mini43Float8ToSingle(Mini43Float8 mini43Float8)
         => miniFloatToFloatLookup[mini43Float8.RawValue];
 
