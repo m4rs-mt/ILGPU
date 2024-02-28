@@ -36,6 +36,61 @@ public static partial class Mini43Float8Extensions
     internal const byte MantissaMask = 0x07;
     // 0000 0111 (covers only the mantissa)
 
+
+    private static uint[] exponentToSingleLookupTable
+        = GenerateToSingleExponentLookupTable();
+
+// Generates the lookup table for exponent conversion
+// from Mini52Float8 to single-precision float.
+    private static uint[] GenerateToSingleExponentLookupTable()
+    {
+        uint[] table = new uint[16]; // 4-bit exponent can have 16 different values
+        for (int i = 0; i < 16; i++)
+        {
+            // Adjust the exponent from Mini52Float8 bias (15)
+            // to single-precision float bias (127)
+            int adjustedExponent = i - 7 + 127;
+            // Ensure adjusted exponent is not negative. If it is, set it to 0
+            // (which represents a denormalized number in IEEE 754)
+            table[i] = (uint)adjustedExponent << 23;
+            // Shift adjusted exponent into the correct position for single-precision
+        }
+        return table;
+    }
+
+    /// <summary>
+    /// Convert Mini43Float8 to float
+    /// </summary>
+    /// <param name="rawMini43Float8">Mini43Float8 as byte value to convert</param>
+    /// <returns>Value converted to float</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static float ByteToSingleForMiniFloat43(byte rawMini43Float8)
+    {
+        uint sign = (uint)(rawMini43Float8 & 0x80) << 24;
+        // Move sign bit to correct position
+
+        uint exponentIndex = (uint)(rawMini43Float8 >> 3) & 0x0F;
+
+
+        uint exponent = exponentToSingleLookupTable[exponentIndex];
+
+        uint mantissa = (uint)(rawMini43Float8 & 0x07) << (23 - 3);
+        // Correctly scale mantissa, considering 2 mantissa bits
+
+        if (exponentIndex == 0xF && mantissa != 0)
+        {
+            return float.NaN;
+        }
+
+        // Combine sign, exponent, and mantissa into a 32-bit float representation
+        uint floatBits = sign | exponent | mantissa;
+
+        // Convert the 32-bit representation into a float
+        return Unsafe.As<uint, float>(ref floatBits);
+    }
+
+
+
     /// <summary>
     /// Negate value
     /// </summary>

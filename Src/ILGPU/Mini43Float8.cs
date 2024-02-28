@@ -533,61 +533,22 @@ public readonly struct Mini43Float8
    #region Conversions
 
 
+   private static float[] miniFloatToFloatLookup = generateMiniFloatToFloatLookup();
 
-
-
-   private static uint[] exponentToSingleLookupTable
-       = GenerateToSingleExponentLookupTable();
-
-// Generates the lookup table for exponent conversion
-// from Mini52Float8 to single-precision float.
-   private static uint[] GenerateToSingleExponentLookupTable()
+   private static float[] generateMiniFloatToFloatLookup()
    {
-       uint[] table = new uint[16]; // 4-bit exponent can have 16 different values
-       for (int i = 0; i < 16; i++)
+       float[] result = new float[255];
+       for (int i = 0; i < 256; i++)
        {
-           // Adjust the exponent from Mini52Float8 bias (15)
-           // to single-precision float bias (127)
-           int adjustedExponent = i - 7 + 127;
-           // Ensure adjusted exponent is not negative. If it is, set it to 0
-           // (which represents a denormalized number in IEEE 754)
-           table[i] = (uint)adjustedExponent << 23;
-           // Shift adjusted exponent into the correct position for single-precision
+           result[i] = Mini43Float8Extensions.ByteToSingleForMiniFloat43((byte)i);
        }
-       return table;
+
+       return result;
    }
 
-   /// <summary>
-   /// Convert Mini43Float8 to float
-   /// </summary>
-   /// <param name="mini43Float8">Mini43Float8 value to convert</param>
-   /// <returns>Value converted to float</returns>
-   [MethodImpl(MethodImplOptions.AggressiveInlining)]
    private static float Mini43Float8ToSingle(Mini43Float8 mini43Float8)
-   {
-       byte rawMini43Float8 = mini43Float8.RawValue;
-       uint sign = (uint)(rawMini43Float8 & 0x80) << 24;
-       // Move sign bit to correct position
+        => miniFloatToFloatLookup[mini43Float8.RawValue];
 
-       uint exponentIndex = (uint)(rawMini43Float8 >> 3) & 0x0F;
-
-
-       uint exponent = exponentToSingleLookupTable[exponentIndex];
-
-       uint mantissa = (uint)(rawMini43Float8 & 0x07) << (23 - 3);
-       // Correctly scale mantissa, considering 2 mantissa bits
-
-       if (exponentIndex == 0xF && mantissa != 0)
-       {
-           return float.NaN;
-       }
-
-       // Combine sign, exponent, and mantissa into a 32-bit float representation
-       uint floatBits = sign | exponent | mantissa;
-
-       // Convert the 32-bit representation into a float
-       return Unsafe.As<uint, float>(ref floatBits);
-   }
 
 
    private static readonly byte[] exponentToMiniLookupTable
