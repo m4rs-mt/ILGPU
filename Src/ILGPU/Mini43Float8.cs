@@ -634,137 +634,6 @@ public readonly struct Mini43Float8
     }
 
 
-    /// <summary>
-    /// Convert Mini43Float8 to double
-    /// </summary>
-    /// <param name="mini43Float8"></param>
-    /// <returns>Double</returns>
-    private static double Mini43Float8ToDouble(Mini43Float8 mini43Float8)
-    {
-        ushort mini43Float8Raw = mini43Float8.RawValue;
-
-        // Extracting sign, exponent, and mantissa from Mini43Float8
-        ulong sign = (ulong)(mini43Float8Raw & 0x80) << 55; // Shift left for double
-        int exponentBits = (((mini43Float8Raw >> 4) & 0x07) + 127) - 3; // Adjust exponent
-
-        // Ensuring exponent does not underflow or overflow the valid range for double
-        if (exponentBits < 0) exponentBits = 0;
-        if (exponentBits > 0x7FF) exponentBits = 0x7FF;
-
-        ulong exponent = (ulong)exponentBits << 52; // Positioning exponent for double
-
-        // Extracting and positioning the mantissa bits
-        ulong mantissa = ((ulong)(mini43Float8Raw & 0x0F)) << 48; // Align mantissa
-
-        // Assembling the double
-        ulong doubleBits = sign | exponent | mantissa;
-
-        return BitConverter.Int64BitsToDouble((long)doubleBits);
-    }
-
-    /// <summary>
-    /// StripSign
-    /// </summary>
-    /// <param name="value">Mini43Float8</param>
-    /// <returns>sign bit as Mini43Float8</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte StripSign(Mini43Float8 value)
-     => (byte)(value.RawValue & 0x80);
-
-    /// <summary>
-    /// Convert BFloat16 to Mini43Float8
-    /// </summary>
-    /// <param name="value">BFloat16 to convert</param>
-    /// <returns>Mini43Float8</returns>
-
-    private static Mini43Float8 BFloat16ToMini43Float8(BFloat16 value)
-    {
-        // Extracting the binary representation of the BFloat16 value
-        ushort bFloat16Bits = value.RawValue;
-
-        // Extracting sign bit
-        byte sign = (byte)((bFloat16Bits >> 15) & 0x01); // Extracting the sign bit (MSB)
-
-        // Adjusting the exponent from BFloat16 (8 bits) to Mini43Float8 (3 bits)
-        // This involves adjusting for bias differences
-        byte exponent = (byte)((((bFloat16Bits >> 7) & 0xFF) - 127) + 3);
-        // Adjust exponent
-
-        // Adjusting the mantissa from BFloat16 (7 bits) to Mini43Float8 (4 bits)
-        // This involves truncating the least significant bits
-        byte mantissa = (byte)((bFloat16Bits & 0x7F) >> (7 - 4));
-        // Truncate mantissa to fit Mini43Float8
-
-        // Combining sign, exponent, and mantissa into Mini43Float8 format
-        byte mini43Float8Bits = (byte)((sign << 7) | (exponent << 4) | mantissa);
-        // Shift and combine bits
-
-        return new Mini43Float8(mini43Float8Bits);
-    }
-
-
-
-    /// <summary>
-    /// Convert Half to Mini43Float8
-    /// </summary>
-    /// <param name="value">Half to convert</param>
-    /// <returns>Mini43Float8</returns>
-    private static Mini43Float8 HalfToMini43Float8(Half value)
-    {
-        // Extracting the binary representation of the half value
-        ushort halfBits = value.RawValue;
-
-        // Extracting sign bit
-        byte sign = (byte)((halfBits >> 15) & 0x01); // Extracting the sign bit (MSB)
-
-        // Adjusting the exponent from Half (5 bits) to Mini43Float8 (3 bits)
-        // This involves adjusting for bias differences
-        byte exponent = (byte)((((halfBits >> 10) & 0x1F) - 15) + 3); // Adjust exponent
-
-        // Adjusting the mantissa from Half (10 bits) to Mini43Float8 (4 bits)
-        // This involves truncating the least significant bits
-        byte mantissa = (byte)((halfBits & 0x03FF) >> (10 - 4)); // Truncate mantissa
-
-        // Combining sign, exponent, and mantissa into Mini43Float8 format
-        byte mini43Float8Bits = (byte)((sign << 7) | (exponent << 4) | mantissa);
-        // Shift and combine bits
-
-        return new Mini43Float8(mini43Float8Bits);
-    }
-
-
-
-
-    /// <summary>
-    /// Convert double to Mini43Float8
-    /// </summary>
-    /// <param name="value">double to convert</param>
-    /// <returns>Mini43Float8</returns>
-    private static Mini43Float8 DoubleToMini43Float8(double value)
-    {
-        // Extracting the binary representation of the double value
-        ulong doubleBits = BitConverter.ToUInt64(BitConverter.GetBytes(value), 0);
-
-        // Extracting sign bit
-        byte sign = (byte)((doubleBits >> 48) & 0x80); // Extracting the sign bit (MSB)
-
-        // Adjusting exponent for Mini43Float8
-        long exponentBits = (long)((doubleBits >> 52) & 0x7FF) - 1023 + 3;
-
-        // Ensure the exponent does not overflow or underflow the valid range
-        exponentBits = exponentBits < 0 ? 0 : exponentBits > 0x0F ? 0x0F : exponentBits;
-        byte exponent = (byte)(exponentBits << 4);
-        // Shift to align with Mini43Float8's exponent position
-
-        // Extracting mantissa (top 4 bits of the double's 52-bit mantissa)
-        byte mantissa = (byte)((doubleBits >> (52 - 4)) & 0x0F);
-        // Extracting top 4 bits of mantissa
-
-        // Combining into Mini43Float8 (1 bit sign, 4 bits exponent, 4 bits mantissa)
-        byte mini43Float8 = (byte)(sign | exponent | mantissa);
-
-        return new Mini43Float8(mini43Float8);
-    }
 
     #endregion
 
@@ -789,7 +658,7 @@ public readonly struct Mini43Float8
     [ConvertIntrinisc]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static explicit operator Mini43Float8(double value)
-        => DoubleToMini43Float8(value);
+        => SingleToMini43Float8((float) value);
 
     /// <summary>
     /// Cast Mini43Float8 to Half
@@ -933,7 +802,7 @@ public readonly struct Mini43Float8
     /// <returns>True when normal</returns>
     public static bool IsNormal(Mini43Float8 value)
     {
-        byte num =  StripSign(value);
+        byte num =  (byte)(value.RawValue & 0x80);
         return num < 0x70 && num != 0 && (num & 0x70) != 0;
     }
 
@@ -1039,7 +908,7 @@ public readonly struct Mini43Float8
     /// <param name="value">Half value to convert</param>
     /// <returns>Mini43Float8</returns>
     public static explicit operator Mini43Float8(Half value)
-        => HalfToMini43Float8(value);
+        => SingleToMini43Float8((float) value);
 
 
 
