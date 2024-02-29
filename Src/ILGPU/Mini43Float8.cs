@@ -568,7 +568,8 @@ public readonly struct Mini43Float8
             // Clamp to [0, 15] for 4-bit exponent
             adjustedExponent = Math.Max(0, Math.Min(15, adjustedExponent));
             table[i] = (byte)(adjustedExponent<<3);
-            table[i+256] = (byte)((adjustedExponent | 0x10) <<3);
+            // negative sign bit
+            table[i+256] = (byte)(adjustedExponent<<3 | 0x80);
         }
         return table;
     }

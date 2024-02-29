@@ -570,10 +570,13 @@ public readonly struct Mini52Float8
             adjustedExponent = Math.Max(0, Math.Min(31, adjustedExponent));
             // Clamp to [0, 31] for 5-bit exponent
             table[i] = (byte)(adjustedExponent<<2);
-            table[i+256] = (byte)((adjustedExponent | 0x20) <<2);
+            // negative sign bit
+            table[i+256] = (byte)(adjustedExponent << 2 | 0x80) ;
         }
         return table;
     }
+
+
 
     /// <summary>
     /// Convert float to Mini52Float8
@@ -612,14 +615,14 @@ public readonly struct Mini52Float8
         // Convert using the lookup table
 
         byte mantissa = (byte)((mantissaBits >> 21) & 0x3); // Direct extraction
-       // byte roundBit = ((mantissaBits >> 20) & 0x1);
+       // byte roundBit = (byte)((mantissaBits >> 20) & 0x1);
         bool roundBit = (mantissaBits & 0x100000) != 0;
         // 0(000 0000 0)|(00)(X) 0000 0000 0000 0000 0000
 
         // Rounding
         if (roundBit)
         {
-            byte stickyBit = (byte)((mantissaBits & 0x000FFFFF) > 0 ? 1 : 0);
+            byte stickyBit = (byte)((mantissaBits & 0x0007FFFF) > 0 ? 1 : 0);
             if ((stickyBit == 1 || (mantissa & 0x1) == 1))
             {
                 mantissa++;
@@ -630,7 +633,7 @@ public readonly struct Mini52Float8
                     {
                         // 0111 1100 = 7C - 2 bit mantissa
                         // Simplified handling for overflow
-                        exponent =(byte) (exponent + 0x4);
+                        exponent =(byte) (exponent + 0x04);
                       //  exponent = (byte) ((exponent & 0x80)|(exponent & 0x7C + 0x04));// Max value for 5-bit exponent
                     }
                 }
@@ -638,12 +641,11 @@ public readonly struct Mini52Float8
         }
 
         // Combining into Mini52Float8 format
-        // (1 bit sign, 5 bits exponent, 2 bits mantissa)
+        // (1 bit sign bit + 5 bits exponent, 2 bits mantissa)
         byte mini52Float8 = (byte)(exponent | mantissa);
 
         return new Mini52Float8(mini52Float8);
     }
-
 
     /// <summary>
     /// Convert Mini52Float8 to double
