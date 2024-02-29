@@ -560,7 +560,7 @@ public readonly struct Mini52Float8
 // single-precision float to Mini52Float8 format.
     private static byte[] GenerateToMiniExponentLookupTable()
     {
-        byte[] table = new byte[256]; // 8-bit exponent field can have
+        byte[] table = new byte[512]; // 8-bit exponent field can have
                                       // 256 different values
         for (int i = 0; i < 256; i++)
         {
@@ -569,7 +569,8 @@ public readonly struct Mini52Float8
             int adjustedExponent = i - 127 + 15; // Adjust for Mini52Float8 format
             adjustedExponent = Math.Max(0, Math.Min(31, adjustedExponent));
             // Clamp to [0, 31] for 5-bit exponent
-            table[i] = (byte)adjustedExponent;
+            table[i] = (byte)(adjustedExponent<<2);
+            table[i+256] = (byte)((adjustedExponent | 0x20) <<2);
         }
         return table;
     }
@@ -586,19 +587,16 @@ public readonly struct Mini52Float8
         // Extracting the binary representation of the float value
         uint floatBits = Unsafe.As<float, uint>(ref value);
 
-        byte exponentIndex = (byte)((floatBits >> 23) & 0xFF); // Extract 8-bit exponent
-
-        // Extracting sign (1 bit)
-        byte sign = (byte)((floatBits >> 24) & 0x80); // Extract sign bit
+        ushort exponentIndex = (byte)(floatBits >> 23); // Extract 8-bit exponent
 
         // Extract mantissa bits for rounding
         uint mantissaBits = (floatBits & 0x007FFFFF);
 
-        if (exponentIndex == 0xFF)
+        if ((exponentIndex & 0x00FF) == 0x00FF)
         {
             if (mantissaBits == 0) // Infinity check
             {
-                if (sign != 0) // Positive Infinity
+                if ((floatBits & 0x80000000) != 0) // Positive Infinity
                     return Mini52Float8.NegativeInfinity;
                 else // Negative Infinity
                     return Mini52Float8.PositiveInfinity;
@@ -614,23 +612,34 @@ public readonly struct Mini52Float8
         // Convert using the lookup table
 
         byte mantissa = (byte)((mantissaBits >> 21) & 0x3); // Direct extraction
-        byte roundBit = (byte)((mantissaBits >> 20) & 0x1);
-        byte stickyBit = (byte)((mantissaBits & 0x000FFFFF) > 0 ? 1 : 0);
+       // byte roundBit = ((mantissaBits >> 20) & 0x1);
+        bool roundBit = (mantissaBits & 0x100000) != 0;
+        // 0(000 0000 0)|(00)(X) 0000 0000 0000 0000 0000
 
         // Rounding
-        if (roundBit == 1 && (stickyBit == 1 || (mantissa & 0x1) == 1)) {
-            mantissa++;
-            if (mantissa == 0x4) {
-                mantissa = 0;
-                if (++exponent == 0x20) { // Simplified handling for overflow
-                    exponent = 0x1F; // Max value for 5-bit exponent
+        if (roundBit)
+        {
+            byte stickyBit = (byte)((mantissaBits & 0x000FFFFF) > 0 ? 1 : 0);
+            if ((stickyBit == 1 || (mantissa & 0x1) == 1))
+            {
+                mantissa++;
+                if (mantissa == 0x4)
+                {
+                    mantissa = 0;
+                    if (0x7C > (exponent & 0x7C))
+                    {
+                        // 0111 1100 = 7C - 2 bit mantissa
+                        // Simplified handling for overflow
+                        exponent =(byte) (exponent + 0x4);
+                      //  exponent = (byte) ((exponent & 0x80)|(exponent & 0x7C + 0x04));// Max value for 5-bit exponent
+                    }
                 }
             }
         }
 
         // Combining into Mini52Float8 format
         // (1 bit sign, 5 bits exponent, 2 bits mantissa)
-        byte mini52Float8 = (byte)(sign | (exponent << 2) | mantissa);
+        byte mini52Float8 = (byte)(exponent | mantissa);
 
         return new Mini52Float8(mini52Float8);
     }

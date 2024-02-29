@@ -605,7 +605,7 @@ public readonly struct Mini43Float8
         byte mantissa = (byte)((mantissaBits >> 20) & 0x7); // Direct extraction
         //byte roundBit = (byte)((mantissaBits >> 19) & 0x1);
         bool roundBit = (mantissaBits & 0x80000) != 0;
-
+        // 0(000 0000 0)|(000) (X)000 0000 0000 0000 0000
         // Rounding
         if (roundBit)
         {
@@ -618,9 +618,11 @@ public readonly struct Mini43Float8
                 {
                     mantissa = 0;
                     // Simplified rounding
-                    if (0xE8 > (exponent & 0xE8))
+                    if (0x78 > (exponent & 0x78))
                     {
-                        exponent += 0x08;
+                        //0111 1000 = 78 - 4 bit mantissa
+                        exponent =(byte) (exponent + 0x8);
+                     //??  exponent = (byte)((exponent & 0x80) | (exponent & 0x78 + 0x08));
                     }
                 }
             }
