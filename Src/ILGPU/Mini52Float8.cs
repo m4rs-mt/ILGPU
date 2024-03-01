@@ -561,7 +561,7 @@ public readonly struct Mini52Float8
     private static byte[] GenerateToMiniExponentLookupTable()
     {
         byte[] table = new byte[512]; // 8-bit exponent field can have
-                                      // 256 different values
+                                      // 512 different values as sign is included
         for (int i = 0; i < 256; i++)
         {
             // Adjusting from single-precision bias (127) to Mini52Float8
@@ -590,7 +590,8 @@ public readonly struct Mini52Float8
         // Extracting the binary representation of the float value
         uint floatBits = Unsafe.As<float, uint>(ref value);
 
-        ushort exponentIndex = (byte)(floatBits >> 23); // Extract 8-bit exponent
+        ushort exponentIndex = (ushort)(floatBits >> 23);
+        // Extract sign + 8-bit exponent
 
         // Extract mantissa bits for rounding
         uint mantissaBits = (floatBits & 0x007FFFFF);
