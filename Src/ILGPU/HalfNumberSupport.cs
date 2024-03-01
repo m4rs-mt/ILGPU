@@ -277,7 +277,7 @@ public readonly partial struct Half : INumber<Half>
     /// Parse
     /// </summary>
     /// <param name="s">String to parse</param>
-    /// <param name="style">Style formating attributes</param>
+    /// <param name="style">Style formatting attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <returns>Parsed Half Value</returns>
     public static Half Parse(ReadOnlySpan<char> s, NumberStyles style,

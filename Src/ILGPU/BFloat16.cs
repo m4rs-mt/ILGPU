@@ -445,7 +445,7 @@ public readonly struct BFloat16
     /// Parse Span char
     /// </summary>
     /// <param name="s">String to parse</param>
-    /// <param name="style">Style formating attributes</param>
+    /// <param name="style">Style formatting attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <returns>Value if parsed successfully</returns>
     public static BFloat16 Parse(ReadOnlySpan<char> s, NumberStyles style,
@@ -456,7 +456,7 @@ public readonly struct BFloat16
     /// TryParse
     /// </summary>
     /// <param name="s">String to parse</param>
-    /// <param name="style">Style formating attributes</param>
+    /// <param name="style">Style formatting attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <param name="result">BFloat16 out param</param>
     /// <returns>True when successful</returns>
@@ -588,109 +588,6 @@ public readonly struct BFloat16
     }
 
 
-
-    /// <summary>
-    /// Convert BFloat16 to double
-    /// </summary>
-    /// <param name="bFloat16"></param>
-    /// <returns>Double</returns>
-    private static double BFloat16ToDouble(BFloat16 bFloat16)
-    {
-        ushort bFloat16Raw = bFloat16.RawValue;
-
-        // Extracting sign, exponent, and mantissa from BFloat16
-        ulong sign = (ulong)(bFloat16Raw & 0x8000) << 48; // Shift left for double
-        int exponentBits = ((bFloat16Raw >> 7) & 0xFF) - 127 + 1023; // Adjusting exponent
-
-        // Ensuring exponent does not underflow or overflow the valid range for double
-        if (exponentBits < 0) exponentBits = 0;
-        if (exponentBits > 0x7FF) exponentBits = 0x7FF;
-
-        ulong exponent = (ulong)exponentBits << 52; // Positioning exponent for double
-
-        // Extracting and positioning the mantissa bits
-        ulong mantissa = ((ulong)(bFloat16Raw & 0x7F)) << 45; // Align mantissa for double
-
-        // Assembling the double
-        ulong doubleBits = sign | exponent | mantissa;
-
-        return BitConverter.UInt64BitsToDouble(doubleBits);
-    }
-
-    /// <summary>
-    /// StripSign
-    /// </summary>
-    /// <param name="value">BFloat16</param>
-    /// <returns>sign bit as BFloat16</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint StripSign(BFloat16 value)
-        => (ushort)((uint)value & 0x7FFF);
-
-
-    /// <summary>
-    /// Convert Half to BFloat16
-    /// </summary>
-    /// <param name="value">Half to convert</param>
-    /// <returns>BFloat16</returns>
-    private static BFloat16 HalfToBFloat16(Half value)
-    {
-        // Extracting the binary representation of the float value
-        ushort halfBits = value.RawValue;
-
-        // Extracting sign (1 bit)
-        ushort sign = (ushort)(halfBits & 0x8000);
-
-        // Adjusting the exponent from Half (5 bits) to BFloat16 (8 bits)
-        // This involves shifting and possibly adjusting for the different exponent bias
-        // This example assumes no bias adjustment for simplicity
-        ushort exponent = (ushort)(((halfBits >> 10) & 0x1F) << 7);
-        // Shift left to align with BFloat16's exponent position
-
-        // Adjusting the mantissa from Half (10 bits) to BFloat16 (7 bits)
-        // This involves truncating the 3 least significant bits
-        ushort mantissa = (ushort)((halfBits & 0x03FF) >> (10 - 7));
-
-
-        // Combining sign, exponent, and mantissa into BFloat16 format
-        ushort bFloat16Bits = (ushort)(sign | exponent | mantissa);
-
-        return new BFloat16(bFloat16Bits);
-    }
-
-
-
-
-
-    /// <summary>
-    /// Convert double to BFloat16
-    /// </summary>
-    /// <param name="value">double to convert</param>
-    /// <returns>BFloat16</returns>
-    private static BFloat16 DoubleToBFloat16(double value)
-    {
-        // Extracting the binary representation of the double value
-        ulong doubleBits = BitConverter.ToUInt64(BitConverter.GetBytes(value), 0);
-
-        // Extracting leading sign (1 bit)
-        ushort sign = (ushort)((doubleBits >> 48) & 0x8000); // Extract sign bit
-
-
-        long exponentBits
-            = (long)((doubleBits >> 52) & 0x7FF) - 1023 + 127; // Adjust exponent
-        uint exponent
-            = (uint)(exponentBits < 0 ? 0 : exponentBits > 0xFF ? 0xFF : exponentBits);
-
-
-        // Extracting the top 7 bits of the mantissa from the double and position it
-        ushort mantissa = (ushort)((doubleBits >> (52 - 7)) & 0x7F); // Shift and mask
-
-
-        // Combining into BFloat16 format (1 bit sign, 8 bits exponent, 7 bits mantissa)
-        ushort bFloat16 =
-            (ushort)(sign | (ushort)(exponent << 7) | mantissa);
-
-        return new BFloat16(bFloat16);
-    }
     #endregion
 
     #region operators
@@ -714,7 +611,7 @@ public readonly struct BFloat16
     [ConvertIntrinisc]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static explicit operator BFloat16(double value)
-        => DoubleToBFloat16(value);
+        => SingleToBFloat16((float) value);
 
     /// <summary>
     /// Cast BFloat16 to Mini43Float8
@@ -845,7 +742,7 @@ public readonly struct BFloat16
     /// <returns>True when normal</returns>
     public static bool IsNormal(BFloat16 value)
     {
-        uint num = StripSign(value);
+        uint num = (uint)value & 0x7FFF;
         return num < 0x7F80 && num != 0 && (num & 0x7F80) != 0;
     }
 
@@ -949,7 +846,7 @@ public readonly struct BFloat16
     /// <param name="value">Half value to convert</param>
     /// <returns>BFloat16</returns>
     public static explicit operator BFloat16(Half value)
-        => HalfToBFloat16(value);
+        => SingleToBFloat16((float) value);
 
 
 
@@ -958,7 +855,7 @@ public readonly struct BFloat16
     /// Parse string
     /// </summary>
     /// <param name="s">String to parse</param>
-    /// <param name="style">Style formating attributes</param>
+    /// <param name="style">Style formatting attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <returns>Parsed BFloat16 value when successful</returns>
     public static BFloat16 Parse(string s, NumberStyles style, IFormatProvider? provider)
@@ -971,7 +868,7 @@ public readonly struct BFloat16
     /// TryParse
     /// </summary>
     /// <param name="s">String to parse</param>
-    /// <param name="style">Style formating attributes</param>
+    /// <param name="style">Style formatting attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <param name="result">BFloat16 out param</param>
     /// <returns>True when successful</returns>

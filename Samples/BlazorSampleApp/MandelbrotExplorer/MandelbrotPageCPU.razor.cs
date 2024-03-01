@@ -262,7 +262,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
                     RestartWatch();
                     MandelbrotExtensions.CalcCPUSingleThreadFloat(data, displayPort,
                         areaView, maxIterations); // Single thread CPU
-                    ExecutionsDetails1 = ElapsedTime("Single Thread - Double");
+                    ExecutionsDetails1 = ElapsedTime("Single Thread - Float");
                     break;
                 case SingleHalf:
                     RestartWatch();

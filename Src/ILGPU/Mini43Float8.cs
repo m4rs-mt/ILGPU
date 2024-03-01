@@ -448,7 +448,7 @@ public readonly struct Mini43Float8
     /// Parse Span char
     /// </summary>
     /// <param name="s">String to parse</param>
-    /// <param name="style">Style formating attributes</param>
+    /// <param name="style">Style formatting attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <returns>Value if parsed successfully</returns>
     public static Mini43Float8 Parse(ReadOnlySpan<char> s, NumberStyles style,
@@ -459,7 +459,7 @@ public readonly struct Mini43Float8
     /// TryParse
     /// </summary>
     /// <param name="s">String to parse</param>
-    /// <param name="style">Style formating attributes</param>
+    /// <param name="style">Style formatting attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <param name="result">Mini43Float8 out param</param>
     /// <returns>True when successful</returns>
@@ -533,9 +533,9 @@ public readonly struct Mini43Float8
    #region Conversions
 
 
-   private static float[] miniFloatToFloatLookup = generateMiniFloatToFloatLookup();
+   private static readonly float[] MiniFloatToFloatLookup = GenerateMiniFloatToFloatLookup();
 
-   private static float[] generateMiniFloatToFloatLookup()
+   private static float[] GenerateMiniFloatToFloatLookup()
    {
        float[] result = new float[256];
        for (int i = 0; i < 256; i++)
@@ -548,9 +548,9 @@ public readonly struct Mini43Float8
 
    [MethodImpl(MethodImplOptions.AggressiveInlining)]
    private static float Mini43Float8ToSingle(Mini43Float8 mini43Float8)
-        => miniFloatToFloatLookup[mini43Float8.RawValue];
+        => MiniFloatToFloatLookup[mini43Float8.RawValue];
 
-   private static readonly byte[] exponentToMiniLookupTable
+   private static readonly byte[] ExponentToMiniLookupTable
        = GenerateToMiniExponentLookupTable();
 
     // Generates the lookup table for exponent conversion from
@@ -600,19 +600,22 @@ public readonly struct Mini43Float8
 
 
         // Using the lookup table to convert the exponent
-        byte exponent = exponentToMiniLookupTable[exponentIndex];
+        byte exponent = ExponentToMiniLookupTable[exponentIndex];
         // Convert using the lookup table
 
         byte mantissa = (byte)((mantissaBits >> 20) & 0x7); // Direct extraction
         //byte roundBit = (byte)((mantissaBits >> 19) & 0x1);
+
         bool roundBit = (mantissaBits & 0x80000) != 0;
         // 0(000 0000 0)|(000) (X)000 0000 0000 0000 0000
-        // Rounding
+
+        // Rounding, note the .Net optimizer comes up with the same speed no
+        // matter how this is expressed
         if (roundBit)
         {
-            byte stickyBit = (byte)((mantissaBits & 0x0007FFFF) > 0 ? 1 : 0);
+            bool stickyBit = (mantissaBits & 0x0007FFFF) > 0;
 
-            if (stickyBit == 1 || (mantissa & 0x1) == 1)
+            if (stickyBit || (mantissa & 0x1) == 1)
             {
                 mantissa++;
                 if (mantissa == 0x8)
@@ -623,7 +626,7 @@ public readonly struct Mini43Float8
                     {
                         //0111 1000 = 78 - 4 bit mantissa
                         exponent =(byte) (exponent + 0x8);
-                     //??  exponent = (byte)((exponent & 0x80) | (exponent & 0x78 + 0x08));
+
                     }
                 }
             }
@@ -920,7 +923,7 @@ public readonly struct Mini43Float8
     /// Parse string
     /// </summary>
     /// <param name="s">String to parse</param>
-    /// <param name="style">Style formating attributes</param>
+    /// <param name="style">Style formatting attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <returns>Parsed Mini43Float8 value when successful</returns>
     public static Mini43Float8 Parse(string s, NumberStyles style,
@@ -934,7 +937,7 @@ public readonly struct Mini43Float8
     /// TryParse
     /// </summary>
     /// <param name="s">String to parse</param>
-    /// <param name="style">Style formating attributes</param>
+    /// <param name="style">Style formatting attributes</param>
     /// <param name="provider">Culture specific parsing provider</param>
     /// <param name="result">Mini43Float8 out param</param>
     /// <returns>True when successful</returns>
