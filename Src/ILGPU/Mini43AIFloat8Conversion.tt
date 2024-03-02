@@ -3,7 +3,7 @@
 //                           Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: Mini43Float8Conversion.tt/Mini43Float8Conversion.cs
+// File: Mini43AIFloat8Conversion.tt/Mini43AIFloat8Conversion.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -34,7 +34,7 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU
 {
-   public static partial class Mini43Float8Extensions
+   public static partial class Mini43AIFloat8Extensions
    {
 
 
@@ -45,8 +45,8 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Mini43Float8 <#= op.MethodName #>FP32(Mini43Float8 value) =>
-            (Mini43Float8)IntrinsicMath.CPUOnly.<#= op.MethodName #>((float)value);
+        public static Mini43AIFloat8 <#= op.MethodName #>FP32(Mini43AIFloat8 value) =>
+            (Mini43AIFloat8)IntrinsicMath.CPUOnly.<#= op.MethodName #>((float)value);
 
 <# } #>
 
@@ -58,9 +58,9 @@ namespace ILGPU
         /// <param name="left">The left value.</param>
         /// <param name="right">The right value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Mini43Float8 <#= op.MethodName #>FP32(Mini43Float8 left,
+        public static Mini43AIFloat8 <#= op.MethodName #>FP32(Mini43AIFloat8 left,
             BFloat16 right)
-            =>(Mini43Float8)IntrinsicMath.CPUOnly.<#=
+            =>(Mini43AIFloat8)IntrinsicMath.CPUOnly.<#=
                 op.MethodName #>((float)left, (float)right);
 
 <# } #>

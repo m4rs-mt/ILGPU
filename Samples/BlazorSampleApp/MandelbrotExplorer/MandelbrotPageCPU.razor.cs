@@ -150,14 +150,14 @@ namespace BlazorSampleApp.MandelbrotExplorer
         const string SingleFloat = "Single Thread - float";
         const string SingleHalf = "Single Thread - Half";
         const string SingleBFloat16 = "Single Thread - BFloat16";
-        const string SingleMini43Float8 = "Single Thread - Mini43Float8";
+        const string SingleMini43AIFloat8 = "Single Thread - Mini43AIFloat8";
         const string SingleMini52Float8 = "Single Thread - Mini52Float8";
 
         const string ParallelDouble = "Parallel.For - double";
         const string ParallelFloat = "Parallel.For - float";
         const string ParallelHalf = "Parallel.For - Half";
         const string ParallelBFloat16 = "Parallel.For - BFloat16";
-        const string ParallelMini43Float8 = "Parallel.For - Mini43Float8";
+        const string ParallelMini43AIFloat8 = "Parallel.For - Mini43AIFloat8";
         const string ParallelMini52Float8 = "Parallel.For - Mini52Float8";
 
         /// <summary>
@@ -169,14 +169,14 @@ namespace BlazorSampleApp.MandelbrotExplorer
             SystemDevices.Add(SingleFloat);
             SystemDevices.Add(SingleHalf);
             SystemDevices.Add(SingleBFloat16);
-            SystemDevices.Add(SingleMini43Float8);
+            SystemDevices.Add(SingleMini43AIFloat8);
             SystemDevices.Add(SingleMini52Float8);
 
             SystemDevices.Add(ParallelDouble);
             SystemDevices.Add(ParallelFloat);
             SystemDevices.Add(ParallelHalf);
             SystemDevices.Add(ParallelBFloat16);
-            SystemDevices.Add(ParallelMini43Float8);
+            SystemDevices.Add(ParallelMini43AIFloat8);
             SystemDevices.Add(ParallelMini52Float8);
 
             foreach (Device device in MandelbrotInstance.ContextInstance.Devices)
@@ -248,6 +248,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// <returns></returns>
         protected int[] Crunch(string device)
         {
+
             int[] data = new int[displayPort[0] * displayPort[1]];
 
             switch (DeviceName)
@@ -276,11 +277,11 @@ namespace BlazorSampleApp.MandelbrotExplorer
                         areaView, maxIterations); // Single thread CPU
                     ExecutionsDetails1 = ElapsedTime("Single Thread - BFloat16");
                     break;
-                case SingleMini43Float8:
+                case SingleMini43AIFloat8:
                     RestartWatch();
-                    MandelbrotExtensions.CalcCPUSingleThreadMini43Float8(data,
+                    MandelbrotExtensions.CalcCPUSingleThreadMini43AIFloat8(data,
                         displayPort, areaView, maxIterations); // Single thread CPU
-                    ExecutionsDetails1 = ElapsedTime("Single Thread - Mini43Float8");
+                    ExecutionsDetails1 = ElapsedTime("Single Thread - Mini43AIFloat8");
                     break;
                 case SingleMini52Float8:
                     RestartWatch();
@@ -312,11 +313,11 @@ namespace BlazorSampleApp.MandelbrotExplorer
                         areaView, maxIterations); // Single thread CPU
                     ExecutionsDetails1 = ElapsedTime("Parallel.For - BFloat16");
                     break;
-                case ParallelMini43Float8:
+                case ParallelMini43AIFloat8:
                     RestartWatch();
-                    MandelbrotExtensions.CalcCPUParallelForMini43Float8(data, displayPort,
+                    MandelbrotExtensions.CalcCPUParallelForMini43AIFloat8(data, displayPort,
                         areaView, maxIterations); // Single thread CPU
-                    ExecutionsDetails1 = ElapsedTime("Parallel.For - Mini43Float8");
+                    ExecutionsDetails1 = ElapsedTime("Parallel.For - Mini43AIFloat8");
                     break;
                 case ParallelMini52Float8:
                     RestartWatch();
@@ -399,11 +400,11 @@ namespace BlazorSampleApp.MandelbrotExplorer
                             displayPort, areaView, maxIterations); // Single thread CPU
                         ExecutionsDetails3 = ElapsedTime("Single Thread - BFloat16");
                         break;
-                    case SingleMini43Float8:
+                    case SingleMini43AIFloat8:
                         RestartWatch();
-                        MandelbrotExtensions.CalcCPUSingleThreadMini43Float8(data,
+                        MandelbrotExtensions.CalcCPUSingleThreadMini43AIFloat8(data,
                             displayPort, areaView, maxIterations); // Single thread CPU
-                        ExecutionsDetails3 = ElapsedTime("Single Thread - Mini43Float8");
+                        ExecutionsDetails3 = ElapsedTime("Single Thread - Mini43AIFloat8");
                         break;
                     case SingleMini52Float8:
                         RestartWatch();
@@ -435,11 +436,11 @@ namespace BlazorSampleApp.MandelbrotExplorer
                             areaView, maxIterations); // Single thread CPU
                         ExecutionsDetails3 = ElapsedTime("Parallel.For - BFloat16");
                         break;
-                    case ParallelMini43Float8:
+                    case ParallelMini43AIFloat8:
                         RestartWatch();
-                        MandelbrotExtensions.CalcCPUParallelForMini43Float8(data,
+                        MandelbrotExtensions.CalcCPUParallelForMini43AIFloat8(data,
                             displayPort, areaView, maxIterations); // Single thread CPU
-                        ExecutionsDetails3 = ElapsedTime("Parallel.For - Mini43Float8");
+                        ExecutionsDetails3 = ElapsedTime("Parallel.For - Mini43AIFloat8");
                         break;
                     case ParallelMini52Float8:
                         RestartWatch();

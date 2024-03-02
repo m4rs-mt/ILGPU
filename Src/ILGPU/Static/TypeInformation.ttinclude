@@ -34,7 +34,7 @@ public class TypeInformation
             { "UInt16", "Int16" },
             { "UInt32", "Int32" },
             { "UInt64", "Int64" },
-            { "Mini43Float8", "Float8" },
+            { "Mini43AIFloat8", "Float8" },
             { "Mini52Float8", "Float8" },
             { "BFloat16", "Float16" },
             { "Half", "Float16" },
@@ -45,7 +45,7 @@ public class TypeInformation
     private static readonly Dictionary<string, string> ArithmeticBasicValueTypeMapping =
         new Dictionary<string, string>()
         {
-            { "Mini43Float8", "Float8" },
+            { "Mini43AIFloat8", "Float8" },
             { "Mini52Float8", "Float8" },
             { "BFloat16", "Float16" },
             { "Half", "Float16" },
@@ -85,7 +85,7 @@ public class TypeInformation
         {
             switch (Name)
             {
-                case "Mini43Float8": case "Mini52Float8":
+                case "Mini43AIFloat8": case "Mini52Float8":
                     return "sizeof(byte)";
                 case "Half": case "BFloat16":
                     return "sizeof(ushort)";
@@ -101,8 +101,8 @@ public class TypeInformation
         {
             switch (Name)
             {
-                case "Mini43Float8":
-                    return "Mini43Float8.Zero";
+                case "Mini43AIFloat8":
+                    return "Mini43AIFloat8.Zero";
                 case "Mini52Float8":
                     return "Mini52Float8.Zero";
                 case "Half":
@@ -150,8 +150,8 @@ public static readonly TypeInformation[] IntTypes =
 
 public static readonly TypeInformation[] FloatTypes =
     {
-        new TypeInformation("Mini43Float8", "Mini43Float8",
-            TypeInformationKind.Float, "(Mini43Float8)", "f"),
+        new TypeInformation("Mini43AIFloat8", "Mini43AIFloat8",
+            TypeInformationKind.Float, "(Mini43AIFloat8)", "f"),
         new TypeInformation("Mini52Float8", "Mini52Float8",
             TypeInformationKind.Float, "(Mini52Float8)", "f"),
         new TypeInformation("BFloat16", "BFloat16",

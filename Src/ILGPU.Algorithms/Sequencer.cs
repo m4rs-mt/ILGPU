@@ -42,13 +42,13 @@ namespace ILGPU.Algorithms.Sequencers
     }
 
     /// <summary>
-    /// Represents an identity implementation of a Mini43Float8 sequencer.
+    /// Represents an identity implementation of a Mini43AIFloat8 sequencer.
     /// </summary>
-    public readonly struct Mini43Float8Sequencer : ISequencer<Mini43Float8>
+    public readonly struct Mini43AIFloat8Sequencer : ISequencer<Mini43AIFloat8>
     {
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
-        public readonly Mini43Float8 ComputeSequenceElement(LongIndex1D sequenceIndex) =>
-            (Mini43Float8)sequenceIndex.X;
+        public readonly Mini43AIFloat8 ComputeSequenceElement(LongIndex1D sequenceIndex) =>
+            (Mini43AIFloat8)sequenceIndex.X;
     }
 
     /// <summary>

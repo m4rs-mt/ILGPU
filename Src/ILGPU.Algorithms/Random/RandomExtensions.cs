@@ -98,15 +98,15 @@ namespace ILGPU.Algorithms.Random
         /// <param name="maxValue">The maximum values (exclusive).</param>
         /// <returns>A random int in [minValue..maxValue).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Mini43Float8 Next<TRandomProvider>(
+        public static Mini43AIFloat8 Next<TRandomProvider>(
             ref TRandomProvider randomProvider,
-            Mini43Float8 minValue,
-            Mini43Float8 maxValue)
+            Mini43AIFloat8 minValue,
+            Mini43AIFloat8 maxValue)
             where TRandomProvider : struct, IRandomProvider
         {
             Debug.Assert(minValue < maxValue, "Values out of range");
             float dist = (float)(maxValue - minValue);
-            return (Mini43Float8) Math.Min(
+            return (Mini43AIFloat8) Math.Min(
                 randomProvider.NextFloat() * dist + (float) minValue,
                 (float) maxValue);
         }

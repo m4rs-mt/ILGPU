@@ -79,7 +79,7 @@ namespace ILGPU.Algorithms.RadixSortOperations
 <# } else if (type.IsSignedInt) { #>
             var bits = value ^ (1 << (NumBits - 1));
 
-<# } else if (type.Name == "Mini43Float8") { #>
+<# } else if (type.Name == "Mini43AIFloat8") { #>
             var signMask = 1U << (NumBits - 1);
             var onesComplementMask =
                 ((uint)~(value.AsByte) >> (NumBits - 1));

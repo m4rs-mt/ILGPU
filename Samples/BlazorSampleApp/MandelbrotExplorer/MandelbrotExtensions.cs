@@ -73,11 +73,11 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// <param name="height"></param>
         /// <param name="max_iterations"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CalcCPUSingleThreadMini43Float8(int[] buffer, int[] display, float[] view, int max_iterations)
+        public static void CalcCPUSingleThreadMini43AIFloat8(int[] buffer, int[] display, float[] view, int max_iterations)
         {
 
-            Mini43Float8 two = Mini43Float8.One + Mini43Float8.One;
-            Mini43Float8 four = two * two;
+            Mini43AIFloat8 two = Mini43AIFloat8.One + Mini43AIFloat8.One;
+            Mini43AIFloat8 four = two * two;
 
             for (int i=0; i < display[0]; i++ )
             {
@@ -87,14 +87,14 @@ namespace BlazorSampleApp.MandelbrotExplorer
                     int img_x = index % display[0];
                     int img_y = index / display[0];
 
-                    Mini43Float8 x0 = (Mini43Float8)(view[0] + img_x * (view[1] - view[0]) / display[0]);
-                    Mini43Float8 y0 = (Mini43Float8)(view[2] + img_y * (view[3] - view[2]) / display[1]);
-                    Mini43Float8 x = Mini43Float8.Zero;
-                    Mini43Float8 y = Mini43Float8.Zero;
+                    Mini43AIFloat8 x0 = (Mini43AIFloat8)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    Mini43AIFloat8 y0 = (Mini43AIFloat8)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    Mini43AIFloat8 x = Mini43AIFloat8.Zero;
+                    Mini43AIFloat8 y = Mini43AIFloat8.Zero;
                     int iteration = 0;
                     while ((x * x + y * y < four) && (iteration < max_iterations))
                     {
-                        Mini43Float8 xtemp = x * x - y * y + x0;
+                        Mini43AIFloat8 xtemp = x * x - y * y + x0;
                         y = two * x * y + y0;
                         x = xtemp;
                         iteration += 1;
@@ -307,12 +307,12 @@ namespace BlazorSampleApp.MandelbrotExplorer
         /// <param name="width"></param>
         /// <param name="height"></param>
         /// <param name="max_iterations"></param>
-        public static void CalcCPUParallelForMini43Float8(int[] buffer, int[] display, float[] view, int max_iterations)
+        public static void CalcCPUParallelForMini43AIFloat8(int[] buffer, int[] display, float[] view, int max_iterations)
         {
             int icnt = display[0];
 
-            Mini43Float8 two = Mini43Float8.One + Mini43Float8.One;
-            Mini43Float8 four = two + two;
+            Mini43AIFloat8 two = Mini43AIFloat8.One + Mini43AIFloat8.One;
+            Mini43AIFloat8 four = two + two;
 
 
             Parallel.For( 0, icnt, i =>
@@ -323,14 +323,14 @@ namespace BlazorSampleApp.MandelbrotExplorer
                     int img_x = index % display[0];
                     int img_y = index / display[0];
 
-                    Mini43Float8 x0 = (Mini43Float8)(view[0] + img_x * (view[1] - view[0]) / display[0]);
-                    Mini43Float8 y0 = (Mini43Float8)(view[2] + img_y * (view[3] - view[2]) / display[1]);
-                    Mini43Float8 x = Mini43Float8.Zero;
-                    Mini43Float8 y = Mini43Float8.Zero;
+                    Mini43AIFloat8 x0 = (Mini43AIFloat8)(view[0] + img_x * (view[1] - view[0]) / display[0]);
+                    Mini43AIFloat8 y0 = (Mini43AIFloat8)(view[2] + img_y * (view[3] - view[2]) / display[1]);
+                    Mini43AIFloat8 x = Mini43AIFloat8.Zero;
+                    Mini43AIFloat8 y = Mini43AIFloat8.Zero;
                     int iteration = 0;
                     while ((x * x + y * y < four) && (iteration < max_iterations))
                     {
-                        Mini43Float8 xtemp = x * x - y * y + x0;
+                        Mini43AIFloat8 xtemp = x * x - y * y + x0;
                         y = two * x * y + y0;
                         x = xtemp;
                         iteration += 1;

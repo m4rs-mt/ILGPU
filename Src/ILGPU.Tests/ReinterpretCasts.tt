@@ -107,7 +107,7 @@ namespace ILGPU.Tests
 <#
     if (floatType == FloatTypes[0]) {
 #>
-            data[index] = (Mini43Float8) value;
+            data[index] = (Mini43AIFloat8) value;
 <#
     }
     else if (floatType == FloatTypes[1])
@@ -173,7 +173,7 @@ namespace ILGPU.Tests
 <#
     if (floatType == FloatTypes[0]) {
 #>
-            (Mini43Float8) intValue,
+            (Mini43AIFloat8) intValue,
 <#
     }
     else if (floatType == FloatTypes[1])

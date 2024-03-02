@@ -162,13 +162,13 @@ namespace ILGPU
         #region Float/Int Casts
 
         /// <summary>
-        /// Casts the given Mini43Float8 to an byte via a reinterpret cast.
+        /// Casts the given Mini43AIFloat8 to an byte via a reinterpret cast.
         /// </summary>
         /// <param name="value">The value to cast.</param>
         /// <returns>The int value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
-        public static byte FloatAsInt(Mini43Float8 value) =>
+        public static byte FloatAsInt(Mini43AIFloat8 value) =>
             value.RawValue;
 
         /// <summary>

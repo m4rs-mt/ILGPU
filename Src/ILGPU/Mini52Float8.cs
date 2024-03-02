@@ -679,14 +679,14 @@ public readonly struct Mini52Float8
         => SingleToMini52Float8((float) value);
 
     /// <summary>
-    /// Cast Mini52Float8 to Mini43Float8
+    /// Cast Mini52Float8 to Mini43AIFloat8
     /// </summary>
     /// <param name="value">Mini52Float8 value to cast</param>
     /// <returns>float</returns>
     [ConvertIntrinisc]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator Mini43Float8(Mini52Float8 value)
-        => (Mini43Float8)Mini52Float8ToSingle(value);
+    public static implicit operator Mini43AIFloat8(Mini52Float8 value)
+        => (Mini43AIFloat8)Mini52Float8ToSingle(value);
 
     /// <summary>
     /// Cast Mini52Float8 to BFloat16
