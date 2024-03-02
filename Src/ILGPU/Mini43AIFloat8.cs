@@ -260,7 +260,8 @@ public readonly struct Mini43AIFloat8
     /// <summary>
     /// IAdditiveIdentity
     /// </summary>
-    static Mini43AIFloat8 IAdditiveIdentity<Mini43AIFloat8, Mini43AIFloat8>.AdditiveIdentity
+    static Mini43AIFloat8
+        IAdditiveIdentity<Mini43AIFloat8, Mini43AIFloat8>.AdditiveIdentity
         => new Mini43AIFloat8((byte) 0);
 #endif
 
@@ -394,8 +395,8 @@ public readonly struct Mini43AIFloat8
     /// <param name="provider">Culture specific parsing provider</param>
     /// <returns>Mini43AIFloat8 value when successful</returns>
     public static Mini43AIFloat8 Parse(string s, IFormatProvider? provider)
-        => (Mini43AIFloat8)float.Parse(s, NumberStyles.Float | NumberStyles.AllowThousands,
-            provider);
+        => (Mini43AIFloat8)float.Parse(s,
+            NumberStyles.Float | NumberStyles.AllowThousands, provider);
 
     /// <summary>
     /// TryParse string to Mini43AIFloat8
@@ -1176,7 +1177,8 @@ public readonly struct Mini43AIFloat8
         {
             UInt128 uint128 = value == Mini43AIFloat8.PositiveInfinity
                 ? UInt128.MaxValue
-                : (value <= Mini43AIFloat8.Zero ? UInt128.MinValue : (UInt128)(float)value);
+                : (value <= Mini43AIFloat8.Zero ?
+                    UInt128.MinValue : (UInt128)(float)value);
             result = (TOther)Convert.ChangeType((ValueType)uint128, ofOther);
             return true;
         }
@@ -1225,8 +1227,8 @@ public readonly struct Mini43AIFloat8
     /// <param name="result">Typed out param</param>
     /// <typeparam name="TOther">Type to convert to</typeparam>
     /// <returns>True when successful</returns>
-    public static bool TryConvertToChecked<TOther>(Mini43AIFloat8 value, out TOther result)
-        where TOther : INumberBase<TOther>
+    public static bool TryConvertToChecked<TOther>(Mini43AIFloat8 value,
+        out TOther result) where TOther : INumberBase<TOther>
     {
         Type ofOther = typeof(TOther);
         if (ofOther == typeof (byte))
