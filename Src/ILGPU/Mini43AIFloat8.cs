@@ -614,7 +614,6 @@ public readonly struct Mini43AIFloat8
         }
 
 
-
         // Using the lookup table to convert the exponent
         byte exponent = ExponentToMiniLookupTable[exponentIndex];
         // Convert using the lookup table

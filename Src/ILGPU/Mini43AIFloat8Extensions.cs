@@ -72,7 +72,9 @@ public static partial class Mini43AIFloat8Extensions
         uint exponentIndex = (uint)(rawMini43AIFloat8 >> 3) & 0x0F;
 
 
-        if ((exponentIndex == 0x0F) && ((rawMini43AIFloat8 & 0x7) != 0x0))
+        // Mini43Float8 does not support infinities and extends its range to
+        // values to 448
+        if ((exponentIndex == 0x0F) && ((rawMini43AIFloat8 & 0x7) == 0x7))
         {
             return float.NaN;
         }
