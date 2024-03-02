@@ -80,7 +80,7 @@ public static partial class Mini43Float8Extensions
         uint exponent = exponentToSingleLookupTable[exponentIndex];
 
         uint mantissa = (uint)(rawMini43Float8 & 0x07) << (23 - 3);
-        // Correctly scale mantissa, considering 2 mantissa bits
+        // Correctly scale mantissa, considering 3 mantissa bits
 
 
         // Combine sign, exponent, and mantissa into a 32-bit float representation

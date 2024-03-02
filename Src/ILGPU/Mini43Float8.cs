@@ -56,11 +56,11 @@ public readonly struct Mini43Float8
     /// Represents positive infinity.
     /// </summary>
 
-    public static Mini43Float8 PositiveInfinity { get; } = NaN;
+    public static Mini43Float8 PositiveInfinity { get; } = new Mini43Float8(0x78);
     /// <summary>
     /// Represents negative infinity.
     /// </summary>
-    public static Mini43Float8 NegativeInfinity{ get; } = NaN;
+    public static Mini43Float8 NegativeInfinity{ get; } = new Mini43Float8(0xF8);
 
     /// <summary>
     /// Epsilon - smallest positive value
@@ -70,17 +70,17 @@ public readonly struct Mini43Float8
     /// <summary>
     /// MaxValue - most positive value
     /// </summary>
-    public static Mini43Float8 MaxValue { get; } = new Mini43Float8(0x7F);
+    public static Mini43Float8 MaxValue { get; } = new Mini43Float8(0x77);
 
     /// <summary>
     /// MinValue ~ most negative value
     /// </summary>
-    public static Mini43Float8 MinValue { get; } = new Mini43Float8(0xFF);
+    public static Mini43Float8 MinValue { get; } = new Mini43Float8(0xF7);
 
     /// <summary>
     /// NaN ~ value with all exponent bits set to 1 and a non-zero mantissa
     /// </summary>
-    public static Mini43Float8 NaN { get; } = new Mini43Float8(0x78);
+    public static Mini43Float8 NaN { get; } = new Mini43Float8(0xFF);
 
     #endregion
 
@@ -584,20 +584,40 @@ public readonly struct Mini43Float8
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Mini43Float8 SingleToMini43Float8(float value)
     {
+        if (value > 240)
+        {
+            return MaxValue;
+        }
+
+        if (value < -240)
+        {
+            return MinValue;
+        }
+
         // Extracting the binary representation of the float value
         uint floatBits = Unsafe.As<float, uint>(ref value);
 
         ushort exponentIndex = (ushort)(floatBits >> 23);
         // Extract 8-bit exponent + sign
 
-        if ((exponentIndex & 0x00FF) == 0x00FF && (floatBits & 0x007FFFFF) != 0)
-        {
-            return Mini43Float8.NaN;
-            // Assuming Mini43Float8.NaN is a predefined value for NaN
-        }
-
         // Extract mantissa bits for rounding
         uint mantissaBits = (floatBits & 0x007FFFFF);
+
+        if ((exponentIndex & 0x00FF) == 0x00FF)
+        {
+            if (mantissaBits == 0) // Infinity check
+            {
+                if ((floatBits & 0x80000000) != 0) // Positive Infinity
+                    return Mini43Float8.NegativeInfinity;
+                else // Negative Infinity
+                    return Mini43Float8.PositiveInfinity;
+            }
+            else // NaN check
+            {
+                return Mini43Float8.NaN;
+            }
+        }
+
 
 
         // Using the lookup table to convert the exponent
