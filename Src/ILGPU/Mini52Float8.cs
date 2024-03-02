@@ -533,7 +533,8 @@ public readonly struct Mini52Float8
    #region Conversions
 
 
-   private static readonly float[] MiniFloatToFloatLookup = GenerateMiniFloatToFloatLookup();
+   private static readonly float[] MiniFloatToFloatLookup
+       = GenerateMiniFloatToFloatLookup();
 
    private static float[] GenerateMiniFloatToFloatLookup()
    {
