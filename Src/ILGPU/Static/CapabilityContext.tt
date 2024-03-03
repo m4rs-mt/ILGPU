@@ -41,7 +41,7 @@ namespace ILGPU.Runtime
         #region Properties
 
         /// <summary>
-        /// Supports Float16 (Half) data type.
+        /// Supports Float8 (quarter) data type.
         /// </summary>
         public bool Float8 { get; internal set; }
 
