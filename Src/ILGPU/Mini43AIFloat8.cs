@@ -637,11 +637,15 @@ public readonly struct Mini43AIFloat8
                 {
                     mantissa = 0;
                     // Simplified rounding
-                    if (0x78 > (exponent & 0x78))
+                    if (0x78 > ((exponent + 0x08) & 0x78))
                     {
                         //0111 1000 = 78 - 4 bit mantissa
-                        exponent =(byte) (exponent + 0x8);
+                        exponent =(byte) (exponent + 0x08);
 
+                    }
+                    else
+                    {
+                        exponent = (byte) (exponent | 0x78);
                     }
                 }
             }

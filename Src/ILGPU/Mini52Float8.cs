@@ -635,11 +635,15 @@ public readonly struct Mini52Float8
                 if (mantissa == 0x4)
                 {
                     mantissa = 0;
-                    if (0x7C > (exponent & 0x7C))
+                    if (0x7C > ((exponent + 0x04) & 0x7C))
                     {
                         // 0111 1100 = 7C - 2 bit mantissa
                         // Simplified handling for overflow
                         exponent =(byte) (exponent + 0x04);
+                    }
+                    else
+                    {
+                        exponent = (byte) (exponent | 0x7C);
                     }
                 }
             }

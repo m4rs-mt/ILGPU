@@ -570,8 +570,16 @@ public readonly struct BFloat16
 
         // Apply round to even if exactly at halfway,
         // check if least significant bit of truncatedBits is set (even check)
+        // even rounding
         bool shouldRoundUp = isHalfwayOrMore
                              && (isMoreThanHalfway || (truncatedBits & 1) != 0);
+
+        // Odd rounding is used by Armv8.6+ based processors
+        // Apple M2+ processors / A15+
+        // Qualcom Cortex-X2+ / Cortex A510+ / Cortext A710+
+        // Neoverse N2 or V2
+        // bool shouldRoundUp = isHalfwayOrMore
+        //                     && (!isMoreThanHalfway || (truncatedBits & 1) == 0);
 
         if (shouldRoundUp)
         {
