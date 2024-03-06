@@ -576,7 +576,7 @@ public readonly struct BFloat16
 
         // Odd rounding is used by Armv8.6+ based processors
         // Apple M2+ processors / A15+
-        // Qualcom Cortex-X2+ / Cortex A510+ / Cortext A710+
+        // Qualcom Cortex-X2+ / Cortex A510+ / Cortex A710+
         // Neoverse N2 or V2
         // bool shouldRoundUp = isHalfwayOrMore
         //                     && (!isMoreThanHalfway || (truncatedBits & 1) == 0);
