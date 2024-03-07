@@ -1,6 +1,6 @@
 using ILGPU.Runtime;
 
-namespace ILGPU.Analyzers.Tests.Programs;
+namespace ILGPU.Analyzers.Tests.Programs.RefType;
 
 class Functions
 {

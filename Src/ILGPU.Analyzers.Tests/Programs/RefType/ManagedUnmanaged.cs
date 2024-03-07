@@ -1,9 +1,25 @@
 using ILGPU.Runtime;
 
-namespace ILGPU.Analyzers.Tests.Programs;
+namespace ILGPU.Analyzers.Tests.Programs.RefType;
 
-class Constructors
+class ManagedUnmanaged
 {
+    class RefType
+    {
+    } 
+    
+    struct Unmanaged
+    {
+        private int a;
+        private int b;
+    }
+
+    struct Managed
+    {
+        private int a;
+        private RefType r;
+    }
+    
     class RefType
     {
         public int Hello => 42;
@@ -15,13 +31,14 @@ class Constructors
 
         public ValueType()
         {
-            Hello = new RefType().Hello;
+            Hello = 42;
         }
     }
 
     static void Kernel(Index1D index, ArrayView<int> input)
     {
-        ValueType value = new ValueType();
+        var unmanaged = new Unmanaged();
+        var managed = new Managed();
     }
 
     static void Run()

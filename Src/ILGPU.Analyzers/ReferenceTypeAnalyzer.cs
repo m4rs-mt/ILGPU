@@ -28,7 +28,7 @@ namespace ILGPU.Analyzers
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true
-            );
+        );
 
         private static readonly DiagnosticDescriptor ArrayDiagnosticRule = new(
             id: "ILA004",
@@ -37,7 +37,9 @@ namespace ILGPU.Analyzers
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true
-            );
+        );
+
+        private const string ILGPUAssemblyName = "ILGPU";
 
         public override ImmutableArray<DiagnosticDescriptor>
             SupportedDiagnostics { get; } =
@@ -47,7 +49,7 @@ namespace ILGPU.Analyzers
             IOperation bodyOp)
         {
             Stack<IOperation> bodies = new Stack<IOperation>();
-            // To catch mutual recursion
+            // To catch recursion
             HashSet<IOperation> seenBodies = new HashSet<IOperation>();
             bodies.Push(bodyOp);
 
@@ -81,12 +83,12 @@ namespace ILGPU.Analyzers
             if (op.Type is null)
                 return;
 
-            if (op.Type.IsValueType)
+            if (op.Type.IsUnmanagedType)
                 return;
 
             if (op.Type is IArrayTypeSymbol arrayTypeSymbol)
             {
-                if (arrayTypeSymbol.ElementType.IsValueType)
+                if (arrayTypeSymbol.ElementType.IsUnmanagedType)
                     return;
 
                 string first = arrayTypeSymbol.ToDisplayString();
@@ -99,6 +101,9 @@ namespace ILGPU.Analyzers
             }
             else
             {
+                if (op.Type.ContainingAssembly.Name == ILGPUAssemblyName)
+                    return;
+
                 var generalDiagnostic =
                     Diagnostic.Create(GeneralDiagnosticRule,
                         op.Syntax.GetLocation(),
@@ -109,7 +114,6 @@ namespace ILGPU.Analyzers
 
         private IOperation? GetInvokedOp(SemanticModel model, IOperation op)
         {
-            // TODO: Are there more ways code can be called?
             if (op is IInvocationOperation invocationOperation)
             {
                 return MethodUtil.GetMethodBody(model, invocationOperation.TargetMethod);

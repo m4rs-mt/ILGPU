@@ -4,9 +4,9 @@
     Title: Reference type in kernel,
     Severity: Error,
     WarningLevel: 0,
-    Location: : (17,20)-(17,33),
+    Location: : (40,22)-(40,35),
     MessageFormat: Type '{0}' is a reference type. Reference types like classes cannot be used in kernels, except for arrays of value types.,
-    Message: Type 'ILGPU.Analyzers.Tests.Programs.RefType.Constructors.RefType' is a reference type. Reference types like classes cannot be used in kernels, except for arrays of value types.,
+    Message: Type 'ILGPU.Analyzers.Tests.Programs.RefType.ManagedUnmanaged.Managed' is a reference type. Reference types like classes cannot be used in kernels, except for arrays of value types.,
     Category: Usage
   }
 ]
