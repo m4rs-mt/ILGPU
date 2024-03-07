@@ -18,6 +18,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ILGPU;
 
@@ -34,6 +35,22 @@ public readonly struct BFloat16
 {
 
     #region constants
+
+    private static bool ShouldRoundUp { get; } = GetRuntimeRoundup();
+
+    private static bool GetRuntimeRoundup()
+    {
+        switch (RuntimeInformation.OSArchitecture)
+        {
+            case Architecture.Arm:
+            case Architecture.Arm64:
+                //case Architecture.Armv6: legacy
+                return false;
+            default:
+                return true;
+        }
+    }
+
 
     /// <summary>
     /// Radix
@@ -571,15 +588,18 @@ public readonly struct BFloat16
         // Apply round to even if exactly at halfway,
         // check if least significant bit of truncatedBits is set (even check)
         // even rounding
-        bool shouldRoundUp = isHalfwayOrMore
-                             && (isMoreThanHalfway || (truncatedBits & 1) != 0);
 
-        // Odd rounding is used by Armv8.6+ based processors
-        // Apple M2+ processors / A15+
-        // Qualcom Cortex-X2+ / Cortex A510+ / Cortex A710+
-        // Neoverse N2 or V2
-        // bool shouldRoundUp = isHalfwayOrMore
-        //                     && (!isMoreThanHalfway || (truncatedBits & 1) == 0);
+        bool shouldRoundUp = ShouldRoundUp?
+                // default for even rounding
+                (isHalfwayOrMore
+                 && (isMoreThanHalfway || (truncatedBits & 1) != 0))
+                : // odd rounding for ARM
+                (isHalfwayOrMore
+                  && (!isMoreThanHalfway || (truncatedBits & 1) == 0));
+            // Odd rounding is used by Armv8.6+ based processors
+            // Apple M2+ processors / A15+
+            // Qualcom Cortex-X2+ / Cortex A510+ / Cortex A710+
+            // Neoverse N2 or V2
 
         if (shouldRoundUp)
         {
