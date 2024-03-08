@@ -877,12 +877,14 @@ namespace ILGPU.Backends
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
+        protected override void Dispose(bool disposing) => base.Dispose(disposing);
+        /*
         {
             if (disposing)
                 IntrinsicProvider.Dispose();
             base.Dispose(disposing);
         }
+        */
 
         #endregion
     }
