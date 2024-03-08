@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2024 ILGPU Project
+//                        Copyright (c) 2017-2023 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Backend.cs
@@ -877,14 +877,12 @@ namespace ILGPU.Backends
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing) => base.Dispose(disposing);
-        /*
+        protected override void Dispose(bool disposing)
         {
             if (disposing)
                 IntrinsicProvider.Dispose();
             base.Dispose(disposing);
         }
-        */
 
         #endregion
     }
