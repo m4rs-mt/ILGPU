@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TestBase.cs
@@ -164,7 +164,7 @@ namespace ILGPU.Tests
 
             // Load the compiled kernel
             Output.WriteLine($"Loading '{kernel.Name}'");
-            using var acceleratorKernel = Accelerator.LoadKernel(compiled);
+            var acceleratorKernel = Accelerator.LoadKernel(compiled);
 
             // Launch the kernel
             Output.WriteLine($"Launching '{kernel.Name}'");
