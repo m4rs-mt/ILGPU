@@ -142,7 +142,7 @@ namespace ILGPU.Tests
             using var stream = Accelerator.CreateStream();
 
             // Compile kernel manually and load the compiled kernel into the accelerator
-            using var backend = Accelerator.GetBackend();
+            var backend = Accelerator.GetBackend();
             Output.WriteLine($"Compiling '{kernel.Name}'");
             var entryPoint = typeof(TIndex) == typeof(KernelConfig)
                 ? EntryPointDescription.FromExplicitlyGroupedKernel(kernel)
@@ -164,7 +164,7 @@ namespace ILGPU.Tests
 
             // Load the compiled kernel
             Output.WriteLine($"Loading '{kernel.Name}'");
-            using var acceleratorKernel = Accelerator.LoadKernel(compiled);
+            var acceleratorKernel = Accelerator.LoadKernel(compiled);
 
             // Launch the kernel
             Output.WriteLine($"Launching '{kernel.Name}'");
