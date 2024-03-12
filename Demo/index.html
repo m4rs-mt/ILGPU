@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<!--  Licensed to the .NET Foundation under one or more agreements. -->
+<!-- The .NET Foundation licenses this file to you under the MIT license. -->
+<html>
+
+<head>
+    <title>ILGPUwebCompiler</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="codemirror.css">
+    <script src="codemirror.js"></script>
+    <script src="matchbrackets.js"></script>
+    <link rel="stylesheet" href="show-hint.css">
+    <script src="show-hint.js"></script>
+    <script src="clike.js"></script>
+    <link rel="modulepreload" href="./main.js" />
+    <link rel="modulepreload" href="./dotnet.js" />
+
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="row my-2">
+            <div class="col-md-2 col-4">
+                <select class="form-select w-100 h-100" id="optimizationLevel"></select>
+            </div>
+            <div class="col-md-2 col-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" id="flexCheckDebug">
+                    <label class="form-check-label" for="flexCheckDebug">
+                        Debug
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" id="flexCheckAssertions">
+                    <label class="form-check-label" for="flexCheckAssertions">
+                        Assertions
+                    </label>
+                </div>
+            </div>
+            <button id="compile" class="btn-compile col-md-2 col-3 mx-1" disabled>
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Loading...
+            </button>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 col-12">
+                <textarea id="source">
+                </textarea>
+            </div>
+            <div class="col-md-6 col-12">
+                <textarea id="output">
+                </textarea>
+            </div>
+        </div>
+    </div>
+    <script>
+        var editor = CodeMirror.fromTextArea(document.getElementById("source"), {
+            lineNumbers: true,
+            matchBrackets: true,
+            mode: "text/x-csharp"
+        });
+
+        var output = CodeMirror.fromTextArea(document.getElementById("output"), {
+            lineNumbers: true,
+            matchBrackets: true,
+            readOnly: true,
+            mode: "text/x-csharp"
+        });
+    </script>
+    <script type='module' src="./main.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+</body>
+
+</html>
