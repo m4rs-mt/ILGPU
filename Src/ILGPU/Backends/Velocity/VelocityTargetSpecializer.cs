@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityTargetSpecializer.cs
@@ -226,7 +226,7 @@ namespace ILGPU.Backends.Velocity
         public abstract void LoadWarpSize64<TILEmitter>(TILEmitter emitter)
             where TILEmitter : struct, IILEmitter;
 
-        public abstract void ConvertBoolScalar<TILEmitter>(TILEmitter emitter)
+        public abstract void ConvertBoolScalar<TILEmitter>(TILEmitter emitter, bool value)
             where TILEmitter : struct, IILEmitter;
 
         public abstract void ConvertScalarTo32<TILEmitter>(

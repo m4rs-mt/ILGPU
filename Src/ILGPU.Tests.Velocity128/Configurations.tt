@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2023-2024 ILGPU Project
+//                           Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Configurations.tt/Configurations.cs
@@ -20,25 +20,28 @@ using Xunit.Abstractions;
 var configurationFile = Host.ResolvePath("../ILGPU.Tests/Configurations.txt");
 var configurations = TestConfig.Parse(configurationFile);
 #>
-namespace ILGPU.Tests.Velocity
+
+#if NET7_0_OR_GREATER
+
+namespace ILGPU.Tests.Velocity128
 {
 <# foreach (var (test, level, collection) in configurations) { #>
-<#      var name = $"Velocity{test}_{level}"; #>
-    [Collection("VelocityContextCollection<#= collection #>")]
+<#      var name = $"Velocity128{test}_{level}"; #>
+    [Collection("Velocity128ContextCollection<#= collection #>")]
     public sealed partial class <#= name #> : <#= test #>
     {
         public <#= name #>(
             ITestOutputHelper output,
-            VelocityTestContext<#= collection #> testContext)
+            Velocity128TestContext<#= collection #> testContext)
             : base(output, testContext)
         { }
     }
 
 <# } #>
 <# foreach (var (config, level) in TestConfig.AllConfigurations) { #>
-    public class VelocityTestContext<#= config #> : VelocityTestContext
+    public class Velocity128TestContext<#= config #> : Velocity128TestContext
     {
-        public VelocityTestContext<#= config #>()
+        public Velocity128TestContext<#= config #>()
             : base(
                 OptimizationLevel.<#= level #>,
                 enableAssertions: true,
@@ -47,9 +50,11 @@ namespace ILGPU.Tests.Velocity
         { }
     }
 
-    [CollectionDefinition("VelocityContextCollection<#= config #>")]
-    public class VelocityContextCollection<#= config #> :
-        ICollectionFixture<VelocityTestContext<#= config #>> { }
+    [CollectionDefinition("Velocity128ContextCollection<#= config #>")]
+    public class Velocity128ContextCollection<#= config #> :
+        ICollectionFixture<Velocity128TestContext<#= config #>> { }
 
 <# } #>
 }
+
+#endif

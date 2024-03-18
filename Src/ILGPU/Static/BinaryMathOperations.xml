@@ -111,6 +111,11 @@
         <Op>{Value0} % {Value1}</Op>
         <Call>IntrinsicMath.CPUOnly.Rem</Call>
         <Implementation>{Value0} % {Value1}</Implementation>
+        <Velocity>
+            <Velocity128>
+                <Implementation>{Value0} - {Value0} / {Value1} * {Value1}</Implementation>
+            </Velocity128>
+        </Velocity>
         <!-- If we add some rules here we have to enable specific test cases
              in BinaryIntOperations.tt -->
     </Operation>
@@ -119,6 +124,11 @@
         <Summary>The logical and operation.</Summary>
         <Flags>BoolsAndInts</Flags>
         <Op>Bitwise.And({Value0}, {Value1})</Op>
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.BitwiseAnd({Value0}, {Value1})</Implementation>
+            </Velocity128>
+        </Velocity>
         <Rewriter>
             <Source>{Value0} == {Value1}</Source>
             <Target>{Value0}</Target>
@@ -139,6 +149,11 @@
         <Summary>The logical or operation.</Summary>
         <Flags>BoolsAndInts</Flags>
         <Op>Bitwise.Or({Value0}, {Value1})</Op>
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.BitwiseOr({Value0}, {Value1})</Implementation>
+            </Velocity128>
+        </Velocity>
         <Rewriter>
             <Source>{Value0} == {Value1}</Source>
             <Target>{Value0}</Target>
@@ -159,11 +174,21 @@
         <Summary>The logical xor operation.</Summary>
         <Flags>BoolsAndInts</Flags>
         <Op>{Value0} ^ {Value1}</Op>
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.Xor({Value0}, {Value1})</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
     <Operation Name="Shl">
         <Summary>The shift left operation.</Summary>
         <Flags>IntsAndPointers</Flags>
         <Op>{Value0} &lt;&lt; (int){Value1}</Op>
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true">
+                <Implementation>{Value0}[Field] &lt;&lt; (int){Value1}[Field]</Implementation>
+            </Velocity128>
+        </Velocity>
         <Rewriter>
             <Source>{Value0}.IsZero</Source>
             <Target>{Value0}</Target>
@@ -177,6 +202,11 @@
         <Summary>The shift right operation.</Summary>
         <Flags>IntsAndPointers</Flags>
         <Op>{Value0} &gt;&gt; (int){Value1}</Op>
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true">
+                <Implementation>{Value0}[Field] &gt;&gt; (int){Value1}[Field]</Implementation>
+            </Velocity128>
+        </Velocity>
         <Rewriter>
             <Source>{Value0}.IsZero</Source>
             <Target>{Value0}</Target>
@@ -192,6 +222,11 @@
         <Flags>IntsAndFloats</Flags>
         <Call>IntrinsicMath.Min</Call>
         <Implementation>{MathType}.Min({Value0}, {Value1})</Implementation>
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.Min({Value0}, {Value1})</Implementation>
+            </Velocity128>
+        </Velocity>
         <!-- CombineNestedLeftConstant not required (commutative) -->
         <Rewriter Mode="CombineNestedRightConstant">
             <Target>Min</Target>
@@ -202,6 +237,11 @@
         <Flags>IntsAndFloats</Flags>
         <Call>IntrinsicMath.Max</Call>
         <Implementation>{MathType}.Max({Value0}, {Value1})</Implementation>
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.Max({Value0}, {Value1})</Implementation>
+            </Velocity128>
+        </Velocity>
         <!-- CombineNestedLeftConstant not required (commutative) -->
         <Rewriter Mode="CombineNestedRightConstant">
             <Target>Max</Target>
@@ -213,23 +253,35 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Atan2</Call>
         <Implementation>{MathType}.Atan2({Value0}, {Value1})</Implementation>
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="PowF">
         <Summary>The pow operation.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Pow</Call>
         <Implementation>{MathType}.Pow({Value0}, {Value1})</Implementation>
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="BinaryLogF">
         <Summary>The binary log operation.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Log</Call>
         <Implementation>{MathType}.Log({Value0}, {Value1})</Implementation>
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
 
     <Operation Name="CopySignF">
         <Summary>The copy sign operation.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CopySign</Call>
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
 </Operations>

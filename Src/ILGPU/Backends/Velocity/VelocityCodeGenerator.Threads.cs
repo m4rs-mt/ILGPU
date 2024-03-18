@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityCodeGenerator.Threads.cs
@@ -154,6 +154,7 @@ namespace ILGPU.Backends.Velocity
             // Load and call predicate operation
             if (!barrier.IsTreatedAs32Bit())
                 throw new InternalCompilerException();
+            LoadGroupDimScalar();
             switch (barrier.Kind)
             {
                 case PredicateBarrierKind.PopCount:

@@ -13,7 +13,11 @@
                     UnaryArithmeticKind.Not)
             </Target>
         </Rewriter>
-        <Velocity ReturnAsWarp32="false" />
+        <Velocity ReturnAsWarp32="false">
+            <Velocity128>
+                <Implementation>-{Value0}</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
     <Operation Name="Not">
         <Summary>The logical not operation.</Summary>
@@ -37,7 +41,11 @@
             <Source>true</Source>
             <Target>InvertCompareValue({Location}, {Value1})</Target>
         </Rewriter>
-        <Velocity ReturnAsWarp32="false" />
+        <Velocity ReturnAsWarp32="false">
+            <Velocity128>
+                <Implementation>~{Value0}</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
     <Operation Name="Abs">
         <Summary>The abs operation.</Summary>
@@ -49,32 +57,46 @@
             </Source>
             <Target>{Value0}</Target>
         </Rewriter>
-        <Velocity />
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.Abs({Value0})</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
     <Operation Name="PopC">
         <Summary>The popcount operation.</Summary>
         <Flags>Ints</Flags>
         <Call>IntrinsicMath.BitOperations.PopCount</Call>
-        <Velocity ReturnAsWarp32="true" />
+        <Velocity ReturnAsWarp32="true">
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="CLZ">
         <Summary>The CLZ operation.</Summary>
         <Flags>Ints</Flags>
         <Call>IntrinsicMath.BitOperations.LeadingZeroCount</Call>
-        <Velocity ReturnAsWarp32="true" />
+        <Velocity ReturnAsWarp32="true">
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="CTZ">
         <Summary>The CTZ operation.</Summary>
         <Flags>Ints</Flags>
         <Call>IntrinsicMath.BitOperations.TrailingZeroCount</Call>
-        <Velocity ReturnAsWarp32="true" />
+        <Velocity ReturnAsWarp32="true">
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="RcpF">
         <Summary>The reciprocal operation.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Rcp</Call>
         <Implementation>{Const1} / {Value0}</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128>
+                <Implementation>RcpImpl({Value0})</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
 
     <Operation Name="IsNaNF" IsPredicate="true">
@@ -82,21 +104,27 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.IsNaN</Call>
         <Implementation>{TypeName}.IsNaN({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="IsInfF" IsPredicate="true">
         <Summary>The is-infinity operation.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.IsInfinity</Call>
         <Implementation>{TypeName}.IsInfinity({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="IsFinF" IsPredicate="true">
         <Summary>The is-finite operation.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.IsFinite</Call>
         <Implementation>!IsNaN({Value0}) &amp;&amp; !IsInfinity({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
 
     <Operation Name="SqrtF">
@@ -104,14 +132,22 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Sqrt</Call>
         <Implementation>{MathType}.Sqrt({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.Sqrt({Value0})</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
     <Operation Name="RsqrtF">
         <Summary>Computes 1/sqrt(value).</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Rsqrt</Call>
         <Implementation>Rcp(Sqrt({Value0}))</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128>
+                <Implementation>RcpImpl(Vector128.Sqrt({Value0}))</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
 
     <Operation Name="AsinF">
@@ -119,21 +155,27 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Asin</Call>
         <Implementation>{MathType}.Asin({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="SinF">
         <Summary>Computes sin(x).</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Sin</Call>
         <Implementation>{MathType}.Sin({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="SinhF">
         <Summary>Computes sinh(x).</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Sinh</Call>
         <Implementation>{MathType}.Sinh({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
 
     <Operation Name="AcosF">
@@ -141,21 +183,27 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Acos</Call>
         <Implementation>{MathType}.Acos({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="CosF">
         <Summary>Computes cos(x).</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Cos</Call>
         <Implementation>{MathType}.Cos({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="CoshF">
         <Summary>Computes cosh(x).</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Cosh</Call>
         <Implementation>{MathType}.Cosh({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
 
     <Operation Name="TanF">
@@ -163,21 +211,27 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Tan</Call>
         <Implementation>{MathType}.Tan({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="TanhF">
         <Summary>Computes tanh(x).</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Tanh</Call>
         <Implementation>{MathType}.Tanh({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="AtanF">
         <Summary>Computes atan(x).</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Atan</Call>
         <Implementation>{MathType}.Atan({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
 
     <Operation Name="ExpF">
@@ -185,14 +239,18 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Exp</Call>
         <Implementation>{MathType}.Exp({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="Exp2F">
         <Summary>Computes 2^x.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Exp2</Call>
         <Implementation>{MathType}.Pow({Const2}, {Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
 
     <Operation Name="FloorF">
@@ -200,14 +258,22 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Floor</Call>
         <Implementation>{MathType}.Floor({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.Floor({Value0})</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
     <Operation Name="CeilingF">
         <Summary>Computes ceil(x).</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Ceiling</Call>
         <Implementation>{MathType}.Ceiling({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.Ceiling({Value0})</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
 
     <Operation Name="LogF">
@@ -215,20 +281,26 @@
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Log</Call>
         <Implementation>{MathType}.Log({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="Log2F">
         <Summary>Computes log(x) to base 2.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Log2</Call>
         <Implementation>{MathType}.Log({Value0}, {Const2})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
     <Operation Name="Log10F">
         <Summary>Computes log(x) to base 10.</Summary>
         <Flags>Floats</Flags>
         <Call>IntrinsicMath.CPUOnly.Log10</Call>
         <Implementation>{MathType}.Log10({Value0})</Implementation>
-        <Velocity />
+        <Velocity>
+            <Velocity128 SoftwareEmulation="true" />
+        </Velocity>
     </Operation>
 </Operations>

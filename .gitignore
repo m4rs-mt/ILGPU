@@ -258,6 +258,7 @@ Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
 Src/ILGPU/Backends/PTX/PTXLibDeviceMethods.cs
 Src/ILGPU/Backends/PTX/PTXLibDeviceNvvm.cs
 Src/ILGPU/Backends/Velocity/Scalar/ScalarOperations.cs
+Src/ILGPU/Backends/Velocity/Vec128/Vec128Operations.cs
 Src/ILGPU/Backends/Velocity/VelocityIntrinsics.Generated.cs
 Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
 Src/ILGPU/HalfConversion.cs
@@ -343,6 +344,7 @@ Src/ILGPU.Tests.CPU/Configurations.cs
 Src/ILGPU.Tests.Cuda/Configurations.cs
 Src/ILGPU.Tests.OpenCL/Configurations.cs
 Src/ILGPU.Tests.Velocity/Configurations.cs
+Src/ILGPU.Tests.Velocity128/Configurations.cs
 
 # Generated test source files (Algorithms)
 Src/ILGPU.Algorithms.Tests/Generic/ConfigurationBase.cs

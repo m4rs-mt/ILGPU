@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2022-2023 ILGPU Project
+//                        Copyright (c) 2022-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityDevice.cs
@@ -11,6 +11,9 @@
 
 using ILGPU.Backends.Velocity;
 using ILGPU.Backends.Velocity.Scalar;
+#if NET7_0_OR_GREATER
+using ILGPU.Backends.Velocity.Vec128;
+#endif
 using ILGPU.Util;
 using System;
 
@@ -25,6 +28,15 @@ namespace ILGPU.Runtime.Velocity
         /// Scalar operations to simulate two lanes per warp.
         /// </summary>
         Scalar2,
+
+#if NET7_0_OR_GREATER
+        /// <summary>
+        /// 128bit vector operations to simulate four lanes per warp using hardware
+        /// acceleration via AdvSimd and SSE/AVX.
+        /// </summary>
+        Vector128,
+
+#endif
     }
 
     /// <summary>
@@ -38,7 +50,10 @@ namespace ILGPU.Runtime.Velocity
 
         private static readonly Type[] VelocitySpecializers = new Type[]
         {
-            typeof(Scalar)
+            typeof(Scalar),
+#if NET7_0_OR_GREATER
+            typeof(Vec128),
+#endif
         };
 
         #endregion
@@ -56,6 +71,11 @@ namespace ILGPU.Runtime.Velocity
                 case VelocityDeviceType.Scalar2:
                     // Scalar is always supported
                     break;
+#if NET7_0_OR_GREATER
+                case VelocityDeviceType.Vector128:
+                    // Vector always runs using software in the worst case
+                    break;
+#endif
                 default:
                     throw new ArgumentOutOfRangeException(nameof(deviceType));
             }

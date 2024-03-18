@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeInformation.ttinclude
@@ -317,34 +317,50 @@ public class MathOpRewriter
 
 public class VelocityMathConfig
 {
-    [XmlText]
-    public string Implementation { get; set; }
-
-    [XmlAttribute]
-    public bool SoftwareEmulation { get; set; }
-
     [XmlAttribute]
     public bool ReturnAsWarp32 { get; set; }
 
-    [XmlIgnore]
-    public bool RequiresSpecialization =>
-        !string.IsNullOrWhiteSpace(Implementation) &&
-        Implementation.Contains("[");
+    [XmlElement("Velocity128")]
+    public Velocity128Config Velocity128 { get; set; }
+}
+
+public class Velocity128Config
+{
+    [XmlAttribute]
+    public bool SoftwareEmulation { get; set; }
+
+    [XmlElement]
+    public string Implementation { get; set; }
+
+    private static string GetFieldString(int? field)
+    {
+        var fieldString = string.Empty;
+        if (field.HasValue)
+            fieldString = $".GetElement({field.Value})";
+        return fieldString;
+    }
 
     public string GetImplementation(
-        string lowerAsExpression,
-        string suffix,
-        string typeName,
+        MathOp mathOp,
+        int? field = null,
         params string[] variables)
     {
-        var result = new StringBuilder(Implementation);
-        result.Replace("[", $".{lowerAsExpression}<");
-        result.Replace("]", ">()");
-        result.Replace("{T}", suffix);
-        result.Replace("{Type}", typeName);
-        for (int i = 0; i < variables.Length; ++i)
-            result.Replace($"{{Value{i}}}", variables[i]);
-        return result.ToString();
+        var fieldString = GetFieldString(field);
+        if (mathOp != null && string.IsNullOrWhiteSpace(Implementation))
+        {
+            for (int i = 0; i < variables.Length; ++i)
+                variables[i] += fieldString;
+
+            return mathOp.GetOpOrCall(isBool: false, variables);
+        }
+        else
+        {
+            var result = new StringBuilder(Implementation);
+            result.Replace("[Field]", fieldString);
+            for (int i = 0; i < variables.Length; ++i)
+                result.Replace("{Value" + i + "}", variables[i]);
+            return result.ToString();
+        }
     }
 }
 
