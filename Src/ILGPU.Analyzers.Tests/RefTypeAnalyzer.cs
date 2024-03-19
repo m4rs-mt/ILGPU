@@ -44,4 +44,11 @@ public class RefTypeAnalyzer
         var code = await File.ReadAllTextAsync("Programs/RefType/ManagedUnmanaged.cs");
         await VerifyCS.Verify(code);
     }
+
+    [Fact]
+    public async Task LoadDiscovery()
+    {
+        var code = await File.ReadAllTextAsync("Programs/RefType/LoadDiscovery.cs");
+        await VerifyCS.Verify(code);
+    }
 }

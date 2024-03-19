@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -31,6 +31,8 @@ namespace ILGPU.Analyzers
                 "LoadImplicitlyGroupedStreamKernel"
             );
 
+        private ConcurrentDictionary<IOperation, bool> seen = new();
+
         /// <summary>
         /// Called for every kernel body.
         /// </summary>
@@ -49,6 +51,8 @@ namespace ILGPU.Analyzers
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
 
+            seen.Clear();
+
             // Subscribe to semantic (compile time) action invocation
             // Subscribe only to method invocations (we want to find the kernel load call)
             context.RegisterOperationAction(AnalyzeOperation, OperationKind.Invocation);
@@ -56,6 +60,8 @@ namespace ILGPU.Analyzers
 
         private void AnalyzeOperation(OperationAnalysisContext context)
         {
+            if (seen.ContainsKey(context.Operation)) return;
+
             if (context.Operation is not IInvocationOperation invocationOperation ||
                 context.Operation.Syntax is not InvocationExpressionSyntax)
                 return;
@@ -89,7 +95,12 @@ namespace ILGPU.Analyzers
 
                 if (bodyOp is not null)
                 {
-                    AnalyzeKernelBody(context, bodyOp);
+                    // If we couldn't add it, another thread got here first.
+                    bool added = seen.TryAdd(bodyOp, true);
+                    if (added)
+                    {
+                        AnalyzeKernelBody(context, bodyOp);
+                    }
                 }
             }
         }

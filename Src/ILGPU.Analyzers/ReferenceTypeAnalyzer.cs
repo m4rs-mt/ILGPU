@@ -101,7 +101,7 @@ namespace ILGPU.Analyzers
             }
             else
             {
-                if (op.Type.ContainingAssembly.Name == ILGPUAssemblyName)
+                if (IsILGPUSymbol(op.Type))
                     return;
 
                 var generalDiagnostic =
@@ -116,18 +116,22 @@ namespace ILGPU.Analyzers
         {
             if (op is IInvocationOperation invocationOperation)
             {
+                if (IsILGPUSymbol(invocationOperation.TargetMethod)) return null;
                 return MethodUtil.GetMethodBody(model, invocationOperation.TargetMethod);
             }
 
-            if (op is IObjectCreationOperation creationOperation)
+            if (op is IObjectCreationOperation { Constructor: not null } creationOperation)
             {
-                if (creationOperation.Constructor is not null)
-                {
-                    return MethodUtil.GetMethodBody(model, creationOperation.Constructor);
-                }
+                if (IsILGPUSymbol(creationOperation.Constructor)) return null;
+                return MethodUtil.GetMethodBody(model, creationOperation.Constructor);
             }
 
             return null;
+        }
+
+        private bool IsILGPUSymbol(ISymbol symbol)
+        {
+            return symbol.ContainingAssembly.Name == ILGPUAssemblyName;
         }
     }
 }

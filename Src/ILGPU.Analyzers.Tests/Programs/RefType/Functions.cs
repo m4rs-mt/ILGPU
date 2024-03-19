@@ -9,7 +9,7 @@ class Functions
         public int Hello => 42;
     }
     
-    // This would be disallowed anyways, but the analyzer shouldn't hang
+    // This wouldn't compile anyways, but the analyzer shouldn't hang
     static int Recursion(int i)
     {
         if (i == 0) return new RefType().Hello;
@@ -24,7 +24,7 @@ class Functions
 
     static int MutualRecursion2(int i)
     {
-        if (i == 0) return 0;  // TODO: add allocation here
+        if (i == 0) return 0;
         return MutualRecursion1(i - 1);
     }
 
