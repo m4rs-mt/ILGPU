@@ -129,7 +129,16 @@
   <data name="StructMustBePartial_Title" xml:space="preserve">
     <value>Struct must be partial</value>
   </data>
-  <data name="Usage_Category" xml:space="preserve">
-    <value>Usage</value>
+  <data name="RefTypeInKernel_Message" xml:space="preserve">
+      <value>Type '{0}' is a reference type. Reference types like classes cannot be used in kernels, except for arrays of value types.</value>
+  </data>
+  <data name="RefTypeInKernel_Title" xml:space="preserve">
+      <value>Reference type in kernel</value>
+  </data>
+  <data name="RefTypeArrInKernel_Message" xml:space="preserve">
+      <value>Type '{0}' is an array of type '{1}', which is a reference type. Arrays of reference types cannot be used in kernels.</value>
+  </data>
+  <data name="RefTypeArrInKernel_Title" xml:space="preserve">
+      <value>Array of reference types in kernel</value>
   </data>
 </root>
