@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Interop.cs
@@ -162,6 +162,37 @@ namespace ILGPU
         #region Float/Int Casts
 
         /// <summary>
+        /// Casts the given Mini43AIFloat8 to an byte via a reinterpret cast.
+        /// </summary>
+        /// <param name="value">The value to cast.</param>
+        /// <returns>The int value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
+        public static byte FloatAsInt(Mini43AIFloat8 value) =>
+            value.RawValue;
+
+        /// <summary>
+        /// Casts the given Mini52Float8 to an byte via a reinterpret cast.
+        /// </summary>
+        /// <param name="value">The value to cast.</param>
+        /// <returns>The int value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
+        public static byte FloatAsInt(Mini52Float8 value) =>
+            value.RawValue;
+
+
+        /// <summary>
+        /// Casts the given float to an int via a reinterpret cast.
+        /// </summary>
+        /// <param name="value">The value to cast.</param>
+        /// <returns>The int value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
+        public static ushort FloatAsInt(BFloat16 value) =>
+            value.RawValue;
+
+        /// <summary>
         /// Casts the given float to an int via a reinterpret cast.
         /// </summary>
         /// <param name="value">The value to cast.</param>
@@ -200,6 +231,8 @@ namespace ILGPU
         [InteropIntrinsic(InteropIntrinsicKind.IntAsFloat)]
         public static Half IntAsFloat(ushort value) =>
             new Half(value);
+
+
 
         /// <summary>
         /// Casts the given int to a float via a reinterpret cast.

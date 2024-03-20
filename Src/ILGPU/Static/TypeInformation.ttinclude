@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeInformation.ttinclude
@@ -34,7 +34,9 @@ public class TypeInformation
             { "UInt16", "Int16" },
             { "UInt32", "Int32" },
             { "UInt64", "Int64" },
-
+            { "Mini43AIFloat8", "Float8" },
+            { "Mini52Float8", "Float8" },
+            { "BFloat16", "Float16" },
             { "Half", "Float16" },
             { "Float", "Float32" },
             { "Double", "Float64" },
@@ -43,6 +45,9 @@ public class TypeInformation
     private static readonly Dictionary<string, string> ArithmeticBasicValueTypeMapping =
         new Dictionary<string, string>()
         {
+            { "Mini43AIFloat8", "Float8" },
+            { "Mini52Float8", "Float8" },
+            { "BFloat16", "Float16" },
             { "Half", "Float16" },
             { "Float", "Float32" },
             { "Double", "Float64" },
@@ -74,8 +79,41 @@ public class TypeInformation
     public bool IsUnsignedInt => Kind == TypeInformationKind.UnsignedInt;
     public bool IsFloat => Kind == TypeInformationKind.Float;
 
-    public string SizeOfType => Name == "Half" ? "sizeof(ushort)" : $"sizeof({Type})";
-    public string DefaultValue => Name == "Half" ? "Half.Zero" : "0";
+    public string SizeOfType
+    {
+        get
+        {
+            switch (Name)
+            {
+                case "Mini43AIFloat8": case "Mini52Float8":
+                    return "sizeof(byte)";
+                case "Half": case "BFloat16":
+                    return "sizeof(ushort)";
+                default:
+                    return  $"sizeof({Type})";
+            }
+        }
+    }
+
+    public string DefaultValue
+    {
+        get
+        {
+            switch (Name)
+            {
+                case "Mini43AIFloat8":
+                    return "Mini43AIFloat8.Zero";
+                case "Mini52Float8":
+                    return "Mini52Float8.Zero";
+                case "Half":
+                    return "Half.Zero";
+                case "BFloat16":
+                    return "BFloat16.Zero";
+                default:
+                    return  "0";
+            }
+        }
+    }
 
     public string FormatNumber(string number) =>
         Prefix + "(" + number + Suffix + ")";
@@ -112,6 +150,12 @@ public static readonly TypeInformation[] IntTypes =
 
 public static readonly TypeInformation[] FloatTypes =
     {
+        new TypeInformation("Mini43AIFloat8", "Mini43AIFloat8",
+            TypeInformationKind.Float, "(Mini43AIFloat8)", "f"),
+        new TypeInformation("Mini52Float8", "Mini52Float8",
+            TypeInformationKind.Float, "(Mini52Float8)", "f"),
+        new TypeInformation("BFloat16", "BFloat16",
+            TypeInformationKind.Float, "(BFloat16)", "f"),
         new TypeInformation("Half", "Half", TypeInformationKind.Float, "(Half)", "f"),
         new TypeInformation("Float", "float", TypeInformationKind.Float, null, "f"),
         new TypeInformation("Double", "double", TypeInformationKind.Float),
@@ -132,7 +176,7 @@ public static readonly TypeInformation[] AtomicIntTypes =
     AtomicSignedIntTypes.Concat(AtomicUnsignedIntTypes).ToArray();
 
 public static readonly TypeInformation[] AtomicFloatTypes =
-    FloatTypes.Skip(1).ToArray();
+    FloatTypes.Skip(4).ToArray();
 
 public static readonly TypeInformation[] AtomicNumericTypes =
     AtomicIntTypes.Concat(AtomicFloatTypes).ToArray();
@@ -519,6 +563,18 @@ public MathOp[] GetBinaryMathOps(string rootPath) =>
 
 public MathOp[] GetTernaryMathOps(string rootPath) =>
     MathOperations.Load(rootPath, "TernaryMathOperations.xml");
+
+// FP8 raw implementations that can be implemented without the use of emulated FP32
+// operations.
+
+    public static readonly (string, string)[] FP8ImplementationMethods =
+    {
+        ("Abs", "Abs"),
+        ("Neg", "Neg"),
+        ("IsNaN", "IsNaNF"),
+        ("IsInfinity", "IsInfF"),
+        ("IsFinite", "IsFinF")
+    };
 
 // FP16 raw implementations that can be implemented without the use of emulated FP32
 // operations.

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMath.cs
@@ -43,15 +43,6 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.Abs)]
         public static float Abs(float value) =>
             Math.Abs(value);
-
-        /// <summary>
-        /// Computes |value|.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>|value|.</returns>
-        [MathIntrinsic(MathIntrinsicKind.Abs)]
-        public static Half Abs(Half value) =>
-            Half.Abs(value);
 
         /// <summary>
         /// Computes |value|.
@@ -109,7 +100,7 @@ namespace ILGPU
         /// <returns>The minimum of first and second value.</returns>
         [MathIntrinsic(MathIntrinsicKind.Min)]
         public static float Min(float first, float second) =>
-            Math.Min(first, second);
+            MathF.Min(first, second);
 
         /// <summary>
         /// Computes min(first, second).
@@ -205,7 +196,7 @@ namespace ILGPU
         /// <returns>The maximum of first and second value.</returns>
         [MathIntrinsic(MathIntrinsicKind.Max)]
         public static float Max(float first, float second) =>
-            Math.Max(first, second);
+            MathF.Max(first, second);
 
         /// <summary>
         /// Computes max(first, second).

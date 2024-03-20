@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RadixSortOperations.tt/RadixSortOperations.cs
@@ -78,11 +78,29 @@ namespace ILGPU.Algorithms.RadixSortOperations
             var bits = value ^ (1L << (NumBits - 1));
 <# } else if (type.IsSignedInt) { #>
             var bits = value ^ (1 << (NumBits - 1));
-<# } else if (type.IsFloat && type.Name == "Half") { #>
+
+<# } else if (type.Name == "Mini43AIFloat8") { #>
+            var signMask = 1U << (NumBits - 1);
+            var onesComplementMask =
+                ((uint)~(value.AsByte) >> (NumBits - 1));
+            var bits = value.AsByte ^ (signMask | onesComplementMask);
+<# } else if (type.Name == "Mini52Float8") { #>
+            var signMask = 1U << (NumBits - 1);
+            var onesComplementMask =
+                ((uint)~(value.AsByte) >> (NumBits - 1));
+            var bits = value.AsByte ^ (signMask | onesComplementMask);
+<# } else if (type.Name == "BFloat16") { #>
+            var signMask = 1U << (NumBits - 1);
+            var onesComplementMask =
+                ((uint)~(value.AsUShort) >> (NumBits - 1));
+            var bits = value.AsUShort ^ (signMask | onesComplementMask);
+<# } else if (type.Name == "Half" ) { #>
             var signMask = 1U << (NumBits - 1);
             var onesComplementMask =
                 ((uint)~(Interop.FloatAsInt(value)) >> (NumBits - 1));
             var bits = Interop.FloatAsInt(value) ^ (signMask | onesComplementMask);
+
+
 <# } else if (type.IsFloat) { #>
             var signMask = 1<#= type.Name == "Double" ? "UL" : "U" #> << (NumBits - 1);
             var onesComplementMask = (~(Interop.FloatAsInt(value)) >> (NumBits - 1));

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PrimitiveTypes.cs
@@ -29,29 +29,31 @@ namespace ILGPU.IR.Types
         private static readonly ImmutableArray<int> BasicTypeInformation =
             ImmutableArray.Create(
                 -1, // None
-                4,
-                1,
-                2,
-                4,
-                8,
-                2,
-                4,
-                8);
+                4, // int 1
+                1, // int 8
+                2, // int 16
+                4, // int 32
+                8, // int 64
+                1, // float 8
+                2, // float 16
+                4, // float 32
+                8); // float 64
 
         /// <summary>
         /// Maps integer-based type size values to <see cref="BasicValueType"/> entries.
         /// </summary>
         private static readonly ImmutableArray<BasicValueType> BasicSizeInformation =
             ImmutableArray.Create(
-                BasicValueType.None,
-                BasicValueType.Int8,
-                BasicValueType.Int16,
-                BasicValueType.None,
-                BasicValueType.Int32,
-                BasicValueType.None,
-                BasicValueType.None,
-                BasicValueType.None,
-                BasicValueType.Int64);
+                BasicValueType.None, // none
+                BasicValueType.Int32, // int 1
+                BasicValueType.Int8, // int 8
+                BasicValueType.Int16, // int 16
+                BasicValueType.Int32, // int 32
+                BasicValueType.Int64, // int 64
+                BasicValueType.Int8, // float 8
+                BasicValueType.Int16, // float 16
+                BasicValueType.Int32, // float 32
+                BasicValueType.Int64); // float 64
 
         /// <summary>
         /// Determines the <see cref="BasicValueType"/> that corresponds to the given

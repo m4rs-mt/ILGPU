@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Atomic.cs
@@ -185,6 +185,29 @@ namespace ILGPU
                 ref Unsafe.As<ulong, long>(ref target),
                 (long)compare,
                 (long)value);
+
+
+        /// <summary>
+        /// Represents an atomic compare-exchange operation.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="compare">The expected comparison value.</param>
+        /// <param name="value">The target value.</param>
+        /// <returns>The old value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half CompareExchange(
+            ref Half target,
+            Half compare,
+            Half value)
+        {
+            var result = CompareExchange(
+                ref Unsafe.As<Half, uint>(ref target),
+                Interop.FloatAsInt(compare),
+                Interop.FloatAsInt(value));
+            return (Half) Interop.IntAsFloat(result);
+        }
+
+
 
         /// <summary>
         /// Represents an atomic compare-exchange operation.

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: HistogramTests.tt/HistogramTests.cs
@@ -25,8 +25,8 @@ using Xunit.Abstractions;
 // disable: max_line_length
 
 <#
-var incrementTypes = AtomicNumericTypes;
-var inputTypes = NumericTypes;
+    var incrementTypes = AtomicNumericTypes;
+    var inputTypes = NumericTypes;
 #>
 namespace ILGPU.Algorithms.Tests
 {
@@ -38,7 +38,10 @@ namespace ILGPU.Algorithms.Tests
 
         #region Initialize Helpers
 
-<# foreach (var inputType in inputTypes) { #>
+<#
+    foreach (var inputType in inputTypes)
+    {
+#>
         private static <#= inputType.Type #>[]
             InitializeInput_<#= inputType.Name #>(int length) =>
             Enumerable
@@ -46,7 +49,9 @@ namespace ILGPU.Algorithms.Tests
                 .Select(x => (<#= inputType.Type #>)x)
                 .ToArray();
 
-<# } #>
+<#
+    }
+#>
         private static void ApplyHistogram<
             T,
             TBinType,
@@ -79,15 +84,36 @@ namespace ILGPU.Algorithms.Tests
 
         #region Histogram Modulo Operations
 
-<# foreach (var inputType in inputTypes) { #>
+<# foreach
+
+    (var inputType in inputTypes) { #>
         internal readonly struct ModuloBin<#= inputType.Name #>Operation
             : IComputeSingleBinOperation<<#= inputType.Type #>, Index1D>
         {
             public readonly Index1D ComputeHistogramBin(
                 <#= inputType.Type #> value,
                 Index1D numBins) =>
-<#      if (inputType.IsFloat) { #>
+<#
+       if (inputType.Name == "BFloat16")
+       {
+#>
+                (int)XMath.Abs(XMath.Rem((float)value, numBins));
+<#
+       } else if (inputType.IsFloat) { #>
+<#
+    if (inputType.Name != "BFloat16")
+    {
+#>
                 (int)XMath.Abs(XMath.Rem(value, numBins));
+<#
+    }
+    if (inputType.Name == "BFloat16")
+    {
+#>
+                (int)XMath.Abs(XMath.Rem((float) value, numBins));
+<#
+    }
+#>
 <#      } else { #>
                 (int)XMath.Abs(value % (uint)numBins);
 <#      } #>
