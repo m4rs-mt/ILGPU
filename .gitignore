@@ -245,6 +245,7 @@ ModelManifest.xml
 
 # Rider
 .idea/
+Src/.idea/
 
 # macOS
 .DS_Store
