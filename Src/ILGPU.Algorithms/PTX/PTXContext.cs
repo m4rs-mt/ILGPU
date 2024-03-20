@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXContext.cs
@@ -46,7 +46,9 @@ namespace ILGPU.Algorithms.PTX
         private static readonly PTXIntrinsic MathCodeGeneratorIntrinsic =
             new PTXIntrinsic(
                 MathCodeGenerator,
-                IntrinsicImplementationMode.GenerateCode)
+                IntrinsicImplementationMode.GenerateCode,
+                null,
+                maxArchitecture: PTXLibDevicePtx.MinArchtecture)
             .ThrowIfNull();
 
         /// <summary>
@@ -58,19 +60,6 @@ namespace ILGPU.Algorithms.PTX
         /// The <see cref="PTXWarpExtensions"/> type.
         /// </summary>
         internal static readonly Type PTXWarpExtensionsType = typeof(PTXWarpExtensions);
-
-        /// <summary>
-        /// Resolves a PTX code generator for the given math-function configuration.
-        /// </summary>
-        /// <param name="minArchitecture">The target/minimum architecture.</param>
-        /// <returns>The resolved intrinsic representation.</returns>
-        private static PTXIntrinsic GetMathCodeGeneratorIntrinsic(
-            CudaArchitecture minArchitecture) =>
-            new PTXIntrinsic(
-                PTXMathType,
-                nameof(PTXMath.GenerateMathIntrinsic),
-                IntrinsicImplementationMode.GenerateCode,
-                minArchitecture);
 
         /// <summary>
         /// Resolves a PTX intrinsic for the given math-function configuration.
@@ -87,7 +76,11 @@ namespace ILGPU.Algorithms.PTX
                 types,
                 null)
                 .ThrowIfNull();
-            return new PTXIntrinsic(targetMethod, IntrinsicImplementationMode.Redirect);
+            return new PTXIntrinsic(
+                targetMethod,
+                IntrinsicImplementationMode.Redirect,
+                null,
+                maxArchitecture: PTXLibDevicePtx.MinArchtecture);
         }
 
         /// <summary>

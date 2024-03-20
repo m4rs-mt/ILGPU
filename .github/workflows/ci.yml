@@ -132,7 +132,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        path: [Src, Samples]
+        path: [Src, Samples, Tools]
       fail-fast: false
     steps:
       - name: Checkout

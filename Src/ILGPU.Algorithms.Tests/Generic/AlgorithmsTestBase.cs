@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AlgorithmsTestBase.cs
@@ -27,7 +27,7 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Compares two numbers for equality, within a defined tolerance.
         /// </summary>
-        private class HalfPrecisionComparer
+        internal class HalfPrecisionComparer
             : EqualityComparer<Half>
         {
             public readonly float Margin;
@@ -59,7 +59,7 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Compares two numbers for equality, within a defined tolerance.
         /// </summary>
-        private class FloatPrecisionComparer
+        internal class FloatPrecisionComparer
             : EqualityComparer<float>
         {
             public readonly float Margin;
@@ -91,7 +91,7 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Compares two numbers for equality, within a defined tolerance.
         /// </summary>
-        private class DoublePrecisionComparer
+        internal class DoublePrecisionComparer
             : EqualityComparer<double>
         {
             public readonly double Margin;
@@ -123,7 +123,7 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Compares two numbers for equality, within a defined tolerance.
         /// </summary>
-        private class HalfRelativeErrorComparer
+        internal class HalfRelativeErrorComparer
             : EqualityComparer<Half>
         {
             public readonly float RelativeError;
@@ -163,7 +163,7 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Compares two numbers for equality, within a defined tolerance.
         /// </summary>
-        private class FloatRelativeErrorComparer
+        internal class FloatRelativeErrorComparer
             : EqualityComparer<float>
         {
             public readonly float RelativeError;
@@ -203,7 +203,7 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Compares two numbers for equality, within a defined tolerance.
         /// </summary>
-        private class DoubleRelativeErrorComparer
+        internal class DoubleRelativeErrorComparer
             : EqualityComparer<double>
         {
             public readonly double RelativeError;
@@ -245,19 +245,32 @@ namespace ILGPU.Algorithms.Tests
         /// </summary>
         /// <param name="buffer">The target buffer.</param>
         /// <param name="expected">The expected values.</param>
+        /// <param name="comparer">The comparer to use.</param>
+        public void VerifyUsingComparer<T>(
+            ArrayView<T> buffer,
+            T[] expected,
+            IEqualityComparer<T> comparer)
+            where T : unmanaged
+        {
+            var data = buffer.GetAsArray(Accelerator.DefaultStream);
+            Assert.Equal(data.Length, expected.Length);
+            Assert.Equal(expected, data, comparer);
+        }
+
+        /// <summary>
+        /// Verifies the contents of the given memory buffer.
+        /// </summary>
+        /// <param name="buffer">The target buffer.</param>
+        /// <param name="expected">The expected values.</param>
         /// <param name="decimalPlaces">The acceptable error margin.</param>
         public void VerifyWithinPrecision(
             ArrayView<Half> buffer,
             Half[] expected,
-            uint decimalPlaces)
-        {
-            var data = buffer.GetAsArray(Accelerator.DefaultStream);
-            Assert.Equal(data.Length, expected.Length);
-
-            var comparer = new HalfPrecisionComparer(decimalPlaces);
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Assert.Equal(expected[i], data[i], comparer);
-        }
+            uint decimalPlaces) =>
+            VerifyUsingComparer(
+                buffer,
+                expected,
+                new HalfPrecisionComparer(decimalPlaces));
 
         /// <summary>
         /// Verifies the contents of the given memory buffer.
@@ -268,15 +281,11 @@ namespace ILGPU.Algorithms.Tests
         public void VerifyWithinPrecision(
             ArrayView<float> buffer,
             float[] expected,
-            uint decimalPlaces)
-        {
-            var data = buffer.GetAsArray(Accelerator.DefaultStream);
-            Assert.Equal(data.Length, expected.Length);
-
-            var comparer = new FloatPrecisionComparer(decimalPlaces);
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Assert.Equal(expected[i], data[i], comparer);
-        }
+            uint decimalPlaces) =>
+            VerifyUsingComparer(
+                buffer,
+                expected,
+                new FloatPrecisionComparer(decimalPlaces));
 
         /// <summary>
         /// Verifies the contents of the given memory buffer.
@@ -287,15 +296,11 @@ namespace ILGPU.Algorithms.Tests
         public void VerifyWithinPrecision(
             ArrayView<double> buffer,
             double[] expected,
-            uint decimalPlaces)
-        {
-            var data = buffer.GetAsArray(Accelerator.DefaultStream);
-            Assert.Equal(data.Length, expected.Length);
-
-            var comparer = new DoublePrecisionComparer(decimalPlaces);
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Assert.Equal(expected[i], data[i], comparer);
-        }
+            uint decimalPlaces) =>
+            VerifyUsingComparer(
+                buffer,
+                expected,
+                new DoublePrecisionComparer(decimalPlaces));
 
         /// <summary>
         /// Verifies the contents of the given memory buffer.
@@ -306,15 +311,11 @@ namespace ILGPU.Algorithms.Tests
         public void VerifyWithinRelativeError(
             ArrayView<Half> buffer,
             Half[] expected,
-            double relativeError)
-        {
-            var data = buffer.GetAsArray(Accelerator.DefaultStream);
-            Assert.Equal(data.Length, expected.Length);
-
-            var comparer = new HalfRelativeErrorComparer((float)relativeError);
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Assert.Equal(expected[i], data[i], comparer);
-        }
+            double relativeError) =>
+            VerifyUsingComparer(
+                buffer,
+                expected,
+                new HalfRelativeErrorComparer((float)relativeError));
 
         /// <summary>
         /// Verifies the contents of the given memory buffer.
@@ -325,15 +326,11 @@ namespace ILGPU.Algorithms.Tests
         public void VerifyWithinRelativeError(
             ArrayView<float> buffer,
             float[] expected,
-            double relativeError)
-        {
-            var data = buffer.GetAsArray(Accelerator.DefaultStream);
-            Assert.Equal(data.Length, expected.Length);
-
-            var comparer = new FloatRelativeErrorComparer((float)relativeError);
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Assert.Equal(expected[i], data[i], comparer);
-        }
+            double relativeError) =>
+            VerifyUsingComparer(
+                buffer,
+                expected,
+                new FloatRelativeErrorComparer((float)relativeError));
 
         /// <summary>
         /// Verifies the contents of the given memory buffer.
@@ -344,14 +341,10 @@ namespace ILGPU.Algorithms.Tests
         public void VerifyWithinRelativeError(
             ArrayView<double> buffer,
             double[] expected,
-            double relativeError)
-        {
-            var data = buffer.GetAsArray(Accelerator.DefaultStream);
-            Assert.Equal(data.Length, expected.Length);
-
-            var comparer = new DoubleRelativeErrorComparer(relativeError);
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Assert.Equal(expected[i], data[i], comparer);
-        }
+            double relativeError) =>
+            VerifyUsingComparer(
+                buffer,
+                expected,
+                new DoubleRelativeErrorComparer(relativeError));
     }
 }

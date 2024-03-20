@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -28,8 +28,8 @@ namespace LibDeviceKernel
 
         static void Main()
         {
-            // Create default context and enable LibDevice library
-            using var context = Context.Create(builder => builder.Cuda().LibDevice());
+            // Create default context.
+            using var context = Context.Create(builder => builder.Cuda());
 
             // For each available device...
             foreach (var device in context)
