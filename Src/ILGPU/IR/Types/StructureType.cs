@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StructureType.cs
@@ -93,7 +93,7 @@ namespace ILGPU.IR.Types
             /// <summary>
             /// The current alignment for the underlying type.
             /// </summary>
-            public int Alignment { get; private set; }
+            public int Alignment { get; internal set; }
 
             /// <summary>
             /// The current size in bytes.
@@ -840,6 +840,7 @@ namespace ILGPU.IR.Types
                 builder.Add(convertedType);
                 changed |= convertedType != type;
             }
+            builder.Alignment = Alignment;
 
             // Ensure that we did not lose any fields
             this.Assert(builder.Count >= NumFields);
@@ -975,7 +976,8 @@ namespace ILGPU.IR.Types
         public override bool Equals(object? obj)
         {
             if (!(obj is StructureType structureType) ||
-                structureType.NumFields != NumFields)
+                structureType.NumFields != NumFields ||
+                structureType.Alignment != Alignment)
             {
                 return false;
             }

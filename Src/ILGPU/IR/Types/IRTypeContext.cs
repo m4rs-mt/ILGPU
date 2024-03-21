@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRTypeContext.cs
@@ -410,28 +410,42 @@ namespace ILGPU.IR.Types
             }
             else
             {
-                // Must be a structure type
-                if (!type.IsValueType)
-                {
-                    throw new NotSupportedException(
-                        string.Format(
-                            ErrorMessages.NotSupportedType,
-                            type));
-                }
-
-                var typeInfo = GetTypeInfo(type);
-                var builder = new StructureType.Builder(
-                    this,
-                    typeInfo.NumFlattendedFields,
-                    typeInfo.Size);
-                foreach (var field in typeInfo.Fields)
-                    builder.Add(CreateType_Sync(field.FieldType, addressSpace));
-
+                PrepareStructureType(type, addressSpace, out var builder);
                 return Map(
                     type,
                     addressSpace,
                     UnifyType(builder.Seal()));
             }
+        }
+
+        /// <summary>
+        /// Creates a new structure type based on a type from the .Net world.
+        /// The builder is returned so that further customization can be performed.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <param name="addressSpace">The address space for pointer types.</param>
+        /// <param name="builder">Filled in with the structure builder.</param>
+        private void PrepareStructureType(
+            Type type,
+            MemoryAddressSpace addressSpace,
+            out StructureType.Builder builder)
+        {
+            // Must be a structure type
+            if (!type.IsValueType)
+            {
+                throw new NotSupportedException(
+                    string.Format(
+                        ErrorMessages.NotSupportedType,
+                        type));
+            }
+
+            var typeInfo = GetTypeInfo(type);
+            builder = new StructureType.Builder(
+                this,
+                typeInfo.NumFlattendedFields,
+                typeInfo.Size);
+            foreach (var field in typeInfo.Fields)
+                builder.Add(CreateType_Sync(field.FieldType, addressSpace));
         }
 
         /// <summary>
@@ -513,6 +527,9 @@ namespace ILGPU.IR.Types
             {
                 typeMapping.Add((typeof(void), space), VoidType);
                 typeMapping.Add((typeof(string), space), StringType);
+#if NET7_0_OR_GREATER
+                typeMapping.Add((typeof(Int128), space), CreateInt128Type(space));
+#endif
 
                 typeMapping.Add((typeof(Array), space), RootType);
 
@@ -530,6 +547,21 @@ namespace ILGPU.IR.Types
                 unifiedTypes[basicType] = basicType;
             }
         }
+
+#if NET7_0_OR_GREATER
+        /// <summary>
+        /// Creates the structure type for <see cref="Int128"/>.
+        /// This is considered an intrinsic in the .Net world, and is internally aligned
+        /// to 16 bytes.
+        /// </summary>
+        private TypeNode CreateInt128Type(MemoryAddressSpace addressSpace)
+        {
+            // Force 16 byte alignment.
+            PrepareStructureType(typeof(Int128), addressSpace, out var builder);
+            builder.Alignment = 16;
+            return UnifyType(builder.Seal());
+        }
+#endif
 
         /// <summary>
         /// Clears all internal caches.
