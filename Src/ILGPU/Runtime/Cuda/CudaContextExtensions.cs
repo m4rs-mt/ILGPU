@@ -13,6 +13,10 @@ using ILGPU.Backends;
 using ILGPU.Backends.PTX;
 using ILGPU.Resources;
 using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -90,11 +94,83 @@ namespace ILGPU.Runtime.Cuda
             if (builder.LibDevicePath is null && builder.LibNvvmPath is null)
                 builder.LibDevice(throwIfNotFound: false);
 
+            if (IsRunningOnWSL())
+            {
+                NativeLibrary.SetDllImportResolver(
+                    Assembly.GetExecutingAssembly(),
+                    CudaWSLDllImportResolver);
+            }
+
             CudaDevice.GetDevices(
                 configure,
                 predicate,
                 builder.DeviceRegistry);
             return builder;
+        }
+
+        #endregion
+
+        #region Windows Subsystem for Linux
+
+        /// <summary>
+        /// Detects if we are running on WSL.
+        /// </summary>
+        [SuppressMessage(
+            "Design",
+            "CA1031:Do not catch general exception types",
+            Justification = "If file does not exist, or cannot be read, this is not WSL")]
+        private static bool IsRunningOnWSL()
+        {
+            try
+            {
+                return RuntimeInformation.IsOSPlatform(OSPlatform.Linux) &&
+                    File.ReadAllText("/proc/version").Contains(
+                        "Microsoft",
+                        StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Ordered list of library name combinations to try loading.
+        /// </summary>
+        private static readonly (string Prefix, string Suffix)[] WslLibraryCombinations =
+            new[]
+            {
+                ( string.Empty, ".so" ),
+                ( "lib",        ".so" ),
+                ( string.Empty, string.Empty ),
+                ( "lib",        string.Empty )
+            };
+
+        /// <summary>
+        /// Attempts to load the Cuda DLL from the WSL folder.
+        /// </summary>
+        private static IntPtr CudaWSLDllImportResolver(
+            string libraryName,
+            Assembly assembly,
+            DllImportSearchPath? searchPath)
+        {
+            if (!libraryName.Equals(
+                CudaAPI.LibNameLinux,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return IntPtr.Zero;
+            }
+
+            foreach (var (prefix, suffix) in WslLibraryCombinations)
+            {
+                var filename = $"{prefix}{libraryName}{suffix}";
+                var libraryPath = Path.Combine("/usr/lib/wsl/lib", filename);
+
+                if (NativeLibrary.TryLoad(libraryPath, out var handle))
+                    return handle;
+            }
+
+            return IntPtr.Zero;
         }
 
         #endregion
