@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUAccelerator.cs
@@ -245,6 +245,10 @@ namespace ILGPU.Runtime.CPU
 
         /// <summary cref="Accelerator.OnUnbind"/>
         protected override void OnUnbind() { }
+
+        /// <inheritdoc/>
+        protected override StreamMarker CreateStreamMarkerInternal() =>
+            new CPUStreamMarker(this);
 
         #endregion
 

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2022-2023 ILGPU Project
+//                        Copyright (c) 2022-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityStream.cs
@@ -8,6 +8,9 @@
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
+
+using ILGPU.Resources;
+using System;
 
 namespace ILGPU.Runtime.Velocity
 {
@@ -40,6 +43,17 @@ namespace ILGPU.Runtime.Velocity
         {
             using var binding = Accelerator.BindScoped();
             return new VelocityProfilingMarker(Accelerator);
+        }
+
+        /// <inheritdoc/>
+        protected unsafe override void WaitForStreamMarkerInternal(
+            StreamMarker streamMarker)
+        {
+            if (streamMarker is not VelocityStreamMarker)
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedAcceleratorStreamMarker);
+            }
         }
 
         #endregion

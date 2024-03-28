@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2022-2023 ILGPU Project
+//                        Copyright (c) 2022-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityAccelerator.cs
@@ -463,6 +463,10 @@ namespace ILGPU.Runtime.Velocity
 
         /// <summary cref="Accelerator.OnUnbind"/>
         protected override void OnUnbind() { }
+
+        /// <inheritdoc/>
+        protected override StreamMarker CreateStreamMarkerInternal() =>
+            new VelocityStreamMarker(this);
 
         #region Peer Access
 

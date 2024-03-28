@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLStream.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using static ILGPU.Runtime.OpenCL.CLAPI;
@@ -91,6 +92,26 @@ namespace ILGPU.Runtime.OpenCL
             var marker = new CLProfilingMarker(Accelerator, *profilingEvent);
             marker.Synchronize();
             return marker;
+        }
+
+        /// <inheritdoc/>
+        protected unsafe override void WaitForStreamMarkerInternal(
+            StreamMarker streamMarker)
+        {
+            if (streamMarker is not CLStreamMarker clStreamMarker ||
+                clStreamMarker.EventPtr == IntPtr.Zero)
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedAcceleratorStreamMarker);
+            }
+
+            using var binding = BindScoped();
+            var streamEvents = new IntPtr[] { clStreamMarker.EventPtr };
+            CLException.ThrowIfFailed(
+                CurrentAPI.EnqueueBarrierWithWaitList(
+                    CommandQueue,
+                    streamEvents,
+                    null));
         }
 
         #endregion
