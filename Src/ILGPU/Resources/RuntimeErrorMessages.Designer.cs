@@ -247,6 +247,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The accelerator stream marker is not supported for this operation.
+        /// </summary>
+        internal static string NotSupportedAcceleratorStreamMarker {
+            get {
+                return ResourceManager.GetString("NotSupportedAcceleratorStreamMarker", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported driver version &apos;{0}&apos; (&gt;= {1} required).
         /// </summary>
         internal static string NotSupportedDriverVersion {

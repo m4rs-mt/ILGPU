@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaStream.cs
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using static ILGPU.Runtime.Cuda.CudaAPI;
@@ -93,6 +94,24 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.RecordEvent(profilingMarker.EventPtr, StreamPtr));
             return profilingMarker;
+        }
+
+        /// <inheritdoc/>
+        protected unsafe override void WaitForStreamMarkerInternal(
+            StreamMarker streamMarker)
+        {
+            if (streamMarker is not CudaStreamMarker cudaStreamMarker)
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedAcceleratorStreamMarker);
+            }
+
+            using var binding = BindScoped();
+            CudaException.ThrowIfFailed(
+                CurrentAPI.WaitForEvent(
+                    StreamPtr,
+                    cudaStreamMarker.EventPtr,
+                    IntPtr.Zero));
         }
 
         #endregion

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLAccelerator.cs
@@ -392,6 +392,10 @@ namespace ILGPU.Runtime.OpenCL
 
         /// <summary cref="Accelerator.OnUnbind"/>
         protected override void OnUnbind() { }
+
+        /// <summary cref="Accelerator.CreateStreamMarkerInternal"/>
+        protected override StreamMarker CreateStreamMarkerInternal() =>
+            new CLStreamMarker(this);
 
         #endregion
 
