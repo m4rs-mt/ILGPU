@@ -26,7 +26,7 @@ namespace ILGPU.Analyzers
             title: ErrorMessages.RefTypeInKernel_Title,
             messageFormat: ErrorMessages.RefTypeInKernel_Message,
             category: DiagnosticCategory.Usage,
-            defaultSeverity: DiagnosticSeverity.Error,
+            defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true
         );
 
@@ -35,7 +35,7 @@ namespace ILGPU.Analyzers
             title: ErrorMessages.RefTypeArrInKernel_Title,
             messageFormat: ErrorMessages.RefTypeArrInKernel_Message,
             category: DiagnosticCategory.Usage,
-            defaultSeverity: DiagnosticSeverity.Error,
+            defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true
         );
 
@@ -129,6 +129,7 @@ namespace ILGPU.Analyzers
             return null;
         }
 
+        // TODO: test that ILGPU symbols are skipped
         private bool IsILGPUSymbol(ISymbol symbol)
         {
             return symbol.ContainingAssembly.Name == ILGPUAssemblyName;

@@ -2,7 +2,7 @@
   {
     Id: ILA003,
     Title: Reference type in kernel,
-    Severity: Error,
+    Severity: Warning,
     WarningLevel: 0,
     Location: : (13,22)-(13,35),
     MessageFormat: Type '{0}' is a reference type. Reference types like classes cannot be used in kernels, except for arrays of value types.,
@@ -12,7 +12,7 @@
   {
     Id: ILA003,
     Title: Reference type in kernel,
-    Severity: Error,
+    Severity: Warning,
     WarningLevel: 0,
     Location: : (14,38)-(14,45),
     MessageFormat: Type '{0}' is a reference type. Reference types like classes cannot be used in kernels, except for arrays of value types.,
