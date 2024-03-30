@@ -1,33 +1,15 @@
-using ILGPU.Runtime;
+using System;
 
 namespace ILGPU.Analyzers.Tests.Programs.ManagedType;
 
-class Arrays
+class ILGPUTypesIntrinsics
 {
-    class RefType
-    {
-        public int Hello => 42;
-    }
-
-    struct ValueType
-    {
-        public int Hello;
-
-        public ValueType()
-        {
-            Hello = 42;
-        }
-    }
-
     static void Kernel(Index1D index, ArrayView<int> input)
     {
-        ValueType[] array = [new ValueType()];
-        int[] ints = [0, 1, 2];
-
-        // TODO: the new collection expressions seem to have an issue where analyses
-        // will be produced twice. If anyone has any information on this, please
-        // let me know.
-        RefType[] refs = { new RefType() };
+        var a = input.SubView(0, 10);
+        int b = a[index];
+        int c = Warp.WarpIdx;
+        Group.Barrier();
     }
 
     static void Run()
