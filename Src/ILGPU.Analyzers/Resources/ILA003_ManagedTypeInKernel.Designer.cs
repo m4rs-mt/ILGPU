@@ -14,21 +14,21 @@ namespace ILGPU.Analyzers.Resources {
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class ILA003_ReferenceTypeInKernel {
+    internal class ILA003_ManagedTypeInKernel {
         
         private static System.Resources.ResourceManager resourceMan;
         
         private static System.Globalization.CultureInfo resourceCulture;
         
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal ILA003_ReferenceTypeInKernel() {
+        internal ILA003_ManagedTypeInKernel() {
         }
         
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("ILGPU.Analyzers.Resources.ILA003_ReferenceTypeInKernel", typeof(ILA003_ReferenceTypeInKernel).Assembly);
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("ILGPU.Analyzers.Resources.ILA003_ManagedTypeInKernel", typeof(ILA003_ManagedTypeInKernel).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

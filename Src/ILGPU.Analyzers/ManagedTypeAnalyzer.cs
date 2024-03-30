@@ -9,22 +9,22 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Analyzers.Resources;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.Operations;
+using ILGPU.Analyzers.Resources;
 
 namespace ILGPU.Analyzers
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class ReferenceTypeAnalyzer : KernelAnalyzer
+    public class ManagedTypeAnalyzer : KernelAnalyzer
     {
         private static readonly DiagnosticDescriptor GeneralDiagnosticRule = new(
             id: "ILA003",
-            title: ILA003_ReferenceTypeInKernel.Title,
-            messageFormat: ILA003_ReferenceTypeInKernel.MessageFormat,
+            title: ILA003_ManagedTypeInKernel.Title,
+            messageFormat: ILA003_ManagedTypeInKernel.MessageFormat,
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true
@@ -32,8 +32,8 @@ namespace ILGPU.Analyzers
 
         private static readonly DiagnosticDescriptor ArrayDiagnosticRule = new(
             id: "ILA004",
-            title: ILA004_ReferenceTypeArrayInKernel.Title,
-            messageFormat: ILA004_ReferenceTypeArrayInKernel.MessageFormat,
+            title: ILA004_ManagedTypeArrayInKernel.Title,
+            messageFormat: ILA004_ManagedTypeArrayInKernel.MessageFormat,
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true
@@ -129,7 +129,6 @@ namespace ILGPU.Analyzers
             return null;
         }
 
-        // TODO: test that ILGPU symbols are skipped
         private bool IsILGPUSymbol(ISymbol symbol)
         {
             return symbol.ContainingAssembly.Name == ILGPUAssemblyName;

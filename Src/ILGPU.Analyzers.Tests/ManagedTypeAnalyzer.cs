@@ -3,11 +3,11 @@ using System.Threading.Tasks;
 using Xunit;
 using VerifyCS =
     ILGPU.Analyzers.Tests.Generic.DiagnosticAnalyzerVerifier<
-        ILGPU.Analyzers.ReferenceTypeAnalyzer>;
+        ILGPU.Analyzers.ManagedTypeAnalyzer>;
 
 namespace ILGPU.Analyzers.Tests;
 
-public class RefTypeAnalyzer
+public class ManagedTypeAnalyzer
 {
     [Theory]
     [InlineData("Simple")]
