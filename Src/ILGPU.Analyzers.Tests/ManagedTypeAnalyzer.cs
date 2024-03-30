@@ -19,8 +19,11 @@ public class ManagedTypeAnalyzer
     [InlineData("ILGPUTypesIntrinsics")]
     public async Task FileTests(string file)
     {
-        // In build, we copy all programs to output directory. See ILGPU.Analyzers.Tests.csproj
-        var code = await File.ReadAllTextAsync($"Programs/ManagedType/{file}.cs");
+        // In build, we copy all programs to output directory.
+        // See ILGPU.Analyzers.Tests.csproj
+        var code = await File.ReadAllTextAsync(
+            $"Programs/ManagedType/{file}.cs"
+        );
         await VerifyCS.Verify(code, settings => settings.UseParameters(file));
     }
 }

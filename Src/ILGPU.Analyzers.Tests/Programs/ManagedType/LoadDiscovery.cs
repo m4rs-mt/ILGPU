@@ -50,11 +50,11 @@ class Functions
         var kernel1 = accelerator.LoadStreamKernel<Index1D, ArrayView<int>>(Kernel1);
         var twice = accelerator.LoadStreamKernel<Index1D, ArrayView<int>>(Kernel1);
         
-        var kernel2 = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<int>>(Kernel2);
+        var kernel2 = 
+            accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<int>>(Kernel2);
         var kernel3 =
             accelerator.LoadImplicitlyGroupedStreamKernel<Index1D, ArrayView<int>>(
-                Kernel3,
-                32);
+                Kernel3, 32);
 
         var kernel4 = accelerator.LoadKernel<Index1D, ArrayView<int>>(Kernel4);
         var kernel5 = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>>(Kernel5);

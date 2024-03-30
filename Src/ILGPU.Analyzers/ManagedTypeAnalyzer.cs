@@ -120,7 +120,10 @@ namespace ILGPU.Analyzers
                 return MethodUtil.GetMethodBody(model, invocationOperation.TargetMethod);
             }
 
-            if (op is IObjectCreationOperation { Constructor: not null } creationOperation)
+            if (op is IObjectCreationOperation
+                {
+                    Constructor: not null
+                } creationOperation)
             {
                 if (IsILGPUSymbol(creationOperation.Constructor)) return null;
                 return MethodUtil.GetMethodBody(model, creationOperation.Constructor);
