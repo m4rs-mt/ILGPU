@@ -35,9 +35,6 @@ class Program
         return new RefType().Hello;
     }
 
-    // TODO: tests needed: normal, using stuff from the class context, arrays, arrays of
-    // ref types, constructor calls, method/function calls, structs with ref types in
-    // them, structs that use ref types in constructors/methods, partial definitions
     static void Kernel(Index1D index, ArrayView<int> input, ArrayView<int> output)
     {
         // This is disallowed, since MyRefType is a reference type
