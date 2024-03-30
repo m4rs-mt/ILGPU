@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using ILGPU.CodeGeneration;
@@ -10,7 +11,8 @@ namespace ILGPU.Analyzers.Tests.Generic;
 public static class DiagnosticAnalyzerVerifier<TDiagnosticAnalyzer>
     where TDiagnosticAnalyzer : DiagnosticAnalyzer, new()
 {
-    public static async Task Verify(string source)
+    public static async Task Verify(string source,
+        Action<VerifySettings> configure = null)
     {
         var ilgpuAssemblies =
             new[]
@@ -32,6 +34,10 @@ public static class DiagnosticAnalyzerVerifier<TDiagnosticAnalyzer>
 
         var settings = new VerifySettings();
         settings.UseDirectory(Path.Combine("..", "Snapshots"));
+
+        if (configure is not null)
+            configure(settings);
+
         await Verifier.Verify(diagnostics, settings);
     }
 }
