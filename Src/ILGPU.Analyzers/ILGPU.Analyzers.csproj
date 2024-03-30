@@ -36,26 +36,35 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Resources\ErrorMessages.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ErrorMessages.resx</DependentUpon>
-    </Compile>
     <Compile Update="Resources\DiagnosticCategory.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>DiagnosticCategory.resx</DependentUpon>
     </Compile>
+    <Compile Update="Resources\ILA001_StructMustBePartial.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ILA001_StructMustBePartial.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\ILA002_ContainingTypeMustBePartial.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ILA002_ContainingTypeMustBePartial.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Resources\ErrorMessages.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
     <EmbeddedResource Update="Resources\DiagnosticCategory.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>DiagnosticCategory.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\ILA001_StructMustBePartial.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ILA001_StructMustBePartial.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\ILA002_ContainingTypeMustBePartial.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ILA002_ContainingTypeMustBePartial.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 
