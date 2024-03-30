@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Functions.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 using ILGPU.Runtime;
 
 namespace ILGPU.Analyzers.Tests.Programs.ManagedType;
@@ -8,7 +19,7 @@ class Functions
     {
         public int Hello => 42;
     }
-    
+
     // This wouldn't compile anyways, but the analyzer shouldn't hang
     static int Recursion(int i)
     {

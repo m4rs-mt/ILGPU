@@ -1,13 +1,24 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Complex.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 using ILGPU.Runtime;
 
 namespace ILGPU.Analyzers.Tests.Programs.ManagedType;
 
-class ManagedUnmanaged
+class Complex
 {
-    class RefType
+    class RefTypeEmpty
     {
-    } 
-    
+    }
+
     struct Unmanaged
     {
         private int a;
@@ -17,12 +28,7 @@ class ManagedUnmanaged
     struct Managed
     {
         private int a;
-        private RefType r;
-    }
-    
-    class RefType
-    {
-        public int Hello => 42;
+        private RefTypeEmpty r;
     }
 
     struct ValueType

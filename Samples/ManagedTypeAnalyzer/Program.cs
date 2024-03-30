@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2023-2024 ILGPU Project
+//                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -11,7 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
-namespace RefTypeAnalyzers;
+namespace ManagedTypeAnalyzer;
 
 class Program
 {

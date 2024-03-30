@@ -137,7 +137,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterleaveFields", "Interle
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ILGPU.Analyzers", "ILGPU.Analyzers", "{6D111E09-49A1-492E-B4CE-E18CE27B56A8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RefTypeAnalyzer", "RefTypeAnalyzer\RefTypeAnalyzer.csproj", "{6176F0D0-4A34-42DB-BDFB-2D8ED80868C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ManagedTypeAnalyzer", "ManagedTypeAnalyzer\ManagedTypeAnalyzer.csproj", "{6176F0D0-4A34-42DB-BDFB-2D8ED80868C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

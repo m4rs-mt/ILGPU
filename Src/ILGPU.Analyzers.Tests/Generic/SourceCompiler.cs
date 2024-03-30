@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: SourceCompiler.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 using System;
 using System.IO;
 using System.Linq;
@@ -7,7 +18,7 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace ILGPU.Analyzers.Tests.Generic;
 
-public class SourceCompiler
+public static class SourceCompiler
 {
     public static CSharpCompilation CreateCompilationWithAssemblies(
         string assemblyName,
