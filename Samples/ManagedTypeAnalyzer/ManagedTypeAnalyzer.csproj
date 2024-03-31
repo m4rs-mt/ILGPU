@@ -4,7 +4,7 @@
     <TargetFrameworks>$(LibrarySamplesTargetFrameworks)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>RefTypeAnalyzers</RootNamespace>
+    <RootNamespace>ManagedTypeAnalyzer</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

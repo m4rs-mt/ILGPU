@@ -11,8 +11,13 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using System.Diagnostics.CodeAnalysis;
+
 namespace ManagedTypeAnalyzer;
 
+// Disable warnings for build
+[SuppressMessage("Usage", "ILA003:Managed type in kernel")]
+[SuppressMessage("Usage", "ILA004:Array of managed types in kernel")]
 class Program
 {
     class RefType
@@ -42,14 +47,21 @@ class Program
         output[index] = input[index] + refType.Hello;
 
         // Allocating arrays of unmanaged types is fine
-        ValueType[] array = [new ValueType()];
-        int[] ints = [0, 1, 2];
+        ValueType[] array =
+        {
+            new ValueType()
+        };
+
+        int[] ints =
+        {
+            0, 1, 2
+        };
 
         // But arrays of reference types are still disallowed
         RefType[] other =
-        [
+        {
             new RefType(),
-        ];
+        };
 
         // Any functions that may be called are also analyzed
         int result = AnotherFunction();
