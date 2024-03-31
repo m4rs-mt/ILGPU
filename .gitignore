@@ -290,12 +290,12 @@ Src/ILGPU/Util/PrimitiveDataBlocks.cs
 Src/ILGPU.Algorithms/AlgorithmContextMappings.cs
 Src/ILGPU.Algorithms/CL/CLContext.Generated.cs
 Src/ILGPU.Algorithms/ComparisonOperations.cs
+Src/ILGPU.Algorithms/FixedPrecision/FixedInts.cs
 Src/ILGPU.Algorithms/HistogramLaunchers.cs
 Src/ILGPU.Algorithms/HistogramOperations.cs
 Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
 Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
 Src/ILGPU.Algorithms/RadixSortOperations.cs
-Src/ILGPU.Algorithms/Vectors/VectorTypes.cs
 Src/ILGPU.Algorithms/Random/RandomRanges.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/CuBlasNativeMethods.cs
 Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTAPI.Generated.cs
@@ -314,10 +314,11 @@ Src/ILGPU.Algorithms/Runtime/Cuda/CuFFTWPlan.cs
 Src/ILGPU.Algorithms/ScanReduceOperations.cs
 Src/ILGPU.Algorithms/Sequencers.cs
 Src/ILGPU.Algorithms/UniqueLaunchers.cs
-Src/ILGPU.Algorithms/XMath/Cordic.cs
+Src/ILGPU.Algorithms/Vectors/VectorTypes.cs
 Src/ILGPU.Algorithms/XMath/Cordic.Log.cs
 Src/ILGPU.Algorithms/XMath/Cordic.Pow.cs
 Src/ILGPU.Algorithms/XMath/Cordic.Trig.cs
+Src/ILGPU.Algorithms/XMath/Cordic.cs
 Src/ILGPU.Algorithms/XMath/RoundingModes.cs
 
 # Generated test source files
