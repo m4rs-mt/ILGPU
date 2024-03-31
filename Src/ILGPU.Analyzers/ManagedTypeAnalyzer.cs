@@ -40,6 +40,7 @@ namespace ILGPU.Analyzers
         );
 
         private const string ILGPUAssemblyName = "ILGPU";
+        private const string AlgorithmsAssemblyName = "ILGPU.Algorithms";
 
         public override ImmutableArray<DiagnosticDescriptor>
             SupportedDiagnostics { get; } =
@@ -65,7 +66,8 @@ namespace ILGPU.Analyzers
                 {
                     AnalyzeKernelOperation(context, descendant);
 
-                    var innerBodyOp = GetInvokedOp(semanticModel, descendant);
+                    var innerBodyOp =
+                        GetInvokedNonLibOpIfExists(semanticModel, descendant);
                     if (innerBodyOp is null) continue;
 
                     if (!seenBodies.Contains(innerBodyOp))
@@ -86,6 +88,12 @@ namespace ILGPU.Analyzers
             if (op.Type.IsUnmanagedType)
                 return;
 
+            if (IsILGPUSymbol(op.Type))
+                return;
+            
+            if (op.Type.SpecialType == SpecialType.System_String)
+                return;
+
             if (op.Type is IArrayTypeSymbol arrayTypeSymbol)
             {
                 if (arrayTypeSymbol.ElementType.IsUnmanagedType)
@@ -101,9 +109,6 @@ namespace ILGPU.Analyzers
             }
             else
             {
-                if (IsILGPUSymbol(op.Type))
-                    return;
-
                 var generalDiagnostic =
                     Diagnostic.Create(GeneralDiagnosticRule,
                         op.Syntax.GetLocation(),
@@ -112,7 +117,7 @@ namespace ILGPU.Analyzers
             }
         }
 
-        private IOperation? GetInvokedOp(SemanticModel model, IOperation op)
+        private IOperation? GetInvokedNonLibOpIfExists(SemanticModel model, IOperation op)
         {
             if (op is IInvocationOperation invocationOperation)
             {
@@ -132,9 +137,10 @@ namespace ILGPU.Analyzers
             return null;
         }
 
-        private bool IsILGPUSymbol(ISymbol symbol)
+        private static bool IsILGPUSymbol(ISymbol symbol)
         {
-            return symbol.ContainingAssembly.Name == ILGPUAssemblyName;
+            return symbol.ContainingAssembly?.Name is ILGPUAssemblyName
+                or AlgorithmsAssemblyName;
         }
     }
 }

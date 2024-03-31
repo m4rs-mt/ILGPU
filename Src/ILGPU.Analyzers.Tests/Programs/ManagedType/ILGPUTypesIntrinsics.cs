@@ -10,6 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using ILGPU.Runtime.Cuda;
+using ILGPU.Algorithms.Random;
 
 namespace ILGPU.Analyzers.Tests.Programs.ManagedType;
 
@@ -21,6 +23,15 @@ class ILGPUTypesIntrinsics
         int b = a[index];
         int c = Warp.WarpIdx;
         Group.Barrier();
+
+        // Strings should be allowed for this and debug.
+        // We will be conservative in our analysis and ignore all strings.
+        CudaAsm.Emit("instruction here");
+
+        // Algorithms should also be allowed.
+        // RNGView is just an example of a managed type in Algorithms.
+        var rngView = new RNGView<XorShift128>();
+        rngView.Next();
     }
 
     static void Run()

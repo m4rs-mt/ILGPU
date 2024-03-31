@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
     <ProjectReference Include="..\ILGPU.Analyzers\ILGPU.Analyzers.csproj" />
     <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
   </ItemGroup>
