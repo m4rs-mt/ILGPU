@@ -4,7 +4,7 @@
     Title: Managed type in kernel,
     Severity: Warning,
     WarningLevel: 1,
-    Location: : (17,20)-(17,33),
+    Location: : (28,20)-(28,33),
     MessageFormat: Type '{0}' is a managed type. Managed types like classes cannot be used in kernels, except for arrays of unmanaged types.,
     Message: Type 'ILGPU.Analyzers.Tests.Programs.ManagedType.Constructors.RefType' is a managed type. Managed types like classes cannot be used in kernels, except for arrays of unmanaged types.,
     Category: Usage

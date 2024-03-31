@@ -38,7 +38,7 @@ public static class DiagnosticAnalyzerVerifier<TDiagnosticAnalyzer>
             SourceCompiler.CreateCompilationWithAssemblies("Tests", source,
                 ilgpuAssemblies);
 
-        var array = new ImmutableArray<DiagnosticAnalyzer> { new TDiagnosticAnalyzer() };
+        var array = ImmutableArray.Create<DiagnosticAnalyzer>(new TDiagnosticAnalyzer());
         var options = new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty);
         var analyzerCompilation =
             new CompilationWithAnalyzers(compilation, array, options);
