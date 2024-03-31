@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2024 ILGPU Project
+//                           Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DiagnosticAnalyzerVerifier.cs
@@ -10,9 +10,11 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Collections.Immutable;
 using System.IO;
 using System.Threading.Tasks;
 using ILGPU.CodeGeneration;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using VerifyTests;
 using VerifyXunit;
@@ -36,10 +38,10 @@ public static class DiagnosticAnalyzerVerifier<TDiagnosticAnalyzer>
             SourceCompiler.CreateCompilationWithAssemblies("Tests", source,
                 ilgpuAssemblies);
 
-        var analyzer = new TDiagnosticAnalyzer();
-        var options = new AnalyzerOptions([]);
+        var array = new ImmutableArray<DiagnosticAnalyzer> { new TDiagnosticAnalyzer() };
+        var options = new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty);
         var analyzerCompilation =
-            new CompilationWithAnalyzers(compilation, [analyzer], options);
+            new CompilationWithAnalyzers(compilation, array, options);
 
         var diagnostics = await analyzerCompilation.GetAnalyzerDiagnosticsAsync();
 

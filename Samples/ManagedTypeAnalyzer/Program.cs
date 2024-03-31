@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                        ILGPU
-//                        Copyright (c) 2024 ILGPU Project
+//                                    ILGPU Samples
+//                           Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
