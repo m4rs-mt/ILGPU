@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLContext.Generated.tt/CLContext.Generated.cs
@@ -17,16 +17,6 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 <#
-var unaryMathFunctions = new ValueTuple<string, Type, string, string>[]
-    {
-        UnaryMathFunctions[18], // Rcp
-        UnaryMathFunctions[19], // Rcp
-    };
-var binaryMathFunctions = new ValueTuple<string, Type, string, string>[]
-    {
-        BinaryMathFunctions[6], // Log
-        BinaryMathFunctions[7], // Log
-    };
 var xmathUnaryCodeGenerators = new ValueTuple<string, string>[]
     {
         ( "RoundAwayFromZero",  "round" ),
@@ -49,22 +39,6 @@ namespace ILGPU.Algorithms.CL
         public static void EnableCLAlgorithms(IntrinsicImplementationManager manager)
         {
             // Register math intrinsics
-<# foreach (var (name, type, kind, basicType) in binaryMathFunctions) { #>
-            manager.RegisterBinaryArithmetic(
-                BinaryArithmeticKind.<#= kind #>,
-                BasicValueType.<#= basicType #>,
-                GetMathIntrinsic(
-                    "<#= name #>",
-                    typeof(<#= type #>), typeof(<#= type #>)));
-<# } #>
-
-<# foreach (var (name, type, kind, basicType) in unaryMathFunctions) { #>
-            manager.RegisterUnaryArithmetic(
-                UnaryArithmeticKind.<#= kind #>,
-                BasicValueType.<#= basicType #>,
-                MathCodeGeneratorIntrinsic);
-<# } #>
-
 <# foreach (var (name, functionName) in xmathUnaryCodeGenerators) { #>
             RegisterXMathCodeGenerator(
                 manager,
