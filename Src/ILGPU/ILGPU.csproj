@@ -50,6 +50,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="T4.Build" Version="0.2.4" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="3.9.0 "/>
   </ItemGroup>
 
   <ItemGroup>
