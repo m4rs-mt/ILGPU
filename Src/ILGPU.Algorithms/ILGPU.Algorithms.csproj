@@ -242,11 +242,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ComparisonOperations.tt</DependentUpon>
     </Compile>
-    <None Update="FixedPrecision\FixedInts.cs">
+    <Compile Update="FixedPrecision\FixedInts.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>FixedInts.tt</DependentUpon>
-    </None>
+    </Compile>
     <Compile Update="HistogramLaunchers.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
