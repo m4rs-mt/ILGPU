@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Context.Builder.cs
@@ -305,7 +305,7 @@ namespace ILGPU
                 var nvvmBinDir = Path.Combine(nvvmRoot, nvvmBinName);
                 var nvvmSearchPattern =
                     RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? "nvvm*.dll"
+                    ? "nvvm64*.dll"
                     : "libnvvm*.so";
                 var nvvmFiles = Directory.EnumerateFiles(nvvmBinDir, nvvmSearchPattern);
                 LibNvvmPath = nvvmFiles.FirstOrDefault()

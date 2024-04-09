@@ -34,6 +34,12 @@ namespace ILGPU.Util
 
         public static IntPtr GetExport(IntPtr handle, string name) =>
             System.Runtime.InteropServices.NativeLibrary.GetExport(handle, name);
+
+        public static bool TryGetExport(IntPtr handle, string name, out IntPtr address) =>
+            System.Runtime.InteropServices.NativeLibrary.TryGetExport(
+                handle,
+                name,
+                out address);
     }
 #else
     static class NativeLibrary
@@ -60,6 +66,20 @@ namespace ILGPU.Util
                 return NativeLibrary_Windows.GetProcAddress(handle, name);
             else
                 return NativeLibrary_Unix.dlsym(handle, name);
+        }
+
+        public static bool TryGetExport(IntPtr handle, string name, out IntPtr address)
+        {
+            try
+            {
+                address = GetExport(handle, name);
+                return address != IntPtr.Zero;
+            }
+            catch
+            {
+                address = IntPtr.Zero;
+                return false;
+            }
         }
     }
 
