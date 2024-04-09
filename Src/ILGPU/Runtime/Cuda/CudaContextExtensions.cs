@@ -113,6 +113,11 @@ namespace ILGPU.Runtime.Cuda
         #region Windows Subsystem for Linux
 
         /// <summary>
+        /// The base directory where WSL is expected to be installed.
+        /// </summary>
+        private const string WslLibaryBasePath = "/usr/lib/wsl/lib";
+
+        /// <summary>
         /// Detects if we are running on WSL.
         /// </summary>
         [SuppressMessage(
@@ -123,10 +128,11 @@ namespace ILGPU.Runtime.Cuda
         {
             try
             {
-                return RuntimeInformation.IsOSPlatform(OSPlatform.Linux) &&
-                    File.ReadAllText("/proc/version").Contains(
+                return RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                    && File.ReadAllText("/proc/version").Contains(
                         "Microsoft",
-                        StringComparison.OrdinalIgnoreCase);
+                        StringComparison.OrdinalIgnoreCase)
+                    && Directory.Exists(WslLibaryBasePath);
             }
             catch (Exception)
             {
@@ -164,7 +170,7 @@ namespace ILGPU.Runtime.Cuda
             foreach (var (prefix, suffix) in WslLibraryCombinations)
             {
                 var filename = $"{prefix}{libraryName}{suffix}";
-                var libraryPath = Path.Combine("/usr/lib/wsl/lib", filename);
+                var libraryPath = Path.Combine(WslLibaryBasePath, filename);
 
                 if (NativeLibrary.TryLoad(libraryPath, out var handle))
                     return handle;
