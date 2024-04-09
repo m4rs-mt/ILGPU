@@ -87,7 +87,7 @@ namespace ILGPU.Runtime.Cuda
             }
 
             // Silently enable automatic LibDevice detection, if not already configured.
-            if (builder.LibDevicePath == null && builder.LibNvvmPath == null)
+            if (builder.LibDevicePath is null && builder.LibNvvmPath is null)
                 builder.LibDevice(throwIfNotFound: false);
 
             CudaDevice.GetDevices(

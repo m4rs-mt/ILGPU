@@ -360,7 +360,7 @@ namespace ILGPU
                     : "libnvvm*.so";
                 var nvvmFiles = Directory.EnumerateFiles(nvvmBinDir, nvvmSearchPattern);
                 var libNvvmPath = nvvmFiles.FirstOrDefault();
-                if (libNvvmPath == null)
+                if (libNvvmPath is null)
                 {
                     return throwIfNotFound
                     ? throw new NotSupportedException(string.Format(
@@ -375,7 +375,7 @@ namespace ILGPU
                     libDeviceDir,
                     "libdevice.*.bc");
                 var libDevicePath = libDeviceFiles.FirstOrDefault();
-                if (libDevicePath == null)
+                if (libDevicePath is null)
                 {
                     return throwIfNotFound
                     ? throw new NotSupportedException(string.Format(
