@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLIntrinsics.cs
@@ -10,9 +10,12 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.AtomicOperations;
+using ILGPU.IR;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.OpenCL
@@ -69,6 +72,21 @@ namespace ILGPU.Backends.OpenCL
                 CreateIntrinsic(
                     nameof(BarrierPopCount),
                     IntrinsicImplementationMode.Redirect));
+
+            // IntrinsicMath
+            RegisterBinaryLogMathIntrinsic(
+                manager,
+                BasicValueType.Float32,
+                typeof(float),
+                typeof(float));
+            RegisterBinaryLogMathIntrinsic(
+                manager,
+                BasicValueType.Float64,
+                typeof(double),
+                typeof(double));
+
+            RegisterRcpMathIntrinsic(manager, BasicValueType.Float32);
+            RegisterRcpMathIntrinsic(manager, BasicValueType.Float64);
         }
 
         #endregion
@@ -135,6 +153,97 @@ namespace ILGPU.Backends.OpenCL
                 Atomic.Add(ref counter, 1);
             Group.Barrier();
             return counter;
+        }
+
+        #endregion
+
+        #region IntrinsicMath
+
+        /// <summary>
+        /// Registers intrinsic for Log with two parameters.
+        /// </summary>
+        private static void RegisterBinaryLogMathIntrinsic(
+            IntrinsicImplementationManager manager,
+            BasicValueType basicValueType,
+            params Type[] types)
+        {
+            var targetMethod = typeof(IntrinsicMath.BinaryLog).GetMethod(
+                nameof(IntrinsicMath.BinaryLog.Log),
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                types,
+                null)
+                .ThrowIfNull();
+            manager.RegisterBinaryArithmetic(
+                BinaryArithmeticKind.BinaryLogF,
+                basicValueType,
+                new CLIntrinsic(targetMethod, IntrinsicImplementationMode.Redirect));
+        }
+
+        /// <summary>
+        /// Registers the Rcp intrinsic for the basic value type.
+        /// </summary>
+        private static void RegisterRcpMathIntrinsic(
+            IntrinsicImplementationManager manager,
+            BasicValueType basicValueType) =>
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.RcpF,
+                basicValueType,
+                new CLIntrinsic(
+                    typeof(CLIntrinsics).GetMethod(
+                        nameof(GenerateRcpMathIntrinsic),
+                        BindingFlags.NonPublic | BindingFlags.Static).AsNotNull(),
+                        IntrinsicImplementationMode.GenerateCode));
+
+        /// <summary>
+        /// Generates intrinsic math instructions for the following kinds:
+        /// Rcp
+        /// </summary>
+        /// <param name="backend">The current backend.</param>
+        /// <param name="codeGenerator">The code generator.</param>
+        /// <param name="value">The value to generate code for.</param>
+        private static void GenerateRcpMathIntrinsic(
+            CLBackend backend,
+            CLCodeGenerator codeGenerator,
+            Value value)
+        {
+            // Manually generate code for "1.0 / argument"
+            var arithmeticValue = value.AsNotNullCast<UnaryArithmeticValue>();
+            var argument = codeGenerator.Load(arithmeticValue.Value);
+            var target = codeGenerator.Allocate(arithmeticValue);
+            var operation = CLInstructions.GetArithmeticOperation(
+                BinaryArithmeticKind.Div,
+                arithmeticValue.BasicValueType.IsFloat(),
+                out var isFunction);
+            using var statement = codeGenerator.BeginStatement(target);
+            statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
+            if (isFunction)
+            {
+                statement.AppendCommand(operation);
+                statement.BeginArguments();
+            }
+            else
+            {
+                statement.OpenParen();
+            }
+
+            statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
+            if (arithmeticValue.BasicValueType == BasicValueType.Float32)
+                statement.AppendConstant(1.0f);
+            else
+                statement.AppendConstant(1.0);
+
+            if (!isFunction)
+                statement.AppendCommand(operation);
+
+            statement.AppendArgument();
+            statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
+            statement.Append(argument);
+
+            if (isFunction)
+                statement.EndArguments();
+            else
+                statement.CloseParen();
         }
 
         #endregion
