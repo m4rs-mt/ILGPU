@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaContextExtensions.cs
@@ -85,6 +85,10 @@ namespace ILGPU.Runtime.Cuda
                     RuntimeErrorMessages.CudaPlatform64,
                     Backend.RuntimePlatform));
             }
+
+            // Silently enable automatic LibDevice detection, if not already configured.
+            if (builder.LibDevicePath is null && builder.LibNvvmPath is null)
+                builder.LibDevice(throwIfNotFound: false);
 
             CudaDevice.GetDevices(
                 configure,
