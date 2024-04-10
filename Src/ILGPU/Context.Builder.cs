@@ -334,12 +334,13 @@ namespace ILGPU
             /// <returns>The current builder instance.</returns>
             internal Builder LibDevice(bool throwIfNotFound)
             {
-                // Find the CUDA installation path.
-                var cudaEnvName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? "CUDA_PATH"
-                    : "CUDA_HOME";
-                var cudaPath = Environment.GetEnvironmentVariable(cudaEnvName);
-                if (string.IsNullOrEmpty(cudaPath))
+                PTXLibDevice.FindLibDevicePaths(
+                    out var cudaEnvName,
+                    out var nvvmBinDir,
+                    out var libNvvmPath,
+                    out var libDeviceDir,
+                    out var libDevicePath);
+                if (string.IsNullOrEmpty(cudaEnvName))
                 {
                     return throwIfNotFound
                     ? throw new NotSupportedException(string.Format(
@@ -347,19 +348,6 @@ namespace ILGPU
                         cudaEnvName))
                     : this;
                 }
-                var nvvmRoot = Path.Combine(cudaPath, "nvvm");
-
-                // Find the NVVM DLL.
-                var nvvmBinName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? "bin"
-                    : "lib64";
-                var nvvmBinDir = Path.Combine(nvvmRoot, nvvmBinName);
-                var nvvmSearchPattern =
-                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? "nvvm64*.dll"
-                    : "libnvvm*.so";
-                var nvvmFiles = Directory.EnumerateFiles(nvvmBinDir, nvvmSearchPattern);
-                var libNvvmPath = nvvmFiles.FirstOrDefault();
                 if (libNvvmPath is null)
                 {
                     return throwIfNotFound
@@ -368,13 +356,6 @@ namespace ILGPU
                         nvvmBinDir))
                     : this;
                 }
-
-                // Find the LibDevice Bitcode.
-                var libDeviceDir = Path.Combine(nvvmRoot, "libdevice");
-                var libDeviceFiles = Directory.EnumerateFiles(
-                    libDeviceDir,
-                    "libdevice.*.bc");
-                var libDevicePath = libDeviceFiles.FirstOrDefault();
                 if (libDevicePath is null)
                 {
                     return throwIfNotFound

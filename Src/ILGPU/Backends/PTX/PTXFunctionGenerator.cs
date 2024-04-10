@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXFunctionGenerator.cs
@@ -80,7 +80,10 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public override void GenerateHeader(StringBuilder builder)
         {
-            if (PTXLibDeviceMethods.IsLibDeviceMethod(Method))
+            static bool IsLibDeviceMethod(Method method) =>
+                method.HasSource &&
+                method.Source.DeclaringType == typeof(PTXLibDeviceMethods);
+            if (IsLibDeviceMethod(Method))
                 return;
 
             GenerateHeaderDeclaration(builder);
