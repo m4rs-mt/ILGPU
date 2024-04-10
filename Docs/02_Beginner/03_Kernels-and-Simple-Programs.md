@@ -57,7 +57,7 @@ public static class Program
 }
 ```
 
-## The following parts already have detailed explainations in other tutorials:
+## The following parts already have detailed explanations in other tutorials:
 
 #### [Context and an accelerator.](01_Context-and-Accelerators.md)
 
@@ -84,7 +84,7 @@ int[] hostOutput = deviceOutput.GetAsArray1D();
 
 After we run the kernel we need to get the data as host memory to use it in CPU code.
 
-## This leaves just few parts that need further explaination.
+## This leaves just few parts that need further explanation.
 
 Ok now we get to the juicy bits.
 
@@ -114,18 +114,16 @@ In general:
 * no references
 * no structs with dynamic sizes
 
-The first parameter in a kernel must be its index. A kernel always iterates over some extent, which
+The first parameter in a kernel must be its *index*. A kernel always iterates over some extent, which
 is some 1, 2 or 3 dimensional length. Most of the time this is the length of the output MemoryBuffer<sup>0</sup>.
 When you call the kernel this is what you will use, but inside the kernel function the index is the
 threadIndex for the kernel.
 
-The other parameters can be structs or ArrayViews. You can have I *think* 19 parmeters in total. If you
-are approching this limit consider packing things into structs. Honestly before 19 parmeters you should pack things
+The other parameters can be structs or ArrayViews. You can have I *think* 19 parameters in total. If you
+are approaching this limit consider packing things into structs. Honestly, well before 19 parameters you should pack things
 into structs just to keep it organized.
 
-The function is whatever your algorithm needs. Be very careful of race conditions, and remember that the kernel is the *
-inside* of a for loop,
-not the for loop itself.
+The function is whatever your algorithm needs. Be very careful of race conditions, and remember that the kernel is the *inside* of a for loop, not the for loop itself.
 
 Your code structure will greatly affect performance. This is another complex topic but in general
 try to avoid branches<sup>1</sup> and code that would change in different kernel indices. The thing you are trying
