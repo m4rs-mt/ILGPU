@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCompiledKernel.cs
@@ -31,7 +31,7 @@ namespace ILGPU.Backends.PTX
             Context context,
             EntryPoint entryPoint,
             KernelInfo? info,
-            string ptxAssembly)
+            PTXAssembly ptxAssembly)
             : base(context, entryPoint, info)
         {
             PTXAssembly = ptxAssembly;
@@ -44,7 +44,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the PTX assembly code.
         /// </summary>
-        public string PTXAssembly { get; }
+        public PTXAssembly PTXAssembly { get; }
 
         #endregion
     }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaKernel.cs
@@ -50,7 +50,7 @@ namespace ILGPU.Runtime.Cuda
         {
             var kernelLoaded = CurrentAPI.LoadModule(
                 out modulePtr,
-                kernel.PTXAssembly,
+                kernel.PTXAssembly.Modules.AsSpan(),
                 out string? errorLog);
             if (kernelLoaded != CudaError.CUDA_SUCCESS)
             {

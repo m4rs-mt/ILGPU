@@ -323,16 +323,17 @@ namespace ILGPU
             /// Automatically detects the CUDA SDK location.
             /// </summary>
             /// <returns>The current builder instance.</returns>
+            [Obsolete("LibDevice is now embedded into ILGPU. Use LibDeviceOverride() if" +
+                " you want to load a specific version of LibDevice at runtime.")]
             public Builder LibDevice() =>
-                LibDevice(throwIfNotFound: true);
+                this;
 
             /// <summary>
-            /// Turns on LibDevice support.
-            /// Automatically detects the CUDA SDK location.
+            /// Overrides the version of LibDevice embedded into ILGPU, and loads from the
+            /// CUDA SDK at runtime. Automatically detects the CUDA SDK location.
             /// </summary>
-            /// <param name="throwIfNotFound">Determines error handling.</param>
             /// <returns>The current builder instance.</returns>
-            internal Builder LibDevice(bool throwIfNotFound)
+            public Builder LibDeviceOverride()
             {
                 PTXLibDevice.FindLibDevicePaths(
                     out var cudaEnvName,
@@ -342,27 +343,21 @@ namespace ILGPU
                     out var libDevicePath);
                 if (string.IsNullOrEmpty(cudaEnvName))
                 {
-                    return throwIfNotFound
-                    ? throw new NotSupportedException(string.Format(
+                    throw new NotSupportedException(string.Format(
                         RuntimeErrorMessages.NotSupportedLibDeviceEnvironmentVariable,
-                        cudaEnvName))
-                    : this;
+                        cudaEnvName));
                 }
                 if (libNvvmPath is null)
                 {
-                    return throwIfNotFound
-                    ? throw new NotSupportedException(string.Format(
+                    throw new NotSupportedException(string.Format(
                         RuntimeErrorMessages.NotSupportedLibDeviceNotFoundNvvmDll,
-                        nvvmBinDir))
-                    : this;
+                        nvvmBinDir));
                 }
                 if (libDevicePath is null)
                 {
-                    return throwIfNotFound
-                    ? throw new NotSupportedException(string.Format(
+                    throw new NotSupportedException(string.Format(
                         RuntimeErrorMessages.NotSupportedLibDeviceNotFoundBitCode,
-                        libDeviceDir))
-                    : this;
+                        libDeviceDir));
                 }
 
                 LibNvvmPath = libNvvmPath;
@@ -377,7 +372,19 @@ namespace ILGPU
             /// <param name="libNvvmPath">Path to LibNvvm DLL.</param>
             /// <param name="libDevicePath">Path to LibDevice bitcode.</param>
             /// <returns>The current builder instance.</returns>
-            public Builder LibDevice(string libNvvmPath, string libDevicePath)
+            [Obsolete("LibDevice is now embedded into ILGPU. Use LibDeviceOverride() if" +
+                " you want to load a specific version of LibDevice at runtime.")]
+            public Builder LibDevice(string libNvvmPath, string libDevicePath) =>
+                this;
+
+            /// <summary>
+            /// Overrides the version of LibDevice embedded into ILGPU, and loads from the
+            /// CUDA SDK at runtime. Explicitly specifies the LibDevice location.
+            /// </summary>
+            /// <param name="libNvvmPath">Path to LibNvvm DLL.</param>
+            /// <param name="libDevicePath">Path to LibDevice bitcode.</param>
+            /// <returns>The current builder instance.</returns>
+            public Builder LibDeviceOverride(string libNvvmPath, string libDevicePath)
             {
                 LibNvvmPath = libNvvmPath;
                 LibDevicePath = libDevicePath;
