@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXIntrinsic.cs
@@ -51,6 +51,66 @@ namespace ILGPU.Backends.PTX
                   targetMethod,
                   mode)
         { }
+
+        /// <summary>
+        /// Constructs a new PTX intrinsic that can handle all architectures
+        /// newer or equal to <paramref name="minArchitecture"/>.
+        /// </summary>
+        /// <param name="targetMethod">The associated target method.</param>
+        /// <param name="mode">The code-generation mode.</param>
+        /// <param name="minArchitecture">The target/minimum architecture.</param>
+        public PTXIntrinsic(
+            MethodInfo targetMethod,
+            IntrinsicImplementationMode mode,
+            CudaArchitecture minArchitecture)
+            : base(
+                  BackendType.PTX,
+                  targetMethod,
+                  mode)
+        {
+            MinArchitecture = minArchitecture;
+        }
+
+        /// <summary>
+        /// Constructs a new PTX intrinsic.
+        /// </summary>
+        /// <param name="targetMethod">The associated target method.</param>
+        /// <param name="mode">The code-generation mode.</param>
+        /// <param name="minArchitecture">The target/minimum architecture.</param>
+        /// <param name="maxArchitecture">The max architecture (exclusive).</param>
+        public PTXIntrinsic(
+            MethodInfo targetMethod,
+            IntrinsicImplementationMode mode,
+            CudaArchitecture? minArchitecture,
+            CudaArchitecture? maxArchitecture)
+            : base(
+                  BackendType.PTX,
+                  targetMethod,
+                  mode)
+        {
+            MinArchitecture = minArchitecture;
+            MaxArchitecture = maxArchitecture;
+        }
+
+        /// <summary>
+        /// Constructs a new PTX intrinsic.
+        /// </summary>
+        /// <param name="targetMethod">The associated target method.</param>
+        /// <param name="mode">The code-generator mode.</param>
+        /// <param name="libDeviceRequired">
+        /// Indicates whether LibDevice is required.
+        /// </param>
+        public PTXIntrinsic(
+            MethodInfo targetMethod,
+            IntrinsicImplementationMode mode,
+            bool libDeviceRequired)
+            : base(
+                  BackendType.PTX,
+                  targetMethod,
+                  mode)
+        {
+            LibDeviceRequired = libDeviceRequired;
+        }
 
         /// <summary>
         /// Constructs a new PTX intrinsic that can handle all architectures.
@@ -143,6 +203,32 @@ namespace ILGPU.Backends.PTX
             MaxArchitecture = maxArchitecture;
         }
 
+        /// <summary>
+        /// Constructs a new PTX intrinsic.
+        /// </summary>
+        /// <param name="handlerType">The associated target handler type.</param>
+        /// <param name="methodName">The target method name (or null).</param>
+        /// <param name="mode">The code-generator mode.</param>
+        /// <param name="minArchitecture">The target/minimum architecture.</param>
+        /// <param name="libDeviceRequired">
+        /// Indicates whether LibDevice is required.
+        /// </param>
+        public PTXIntrinsic(
+            Type handlerType,
+            string methodName,
+            IntrinsicImplementationMode mode,
+            CudaArchitecture minArchitecture,
+            bool libDeviceRequired)
+            : base(
+                  BackendType.PTX,
+                  handlerType,
+                  methodName,
+                  mode)
+        {
+            MinArchitecture = minArchitecture;
+            LibDeviceRequired = libDeviceRequired;
+        }
+
         #endregion
 
         #region Properties
@@ -164,6 +250,11 @@ namespace ILGPU.Backends.PTX
         /// </remarks>
         public CudaArchitecture? MaxArchitecture { get; }
 
+        /// <summary>
+        /// Returns whether LibDevice is required to use this instrinsic.
+        /// </summary>
+        public bool? LibDeviceRequired { get; }
+
         #endregion
 
         #region Methods
@@ -174,7 +265,9 @@ namespace ILGPU.Backends.PTX
             && (!MinArchitecture.HasValue ||
                 ptxBackend.Architecture >= MinArchitecture.Value)
             && (!MaxArchitecture.HasValue ||
-                    ptxBackend.Architecture < MaxArchitecture.Value);
+                ptxBackend.Architecture < MaxArchitecture.Value)
+            && (!LibDeviceRequired.HasValue ||
+                ptxBackend.NvvmAPI != null == LibDeviceRequired.Value);
 
         #endregion
     }

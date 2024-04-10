@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXContext.cs
@@ -46,7 +46,8 @@ namespace ILGPU.Algorithms.PTX
         private static readonly PTXIntrinsic MathCodeGeneratorIntrinsic =
             new PTXIntrinsic(
                 MathCodeGenerator,
-                IntrinsicImplementationMode.GenerateCode)
+                IntrinsicImplementationMode.GenerateCode,
+                libDeviceRequired: false)
             .ThrowIfNull();
 
         /// <summary>
@@ -70,7 +71,8 @@ namespace ILGPU.Algorithms.PTX
                 PTXMathType,
                 nameof(PTXMath.GenerateMathIntrinsic),
                 IntrinsicImplementationMode.GenerateCode,
-                minArchitecture);
+                minArchitecture,
+                libDeviceRequired: false);
 
         /// <summary>
         /// Resolves a PTX intrinsic for the given math-function configuration.
@@ -87,7 +89,10 @@ namespace ILGPU.Algorithms.PTX
                 types,
                 null)
                 .ThrowIfNull();
-            return new PTXIntrinsic(targetMethod, IntrinsicImplementationMode.Redirect);
+            return new PTXIntrinsic(
+                targetMethod,
+                IntrinsicImplementationMode.Redirect,
+                libDeviceRequired: false);
         }
 
         /// <summary>
