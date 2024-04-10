@@ -285,6 +285,7 @@ Src/ILGPU/Static/DllImports.cs
 Src/ILGPU/StrideTypes.cs
 Src/ILGPU/Util/DataBlocks.cs
 Src/ILGPU/Util/PrimitiveDataBlocks.cs
+Tools/CudaGenerateLibDeviceTool/CudaDriverVersionUtils.cs
 
 # Ignore specific template outputs (Algorithms)
 Src/ILGPU.Algorithms/AlgorithmContextMappings.cs
