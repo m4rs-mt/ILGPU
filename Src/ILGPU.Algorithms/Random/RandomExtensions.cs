@@ -89,6 +89,92 @@ namespace ILGPU.Algorithms.Random
             return (state + (shiftVal << 7) + (shiftVal >> 3)) | shiftVal;
         }
 
+
+        /// <summary>
+        /// Generates a random int in [minValue..maxValue).
+        /// </summary>
+        /// <param name="randomProvider">The random provider.</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
+        /// <returns>A random int in [minValue..maxValue).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Mini43AIFloat8 Next<TRandomProvider>(
+            ref TRandomProvider randomProvider,
+            Mini43AIFloat8 minValue,
+            Mini43AIFloat8 maxValue)
+            where TRandomProvider : struct, IRandomProvider
+        {
+            Debug.Assert(minValue < maxValue, "Values out of range");
+            float dist = (float)(maxValue - minValue);
+            return (Mini43AIFloat8) Math.Min(
+                randomProvider.NextFloat() * dist + (float) minValue,
+                (float) maxValue);
+        }
+
+
+        /// <summary>
+        /// Generates a random int in [minValue..maxValue).
+        /// </summary>
+        /// <param name="randomProvider">The random provider.</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
+        /// <returns>A random int in [minValue..maxValue).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Mini52Float8 Next<TRandomProvider>(
+            ref TRandomProvider randomProvider,
+            Mini52Float8 minValue,
+            Mini52Float8 maxValue)
+            where TRandomProvider : struct, IRandomProvider
+        {
+            Debug.Assert(minValue < maxValue, "Values out of range");
+            float dist = (float)(maxValue - minValue);
+            return (Mini52Float8) Math.Min(
+                randomProvider.NextFloat() * dist + (float) minValue,
+                (float) maxValue);
+        }
+
+        /// <summary>
+        /// Generates a random int in [minValue..maxValue).
+        /// </summary>
+        /// <param name="randomProvider">The random provider.</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
+        /// <returns>A random int in [minValue..maxValue).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static BFloat16 Next<TRandomProvider>(
+            ref TRandomProvider randomProvider,
+            BFloat16 minValue,
+            BFloat16 maxValue)
+            where TRandomProvider : struct, IRandomProvider
+        {
+            Debug.Assert(minValue < maxValue, "Values out of range");
+            float dist = (float)(maxValue - minValue);
+            return (BFloat16) Math.Min(
+                 randomProvider.NextFloat() * dist + (float) minValue,
+                (float) maxValue);
+        }
+
+        /// <summary>
+        /// Generates a random int in [minValue..maxValue).
+        /// </summary>
+        /// <param name="randomProvider">The random provider.</param>
+        /// <param name="minValue">The minimum value (inclusive).</param>
+        /// <param name="maxValue">The maximum values (exclusive).</param>
+        /// <returns>A random int in [minValue..maxValue).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half Next<TRandomProvider>(
+            ref TRandomProvider randomProvider,
+            Half minValue,
+            Half maxValue)
+            where TRandomProvider : struct, IRandomProvider
+        {
+            Debug.Assert(minValue < maxValue, "Values out of range");
+            float dist = (float)(maxValue - minValue);
+            return (Half) Math.Min(
+                randomProvider.NextFloat() * dist +(float) minValue,
+                (float) maxValue);
+        }
+
         /// <summary>
         /// Generates a random int in [minValue..maxValue).
         /// </summary>

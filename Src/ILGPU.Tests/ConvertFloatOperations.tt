@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ConvertFloatOperations.tt/ConvertFloatOperations.cs
@@ -34,7 +34,13 @@ namespace ILGPU.Tests
 
 <# foreach (var type in FloatTypes) { #>
 <#      foreach (var targetType in types) { #>
-<#         bool isFP16 = type == FloatTypes[0] || targetType == FloatTypes[0]; #>
+<#          bool isSkippable8 =
+                   type == FloatTypes[0] || targetType == FloatTypes[0]
+                || type == FloatTypes[1] || targetType == FloatTypes[1];
+            bool isSkippable16 =
+                    type == FloatTypes[2] || targetType == FloatTypes[2]
+                ||  type == FloatTypes[3] || targetType == FloatTypes[3]
+    ; #>
 <#         var baseName = "_" + type.Name + "_" + targetType.Name; #>
 <#         var testName = "ConvertOperation" + baseName; #>
 <#         var kernelName = "ConvertOperationKernel" + baseName; #>
@@ -46,21 +52,21 @@ namespace ILGPU.Tests
             b[index] = (<#= targetType.Type #>)a[index];
         }
 
-<#      if (isFP16) { #>
+<#      if (isSkippable8 || isSkippable16) { #>
         [SkippableTheory]
 <#      } else { #>
         [Theory]
 <#      } #>
         [InlineData(0.0f)]
         [InlineData(1.0f)]
-        [InlineData((float)Math.PI)]
+        [InlineData(MathF.PI)]
         [InlineData((float)float.Epsilon)]
-        [InlineData(2.0f * (float)Math.PI)]
-        [InlineData(0.5f * (float)Math.PI)]
+        [InlineData(2.0f * MathF.PI)]
+        [InlineData(0.5f * MathF.PI)]
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>(float value)
         {
-<#      if (isFP16) { #>
+<#      if (isSkippable16) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
             var convertedValue = (<#= type.Type #>)value;

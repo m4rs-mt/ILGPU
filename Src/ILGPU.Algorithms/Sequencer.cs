@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Sequencer.cs
@@ -39,6 +39,36 @@ namespace ILGPU.Algorithms.Sequencers
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
         public readonly Index1D ComputeSequenceElement(LongIndex1D sequenceIndex) =>
             (Index1D)sequenceIndex;
+    }
+
+    /// <summary>
+    /// Represents an identity implementation of a Mini43AIFloat8 sequencer.
+    /// </summary>
+    public readonly struct Mini43AIFloat8Sequencer : ISequencer<Mini43AIFloat8>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public readonly Mini43AIFloat8 ComputeSequenceElement(LongIndex1D sequenceIndex)
+            => (Mini43AIFloat8)sequenceIndex.X;
+    }
+
+    /// <summary>
+    /// Represents an identity implementation of a Mini52Float8 sequencer.
+    /// </summary>
+    public readonly struct Mini52Float8Sequencer : ISequencer<Mini52Float8>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public readonly Mini52Float8 ComputeSequenceElement(LongIndex1D sequenceIndex) =>
+            (Mini52Float8)sequenceIndex.X;
+    }
+
+    /// <summary>
+    /// Represents an identity implementation of a BFloat16 sequencer.
+    /// </summary>
+    public readonly struct BFloat16Sequencer : ISequencer<BFloat16>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public readonly BFloat16 ComputeSequenceElement(LongIndex1D sequenceIndex) =>
+            (BFloat16)sequenceIndex.X;
     }
 
     /// <summary>

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ReinterpretCasts.tt/ReinterpretCasts.cs
@@ -32,28 +32,69 @@ namespace ILGPU.Tests
         { }
 
 <# foreach (var (floatType, intType) in Enumerable.Range(0, FloatTypes.Length).
-    Select(t => (FloatTypes[t], UnsignedIntTypes[t + 1]))) { #>
+    Select(t => (FloatTypes[t], UnsignedIntTypes[t<2?0:(t<4?1:t-2)]))) { #>
         internal static void <#= floatType.Name #>AsIntKernel(
             Index1D index,
             ArrayView1D<<#= intType.Type #>, Stride1D.Dense> data,
             <#= floatType.Type #> value)
         {
+<#
+    if (floatType == FloatTypes[0] || floatType == FloatTypes[1]) {
+#>
+            data[index] = value.AsByte;
+<#
+    }
+    else if (floatType == FloatTypes[2])
+    {
+#>
+            data[index] = value.AsUShort;
+<#
+    }
+    else
+    {
+#>
             data[index] = Interop.FloatAsInt(value);
+
+<#
+    }
+#>
         }
 
         [SkippableFact]
         [KernelMethod(nameof(<#= floatType.Name #>AsIntKernel))]
         public void <#= floatType.Name #>AsInt()
         {
-<#      if (floatType == FloatTypes[0]) { #>
+<#      if (floatType == FloatTypes[0] || floatType == FloatTypes[1] ) { #>
+            Skip.If(!Accelerator.Capabilities.Float8);
+<#      } #>
+<#      if (floatType == FloatTypes[2] || floatType == FloatTypes[3] ) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
+
             var floatValue = (<#= floatType.Type #>)2.0;
             using var data = Accelerator.Allocate1D<<#= intType.Type #>>(Length);
             Execute(Length, data.View, floatValue);
 
             var reference = Enumerable.Repeat(
-                Interop.FloatAsInt(floatValue),
+<#
+    if (floatType == FloatTypes[0] || floatType == FloatTypes[1]) {
+#>
+            floatValue.AsByte,
+<#
+    }
+    else if (floatType == FloatTypes[2])
+    {
+#>
+            floatValue.AsUShort,
+<#
+    }
+    else
+    {
+#>
+            Interop.FloatAsInt(floatValue),
+<#
+    }
+#>
                 Length).ToArray();
             Verify(data.View, reference);
         }
@@ -63,22 +104,98 @@ namespace ILGPU.Tests
             ArrayView1D<<#= floatType.Type #>, Stride1D.Dense> data,
             <#= intType.Type #> value)
         {
+<#
+    if (floatType == FloatTypes[0]) {
+#>
+            data[index] = (Mini43AIFloat8) value;
+<#
+    }
+    else if (floatType == FloatTypes[1])
+    {
+#>
+            data[index] = (Mini52Float8) value;
+<#
+    }
+    else if (floatType == FloatTypes[2])
+    {
+#>
+            data[index] = (BFloat16) value;
+<#
+    }
+    else
+    {
+#>
             data[index] = Interop.IntAsFloat(value);
+
+<#
+    }
+#>
+
         }
 
         [SkippableFact]
         [KernelMethod(nameof(IntAs<#= floatType.Name #>Kernel))]
         public void IntAs<#= floatType.Name #>()
         {
-<#      if (floatType == FloatTypes[0]) { #>
+<#      if (floatType == FloatTypes[0] || floatType == FloatTypes[1]) { #>
+            Skip.If(!Accelerator.Capabilities.Float8);
+<#      } #>
+
+<#      if (floatType == FloatTypes[2] || floatType == FloatTypes[3]) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
+
+<#
+    if (floatType == FloatTypes[0] || floatType == FloatTypes[1]) {
+#>
+            var intValue = ((<#= floatType.Type #>)2.0).AsByte;
+<#
+    }
+
+    else if (floatType == FloatTypes[2])
+    {
+#>
+            var intValue = ((<#= floatType.Type #>)2.0).AsUShort;
+<#
+    }
+    else
+    {
+#>
             var intValue = Interop.FloatAsInt((<#= floatType.Type #>)2.0);
+
+<#
+    }
+#>
             using var data = Accelerator.Allocate1D<<#= floatType.Type #>>(Length);
             Execute(Length, data.View, intValue);
 
             var reference = Enumerable.Repeat(
-                Interop.IntAsFloat(intValue),
+<#
+    if (floatType == FloatTypes[0]) {
+#>
+            (Mini43AIFloat8) intValue,
+<#
+    }
+    else if (floatType == FloatTypes[1])
+    {
+#>
+            (Mini52Float8) intValue,
+<#
+    }
+    else if (floatType == FloatTypes[2])
+    {
+#>
+            (BFloat16) intValue,
+<#
+    }
+    else
+    {
+#>
+            Interop.IntAsFloat(intValue),
+
+<#
+    }
+#>
                 Length).ToArray();
             Verify(data.View, reference);
         }

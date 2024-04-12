@@ -1,0 +1,67 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BFloat16Conversion.tt/BFloat16Conversion.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Static/TypeInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath("Static");
+var unaryOps = GetUnaryMathOps(rootPath).
+    Where(t => t.HasFloats && t.HasImplementation &&
+        !FP16ImplementationMethods.Any(t2 => t2.Item1 == t.MethodName));
+var binaryOps = GetBinaryMathOps(rootPath).
+    Where(t => t.HasFloats && t.HasImplementation);
+#>
+using ILGPU.Frontend.Intrinsic;
+using ILGPU.IR.Values;
+using System;
+using System.Runtime.CompilerServices;
+
+
+namespace ILGPU
+{
+   public static partial class BFloat16Extensions
+   {
+
+
+
+<# foreach (var op in unaryOps) { #>
+        /// <summary>
+        /// <#= op.Summary #>
+        /// </summary>
+        /// <param name="value">The value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static BFloat16 <#= op.MethodName #>FP32(BFloat16 value) =>
+            (BFloat16)IntrinsicMath.CPUOnly.<#= op.MethodName #>((float)value);
+
+<# } #>
+
+
+<# foreach (var op in binaryOps) { #>
+        /// <summary>
+        /// <#= op.Summary #>
+        /// </summary>
+        /// <param name="left">The left value.</param>
+        /// <param name="right">The right value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static BFloat16 <#= op.MethodName #>FP32(BFloat16 left, BFloat16 right) =>
+          (BFloat16)IntrinsicMath.CPUOnly.<#= op.MethodName #>((float)left, (float)right);
+
+<# } #>
+
+    }
+}
