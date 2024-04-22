@@ -106,7 +106,7 @@ ILGPU also provides Source Link support for a better debugging experience. Make 
 ILGPU is licensed under the University of Illinois/NCSA Open Source License.
 Detailed license information can be found in LICENSE.txt.
 
-Copyright (c) 2016-2023 ILGPU Project. All rights reserved.
+Copyright (c) 2016-2024 ILGPU Project. All rights reserved.
 
 Originally developed by Marcel Koester.
 
