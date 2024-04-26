@@ -50,7 +50,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="T4.Build" Version="0.2.4" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="3.9.0 "/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
@@ -484,6 +484,9 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>RuntimeErrorMessages.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Backends\IR\" />
   </ItemGroup>
 
   <Import Project="Properties\ILGPU.nuspec.targets" />

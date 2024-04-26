@@ -511,13 +511,20 @@ namespace ILGPU.IR
             protected override T CreateTerminator<T>(T node)
             {
                 Terminator?.Replace(node);
-                return (Terminator = node).AsNotNullCast<T>();
+
+                var result = (Terminator = node).AsNotNullCast<T>();
+                result.Accept(MethodBuilder.IRVisitor);
+
+                return result;
             }
 
             /// <summary cref="IRBuilder.CreatePhiValue(PhiValue)"/>
             protected override PhiValue CreatePhiValue(PhiValue phiValue)
             {
                 InsertAtBeginning(phiValue);
+
+                phiValue.Accept(MethodBuilder.IRVisitor);
+
                 return phiValue;
             }
 
@@ -526,6 +533,10 @@ namespace ILGPU.IR
             {
                 // Insert node into current basic block builder
                 Add(node);
+
+                // Allow monitor to visit this node
+                node.Accept(MethodBuilder.IRVisitor);
+
                 return node;
             }
 

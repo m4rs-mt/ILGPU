@@ -168,6 +168,11 @@ namespace ILGPU.IR
                 new List<BasicBlock.Builder>();
 
             /// <summary>
+            /// Serves as an injection point for IR mirroring / monitoring.
+            /// </summary>
+            internal readonly IRValue.ValueVisitor IRVisitor;
+
+            /// <summary>
             /// Constructs a new method builder.
             /// </summary>
             /// <param name="method">The parent method.</param>
