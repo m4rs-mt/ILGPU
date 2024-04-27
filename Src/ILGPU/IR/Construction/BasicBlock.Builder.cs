@@ -512,10 +512,14 @@ namespace ILGPU.IR
             {
                 Terminator?.Replace(node);
 
-                var result = (Terminator = node).AsNotNullCast<T>();
-                result.Accept(MethodBuilder.IRVisitor);
+                Terminator = node;
+                try
+                {
+                    node.Accept(MethodBuilder.BaseContext.IRValueVisitor);
+                }
+                catch(InternalCompilerException) { }
 
-                return result;
+                return node;
             }
 
             /// <summary cref="IRBuilder.CreatePhiValue(PhiValue)"/>
@@ -523,7 +527,7 @@ namespace ILGPU.IR
             {
                 InsertAtBeginning(phiValue);
 
-                phiValue.Accept(MethodBuilder.IRVisitor);
+                phiValue.Accept(MethodBuilder.BaseContext.IRValueVisitor);
 
                 return phiValue;
             }
@@ -535,7 +539,7 @@ namespace ILGPU.IR
                 Add(node);
 
                 // Allow monitor to visit this node
-                node.Accept(MethodBuilder.IRVisitor);
+                node.Accept(MethodBuilder.BaseContext.IRValueVisitor);
 
                 return node;
             }

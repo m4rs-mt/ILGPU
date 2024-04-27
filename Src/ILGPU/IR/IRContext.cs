@@ -42,7 +42,8 @@ namespace ILGPU.IR
         /// Constructs a new IR context.
         /// </summary>
         /// <param name="context">The associated main context.</param>
-        protected IRBaseContext(Context context)
+        /// <param name="shouldMirror">Flag determining whether this context should mirror itself.</param>
+        protected IRBaseContext(Context context, bool shouldMirror)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             TypeContext = context.TypeContext;
@@ -52,6 +53,8 @@ namespace ILGPU.IR
                     this,
                     null,
                     Location.Nowhere));
+
+            IRValueVisitor = new IRValue.Visitor(shouldMirror ? new IRValue.Container() : null);
         }
 
         #endregion
@@ -72,6 +75,16 @@ namespace ILGPU.IR
         /// Returns the current verifier instance.
         /// </summary>
         internal Verifier Verifier => Context.Verifier;
+
+        /// <summary>
+        /// Serves as an injection point for IR mirroring / monitoring.
+        /// </summary>
+        internal IRValue.Visitor IRValueVisitor { get; }
+
+        /// <summary>
+        /// Serves as a public endpoint for IR mirroring / monitoring.
+        /// </summary>
+        public IRValue.Container IRValueContainer => IRValueVisitor.Container;
 
         /// <summary>
         /// Returns the associated type context.
@@ -103,8 +116,8 @@ namespace ILGPU.IR
         /// Constructs a new IR context.
         /// </summary>
         /// <param name="context">The associated main context.</param>
-        public IRContext(Context context)
-            : base(context)
+        public IRContext(Context context, bool shouldMirror = false)
+            : base(context, shouldMirror)
         {
             gcDelegate = (Method method) => method.GC();
         }

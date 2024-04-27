@@ -11,6 +11,7 @@
 
 using ILGPU.Backends;
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.IR;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
@@ -160,7 +161,11 @@ namespace ILGPU.Tests
                 Array.Copy(arguments, 1, newArguments, 0, newArguments.Length);
                 arguments = newArguments;
             }
-            var compiled = backend.Compile(entryPoint, specialization);
+
+            var hook = new IRMirrorHook();
+            var compiled = backend.Compile(entryPoint, specialization, hook);
+
+            Output.WriteLine($"Compiled '{kernel.Name}' into {hook.CurrentContext?.IRValueContainer.Values.Count ?? 0} IRValues");
 
             // Load the compiled kernel
             Output.WriteLine($"Loading '{kernel.Name}'");

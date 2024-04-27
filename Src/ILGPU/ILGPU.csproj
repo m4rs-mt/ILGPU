@@ -485,9 +485,6 @@
       <LastGenOutput>RuntimeErrorMessages.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Backends\IR\" />
-  </ItemGroup>
 
   <Import Project="Properties\ILGPU.nuspec.targets" />
 </Project>
