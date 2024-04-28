@@ -513,11 +513,16 @@ namespace ILGPU.IR
                 Terminator?.Replace(node);
 
                 Terminator = node;
-                try
+
+                switch (node.GetType().FullName)
                 {
-                    node.Accept(MethodBuilder.BaseContext.IRValueVisitor);
+                    case nameof(ReturnTerminator):
+                    case nameof(UnconditionalBranch):
+                    case nameof(IfBranch):
+                    case nameof(SwitchBranch):
+                        node.Accept(MethodBuilder.BaseContext.IRValueVisitor);
+                        break;
                 }
-                catch(InternalCompilerException) { }
 
                 return node;
             }

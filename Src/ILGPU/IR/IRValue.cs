@@ -1,11 +1,11 @@
-﻿using ILGPU.IR.Values;
+﻿using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace ILGPU.IR
 {
-    public record struct IRValue(NodeId Id, ValueKind ValueKind, NodeId[] Nodes, long[] Data, string? Tag)
+    public record struct IRValue(NodeId Method, NodeId BasicBlock, NodeId Id, ValueKind ValueKind, NodeId Type, NodeId[] Nodes, long Data, string? Tag)
     {
         public class ValueVisitedEventArgs : EventArgs
         {
@@ -19,16 +19,16 @@ namespace ILGPU.IR
 
         public class Container
         {
-            private readonly ConcurrentDictionary<NodeId, IRValue> values;
-
-            public IReadOnlyDictionary<NodeId, IRValue> Values => values;
+            private readonly ConcurrentBag<IRValue> values;
 
             public Container()
             {
-                values = new ConcurrentDictionary<NodeId, IRValue>();
+                values = new ConcurrentBag<IRValue>();
             }
 
-            public bool TryAdd(NodeId key, IRValue value) => values.TryAdd(key, value);
+            public void Add(IRValue value) => values.Add(value);
+
+            public IRValue[] ToArray() => values.ToArray();
         }
 
         public struct Visitor : IValueVisitor
@@ -51,179 +51,243 @@ namespace ILGPU.IR
                 return nodeIds;
             }
 
-            private void OnValueVisited(IRValue value) => Container?.TryAdd(value.Id, value);
+            private static NodeId[] GetTargetIds(TerminatorValue value)
+            {
+                var nodeIds = new NodeId[value.NumTargets];
+                for (int i = 0; i < value.NumTargets; i++)
+                {
+                    nodeIds[i] = value.Targets[i].Id;
+                }
+
+                return nodeIds;
+            }
+
+            private void OnValueVisited(Value value, NodeId[]? nodes = default, long data = default, string? tag = default) =>
+                Container?.Add(new IRValue
+                {
+                    Method = value.Method.Id,
+                    BasicBlock = value.BasicBlock.Id,
+                    Id = value.Id,
+                    ValueKind = value.ValueKind,
+                    Type = value.Type.Id,
+                    Nodes = nodes ?? GetNodeIds(value),
+                    Data = data,
+                    Tag = tag,
+                });
 
             public void Visit(MethodCall methodCall) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = methodCall.Id,
-                        ValueKind = methodCall.ValueKind,
-                        Nodes = GetNodeIds(methodCall),
-                        Data = [methodCall.Target.Id],
-                        Tag = methodCall.Target.Name,
-                    });
+                OnValueVisited(methodCall,
+                    data: methodCall.Target.Id,
+                    tag: methodCall.Target.Name);
 
             public void Visit(Parameter parameter) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = parameter.Id,
-                        ValueKind = parameter.ValueKind,
-                        Nodes = [],
-                        Data = [parameter.ParameterType.Id, parameter.Index],
-                        Tag = parameter.Name,
-                    });
+                OnValueVisited(parameter,
+                    data: parameter.Index,
+                    tag: parameter.Name);
 
             public void Visit(PhiValue phiValue) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = phiValue.Id,
-                        ValueKind = phiValue.ValueKind,
-                        Nodes = [],
-                        Data = [phiValue.PhiType.Id],
-                        Tag = null,
-                    });
+                OnValueVisited(phiValue);
 
             public void Visit(UnaryArithmeticValue value) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = value.Id,
-                        ValueKind = value.ValueKind,
-                        Nodes = GetNodeIds(value),
-                        Data = [(long)value.Kind, (long)value.ArithmeticBasicValueType],
-                        Tag = null,
-                    });
+                OnValueVisited(value,
+                    data: (long)value.Kind);
 
             public void Visit(BinaryArithmeticValue value) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = value.Id,
-                        ValueKind = value.ValueKind,
-                        Nodes = GetNodeIds(value),
-                        Data = [(long)value.Kind, (long)value.ArithmeticBasicValueType],
-                        Tag = null,
-                    });
+                OnValueVisited(value,
+                    data: (long)value.Kind);
 
             public void Visit(TernaryArithmeticValue value) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = value.Id,
-                        ValueKind = value.ValueKind,
-                        Nodes = GetNodeIds(value),
-                        Data = [(long)value.Kind, (long)value.ArithmeticBasicValueType],
-                        Tag = null,
-                    });
+                OnValueVisited(value,
+                    data: (long)value.Kind);
 
             public void Visit(CompareValue value) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = value.Id,
-                        ValueKind = value.ValueKind,
-                        Nodes = GetNodeIds(value),
-                        Data = [(long)value.Kind, (long)value.CompareType],
-                        Tag = null,
-                    });
+                OnValueVisited(value,
+                    data: (long)value.Kind);
 
             public void Visit(ConvertValue value) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = value.Id,
-                        ValueKind = value.ValueKind,
-                        Nodes = GetNodeIds(value),
-                        Data = [(long)value.SourceType, (long)value.TargetType, (long)value.Flags],
-                        Tag = null,
-                    });
+                OnValueVisited(value,
+                    data: (long)value.Flags);
 
             public void Visit(IntAsPointerCast value) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = value.Id,
-                        ValueKind = value.ValueKind,
-                        Nodes = GetNodeIds(value),
-                        Data = [(long)value.SourceType.Id, (long)value.TargetType.Id],
-                        Tag = null,
-                    });
+                OnValueVisited(value);
 
             public void Visit(PointerAsIntCast value) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = value.Id,
-                        ValueKind = value.ValueKind,
-                        Nodes = GetNodeIds(value),
-                        Data = [(long)value.SourceType.Id, (long)value.TargetType.Id],
-                        Tag = null,
-                    });
+                OnValueVisited(value);
 
             public void Visit(PointerCast value) =>
-                OnValueVisited(
-                    new IRValue
-                    {
-                        Id = value.Id,
-                        ValueKind = value.ValueKind,
-                        Nodes = GetNodeIds(value),
-                        Data = [(long)value.SourceType.Id, (long)value.TargetType.Id],
-                        Tag = null,
-                    });
+                OnValueVisited(value);
 
-            // TODO
-            public void Visit(AddressSpaceCast value) { }
-            public void Visit(ViewCast value) { }
-            public void Visit(ArrayToViewCast value) { }
-            public void Visit(FloatAsIntCast value) { }
-            public void Visit(IntAsFloatCast value) { }
-            public void Visit(Predicate predicate) { }
-            public void Visit(GenericAtomic atomic) { }
-            public void Visit(AtomicCAS atomicCAS) { }
-            public void Visit(Alloca alloca) { }
-            public void Visit(MemoryBarrier barrier) { }
-            public void Visit(Load load) { }
-            public void Visit(Store store) { }
-            public void Visit(SubViewValue value) { }
-            public void Visit(LoadElementAddress value) { }
-            public void Visit(LoadArrayElementAddress value) { }
-            public void Visit(LoadFieldAddress value) { }
-            public void Visit(NewView value) { }
-            public void Visit(GetViewLength value) { }
-            public void Visit(AlignTo value) { }
-            public void Visit(AsAligned value) { }
-            public void Visit(NewArray value) { }
-            public void Visit(GetArrayLength value) { }
-            public void Visit(PrimitiveValue value) { }
-            public void Visit(StringValue value) { }
-            public void Visit(NullValue value) { }
-            public void Visit(StructureValue value) { }
-            public void Visit(GetField value) { }
-            public void Visit(SetField value) { }
-            public void Visit(AcceleratorTypeValue value) { }
-            public void Visit(GridIndexValue value) { }
-            public void Visit(GroupIndexValue value) { }
-            public void Visit(GridDimensionValue value) { }
-            public void Visit(GroupDimensionValue value) { }
-            public void Visit(WarpSizeValue value) { }
-            public void Visit(LaneIdxValue value) { }
-            public void Visit(DynamicMemoryLengthValue value) { }
-            public void Visit(PredicateBarrier barrier) { }
-            public void Visit(Barrier barrier) { }
-            public void Visit(Broadcast broadcast) { }
-            public void Visit(WarpShuffle shuffle) { }
-            public void Visit(SubWarpShuffle shuffle) { }
+            public void Visit(AddressSpaceCast value) =>
+                OnValueVisited(value);
+
+            public void Visit(ViewCast value) =>
+                OnValueVisited(value);
+
+            public void Visit(ArrayToViewCast value) =>
+                OnValueVisited(value);
+
+            public void Visit(FloatAsIntCast value) =>
+                OnValueVisited(value);
+
+            public void Visit(IntAsFloatCast value) =>
+                OnValueVisited(value);
+
+            public void Visit(Predicate predicate) =>
+                OnValueVisited(predicate);
+
+            public void Visit(GenericAtomic atomic) =>
+                OnValueVisited(atomic,
+                    data: ((long)atomic.Kind << 32) | (long)atomic.Flags);
+
+            public void Visit(AtomicCAS atomicCAS) =>
+                OnValueVisited(atomicCAS,
+                    data: (long)atomicCAS.Flags);
+
+            public void Visit(Alloca alloca) =>
+                OnValueVisited(alloca,
+                    data: (long)alloca.AddressSpace);
+
+            public void Visit(MemoryBarrier barrier) =>
+                OnValueVisited(barrier,
+                    data: (long)barrier.Kind);
+
+            public void Visit(Load load) =>
+                OnValueVisited(load);
+
+            public void Visit(Store store) =>
+                OnValueVisited(store);
+
+            public void Visit(SubViewValue value) =>
+                OnValueVisited(value);
+
+            public void Visit(LoadElementAddress value) =>
+                OnValueVisited(value);
+
+            public void Visit(LoadArrayElementAddress value) =>
+                OnValueVisited(value);
+
+            public void Visit(LoadFieldAddress value) =>
+                OnValueVisited(value,
+                    data: (long)value.FieldSpan.Index | ((long)value.FieldSpan.Span << 32));
+
+            public void Visit(NewView value) =>
+                OnValueVisited(value,
+                    data: (long)value.ViewAddressSpace);
+
+            public void Visit(GetViewLength value) =>
+                OnValueVisited(value);
+
+            public void Visit(AlignTo value) =>
+                OnValueVisited(value,
+                    data: value.Type is AddressSpaceType ? (long)value.AddressSpace : default);
+
+            public void Visit(AsAligned value) =>
+                OnValueVisited(value,
+                    data: value.Type is AddressSpaceType ? (long)value.AddressSpace : default);
+
+            public void Visit(NewArray value) =>
+                OnValueVisited(value);
+
+            public void Visit(GetArrayLength value) =>
+                OnValueVisited(value);
+
+            public void Visit(PrimitiveValue value) =>
+                OnValueVisited(value,
+                    data: value.RawValue);
+
+            public void Visit(StringValue value) =>
+                OnValueVisited(value,
+                    data: value.Encoding.CodePage,
+                    tag: value.String);
+
+            public void Visit(NullValue value) =>
+                OnValueVisited(value);
+
+            public void Visit(StructureValue value) =>
+                OnValueVisited(value);
+
+            public void Visit(GetField value) =>
+                OnValueVisited(value,
+                    data: (long)value.FieldSpan.Index | ((long)value.FieldSpan.Span << 32));
+
+            public void Visit(SetField value) =>
+                OnValueVisited(value,
+                    data: (long)value.FieldSpan.Index | ((long)value.FieldSpan.Span << 32));
+
+            public void Visit(AcceleratorTypeValue value) =>
+                OnValueVisited(value);
+
+            public void Visit(GridIndexValue value) =>
+                OnValueVisited(value,
+                    data: (long)value.Dimension);
+
+            public void Visit(GroupIndexValue value) =>
+                OnValueVisited(value,
+                    data: (long)value.Dimension);
+
+            public void Visit(GridDimensionValue value) =>
+                OnValueVisited(value,
+                    data: (long)value.Dimension);
+
+            public void Visit(GroupDimensionValue value) =>
+                OnValueVisited(value,
+                    data: (long)value.Dimension);
+
+            public void Visit(WarpSizeValue value) =>
+                OnValueVisited(value);
+
+            public void Visit(LaneIdxValue value) =>
+                OnValueVisited(value);
+
+            public void Visit(DynamicMemoryLengthValue value) =>
+                OnValueVisited(value,
+                    data: (long)value.AddressSpace);
+
+            public void Visit(PredicateBarrier barrier) =>
+                OnValueVisited(barrier,
+                    data: (long)barrier.Kind);
+
+            public void Visit(Barrier barrier) =>
+                OnValueVisited(barrier,
+                    data: (long)barrier.Kind);
+
+            public void Visit(Broadcast broadcast) =>
+                OnValueVisited(broadcast,
+                    data: (long)broadcast.Kind);
+
+            public void Visit(WarpShuffle shuffle) =>
+                OnValueVisited(shuffle,
+                    data: (long)shuffle.Kind);
+
+            public void Visit(SubWarpShuffle shuffle) =>
+                OnValueVisited(shuffle,
+                    data: (long)shuffle.Kind);
+
             public void Visit(UndefinedValue undefined) { }
+
             public void Visit(HandleValue handle) { }
-            public void Visit(DebugAssertOperation debug) { }
+
+            public void Visit(DebugAssertOperation debug) =>
+                OnValueVisited(debug);
+
             public void Visit(WriteToOutput writeToOutput) { }
-            public void Visit(ReturnTerminator returnTerminator) { }
-            public void Visit(UnconditionalBranch branch) { }
-            public void Visit(IfBranch branch) { }
-            public void Visit(SwitchBranch branch) { }
+
+            public void Visit(ReturnTerminator returnTerminator) =>
+                OnValueVisited(returnTerminator);
+
+            public void Visit(UnconditionalBranch branch) =>
+                OnValueVisited(branch,
+                    nodes: GetTargetIds(branch));
+
+            public void Visit(IfBranch branch) =>
+                OnValueVisited(branch,
+                    nodes: GetTargetIds(branch),
+                    data: (long)branch.Flags);
+
+            public void Visit(SwitchBranch branch) =>
+                OnValueVisited(branch,
+                    nodes: GetTargetIds(branch));
+
             public void Visit(LanguageEmitValue value) { }
         }
     }
