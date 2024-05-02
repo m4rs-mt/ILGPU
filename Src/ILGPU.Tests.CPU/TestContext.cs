@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TestContext.cs
@@ -58,7 +58,7 @@ namespace ILGPU.Tests.CPU
             Action<Context.Builder> prepareContext)
             : base(
                   optimizationLevel,
-                  builder => prepareContext(builder.CPU(GetCPUDeviceKind())),
+                  builder => prepareContext(builder.CPU(GetCPUDeviceKind()).Assertions()),
                   context => context.CreateCPUAccelerator(0))
         { }
 

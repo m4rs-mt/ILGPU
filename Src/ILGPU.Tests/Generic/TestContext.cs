@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TestContext.cs
@@ -37,7 +37,6 @@ namespace ILGPU.Tests
             Context = Context.Create(builder =>
                 prepareContext(
                     builder
-                    .Assertions()
                     .Arrays(ArrayMode.InlineMutableStaticArrays)
                     .Verify()
                     .Optimize(level)
