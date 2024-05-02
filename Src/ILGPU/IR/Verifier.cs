@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
@@ -181,10 +183,6 @@ namespace ILGPU.IR
         {
             #region Instance
 
-            private readonly List<BasicBlock> blocksInRpo =
-                new List<BasicBlock>();
-            private readonly HashSet<BasicBlock> containedBlocks =
-                new(new BasicBlock.Comparer());
             private readonly Dictionary<BasicBlock, HashSet<BasicBlock>> predecessors =
                 new(new BasicBlock.Comparer());
             private readonly Dictionary<BasicBlock, HashSet<BasicBlock>> successors =
@@ -202,6 +200,20 @@ namespace ILGPU.IR
             #endregion
 
             #region Methods
+
+            /// <summary>
+            /// Visits the given block to make sure all sets are properly updated.
+            /// </summary>
+            /// <param name="block">The current block.</param>
+            private void Visit(BasicBlock block)
+            {
+                CreateLinkSets(block);
+
+                // Iterate over all successors to enumerate their children
+                block.AssertNoControlFlowUpdate();
+                foreach (var successor in block.Successors)
+                    AddSuccessor(block, successor);
+            }
 
             /// <summary>
             /// Creates new predecessor and successor link sets.
@@ -231,47 +243,12 @@ namespace ILGPU.IR
             }
 
             /// <summary>
-            /// Computes the post order of the given block recursively.
-            /// </summary>
-            /// <param name="block">The current block.</param>
-            private void ComputePostOrder(BasicBlock block)
-            {
-                // Skip visited blocks
-                if (!containedBlocks.Add(block))
-                    return;
-                CreateLinkSets(block);
-
-                // Iterate over all successors to enumerate their children
-                block.AssertNoControlFlowUpdate();
-                foreach (var successor in block.Successors)
-                {
-                    AddSuccessor(block, successor);
-                    ComputePostOrder(successor);
-                }
-
-                // Register our block in the post-order list
-                blocksInRpo.Add(block);
-            }
-
-            /// <summary>
-            /// Verifies the existence and the order of all blocks.
-            /// </summary>
-            private void VerifyBlocks()
-            {
-                var blocks = Method.Blocks;
-                Assert(Method, blocks.Count == blocksInRpo.Count);
-
-                int index = 0;
-                foreach (var block in blocks)
-                    Assert(Method, block == blocksInRpo[index++]);
-            }
-
-            /// <summary>
             /// Verifies all links.
             /// </summary>
-            private void VerifyLinks()
+            /// <param name="rpo">The input block collection.</param>
+            private void VerifyLinks(BasicBlockCollection<ReversePostOrder, Forwards> rpo)
             {
-                foreach (var block in blocksInRpo)
+                foreach (var block in rpo)
                 {
                     var successorSet = successors[block];
                     foreach (var successor in block.CurrentSuccessors)
@@ -305,11 +282,14 @@ namespace ILGPU.IR
             /// </summary>
             public override void Verify()
             {
-                ComputePostOrder(Method.EntryBlock);
-                blocksInRpo.Reverse();
+                var reversePostOrder = Method.Blocks.Traverse<
+                    ReversePostOrder,
+                    Forwards,
+                    BasicBlock.SuccessorsProvider<Forwards>>(default);
+                foreach (var block in reversePostOrder)
+                    Visit(block);
 
-                VerifyBlocks();
-                VerifyLinks();
+                VerifyLinks(reversePostOrder);
                 VerifyExitBlock();
             }
 
