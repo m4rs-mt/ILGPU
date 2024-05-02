@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IOValues.cs
@@ -311,11 +311,16 @@ namespace ILGPU.IR.Values
         /// </summary>
         public string ToEscapedPrintFExpression() =>
             ToPrintFExpression()
+            // Replace backslash before others, so that we do not double-escape.
+            .Replace("\\", @"\\")
+            // On Unix, replaces NewLine of \n with an escaped \n.
+            // On Windows, replaces NewLine of \r\n with an escaped \n.
+            // The printf call expects \n, and will translate to the appropriate newline.
+            .Replace(Environment.NewLine, @"\n")
             .Replace("\t", @"\t")
             .Replace("\r", @"\r")
             .Replace("\n", @"\n")
-            .Replace("\"", "\\\"")
-            .Replace("\\", @"\\");
+            .Replace("\"", "\\\"");
 
         #endregion
 
