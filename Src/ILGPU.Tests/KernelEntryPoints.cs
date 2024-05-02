@@ -642,5 +642,79 @@ namespace ILGPU.Tests
                 Execute(kernel.Method, extent, buffer.View, value));
             Assert.IsType<NotSupportedException>(e.InnerException);
         }
+
+#if NET7_0_OR_GREATER
+        internal static void PreParamAlignmentKernel(
+            Index1D index,
+            Int128 constant,
+            ArrayView1D<Int128, Stride1D.Dense> output)
+        {
+            output[index] = index.X + constant;
+        }
+
+        [Theory]
+        [InlineData(33)]
+        [InlineData(1025)]
+        [KernelMethod(nameof(PreParamAlignmentKernel))]
+        public void PreParamAlignment(int length)
+        {
+            Int128 c = 42;
+            using var buffer = Accelerator.Allocate1D<Int128>(length);
+            Execute(buffer.Length, c, buffer.View);
+
+            var expected = Enumerable.Range(0, length).Select(x => x + c).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        internal static void PostParamAlignmentKernel(
+            Index1D index,
+            ArrayView1D<Int128, Stride1D.Dense> output,
+            Int128 constant)
+        {
+            output[index] = index.X + constant;
+        }
+
+        [Theory]
+        [InlineData(33)]
+        [InlineData(1025)]
+        [KernelMethod(nameof(PostParamAlignmentKernel))]
+        public void PostParamAlignment(int length)
+        {
+            Int128 c = 42;
+            using var buffer = Accelerator.Allocate1D<Int128>(length);
+            Execute(buffer.Length, buffer.View, c);
+
+            var expected = Enumerable.Range(0, length).Select(x => x + c).ToArray();
+            Verify(buffer.View, expected);
+        }
+
+        public struct MyAlignedStruct
+        {
+            public byte X;
+            public Int128 Y;
+        }
+
+        internal static void AlignedStructParamAlignmentKernel(
+            Index1D index,
+            ArrayView1D<Int128, Stride1D.Dense> output,
+            MyAlignedStruct constant)
+        {
+            output[index] = index.X + constant.Y;
+        }
+
+        [Theory]
+        [InlineData(33)]
+        [InlineData(1025)]
+        [KernelMethod(nameof(AlignedStructParamAlignmentKernel))]
+        public void AlignedStructParamAlignment(int length)
+        {
+            MyAlignedStruct c = new MyAlignedStruct { Y = 42 };
+            using var buffer = Accelerator.Allocate1D<Int128>(length);
+            Execute(buffer.Length, buffer.View, c);
+
+            var expected = Enumerable.Range(0, length).Select(x => x + c.Y).ToArray();
+            Verify(buffer.View, expected);
+        }
+#endif
     }
 }
