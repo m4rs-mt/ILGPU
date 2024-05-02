@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvvmAPI.cs
@@ -143,7 +143,7 @@ namespace ILGPU.Runtime.Cuda
         private readonly NvvmCreateProgram nvvmCreateProgram;
         private readonly NvvmDestroyProgram nvvmDestroyProgram;
         private readonly NvvmAddModuleToProgram nvvmAddModuleToProgram;
-        private readonly NvvmLazyAddModuleToProgram nvvmLazyAddModuleToProgram;
+        private readonly NvvmLazyAddModuleToProgram? nvvmLazyAddModuleToProgram;
         private readonly NvvmCompileProgram nvvmCompileProgram;
         private readonly NvvmVerifyProgram nvvmVerifyProgram;
         private readonly NvvmGetCompiledResultSize nvvmGetCompiledResultSize;
@@ -188,11 +188,6 @@ namespace ILGPU.Runtime.Cuda
                     NativeLibrary.GetExport(
                         libNvvmModule,
                         "nvvmAddModuleToProgram"));
-            nvvmLazyAddModuleToProgram =
-                Marshal.GetDelegateForFunctionPointer<NvvmLazyAddModuleToProgram>(
-                    NativeLibrary.GetExport(
-                        libNvvmModule,
-                        "nvvmLazyAddModuleToProgram"));
             nvvmCompileProgram =
                 Marshal.GetDelegateForFunctionPointer<NvvmCompileProgram>(
                     NativeLibrary.GetExport(
@@ -223,6 +218,16 @@ namespace ILGPU.Runtime.Cuda
                     NativeLibrary.GetExport(
                         libNvvmModule,
                         "nvvmGetProgramLog"));
+
+            if (NativeLibrary.TryGetExport(
+                libNvvmModule,
+                "nvvmLazyAddModuleToProgram",
+                out var nvvmLazyAddModuleToProgramPtr))
+            {
+                nvvmLazyAddModuleToProgram =
+                    Marshal.GetDelegateForFunctionPointer<NvvmLazyAddModuleToProgram>(
+                        nvvmLazyAddModuleToProgramPtr);
+            }
         }
 
         /// <inheritdoc/>
@@ -316,7 +321,9 @@ namespace ILGPU.Runtime.Cuda
             IntPtr buffer,
             IntPtr size,
             string? name) =>
-            nvvmLazyAddModuleToProgram(program, buffer, size, name);
+            nvvmLazyAddModuleToProgram != null
+            ? nvvmLazyAddModuleToProgram(program, buffer, size, name)
+            : nvvmAddModuleToProgram(program, buffer, size, name);
 
         /// <summary>
         /// Compiles the program.
