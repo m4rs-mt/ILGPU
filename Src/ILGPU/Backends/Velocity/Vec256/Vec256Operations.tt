@@ -1,0 +1,1470 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Vec256Operations.tt/Vec256Operations.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="../VelocityOperations.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath("../../../Static");
+var unaryOps = GetUnaryMathOps(rootPath);
+var binaryOps = GetBinaryMathOps(rootPath);
+var ternaryOps = GetTernaryMathOps(rootPath);
+var compareOperations = new (string, string)[]
+{
+    ("Equal", "Vector256.Equals({0}, {1}).AsInt32()"),
+    ("NotEqual", "NotI32(Vector256.Equals({0}, {1}).AsInt32())"),
+    ("LessThan", "Vector256.LessThan({0}, {1}).AsInt32()"),
+    ("LessEqual", "Vector256.LessThanOrEqual({0}, {1}).AsInt32()"),
+    ("GreaterThan", "Vector256.GreaterThan({0}, {1}).AsInt32()"),
+    ("GreaterEqual", "Vector256.GreaterThanOrEqual({0}, {1}).AsInt32()")
+};
+var acceleratedConvTypes32 = new (TypeInformation Left, TypeInformation Right, string Op)[]
+{
+    (SignedIntTypes[2],   FloatTypes[1],       "Vector256.ConvertToSingle"),
+    (UnsignedIntTypes[2], FloatTypes[1],       "Vector256.ConvertToSingle"),
+    (FloatTypes[1],       SignedIntTypes[2],   "Vector256.ConvertToInt32"),
+    (FloatTypes[1],       UnsignedIntTypes[2], "Vector256.ConvertToUInt32"),
+};
+var acceleratedConvTypes64 = new (TypeInformation Left, TypeInformation Right, string Op)[]
+{
+    (SignedIntTypes[3],   FloatTypes[2],       "Vector256.ConvertToDouble"),
+    (UnsignedIntTypes[3], FloatTypes[2],       "Vector256.ConvertToDouble"),
+    (FloatTypes[2],       SignedIntTypes[3],   "Vector256.ConvertToInt64"),
+    (FloatTypes[2],       UnsignedIntTypes[3], "Vector256.ConvertToUInt64"),
+};
+
+int warpSize = 8;
+string GetWarpTypeName32(string elementTypeName) => $"Vector256<{elementTypeName}>";
+string GetWarpTypeName64(string elementTypeName) =>
+    $"({GetWarpTypeName32(elementTypeName)}, {GetWarpTypeName32(elementTypeName)})";
+string GetItemRef64(string name, int counter) => counter < 4
+    ? $"{name}.Item1.GetElement({counter})"
+    : $"{name}.Item2.GetElement({counter - 4})";
+string GetCastIToX32(string prefix, string variable) =>
+    prefix != "I" ? $"CastITo{prefix}32({variable})" : variable;
+string GetCastIToX64(string prefix, string variable) =>
+    prefix != "I" ? $"CastITo{prefix}64({variable})" : variable;
+string GetCastXToI32(string prefix, string variable) =>
+    prefix != "I" ? $"Cast{prefix}ToI32({variable})" : variable;
+string GetCastXToI64(string prefix, string variable) =>
+    prefix != "I" ? $"Cast{prefix}ToI64({variable})" : variable;
+
+var warpType32 = GetWarpTypeName32("int");
+var warpType64 = GetWarpTypeName64("long");
+string inliningAttribute = "AggressiveInlining";
+#>
+using ILGPU.IR.Values;
+using ILGPU.Util;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
+
+// ReSharper disable ArrangeMethodOrOperatorBody
+// ReSharper disable RedundantCast
+// disable: max_line_length
+
+#if NET7_0_OR_GREATER
+
+namespace ILGPU.Backends.Velocity.Vec256
+{
+    // Operation implementations
+
+    static partial class Vec256Operations
+    {
+        #region Warp Types
+
+        public static int WarpSize => Vector256<int>.Count;
+        public static readonly Type WarpType32 = typeof(<#= warpType32 #>);
+        public static readonly Type WarpType64 = typeof(<#= warpType64 #>);
+
+        #endregion
+
+        #region Initialization
+
+        static Vec256Operations()
+        {
+            InitUnaryOperations();
+            InitBinaryOperations();
+            InitTernaryOperations();
+            InitializeCompareOperations();
+            InitializeConvertOperations();
+            InitializeVectorConvertOperations();
+            InitializeAtomicOperations();
+        }
+
+        private static readonly Vector256<int> WarpSizeM1Vector =
+            Vector256.Create(WarpSize - 1);
+
+        internal static MethodInfo GetMethod(string name) =>
+            typeof(Vec256Operations).GetMethod(
+                    name,
+                    BindingFlags.NonPublic | BindingFlags.Static)
+                .AsNotNull();
+
+        #endregion
+
+        #region Creation
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static Vector256<TTarget> CastWarp32<T, TTarget>(Vector256<T> source)
+            where T : struct
+            where TTarget : struct =>
+            source.As<T, TTarget>();
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static (Vector256<TTarget>, Vector256<TTarget>) CastWarp64<T, TTarget>(
+            (Vector256<T>, Vector256<T>) source)
+            where T : struct
+            where TTarget : struct =>
+            (source.Item1.As<T, TTarget>(), source.Item2.As<T, TTarget>());
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> MaskTo64(Vector256<int> mask) =>
+            Vector256.Widen(mask);
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static bool CheckForAnyActiveLane(<#= warpType32 #> warp) =>
+            Vector256.EqualsAny(<#= warpType32 #>.AllBitsSet, warp);
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static bool CheckForNoActiveLane(<#= warpType32 #> warp) =>
+            !CheckForAnyActiveLane(warp);
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static bool CheckForEqualMasks(
+            <#= warpType32 #> firstMask,
+            <#= warpType32 #> secondMask) =>
+            Vector256.EqualsAll(firstMask, secondMask);
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static int GetNumberOfActiveLanes(<#= warpType32 #> warp) =>
+            -Vector256.Sum(warp);
+
+        public static readonly MethodInfo CheckForAnyActiveLaneMethod =
+            GetMethod(nameof(CheckForAnyActiveLane));
+        public static readonly MethodInfo CheckForNoActiveLaneMethod =
+            GetMethod(nameof(CheckForNoActiveLane));
+        public static readonly MethodInfo CheckForEqualMasksMethod =
+            GetMethod(nameof(CheckForEqualMasks));
+        public static readonly MethodInfo GetNumberOfActiveLanesMethod =
+            GetMethod(nameof(GetNumberOfActiveLanes));
+
+        private static readonly <#= warpType32 #> LaneIndexVector32 =
+            Vector256.Create(0, 1, 2, 3, 4, 5, 6, 7);
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> LoadLaneIndexVector32() => LaneIndexVector32;
+
+        private static readonly <#= warpType64 #> LaneIndexVector64 =
+            (Vector256.Create(0L, 1L, 2L, 3L), Vector256.Create(4L, 5L, 6L, 7L));
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> LoadLaneIndexVector64() => LaneIndexVector64;
+
+        public static readonly MethodInfo LoadLaneIndexVector32Method =
+            GetMethod(nameof(LoadLaneIndexVector32));
+        public static readonly MethodInfo LoadLaneIndexVector64Method =
+            GetMethod(nameof(LoadLaneIndexVector64));
+
+        private static readonly <#= warpType32 #> LaneLengthVector32 =
+            Vector256.Create(Vector<int>.Count);
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> LoadVectorLengthVector32() => LaneLengthVector32;
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> LoadVectorLengthVector64()
+        {
+            long count = Vector<int>.Count;
+            return (Vector256.Create(count), Vector256.Create(count));
+        }
+
+        public static readonly MethodInfo LoadVectorLengthVector32Method =
+            GetMethod(nameof(LoadVectorLengthVector32));
+        public static readonly MethodInfo LoadVectorLengthVector64Method =
+            GetMethod(nameof(LoadVectorLengthVector64));
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> LoadAllLanesMask32() =>
+            <#= warpType32 #>.AllBitsSet;
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> LoadAllLanesMask64() =>
+            (Vector256<long>.AllBitsSet, Vector256<long>.AllBitsSet);
+
+        public static readonly MethodInfo LoadAllLanesMask32Method =
+            GetMethod(nameof(LoadAllLanesMask32));
+        public static readonly MethodInfo LoadAllLanesMask64Method =
+            GetMethod(nameof(LoadAllLanesMask64));
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> LoadNoLanesMask32() => default;
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> LoadNoLanesMask64() => default;
+
+        public static readonly MethodInfo LoadNoLanesMask32Method =
+            GetMethod(nameof(LoadNoLanesMask32));
+        public static readonly MethodInfo LoadNoLanesMask64Method =
+            GetMethod(nameof(LoadNoLanesMask64));
+
+        #endregion
+
+        #region Generic Casts
+
+<# foreach (var (_, prefix, typeName, _) in ImplementationTypes32) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> Cast<#= prefix #>ToI32(
+            <#= GetWarpTypeName32(typeName) #> input) =>
+            CastWarp32<<#= typeName #>, int>(input);
+
+<#      if (typeName != "int") { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= GetWarpTypeName32(typeName) #> CastITo<#= prefix #>32(
+            <#= warpType32 #> input) =>
+            CastWarp32<int, <#= typeName #>>(input);
+
+        public static readonly MethodInfo Cast<#= prefix #>ToI32Method =
+            GetMethod(nameof(Cast<#= prefix #>ToI32));
+
+<#      } #>
+        public static readonly MethodInfo CastITo<#= prefix #>32Method =
+            GetMethod(nameof(CastITo<#= prefix #>32));
+
+<# } #>
+
+<# foreach (var (_, prefix, typeName, _) in ImplementationTypes64) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> Cast<#= prefix #>ToI64(
+            <#= GetWarpTypeName64(typeName) #> input) =>
+            CastWarp64<<#= typeName #>, long>(input);
+
+<#      if (typeName != "long") { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= GetWarpTypeName64(typeName) #> CastITo<#= prefix #>64(
+            <#= warpType64 #> input) =>
+            CastWarp64<long, <#= typeName #>>(input);
+
+        public static readonly MethodInfo Cast<#= prefix #>ToI64Method =
+            GetMethod(nameof(Cast<#= prefix #>ToI64));
+<#      } #>
+
+        public static readonly MethodInfo CastITo<#= prefix #>64Method =
+            GetMethod(nameof(CastITo<#= prefix #>64));
+
+<# } #>
+
+        #endregion
+
+        #region Scalar Operations
+
+<# foreach (var (_, prefix, typeName, _) in ImplementationTypes32) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> FromScalar<#= prefix #>32(<#= typeName #> scalar)
+        {
+            var result = Vector256.Create(scalar);
+            return <#= GetCastXToI32(prefix, "result") #>;
+        }
+
+        public static readonly MethodInfo FromScalar<#= prefix #>32Method =
+            GetMethod(nameof(FromScalar<#= prefix #>32));
+
+<# } #>
+
+<# foreach (var (_, prefix, typeName, _) in ImplementationTypes64) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> FromScalar<#= prefix #>64(<#= typeName #> scalar)
+        {
+            var result = Vector256.Create(scalar);
+            return <#= GetCastXToI64(prefix, "(result, result)") #>;
+        }
+
+        public static readonly MethodInfo FromScalar<#= prefix #>64Method =
+            GetMethod(nameof(FromScalar<#= prefix #>64));
+
+<# } #>
+
+        #endregion
+
+        #region Select Operations
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> Select32(
+            <#= warpType32 #> mask,
+            <#= warpType32 #> left,
+            <#= warpType32 #> right) =>
+            Vector256.ConditionalSelect(mask, right, left);
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> Select64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> left,
+            <#= warpType64 #> right)
+        {
+            var mask64 = MaskTo64(mask);
+            return (
+                Vector256.ConditionalSelect(mask64.Item1, right.Item1, left.Item1),
+                Vector256.ConditionalSelect(mask64.Item2, right.Item2, left.Item2));
+        }
+
+        public static readonly MethodInfo Select32Method = GetMethod(nameof(Select32));
+        public static readonly MethodInfo Select64Method = GetMethod(nameof(Select64));
+
+        #endregion
+
+        #region Unary Operations
+
+<# foreach (var op in unaryOps) { #>
+<#      foreach (var (_, prefix, typeName, _) in
+            ImplementationTypes32.Where(t => (t.Flags & op.Flags) != 0)) { #>
+<#          var velocity = op.Velocity.Velocity256; #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> <#= op.Name #><#= prefix #>32(
+            <#= warpType32 #> warp)
+        {
+            var value = <#= GetCastIToX32(prefix, "warp") #>;
+<#              if (velocity.SoftwareEmulation) { #>
+            var result = Vector256.Create(
+                <#= velocity.GetImplementation(op, 0, "value") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                <#= velocity.GetImplementation(op, 1, "value") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                <#= velocity.GetImplementation(op, 2, "value") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : ","#>
+                <#= velocity.GetImplementation(op, 3, "value") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : ","#>
+                <#= velocity.GetImplementation(op, 4, "value") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : ","#>
+                <#= velocity.GetImplementation(op, 5, "value") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : ","#>
+                <#= velocity.GetImplementation(op, 6, "value") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : ","#>
+                <#= velocity.GetImplementation(op, 7, "value") #>
+                <#= op.IsPredicate ? " ? -1 : 0" : ""#>);
+<#              } else { #>
+            var result = <#= velocity.GetImplementation(op, variables: "value") #>;
+<#              } #>
+<#              if (!op.IsPredicate && !op.Velocity.ReturnAsWarp32) { #>
+            return <#= GetCastXToI32(prefix, "result") #>;
+<#              } else { #>
+            return result;
+<#              } #>
+        }
+
+<#      } #>
+<#      foreach (var (_, prefix, typeName, _) in
+            ImplementationTypes64.Where(t => (t.Flags & op.Flags) != 0)) { #>
+<#          bool use32BitResult = op.Velocity.ReturnAsWarp32 | op.IsPredicate; #>
+<#          var returnType = use32BitResult ? warpType32 : warpType64; #>
+<#          var velocity = op.Velocity.Velocity256; #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= returnType #> <#= op.Name #><#= prefix #>64(
+            <#= warpType64 #> warp)
+        {
+            var value = <#= GetCastIToX64(prefix, "warp") #>;
+<#              if (velocity.SoftwareEmulation && use32BitResult) { #>
+            var result = Vector256.Create(
+                <#= velocity.GetImplementation(op, 0, "value.Item1") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                <#= velocity.GetImplementation(op, 1, "value.Item1") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                <#= velocity.GetImplementation(op, 2, "value.Item1") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                <#= velocity.GetImplementation(op, 3, "value.Item1") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                <#= velocity.GetImplementation(op, 0, "value.Item2") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                <#= velocity.GetImplementation(op, 1, "value.Item2") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                <#= velocity.GetImplementation(op, 2, "value.Item2") #>
+                <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                <#= velocity.GetImplementation(op, 3, "value.Item2") #>
+                <#= op.IsPredicate ? " ? -1 : 0" : "" #>);
+<#              } else if (velocity.SoftwareEmulation) { #>
+            var result = (
+                Vector256.Create(
+                    <#= velocity.GetImplementation(op, 0, "value.Item1") #>
+                    <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                    <#= velocity.GetImplementation(op, 1, "value.Item1") #>
+                    <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                    <#= velocity.GetImplementation(op, 2, "value.Item1") #>
+                    <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                    <#= velocity.GetImplementation(op, 3, "value.Item1") #>
+                    <#= op.IsPredicate ? " ? -1 : 0" : "" #>),
+                Vector256.Create(
+                    <#= velocity.GetImplementation(op, 0, "value.Item2") #>
+                    <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                    <#= velocity.GetImplementation(op, 1, "value.Item2") #>
+                    <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                    <#= velocity.GetImplementation(op, 2, "value.Item2") #>
+                    <#= op.IsPredicate ? " ? -1 : 0," : "," #>
+                    <#= velocity.GetImplementation(op, 3, "value.Item2") #>
+                    <#= op.IsPredicate ? " ? -1 : 0" : "" #>));
+<#              } else if (use32BitResult) { #>
+            var result = <#= velocity.GetImplementation(op, variables: "value") #>;
+<#              } else { #>
+            var result = (
+                    <#= velocity.GetImplementation(op, variables: "value.Item1") #>,
+                    <#= velocity.GetImplementation(op, variables: "value.Item2") #>);
+<#              } #>
+<#              if (!op.IsPredicate && !op.Velocity.ReturnAsWarp32) { #>
+            return <#= GetCastXToI64(prefix, "result") #>;
+<#              } else { #>
+            return result;
+<#              } #>
+        }
+
+<#      } #>
+
+<# } #>
+
+        private static readonly Dictionary<
+            (UnaryArithmeticKind, VelocityWarpOperationMode), MethodInfo>
+            UnaryOperations32 = new();
+        private static readonly Dictionary<
+            (UnaryArithmeticKind, VelocityWarpOperationMode), MethodInfo>
+            UnaryOperations64 = new();
+
+        private static void InitUnaryOperations()
+        {
+<# foreach (var op in unaryOps) { #>
+<#      foreach (var (_, prefix, _, _) in
+            ImplementationTypes32.Where(t => (t.Flags & op.Flags) != 0)) { #>
+            UnaryOperations32.Add(
+                (UnaryArithmeticKind.<#= op.Name #>, VelocityWarpOperationMode.<#= prefix #>),
+                GetMethod(nameof(<#= op.Name #><#= prefix #>32)));
+<#      } #>
+
+<#      foreach (var (_, prefix, _, _) in
+            ImplementationTypes64.Where(t => (t.Flags & op.Flags) != 0)) { #>
+            UnaryOperations64.Add(
+                (UnaryArithmeticKind.<#= op.Name #>, VelocityWarpOperationMode.<#= prefix #>),
+                GetMethod(nameof(<#= op.Name #><#= prefix #>64)));
+<#      } #>
+<# } #>
+        }
+
+        public static MethodInfo GetUnaryOperation32(
+            UnaryArithmeticKind kind,
+            VelocityWarpOperationMode mode) => UnaryOperations32[(kind, mode)];
+        public static MethodInfo GetUnaryOperation64(
+            UnaryArithmeticKind kind,
+            VelocityWarpOperationMode mode) => UnaryOperations64[(kind, mode)];
+
+        #endregion
+
+        #region Binary Operations
+
+<# foreach (var op in binaryOps) { #>
+<#      foreach (var (_, prefix, typeName, _) in
+            ImplementationTypes32.Where(t => (t.Flags & op.Flags) != 0)) { #>
+<#          var velocity = op.Velocity?.Velocity256; #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> <#= op.Name #><#= prefix #>32(
+            <#= warpType32 #> first,
+            <#= warpType32 #> second)
+        {
+            var left = <#= GetCastIToX32(prefix, "first") #>;
+            var right = <#= GetCastIToX32(prefix, "second") #>;
+
+<#          if (velocity == null) { #>
+            var result = <#= op.GetOpOrCall(isBool: false, "left", "right") #>;
+<#          } else if (velocity.SoftwareEmulation) { #>
+            var result = Vector256.Create(
+                <#= velocity.GetImplementation(op, 0, "left", "right") #>,
+                <#= velocity.GetImplementation(op, 1, "left", "right") #>,
+                <#= velocity.GetImplementation(op, 2, "left", "right") #>,
+                <#= velocity.GetImplementation(op, 3, "left", "right") #>,
+                <#= velocity.GetImplementation(op, 4, "left", "right") #>,
+                <#= velocity.GetImplementation(op, 5, "left", "right") #>,
+                <#= velocity.GetImplementation(op, 6, "left", "right") #>,
+                <#= velocity.GetImplementation(op, 7, "left", "right") #>);
+<#          } else { #>
+            var result = <#= velocity.GetImplementation(op, null, "left", "right") #>;
+<#          } #>
+            return <#= GetCastXToI32(prefix, "result") #>;
+        }
+
+<#      } #>
+<#      foreach (var (_, prefix, typeName, _) in
+            ImplementationTypes64.Where(t => (t.Flags & op.Flags) != 0)) { #>
+<#          var velocity = op.Velocity?.Velocity256; #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> <#= op.Name #><#= prefix #>64(
+            <#= warpType64 #> first,
+            <#= warpType64 #> second)
+        {
+            var left = <#= GetCastIToX64(prefix, "first") #>;
+            var right = <#= GetCastIToX64(prefix, "second") #>;
+
+<#          if (velocity == null) { #>
+            var result = (
+                <#= op.GetOpOrCall(isBool: false, "left.Item1", "right.Item1") #>,
+                <#= op.GetOpOrCall(isBool: false, "left.Item2", "right.Item2") #>);
+<#          } else if (velocity.SoftwareEmulation) { #>
+            var result = (
+                Vector256.Create(
+                    <#= velocity.GetImplementation(op, 0, "left.Item1", "right.Item1") #>,
+                    <#= velocity.GetImplementation(op, 1, "left.Item1", "right.Item1") #>,
+                    <#= velocity.GetImplementation(op, 2, "left.Item1", "right.Item1") #>,
+                    <#= velocity.GetImplementation(op, 3, "left.Item1", "right.Item1") #>),
+                Vector256.Create(
+                    <#= velocity.GetImplementation(op, 0, "left.Item2", "right.Item2") #>,
+                    <#= velocity.GetImplementation(op, 1, "left.Item2", "right.Item2") #>,
+                    <#= velocity.GetImplementation(op, 2, "left.Item2", "right.Item2") #>,
+                    <#= velocity.GetImplementation(op, 1, "left.Item2", "right.Item2") #>));
+<#          } else { #>
+            var result = (
+                <#= velocity.GetImplementation(op, null, "left.Item1", "right.Item1") #>,
+                <#= velocity.GetImplementation(op, null, "left.Item2", "right.Item2") #>);
+<#          } #>
+
+            return <#= GetCastXToI64(prefix, "result") #>;
+        }
+
+<#      } #>
+<# } #>
+
+        private static readonly Dictionary<
+            (BinaryArithmeticKind, VelocityWarpOperationMode), MethodInfo>
+            BinaryOperations32 = new();
+        private static readonly Dictionary<
+            (BinaryArithmeticKind, VelocityWarpOperationMode), MethodInfo>
+            BinaryOperations64 = new();
+
+        private static void InitBinaryOperations()
+        {
+<# foreach (var op in binaryOps) { #>
+<#      foreach (var (_, prefix, _, _) in
+            ImplementationTypes32.Where(t => (t.Flags & op.Flags) != 0)) { #>
+            BinaryOperations32.Add(
+                (BinaryArithmeticKind.<#= op.Name #>, VelocityWarpOperationMode.<#= prefix #>),
+                GetMethod(nameof(<#= op.Name #><#= prefix #>32)));
+<#      } #>
+
+<#      foreach (var (_, prefix, _, _) in
+            ImplementationTypes64.Where(t => (t.Flags & op.Flags) != 0)) { #>
+            BinaryOperations64.Add(
+                (BinaryArithmeticKind.<#= op.Name #>, VelocityWarpOperationMode.<#= prefix #>),
+                GetMethod(nameof(<#= op.Name #><#= prefix #>64)));
+<#      } #>
+<# } #>
+        }
+
+        public static MethodInfo GetBinaryOperation32(
+            BinaryArithmeticKind kind,
+            VelocityWarpOperationMode mode) => BinaryOperations32[(kind, mode)];
+        public static MethodInfo GetBinaryOperation64(
+            BinaryArithmeticKind kind,
+            VelocityWarpOperationMode mode) => BinaryOperations64[(kind, mode)];
+
+        #endregion
+
+        #region Ternary Operations
+
+<# foreach (var op in ternaryOps) { #>
+<#      foreach (var (_, prefix, typeName, _) in
+            ImplementationTypes32.Where(t => (t.Flags & op.Flags) != 0)) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> <#= op.Name #><#= prefix #>32(
+            <#= warpType32 #> first,
+            <#= warpType32 #> second,
+            <#= warpType32 #> third)
+        {
+            var a = <#= GetCastIToX32(prefix, "first") #>;
+            var b = <#= GetCastIToX32(prefix, "second") #>;
+            var c = <#= GetCastIToX32(prefix, "third") #>;
+
+            var result = <#= op.Velocity.Velocity256.GetImplementation(
+                op,
+                null,
+                "a", "b", "c") #>;
+
+            return <#= GetCastXToI32(prefix, "result") #>;
+        }
+
+<#      } #>
+<#      foreach (var (_, prefix, typeName, _) in
+            ImplementationTypes64.Where(t => (t.Flags & op.Flags) != 0)) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> <#= op.Name #><#= prefix #>64(
+            <#= warpType64 #> first,
+            <#= warpType64 #> second,
+            <#= warpType64 #> third)
+        {
+            var a = <#= GetCastIToX64(prefix, "first") #>;
+            var b = <#= GetCastIToX64(prefix, "second") #>;
+            var c = <#= GetCastIToX64(prefix, "third") #>;
+
+            var result1 = <#= op.Velocity.Velocity256.GetImplementation(
+                op,
+                null,
+                "a.Item1", "b.Item1", "c.Item1") #>;
+            var result2 = <#= op.Velocity.Velocity256.GetImplementation(
+                op,
+                null,
+                "a.Item2", "b.Item2", "c.Item2") #>;
+
+            return <#= GetCastXToI64(prefix, "(result1, result2)") #>;
+        }
+
+<#      } #>
+<# } #>
+
+        private static readonly Dictionary<
+            (TernaryArithmeticKind, VelocityWarpOperationMode), MethodInfo>
+            TernaryOperations32 = new();
+        private static readonly Dictionary<
+            (TernaryArithmeticKind, VelocityWarpOperationMode), MethodInfo>
+            TernaryOperations64 = new();
+
+        private static void InitTernaryOperations()
+        {
+<# foreach (var op in ternaryOps) { #>
+<#      foreach (var (_, prefix, _, _) in
+            ImplementationTypes32.Where(t => (t.Flags & op.Flags) != 0)) { #>
+            TernaryOperations32.Add(
+                (TernaryArithmeticKind.<#= op.Name #>, VelocityWarpOperationMode.<#= prefix #>),
+                GetMethod(nameof(<#= op.Name #><#= prefix #>32)));
+<#      } #>
+
+<#      foreach (var (_, prefix, _, _) in
+            ImplementationTypes64.Where(t => (t.Flags & op.Flags) != 0)) { #>
+            TernaryOperations64.Add(
+                (TernaryArithmeticKind.<#= op.Name #>, VelocityWarpOperationMode.<#= prefix #>),
+                GetMethod(nameof(<#= op.Name #><#= prefix #>64)));
+<#      } #>
+<# } #>
+        }
+
+        public static MethodInfo GetTernaryOperation32(
+            TernaryArithmeticKind kind,
+            VelocityWarpOperationMode mode) => TernaryOperations32[(kind, mode)];
+        public static MethodInfo GetTernaryOperation64(
+            TernaryArithmeticKind kind,
+            VelocityWarpOperationMode mode) => TernaryOperations64[(kind, mode)];
+
+        #endregion
+
+        #region Compare Operations
+
+<# foreach (var (kind, op) in compareOperations) { #>
+<#      foreach (var (_, prefix, _, _) in ImplementationTypes32) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> Compare<#= kind #><#= prefix #>32(
+            <#= warpType32 #> first,
+            <#= warpType32 #> second)
+        {
+            var left = <#= GetCastIToX32(prefix, "first") #>;
+            var right = <#= GetCastIToX32(prefix, "second") #>;
+
+            return <#= string.Format(op, "left", "right") #>;
+        }
+
+<#      } #>
+<#      foreach (var (_, prefix, _, _) in ImplementationTypes64) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> Compare<#= kind #><#= prefix #>64(
+            <#= warpType64 #> first,
+            <#= warpType64 #> second)
+        {
+            var left = <#= GetCastIToX64(prefix, "first") #>;
+            var right = <#= GetCastIToX64(prefix, "second") #>;
+
+            var result1 =  <#= string.Format(op, "left.Item1", "right.Item1") #>;
+            var result2 =  <#= string.Format(op, "left.Item2", "right.Item2") #>;
+
+            return Vector256.Narrow(result1.AsInt64(), result2.AsInt64());
+        }
+
+<#      } #>
+<# } #>
+        private static readonly Dictionary<
+            (CompareKind, VelocityWarpOperationMode, bool),
+            MethodInfo> CompareOperations = new();
+
+        private static void InitializeCompareOperations()
+        {
+<# foreach (var (kind, _) in compareOperations) { #>
+<#      foreach (var (_, prefix, _, _) in ImplementationTypes32) { #>
+            CompareOperations.Add(
+                (CompareKind.<#= kind #>, VelocityWarpOperationMode.<#= prefix #>, false),
+                GetMethod(nameof(Compare<#= kind #><#= prefix #>32)));
+<#      } #>
+<#      foreach (var (_, prefix, _, _) in ImplementationTypes64) { #>
+            CompareOperations.Add(
+                (CompareKind.<#= kind #>, VelocityWarpOperationMode.<#= prefix #>, true),
+                GetMethod(nameof(Compare<#= kind #><#= prefix #>64)));
+<#      } #>
+<# } #>
+        }
+
+        public static MethodInfo GetCompareOperation32(
+            CompareKind kind,
+            VelocityWarpOperationMode mode) =>
+            CompareOperations[(kind, mode, false)];
+
+        public static MethodInfo GetCompareOperation64(
+            CompareKind kind,
+            VelocityWarpOperationMode mode) =>
+            CompareOperations[(kind, mode, true)];
+
+        #endregion
+
+        #region Convert Operations
+
+<# foreach (var sourceType in Warp32ConvTypes) { #>
+<# foreach (var targetType in Warp32ConvTypes) { #>
+<#      var sourceImplType32 = GetImplementationType32(sourceType.Kind); #>
+<#      var acceleratedOp = acceleratedConvTypes32.FirstOrDefault(
+                t => t.Left == sourceType && t.Right == targetType); #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> Convert<#= sourceType.Name #>To<#= targetType.Name #>_32(
+            <#= warpType32 #> warp)
+        {
+<#      if (sourceType.GetBasicValueType() == targetType.GetBasicValueType()) { #>
+            return warp;
+<#      } else if (acceleratedOp.Op != null) { #>
+            var value = <#= GetCastIToX32(sourceImplType32.Prefix, "warp") #>;
+            return <#= acceleratedOp.Op #>(value).AsInt32();
+<#      } else { #>
+            var value = <#= GetCastIToX32(sourceImplType32.Prefix, "warp") #>;
+            return Vector256.Create(
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(0),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(1),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(2),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(3),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(4),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(5),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(6),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.GetElement(7))
+                .AsInt32();
+<#      } #>
+        }
+
+<# } #>
+<# } #>
+
+<# foreach (var sourceType in Warp64ConvTypes) { #>
+<# foreach (var targetType in Warp64ConvTypes) { #>
+<#      var sourceImplType64 = GetImplementationType64(sourceType.Kind); #>
+<#      var acceleratedOp = acceleratedConvTypes64.FirstOrDefault(
+                t => t.Left == sourceType && t.Right == targetType); #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> Convert<#= sourceType.Name #>To<#= targetType.Name #>_64(
+            <#= warpType64 #> warp)
+        {
+<#      if (sourceType.GetBasicValueType() == targetType.GetBasicValueType()) { #>
+            return warp;
+<#      } else if (acceleratedOp.Op != null) { #>
+            var value = <#= GetCastIToX64(sourceImplType64.Prefix, "warp") #>;
+            return (
+                <#= acceleratedOp.Op #>(value.Item1).AsInt64(),
+                <#= acceleratedOp.Op #>(value.Item2).AsInt64());
+<#      } else { #>
+            var value = <#= GetCastIToX64(sourceImplType64.Prefix, "warp") #>;
+            var result1 = Vector256.Create(
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item1.GetElement(0),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item1.GetElement(1),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item1.GetElement(2),
+                (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item1.GetElement(3));
+            var result2 = Vector256.Create(
+                    (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item2.GetElement(0),
+                    (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item2.GetElement(1),
+                    (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item2.GetElement(2),
+                    (<#= targetType.Type #>)(<#= sourceType.Type #>)value.Item2.GetElement(3));
+            return (result1.AsInt64(), result2.AsInt64());
+<#      } #>
+        }
+
+<# } #>
+<# } #>
+
+        private static readonly Dictionary<
+            (ArithmeticBasicValueType, ArithmeticBasicValueType, bool),
+            MethodInfo> ConvertOperations = new();
+
+        private static void InitializeConvertOperations()
+        {
+<# foreach (var sourceType in Warp32ConvTypes) { #>
+<# foreach (var targetType in Warp32ConvTypes) { #>
+<#      var sourceName = sourceType.GetArithmeticBasicValueType(); #>
+<#      var targetName = targetType.GetArithmeticBasicValueType(); #>
+            ConvertOperations.Add(
+                (ArithmeticBasicValueType.<#= sourceName #>,
+                ArithmeticBasicValueType.<#= targetName #>,
+                false),
+                GetMethod(nameof(Convert<#= sourceType.Name #>To<#= targetType.Name #>_32)));
+<# } #>
+<# } #>
+<# foreach (var sourceType in Warp64ConvTypes) { #>
+<# foreach (var targetType in Warp64ConvTypes) { #>
+<#      var sourceName = sourceType.GetArithmeticBasicValueType(); #>
+<#      var targetName = targetType.GetArithmeticBasicValueType(); #>
+            ConvertOperations.Add(
+                (ArithmeticBasicValueType.<#= sourceName #>,
+                ArithmeticBasicValueType.<#= targetName #>,
+                true),
+                GetMethod(nameof(Convert<#= sourceType.Name #>To<#= targetType.Name #>_64)));
+<# } #>
+<# } #>
+        }
+
+        public static MethodInfo GetConvertOperation32(
+            ArithmeticBasicValueType source,
+            ArithmeticBasicValueType target) =>
+            ConvertOperations[(source, target, false)];
+
+        public static MethodInfo GetConvertOperation64(
+            ArithmeticBasicValueType source,
+            ArithmeticBasicValueType target) =>
+            ConvertOperations[(source, target, true)];
+
+        #endregion
+
+        #region Vector Convert Operations
+
+<# foreach (var (_, prefix, typeName, _) in ImplementationTypes32) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> Convert64To32<#= prefix #>(<#= warpType64 #> warp)
+        {
+            var value = <#= GetCastIToX64(prefix, "warp") #>;
+            var result = Vector256.Narrow(value.Item1, value.Item2);
+            return <#= GetCastXToI32(prefix, "result") #>;
+        }
+
+<# } #>
+<# foreach (var (_, prefix, typeName, _) in ImplementationTypes64) { #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> Convert32To64<#= prefix #>(<#= warpType32 #> warp)
+        {
+            var value = <#= GetCastIToX32(prefix, "warp") #>;
+            var result = Vector256.Widen(value);
+            return <#= GetCastXToI64(prefix, "result") #>;
+        }
+
+<# } #>
+        internal static readonly Dictionary<
+            (VelocityWarpOperationMode, bool),
+            MethodInfo> VectorConvertOperations = new();
+
+        internal static void InitializeVectorConvertOperations()
+        {
+<# foreach (var (_, prefix, _, _) in ImplementationTypes32) { #>
+            VectorConvertOperations.Add(
+                (VelocityWarpOperationMode.<#= prefix #>, false),
+                GetMethod(nameof(Convert64To32<#= prefix #>)));
+<# } #>
+<# foreach (var (_, prefix, _, _) in ImplementationTypes64) { #>
+            VectorConvertOperations.Add(
+                (VelocityWarpOperationMode.<#= prefix #>, true),
+                GetMethod(nameof(Convert32To64<#= prefix #>)));
+<# } #>
+        }
+
+        public static MethodInfo GetConvert32To64Operation(
+            VelocityWarpOperationMode mode) =>
+            VectorConvertOperations[(mode, true)];
+
+        public static MethodInfo GetConvert64To32Operation(
+            VelocityWarpOperationMode mode) =>
+            VectorConvertOperations[(mode, false)];
+
+        #endregion
+
+        #region Atomic Operations
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe <#= warpType32 #> AtomicCompareExchange32(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> target,
+            <#= warpType32 #> compare,
+            <#= warpType32 #> value)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int result<#= i #> = default;
+            if (mask<#= i #> != 0)
+            {
+                result<#= i #> = Atomic.CompareExchange(
+                    ref Unsafe.AsRef<int>((void*)<#= GetItemRef64("target", i) #>),
+                    compare.GetElement(<#= i #>),
+                    value.GetElement(<#= i #>));
+            }
+<# } #>
+            return Vector256.Create(
+                result0, result1, result2, result3,
+                result4, result5, result6, result7);
+        }
+
+        public static readonly MethodInfo AtomicCompareExchange32Method =
+            GetMethod(nameof(AtomicCompareExchange32));
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe <#= warpType64 #> AtomicCompareExchange64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> target,
+            <#= warpType64 #> compare,
+            <#= warpType64 #> value)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            long result<#= i #> = default;
+            if (mask<#= i #> != 0)
+            {
+                result<#= i #> = Atomic.CompareExchange(
+                    ref Unsafe.AsRef<long>((void*)<#= GetItemRef64("target", i) #>),
+                    <#= GetItemRef64("compare", i) #>,
+                    <#= GetItemRef64("value", i) #>);
+            }
+<# } #>
+            return (
+                Vector256.Create(result0, result1, result2, result3),
+                Vector256.Create(result4, result5, result6, result7));
+        }
+
+        public static readonly MethodInfo AtomicCompareExchange64Method =
+            GetMethod(nameof(AtomicCompareExchange64));
+
+<# foreach (var (op, isBinary) in AtomicOperations) { #>
+<#      foreach (var (_, prefix, typeName, _) in ImplementationTypes32) { #>
+<#          var targetPrefix = isBinary ? "U" : prefix; #>
+<#          var targetTypeName = isBinary ? "uint" : typeName; #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe <#= warpType32 #> Atomic<#= op #><#= prefix #>32(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> target,
+            <#= warpType32 #> value)
+        {
+            var sourceValue = <#= GetCastIToX32(targetPrefix, "value") #>;
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<#          for (int i = 0; i < warpSize; ++i) { #>
+            <#= targetTypeName #> result<#= i #> = default;
+            if (mask<#= i #> != 0)
+            {
+                result<#= i #> = Atomic.<#= op #>(
+                    ref Unsafe.AsRef<<#= targetTypeName #>>((void*)<#= GetItemRef64("target", i) #>),
+                    sourceValue.GetElement(<#= i #>));
+            }
+<#          } #>
+            return <#= GetCastXToI32(targetPrefix,
+                "Vector256.Create(" +
+                    "result0, result1, result2, result3," +
+                    "result4, result5, result6, result7)") #>;
+        }
+
+<#      } #>
+
+<#      foreach (var (_, prefix, typeName, _) in ImplementationTypes64) { #>
+<#          var targetPrefix = isBinary ? "U" : prefix; #>
+<#          var targetTypeName = isBinary ? "ulong" : typeName; #>
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe <#= warpType64 #> Atomic<#= op #><#= prefix #>64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> target,
+            <#= warpType64 #> value)
+        {
+            var sourceValue = <#= GetCastIToX64(targetPrefix, "value") #>;
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<#          for (int i = 0; i < warpSize; ++i) { #>
+            <#= targetTypeName #> result<#= i #> = default;
+            if (mask<#= i #> != 0)
+            {
+                result<#= i #> = Atomic.<#= op #>(
+                    ref Unsafe.AsRef<<#= targetTypeName #>>((void*)<#= GetItemRef64("target", i) #>),
+                    <#= GetItemRef64("sourceValue", i) #>);
+            }
+<#          } #>
+            return <#= GetCastXToI64(targetPrefix,
+                "(Vector256.Create(result0, result1, result2, result3)," +
+                    "Vector256.Create(result4, result5, result6, result7))") #>;
+        }
+
+<#      } #>
+<# } #>
+
+        internal static readonly Dictionary<
+            (AtomicKind, VelocityWarpOperationMode, bool),
+            MethodInfo> AtomicOperations = new();
+
+        internal static void InitializeAtomicOperations()
+        {
+<# foreach (var (op, _) in AtomicOperations) { #>
+<#      foreach (var (_, prefix, _, _) in ImplementationTypes32) { #>
+            AtomicOperations.Add(
+                (AtomicKind.<#= op #>, VelocityWarpOperationMode.<#= prefix #>, false),
+                GetMethod(nameof(Atomic<#= op #><#= prefix #>32)));
+<#      } #>
+<#      foreach (var (_, prefix, _, _) in ImplementationTypes64) { #>
+            AtomicOperations.Add(
+                (AtomicKind.<#= op #>, VelocityWarpOperationMode.<#= prefix #>, true),
+                GetMethod(nameof(Atomic<#= op #><#= prefix #>64)));
+<#      } #>
+<# } #>
+        }
+
+        public static MethodInfo GetAtomicOperation32(
+            AtomicKind kind,
+            VelocityWarpOperationMode mode) =>
+            AtomicOperations[(kind, mode, false)];
+
+        public static MethodInfo GetAtomicOperation64(
+            AtomicKind kind,
+            VelocityWarpOperationMode mode) =>
+            AtomicOperations[(kind, mode, true)];
+
+        #endregion
+
+        #region Thread Operations
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static void ComputeShuffleConfig(
+            <#= warpType32 #> width,
+            out <#= warpType32 #> lane,
+            out <#= warpType32 #> offset)
+        {
+            lane = RemI32(LoadLaneIndexVector32(), width);
+            offset = MulI32(DivI32(lane, width), width);
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> ShuffleUp32(
+            <#= warpType32 #> mask,
+            <#= warpType32 #> warp,
+            <#= warpType32 #> delta)
+        {
+            var lane = SubI32(LoadLaneIndexVector32(), delta);
+            return Shuffle32(mask, warp, lane);
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> SubShuffleUp32(
+            <#= warpType32 #> mask,
+            <#= warpType32 #> warp,
+            <#= warpType32 #> delta,
+            <#= warpType32 #> width)
+        {
+            ComputeShuffleConfig(width, out var lane, out var offset);
+            var adjustedLane = SubI32(lane, delta);
+            return Shuffle32(mask, warp, AddI32(adjustedLane, offset));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static <#= warpType64 #> ShuffleUp64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> warp,
+            <#= warpType32 #> delta,
+            <#= warpType32 #> width)
+        {
+            var lane = SubI32(LoadLaneIndexVector32(), delta);
+            return Shuffle64(mask, warp, lane);
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> SubShuffleUp64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> warp,
+            <#= warpType32 #> delta,
+            <#= warpType32 #> width)
+        {
+            ComputeShuffleConfig(width, out var lane, out var offset);
+            var adjustedLane = SubI32(lane, delta);
+            return Shuffle64(mask, warp, AddI32(adjustedLane, offset));
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> ShuffleDown32(
+            <#= warpType32 #> mask,
+            <#= warpType32 #> warp,
+            <#= warpType32 #> delta)
+        {
+            var lane = AddI32(LoadLaneIndexVector32(), delta);
+            return Shuffle32(mask, warp, lane);
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> SubShuffleDown32(
+            <#= warpType32 #> mask,
+            <#= warpType32 #> warp,
+            <#= warpType32 #> delta,
+            <#= warpType32 #> width)
+        {
+            ComputeShuffleConfig(width, out var lane, out var offset);
+            var adjustedLane = AddI32(lane, delta);
+            return Shuffle32(mask, warp, AddI32(adjustedLane, offset));
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> ShuffleDown64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> warp,
+            <#= warpType32 #> delta)
+        {
+            var lane = AddI32(LoadLaneIndexVector32(), delta);
+            return Shuffle64(mask, warp, lane);
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> SubShuffleDown64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> warp,
+            <#= warpType32 #> delta,
+            <#= warpType32 #> width)
+        {
+            ComputeShuffleConfig(width, out var lane, out var offset);
+            var adjustedLane = AddI32(lane, delta);
+            return Shuffle64(mask, warp, AddI32(adjustedLane, offset));
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> ShuffleXor32(
+            <#= warpType32 #> mask,
+            <#= warpType32 #> warp,
+            <#= warpType32 #> laneMask)
+        {
+            var lane = XorU32(LoadLaneIndexVector32(), laneMask);
+            return Shuffle32(mask, warp, lane);
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType32 #> SubShuffleXor32(
+            <#= warpType32 #> mask,
+            <#= warpType32 #> warp,
+            <#= warpType32 #> laneMask,
+            <#= warpType32 #> width)
+        {
+            ComputeShuffleConfig(width, out var lane, out var offset);
+            var adjustedLane = XorU32(lane, laneMask);
+            return Shuffle32(mask, warp, AddI32(adjustedLane, offset));
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> ShuffleXor64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> warp,
+            <#= warpType32 #> laneMask)
+        {
+            var lane = XorU32(LoadLaneIndexVector32(), laneMask);
+            return Shuffle64(mask, warp, lane);
+        }
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static <#= warpType64 #> SubShuffleXor64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> warp,
+            <#= warpType32 #> laneMask,
+            <#= warpType32 #> width)
+        {
+            ComputeShuffleConfig(width, out var lane, out var offset);
+            var adjustedLane = XorU32(lane, laneMask);
+            return Shuffle64(mask, warp, AddI32(adjustedLane, offset));
+        }
+
+        public static readonly MethodInfo BarrierPopCount32Method =
+            GetMethod(nameof(BarrierPopCount32));
+        public static readonly MethodInfo BarrierPopCount64Method =
+            GetMethod(nameof(BarrierPopCount64));
+        public static readonly MethodInfo BarrierAnd32Method =
+            GetMethod(nameof(BarrierAnd32));
+        public static readonly MethodInfo BarrierAnd64Method =
+            GetMethod(nameof(BarrierAnd64));
+        public static readonly MethodInfo BarrierOr32Method =
+            GetMethod(nameof(BarrierOr32));
+        public static readonly MethodInfo BarrierOr64Method =
+            GetMethod(nameof(BarrierOr64));
+        public static readonly MethodInfo Broadcast32Method =
+            GetMethod(nameof(Broadcast32));
+        public static readonly MethodInfo Broadcast64Method =
+            GetMethod(nameof(Broadcast64));
+        public static readonly MethodInfo Shuffle32Method =
+            GetMethod(nameof(Shuffle32));
+        public static readonly MethodInfo Shuffle64Method =
+            GetMethod(nameof(Shuffle64));
+        public static readonly MethodInfo ShuffleUp32Method =
+            GetMethod(nameof(ShuffleUp32));
+        public static readonly MethodInfo SubShuffleUp32Method =
+            GetMethod(nameof(SubShuffleUp32));
+        public static readonly MethodInfo ShuffleUp64Method =
+            GetMethod(nameof(ShuffleUp64));
+        public static readonly MethodInfo SubShuffleUp64Method =
+            GetMethod(nameof(SubShuffleUp64));
+        public static readonly MethodInfo ShuffleDown32Method =
+            GetMethod(nameof(ShuffleDown32));
+        public static readonly MethodInfo SubShuffleDown32Method =
+            GetMethod(nameof(SubShuffleDown32));
+        public static readonly MethodInfo ShuffleDown64Method =
+            GetMethod(nameof(ShuffleDown64));
+        public static readonly MethodInfo SubShuffleDown64Method =
+            GetMethod(nameof(SubShuffleDown64));
+        public static readonly MethodInfo ShuffleXor32Method =
+            GetMethod(nameof(ShuffleXor32));
+        public static readonly MethodInfo SubShuffleXor32Method =
+            GetMethod(nameof(SubShuffleXor32));
+        public static readonly MethodInfo ShuffleXor64Method =
+            GetMethod(nameof(ShuffleXor64));
+        public static readonly MethodInfo SubShuffleXor64Method =
+            GetMethod(nameof(SubShuffleXor64));
+
+        #endregion
+
+        #region IO
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe <#= warpType32 #> Load8(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> address)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var result<#= i #> = mask<#= i #> != 0
+                ? (uint)*(byte*)<#= GetItemRef64("address", i) #>
+                : 0;
+<# } #>
+            return Vector256.Create(result0, result1, result2, result3).AsInt32();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe <#= warpType32 #> Load16(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> address)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var result<#= i #> = mask<#= i #> != 0
+                ? (uint)*(ushort*)<#= GetItemRef64("address", i) #>
+                : 0;
+<# } #>
+            return Vector256.Create(result0, result1, result2, result3).AsInt32();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
+        private static unsafe <#= warpType32 #> Load32(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> address)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int result<#= i #> = mask<#= i #> != 0
+                ? *(int*)<#= GetItemRef64("address", i) #>
+                : 0;
+<# } #>
+            return Vector256.Create(
+                result0, result1, result2, result3,
+                result4, result5, result6, result7);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe <#= warpType64 #> Load64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> address)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            long result<#= i #> = mask<#= i #> != 0
+                ? *(long*)<#= GetItemRef64("address", i) #>
+                : 0;
+<# } #>
+            return (
+                Vector256.Create(result0, result1, result2, result3),
+                Vector256.Create(result3, result5, result6, result7));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe void Store8(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> address,
+            <#= warpType32 #> value)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            byte* addr<#= i #> = (byte*)<#= GetItemRef64("address", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var value<#= i #> = (byte)(value.GetElement(<#= i #>) & 0xff);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            if (mask<#= i #> != 0)
+                *addr<#= i #> = value<#= i #>;
+<# } #>
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe void Store16(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> address,
+            <#= warpType32 #> value)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            short* addr<#= i #> = (short*)<#= GetItemRef64("address", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var value<#= i #> = (short)(value.GetElement(<#= i #>) & 0xffff);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            if (mask<#= i #> != 0)
+                *addr<#= i #> = value<#= i #>;
+<# } #>
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe void Store32(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> address,
+            <#= warpType32 #> value)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int* addr<#= i #> = (int*)<#= GetItemRef64("address", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var value<#= i #> = value.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            if (mask<#= i #> != 0)
+                *addr<#= i #> = value<#= i #>;
+<# } #>
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization |
+                    MethodImplOptions.<#= inliningAttribute #>)]
+        internal static unsafe void Store64(
+            <#= warpType32 #> mask,
+            <#= warpType64 #> address,
+            <#= warpType64 #> value)
+        {
+<# for (int i = 0; i < warpSize; ++i) { #>
+            int mask<#= i #> = mask.GetElement(<#= i #>);
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            long* addr<#= i #> = (long*)<#= GetItemRef64("address", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            var value<#= i #> = <#= GetItemRef64("value", i) #>;
+<# } #>
+<# for (int i = 0; i < warpSize; ++i) { #>
+            if (mask<#= i #> != 0)
+                *addr<#= i #> = value<#= i #>;
+<# } #>
+        }
+
+        public static readonly MethodInfo Load8Method =
+            GetMethod(nameof(Load8));
+        public static readonly MethodInfo Load16Method =
+            GetMethod(nameof(Load16));
+        public static readonly MethodInfo Load32Method =
+            GetMethod(nameof(Load32));
+        public static readonly MethodInfo Load64Method =
+            GetMethod(nameof(Load64));
+
+        public static readonly MethodInfo Store8Method =
+            GetMethod(nameof(Store8));
+        public static readonly MethodInfo Store16Method =
+            GetMethod(nameof(Store16));
+        public static readonly MethodInfo Store32Method =
+            GetMethod(nameof(Store32));
+        public static readonly MethodInfo Store64Method =
+            GetMethod(nameof(Store64));
+
+        #endregion
+
+        #region Misc
+
+        [MethodImpl(MethodImplOptions.<#= inliningAttribute #>)]
+        internal static void DebugAssertFailed(
+            <#= warpType32 #> mask,
+            <#= warpType32 #> value,
+            string message,
+            string fileName,
+            int line,
+            string method)
+        {
+            // Check if any lane failed the check
+            var failedAssertionMask = XorU32(LoadAllLanesMask32(), value);
+            if (BarrierPopCount32Scalar(mask, failedAssertionMask) != 0)
+                Trace.Assert(false, message, $"@ {fileName}:{line} in {method}");
+        }
+
+        public static readonly MethodInfo DebugAssertFailedMethod =
+            GetMethod(nameof(DebugAssertFailed));
+
+        [SuppressMessage(
+            "Globalization",
+            "CA1303:Do not pass literals as localized parameters",
+            Justification = "Basic invariant string")]
+        internal static void DumpWarp32(<#= warpType32 #> value, string label)
+        {
+            Console.Write(label);
+            Console.WriteLine(value.ToString());
+        }
+
+        public static readonly MethodInfo DumpWarp32Method =
+            GetMethod(nameof(DumpWarp32));
+
+        [SuppressMessage(
+            "Globalization",
+            "CA1303:Do not pass literals as localized parameters",
+            Justification = "Basic invariant string")]
+        internal static void DumpWarp64(<#= warpType64 #> value, string label)
+        {
+            Console.Write(label);
+            Console.Write(value.Item1.ToString());
+            Console.Write(", ");
+            Console.WriteLine(value.Item2.ToString());
+        }
+
+        public static readonly MethodInfo DumpWarp64Method =
+            GetMethod(nameof(DumpWarp64));
+
+        #endregion
+    }
+}
+
+#endif
