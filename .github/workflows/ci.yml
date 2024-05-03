@@ -154,20 +154,26 @@ jobs:
         os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
         library: [ILGPU, ILGPU.Algorithms, ILGPU.Analyzers]
         framework: [net6.0, net7.0, net8.0]
-        flavor: [CPU, Velocity, Velocity128]
+        flavor: [CPU, Velocity, Velocity128, Velocity256]
         exclude:
           - library: ILGPU.Algorithms
             flavor: Velocity
           - library: ILGPU.Algorithms
             flavor: Velocity128
+          - library: ILGPU.Algorithms
+            flavor: Velocity256
           - library: ILGPU.Analyzers
             flavor: Velocity
           - library: ILGPU.Analyzers
             flavor: Velocity128
+          - library: ILGPU.Analyzers
+            flavor: Velocity256
           - os: cuda
             flavor: Velocity
           - os: cuda
             flavor: Velocity128
+          - os: cuda
+            flavor: Velocity256
           - os: cuda
             library: ILGPU.Analyzers
       fail-fast: false

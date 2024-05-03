@@ -346,6 +346,7 @@ Src/ILGPU.Tests.Cuda/Configurations.cs
 Src/ILGPU.Tests.OpenCL/Configurations.cs
 Src/ILGPU.Tests.Velocity/Configurations.cs
 Src/ILGPU.Tests.Velocity128/Configurations.cs
+Src/ILGPU.Tests.Velocity256/Configurations.cs
 
 # Generated test source files (Algorithms)
 Src/ILGPU.Algorithms.Tests/Generic/ConfigurationBase.cs
