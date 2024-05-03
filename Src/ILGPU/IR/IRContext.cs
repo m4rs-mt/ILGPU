@@ -54,7 +54,7 @@ namespace ILGPU.IR
                     null,
                     Location.Nowhere));
 
-            IRValueVisitor = new IRValue.Visitor(shouldMirror ? new IRValue.Container() : null);
+            IRValueVisitor = new IRValue.Visitor(shouldMirror ? new IRContainer() : null);
         }
 
         #endregion
@@ -84,7 +84,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Serves as a public endpoint for IR mirroring / monitoring.
         /// </summary>
-        public IRValue.Container IRValueContainer => IRValueVisitor.Container;
+        public IRContainer? IRContainer => IRValueVisitor.Container;
 
         /// <summary>
         /// Returns the associated type context.

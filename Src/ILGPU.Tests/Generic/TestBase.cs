@@ -164,9 +164,9 @@ namespace ILGPU.Tests
 
             var hook = new IRMirrorHook();
             var compiled = backend.Compile(entryPoint, specialization, hook);
-            var mirrorArr = hook.CurrentContext?.IRValueContainer.ToArray();
+            var (valueArr, typeArr) = hook.CurrentContext?.IRContainer?.Export() ?? default;
 
-            Output.WriteLine($"Compiled '{kernel.Name}' into {mirrorArr?.Length ?? 0} IRValues");
+            Output.WriteLine($"Compiled '{kernel.Name}' into {valueArr?.Length ?? 0} IRValues and {typeArr?.Length ?? 0} IRTypes");
 
             // Load the compiled kernel
             Output.WriteLine($"Loading '{kernel.Name}'");

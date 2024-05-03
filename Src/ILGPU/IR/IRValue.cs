@@ -1,7 +1,6 @@
 ﻿using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
-using System.Collections.Concurrent;
 
 namespace ILGPU.IR
 {
@@ -17,25 +16,11 @@ namespace ILGPU.IR
             }
         }
 
-        public class Container
-        {
-            private readonly ConcurrentBag<IRValue> values;
-
-            public Container()
-            {
-                values = new ConcurrentBag<IRValue>();
-            }
-
-            public void Add(IRValue value) => values.Add(value);
-
-            public IRValue[] ToArray() => values.ToArray();
-        }
-
         public struct Visitor : IValueVisitor
         {
-            public Container? Container { get; }
+            public IRContainer? Container { get; }
 
-            public Visitor(Container? container)
+            public Visitor(IRContainer? container)
             {
                 Container = container;
             }
@@ -62,7 +47,8 @@ namespace ILGPU.IR
                 return nodeIds;
             }
 
-            private void OnValueVisited(Value value, NodeId[]? nodes = default, long data = default, string? tag = default) =>
+            private void OnValueVisited(Value value, NodeId[]? nodes = default, long data = default, string? tag = default)
+            {
                 Container?.Add(new IRValue
                 {
                     Method = value.Method.Id,
@@ -74,6 +60,9 @@ namespace ILGPU.IR
                     Data = data,
                     Tag = tag,
                 });
+
+                Container?.Add(value.Type);
+            }
 
             public void Visit(MethodCall methodCall) =>
                 OnValueVisited(methodCall,
