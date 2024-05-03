@@ -5,5 +5,10 @@
         <Flags>IntsAndFloats</Flags>
         <Call>IntrinsicMath.CPUOnly.FMA</Call>
         <Implementation>{Value0} * {Value1} + {Value2}</Implementation>
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.Add(Vector128.Multiply({Value0}, {Value1}), {Value2})</Implementation>
+            </Velocity128>
+        </Velocity>
     </Operation>
 </Operations>

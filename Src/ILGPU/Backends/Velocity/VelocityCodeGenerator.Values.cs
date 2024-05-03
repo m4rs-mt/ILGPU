@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityCodeGenerator.Values.cs
@@ -363,8 +363,7 @@ namespace ILGPU.Backends.Velocity
             switch (value.BasicValueType)
             {
                 case BasicValueType.Int1:
-                    Emitter.Emit(value.Int1Value ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
-                    Specializer.ConvertBoolScalar(Emitter);
+                    Specializer.ConvertBoolScalar(Emitter, value.Int1Value);
                     break;
                 case BasicValueType.Int8:
                     Emitter.LoadIntegerConstant((int)(uint)value.Int8Value);
