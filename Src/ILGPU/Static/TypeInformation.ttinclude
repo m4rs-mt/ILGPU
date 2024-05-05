@@ -539,15 +539,26 @@ public MathOp[] GetTernaryMathOps(string rootPath) =>
 // FP16 raw implementations that can be implemented without the use of emulated FP32
 // operations.
 public static readonly (string, string)[] FP16ImplementationMethods =
-    {
+{
         ("Abs", "Abs"),
         ("Neg", "Neg"),
 
         ("IsNaN", "IsNaNF"),
         ("IsInfinity", "IsInfF"),
         ("IsFinite", "IsFinF"),
-    };
+};
 
+// FP8 raw implementations that can be implemented without the use of emulated FP32
+// operations.
+
+    public static readonly (string, string)[] FP8ImplementationMethods =
+    {
+        ("Abs", "Abs"),
+        ("Neg", "Neg"),
+        ("IsNaN", "IsNaNF"),
+        ("IsInfinity", "IsInfF"),
+        ("IsFinite", "IsFinF")
+    };
 // Atomic operations
 
 public static readonly (string Operation, bool Binary)[] AtomicOperations =
