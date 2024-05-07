@@ -24,7 +24,7 @@ var unaryMathFunctions = new (string, TypeInformation, TypeInformation, string)[
         ("Abs",     null,          SignedIntTypes[2], "MathType"),
         ("Abs",     null,          SignedIntTypes[3], "MathType"),
         ("Abs",     FloatTypes[4], FloatTypes[4],     "MathType"),
-        ("Abs",     null,          FloatTypes[5],     "MathType"),
+        ("Abs",     FloatTypes[5], FloatTypes[5],     "MathType"),
         ("Sqrt",    FloatTypes[4], FloatTypes[5],     "CPUMathType"),
         ("Sin",     FloatTypes[4], FloatTypes[5],     "CPUMathType"),
         ("Sinh",    FloatTypes[4], FloatTypes[5],     "CPUMathType"),
