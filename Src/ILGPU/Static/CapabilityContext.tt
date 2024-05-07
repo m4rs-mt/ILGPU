@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CapabilityContext.tt/CapabilityContext.cs
@@ -40,6 +40,22 @@ namespace ILGPU.Runtime
     {
         #region Properties
 
+        /// <summary>
+        /// Supports Float8E4M3 (quarter) data types.
+        /// </summary>
+        public bool Float8E4M3 { get; internal set; }
+
+        /// <summary>
+        /// Supports Float8E5M2 (quarter) data types.
+        /// </summary>
+        public bool Float8E5M2 { get; internal set; }
+
+        /// <summary>
+        /// Supports BFloat16 (BF16) data type.
+        /// </summary>
+        public bool BFloat16 { get; internal set; }
+
+
 <# foreach (var c in commonCapabilities) { #>
         /// <summary>
         /// <#= c.Summary #>
@@ -77,6 +93,10 @@ namespace ILGPU.Runtime.CPU
 
         internal CPUCapabilityContext()
         {
+            Float8E4M3 = true;
+            Float8E5M2 = true;
+            BFloat16 = true;
+
 <# foreach (var c in commonCapabilities) { #>
             <#= c.Name #> = true;
 <# } #>
@@ -97,6 +117,10 @@ namespace ILGPU.Runtime.Velocity
 
         internal VelocityCapabilityContext()
         {
+            Float8E4M3 = false;
+            Float8E5M2 = false;
+            BFloat16 = false;
+
 <# foreach (var c in velocityCapabilities.Concat(commonCapabilities)) { #>
             <#= c.Name #> = <#= c.Velocity.Supported ? "true" : "false" #>;
 <# } #>
@@ -145,6 +169,10 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         public CudaCapabilityContext(CudaArchitecture arch)
         {
+            Float8E4M3 = false;
+            Float8E5M2 = false;
+            BFloat16 = false;
+
 <# foreach (var c in commonCapabilities.Concat(cudaCapabilities)) { #>
             <#= c.Name #> = arch >= CudaArchitecture.<#= c.Cuda.MinPTX #>;
 <# } #>
@@ -226,6 +254,11 @@ namespace ILGPU.Runtime.OpenCL
             )
         {
             var extensions = ImmutableArray.CreateBuilder<string>();
+
+
+            Float8E4M3 = false;
+            Float8E5M2 = false;
+            BFloat16 = false;
 <#
     foreach (var c in allClCapabilities) {
 #>

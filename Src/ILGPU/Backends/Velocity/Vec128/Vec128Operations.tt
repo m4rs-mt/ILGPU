@@ -32,17 +32,17 @@ var compareOperations = new (string, string)[]
 };
 var acceleratedConvTypes32 = new (TypeInformation Left, TypeInformation Right, string Op)[]
 {
-    (SignedIntTypes[2],   FloatTypes[1],       "Vector128.ConvertToSingle"),
-    (UnsignedIntTypes[2], FloatTypes[1],       "Vector128.ConvertToSingle"),
-    (FloatTypes[1],       SignedIntTypes[2],   "Vector128.ConvertToInt32"),
-    (FloatTypes[1],       UnsignedIntTypes[2], "Vector128.ConvertToUInt32"),
+    (SignedIntTypes[2],   FloatTypes[4],       "Vector128.ConvertToSingle"),
+    (UnsignedIntTypes[2], FloatTypes[4],       "Vector128.ConvertToSingle"),
+    (FloatTypes[4],       SignedIntTypes[2],   "Vector128.ConvertToInt32"),
+    (FloatTypes[4],       UnsignedIntTypes[2], "Vector128.ConvertToUInt32"),
 };
 var acceleratedConvTypes64 = new (TypeInformation Left, TypeInformation Right, string Op)[]
 {
-    (SignedIntTypes[3],   FloatTypes[2],       "Vector128.ConvertToDouble"),
-    (UnsignedIntTypes[3], FloatTypes[2],       "Vector128.ConvertToDouble"),
-    (FloatTypes[2],       SignedIntTypes[3],   "Vector128.ConvertToInt64"),
-    (FloatTypes[2],       UnsignedIntTypes[3], "Vector128.ConvertToUInt64"),
+    (SignedIntTypes[3],   FloatTypes[5],       "Vector128.ConvertToDouble"),
+    (UnsignedIntTypes[3], FloatTypes[5],       "Vector128.ConvertToDouble"),
+    (FloatTypes[5],       SignedIntTypes[3],   "Vector128.ConvertToInt64"),
+    (FloatTypes[5],       UnsignedIntTypes[3], "Vector128.ConvertToUInt64"),
 };
 
 int warpSize = 4;

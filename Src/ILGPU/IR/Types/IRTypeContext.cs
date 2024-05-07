@@ -39,6 +39,9 @@ namespace ILGPU.IR.Types
                 BasicValueType.Int16,
                 BasicValueType.Int32,
                 BasicValueType.Int64,
+                BasicValueType.Float8E4M3,
+                BasicValueType.Float8E5M2,
+                BasicValueType.BFloat16,
                 BasicValueType.Float16,
                 BasicValueType.Float32,
                 BasicValueType.Float64);

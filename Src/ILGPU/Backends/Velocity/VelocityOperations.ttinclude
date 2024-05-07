@@ -58,26 +58,26 @@ public static readonly TypeInformation[] Warp32ConvTypes = new TypeInformation[]
     UnsignedIntTypes[0],
     UnsignedIntTypes[1],
     UnsignedIntTypes[2],
-    FloatTypes[0],
-    FloatTypes[1],
+    FloatTypes[3],
+    FloatTypes[4],
 };
 public static readonly TypeInformation[] Warp64ConvTypes = new TypeInformation[]
 {
     SignedIntTypes[3],
     UnsignedIntTypes[3],
-    FloatTypes[2],
+    FloatTypes[5],
 };
 public static readonly TypeInformation[] Warp32IOTypes = new TypeInformation[]
 {
     UnsignedIntTypes[0],
     UnsignedIntTypes[1],
     UnsignedIntTypes[2],
-    FloatTypes[0],
-    FloatTypes[1],
+    FloatTypes[3],
+    FloatTypes[4],
 };
 public static readonly TypeInformation[] Warp64IOTypes = new TypeInformation[]
 {
     UnsignedIntTypes[3],
-    FloatTypes[2],
+    FloatTypes[5],
 };
 #>

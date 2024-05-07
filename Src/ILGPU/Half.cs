@@ -182,6 +182,11 @@ namespace ILGPU
         public readonly override int GetHashCode() => RawValue;
 
         /// <summary>
+        /// AsUShort - Returns internal unsigned short value
+        /// </summary>
+        public ushort AsUShort => RawValue;
+
+        /// <summary>
         /// Returns the string representation of this half.
         /// </summary>
         /// <returns>The string representation of this half.</returns>

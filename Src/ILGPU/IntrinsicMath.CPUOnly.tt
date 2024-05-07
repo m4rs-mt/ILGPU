@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMath.CPUOnly.tt/IntrinsicMath.CPUOnly.cs
@@ -133,6 +133,86 @@ namespace ILGPU
 
 <# } #>
             #endregion
+
+
+
+          #region BF16 Precision
+
+<# foreach (var op in unaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="value">The value.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static <#= op.IsPredicate ? "bool" : "BF16" #> <#= op.MethodName #>(BF16 value) =>
+                <#= op.IsPredicate ? string.Empty : "(BF16)" #><#= op.MethodName #>((float)value);
+
+<# } #>
+<# foreach (var op in binaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="left">The left operand.</param>
+            /// <param name="right">The right operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static BF16 <#= op.MethodName #>(BF16 left, BF16 right) =>
+                BF16Extensions.<#= op.MethodName #>FP32(left, right);
+
+<# } #>
+            #endregion
+
+   #region FP8E4M3 Precision
+
+<# foreach (var op in unaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="value">The value.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static <#= op.IsPredicate ? "bool" : "FP8E4M3" #> <#= op.MethodName #>(FP8E4M3 value) =>
+                <#= op.IsPredicate ? string.Empty : "(FP8E4M3)" #><#= op.MethodName #>((float)value);
+
+<# } #>
+<# foreach (var op in binaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="left">The left operand.</param>
+            /// <param name="right">The right operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static FP8E4M3 <#= op.MethodName #>(FP8E4M3 left, FP8E4M3 right) =>
+                FP8E4M3Extensions.<#= op.MethodName #>FP32(left, right);
+
+<# } #>
+            #endregion
+
+
+   #region FP8E5M2 Precision
+
+<# foreach (var op in unaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="value">The value.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static <#= op.IsPredicate ? "bool" : "FP8E5M2" #> <#= op.MethodName #>(FP8E5M2 value) =>
+                <#= op.IsPredicate ? string.Empty : "(FP8E5M2)" #><#= op.MethodName #>((float)value);
+
+<# } #>
+<# foreach (var op in binaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="left">The left operand.</param>
+            /// <param name="right">The right operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static FP8E5M2 <#= op.MethodName #>(FP8E5M2 left, FP8E5M2 right) =>
+                FP8E5M2Extensions.<#= op.MethodName #>FP32(left, right);
+
+<# } #>
+            #endregion
+
+
 
             #region Integers
 
