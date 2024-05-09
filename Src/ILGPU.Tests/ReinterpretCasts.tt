@@ -163,7 +163,36 @@ namespace ILGPU.Tests
         { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
+
+<#
+    if (floatType == FloatTypes[0])
+    {
+#>
+            var two = FP8E4M3.One + FP8E4M3.One;
+            var intValue = two.AsByte;
+<#
+    }
+    else if (floatType == FloatTypes[1])
+    {
+#>
+            var two = FP8E5M2.One + FP8E5M2.One;
+            var intValue = two.AsByte;
+<#
+    }
+    else if (floatType == FloatTypes[2])
+    {
+#>
+            var two = BF16.One + BF16.One;
+            var intValue = two.AsUShort;
+<#
+    }
+    else
+    {
+#>
             var intValue = Interop.FloatAsInt((<#= floatType.Type #>)2.0);
+<#
+    }
+#>
             using var data = Accelerator.Allocate1D<<#= floatType.Type #>>(Length);
             Execute(Length, data.View, intValue);
 

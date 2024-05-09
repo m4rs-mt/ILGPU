@@ -381,6 +381,13 @@ namespace ILGPU.Backends.Velocity
                     Emitter.EmitConstant(value.Int64Value);
                     Specializer.ConvertScalarTo64(Emitter, VelocityWarpOperationMode.U);
                     break;
+                case BasicValueType.Float8E4M3:
+                    throw VelocityCapabilityContext.GetNotSupportedFloat8E4M3Exception();
+                case BasicValueType.Float8E5M2:
+                    throw VelocityCapabilityContext.GetNotSupportedFloat8E5M2Exception();
+                case BasicValueType.BFloat16:
+                    throw VelocityCapabilityContext.GetNotSupportedBFloat16Exception();
+
                 case BasicValueType.Float16:
                     throw VelocityCapabilityContext.GetNotSupportedFloat16Exception();
                 case BasicValueType.Float32:

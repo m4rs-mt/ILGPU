@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityGenerationModule.cs
@@ -314,6 +314,12 @@ namespace ILGPU.Backends.Velocity
             }
             else
             {
+                if (basicValueType == BasicValueType.Float8E4M3)
+                    throw CapabilityContext.GetNotSupportedFloat8E4M3Exception();
+                if (basicValueType == BasicValueType.Float8E5M2)
+                    throw CapabilityContext.GetNotSupportedFloat8E5M2Exception();
+                if (basicValueType == BasicValueType.BFloat16)
+                    throw CapabilityContext.GetNotSupportedBFloat16Exception();
                 if (basicValueType == BasicValueType.Float16)
                     throw CapabilityContext.GetNotSupportedFloat16Exception();
             }

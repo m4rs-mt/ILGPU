@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2022-2023 ILGPU Project
+//                        Copyright (c) 2022-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityTypeGenerator.cs
@@ -96,6 +96,21 @@ namespace ILGPU.Backends.IL
             /// </summary>
             public Type GetPrimitiveType(PrimitiveType primitiveType)
             {
+                if (primitiveType.BasicValueType == BasicValueType.Float8E4M3 &&
+                    !parent.CapabilityContext.Float16)
+                {
+                    throw VelocityCapabilityContext.GetNotSupportedFloat8E5M2Exception();
+                }
+                if (primitiveType.BasicValueType == BasicValueType.Float8E5M2 &&
+                    !parent.CapabilityContext.Float16)
+                {
+                    throw VelocityCapabilityContext.GetNotSupportedFloat8E5M2Exception();
+                }
+                if (primitiveType.BasicValueType == BasicValueType.BFloat16 &&
+                    !parent.CapabilityContext.Float16)
+                {
+                    throw VelocityCapabilityContext.GetNotSupportedBFloat16Exception();
+                }
                 if (primitiveType.BasicValueType == BasicValueType.Float16 &&
                     !parent.CapabilityContext.Float16)
                 {

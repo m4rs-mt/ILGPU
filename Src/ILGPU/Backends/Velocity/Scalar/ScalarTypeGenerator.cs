@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2024 ILGPU Project/
 //                                    www.ilgpu.net
 //
 // File: ScalarTypeGenerator.cs
@@ -34,7 +34,9 @@ namespace ILGPU.Backends.Velocity.Scalar
             ScalarOperations2.WarpType32, // Int16
             ScalarOperations2.WarpType32, // Int32
             ScalarOperations2.WarpType64, // Int64
-
+            ScalarOperations2.WarpType32, // Float8E4M3
+            ScalarOperations2.WarpType32, // Float8E5M2
+            ScalarOperations2.WarpType32, // BFloat16
             ScalarOperations2.WarpType32, // Float16
             ScalarOperations2.WarpType32, // Float32
             ScalarOperations2.WarpType64, // Float64
@@ -61,6 +63,12 @@ namespace ILGPU.Backends.Velocity.Scalar
 
         public override Type GetVectorizedBasicType(BasicValueType basicValueType)
         {
+            if (basicValueType == BasicValueType.Float8E4M3 && !CapabilityContext.Float8E4M3)
+                throw VelocityCapabilityContext.GetNotSupportedFloat8E4M3Exception();
+            if (basicValueType == BasicValueType.Float8E5M2 && !CapabilityContext.Float8E5M2)
+                throw VelocityCapabilityContext.GetNotSupportedFloat8E5M2Exception();
+            if (basicValueType == BasicValueType.BFloat16 && !CapabilityContext.BFloat16)
+                throw VelocityCapabilityContext.GetNotSupportedBFloat16Exception();
             if (basicValueType == BasicValueType.Float16 && !CapabilityContext.Float16)
                 throw VelocityCapabilityContext.GetNotSupportedFloat16Exception();
             return VectorizedBasicTypeMapping[(int)basicValueType];

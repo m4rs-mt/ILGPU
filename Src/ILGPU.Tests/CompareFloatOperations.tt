@@ -62,7 +62,7 @@ namespace ILGPU.Tests
 <#         bool isFP843 = type == FloatTypes[0];
            bool isFP852 = type == FloatTypes[1];
            bool isBFP16 = type == FloatTypes[2];
-            bool isFP16 = type == FloatTypes[3]; #>
+           bool isFP16 = type == FloatTypes[3]; #>
 <#         var floatRanges = GetFloatRanges(type, true, true, true, false); #>
 <#         var baseName = "_" + operationName + "_" + type.Name; #>
 <#         var testName = "CompareOperation" + baseName; #>
