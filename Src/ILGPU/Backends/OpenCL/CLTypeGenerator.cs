@@ -143,15 +143,20 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="basicValueType">The basic-value type to resolve.</param>
         /// <returns>The resolved OpenCL type name.</returns>
         public string GetBasicValueType(ArithmeticBasicValueType basicValueType) =>
-            basicValueType == ArithmeticBasicValueType.Float8E4M3 && !Capabilities.Float8E4M3
+            basicValueType == ArithmeticBasicValueType.Float8E4M3
+            && !Capabilities.Float8E4M3
                 ? throw CLCapabilityContext.GetNotSupportedFloat8E4M3Exception()
-                : basicValueType == ArithmeticBasicValueType.Float8E5M2 && !Capabilities.Float8E5M2
+                : basicValueType == ArithmeticBasicValueType.Float8E5M2
+                  && !Capabilities.Float8E5M2
                     ? throw CLCapabilityContext.GetNotSupportedFloat8E5M2Exception()
-                    : basicValueType == ArithmeticBasicValueType.BFloat16 && !Capabilities.BFloat16
+                    : basicValueType == ArithmeticBasicValueType.BFloat16
+                      && !Capabilities.BFloat16
                         ? throw CLCapabilityContext.GetNotSupportedBFloat16Exception()
-                        :basicValueType == ArithmeticBasicValueType.Float16 && !Capabilities.Float16
-            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
-            : basicValueType == ArithmeticBasicValueType.Float64 && !Capabilities.Float64
+                        :basicValueType == ArithmeticBasicValueType.Float16
+                         && !Capabilities.Float16
+                            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
+            : basicValueType == ArithmeticBasicValueType.Float64
+              && !Capabilities.Float64
                 ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
                 : ArtihmeticTypeMapping[(int)basicValueType];
 
@@ -161,15 +166,20 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="basicValueType">The basic-value type to resolve.</param>
         /// <returns>The resolved atomic OpenCL type name.</returns>
         public string? GetAtomicType(ArithmeticBasicValueType basicValueType) =>
-            basicValueType == ArithmeticBasicValueType.Float8E4M3 && !Capabilities.Float8E4M3
+            basicValueType == ArithmeticBasicValueType.Float8E4M3
+            && !Capabilities.Float8E4M3
                 ? throw CLCapabilityContext.GetNotSupportedFloat8E4M3Exception()
-                :basicValueType == ArithmeticBasicValueType.Float8E5M2 && !Capabilities.Float8E5M2
+                :basicValueType == ArithmeticBasicValueType.Float8E5M2
+                 && !Capabilities.Float8E5M2
                     ? throw CLCapabilityContext.GetNotSupportedFloat8E5M2Exception()
-                    : basicValueType == ArithmeticBasicValueType.BFloat16 && !Capabilities.BFloat16
+                    : basicValueType == ArithmeticBasicValueType.BFloat16
+                      && !Capabilities.BFloat16
                         ? throw CLCapabilityContext.GetNotSupportedBFloat16Exception()
-                        :basicValueType == ArithmeticBasicValueType.Float16 && !Capabilities.Float16
+                        :basicValueType == ArithmeticBasicValueType.Float16
+                         && !Capabilities.Float16
             ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
-            : basicValueType == ArithmeticBasicValueType.Float64 && !Capabilities.Float64
+            : basicValueType == ArithmeticBasicValueType.Float64
+              && !Capabilities.Float64
                 ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
                 : AtomicTypeMapping[(int)basicValueType];
 

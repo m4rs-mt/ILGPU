@@ -93,7 +93,10 @@ namespace ILGPU.Tests
             }
         }
 
-<#      if (targetType != FloatTypes[0]&&targetType != FloatTypes[1]&&targetType != FloatTypes[2]&&targetType != FloatTypes[3] ) { #>
+<#      if (targetType != FloatTypes[0]
+                            &&targetType != FloatTypes[1]
+                            &&targetType != FloatTypes[2]
+                            &&targetType != FloatTypes[3] ) { #>
         [Fact]
 <#      } else { #>
         [SkippableFact]

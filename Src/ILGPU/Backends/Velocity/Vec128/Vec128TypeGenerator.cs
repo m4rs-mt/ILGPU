@@ -64,13 +64,17 @@ namespace ILGPU.Backends.Velocity.Vec128
 
         public override Type GetVectorizedBasicType(BasicValueType basicValueType)
         {
-            if (basicValueType == BasicValueType.Float8E4M3 && !CapabilityContext.Float8E4M3)
+            if (basicValueType == BasicValueType.Float8E4M3
+                && !CapabilityContext.Float8E4M3)
                 throw VelocityCapabilityContext.GetNotSupportedFloat8E4M3Exception();
-            if (basicValueType == BasicValueType.Float8E5M2 && !CapabilityContext.Float8E5M2)
+            if (basicValueType == BasicValueType.Float8E5M2
+                && !CapabilityContext.Float8E5M2)
                 throw VelocityCapabilityContext.GetNotSupportedFloat8E5M2Exception();
-            if (basicValueType == BasicValueType.BFloat16 && !CapabilityContext.BFloat16)
+            if (basicValueType == BasicValueType.BFloat16
+                && !CapabilityContext.BFloat16)
                 throw VelocityCapabilityContext.GetNotSupportedBFloat16Exception();
-            if (basicValueType == BasicValueType.Float16 && !CapabilityContext.Float16)
+            if (basicValueType == BasicValueType.Float16
+                && !CapabilityContext.Float16)
                 throw VelocityCapabilityContext.GetNotSupportedFloat16Exception();
             return VectorizedBasicTypeMapping[(int)basicValueType];
         }
