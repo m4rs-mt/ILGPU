@@ -67,6 +67,34 @@ namespace ILGPU.Runtime
 
         #region Methods
 
+        /// <summary>
+        /// Creates exception for 'Float8E4M3'.
+        /// </summary>
+        public static Exception GetNotSupportedFloat8E4M3Exception() =>
+            new CapabilityNotSupportedException(
+                string.Format(
+                    ErrorMessages.CapabilityNotSupported,
+                    "Float8E4M3"));
+
+        /// <summary>
+        /// Creates exception for 'Float8E5M2'.
+        /// </summary>
+        public static Exception GetNotSupportedFloat8E5M2Exception() =>
+            new CapabilityNotSupportedException(
+                string.Format(
+                    ErrorMessages.CapabilityNotSupported,
+                    "Float8E5M2"));
+
+        /// <summary>
+        /// Creates exception for 'BFloat16'.
+        /// </summary>
+        public static Exception GetNotSupportedBFloat16Exception() =>
+            new CapabilityNotSupportedException(
+                string.Format(
+                    ErrorMessages.CapabilityNotSupported,
+                    "Float16"));
+
+
 <# foreach (var c in commonCapabilities) { #>
         /// <summary>
         /// Creates exception for '<#= c.Name #>'.
