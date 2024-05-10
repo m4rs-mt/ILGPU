@@ -1,5 +1,30 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Capabilities>
+
+    <Capability Name="Float8E4M3">
+        <Summary>Supports FP8E4M3 (MiniFloat) data type.</Summary>
+        <FeatureName>FP8E4M3 (MiniFloat) type</FeatureName>
+        <OpenCL manual="true" />
+        <Cuda minPTX="SM_90" />
+        <Velocity supported="false"/>
+    </Capability>
+
+    <Capability Name="Float8E5M2">
+        <Summary>Supports FP8E5M2 (MiniFloat) data type.</Summary>
+        <FeatureName>FP8E5M2 (MiniFloat) type</FeatureName>
+        <OpenCL manual="true" />
+        <Cuda minPTX="SM_90" />
+        <Velocity supported="false"/>
+    </Capability>
+
+    <Capability Name="BFloat16">
+        <Summary>Supports BFloat16 (BrainFloat) data type.</Summary>
+        <FeatureName>BFloat16 (BrainFloat) type</FeatureName>
+        <OpenCL manual="true" />
+        <Cuda minPTX="SM_80" />
+        <Velocity supported="false"/>
+    </Capability>
+
     <Capability Name="Float16">
         <Summary>Supports Float16 (Half) data type.</Summary>
         <FeatureName>Float16 (Half) type</FeatureName>
@@ -15,11 +40,13 @@
         <FeatureName>Intrinsic 'Min' for Float16</FeatureName>
         <Cuda minPTX="SM_75" />
     </Capability>
+
     <Capability Name="Float16_Max">
         <Summary>Supports Float16 intrinsic Max.</Summary>
         <FeatureName>Intrinsic 'Max' for Float16</FeatureName>
         <Cuda minPTX="SM_80" />
     </Capability>
+
     <Capability Name="Float16_TanH">
         <Summary>Supports Float16 intrinsic TanH.</Summary>
         <FeatureName>Intrinsic 'TanH' for Float16</FeatureName>
