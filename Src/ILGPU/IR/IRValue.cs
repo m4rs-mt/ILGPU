@@ -1,10 +1,26 @@
-﻿using ILGPU.IR.Types;
-using ILGPU.IR.Values;
-using System;
+﻿using System.Collections.Immutable;
 
 namespace ILGPU.IR
 {
-    public record struct IRValue(NodeId Method, NodeId BasicBlock, NodeId Id, ValueKind ValueKind, NodeId Type, NodeId[] Nodes, long Data, string? Tag)
+    /// <summary>
+    /// A uniform value type representing an exported <see cref="Value"/> from an <see cref="IRContext"/>.
+    /// </summary>
+    /// <param name="Method">Corresponds to <see cref="Value.Method"/></param>
+    /// <param name="BasicBlock">Corresponds to <see cref="Value.BasicBlock"/></param>
+    /// <param name="Id">Corresponds to <see cref="Node.Id"/></param>
+    /// <param name="ValueKind">Corresponds to <see cref="Value.ValueKind"/></param>
+    /// <param name="Type">Corresponds to <see cref="Value.Type"/></param>
+    /// <param name="Nodes">Corresponds to <see cref="Value.Nodes"/></param>
+    /// <param name="Data">Extra data specific to this value's kind or instance</param>
+    /// <param name="Tag">Extra data specific to this value's kind or instance</param>
+    public record struct IRValue(
+        NodeId Method,
+        NodeId BasicBlock,
+        NodeId Id,
+        ValueKind ValueKind,
+        NodeId Type,
+        ImmutableArray<NodeId> Nodes,
+        long Data, string? Tag)
     {
     }
 }

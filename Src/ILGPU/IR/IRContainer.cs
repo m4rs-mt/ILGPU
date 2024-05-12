@@ -1,5 +1,6 @@
 ﻿using ILGPU.IR.Types;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace ILGPU.IR
@@ -51,7 +52,7 @@ namespace ILGPU.IR
             }
             else if (type.IsStructureType)
             {
-                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Structure, ((StructureType)type).Fields.Select(t => t.Id).ToArray(), type.BasicValueType, 0));
+                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Structure, ((StructureType)type).Fields.Select(t => t.Id).ToImmutableArray(), type.BasicValueType, 0));
                 foreach (var fieldType in ((StructureType)type).Fields)
                 {
                     Add(fieldType);

@@ -1,6 +1,7 @@
 ﻿using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
+using System.Collections.Immutable;
 
 namespace ILGPU.IR
 {
@@ -13,7 +14,7 @@ namespace ILGPU.IR
             Container = container;
         }
 
-        private static NodeId[] GetNodeIds(Value value)
+        private static ImmutableArray<NodeId> GetNodeIds(Value value)
         {
             var nodeIds = new NodeId[value.Count];
             for (int i = 0; i < value.Count; i++)
@@ -21,10 +22,10 @@ namespace ILGPU.IR
                 nodeIds[i] = value[i].Id;
             }
 
-            return nodeIds;
+            return nodeIds.ToImmutableArray();
         }
 
-        private static NodeId[] GetTargetIds(TerminatorValue value)
+        private static ImmutableArray<NodeId> GetTargetIds(TerminatorValue value)
         {
             var nodeIds = new NodeId[value.NumTargets];
             for (int i = 0; i < value.NumTargets; i++)
@@ -32,10 +33,10 @@ namespace ILGPU.IR
                 nodeIds[i] = value.Targets[i].Id;
             }
 
-            return nodeIds;
+            return nodeIds.ToImmutableArray();
         }
 
-        private void OnValueVisited(Value value, NodeId[]? nodes = default, long data = default, string? tag = default)
+        private void OnValueVisited(Value value, ImmutableArray<NodeId>? nodes = default, long data = default, string? tag = default)
         {
             Container?.Add(new IRValue
             {
