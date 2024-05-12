@@ -4,20 +4,23 @@ using System.Linq;
 
 namespace ILGPU.IR
 {
+    /// <summary>
+    /// A container wrapper for exported IR data.
+    /// </summary>
     public class IRContainer
     {
-        private readonly ConcurrentBag<IRValue> values;
+        private readonly ConcurrentDictionary<NodeId, IRValue> values;
         private readonly ConcurrentDictionary<NodeId, IRType> types;
 
-        public IRContainer()
+        internal IRContainer()
         {
-            values = new ConcurrentBag<IRValue>();
+            values = new ConcurrentDictionary<NodeId, IRValue>();
             types = new ConcurrentDictionary<NodeId, IRType>();
         }
 
-        public void Add(IRValue value) => values.Add(value);
+        internal void Add(IRValue value) => values.TryAdd(value.Id, value);
 
-        public void Add(TypeNode type)
+        internal void Add(TypeNode type)
         {
             if (type.IsVoidType)
             {
@@ -56,6 +59,10 @@ namespace ILGPU.IR
             }
         }
 
-        public (IRValue[] values, IRType[] types) Export() => (values.ToArray(), types.Values.ToArray());
+        /// <summary>
+        /// Exports the wrapped data for external API consumption.
+        /// </summary>
+        /// <returns>Tuple containing flattened array representations of the IR value and type graphs, see <see cref="IRValue"/> and <see cref="IRType"/> respectively.</returns>
+        public (IRValue[] values, IRType[] types) Export() => (values.Values.ToArray(), types.Values.ToArray());
     }
 }

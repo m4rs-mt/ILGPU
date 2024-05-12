@@ -520,7 +520,7 @@ namespace ILGPU.IR
                     case nameof(UnconditionalBranch):
                     case nameof(IfBranch):
                     case nameof(SwitchBranch):
-                        node.Accept(MethodBuilder.BaseContext.IRValueVisitor);
+                        node.Accept(MethodBuilder.BaseContext.IRExporter);
                         break;
                 }
 
@@ -532,7 +532,7 @@ namespace ILGPU.IR
             {
                 InsertAtBeginning(phiValue);
 
-                phiValue.Accept(MethodBuilder.BaseContext.IRValueVisitor);
+                phiValue.Accept(MethodBuilder.BaseContext.IRExporter);
 
                 return phiValue;
             }
@@ -544,7 +544,7 @@ namespace ILGPU.IR
                 Add(node);
 
                 // Allow monitor to visit this node
-                node.Accept(MethodBuilder.BaseContext.IRValueVisitor);
+                node.Accept(MethodBuilder.BaseContext.IRExporter);
 
                 return node;
             }

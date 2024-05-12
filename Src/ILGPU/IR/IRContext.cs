@@ -42,8 +42,8 @@ namespace ILGPU.IR
         /// Constructs a new IR context.
         /// </summary>
         /// <param name="context">The associated main context.</param>
-        /// <param name="shouldMirror">Flag determining whether this context should mirror itself.</param>
-        protected IRBaseContext(Context context, bool shouldMirror)
+        /// <param name="forExport">Flag determining whether this context should export its data.</param>
+        protected IRBaseContext(Context context, bool forExport)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             TypeContext = context.TypeContext;
@@ -54,7 +54,7 @@ namespace ILGPU.IR
                     null,
                     Location.Nowhere));
 
-            IRValueVisitor = new IRValue.Visitor(shouldMirror ? new IRContainer() : null);
+            IRExporter = new IRExporter(forExport ? new IRContainer() : null);
         }
 
         #endregion
@@ -77,14 +77,14 @@ namespace ILGPU.IR
         internal Verifier Verifier => Context.Verifier;
 
         /// <summary>
-        /// Serves as an injection point for IR mirroring / monitoring.
+        /// Serves as an injection point for IR export.
         /// </summary>
-        internal IRValue.Visitor IRValueVisitor { get; }
+        internal IRExporter IRExporter { get; }
 
         /// <summary>
-        /// Serves as a public endpoint for IR mirroring / monitoring.
+        /// Serves as a public endpoint for IR export.
         /// </summary>
-        public IRContainer? IRContainer => IRValueVisitor.Container;
+        public IRContainer? IRContainer => IRExporter.Container;
 
         /// <summary>
         /// Returns the associated type context.
@@ -116,8 +116,9 @@ namespace ILGPU.IR
         /// Constructs a new IR context.
         /// </summary>
         /// <param name="context">The associated main context.</param>
-        public IRContext(Context context, bool shouldMirror = false)
-            : base(context, shouldMirror)
+        /// <param name="forExport">Flag determining whether this context should export its data.</param>
+        public IRContext(Context context, bool forExport = false)
+            : base(context, forExport)
         {
             gcDelegate = (Method method) => method.GC();
         }

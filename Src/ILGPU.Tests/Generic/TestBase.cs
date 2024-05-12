@@ -162,7 +162,7 @@ namespace ILGPU.Tests
                 arguments = newArguments;
             }
 
-            var hook = new IRMirrorHook();
+            var hook = new IRExporterHook();
             var compiled = backend.Compile(entryPoint, specialization, hook);
             var (valueArr, typeArr) = hook.CurrentContext?.IRContainer?.Export() ?? default;
 

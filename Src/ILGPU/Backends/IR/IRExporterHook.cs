@@ -2,7 +2,10 @@
 
 namespace ILGPU.Backends.IR
 {
-    public class IRMirrorHook : IBackendHook
+    /// <summary>
+    /// IBackendHook implementation for consuming exported IR data.
+    /// </summary>
+    public class IRExporterHook : IBackendHook
     {
         public IRContext? CurrentContext { get; private set; }
 
