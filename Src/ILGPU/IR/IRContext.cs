@@ -84,7 +84,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Serves as a public endpoint for IR export.
         /// </summary>
-        public IRContainer? IRContainer => IRExporter.Container;
+        public IRContainer? ExportContainer => IRExporter.Container;
 
         /// <summary>
         /// Returns the associated type context.

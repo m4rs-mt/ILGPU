@@ -164,7 +164,7 @@ namespace ILGPU.Tests
 
             var hook = new IRExporterHook();
             var compiled = backend.Compile(entryPoint, specialization, hook);
-            var (valueArr, typeArr) = hook.CurrentContext?.IRContainer?.Export() ?? default;
+            var (valueArr, typeArr) = hook.CurrentContext?.ExportContainer?.Export() ?? default;
 
             Output.WriteLine($"Compiled '{kernel.Name}' into {valueArr?.Length ?? 0} IRValues and {typeArr?.Length ?? 0} IRTypes");
 
