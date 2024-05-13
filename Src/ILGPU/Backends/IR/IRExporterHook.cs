@@ -27,7 +27,10 @@ namespace ILGPU.Backends.IR
         {
             CurrentContext?.Dispose();
             CurrentContext = new IRContext(context.Context, true);
-            CurrentContext.Import(entryPoint);
+            foreach (var method in context.Methods)
+            {
+                CurrentContext.Import(method);
+            }
         }
 
         void IBackendHook.InitializedKernelContext(

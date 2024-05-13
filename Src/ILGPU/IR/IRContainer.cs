@@ -21,16 +21,34 @@ namespace ILGPU.IR
     /// </summary>
     public class IRContainer
     {
-        private readonly ConcurrentDictionary<NodeId, IRValue> values;
-        private readonly ConcurrentDictionary<NodeId, IRType> types;
+        /// <summary>
+        /// Represents an immutable, exported version of an <see cref="IRContainer"/> context.
+        /// </summary>
+        /// <param name="Methods">Collection of <see cref="IRMethod"/> instances</param>
+        /// <param name="Values">Collection of <see cref="IRValue"/> instances</param>
+        /// <param name="Types">Collection of <see cref="IRType"/> instances</param>
+        public record struct Exported(ImmutableArray<IRMethod> Methods, ImmutableArray<IRValue> Values, ImmutableArray<IRType> Types)
+        {
+        }
+
+        private readonly ConcurrentDictionary<long, IRMethod> methods;
+        private readonly ConcurrentDictionary<long, IRValue> values;
+        private readonly ConcurrentDictionary<long, IRType> types;
 
         internal IRContainer()
         {
-            values = new ConcurrentDictionary<NodeId, IRValue>();
-            types = new ConcurrentDictionary<NodeId, IRType>();
+            methods = new ConcurrentDictionary<long, IRMethod>();
+            values = new ConcurrentDictionary<long, IRValue>();
+            types = new ConcurrentDictionary<long, IRType>();
         }
 
         internal void Add(IRValue value) => values.TryAdd(value.Id, value);
+
+        internal void Add(Method method)
+        {
+            methods.TryAdd(method.Id, new(method.Id, method.Name, method.ReturnType.Id));
+            Add(method.ReturnType);
+        }
 
         internal void Add(TypeNode type)
         {
@@ -85,12 +103,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Exports the wrapped data for external API consumption.
         /// </summary>
-        /// <returns>
-        /// Tuple containing flattened array representations of the
-        /// IR value and type graphs, see <see cref="IRValue"/>
-        /// and <see cref="IRType"/> respectively.
-        /// </returns>
-        public (IRValue[] values, IRType[] types) Export() =>
-            (values.Values.ToArray(), types.Values.ToArray());
+        /// <returns><see cref="Exported"/> instance containing flattened array representations of the IR value and type graphs, see <see cref="IRValue"/> and <see cref="IRType"/> respectively.</returns>
+        public Exported Export() => new (methods.Values.ToImmutableArray(), values.Values.ToImmutableArray(), types.Values.ToImmutableArray());
     }
 }

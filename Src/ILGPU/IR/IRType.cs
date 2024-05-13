@@ -31,9 +31,9 @@ namespace ILGPU.IR
     /// </param>
     /// <param name="Data">Extra data specific to this type's kind or instance</param>
     public record struct IRType(
-        NodeId Id,
+        long Id,
         IRType.Classifier Class,
-        ImmutableArray<NodeId> Nodes,
+        ImmutableArray<long> Nodes,
         BasicValueType BasicValueType,
         long Data)
     {

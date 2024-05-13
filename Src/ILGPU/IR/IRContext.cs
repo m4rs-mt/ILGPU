@@ -386,6 +386,20 @@ namespace ILGPU.IR
         }
 
         /// <summary>
+        /// Imports a previously exported <see cref="IRContainer"/>.
+        /// </summary>
+        /// <param name="container">The container, in export format.</param>
+        public void Import(IRContainer.Exported container)
+        {
+            var importer = new IRImporter(container);
+            importer.ImportInto(this);
+            foreach (var method in Methods)
+            {
+                Verifier.Verify(method);
+            }
+        }
+
+        /// <summary>
         /// Imports the given method (and all dependencies) into this context.
         /// </summary>
         /// <param name="source">The method to import.</param>

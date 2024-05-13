@@ -26,12 +26,12 @@ namespace ILGPU.IR
     /// <param name="Data">Extra data specific to this value's kind or instance</param>
     /// <param name="Tag">Extra data specific to this value's kind or instance</param>
     public record struct IRValue(
-        NodeId Method,
-        NodeId BasicBlock,
-        NodeId Id,
+        long Method,
+        long BasicBlock,
+        long Id,
         ValueKind ValueKind,
-        NodeId Type,
-        ImmutableArray<NodeId> Nodes,
+        long Type,
+        ImmutableArray<long> Nodes,
         long Data, string? Tag)
     {
     }

@@ -12,6 +12,7 @@
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace ILGPU.IR
 {
@@ -24,9 +25,9 @@ namespace ILGPU.IR
             Container = container;
         }
 
-        private static ImmutableArray<NodeId> GetNodeIds(Value value)
+        private static ImmutableArray<long> GetNodeIds(Value value)
         {
-            var nodeIds = new NodeId[value.Count];
+            var nodeIds = new long[value.Count];
             for (int i = 0; i < value.Count; i++)
             {
                 nodeIds[i] = value[i].Id;
@@ -35,9 +36,9 @@ namespace ILGPU.IR
             return nodeIds.ToImmutableArray();
         }
 
-        private static ImmutableArray<NodeId> GetTargetIds(TerminatorValue value)
+        private static ImmutableArray<long> GetTargetIds(TerminatorValue value)
         {
-            var nodeIds = new NodeId[value.NumTargets];
+            var nodeIds = new long[value.NumTargets];
             for (int i = 0; i < value.NumTargets; i++)
             {
                 nodeIds[i] = value.Targets[i].Id;
@@ -62,6 +63,8 @@ namespace ILGPU.IR
                 Tag = tag,
             });
 
+            Container?.Add(value.Method);
+
             Container?.Add(value.Type);
         }
 
@@ -76,7 +79,17 @@ namespace ILGPU.IR
                 tag: parameter.Name);
 
         public void Visit(PhiValue phiValue) =>
-            OnValueVisited(phiValue);
+            OnValueVisited(phiValue,
+                nodes: phiValue.Sources
+                    .ToImmutableArray()
+                    .Select(x => (long)x.Id)
+                    .Zip(phiValue.Nodes
+                        .ToImmutableArray()
+                        .Select(x => (long)x.Id)
+                        )
+                    .SelectMany<(long, long), long>(x => [x.Item1, x.Item2])
+                    .ToImmutableArray()
+                );
 
         public void Visit(UnaryArithmeticValue value) =>
             OnValueVisited(value,
@@ -92,7 +105,7 @@ namespace ILGPU.IR
 
         public void Visit(CompareValue value) =>
             OnValueVisited(value,
-                data: (long)value.Kind);
+                data: ((long)value.Kind << 32) | (long)value.Flags);
 
         public void Visit(ConvertValue value) =>
             OnValueVisited(value,
@@ -158,7 +171,7 @@ namespace ILGPU.IR
 
         public void Visit(LoadFieldAddress value) =>
             OnValueVisited(value,
-                data: (long)value.FieldSpan.Index | ((long)value.FieldSpan.Span << 32));
+                data: ((long)value.FieldSpan.Index << 32) | (long)value.FieldSpan.Span);
 
         public void Visit(NewView value) =>
             OnValueVisited(value,
@@ -169,13 +182,11 @@ namespace ILGPU.IR
 
         public void Visit(AlignTo value) =>
             OnValueVisited(value,
-                data: value.Type is AddressSpaceType ?
-                (long)value.AddressSpace : default);
+                data: value.Type is AddressSpaceType ? (long)value.AddressSpace : -1);
 
         public void Visit(AsAligned value) =>
             OnValueVisited(value,
-                data: value.Type is AddressSpaceType ?
-                (long)value.AddressSpace : default);
+                data: value.Type is AddressSpaceType ? (long)value.AddressSpace : -1);
 
         public void Visit(NewArray value) =>
             OnValueVisited(value);
@@ -200,11 +211,11 @@ namespace ILGPU.IR
 
         public void Visit(GetField value) =>
             OnValueVisited(value,
-                data: (long)value.FieldSpan.Index | ((long)value.FieldSpan.Span << 32));
+                data: ((long)value.FieldSpan.Index << 32) | (long)value.FieldSpan.Span);
 
         public void Visit(SetField value) =>
             OnValueVisited(value,
-                data: (long)value.FieldSpan.Index | ((long)value.FieldSpan.Span << 32));
+                data: ((long)value.FieldSpan.Index << 32) | (long)value.FieldSpan.Span);
 
         public void Visit(AcceleratorTypeValue value) =>
             OnValueVisited(value);
@@ -255,14 +266,17 @@ namespace ILGPU.IR
             OnValueVisited(shuffle,
                 data: (long)shuffle.Kind);
 
-        public void Visit(UndefinedValue undefined) { }
+        public void Visit(UndefinedValue undefined) =>
+            OnValueVisited(undefined);
 
-        public void Visit(HandleValue handle) { }
+        public void Visit(HandleValue handle) =>
+            OnValueVisited(handle);
 
         public void Visit(DebugAssertOperation debug) =>
             OnValueVisited(debug);
 
-        public void Visit(WriteToOutput writeToOutput) { }
+        public void Visit(WriteToOutput writeToOutput) =>
+            OnValueVisited(writeToOutput);
 
         public void Visit(ReturnTerminator returnTerminator) =>
             OnValueVisited(returnTerminator);
@@ -273,13 +287,18 @@ namespace ILGPU.IR
 
         public void Visit(IfBranch branch) =>
             OnValueVisited(branch,
-                nodes: GetTargetIds(branch),
+                nodes: GetTargetIds(branch)
+                    .Prepend(branch.Condition.Id)
+                    .ToImmutableArray(),
                 data: (long)branch.Flags);
 
         public void Visit(SwitchBranch branch) =>
             OnValueVisited(branch,
-                nodes: GetTargetIds(branch));
+                nodes: GetTargetIds(branch)
+                    .Prepend(branch.Condition.Id)
+                    .ToImmutableArray());
 
-        public void Visit(LanguageEmitValue value) { }
+        public void Visit(LanguageEmitValue value) =>
+            OnValueVisited(value);
     }
 }

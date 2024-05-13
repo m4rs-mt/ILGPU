@@ -514,7 +514,7 @@ namespace ILGPU.IR
 
                 Terminator = node;
 
-                switch (node.GetType().FullName)
+                switch (node.GetType().Name)
                 {
                     case nameof(ReturnTerminator):
                     case nameof(UnconditionalBranch):
