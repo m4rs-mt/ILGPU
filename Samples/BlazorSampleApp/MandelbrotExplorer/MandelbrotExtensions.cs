@@ -55,9 +55,9 @@ namespace BlazorSampleApp.MandelbrotExplorer
             int iteration = 0;
             while ((x * x + y * y < 2 * 2) && (iteration < maxIterations))
             {
-                float xtemp = x * x - y * y + x0;
+                float xTemp = x * x - y * y + x0;
                 y = 2 * x * y + y0;
-                x = xtemp;
+                x = xTemp;
                 iteration += 1;
             }
             output[index] = iteration;

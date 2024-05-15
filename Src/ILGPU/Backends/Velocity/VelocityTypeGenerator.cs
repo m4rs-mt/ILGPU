@@ -116,6 +116,22 @@ namespace ILGPU.Backends.IL
                 {
                     throw VelocityCapabilityContext.GetNotSupportedFloat16Exception();
                 }
+                if (primitiveType.BasicValueType == BasicValueType.BFloat16 &&
+                    !parent.CapabilityContext.BFloat16)
+                {
+                    throw VelocityCapabilityContext.GetNotSupportedBFloat16Exception();
+                }
+
+                if (primitiveType.BasicValueType == BasicValueType.Float8E4M3 &&
+                    !parent.CapabilityContext.Float8E4M3)
+                {
+                    throw VelocityCapabilityContext.GetNotSupportedFloat8E4M3Exception();
+                }
+                if (primitiveType.BasicValueType == BasicValueType.Float8E5M2&& !parent.CapabilityContext.Float8E5M2)
+                {
+                    throw VelocityCapabilityContext.GetNotSupportedFloat8E5M2Exception();
+                }
+
                 return scalarProvider.GetPrimitiveType(primitiveType);
             }
 

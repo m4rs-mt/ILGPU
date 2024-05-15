@@ -37,7 +37,9 @@ namespace ILGPU.Backends.Velocity.Vec128
             Vec128Operations.WarpType32, // Int16
             Vec128Operations.WarpType32, // Int32
             Vec128Operations.WarpType64, // Int64
-
+            Vec128Operations.WarpType32, // Float8E4M3
+            Vec128Operations.WarpType32, // Float8E5M2
+            Vec128Operations.WarpType32, // BFloat16
             Vec128Operations.WarpType32, // Float16
             Vec128Operations.WarpType32, // Float32
             Vec128Operations.WarpType64, // Float64

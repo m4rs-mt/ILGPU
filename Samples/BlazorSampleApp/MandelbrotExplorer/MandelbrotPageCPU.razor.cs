@@ -57,7 +57,8 @@ namespace BlazorSampleApp.MandelbrotExplorer
 
         private Device _lastDevice = null;
 
-        private Device _CPUDevice = null;
+        private List<Device> cpuBasedDevices = new List<Device>();
+
 
         /// <summary>
         /// Ready Blazor page once component loading is complete
@@ -183,10 +184,15 @@ namespace BlazorSampleApp.MandelbrotExplorer
             {
                 if (device.AcceleratorType == AcceleratorType.CPU)
                 {
-                    _CPUDevice = device;
-                    SystemDevices.Add(_CPUDevice.Name);
+                    SystemDevices.Add(device.Name);
+                    cpuBasedDevices.Add(device);
                 }
 
+                if (device.AcceleratorType == AcceleratorType.Velocity)
+                {
+                    SystemDevices.Add(device.Name);
+                    cpuBasedDevices.Add(device);
+                }
             }
         }
 
@@ -327,13 +333,16 @@ namespace BlazorSampleApp.MandelbrotExplorer
                     break;
                 default:
                     _computing = true;
-                    if (_lastDevice != _CPUDevice)
+
+                    var cpuDevice = cpuBasedDevices.Find(x => x.Name == device);
+
+                    if (_lastDevice != cpuDevice)
                     {
                         RestartWatch();
-                        MandelbrotInstance.CompileKernel(_CPUDevice);
+                        MandelbrotInstance.CompileKernel(cpuDevice);
                         ExecutionsDetails3 =
-                            ElapsedTime("IL Compile - " + _CPUDevice.Name);
-                        _lastDevice = _CPUDevice;
+                            ElapsedTime("IL Compile - " + cpuDevice.Name);
+                        _lastDevice = cpuDevice;
                     }
 
 
@@ -342,7 +351,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
                     MandelbrotInstance.CalcGPU(ref data, displayPort, areaView,
                         maxIterations); // ILGPU-CPU-Mode
                     _computing = false;
-                    ExecutionsDetails4 = ElapsedTime("IL Run - " + _CPUDevice.Name);
+                    ExecutionsDetails4 = ElapsedTime("IL Run - " + cpuDevice.Name);
 
                     break;
             }
@@ -450,13 +459,14 @@ namespace BlazorSampleApp.MandelbrotExplorer
                         break;
                     default:
                         _computing = true;
-                        if (_lastDevice != _CPUDevice)
+                        var device = cpuBasedDevices.Find(x => x.Name == DeviceName);
+                        if (_lastDevice != device)
                         {
                             RestartWatch();
-                            MandelbrotInstance.CompileKernel(_CPUDevice);
+                            MandelbrotInstance.CompileKernel(device);
                             ExecutionsDetails3 =
-                                ElapsedTime("IL Compile - " + _CPUDevice.Name);
-                            _lastDevice = _CPUDevice;
+                                ElapsedTime("IL Compile - " + device.Name);
+                            _lastDevice = device;
                         }
 
 
@@ -465,7 +475,7 @@ namespace BlazorSampleApp.MandelbrotExplorer
                         MandelbrotInstance.CalcGPU(ref data, displayPort, areaView,
                             maxIterations); // ILGPU-CPU-Mode
                         _computing = false;
-                        ExecutionsDetails4 = ElapsedTime("IL Run - " + _CPUDevice.Name);
+                        ExecutionsDetails4 = ElapsedTime("IL Run - " + device.Name);
 
                         break;
                 }

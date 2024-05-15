@@ -71,6 +71,9 @@ namespace ILGPU.Backends.OpenCL
                 "short",
                 "int",
                 "long",
+                "__8FE4M3",
+                "__8FE5M2",
+                "__bf16",
                 "half",
                 "float",
                 "double");
@@ -128,12 +131,12 @@ namespace ILGPU.Backends.OpenCL
             basicValueType == BasicValueType.Float8E4M3 && !Capabilities.Float8E4M3
                 ? throw CLCapabilityContext.GetNotSupportedFloat8E4M3Exception()
                 :basicValueType == BasicValueType.Float8E5M2 && !Capabilities.Float8E5M2
-                    ? throw CLCapabilityContext.GetNotSupportedFloat8E5M2Exception()
-                    : basicValueType == BasicValueType.BFloat16 && !Capabilities.BFloat16
+                ? throw CLCapabilityContext.GetNotSupportedFloat8E5M2Exception()
+                : basicValueType == BasicValueType.BFloat16 && !Capabilities.BFloat16
                 ? throw CLCapabilityContext.GetNotSupportedBFloat16Exception()
                 : basicValueType == BasicValueType.Float16 && !Capabilities.Float16
-            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
-            : basicValueType == BasicValueType.Float64 && !Capabilities.Float64
+                ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
+                : basicValueType == BasicValueType.Float64 && !Capabilities.Float64
                 ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
                 : BasicTypeMapping[(int)basicValueType];
 
@@ -145,20 +148,20 @@ namespace ILGPU.Backends.OpenCL
         public string GetBasicValueType(ArithmeticBasicValueType basicValueType) =>
             basicValueType == ArithmeticBasicValueType.Float8E4M3
             && !Capabilities.Float8E4M3
-                ? throw CLCapabilityContext.GetNotSupportedFloat8E4M3Exception()
-                : basicValueType == ArithmeticBasicValueType.Float8E5M2
-                  && !Capabilities.Float8E5M2
-                    ? throw CLCapabilityContext.GetNotSupportedFloat8E5M2Exception()
-                    : basicValueType == ArithmeticBasicValueType.BFloat16
-                      && !Capabilities.BFloat16
-                        ? throw CLCapabilityContext.GetNotSupportedBFloat16Exception()
-                        :basicValueType == ArithmeticBasicValueType.Float16
-                         && !Capabilities.Float16
-                            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
+            ? throw CLCapabilityContext.GetNotSupportedFloat8E4M3Exception()
+            : basicValueType == ArithmeticBasicValueType.Float8E5M2
+            && !Capabilities.Float8E5M2
+            ? throw CLCapabilityContext.GetNotSupportedFloat8E5M2Exception()
+            : basicValueType == ArithmeticBasicValueType.BFloat16
+            && !Capabilities.BFloat16
+            ? throw CLCapabilityContext.GetNotSupportedBFloat16Exception()
+            :basicValueType == ArithmeticBasicValueType.Float16
+            && !Capabilities.Float16
+            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
             : basicValueType == ArithmeticBasicValueType.Float64
-              && !Capabilities.Float64
-                ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
-                : ArtihmeticTypeMapping[(int)basicValueType];
+            && !Capabilities.Float64
+            ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
+            : ArtihmeticTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves the given basic-value type to an atomic OpenCL type name.
@@ -168,19 +171,19 @@ namespace ILGPU.Backends.OpenCL
         public string? GetAtomicType(ArithmeticBasicValueType basicValueType) =>
             basicValueType == ArithmeticBasicValueType.Float8E4M3
             && !Capabilities.Float8E4M3
-                ? throw CLCapabilityContext.GetNotSupportedFloat8E4M3Exception()
-                :basicValueType == ArithmeticBasicValueType.Float8E5M2
-                 && !Capabilities.Float8E5M2
-                    ? throw CLCapabilityContext.GetNotSupportedFloat8E5M2Exception()
-                    : basicValueType == ArithmeticBasicValueType.BFloat16
-                      && !Capabilities.BFloat16
-                        ? throw CLCapabilityContext.GetNotSupportedBFloat16Exception()
-                        :basicValueType == ArithmeticBasicValueType.Float16
-                         && !Capabilities.Float16
+            ? throw CLCapabilityContext.GetNotSupportedFloat8E4M3Exception()
+            :basicValueType == ArithmeticBasicValueType.Float8E5M2
+            && !Capabilities.Float8E5M2
+            ? throw CLCapabilityContext.GetNotSupportedFloat8E5M2Exception()
+            : basicValueType == ArithmeticBasicValueType.BFloat16
+            && !Capabilities.BFloat16
+            ? throw CLCapabilityContext.GetNotSupportedBFloat16Exception()
+            :basicValueType == ArithmeticBasicValueType.Float16
+            && !Capabilities.Float16
             ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
             : basicValueType == ArithmeticBasicValueType.Float64
-              && !Capabilities.Float64
-                ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
+            && !Capabilities.Float64
+            ? throw CLCapabilityContext.GetNotSupportedFloat64Exception()
                 : AtomicTypeMapping[(int)basicValueType];
 
         /// <summary>
@@ -242,6 +245,13 @@ namespace ILGPU.Backends.OpenCL
                 {
                     continue;
                 }
+                else if ((basicValueType == BasicValueType.BFloat16 && !capabilities.BFloat16)
+                         || (basicValueType == BasicValueType.Float8E4M3 && !capabilities.Float8E4M3)
+                         || (basicValueType == BasicValueType.Float8E5M2&& !capabilities.Float8E5M2))
+                {
+                    continue;
+                }
+
 
                 var primitiveType = typeContext.GetPrimitiveType(basicValueType);
                 mapping[primitiveType] = GetBasicValueType(basicValueType);
