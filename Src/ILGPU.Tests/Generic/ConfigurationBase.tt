@@ -99,7 +99,8 @@ public sealed class TestConfig
     {
         "Debug",
         "Release",
-        "O2"
+        "O2",
+        "AOT"
     };
 
     private static string GetLevelConfig(string level, int index) =>

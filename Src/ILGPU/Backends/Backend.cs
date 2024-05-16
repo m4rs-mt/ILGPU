@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.IR;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
@@ -23,6 +24,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -610,7 +612,9 @@ namespace ILGPU.Backends
 
                 backendHook.FinishedCodeGeneration(mainContext, generatedKernelMethod);
             }
-            return generatedKernelMethod;
+            return ((backendHook is AOTRoundtripHook exporterHook) ?
+                exporterHook.MethodMapping?[generatedKernelMethod.Id] : generatedKernelMethod) ??
+                throw new InvalidOperationException("Generated kernel method could not be found!");
         }
 
         /// <summary>

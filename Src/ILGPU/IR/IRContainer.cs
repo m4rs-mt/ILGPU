@@ -31,6 +31,17 @@ namespace ILGPU.IR
         {
         }
 
+        private static ImmutableArray<long> GetNodeIds(Value value)
+        {
+            var nodeIds = new long[value.Count];
+            for (int i = 0; i < value.Count; i++)
+            {
+                nodeIds[i] = value[i].Id;
+            }
+
+            return nodeIds.ToImmutableArray();
+        }
+
         private readonly ConcurrentDictionary<long, IRMethod> methods;
         private readonly ConcurrentDictionary<long, IRValue> values;
         private readonly ConcurrentDictionary<long, IRType> types;
@@ -42,11 +53,38 @@ namespace ILGPU.IR
             types = new ConcurrentDictionary<long, IRType>();
         }
 
-        internal void Add(IRValue value) => values.TryAdd(value.Id, value);
+        internal void Add(Value value, ImmutableArray<long>? nodes = default, long data = default, string? tag = default)
+        {
+            values.TryAdd(value.Id, new IRValue
+            {
+                Method = value.Method.Id,
+                BasicBlock = (long?)(value.BasicBlock?.Id) ?? -1,
+                Id = value.Id,
+                ValueKind = value.ValueKind,
+                Type = value.Type.Id,
+                Nodes = nodes ?? GetNodeIds(value),
+                Data = data,
+                Tag = tag,
+            });
+
+            Add(value.Type);
+        }
 
         internal void Add(Method method)
         {
-            methods.TryAdd(method.Id, new(method.Id, method.Name, method.ReturnType.Id));
+            methods.TryAdd(method.Id, new IRMethod(
+                method.Id, method.Name,
+                method.ReturnType.Id,
+                method.Blocks
+                    .Select(x => (long)x.Id)
+                    .ToImmutableArray())
+                );
+
+            foreach (var parameter in method.Parameters)
+            {
+                Add(parameter, data: parameter.Index, tag: parameter.Name);
+            }
+
             Add(method.ReturnType);
         }
 
@@ -66,6 +104,10 @@ namespace ILGPU.IR
             {
                 types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Primitive,
                     ImmutableArray<NodeId>.Empty, type.BasicValueType, 0));
+            }
+            else if (type.IsPaddingType)
+            {
+                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Padding, [], type.BasicValueType, 0));
             }
             else if (type.IsPointerType)
             {
@@ -104,6 +146,9 @@ namespace ILGPU.IR
         /// Exports the wrapped data for external API consumption.
         /// </summary>
         /// <returns><see cref="Exported"/> instance containing flattened array representations of the IR value and type graphs, see <see cref="IRValue"/> and <see cref="IRType"/> respectively.</returns>
-        public Exported Export() => new (methods.Values.ToImmutableArray(), values.Values.ToImmutableArray(), types.Values.ToImmutableArray());
+        public Exported Export()
+        {
+            return new(methods.Values.ToImmutableArray(), values.Values.ToImmutableArray(), types.Values.ToImmutableArray());
+        }
     }
 }

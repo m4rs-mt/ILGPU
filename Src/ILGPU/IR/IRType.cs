@@ -63,6 +63,11 @@ namespace ILGPU.IR
             Primitive,
 
             /// <summary>
+            /// See <see cref="Types.PaddingType"/>
+            /// </summary>
+            Padding,
+
+            /// <summary>
             /// See <see cref="Types.PointerType"/>
             /// </summary>
             Pointer,

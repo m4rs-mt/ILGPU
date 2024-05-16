@@ -134,6 +134,11 @@ namespace ILGPU
         /// Expensive transformations.
         /// </summary>
         O2,
+
+        /// <summary>
+        /// Use AOT export.
+        /// </summary>
+        AOT
     }
 
     /// <summary>

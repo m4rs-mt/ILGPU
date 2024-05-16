@@ -139,8 +139,11 @@ namespace ILGPU.IR.Construction
             Value value)
         {
             location.Assert(
-                target.Type is PointerType pointerType &&
-                pointerType.ElementType == value.Type);
+                target.Type is AddressSpaceType targetAddrType &&
+                targetAddrType.ElementType == value.Type | (
+                value.Type is AddressSpaceType valueAddrType &&
+                targetAddrType.ElementType == valueAddrType.ElementType)
+                );
 
             return Append(new Store(
                 GetInitializer(location),

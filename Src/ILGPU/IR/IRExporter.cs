@@ -25,16 +25,7 @@ namespace ILGPU.IR
             Container = container;
         }
 
-        private static ImmutableArray<long> GetNodeIds(Value value)
-        {
-            var nodeIds = new long[value.Count];
-            for (int i = 0; i < value.Count; i++)
-            {
-                nodeIds[i] = value[i].Id;
-            }
-
-            return nodeIds.ToImmutableArray();
-        }
+        
 
         private static ImmutableArray<long> GetTargetIds(TerminatorValue value)
         {
@@ -47,26 +38,8 @@ namespace ILGPU.IR
             return nodeIds.ToImmutableArray();
         }
 
-        private void OnValueVisited(
-            Value value, ImmutableArray<NodeId>? nodes = default,
-            long data = default, string? tag = default)
-        {
-            Container?.Add(new IRValue
-            {
-                Method = value.Method.Id,
-                BasicBlock = value.BasicBlock.Id,
-                Id = value.Id,
-                ValueKind = value.ValueKind,
-                Type = value.Type.Id,
-                Nodes = nodes ?? GetNodeIds(value),
-                Data = data,
-                Tag = tag,
-            });
-
-            Container?.Add(value.Method);
-
-            Container?.Add(value.Type);
-        }
+        private void OnValueVisited(Value value, ImmutableArray<long>? nodes = default, long data = default, string? tag = default) =>
+            Container?.Add(value, nodes, data, tag);
 
         public void Visit(MethodCall methodCall) =>
             OnValueVisited(methodCall,
@@ -78,18 +51,22 @@ namespace ILGPU.IR
                 data: parameter.Index,
                 tag: parameter.Name);
 
-        public void Visit(PhiValue phiValue) =>
-            OnValueVisited(phiValue,
-                nodes: phiValue.Sources
-                    .ToImmutableArray()
-                    .Select(x => (long)x.Id)
-                    .Zip(phiValue.Nodes
-                        .ToImmutableArray()
+        public void Visit(PhiValue phiValue)
+        {
+            if (phiValue.IsSealed)
+            {
+                OnValueVisited(phiValue,
+                    nodes: phiValue.Sources.ToImmutableArray()
                         .Select(x => (long)x.Id)
-                        )
-                    .SelectMany<(long, long), long>(x => [x.Item1, x.Item2])
-                    .ToImmutableArray()
-                );
+                        .Zip(phiValue.Nodes
+                            .ToImmutableArray()
+                            .Select(x => (long)x.Id)
+                            )
+                        .SelectMany<(long, long), long>(x => [x.Item1, x.Item2])
+                        .ToImmutableArray()
+                    );
+            }
+        }
 
         public void Visit(UnaryArithmeticValue value) =>
             OnValueVisited(value,

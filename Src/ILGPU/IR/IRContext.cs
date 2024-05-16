@@ -56,7 +56,8 @@ namespace ILGPU.IR
                     null,
                     Location.Nowhere));
 
-            IRExporter = new IRExporter(forExport ? new IRContainer() : null);
+            IRExporter = new IRExporter(
+                forExport ? new IRContainer() : null);
         }
 
         #endregion
@@ -389,14 +390,10 @@ namespace ILGPU.IR
         /// Imports a previously exported <see cref="IRContainer"/>.
         /// </summary>
         /// <param name="container">The container, in export format.</param>
-        public void Import(IRContainer.Exported container)
+        public IReadOnlyDictionary<long, Method> Import(IRContainer.Exported container)
         {
             var importer = new IRImporter(container);
-            importer.ImportInto(this);
-            foreach (var method in Methods)
-            {
-                Verifier.Verify(method);
-            }
+            return importer.ImportInto(this);
         }
 
         /// <summary>
@@ -488,6 +485,11 @@ namespace ILGPU.IR
                     builder.Complete();
                 }
                 Verifier.Verify(targetMethod);
+            }
+
+            foreach (var (_, target) in targetMapping)
+            {
+                ExportContainer?.Add(target);
             }
 
             return targetMapping[source];

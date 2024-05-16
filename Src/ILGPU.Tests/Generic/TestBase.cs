@@ -16,6 +16,7 @@ using ILGPU.IR;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Xunit;
@@ -163,12 +164,15 @@ namespace ILGPU.Tests
                 arguments = newArguments;
             }
 
-            var hook = new IRExporterHook();
-            var compiled = backend.Compile(entryPoint, specialization, hook);
-            var container = hook.CurrentContext?.ExportContainer?.Export() ?? default;
-
-            // Test export/import
-            backend.Context.GetIRContext().Import(container);
+            CompiledKernel compiled;
+            if (Context.Properties.OptimizationLevel == OptimizationLevel.AOT)
+            {
+                compiled = backend.Compile(entryPoint, specialization, new AOTRoundtripHook());
+            }
+            else
+            {
+                compiled = backend.Compile(entryPoint, specialization);
+            }
 
             // Load the compiled kernel
             Output.WriteLine($"Loading '{kernel.Name}'");

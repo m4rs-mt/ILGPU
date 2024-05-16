@@ -23,7 +23,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Returns the number of known optimization levels.
         /// </summary>
-        public const int NumOptimizationLevels = 3;
+        public const int NumOptimizationLevels = 4;
 
         /// <summary>
         /// Internal mapping from optimization levels to handlers.
@@ -34,6 +34,7 @@ namespace ILGPU.IR.Transformations
                 AddO0Optimizations,
                 AddO1Optimizations,
                 AddO2Optimizations,
+                AddO1Optimizations,
             };
 
         /// <summary>
@@ -49,7 +50,7 @@ namespace ILGPU.IR.Transformations
             InliningMode inliningMode,
             OptimizationLevel level)
         {
-            if (level < OptimizationLevel.O0 || level > OptimizationLevel.O2)
+            if (level < OptimizationLevel.O0 || level > OptimizationLevel.AOT)
                 throw new ArgumentOutOfRangeException(nameof(level));
             OptimizationHandlers[(int)level](builder, inliningMode);
         }
