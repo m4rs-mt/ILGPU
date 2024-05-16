@@ -245,9 +245,13 @@ namespace ILGPU.Backends.OpenCL
                 {
                     continue;
                 }
-                else if ((basicValueType == BasicValueType.BFloat16 && !capabilities.BFloat16)
-                         || (basicValueType == BasicValueType.Float8E4M3 && !capabilities.Float8E4M3)
-                         || (basicValueType == BasicValueType.Float8E5M2&& !capabilities.Float8E5M2))
+                else
+                if ((basicValueType == BasicValueType.BFloat16
+                        && !capabilities.BFloat16)
+                    || (basicValueType == BasicValueType.Float8E4M3
+                        && !capabilities.Float8E4M3)
+                    || (basicValueType == BasicValueType.Float8E5M2
+                        && !capabilities.Float8E5M2))
                 {
                     continue;
                 }

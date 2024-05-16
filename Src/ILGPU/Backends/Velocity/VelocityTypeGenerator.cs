@@ -127,7 +127,8 @@ namespace ILGPU.Backends.IL
                 {
                     throw VelocityCapabilityContext.GetNotSupportedFloat8E4M3Exception();
                 }
-                if (primitiveType.BasicValueType == BasicValueType.Float8E5M2&& !parent.CapabilityContext.Float8E5M2)
+                if (primitiveType.BasicValueType == BasicValueType.Float8E5M2
+                    && !parent.CapabilityContext.Float8E5M2)
                 {
                     throw VelocityCapabilityContext.GetNotSupportedFloat8E5M2Exception();
                 }
