@@ -11,7 +11,6 @@
 
 using ILGPU.Backends;
 using ILGPU.Backends.EntryPoints;
-using ILGPU.Backends.IR;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
@@ -161,12 +160,7 @@ namespace ILGPU.Tests
                 Array.Copy(arguments, 1, newArguments, 0, newArguments.Length);
                 arguments = newArguments;
             }
-
-            var hook = new IRExporterHook();
-            var compiled = backend.Compile(entryPoint, specialization, hook);
-            var (valueArr, typeArr) = hook.CurrentContext?.ExportContainer?.Export() ?? default;
-
-            Output.WriteLine($"Compiled '{kernel.Name}' into {valueArr?.Length ?? 0} IRValues and {typeArr?.Length ?? 0} IRTypes");
+            var compiled = backend.Compile(entryPoint, specialization);
 
             // Load the compiled kernel
             Output.WriteLine($"Loading '{kernel.Name}'");
