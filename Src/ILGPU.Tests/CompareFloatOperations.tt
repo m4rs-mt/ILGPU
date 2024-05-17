@@ -45,7 +45,7 @@ var floatLimits = new (string, string)[]
     };
 #>
 
-#pragma warning disable IDE0047 // Remove unnecessary parentheses
+//#pragma warning disable IDE0047 // Remove unnecessary parentheses
 
 namespace ILGPU.Tests
 {
@@ -63,7 +63,7 @@ namespace ILGPU.Tests
            bool isFP852 = type == FloatTypes[1];
            bool isBFP16 = type == FloatTypes[2];
            bool isFP16 = type == FloatTypes[3]; #>
-<#         var floatRanges = GetFloatRanges(type, true, true, true, false); #>
+<#         var floatRanges = GetFloatRanges(type, true, true, type!=FloatTypes[0], false); #>
 <#         var baseName = "_" + operationName + "_" + type.Name; #>
 <#         var testName = "CompareOperation" + baseName; #>
 <#         var kernelName = "CompareOperationKernel" + testName; #>
@@ -133,6 +133,7 @@ namespace ILGPU.Tests
 <#      bool isBFP16 = type == FloatTypes[2]; #>
 <#      bool isFP16 = type == FloatTypes[3]; #>
 <#      foreach (var (limitName, limitFormat) in floatLimits) { #>
+<#          if (limitName.Contains("Infinity") && type == FloatTypes[0]) continue; #>
 <#          var baseName = "_" + limitName + "_" + type.Name; #>
 <#          var testName = "Constant" + baseName; #>
 <#          var kernelName = "ConstantKernel" + testName; #>
@@ -186,4 +187,5 @@ namespace ILGPU.Tests
     }
 }
 
-#pragma warning restore IDE0047 // Remove unnecessary parentheses
+
+//#pragma warning restore IDE0047 // Remove unnecessary parentheses

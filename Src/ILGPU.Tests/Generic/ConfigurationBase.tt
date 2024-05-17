@@ -25,7 +25,6 @@ public static IEnumerable<string> GetFloatRanges(
     bool useNaN = true)
 {
     var isFloat = type == FloatTypes[4];
-    useInfinity = useInfinity && type != FloatTypes[0];
     var pi = isFloat ? "MathF.PI" : "Math.PI";
     IEnumerable<string> result = new string[]
         {
