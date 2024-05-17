@@ -1,10 +1,20 @@
-﻿using ILGPU.IR.Types;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: IRImporter.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
 namespace ILGPU.IR
@@ -18,35 +28,6 @@ namespace ILGPU.IR
         private readonly ConcurrentDictionary<long, Method.Builder> methods;
         private readonly ConcurrentDictionary<long, BasicBlock.Builder> blocks;
         private readonly ConcurrentDictionary<long, Value> values;
-
-        public static IEnumerable<T> TSort<T>(IEnumerable<T> source, Func<T, IEnumerable<T>> dependencies, bool throwOnCycle = false)
-        {
-            var sorted = new List<T>();
-            var visited = new HashSet<T>();
-
-            foreach (var item in source)
-                Visit(item, visited, sorted, dependencies, throwOnCycle);
-
-            return sorted;
-        }
-
-        private static void Visit<T>(T item, HashSet<T> visited, List<T> sorted, Func<T, IEnumerable<T>> dependencies, bool throwOnCycle)
-        {
-            if (!visited.Contains(item))
-            {
-                visited.Add(item);
-
-                foreach (var dep in dependencies(item))
-                    Visit(dep, visited, sorted, dependencies, throwOnCycle);
-
-                sorted.Add(item);
-            }
-            else
-            {
-                if (throwOnCycle && !sorted.Contains(item))
-                    throw new Exception("Cyclic dependency found");
-            }
-        }
 
         public IRImporter(IRContainer.Exported container)
         {
@@ -79,19 +60,24 @@ namespace ILGPU.IR
                                 types.TryAdd(type.Id, context.StringType);
                                 break;
                             case IRType.Classifier.Primitive:
-                                types.TryAdd(type.Id, context.GetPrimitiveType(type.BasicValueType));
+                                types.TryAdd(type.Id,
+                                    context.GetPrimitiveType(type.BasicValueType));
                                 break;
                             case IRType.Classifier.Padding:
-                                types.TryAdd(type.Id, context.TypeContext.GetPaddingType(type.BasicValueType));
+                                types.TryAdd(type.Id, context.TypeContext
+                                    .GetPaddingType(type.BasicValueType));
                                 break;
                             case IRType.Classifier.Pointer:
-                                types.TryAdd(type.Id, context.CreatePointerType(types[type.Nodes[0]], (MemoryAddressSpace)type.Data));
+                                types.TryAdd(type.Id, context.CreatePointerType(
+                                    types[type.Nodes[0]], (MemoryAddressSpace)type.Data));
                                 break;
                             case IRType.Classifier.View:
-                                types.TryAdd(type.Id, context.CreateViewType(types[type.Nodes[0]], (MemoryAddressSpace)type.Data));
+                                types.TryAdd(type.Id, context.CreateViewType(
+                                    types[type.Nodes[0]], (MemoryAddressSpace)type.Data));
                                 break;
                             case IRType.Classifier.Array:
-                                types.TryAdd(type.Id, context.CreateArrayType(types[type.Nodes[0]], (int)type.Data));
+                                types.TryAdd(type.Id, context.CreateArrayType(
+                                    types[type.Nodes[0]], (int)type.Data));
                                 break;
                             case IRType.Classifier.Structure:
                                 var builder = context.CreateStructureType();
@@ -109,15 +95,21 @@ namespace ILGPU.IR
 
             foreach (var method in container.Methods)
             {
-                var irMethod = context.Declare(new MethodDeclaration(new MethodHandle(method.Id, method.Name), types[method.ReturnType]), out bool created);
+                var irMethod = context.Declare(
+                    new MethodDeclaration(
+                        new MethodHandle(method.Id, method.Name),
+                        types[method.ReturnType]),
+                    out bool created);
                 methods.TryAdd(method.Id, irMethod.CreateBuilder());
 
-                irMethod.EntryBlock.GetOrCreateBuilder(irMethod.MethodBuilder, out BasicBlock.Builder entryBuilder);
+                irMethod.EntryBlock.GetOrCreateBuilder(irMethod.MethodBuilder,
+                    out BasicBlock.Builder entryBuilder);
                 blocks.TryAdd(method.Blocks[0], entryBuilder);
 
                 foreach (var block in method.Blocks.Skip(1))
                 {
-                    var builder = irMethod.MethodBuilder.CreateBasicBlock(Location.Unknown);
+                    var builder = irMethod.MethodBuilder
+                        .CreateBasicBlock(Location.Unknown);
                     blocks.TryAdd(block, builder);
                 }
             }
@@ -131,10 +123,11 @@ namespace ILGPU.IR
                     try
                     {
                         Value irValue;
-                        if (value.BasicBlock < 0 && value.ValueKind == ValueKind.Parameter)
+                        if (value.ValueKind == ValueKind.Parameter)
                         {
                             // CASE: ValueKind.Parameter
-                            irValue = methods[value.Method].AddParameter(types[value.Type], value.Tag);
+                            irValue = methods[value.Method].AddParameter(
+                                types[value.Type], value.Tag);
                         }
                         else
                         {
@@ -142,7 +135,8 @@ namespace ILGPU.IR
                             switch (value.ValueKind)
                             {
                                 case ValueKind.MethodCall:
-                                    var call = builder.CreateCall(Location.Unknown, methods[value.Data].Method);
+                                    var call = builder.CreateCall(Location.Unknown,
+                                        methods[value.Data].Method);
                                     foreach (var arg in value.Nodes)
                                     {
                                         call.Add(values[arg]);
@@ -150,13 +144,16 @@ namespace ILGPU.IR
                                     irValue = call.Seal();
                                     break;
                                 case ValueKind.Phi:
-                                    var phi = builder.CreatePhi(Location.Unknown, types[value.Type]);
+                                    var phi = builder.CreatePhi(
+                                        Location.Unknown,
+                                        types[value.Type]);
                                     irValue = phi.PhiValue;
                                     phiBuilders.Add((value, phi));
                                     break;
                                 case ValueKind.UnaryArithmetic:
                                     irValue = builder.CreateArithmetic(Location.Unknown,
-                                        values[value.Nodes[0]], (UnaryArithmeticKind)value.Data);
+                                        values[value.Nodes[0]],
+                                        (UnaryArithmeticKind)value.Data);
                                     break;
                                 case ValueKind.BinaryArithmetic:
                                     irValue = builder.CreateArithmetic(Location.Unknown,
@@ -165,96 +162,99 @@ namespace ILGPU.IR
                                     break;
                                 case ValueKind.TernaryArithmetic:
                                     irValue = builder.CreateArithmetic(Location.Unknown,
-                                        values[value.Nodes[0]], values[value.Nodes[1]], values[value.Nodes[2]],
+                                        values[value.Nodes[0]],
+                                        values[value.Nodes[1]],
+                                        values[value.Nodes[2]],
                                         (TernaryArithmeticKind)value.Data);
                                     break;
                                 case ValueKind.Compare:
                                     irValue = builder.CreateCompare(Location.Unknown,
                                         values[value.Nodes[0]], values[value.Nodes[1]],
-                                        (CompareKind)(value.Data >> 32), (CompareFlags)value.Data
+                                        (CompareKind)(value.Data >> 32),
+                                        (CompareFlags)value.Data
                                         );
                                     break;
                                 case ValueKind.Convert:
-                                    if (types[value.Type].IsPrimitiveType)
-                                    {
-                                        irValue = builder.CreateConvert(Location.Unknown,
-                                            values[value.Nodes[0]], types[value.Type].BasicValueType
-                                            );
-                                    }
-                                    else
-                                    {
-                                        irValue = builder.CreateConvert(Location.Unknown,
+                                    irValue = types[value.Type].IsPrimitiveType
+                                        ? (Value)builder.CreateConvert(Location.Unknown,
+                                            values[value.Nodes[0]], types[value.Type]
+                                            .BasicValueType)
+                                        : (Value)builder.CreateConvert(Location.Unknown,
                                             values[value.Nodes[0]], types[value.Type],
                                             (ConvertFlags)value.Data
                                             );
-                                    }
                                     break;
                                 case ValueKind.IntAsPointerCast:
-                                    irValue = builder.CreateIntAsPointerCast(Location.Unknown,
-                                        values[value.Nodes[0]]);
+                                    irValue = builder.CreateIntAsPointerCast(
+                                        Location.Unknown, values[value.Nodes[0]]);
                                     break;
                                 case ValueKind.PointerAsIntCast:
-                                    irValue = builder.CreatePointerAsIntCast(Location.Unknown,
-                                        values[value.Nodes[0]], types[value.Type].BasicValueType);
+                                    irValue = builder.CreatePointerAsIntCast(
+                                        Location.Unknown,
+                                        values[value.Nodes[0]],
+                                        types[value.Type].BasicValueType);
                                     break;
                                 case ValueKind.PointerCast:
                                     irValue = builder.CreatePointerCast(Location.Unknown,
-                                        values[value.Nodes[0]],
-                                        ((AddressSpaceType)types[value.Type]).ElementType);
+                                        values[value.Nodes[0]], ((AddressSpaceType)
+                                        types[value.Type]).ElementType);
                                     break;
                                 case ValueKind.AddressSpaceCast:
-                                    irValue = builder.CreateAddressSpaceCast(Location.Unknown,
-                                        values[value.Nodes[0]], (MemoryAddressSpace)value.Data);
+                                    irValue = builder.CreateAddressSpaceCast(
+                                        Location.Unknown, values[value.Nodes[0]],
+                                        (MemoryAddressSpace)value.Data);
                                     break;
                                 case ValueKind.ViewCast:
                                     irValue = builder.CreateViewCast(Location.Unknown,
-                                        values[value.Nodes[0]],
-                                        ((AddressSpaceType)types[value.Type]).ElementType);
+                                        values[value.Nodes[0]], ((AddressSpaceType)
+                                        types[value.Type]).ElementType);
                                     break;
                                 case ValueKind.ArrayToViewCast:
-                                    irValue = builder.CreateArrayToViewCast(Location.Unknown,
+                                    irValue = builder.CreateArrayToViewCast(
+                                        Location.Unknown,
                                         values[value.Nodes[0]]);
                                     break;
                                 case ValueKind.FloatAsIntCast:
-                                    irValue = builder.CreateFloatAsIntCast(Location.Unknown,
-                                        values[value.Nodes[0]]);
+                                    irValue = builder.CreateFloatAsIntCast(
+                                        Location.Unknown, values[value.Nodes[0]]);
                                     break;
                                 case ValueKind.IntAsFloatCast:
-                                    irValue = builder.CreateIntAsFloatCast(Location.Unknown,
-                                        values[value.Nodes[0]]);
+                                    irValue = builder.CreateIntAsFloatCast(
+                                        Location.Unknown, values[value.Nodes[0]]);
                                     break;
                                 case ValueKind.Predicate:
                                     irValue = builder.CreatePredicate(Location.Unknown,
-                                        values[value.Nodes[0]], values[value.Nodes[1]], values[value.Nodes[2]]);
+                                        values[value.Nodes[0]],
+                                        values[value.Nodes[1]],
+                                        values[value.Nodes[2]]);
                                     break;
                                 case ValueKind.GenericAtomic:
                                     irValue = builder.CreateAtomic(Location.Unknown,
                                         values[value.Nodes[0]], values[value.Nodes[1]],
-                                        (AtomicKind)(value.Data >> 32), (AtomicFlags)value.Data);
+                                        (AtomicKind)(value.Data >> 32),
+                                        (AtomicFlags)value.Data);
                                     break;
                                 case ValueKind.AtomicCAS:
                                     irValue = builder.CreateAtomicCAS(Location.Unknown,
-                                        values[value.Nodes[0]], values[value.Nodes[1]], values[value.Nodes[2]],
+                                        values[value.Nodes[0]],
+                                        values[value.Nodes[1]],
+                                        values[value.Nodes[2]],
                                         (AtomicFlags)value.Data);
                                     break;
                                 case ValueKind.Alloca:
-                                    if (value.Nodes.Length > 0 && values.TryGetValue(value.Nodes[0], out Value? allocaLen))
-                                    {
-                                        irValue = builder.CreateAlloca(Location.Unknown,
-                                            ((AddressSpaceType)types[value.Type]).ElementType,
-                                            (MemoryAddressSpace)value.Data,
-                                            allocaLen);
-                                    }
-                                    else
-                                    {
-                                        irValue = builder.CreateAlloca(Location.Unknown,
-                                            ((AddressSpaceType)types[value.Type]).ElementType,
-                                            (MemoryAddressSpace)value.Data);
-                                    }
+                                    irValue = values.TryGetValue(
+                                            value.Nodes[0], out Value? allocaLen)
+                                        ? (Value)builder.CreateAlloca(Location.Unknown,
+                                            ((AddressSpaceType)types[value.Type])
+                                            .ElementType, (MemoryAddressSpace)value.Data,
+                                            allocaLen)
+                                        : (Value)builder.CreateAlloca(Location.Unknown,
+                                            ((AddressSpaceType)types[value.Type])
+                                            .ElementType, (MemoryAddressSpace)value.Data);
                                     break;
                                 case ValueKind.MemoryBarrier:
-                                    irValue = builder.CreateMemoryBarrier(Location.Unknown,
-                                        (MemoryBarrierKind)value.Data);
+                                    irValue = builder.CreateMemoryBarrier(
+                                        Location.Unknown, (MemoryBarrierKind)value.Data);
                                     break;
                                 case ValueKind.Load:
                                     irValue = builder.CreateLoad(Location.Unknown,
@@ -265,15 +265,22 @@ namespace ILGPU.IR
                                         values[value.Nodes[0]], values[value.Nodes[1]]);
                                     break;
                                 case ValueKind.SubView:
-                                    irValue = builder.CreateSubViewValue(Location.Unknown,
-                                        values[value.Nodes[0]], values[value.Nodes[1]], values[value.Nodes[2]]);
+                                    irValue = builder.CreateSubViewValue(
+                                        Location.Unknown,
+                                        values[value.Nodes[0]],
+                                        values[value.Nodes[1]],
+                                        values[value.Nodes[2]]);
                                     break;
                                 case ValueKind.LoadElementAddress:
-                                    irValue = builder.CreateLoadElementAddress(Location.Unknown,
-                                        values[value.Nodes[0]], values[value.Nodes[1]]);
+                                    irValue = builder.CreateLoadElementAddress(
+                                        Location.Unknown,
+                                        values[value.Nodes[0]],
+                                        values[value.Nodes[1]]);
                                     break;
                                 case ValueKind.LoadArrayElementAddress:
-                                    var loadArrElem = builder.CreateLoadArrayElementAddress(Location.Unknown,
+                                    var loadArrElem = builder
+                                        .CreateLoadArrayElementAddress(
+                                        Location.Unknown,
                                         values[value.Nodes[0]]);
                                     foreach (var dim in value.Nodes.Skip(1))
                                     {
@@ -282,16 +289,19 @@ namespace ILGPU.IR
                                     irValue = loadArrElem.Seal();
                                     break;
                                 case ValueKind.LoadFieldAddress:
-                                    irValue = builder.CreateLoadFieldAddress(Location.Unknown,
-                                        values[value.Nodes[0]], new FieldSpan((int)(value.Data >> 32), (int)value.Data));
+                                    irValue = builder.CreateLoadFieldAddress(
+                                        Location.Unknown, values[value.Nodes[0]],
+                                        new FieldSpan((int)(value.Data >> 32),
+                                        (int)value.Data));
                                     break;
                                 case ValueKind.NewView:
                                     irValue = builder.CreateNewView(Location.Unknown,
                                         values[value.Nodes[0]], values[value.Nodes[1]]);
                                     break;
                                 case ValueKind.GetViewLength:
-                                    irValue = builder.CreateGetViewLength(Location.Unknown,
-                                        values[value.Nodes[0]], types[value.Type].BasicValueType);
+                                    irValue = builder.CreateGetViewLength(
+                                        Location.Unknown, values[value.Nodes[0]],
+                                        types[value.Type].BasicValueType);
                                     break;
                                 case ValueKind.AlignTo:
                                     irValue = builder.CreateAlignTo(Location.Unknown,
@@ -311,32 +321,37 @@ namespace ILGPU.IR
                                     irValue = newArr.Seal();
                                     break;
                                 case ValueKind.GetArrayLength:
-                                    if (value.Nodes.Length > 1 && values.TryGetValue(value.Nodes[1], out Value? lenDimValue))
-                                    {
-                                        irValue = builder.CreateGetArrayLength(Location.Unknown,
-                                            values[value.Nodes[0]], values[value.Nodes[1]]);
-                                    }
-                                    else
-                                    {
-                                        irValue = builder.CreateGetArrayLength(Location.Unknown,
+                                    irValue = value.Nodes.Length > 1 && values
+                                            .TryGetValue(value.Nodes[1],
+                                            out Value? lenDimValue)
+                                        ? (Value)builder.CreateGetArrayLength(
+                                            Location.Unknown,
+                                            values[value.Nodes[0]],
+                                            values[value.Nodes[1]])
+                                        : (Value)builder.CreateGetArrayLength(
+                                            Location.Unknown,
                                             values[value.Nodes[0]]);
-                                    }
                                     break;
                                 case ValueKind.Primitive:
-                                    irValue = builder.CreatePrimitiveValue(Location.Unknown,
-                                        types[value.Type].BasicValueType, value.Data);
+                                    irValue = builder.CreatePrimitiveValue(
+                                        Location.Unknown,
+                                        types[value.Type].BasicValueType,
+                                        value.Data);
                                     break;
                                 case ValueKind.String:
-                                    irValue = builder.CreatePrimitiveValue(Location.Unknown,
-                                        value.Tag ?? string.Empty, Encoding.GetEncoding((int)value.Data));
+                                    irValue = builder.CreatePrimitiveValue(
+                                        Location.Unknown,
+                                        value.Tag ?? string.Empty,
+                                        Encoding.GetEncoding((int)value.Data));
                                     break;
                                 case ValueKind.Null:
                                     irValue = builder.CreateNull(Location.Unknown,
                                         types[value.Type]);
                                     break;
                                 case ValueKind.Structure:
-                                    var @struct = builder.CreateStructure(Location.Unknown,
-                                        (StructureType)types[value.Type]);
+                                    var @struct = builder.CreateStructure(
+                                        Location.Unknown, (StructureType)
+                                        types[value.Type]);
                                     foreach (var field in value.Nodes)
                                     {
                                         @struct.Add(values[field]);
@@ -345,44 +360,57 @@ namespace ILGPU.IR
                                     break;
                                 case ValueKind.GetField:
                                     irValue = builder.CreateGetField(Location.Unknown,
-                                        values[value.Nodes[0]], new FieldSpan((int)(value.Data >> 32), (int)value.Data));
+                                        values[value.Nodes[0]], new FieldSpan(
+                                            (int)(value.Data >> 32), (int)value.Data));
                                     break;
                                 case ValueKind.SetField:
                                     irValue = builder.CreateSetField(Location.Unknown,
-                                        values[value.Nodes[0]], new FieldSpan((int)(value.Data >> 32), (int)value.Data), values[value.Nodes[1]]);
+                                        values[value.Nodes[0]], new FieldSpan(
+                                            (int)(value.Data >> 32), (int)value.Data),
+                                        values[value.Nodes[1]]);
                                     break;
                                 case ValueKind.AcceleratorType:
-                                    irValue = builder.CreateAcceleratorTypeValue(Location.Unknown);
+                                    irValue = builder.CreateAcceleratorTypeValue(
+                                        Location.Unknown);
                                     break;
                                 case ValueKind.GridIndex:
-                                    irValue = builder.CreateGridIndexValue(Location.Unknown,
+                                    irValue = builder.CreateGridIndexValue(
+                                        Location.Unknown,
                                         (DeviceConstantDimension3D)value.Data);
                                     break;
                                 case ValueKind.GroupIndex:
-                                    irValue = builder.CreateGroupIndexValue(Location.Unknown,
+                                    irValue = builder.CreateGroupIndexValue(
+                                        Location.Unknown,
                                         (DeviceConstantDimension3D)value.Data);
                                     break;
                                 case ValueKind.GridDimension:
-                                    irValue = builder.CreateGridDimensionValue(Location.Unknown,
+                                    irValue = builder.CreateGridDimensionValue(
+                                        Location.Unknown,
                                         (DeviceConstantDimension3D)value.Data);
                                     break;
                                 case ValueKind.GroupDimension:
-                                    irValue = builder.CreateGroupDimensionValue(Location.Unknown,
+                                    irValue = builder.CreateGroupDimensionValue(
+                                        Location.Unknown,
                                         (DeviceConstantDimension3D)value.Data);
                                     break;
                                 case ValueKind.WarpSize:
-                                    irValue = builder.CreateWarpSizeValue(Location.Unknown);
+                                    irValue = builder.CreateWarpSizeValue(
+                                        Location.Unknown);
                                     break;
                                 case ValueKind.LaneIdx:
-                                    irValue = builder.CreateLaneIdxValue(Location.Unknown);
+                                    irValue = builder.CreateLaneIdxValue(
+                                        Location.Unknown);
                                     break;
                                 case ValueKind.DynamicMemoryLength:
-                                    irValue = builder.CreateDynamicMemoryLengthValue(Location.Unknown,
-                                        types[value.Type], (MemoryAddressSpace)value.Data);
+                                    irValue = builder.CreateDynamicMemoryLengthValue(
+                                        Location.Unknown, types[value.Type],
+                                        (MemoryAddressSpace)value.Data);
                                     break;
                                 case ValueKind.PredicateBarrier:
-                                    irValue = builder.CreateBarrier(Location.Unknown,
-                                        values[value.Nodes[0]], (PredicateBarrierKind)value.Data);
+                                    irValue = builder.CreateBarrier(
+                                        Location.Unknown,
+                                        values[value.Nodes[0]],
+                                        (PredicateBarrierKind)value.Data);
                                     break;
                                 case ValueKind.Barrier:
                                     irValue = builder.CreateBarrier(Location.Unknown,
@@ -400,15 +428,17 @@ namespace ILGPU.IR
                                     break;
                                 case ValueKind.SubWarpShuffle:
                                     irValue = builder.CreateShuffle(Location.Unknown,
-                                        values[value.Nodes[0]], values[value.Nodes[1]], values[value.Nodes[2]],
+                                        values[value.Nodes[0]],
+                                        values[value.Nodes[1]],
+                                        values[value.Nodes[2]],
                                         (ShuffleKind)value.Data);
                                     break;
                                 case ValueKind.Undefined:
                                     irValue = builder.CreateUndefined();
                                     break;
                                 case ValueKind.Handle:
-                                    irValue = builder.CreateRuntimeHandle(Location.Unknown,
-                                        new object());
+                                    irValue = builder.CreateRuntimeHandle(
+                                        Location.Unknown, new object());
                                     break;
                                 case ValueKind.DebugAssert:
                                     irValue = builder.CreateDebugAssert(Location.Unknown,
@@ -425,9 +455,11 @@ namespace ILGPU.IR
                                     }
                                     catch (KeyNotFoundException)
                                     {
-                                        if (methods[value.Method].Method.ReturnType.IsVoidType)
+                                        if (methods[value.Method].Method
+                                            .ReturnType.IsVoidType)
                                         {
-                                            irValue = builder.CreateReturn(Location.Unknown);
+                                            irValue = builder.CreateReturn(
+                                                Location.Unknown);
                                         }
                                         else
                                         {
@@ -441,11 +473,14 @@ namespace ILGPU.IR
                                     break;
                                 case ValueKind.IfBranch:
                                     irValue = builder.CreateIfBranch(Location.Unknown,
-                                        values[value.Nodes[0]], blocks[value.Nodes[1]], blocks[value.Nodes[2]],
+                                        values[value.Nodes[0]],
+                                        blocks[value.Nodes[1]],
+                                        blocks[value.Nodes[2]],
                                         (IfBranchFlags)value.Data);
                                     break;
                                 case ValueKind.SwitchBranch:
-                                    var switchBr = builder.CreateSwitchBranch(Location.Unknown,
+                                    var switchBr = builder.CreateSwitchBranch(
+                                        Location.Unknown,
                                         values[value.Nodes[0]]);
                                     foreach (var target in value.Nodes.Skip(1))
                                     {
@@ -457,7 +492,8 @@ namespace ILGPU.IR
                                     irValue = builder.CreateUndefined();
                                     break;
                                 default:
-                                    throw new InvalidOperationException($"Cannot import {value.ValueKind}!");
+                                    throw new InvalidOperationException(
+                                        $"Cannot import {value.ValueKind}!");
                             }
                         }
 

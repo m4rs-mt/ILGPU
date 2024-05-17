@@ -10,12 +10,14 @@ namespace ILGPU.Backends.IR
     public sealed class AOTRoundtripHook : IBackendHook
     {
         /// <summary>
-        /// Returns the <see cref="IRContext"/> instance used to duplicate the original IR. 
+        /// Returns the <see cref="IRContext"/> instance
+        /// used to duplicate the original IR. 
         /// </summary>
         public IRContext? ImportContext { get; private set; }
 
         /// <summary>
-        /// Contains the mapping between stale <see cref="Method"/> IDs and their fresh counterparts.
+        /// Contains the mapping between stale <see cref="Method"/>
+        /// IDs and their fresh counterparts.
         /// </summary>
         public IReadOnlyDictionary<long, Method>? MethodMapping { get; private set; }
 
@@ -32,13 +34,18 @@ namespace ILGPU.Backends.IR
 
             context.ClearCache(ClearCacheMode.Everything);
 
-            var newMapping = context.Import(ImportContext.ExportContainer?.Export() ?? default);
+            var newMapping = context.Import(ImportContext
+                .ExportContainer?.Export() ?? default);
 
             MethodMapping = newMapping.Where(x => oldMapping.ContainsKey(x.Key)).
                 ToDictionary(x => oldMapping[x.Key], x => x.Value);
         }
 
-        void IBackendHook.InitializedKernelContext(IRContext kernelContext, Method kernelMethod) { }
-        void IBackendHook.OptimizedKernelContext(IRContext kernelContext, Method kernelMethod) { }
+        void IBackendHook.InitializedKernelContext(
+            IRContext kernelContext,
+            Method kernelMethod) { }
+        void IBackendHook.OptimizedKernelContext(
+            IRContext kernelContext,
+            Method kernelMethod) { }
     }
 }

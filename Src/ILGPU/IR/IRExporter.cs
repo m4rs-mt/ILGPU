@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2024 ILGPU Project
+//                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRExporter.cs
@@ -38,7 +38,9 @@ namespace ILGPU.IR
             return nodeIds.ToImmutableArray();
         }
 
-        private void OnValueVisited(Value value, ImmutableArray<long>? nodes = default, long data = default, string? tag = default) =>
+        private void OnValueVisited(Value value,
+            ImmutableArray<long>? nodes = default,
+            long data = default, string? tag = default) =>
             Container?.Add(value, nodes, data, tag);
 
         public void Visit(MethodCall methodCall) =>

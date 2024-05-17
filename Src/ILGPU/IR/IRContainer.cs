@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2024 ILGPU Project
+//                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRContainer.cs
@@ -22,12 +22,16 @@ namespace ILGPU.IR
     public class IRContainer
     {
         /// <summary>
-        /// Represents an immutable, exported version of an <see cref="IRContainer"/> context.
+        /// Represents an immutable, exported version
+        /// of an <see cref="IRContainer"/> context.
         /// </summary>
         /// <param name="Methods">Collection of <see cref="IRMethod"/> instances</param>
         /// <param name="Values">Collection of <see cref="IRValue"/> instances</param>
         /// <param name="Types">Collection of <see cref="IRType"/> instances</param>
-        public record struct Exported(ImmutableArray<IRMethod> Methods, ImmutableArray<IRValue> Values, ImmutableArray<IRType> Types)
+        public record struct Exported(
+            ImmutableArray<IRMethod> Methods,
+            ImmutableArray<IRValue> Values,
+            ImmutableArray<IRType> Types)
         {
         }
 
@@ -53,7 +57,8 @@ namespace ILGPU.IR
             types = new ConcurrentDictionary<long, IRType>();
         }
 
-        internal void Add(Value value, ImmutableArray<long>? nodes = default, long data = default, string? tag = default)
+        internal void Add(Value value, ImmutableArray<long>? nodes = default,
+            long data = default, string? tag = default)
         {
             values.TryAdd(value.Id, new IRValue
             {
@@ -107,7 +112,8 @@ namespace ILGPU.IR
             }
             else if (type.IsPaddingType)
             {
-                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Padding, [], type.BasicValueType, 0));
+                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Padding,
+                    default, type.BasicValueType, 0));
             }
             else if (type.IsPointerType)
             {
@@ -145,10 +151,15 @@ namespace ILGPU.IR
         /// <summary>
         /// Exports the wrapped data for external API consumption.
         /// </summary>
-        /// <returns><see cref="Exported"/> instance containing flattened array representations of the IR value and type graphs, see <see cref="IRValue"/> and <see cref="IRType"/> respectively.</returns>
-        public Exported Export()
-        {
-            return new(methods.Values.ToImmutableArray(), values.Values.ToImmutableArray(), types.Values.ToImmutableArray());
-        }
+        /// <returns>
+        /// <see cref="Exported"/> instance containing flattened
+        /// array representations of the IR value and type graphs, see
+        /// <see cref="IRValue"/> and <see cref="IRType"/>
+        /// respectively.
+        /// </returns>
+        public Exported Export() => new Exported(
+            methods.Values.ToImmutableArray(),
+            values.Values.ToImmutableArray(),
+            types.Values.ToImmutableArray());
     }
 }
