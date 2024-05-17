@@ -37,48 +37,48 @@ namespace ILGPU.IR
             if (type.IsVoidType)
             {
                 types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Void,
-                    default, type.BasicValueType, 0));
+                    ImmutableArray<NodeId>.Empty, type.BasicValueType, 0));
             }
             else if (type.IsStringType)
             {
                 types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.String,
-                    default, type.BasicValueType, 0));
+                    ImmutableArray<NodeId>.Empty, type.BasicValueType, 0));
             }
             else if (type.IsPrimitiveType)
             {
                 types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Primitive,
-                    default, type.BasicValueType, 0));
+                    ImmutableArray<NodeId>.Empty, type.BasicValueType, 0));
             }
             else if (type.IsPointerType)
             {
-                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Pointer,
-                    new ImmutableArray<NodeId>() { ((PointerType)type).ElementType.Id },
-                    type.BasicValueType, (long)((PointerType)type).AddressSpace));
                 Add(((PointerType)type).ElementType);
+                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Pointer,
+                    ImmutableArray.Create(((PointerType)type).ElementType.Id),
+                    type.BasicValueType, (long)((PointerType)type).AddressSpace));
             }
             else if (type.IsViewType)
             {
-                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.View,
-                    new ImmutableArray<NodeId>() { ((ViewType)type).ElementType.Id },
-                    type.BasicValueType, (long)((ViewType)type).AddressSpace));
                 Add(((ViewType)type).ElementType);
+                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.View,
+                    ImmutableArray.Create(((ViewType)type).ElementType.Id),
+                    type.BasicValueType, (long)((ViewType)type).AddressSpace));
             }
             else if (type.IsArrayType)
             {
-                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Array,
-                    new ImmutableArray<NodeId>() { ((ArrayType)type).ElementType.Id },
-                    type.BasicValueType, ((ArrayType)type).NumDimensions));
                 Add(((ArrayType)type).ElementType);
+                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Array,
+                    ImmutableArray.Create(((ArrayType)type).ElementType.Id),
+                    type.BasicValueType, ((ArrayType)type).NumDimensions));
             }
             else if (type.IsStructureType)
             {
-                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Structure,
-                    ((StructureType)type).Fields.Select(t => t.Id).ToImmutableArray(),
-                    type.BasicValueType, 0));
                 foreach (var fieldType in ((StructureType)type).Fields)
                 {
                     Add(fieldType);
                 }
+                types.TryAdd(type.Id, new IRType(type.Id, IRType.Classifier.Structure,
+                    ((StructureType)type).Fields.Select(t => t.Id).ToImmutableArray(),
+                    type.BasicValueType, 0));
             }
         }
 
