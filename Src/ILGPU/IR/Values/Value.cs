@@ -693,7 +693,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="other">The other value.</param>
         /// <returns>True, if the given value is the same value.</returns>
-        public bool Equals(Value? other) => other == this;
+        public bool Equals(Value? other) => other?.Id == Id;
 
         #endregion
 
@@ -736,13 +736,13 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current value.</returns>
-        public override bool Equals(object? obj) => obj == this;
+        public override bool Equals(object? obj) => obj is Value value && value.Id == Id;
 
         /// <summary>
         /// Returns the hash code of this value.
         /// </summary>
         /// <returns>The hash code of this value.</returns>
-        public override int GetHashCode() => base.GetHashCode();
+        public override int GetHashCode() => HashCode.Combine(Id);
 
         #endregion
     }
