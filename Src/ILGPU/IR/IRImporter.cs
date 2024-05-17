@@ -19,7 +19,7 @@ using System.Text;
 
 namespace ILGPU.IR
 {
-    internal sealed class IRImporter
+    internal sealed class IRImporter : IDisposable
     {
         private readonly IRContainer.Exported container;
 
@@ -28,6 +28,8 @@ namespace ILGPU.IR
         private readonly ConcurrentDictionary<long, Method.Builder> methods;
         private readonly ConcurrentDictionary<long, BasicBlock.Builder> blocks;
         private readonly ConcurrentDictionary<long, Value> values;
+
+        private bool disposedValue;
 
         public IRImporter(IRContainer.Exported container)
         {
@@ -532,6 +534,28 @@ namespace ILGPU.IR
             }
 
             return resultMapping;
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    types.Clear();
+                    methods.Clear();
+                    blocks.Clear();
+                    values.Clear();
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -10,12 +10,6 @@ namespace ILGPU.Backends.IR
     public sealed class AOTRoundtripHook : IBackendHook
     {
         /// <summary>
-        /// Returns the <see cref="IRContext"/> instance
-        /// used to duplicate the original IR. 
-        /// </summary>
-        public IRContext? ImportContext { get; private set; }
-
-        /// <summary>
         /// Contains the mapping between stale <see cref="Method"/>
         /// IDs and their fresh counterparts.
         /// </summary>
@@ -23,18 +17,17 @@ namespace ILGPU.Backends.IR
 
         void IBackendHook.FinishedCodeGeneration(IRContext context, Method entryPoint)
         {
-            ImportContext?.Dispose();
-            ImportContext = new IRContext(context.Context, true);
+            using var importContext = new IRContext(context.Context, true);
 
             var oldMapping = new Dictionary<long, long>();
             foreach (var method in context.Methods)
             {
-                oldMapping.Add(ImportContext.Import(method).Id, method.Id);
+                oldMapping.Add(importContext.Import(method).Id, method.Id);
             }
 
             context.ClearCache(ClearCacheMode.Everything);
 
-            var newMapping = context.Import(ImportContext
+            var newMapping = context.Import(importContext
                 .ExportContainer?.Export() ?? default);
 
             MethodMapping = newMapping.Where(x => oldMapping.ContainsKey(x.Key)).

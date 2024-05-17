@@ -392,7 +392,7 @@ namespace ILGPU.IR
         /// <param name="container">The container, in export format.</param>
         public IReadOnlyDictionary<long, Method> Import(IRContainer.Exported container)
         {
-            var importer = new IRImporter(container);
+            using var importer = new IRImporter(container);
             return importer.ImportInto(this);
         }
 
