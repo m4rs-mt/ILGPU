@@ -1,6 +1,16 @@
-﻿using ILGPU.IR.Types;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2019-2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: IRExporter.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System;
 using System.Collections.Immutable;
 
 namespace ILGPU.IR
@@ -36,7 +46,9 @@ namespace ILGPU.IR
             return nodeIds.ToImmutableArray();
         }
 
-        private void OnValueVisited(Value value, ImmutableArray<NodeId>? nodes = default, long data = default, string? tag = default)
+        private void OnValueVisited(
+            Value value, ImmutableArray<NodeId>? nodes = default,
+            long data = default, string? tag = default)
         {
             Container?.Add(new IRValue
             {
@@ -157,11 +169,13 @@ namespace ILGPU.IR
 
         public void Visit(AlignTo value) =>
             OnValueVisited(value,
-                data: value.Type is AddressSpaceType ? (long)value.AddressSpace : default);
+                data: value.Type is AddressSpaceType ?
+                (long)value.AddressSpace : default);
 
         public void Visit(AsAligned value) =>
             OnValueVisited(value,
-                data: value.Type is AddressSpaceType ? (long)value.AddressSpace : default);
+                data: value.Type is AddressSpaceType ?
+                (long)value.AddressSpace : default);
 
         public void Visit(NewArray value) =>
             OnValueVisited(value);

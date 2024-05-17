@@ -1,4 +1,15 @@
-﻿using ILGPU.IR;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2019-2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: IRExporterHook.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.IR;
 
 namespace ILGPU.Backends.IR
 {
@@ -19,7 +30,11 @@ namespace ILGPU.Backends.IR
             CurrentContext.Import(entryPoint);
         }
 
-        void IBackendHook.InitializedKernelContext(IRContext kernelContext, Method kernelMethod) { }
-        void IBackendHook.OptimizedKernelContext(IRContext kernelContext, Method kernelMethod) { }
+        void IBackendHook.InitializedKernelContext(
+            IRContext kernelContext,
+            Method kernelMethod) { }
+        void IBackendHook.OptimizedKernelContext(
+            IRContext kernelContext,
+            Method kernelMethod) { }
     }
 }

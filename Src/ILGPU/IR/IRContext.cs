@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRContext.cs
@@ -42,7 +42,9 @@ namespace ILGPU.IR
         /// Constructs a new IR context.
         /// </summary>
         /// <param name="context">The associated main context.</param>
-        /// <param name="forExport">Flag determining whether this context should export its data.</param>
+        /// <param name="forExport">
+        /// Flag determining whether this context should export its data.
+        /// </param>
         protected IRBaseContext(Context context, bool forExport)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
@@ -116,7 +118,9 @@ namespace ILGPU.IR
         /// Constructs a new IR context.
         /// </summary>
         /// <param name="context">The associated main context.</param>
-        /// <param name="forExport">Flag determining whether this context should export its data.</param>
+        /// <param name="forExport">
+        /// Flag determining whether this context should export its data.
+        /// </param>
         public IRContext(Context context, bool forExport = false)
             : base(context, forExport)
         {

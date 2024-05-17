@@ -1,9 +1,21 @@
-﻿using System.Collections.Immutable;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2019-2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: IRValue.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using System.Collections.Immutable;
 
 namespace ILGPU.IR
 {
     /// <summary>
-    /// A uniform value type representing an exported <see cref="Value"/> from an <see cref="IRContext"/>.
+    /// A uniform value type representing an exported <see cref="Value"/>
+    /// from an <see cref="IRContext"/>.
     /// </summary>
     /// <param name="Method">Corresponds to <see cref="Value.Method"/></param>
     /// <param name="BasicBlock">Corresponds to <see cref="Value.BasicBlock"/></param>
