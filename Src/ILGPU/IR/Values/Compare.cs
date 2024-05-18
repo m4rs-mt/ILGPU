@@ -273,6 +273,9 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => ((long)Kind << 32) | (long)Flags;
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 

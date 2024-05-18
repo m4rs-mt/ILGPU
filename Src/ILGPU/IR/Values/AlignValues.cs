@@ -164,6 +164,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(AlignmentInBytes));
 
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => Type is AddressSpaceType ? (long)AddressSpace : -1;
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -223,6 +226,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(AlignmentInBytes));
+
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => Type is AddressSpaceType ? (long)AddressSpace : -1;
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

@@ -718,7 +718,7 @@ namespace ILGPU.IR
         /// The exported instance
         /// </returns>
         public IRValue Export() => new IRValue(
-                Method.Id, BasicBlock.Id, Id,
+                Method.Id, (long?)BasicBlock?.Id ?? -1, Id,
                 ValueKind, Type.Id, GetExportNodes(),
                 GetExportData(), GetExportTag()
                 );

@@ -9,7 +9,10 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR
 {
@@ -37,6 +40,12 @@ namespace ILGPU.IR
         BasicValueType BasicValueType,
         long Data)
     {
+        internal class DefaultEqualityComparer : EqualityComparer<IRType>
+        {
+            public override bool Equals(IRType x, IRType y) => x.Id == y.Id;
+            public override int GetHashCode([DisallowNull] IRType obj) => HashCode.Combine(obj.Id);
+        }
+
         /// <summary>
         /// Enumeration of the various special kinds of <see cref="Types.TypeNode"/>.
         /// </summary>

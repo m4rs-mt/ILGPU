@@ -206,6 +206,12 @@ namespace ILGPU.IR.Values
 
         #endregion
 
+        #region IExportable
+
+        IRValue IExportable<IRValue>.Export() => ((IExportable<IRValue>)DirectTarget).Export();
+
+        #endregion
+
         #region Object
 
         /// <summary>

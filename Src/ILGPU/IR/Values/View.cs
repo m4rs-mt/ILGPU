@@ -88,6 +88,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Pointer),
                 rebuilder.Rebuild(Length));
 
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)ViewAddressSpace;
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 

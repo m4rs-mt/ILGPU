@@ -46,12 +46,12 @@ namespace ILGPU.IR
         public void Visit(MethodCall methodCall) =>
             OnValueVisited(methodCall,
                 data: methodCall.Target.Id,
-                tag: methodCall.Target.Name);
+                tag: methodCall.Target.Name); //
 
         public void Visit(Parameter parameter) =>
             OnValueVisited(parameter,
                 data: parameter.Index,
-                tag: parameter.Name);
+                tag: parameter.Name); //
 
         public void Visit(PhiValue phiValue)
         {
@@ -68,85 +68,85 @@ namespace ILGPU.IR
                         .ToImmutableArray()
                     );
             }
-        }
+        } //
 
         public void Visit(UnaryArithmeticValue value) =>
             OnValueVisited(value,
-                data: (long)value.Kind);
+                data: (long)value.Kind); //
 
         public void Visit(BinaryArithmeticValue value) =>
             OnValueVisited(value,
-                data: (long)value.Kind);
+                data: (long)value.Kind); //
 
         public void Visit(TernaryArithmeticValue value) =>
             OnValueVisited(value,
-                data: (long)value.Kind);
+                data: (long)value.Kind); //
 
         public void Visit(CompareValue value) =>
             OnValueVisited(value,
-                data: ((long)value.Kind << 32) | (long)value.Flags);
+                data: ((long)value.Kind << 32) | (long)value.Flags); //
 
         public void Visit(ConvertValue value) =>
             OnValueVisited(value,
-                data: (long)value.Flags);
+                data: (long)value.Flags); //
 
         public void Visit(IntAsPointerCast value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(PointerAsIntCast value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(PointerCast value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(AddressSpaceCast value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(ViewCast value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(ArrayToViewCast value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(FloatAsIntCast value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(IntAsFloatCast value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(Predicate predicate) =>
-            OnValueVisited(predicate);
+            OnValueVisited(predicate); //
 
         public void Visit(GenericAtomic atomic) =>
             OnValueVisited(atomic,
-                data: ((long)atomic.Kind << 32) | (long)atomic.Flags);
+                data: ((long)atomic.Kind << 32) | (long)atomic.Flags); //
 
         public void Visit(AtomicCAS atomicCAS) =>
             OnValueVisited(atomicCAS,
-                data: (long)atomicCAS.Flags);
+                data: (long)atomicCAS.Flags); //
 
         public void Visit(Alloca alloca) =>
             OnValueVisited(alloca,
-                data: (long)alloca.AddressSpace);
+                data: (long)alloca.AddressSpace); //
 
         public void Visit(MemoryBarrier barrier) =>
             OnValueVisited(barrier,
-                data: (long)barrier.Kind);
+                data: (long)barrier.Kind); //
 
         public void Visit(Load load) =>
-            OnValueVisited(load);
+            OnValueVisited(load); //
 
         public void Visit(Store store) =>
-            OnValueVisited(store);
+            OnValueVisited(store); //
 
         public void Visit(SubViewValue value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(LoadElementAddress value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(LoadArrayElementAddress value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(LoadFieldAddress value) =>
             OnValueVisited(value,
@@ -154,24 +154,24 @@ namespace ILGPU.IR
 
         public void Visit(NewView value) =>
             OnValueVisited(value,
-                data: (long)value.ViewAddressSpace);
+                data: (long)value.ViewAddressSpace); //
 
         public void Visit(GetViewLength value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(AlignTo value) =>
             OnValueVisited(value,
-                data: value.Type is AddressSpaceType ? (long)value.AddressSpace : -1);
+                data: value.Type is AddressSpaceType ? (long)value.AddressSpace : -1); //
 
         public void Visit(AsAligned value) =>
             OnValueVisited(value,
-                data: value.Type is AddressSpaceType ? (long)value.AddressSpace : -1);
+                data: value.Type is AddressSpaceType ? (long)value.AddressSpace : -1); //
 
         public void Visit(NewArray value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(GetArrayLength value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(PrimitiveValue value) =>
             OnValueVisited(value,
@@ -183,10 +183,10 @@ namespace ILGPU.IR
                 tag: value.String);
 
         public void Visit(NullValue value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(StructureValue value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(GetField value) =>
             OnValueVisited(value,
@@ -197,7 +197,7 @@ namespace ILGPU.IR
                 data: ((long)value.FieldSpan.Index << 32) | (long)value.FieldSpan.Span);
 
         public void Visit(AcceleratorTypeValue value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(GridIndexValue value) =>
             OnValueVisited(value,
@@ -216,10 +216,10 @@ namespace ILGPU.IR
                 data: (long)value.Dimension);
 
         public void Visit(WarpSizeValue value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(LaneIdxValue value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
 
         public void Visit(DynamicMemoryLengthValue value) =>
             OnValueVisited(value,
@@ -227,38 +227,38 @@ namespace ILGPU.IR
 
         public void Visit(PredicateBarrier barrier) =>
             OnValueVisited(barrier,
-                data: (long)barrier.Kind);
+                data: (long)barrier.Kind); //
 
         public void Visit(Barrier barrier) =>
             OnValueVisited(barrier,
-                data: (long)barrier.Kind);
+                data: (long)barrier.Kind); //
 
         public void Visit(Broadcast broadcast) =>
             OnValueVisited(broadcast,
-                data: (long)broadcast.Kind);
+                data: (long)broadcast.Kind); //
 
         public void Visit(WarpShuffle shuffle) =>
             OnValueVisited(shuffle,
-                data: (long)shuffle.Kind);
+                data: (long)shuffle.Kind); //
 
         public void Visit(SubWarpShuffle shuffle) =>
             OnValueVisited(shuffle,
-                data: (long)shuffle.Kind);
+                data: (long)shuffle.Kind); //
 
         public void Visit(UndefinedValue undefined) =>
-            OnValueVisited(undefined);
+            OnValueVisited(undefined); //
 
         public void Visit(HandleValue handle) =>
-            OnValueVisited(handle);
+            OnValueVisited(handle); //
 
         public void Visit(DebugAssertOperation debug) =>
-            OnValueVisited(debug);
+            OnValueVisited(debug); //
 
         public void Visit(WriteToOutput writeToOutput) =>
-            OnValueVisited(writeToOutput);
+            OnValueVisited(writeToOutput); //
 
         public void Visit(ReturnTerminator returnTerminator) =>
-            OnValueVisited(returnTerminator);
+            OnValueVisited(returnTerminator); //
 
         public void Visit(UnconditionalBranch branch) =>
             OnValueVisited(branch,
@@ -278,6 +278,6 @@ namespace ILGPU.IR
                     .ToImmutableArray());
 
         public void Visit(LanguageEmitValue value) =>
-            OnValueVisited(value);
+            OnValueVisited(value); //
     }
 }

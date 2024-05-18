@@ -139,6 +139,9 @@ namespace ILGPU.IR.Values
                 AddressSpace,
                 rebuilder.Rebuild(ArrayLength));
 
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)AddressSpace;
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -227,6 +230,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateMemoryBarrier(Location, Kind);
+
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)Kind;
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

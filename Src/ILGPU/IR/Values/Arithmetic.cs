@@ -189,6 +189,9 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)Kind;
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -321,6 +324,9 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)Kind;
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -449,6 +455,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Third),
                 Kind,
                 Flags);
+
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)Kind;
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

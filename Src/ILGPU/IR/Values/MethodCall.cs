@@ -150,6 +150,12 @@ namespace ILGPU.IR.Values
             return call.Seal();
         }
 
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => Target.Id;
+
+        /// <summary cref="Value.GetExportTag">
+        protected internal override string? GetExportTag() => Target.Name;
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 

@@ -612,10 +612,7 @@ namespace ILGPU.Backends
 
                 backendHook.FinishedCodeGeneration(mainContext, generatedKernelMethod);
             }
-            return ((backendHook is AOTRoundtripHook exporterHook) ?
-                exporterHook.MethodMapping?[generatedKernelMethod.Id] :
-                generatedKernelMethod) ?? throw new InvalidOperationException(
-                    "Generated kernel method could not be found!");
+            return generatedKernelMethod;
         }
 
         /// <summary>

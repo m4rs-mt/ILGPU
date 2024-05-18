@@ -124,6 +124,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Predicate),
                 Kind);
 
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)Kind;
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -203,6 +206,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateBarrier(Location, Kind);
+
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)Kind;
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -325,6 +331,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Variable),
                 rebuilder.Rebuild(Origin),
                 Kind);
+
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)Kind;
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -458,6 +467,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Origin),
                 Kind);
 
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)Kind;
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -524,6 +536,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Origin),
                 rebuilder.Rebuild(Width),
                 Kind);
+
+        /// <summary cref="Value.GetExportData">
+        protected internal override long GetExportData() => (long)Kind;
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

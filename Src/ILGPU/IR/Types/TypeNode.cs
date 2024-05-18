@@ -62,7 +62,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// An abstract type node.
     /// </summary>
-    public interface ITypeNode : INode, IExportable<ImmutableArray<IRType>>
+    public interface ITypeNode : INode, IExportable<HashSet<IRType>>
     {
         /// <summary>
         /// The type representation in the managed world.
@@ -390,7 +390,7 @@ namespace ILGPU.IR.Types
         /// </returns>
         public HashSet<IRType> Export()
         {
-            var types = new HashSet<IRType>();
+            var types = new HashSet<IRType>(new IRType.DefaultEqualityComparer());
 
             void Add(TypeNode type)
             {

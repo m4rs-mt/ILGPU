@@ -511,19 +511,7 @@ namespace ILGPU.IR
             protected override T CreateTerminator<T>(T node)
             {
                 Terminator?.Replace(node);
-
                 Terminator = node;
-
-                switch (node.GetType().Name)
-                {
-                    case nameof(ReturnTerminator):
-                    case nameof(UnconditionalBranch):
-                    case nameof(IfBranch):
-                    case nameof(SwitchBranch):
-                        node.Accept(MethodBuilder.BaseContext.IRExporter);
-                        break;
-                }
-
                 return node;
             }
 
@@ -531,9 +519,6 @@ namespace ILGPU.IR
             protected override PhiValue CreatePhiValue(PhiValue phiValue)
             {
                 InsertAtBeginning(phiValue);
-
-                phiValue.Accept(MethodBuilder.BaseContext.IRExporter);
-
                 return phiValue;
             }
 
@@ -542,9 +527,6 @@ namespace ILGPU.IR
             {
                 // Insert node into current basic block builder
                 Add(node);
-
-                // Allow monitor to visit this node
-                node.Accept(MethodBuilder.BaseContext.IRExporter);
 
                 return node;
             }

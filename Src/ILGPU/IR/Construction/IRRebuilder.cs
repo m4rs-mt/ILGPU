@@ -458,9 +458,7 @@ namespace ILGPU.IR.Construction
                     var newBlock = this[sourcePhi.Sources[i]];
                     targetPhiBuilder.AddArgument(newBlock, this[argument]);
                 }
-
-                var phi = targetPhiBuilder.Seal();
-                phi.Accept(EntryBlock.BaseContext.IRExporter);
+                targetPhiBuilder.Seal();
             }
 
             return (exitBlock.Item1.AsNotNull(), exitBlock.Item2.AsNotNull());

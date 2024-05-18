@@ -567,7 +567,7 @@ namespace ILGPU.IR
         {
             var exportedMethods = new HashSet<IRMethod>();
             var exportedValues = new HashSet<IRValue>();
-            var exportedTypes = new HashSet<IRType>();
+            var exportedTypes = new HashSet<IRType>(new IRType.DefaultEqualityComparer());
 
             var allMethods = GetMethodCollection(new MethodCollections.AllMethods());
             foreach (var method in allMethods)

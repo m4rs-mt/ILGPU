@@ -136,6 +136,9 @@ namespace ILGPU.IR.Values
                 Type,
                 Flags);
 
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => (long)Flags;
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 

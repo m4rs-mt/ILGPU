@@ -13,8 +13,10 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using BlockList = ILGPU.Util.InlineList<ILGPU.IR.BasicBlock>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
@@ -387,6 +389,17 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             // Phi values have already been mapped in the beginning
             rebuilder.Rebuild(this);
+
+        protected internal override ImmutableArray<long> GetExportNodes()
+        {
+            var builder = ImmutableArray.CreateBuilder<long>();
+            for (int i = 0; i < Count; i++)
+            {
+                builder.Add(Sources[i].Id);
+                builder.Add(Nodes[i].Id);
+            }
+            return builder.ToImmutable();
+        }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
