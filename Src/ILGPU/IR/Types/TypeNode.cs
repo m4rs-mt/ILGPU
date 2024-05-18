@@ -13,7 +13,11 @@ using ILGPU.Backends;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 
 namespace ILGPU.IR.Types
 {
@@ -58,7 +62,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// An abstract type node.
     /// </summary>
-    public interface ITypeNode : INode
+    public interface ITypeNode : INode, IExportable<ImmutableArray<IRType>>
     {
         /// <summary>
         /// The type representation in the managed world.
@@ -373,6 +377,79 @@ namespace ILGPU.IR.Types
                     message,
                     ToString(),
                     LoadManagedType().ToString());
+
+        #endregion
+
+        #region IExportable
+
+        /// <summary>
+        /// Exports this instance to a portable representation.
+        /// </summary>
+        /// <returns>
+        /// The exported instance
+        /// </returns>
+        public HashSet<IRType> Export()
+        {
+            var types = new HashSet<IRType>();
+
+            void Add(TypeNode type)
+            {
+                if (type.IsVoidType)
+                {
+                    types.Add(new IRType(type.Id, IRType.Classifier.Void,
+                        ImmutableArray<long>.Empty, type.BasicValueType, 0));
+                }
+                else if (type.IsStringType)
+                {
+                    types.Add(new IRType(type.Id, IRType.Classifier.String,
+                        ImmutableArray<long>.Empty, type.BasicValueType, 0));
+                }
+                else if (type.IsPrimitiveType)
+                {
+                    types.Add(new IRType(type.Id, IRType.Classifier.Primitive,
+                        ImmutableArray<long>.Empty, type.BasicValueType, 0));
+                }
+                else if (type.IsPaddingType)
+                {
+                    types.Add(new IRType(type.Id, IRType.Classifier.Padding,
+                        default, type.BasicValueType, 0));
+                }
+                else if (type.IsPointerType)
+                {
+                    Add(((PointerType)type).ElementType);
+                    types.Add(new IRType(type.Id, IRType.Classifier.Pointer,
+                        ImmutableArray.Create((long)((PointerType)type).ElementType.Id),
+                        type.BasicValueType, (long)((PointerType)type).AddressSpace));
+                }
+                else if (type.IsViewType)
+                {
+                    Add(((ViewType)type).ElementType);
+                    types.Add(new IRType(type.Id, IRType.Classifier.View,
+                        ImmutableArray.Create((long)((ViewType)type).ElementType.Id),
+                        type.BasicValueType, (long)((ViewType)type).AddressSpace));
+                }
+                else if (type.IsArrayType)
+                {
+                    Add(((ArrayType)type).ElementType);
+                    types.Add(new IRType(type.Id, IRType.Classifier.Array,
+                        ImmutableArray.Create((long)((ArrayType)type).ElementType.Id),
+                        type.BasicValueType, ((ArrayType)type).NumDimensions));
+                }
+                else if (type.IsStructureType)
+                {
+                    foreach (var fieldType in ((StructureType)type).Fields)
+                    {
+                        Add(fieldType);
+                    }
+                    types.Add(new IRType(type.Id, IRType.Classifier.Structure,
+                        ((StructureType)type).Fields.Select(t => (long)t.Id).ToImmutableArray(),
+                        type.BasicValueType, 0));
+                }
+            }
+
+            Add(this);
+            return types;
+        }
 
         #endregion
 

@@ -23,6 +23,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -45,7 +46,7 @@ namespace ILGPU.IR
         /// <param name="forExport">
         /// Flag determining whether this context should export its data.
         /// </param>
-        protected IRBaseContext(Context context, bool forExport)
+        protected IRBaseContext(Context context)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             TypeContext = context.TypeContext;
@@ -55,9 +56,6 @@ namespace ILGPU.IR
                     this,
                     null,
                     Location.Nowhere));
-
-            IRExporter = new IRExporter(
-                forExport ? new IRContainer() : null);
         }
 
         #endregion
@@ -80,16 +78,6 @@ namespace ILGPU.IR
         internal Verifier Verifier => Context.Verifier;
 
         /// <summary>
-        /// Serves as an injection point for IR export.
-        /// </summary>
-        internal IRExporter IRExporter { get; }
-
-        /// <summary>
-        /// Serves as a public endpoint for IR export.
-        /// </summary>
-        public IRContainer? ExportContainer => IRExporter.Container;
-
-        /// <summary>
         /// Returns the associated type context.
         /// </summary>
         public IRTypeContext TypeContext { get; }
@@ -105,8 +93,26 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents an IR context.
     /// </summary>
-    public sealed class IRContext : IRBaseContext, ICache, IDumpable
+    public sealed class IRContext : IRBaseContext, ICache, IDumpable, IExportable<IRContext.Exported>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents an immutable, exported version
+        /// of an <see cref="IRContext"/> instance.
+        /// </summary>
+        /// <param name="Methods">Collection of <see cref="IRMethod"/> instances</param>
+        /// <param name="Values">Collection of <see cref="IRValue"/> instances</param>
+        /// <param name="Types">Collection of <see cref="IRType"/> instances</param>
+        public record struct Exported(
+            ImmutableArray<IRMethod> Methods,
+            ImmutableArray<IRValue> Values,
+            ImmutableArray<IRType> Types)
+        {
+        }
+
+        #endregion
+
         #region Instance
 
         private readonly ReaderWriterLockSlim irLock = new ReaderWriterLockSlim(
@@ -122,8 +128,8 @@ namespace ILGPU.IR
         /// <param name="forExport">
         /// Flag determining whether this context should export its data.
         /// </param>
-        public IRContext(Context context, bool forExport = false)
-            : base(context, forExport)
+        public IRContext(Context context)
+            : base(context)
         {
             gcDelegate = (Method method) => method.GC();
         }
@@ -387,16 +393,6 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Imports a previously exported <see cref="IRContainer"/>.
-        /// </summary>
-        /// <param name="container">The container, in export format.</param>
-        public IReadOnlyDictionary<long, Method> Import(IRContainer.Exported container)
-        {
-            using var importer = new IRImporter(container);
-            return importer.ImportInto(this);
-        }
-
-        /// <summary>
         /// Imports the given method (and all dependencies) into this context.
         /// </summary>
         /// <param name="source">The method to import.</param>
@@ -487,11 +483,6 @@ namespace ILGPU.IR
                 Verifier.Verify(targetMethod);
             }
 
-            foreach (var (_, target) in targetMapping)
-            {
-                ExportContainer?.Add(target);
-            }
-
             return targetMapping[source];
         }
 
@@ -560,6 +551,48 @@ namespace ILGPU.IR
             using var writeScope = irLock.EnterWriteScope();
 
             methods.Clear();
+        }
+
+        #endregion
+
+        #region IExportable
+
+        /// <summary>
+        /// Exports this context to a portable representation.
+        /// </summary>
+        /// <returns>
+        /// The exported context as an immutable type
+        /// </returns>
+        public Exported Export()
+        {
+            var exportedMethods = new HashSet<IRMethod>();
+            var exportedValues = new HashSet<IRValue>();
+            var exportedTypes = new HashSet<IRType>();
+
+            var allMethods = GetMethodCollection(new MethodCollections.AllMethods());
+            foreach (var method in allMethods)
+            {
+                exportedMethods.Add(method.Export());
+                exportedTypes.UnionWith(method.ReturnType.Export());
+
+                foreach (var param in method.Parameters)
+                {
+                    exportedValues.Add(param.Export());
+                    exportedTypes.UnionWith(param.Type.Export());
+                }
+
+                foreach (var entry in method.Values)
+                {
+                    exportedValues.Add(entry.Value.Export());
+                    exportedTypes.UnionWith(entry.Value.Type.Export());
+                }
+            }
+
+            return new Exported(
+                exportedMethods.ToImmutableArray(),
+                exportedValues.ToImmutableArray(),
+                exportedTypes.ToImmutableArray()
+                );
         }
 
         #endregion

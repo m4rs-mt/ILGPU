@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -91,7 +92,8 @@ namespace ILGPU.IR
         ValueParent,
         IMethodMappingObject,
         IControlFlowAnalysisSource<Forwards>,
-        IDumpable
+        IDumpable,
+        IExportable<IRMethod>
     {
         #region Nested Types
 
@@ -670,6 +672,21 @@ namespace ILGPU.IR
         /// <param name="flags">The flags to remove.</param>
         public void RemoveTransformationFlags(MethodTransformationFlags flags) =>
             transformationFlags &= ~flags;
+
+        #endregion
+
+        #region IExportable
+
+        /// <summary>
+        /// Exports this instance to a portable representation.
+        /// </summary>
+        /// <returns>
+        /// The exported instance
+        /// </returns>
+        public IRMethod Export() =>
+            new IRMethod(Id, Name, ReturnType.Id,
+                Blocks.Select(x => (long)x.Id)
+                .ToImmutableArray());
 
         #endregion
 

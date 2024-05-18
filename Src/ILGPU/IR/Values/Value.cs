@@ -15,6 +15,7 @@ using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using UseList = ILGPU.Util.InlineList<ILGPU.IR.Values.Use>;
@@ -25,7 +26,7 @@ namespace ILGPU.IR
     /// <summary>
     /// The base interface of all values.
     /// </summary>
-    public interface IValue : INode
+    public interface IValue : INode, IExportable<IRValue>
     {
         /// <summary>
         /// Returns the current value kind.
@@ -705,6 +706,36 @@ namespace ILGPU.IR
         /// <returns>An enumerator to enumerate all child values.</returns>
         public ReadOnlySpan<ValueReference>.Enumerator GetEnumerator() =>
             Nodes.GetEnumerator();
+
+        #endregion
+
+        #region IExportable
+
+        /// <summary>
+        /// Exports the current value to a portable representation.
+        /// </summary>
+        /// <returns>
+        /// The exported instance
+        /// </returns>
+        public IRValue Export() => new IRValue(
+                Method.Id, BasicBlock.Id, Id,
+                ValueKind, Type.Id, GetExportNodes(),
+                GetExportData(), GetExportTag()
+                );
+
+        protected internal virtual long GetExportData() => default;
+
+        protected internal virtual string? GetExportTag() => null;
+
+        protected internal virtual ImmutableArray<long> GetExportNodes()
+        {
+            var builder = ImmutableArray.CreateBuilder<long>();
+            foreach (var node in Nodes)
+            {
+                builder.Add(node.Id);
+            }
+            return builder.ToImmutable();
+        }
 
         #endregion
 
