@@ -14,21 +14,21 @@ namespace ILGPU.Analyzers.Resources {
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class ILA003_ManagedTypeInKernel {
+    internal class ErrorMessages {
         
         private static System.Resources.ResourceManager resourceMan;
         
         private static System.Globalization.CultureInfo resourceCulture;
         
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal ILA003_ManagedTypeInKernel() {
+        internal ErrorMessages() {
         }
         
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("ILGPU.Analyzers.Resources.ILA003_ManagedTypeInKernel", typeof(ILA003_ManagedTypeInKernel).Assembly);
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("ILGPU.Analyzers.Resources.ErrorMessages", typeof(ErrorMessages).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -45,21 +45,51 @@ namespace ILGPU.Analyzers.Resources {
             }
         }
         
-        internal static string Title {
+        internal static string StructMustBePartial_Message {
             get {
-                return ResourceManager.GetString("Title", resourceCulture);
+                return ResourceManager.GetString("StructMustBePartial_Message", resourceCulture);
             }
         }
         
-        internal static string MessageFormat {
+        internal static string StructMustBePartial_Title {
             get {
-                return ResourceManager.GetString("MessageFormat", resourceCulture);
+                return ResourceManager.GetString("StructMustBePartial_Title", resourceCulture);
             }
         }
         
-        internal static string Description {
+        internal static string ContainingTypeMustBePartial_Message {
             get {
-                return ResourceManager.GetString("Description", resourceCulture);
+                return ResourceManager.GetString("ContainingTypeMustBePartial_Message", resourceCulture);
+            }
+        }
+        
+        internal static string ContainingTypeMustBePartial_Title {
+            get {
+                return ResourceManager.GetString("ContainingTypeMustBePartial_Title", resourceCulture);
+            }
+        }
+        
+        internal static string ManagedTypeInKernel_Message {
+            get {
+                return ResourceManager.GetString("ManagedTypeInKernel_Message", resourceCulture);
+            }
+        }
+        
+        internal static string ManagedTypeInKernel_Title {
+            get {
+                return ResourceManager.GetString("ManagedTypeInKernel_Title", resourceCulture);
+            }
+        }
+        
+        internal static string ManagedTypeArrayInKernel_Message {
+            get {
+                return ResourceManager.GetString("ManagedTypeArrayInKernel_Message", resourceCulture);
+            }
+        }
+        
+        internal static string ManagedTypeArrayInKernel_Title {
+            get {
+                return ResourceManager.GetString("ManagedTypeArrayInKernel_Title", resourceCulture);
             }
         }
     }

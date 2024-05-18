@@ -36,16 +36,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Resources\ILA001_StructMustBePartial.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ILA001_StructMustBePartial.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Resources\ILA002_ContainingTypeMustBePartial.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ILA002_ContainingTypeMustBePartial.resx</DependentUpon>
-    </Compile>
     <Compile Update="Resources\ILA003_ManagedTypeInKernel.resx">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -56,24 +46,17 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ILA004_ManagedTypeArrayInKernel.Designer.cs</DependentUpon>
     </Compile>
+    <Compile Update="Resources\ErrorMessages.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ErrorMessages.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Resources\ILA001_StructMustBePartial.resx">
+    <EmbeddedResource Update="Resources\ErrorMessages.resx">
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ILA001_StructMustBePartial.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\ILA002_ContainingTypeMustBePartial.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ILA002_ContainingTypeMustBePartial.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\ILA003_ManagedTypeInKernel.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ILA003_ManagedTypeInKernel.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\ILA004_ManagedTypeArrayInKernel.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ILA004_ManagedTypeArrayInKernel.Designer.cs</LastGenOutput>
+      <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

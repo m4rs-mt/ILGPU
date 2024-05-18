@@ -23,8 +23,8 @@ namespace ILGPU.Analyzers
     {
         private static readonly DiagnosticDescriptor GeneralDiagnosticRule = new(
             id: "ILA003",
-            title: ILA003_ManagedTypeInKernel.Title,
-            messageFormat: ILA003_ManagedTypeInKernel.MessageFormat,
+            title: ErrorMessages.ManagedTypeInKernel_Title,
+            messageFormat: ErrorMessages.ManagedTypeInKernel_Message,
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true
@@ -32,8 +32,8 @@ namespace ILGPU.Analyzers
 
         private static readonly DiagnosticDescriptor ArrayDiagnosticRule = new(
             id: "ILA004",
-            title: ILA004_ManagedTypeArrayInKernel.Title,
-            messageFormat: ILA004_ManagedTypeArrayInKernel.MessageFormat,
+            title: ErrorMessages.ManagedTypeArrayInKernel_Title,
+            messageFormat: ErrorMessages.ManagedTypeArrayInKernel_Message,
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true

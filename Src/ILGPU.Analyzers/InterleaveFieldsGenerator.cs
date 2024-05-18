@@ -32,16 +32,16 @@ namespace ILGPU.Analyzers
 
         private static readonly DiagnosticDescriptor TargetNotPartial = new(
             id: "ILA001",
-            title: ILA001_StructMustBePartial.Title,
-            messageFormat: ILA001_StructMustBePartial.Message,
+            title: ErrorMessages.StructMustBePartial_Title,
+            messageFormat: ErrorMessages.StructMustBePartial_Message,
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
         private static readonly DiagnosticDescriptor ContainingTypeNotPartial = new(
             id: "ILA002",
-            title: ILA002_ContainingTypeMustBePartial.Title,
-            messageFormat: ILA002_ContainingTypeMustBePartial.Message,
+            title: ErrorMessages.ContainingTypeMustBePartial_Title,
+            messageFormat: ErrorMessages.ContainingTypeMustBePartial_Message,
             category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
