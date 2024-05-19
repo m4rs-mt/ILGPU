@@ -66,13 +66,13 @@ namespace StaticAbstractInterfaceMembers
         {
             T Calculate(T left, T right);
         }
-        
+
         // Interface must be implemented by a 'struct'.
         public struct AdditionOp : ICalculatorOperation<int>
         {
             public int Calculate(int left, int right) => left + right;
         }
-        
+
         // Interface must be implemented by a 'struct'.
         public struct MultiplyOp : ICalculatorOperation<float>
         {
@@ -84,7 +84,7 @@ namespace StaticAbstractInterfaceMembers
             ArrayView1D<T, Stride1D.Dense> input,
             ArrayView1D<T, Stride1D.Dense> output)
             where T : unmanaged
-            where TOp : struct, ICalculatorOperation<T>
+            where TOp : unmanaged, ICalculatorOperation<T>
         {
             // Creates a new instance of the struct, and calls the method.
             output[index] = default(TOp).Calculate(input[index], input[index]);

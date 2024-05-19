@@ -31,7 +31,7 @@ namespace SharedMemory
         struct SharedArray32 : ISharedAllocationSize
         {
             /// <summary>
-            /// Returns a 
+            /// Returns a
             /// </summary>
             public int ArraySize => 32;
         }
@@ -49,7 +49,7 @@ namespace SharedMemory
         /// <param name="sharedArray">Implicit shared-memory parameter that is handled by the runtime.</param>
         static void SharedMemoryKernel<TSharedAllocationSize>(
             ArrayView<int> outputView)   // A view to a chunk of memory (1D in this case)
-            where TSharedAllocationSize : struct, ISharedAllocationSize
+            where TSharedAllocationSize : unmanaged, ISharedAllocationSize
         {
             // Compute the global 1D index for accessing the data view
             var globalIndex = Grid.GlobalIndex.X;
@@ -66,7 +66,7 @@ namespace SharedMemory
         }
 
         static void ExecuteSample<TSharedAllocationSize>(Context context)
-            where TSharedAllocationSize : struct, ISharedAllocationSize
+            where TSharedAllocationSize : unmanaged, ISharedAllocationSize
         {
             // For each available device...
             foreach (var device in context)

@@ -72,7 +72,7 @@ namespace GenericKernel
             ArrayView<T> data,
             int value,
             TKernelFunction function)
-            where TKernelFunction : struct, IKernelFunction<T>
+            where TKernelFunction : unmanaged, IKernelFunction<T>
             where T : unmanaged
         {
             // Invoke the custom "lambda function"
