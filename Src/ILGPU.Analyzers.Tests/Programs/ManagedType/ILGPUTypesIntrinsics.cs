@@ -26,7 +26,7 @@ class ILGPUTypesIntrinsics
 
         // Strings should be allowed for this and debug.
         // We will be conservative in our analysis and ignore all strings.
-        CudaAsm.Emit("instruction here");
+        CudaAsm.Emit("");
 
         // Algorithms should also be allowed.
         // RNGView is just an example of a managed type in Algorithms.
