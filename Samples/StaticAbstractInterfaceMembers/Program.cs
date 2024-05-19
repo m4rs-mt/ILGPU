@@ -98,7 +98,7 @@ namespace StaticAbstractInterfaceMembers
             where TOp : ICalculatorOperation<T>
 #else
             where T : unmanaged
-            where TOp : struct, ICalculatorOperation<T>
+            where TOp : unmanaged, ICalculatorOperation<T>
 #endif
         {
             var values =
