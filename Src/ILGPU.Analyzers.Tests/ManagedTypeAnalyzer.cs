@@ -25,6 +25,7 @@ public class ManagedTypeAnalyzer
     [InlineData("Complex")]
     [InlineData("Arrays")]
     [InlineData("Functions")]
+    [InlineData("PartialMethods")]
     [InlineData("Constructors")]
     [InlineData("LoadDiscovery")]
     [InlineData("ILGPUTypesIntrinsics")]
