@@ -35,7 +35,7 @@ namespace ILGPU.Analyzers
                 "LoadImplicitlyGroupedStreamKernel"
             );
 
-        private ConcurrentDictionary<IOperation, bool> seen = new();
+        private readonly ConcurrentDictionary<IOperation, bool> seen = new();
 
         /// <summary>
         /// Called for every kernel body.
