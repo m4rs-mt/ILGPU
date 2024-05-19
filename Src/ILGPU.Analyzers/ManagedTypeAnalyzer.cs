@@ -66,14 +66,19 @@ namespace ILGPU.Analyzers
                 {
                     AnalyzeKernelOperation(context, descendant);
 
-                    var innerBodyOp =
-                        GetInvokedNonLibOpIfExists(semanticModel, descendant);
-                    if (innerBodyOp is null) continue;
+                    var invokedSymbol = GetInvokedSymbolIfExists(descendant);
+                    if (invokedSymbol is null) continue;
 
-                    if (!seenBodies.Contains(innerBodyOp))
+                    if (IsILGPUSymbol(invokedSymbol)) continue;
+
+                    var methodBodyOp =
+                        MethodUtil.GetMethodBody(semanticModel, invokedSymbol);
+                    if (methodBodyOp is null) continue;
+
+                    if (!seenBodies.Contains(methodBodyOp))
                     {
-                        bodies.Push(innerBodyOp);
-                        seenBodies.Add(innerBodyOp);
+                        bodies.Push(methodBodyOp);
+                        seenBodies.Add(methodBodyOp);
                     }
                 }
             }
@@ -90,7 +95,7 @@ namespace ILGPU.Analyzers
 
             if (IsILGPUSymbol(op.Type))
                 return;
-            
+
             if (op.Type.SpecialType == SpecialType.System_String)
                 return;
 
@@ -117,26 +122,36 @@ namespace ILGPU.Analyzers
             }
         }
 
-        private IOperation? GetInvokedNonLibOpIfExists(SemanticModel model, IOperation op)
-        {
-            if (op is IInvocationOperation invocationOperation)
+        /// <summary>
+        /// Gets the symbol for a method a given operation invokes, if the operation
+        /// invokes anything at all. Only looks at direct invocations, meaning descendants
+        /// will not be explored.
+        /// </summary>
+        /// <param name="op">The operation to analyze.</param>
+        /// <returns>
+        /// The method symbol representing the method <c>op</c> invokes. This could be a
+        /// regular method or a constructor. Null if <c>op</c> doesn't invoke anything
+        /// directly.
+        /// </returns>
+        private IMethodSymbol? GetInvokedSymbolIfExists(IOperation op) =>
+            op switch
             {
-                if (IsILGPUSymbol(invocationOperation.TargetMethod)) return null;
-                return MethodUtil.GetMethodBody(model, invocationOperation.TargetMethod);
-            }
-
-            if (op is IObjectCreationOperation
+                IInvocationOperation invocationOperation => invocationOperation
+                    .TargetMethod,
+                IObjectCreationOperation
                 {
                     Constructor: not null
-                } creationOperation)
-            {
-                if (IsILGPUSymbol(creationOperation.Constructor)) return null;
-                return MethodUtil.GetMethodBody(model, creationOperation.Constructor);
-            }
+                } creationOperation => creationOperation.Constructor,
+                _ => null
+            };
 
-            return null;
-        }
-
+        /// <summary>
+        /// Whether a given symbol is a symbol from an ILGPU assembly.
+        /// </summary>
+        /// <param name="symbol">The symbol to check.</param>
+        /// <returns>
+        /// Whether <c>symbol</c> is in the ILGPU or ILGPU.Algorithms assemblies.
+        /// </returns>
         private static bool IsILGPUSymbol(ISymbol symbol)
         {
             return symbol.ContainingAssembly?.Name is ILGPUAssemblyName

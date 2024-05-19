@@ -19,6 +19,10 @@ using System.Linq;
 
 namespace ILGPU.Analyzers
 {
+    /// <summary>
+    /// Base analyzer that can be used to implement diagnostic analyzers that operate on
+    /// kernel method bodies. 
+    /// </summary>
     public abstract class KernelAnalyzer : DiagnosticAnalyzer
     {
         private readonly ImmutableHashSet<string> kernelLoadNames =
@@ -39,9 +43,7 @@ namespace ILGPU.Analyzers
         /// <param name="context">
         /// The analysis context used to report diagnostics.
         /// </param>
-        /// <param name="bodyOp">
-        /// The operation. 
-        /// </param>
+        /// <param name="bodyOp">The operation.</param>
         protected abstract void AnalyzeKernelBody(
             OperationAnalysisContext context,
             IOperation bodyOp);

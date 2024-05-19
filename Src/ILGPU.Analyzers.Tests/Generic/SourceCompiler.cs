@@ -18,8 +18,21 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace ILGPU.Analyzers.Tests.Generic;
 
+/// <summary>
+/// Contains utility functions for compiling C# source files for analyzer testing.
+/// </summary>
 public static class SourceCompiler
 {
+    /// <summary>
+    /// Compiles the source text <c>source</c> into an assembly with the name
+    /// <c>assemblyName</c> and includes the given <c>additionalAssemblies</c>.
+    /// </summary>
+    /// <param name="assemblyName">The name of the output assembly.</param>
+    /// <param name="source">The source text to compile.</param>
+    /// <param name="additionalAssemblies">
+    /// The additional assembly references to include in the compilation.
+    /// </param>
+    /// <returns>The resulting compilation.</returns>
     public static CSharpCompilation CreateCompilationWithAssemblies(
         string assemblyName,
         string source,
@@ -32,7 +45,7 @@ public static class SourceCompiler
         var trustedAssembliesPaths =
             (string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
         var systemReferences =
-            trustedAssembliesPaths
+            trustedAssembliesPaths!
                 .Split(Path.PathSeparator)
                 .Select(x => MetadataReference.CreateFromFile(x))
                 .ToArray();
