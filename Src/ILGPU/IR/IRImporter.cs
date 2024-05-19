@@ -21,7 +21,7 @@ namespace ILGPU.IR
 {
     internal sealed class IRImporter : IDisposable
     {
-        private readonly IRContainer.Exported container;
+        private readonly IRContext.Exported container;
 
         private readonly ConcurrentDictionary<long, TypeNode> types;
 
@@ -31,7 +31,7 @@ namespace ILGPU.IR
 
         private bool disposedValue;
 
-        public IRImporter(IRContainer.Exported container)
+        public IRImporter(IRContext.Exported container)
         {
             this.container = container;
 
@@ -42,7 +42,7 @@ namespace ILGPU.IR
             values = new ConcurrentDictionary<long, Value>();
         }
 
-        public IReadOnlyDictionary<long, Method> ImportInto(IRContext context)
+        public void ImportInto(IRContext context)
         {
             bool contFlag;
             do
@@ -524,16 +524,11 @@ namespace ILGPU.IR
                 blockBuilder.Dispose();
             }
 
-            var resultMapping = new Dictionary<long, Method>();
             foreach (var (id, methodBuilder) in methods)
             {
-                resultMapping.Add(id, methodBuilder.Method);
-
                 methodBuilder.Complete();
                 methodBuilder.Dispose();
             }
-
-            return resultMapping;
         }
 
         private void Dispose(bool disposing)

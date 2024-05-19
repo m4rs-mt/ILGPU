@@ -93,7 +93,7 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents an IR context.
     /// </summary>
-    public sealed class IRContext : IRBaseContext, ICache, IDumpable, IExportable<IRContext.Exported>
+    public sealed class IRContext : IRBaseContext, ICache, IDumpable, IExportable<IRContext.Exported>, IImportable<IRContext.Exported>
     {
         #region Nested Types
 
@@ -581,10 +581,19 @@ namespace ILGPU.IR
                     exportedTypes.UnionWith(param.Type.Export());
                 }
 
-                foreach (var entry in method.Values)
+                foreach (var block in method.Blocks)
                 {
-                    exportedValues.Add(entry.Value.Export());
-                    exportedTypes.UnionWith(entry.Value.Type.Export());
+                    foreach (var entry in block)
+                    {
+                        exportedValues.Add(entry.Value.Export());
+                        exportedTypes.UnionWith(entry.Value.Type.Export());
+                    }
+
+                    if (block.Terminator is not null)
+                    {
+                        exportedValues.Add(block.Terminator.Export());
+                        exportedTypes.UnionWith(block.Terminator.Type.Export());
+                    }
                 }
             }
 
@@ -593,6 +602,18 @@ namespace ILGPU.IR
                 exportedValues.ToImmutableArray(),
                 exportedTypes.ToImmutableArray()
                 );
+        }
+
+        /// <summary>
+        /// Imports this context from a portable representation.
+        /// </summary>
+        /// <param name="fromSource">
+        /// The exported context as an immutable type, for importing
+        /// </param>
+        public void Import(Exported fromSource)
+        {
+            using var importer = new IRImporter(fromSource);
+            importer.ImportInto(this);
         }
 
         #endregion

@@ -1,6 +1,4 @@
 ﻿using ILGPU.IR;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ILGPU.Backends.IR
 {
@@ -11,7 +9,9 @@ namespace ILGPU.Backends.IR
     {
         void IBackendHook.FinishedCodeGeneration(IRContext context, Method entryPoint)
         {
-            var temp = context.Export();
+            var exported = context.Export();
+            context.ClearCache(ClearCacheMode.Everything);
+            context.Import(exported);
         }
 
         void IBackendHook.InitializedKernelContext(

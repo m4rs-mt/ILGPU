@@ -276,6 +276,9 @@ namespace ILGPU.IR.Values
                 BasicValueType,
                 rawValue);
 
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => RawValue;
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -368,6 +371,12 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreatePrimitiveValue(Location, String);
+
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => Encoding.CodePage;
+
+        /// <summary cref="Value.GetExportTag">
+        protected internal override string? GetExportTag() => String;
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

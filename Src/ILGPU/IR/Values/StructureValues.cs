@@ -1149,6 +1149,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(ObjectValue),
                 FieldSpan);
 
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => ((long)FieldSpan.Index << 32) | (long)FieldSpan.Span;
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -1216,6 +1219,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(ObjectValue),
                 FieldSpan,
                 rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => ((long)FieldSpan.Index << 32) | (long)FieldSpan.Span;
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

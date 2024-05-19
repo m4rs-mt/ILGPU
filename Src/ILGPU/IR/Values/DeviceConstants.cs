@@ -182,6 +182,9 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateGridIndexValue(Location, Dimension);
 
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => (long)Dimension;
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -231,6 +234,9 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateGroupIndexValue(Location, Dimension);
 
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => (long)Dimension;
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -279,6 +285,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateGridDimensionValue(Location, Dimension);
+
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => (long)Dimension;
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -491,6 +500,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
+
+        /// <summary cref="Value.GetExportData"/>
+        protected internal override long GetExportData() => (long)AddressSpace;
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

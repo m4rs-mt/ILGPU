@@ -13,6 +13,7 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -335,6 +336,17 @@ namespace ILGPU.IR.Values
                 Location,
                 targets[0]);
 
+        /// <summary cref="Value.GetExportNodes">
+        protected internal override ImmutableArray<long> GetExportNodes()
+        {
+            var builder = ImmutableArray.CreateBuilder<long>();
+            foreach (var target in Targets)
+            {
+                builder.Add(target.Id);
+            }
+            return builder.ToImmutable();
+        }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -575,6 +587,20 @@ namespace ILGPU.IR.Values
                 rebuilder.LookupTarget(FalseTarget),
                 Flags);
 
+        /// <summary cref="Value.GetExportNodes">
+        protected internal override ImmutableArray<long> GetExportNodes()
+        {
+            var builder = ImmutableArray.CreateBuilder<long>();
+
+            builder.Add(Condition.Id);
+            foreach (var target in Targets)
+            {
+                builder.Add(target.Id);
+            }
+
+            return builder.ToImmutable();
+        }
+
         /// <summary>
         /// Creates a new if branch using the given targets.
         /// </summary>
@@ -777,6 +803,20 @@ namespace ILGPU.IR.Values
             foreach (var target in Targets)
                 branchBuilder.Add(rebuilder.LookupTarget(target));
             return branchBuilder.Seal();
+        }
+
+        /// <summary cref="Value.GetExportNodes">
+        protected internal override ImmutableArray<long> GetExportNodes()
+        {
+            var builder = ImmutableArray.CreateBuilder<long>();
+
+            builder.Add(Condition.Id);
+            foreach (var target in Targets)
+            {
+                builder.Add(target.Id);
+            }
+
+            return builder.ToImmutable();
         }
 
         /// <summary>
