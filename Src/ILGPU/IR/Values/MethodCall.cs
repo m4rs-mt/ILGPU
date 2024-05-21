@@ -150,9 +150,9 @@ namespace ILGPU.IR.Values
             return call.Seal();
         }
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) =>
-            serializer.Serialize(Target.Id);
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) =>
+            serializer.Write(Target.Id);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

@@ -44,7 +44,7 @@ namespace ILGPU.IR
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        public void Serialize(int value) =>
+        public void Write(int value) =>
             writer.Write(value);
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace ILGPU.IR
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        public void Serialize(long value) =>
+        public void Write(long value) =>
             writer.Write(value);
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace ILGPU.IR
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        public void Serialize(string value) =>
+        public void Write(string value) =>
             writer.Write(value);
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace ILGPU.IR
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        public void Serialize<T>(T value) where T : Enum =>
+        public void Write<T>(T value) where T : Enum =>
             writer.Write(Convert.ToInt32(value));
 
         /// <summary>

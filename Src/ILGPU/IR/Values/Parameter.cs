@@ -94,8 +94,8 @@ namespace ILGPU.IR.Values
             // Params have already been mapped in the beginning
             rebuilder.Rebuild(this);
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) { }
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

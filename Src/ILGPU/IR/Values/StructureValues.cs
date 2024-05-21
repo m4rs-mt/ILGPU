@@ -1037,8 +1037,8 @@ namespace ILGPU.IR.Values
             return instance.Seal();
         }
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) { }
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -1097,11 +1097,11 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer)
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer)
         {
-            serializer.Serialize(FieldSpan.Index);
-            serializer.Serialize(FieldSpan.Span);
+            serializer.Write(FieldSpan.Index);
+            serializer.Write(FieldSpan.Span);
         }
 
         #endregion

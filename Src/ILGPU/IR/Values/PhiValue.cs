@@ -388,12 +388,12 @@ namespace ILGPU.IR.Values
             // Phi values have already been mapped in the beginning
             rebuilder.Rebuild(this);
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer)
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer)
         {
             foreach (var source in Sources)
             {
-                serializer.Serialize(source.Id);
+                serializer.Write(source.Id);
             }
         }
 

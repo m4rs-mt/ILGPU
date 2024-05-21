@@ -131,8 +131,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Offset),
                 rebuilder.Rebuild(Length));
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) { }
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -221,8 +221,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(Offset));
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) { }
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -397,8 +397,8 @@ namespace ILGPU.IR.Values
                 ref values);
         }
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) { }
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -491,11 +491,11 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Source),
                 FieldSpan);
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer)
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer)
         {
-            serializer.Serialize(FieldSpan.Index);
-            serializer.Serialize(FieldSpan.Span);
+            serializer.Write(FieldSpan.Index);
+            serializer.Write(FieldSpan.Span);
         }
 
         /// <summary cref="Value.Accept" />
