@@ -3,7 +3,7 @@
 //                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: IRSerializer.cs
+// File: IRWriter.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -18,12 +18,12 @@ namespace ILGPU.IR
     /// <summary>
     /// Wrapper class around <see cref="BinaryWriter"/> for serializing IR types and values. 
     /// </summary>
-    public sealed partial class IRSerializer : IDisposable
+    public sealed partial class IRWriter : IDisposable
     {
         private readonly BinaryWriter writer;
 
         /// <summary>
-        /// Wraps an instance of <see cref="IRSerializer"/>
+        /// Wraps an instance of <see cref="IRWriter"/>
         /// around a given <see cref="Stream"/>.
         /// </summary>
         /// <param name="stream">
@@ -33,7 +33,7 @@ namespace ILGPU.IR
         /// The <see cref="Encoding"/> to use for
         /// serializing <see cref="string"/> values.
         /// </param>
-        public IRSerializer(Stream stream, Encoding encoding)
+        public IRWriter(Stream stream, Encoding encoding)
         {
             writer = new BinaryWriter(stream, encoding);
         }

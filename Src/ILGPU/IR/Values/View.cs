@@ -88,8 +88,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Pointer),
                 rebuilder.Rebuild(Length));
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -230,8 +230,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(View),
                 LengthType);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) =>        
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) =>        
             serializer.Serialize(LengthType);
 
         /// <summary cref="Value.Accept" />

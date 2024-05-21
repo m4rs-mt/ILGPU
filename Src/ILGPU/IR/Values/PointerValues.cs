@@ -131,8 +131,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Offset),
                 rebuilder.Rebuild(Length));
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -221,8 +221,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(Offset));
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -397,8 +397,8 @@ namespace ILGPU.IR.Values
                 ref values);
         }
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -491,8 +491,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Source),
                 FieldSpan);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer)
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer)
         {
             serializer.Serialize(FieldSpan.Index);
             serializer.Serialize(FieldSpan.Span);

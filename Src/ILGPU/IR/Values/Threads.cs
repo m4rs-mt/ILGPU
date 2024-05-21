@@ -124,8 +124,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Predicate),
                 Kind);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) =>
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) =>
             serializer.Serialize(Kind);
 
         /// <summary cref="Value.Accept" />
@@ -208,8 +208,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateBarrier(Location, Kind);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) =>
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) =>
             serializer.Serialize(Kind);
 
         /// <summary cref="Value.Accept" />
@@ -334,8 +334,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Origin),
                 Kind);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) =>
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) =>
             serializer.Serialize(Kind);
 
         /// <summary cref="Value.Accept" />
@@ -418,8 +418,8 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) =>
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) =>
             serializer.Serialize(Kind);
 
         #endregion
