@@ -547,10 +547,10 @@ namespace ILGPU.IR
         /// <summary>
         /// Serializes this instance's specific internals to the given <see cref="IRWriter"/>.
         /// </summary>
-        /// <param name="serializer">
+        /// <param name="writer">
         /// The given serializer instance. 
         /// </param>
-        protected internal abstract void Serialize(IRWriter serializer);
+        protected internal abstract void Write(IRWriter writer);
 
         /// <summary>
         /// Verifies that the this value is not sealed.
@@ -795,15 +795,18 @@ namespace ILGPU.IR
         /// <param name="value">
         /// The value to write to the stream.
         /// </param>
-        public void Serialize(Value value)
+        public void Write(Value value)
         {
-            Serialize(value.ValueKind);
+            Write(value.Id);
+            Write(value.ValueKind);
 
-            Serialize(value.Count);
+            Write(value.Type.Id);
+
+            Write(value.Count);
             foreach (var node in value.Nodes)
-                Serialize(node.Id);
+                Write(node.Id);
 
-            value.Serialize(this);
+            value.Write(this);
         }
     }
 }

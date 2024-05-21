@@ -77,8 +77,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateNull(Location, Type);
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) { }
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -279,11 +279,11 @@ namespace ILGPU.IR.Values
                 BasicValueType,
                 rawValue);
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer)
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer)
         {
-            serializer.Serialize(BasicValueType);
-            serializer.Serialize(rawValue);
+            serializer.Write(BasicValueType);
+            serializer.Write(rawValue);
         }
 
         /// <summary cref="Value.Accept" />
@@ -379,11 +379,11 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreatePrimitiveValue(Location, String);
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer)
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer)
         {
-            serializer.Serialize(Encoding.CodePage);
-            serializer.Serialize(String);
+            serializer.Write(Encoding.CodePage);
+            serializer.Write(String);
         }
 
         /// <summary cref="Value.Accept" />

@@ -200,11 +200,11 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer)
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer)
         {
-            serializer.Serialize(Kind);
-            serializer.Serialize(Flags);
+            serializer.Write(Kind);
+            serializer.Write(Flags);
         }
 
         /// <summary cref="Value.Accept"/>
@@ -281,9 +281,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(CompareValue),
                 Flags);
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) =>
-            serializer.Serialize(Flags);
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) =>
+            serializer.Write(Flags);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

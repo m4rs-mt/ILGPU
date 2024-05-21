@@ -60,8 +60,8 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) { }
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) { }
 
         /// <summary>
         /// Tries to determine an explicit alignment compile-time constant (primarily
