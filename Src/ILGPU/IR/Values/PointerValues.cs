@@ -494,8 +494,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IRWriter)"/>
         protected internal override void Write(IRWriter writer)
         {
-            serializer.Write(FieldSpan.Index);
-            serializer.Write(FieldSpan.Span);
+            writer.Write(FieldSpan.Index);
+            writer.Write(FieldSpan.Span);
         }
 
         /// <summary cref="Value.Accept" />

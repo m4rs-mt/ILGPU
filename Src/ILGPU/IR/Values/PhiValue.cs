@@ -393,7 +393,7 @@ namespace ILGPU.IR.Values
         {
             foreach (var source in Sources)
             {
-                serializer.Write(source.Id);
+                writer.Write(source.Id);
             }
         }
 
