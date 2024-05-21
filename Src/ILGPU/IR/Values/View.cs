@@ -89,7 +89,7 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Length));
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) { }
+        protected internal override void Write(IRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -231,7 +231,7 @@ namespace ILGPU.IR.Values
                 LengthType);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) =>        
+        protected internal override void Write(IRWriter writer) =>        
             serializer.Write(LengthType);
 
         /// <summary cref="Value.Accept" />
