@@ -799,13 +799,9 @@ namespace ILGPU.IR
         {
             Write(value.Id);
             Write(value.ValueKind);
-
-            Write(value.Type.Id);
-
             Write(value.Count);
             foreach (var node in value.Nodes)
                 Write(node.Id);
-
             value.Write(this);
         }
     }

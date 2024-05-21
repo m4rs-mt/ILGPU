@@ -137,8 +137,11 @@ namespace ILGPU.IR.Values
                 Flags);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) =>
+        protected internal override void Write(IRWriter writer)
+        {
+            writer.Write(TargetType);
             writer.Write(Flags);
+        }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
