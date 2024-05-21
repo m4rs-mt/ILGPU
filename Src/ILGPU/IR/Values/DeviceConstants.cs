@@ -72,7 +72,7 @@ namespace ILGPU.IR.Values
             builder.CreateAcceleratorTypeValue(Location);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) { }
+        protected internal override void Write(IRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -144,7 +144,7 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) =>
+        protected internal override void Write(IRWriter writer) =>
             serializer.Write(Dimension);
 
         #endregion
@@ -389,7 +389,7 @@ namespace ILGPU.IR.Values
             builder.CreateWarpSizeValue(Location);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) { }
+        protected internal override void Write(IRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -440,7 +440,7 @@ namespace ILGPU.IR.Values
             builder.CreateLaneIdxValue(Location);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) { }
+        protected internal override void Write(IRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -510,7 +510,7 @@ namespace ILGPU.IR.Values
             builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) =>
+        protected internal override void Write(IRWriter writer) =>
             serializer.Write(AddressSpace);
 
         /// <summary cref="Value.Accept" />

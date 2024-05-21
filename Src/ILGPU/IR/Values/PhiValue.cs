@@ -389,7 +389,7 @@ namespace ILGPU.IR.Values
             rebuilder.Rebuild(this);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer)
+        protected internal override void Write(IRWriter writer)
         {
             foreach (var source in Sources)
             {

@@ -125,7 +125,7 @@ namespace ILGPU.IR.Values
                 Kind);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) =>
+        protected internal override void Write(IRWriter writer) =>
             serializer.Write(Kind);
 
         /// <summary cref="Value.Accept" />
@@ -209,7 +209,7 @@ namespace ILGPU.IR.Values
             builder.CreateBarrier(Location, Kind);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) =>
+        protected internal override void Write(IRWriter writer) =>
             serializer.Write(Kind);
 
         /// <summary cref="Value.Accept" />
@@ -335,7 +335,7 @@ namespace ILGPU.IR.Values
                 Kind);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) =>
+        protected internal override void Write(IRWriter writer) =>
             serializer.Write(Kind);
 
         /// <summary cref="Value.Accept" />
@@ -419,7 +419,7 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) =>
+        protected internal override void Write(IRWriter writer) =>
             serializer.Write(Kind);
 
         #endregion
