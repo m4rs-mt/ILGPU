@@ -95,7 +95,8 @@ namespace ILGPU.IR.Values
             rebuilder.Rebuild(this);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        protected internal override void Write(IRWriter writer) =>
+            writer.Write(ParameterType.Id);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
