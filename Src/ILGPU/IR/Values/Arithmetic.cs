@@ -189,8 +189,8 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer)
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer)
         {
             serializer.Serialize(Kind);
             serializer.Serialize(Flags);
@@ -328,8 +328,8 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer)
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer)
         {
             serializer.Serialize(Kind);
             serializer.Serialize(Flags);
@@ -464,8 +464,8 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer)
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer)
         {
             serializer.Serialize(Kind);
             serializer.Serialize(Flags);

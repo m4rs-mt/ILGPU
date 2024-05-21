@@ -545,12 +545,12 @@ namespace ILGPU.IR
             IRRebuilder rebuilder);
 
         /// <summary>
-        /// Serializes this instance's specific internals to the given <see cref="IRSerializer"/>.
+        /// Serializes this instance's specific internals to the given <see cref="IRWriter"/>.
         /// </summary>
         /// <param name="serializer">
         /// The given serializer instance. 
         /// </param>
-        protected internal abstract void Serialize(IRSerializer serializer);
+        protected internal abstract void Serialize(IRWriter serializer);
 
         /// <summary>
         /// Verifies that the this value is not sealed.
@@ -787,7 +787,7 @@ namespace ILGPU.IR
         #endregion
     }
 
-    public sealed partial class IRSerializer
+    public sealed partial class IRWriter
     {
         /// <summary>
         /// Writes an IR <see cref="Value"/> instance to the stream.
