@@ -228,8 +228,8 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(ReturnValue));
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <summary>
         /// Throws an <see cref="InvalidOperationException"/>.
@@ -278,8 +278,8 @@ namespace ILGPU.IR.Values
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
             initializer.Context.VoidType;
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer)
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer)
         {
             serializer.Serialize(NumTargets);
             foreach (var target in Targets)

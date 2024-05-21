@@ -71,8 +71,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateAcceleratorTypeValue(Location);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -143,8 +143,8 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) =>
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) =>
             serializer.Serialize(Dimension);
 
         #endregion
@@ -388,8 +388,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateWarpSizeValue(Location);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -439,8 +439,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateLaneIdxValue(Location);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -509,8 +509,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
 
-        /// <summary cref="Value.Serialize(IRSerializer)"/>
-        protected internal override void Serialize(IRSerializer serializer) =>
+        /// <summary cref="Value.Serialize(IRWriter)"/>
+        protected internal override void Serialize(IRWriter serializer) =>
             serializer.Serialize(AddressSpace);
 
         /// <summary cref="Value.Accept" />

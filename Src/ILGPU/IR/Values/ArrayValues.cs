@@ -154,7 +154,7 @@ namespace ILGPU.IR.Values
         }
 
         /// <inheritdoc/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -241,7 +241,7 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Dimension));
 
         /// <inheritdoc/>
-        protected internal override void Serialize(IRSerializer serializer) { }
+        protected internal override void Serialize(IRWriter serializer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
