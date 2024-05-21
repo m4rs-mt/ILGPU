@@ -545,6 +545,14 @@ namespace ILGPU.IR
             IRRebuilder rebuilder);
 
         /// <summary>
+        /// Serializes this instance's specific internals to the given <see cref="IRSerializer"/>.
+        /// </summary>
+        /// <param name="serializer">
+        /// The given serializer instance. 
+        /// </param>
+        protected internal abstract void Serialize(IRSerializer serializer);
+
+        /// <summary>
         /// Verifies that the this value is not sealed.
         /// </summary>
         protected void VerifyNotSealed() =>
@@ -777,5 +785,25 @@ namespace ILGPU.IR
         public virtual bool IsMethod => false;
 
         #endregion
+    }
+
+    public sealed partial class IRSerializer
+    {
+        /// <summary>
+        /// Writes an IR <see cref="Value"/> instance to the stream.
+        /// </summary>
+        /// <param name="value">
+        /// The value to write to the stream.
+        /// </param>
+        public void Serialize(Value value)
+        {
+            Serialize(value.ValueKind);
+
+            Serialize(value.Count);
+            foreach (var node in value.Nodes)
+                Serialize(node.Id);
+
+            value.Serialize(this);
+        }
     }
 }

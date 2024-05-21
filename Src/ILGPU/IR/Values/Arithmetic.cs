@@ -189,6 +189,13 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer)
+        {
+            serializer.Serialize(Kind);
+            serializer.Serialize(Flags);
+        }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -321,6 +328,13 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer)
+        {
+            serializer.Serialize(Kind);
+            serializer.Serialize(Flags);
+        }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -449,6 +463,13 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Third),
                 Kind,
                 Flags);
+
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer)
+        {
+            serializer.Serialize(Kind);
+            serializer.Serialize(Flags);
+        }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
