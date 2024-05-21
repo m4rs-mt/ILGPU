@@ -282,8 +282,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IRWriter)"/>
         protected internal override void Write(IRWriter writer)
         {
-            serializer.Write(BasicValueType);
-            serializer.Write(rawValue);
+            writer.Write(BasicValueType);
+            writer.Write(rawValue);
         }
 
         /// <summary cref="Value.Accept" />
@@ -382,8 +382,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IRWriter)"/>
         protected internal override void Write(IRWriter writer)
         {
-            serializer.Write(Encoding.CodePage);
-            serializer.Write(String);
+            writer.Write(Encoding.CodePage);
+            writer.Write(String);
         }
 
         /// <summary cref="Value.Accept" />
