@@ -1037,6 +1037,9 @@ namespace ILGPU.IR.Values
             return instance.Seal();
         }
 
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) { }
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -1089,6 +1092,17 @@ namespace ILGPU.IR.Values
         /// Returns the field span.
         /// </summary>
         public FieldSpan FieldSpan { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer)
+        {
+            serializer.Serialize(FieldSpan.Index);
+            serializer.Serialize(FieldSpan.Span);
+        }
 
         #endregion
 

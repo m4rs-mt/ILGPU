@@ -139,6 +139,10 @@ namespace ILGPU.IR.Values
                 AddressSpace,
                 rebuilder.Rebuild(ArrayLength));
 
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) =>
+            serializer.Serialize(AddressSpace);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -228,6 +232,10 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateMemoryBarrier(Location, Kind);
 
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) =>
+            serializer.Serialize(Kind);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -298,6 +306,9 @@ namespace ILGPU.IR.Values
             builder.CreateLoad(
                 Location,
                 rebuilder.Rebuild(Source));
+
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -377,6 +388,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
