@@ -203,8 +203,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IRWriter)"/>
         protected internal override void Write(IRWriter writer)
         {
-            serializer.Write(Kind);
-            serializer.Write(Flags);
+            writer.Write(Kind);
+            writer.Write(Flags);
         }
 
         /// <summary cref="Value.Accept"/>
@@ -283,7 +283,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Write(IRWriter)"/>
         protected internal override void Write(IRWriter writer) =>
-            serializer.Write(Flags);
+            writer.Write(Flags);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

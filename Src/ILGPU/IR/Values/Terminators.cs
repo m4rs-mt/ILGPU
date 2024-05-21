@@ -281,10 +281,10 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IRWriter)"/>
         protected internal override void Write(IRWriter writer)
         {
-            serializer.Write(NumTargets);
+            writer.Write(NumTargets);
             foreach (var target in Targets)
             {
-                serializer.Write(target.Id);
+                writer.Write(target.Id);
             }
         }
 

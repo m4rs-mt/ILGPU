@@ -232,7 +232,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Write(IRWriter)"/>
         protected internal override void Write(IRWriter writer) =>        
-            serializer.Write(LengthType);
+            writer.Write(LengthType);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
