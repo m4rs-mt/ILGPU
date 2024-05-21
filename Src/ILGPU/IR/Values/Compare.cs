@@ -274,7 +274,7 @@ namespace ILGPU.IR.Values
                 Flags);
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer)
+        protected internal override void Write(IRWriter writer)
         {
             serializer.Write(Kind);
             serializer.Write(Flags);

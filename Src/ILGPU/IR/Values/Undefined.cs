@@ -50,7 +50,7 @@ namespace ILGPU.IR.Values
             builder.CreateUndefined();
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) { }
+        protected internal override void Write(IRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

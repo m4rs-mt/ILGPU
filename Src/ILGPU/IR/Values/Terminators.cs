@@ -229,7 +229,7 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(ReturnValue));
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer) { }
+        protected internal override void Write(IRWriter writer) { }
 
         /// <summary>
         /// Throws an <see cref="InvalidOperationException"/>.
@@ -279,7 +279,7 @@ namespace ILGPU.IR.Values
             initializer.Context.VoidType;
 
         /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter serializer)
+        protected internal override void Write(IRWriter writer)
         {
             serializer.Write(NumTargets);
             foreach (var target in Targets)
