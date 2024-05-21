@@ -136,9 +136,9 @@ namespace ILGPU.IR.Values
                 Type,
                 Flags);
 
-        /// <summary cref="Value.Serialize(IRWriter)"/>
-        protected internal override void Serialize(IRWriter serializer) =>
-            serializer.Serialize(Flags);
+        /// <summary cref="Value.Write(IRWriter)"/>
+        protected internal override void Write(IRWriter serializer) =>
+            serializer.Write(Flags);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
