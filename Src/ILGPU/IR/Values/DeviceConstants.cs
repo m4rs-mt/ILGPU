@@ -71,6 +71,9 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateAcceleratorTypeValue(Location);
 
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) { }
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -135,6 +138,14 @@ namespace ILGPU.IR.Values
         /// Returns the constant dimension.
         /// </summary>
         public DeviceConstantDimension3D Dimension { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) =>
+            serializer.Serialize(Dimension);
 
         #endregion
 
@@ -377,6 +388,9 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateWarpSizeValue(Location);
 
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) { }
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -424,6 +438,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateLaneIdxValue(Location);
+
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -491,6 +508,10 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
+
+        /// <summary cref="Value.Serialize(IRSerializer)"/>
+        protected internal override void Serialize(IRSerializer serializer) =>
+            serializer.Serialize(AddressSpace);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

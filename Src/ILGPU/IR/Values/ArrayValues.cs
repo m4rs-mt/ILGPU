@@ -154,6 +154,9 @@ namespace ILGPU.IR.Values
         }
 
         /// <inheritdoc/>
+        protected internal override void Serialize(IRSerializer serializer) { }
+
+        /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
@@ -236,6 +239,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(ArrayValue),
                 rebuilder.Rebuild(Dimension));
+
+        /// <inheritdoc/>
+        protected internal override void Serialize(IRSerializer serializer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
