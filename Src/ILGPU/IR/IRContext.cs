@@ -12,6 +12,7 @@
 using ILGPU.Frontend;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -496,6 +497,34 @@ namespace ILGPU.IR
 
             // Cleanup the IR
             Parallel.ForEach(toTransform, gcDelegate);
+        }
+
+        /// <summary>
+        /// Serializes this instance using the given <see cref="IIRWriter"/>.
+        /// </summary>
+        /// <param name="writer">
+        /// The writer to use for serialization.
+        /// </param>
+        public void Write(IIRWriter writer)
+        {
+            var allMethods = GetMethodCollection(new MethodCollections.AllMethods());
+            foreach (var method in allMethods)
+            {
+                foreach (var param in method.Parameters)
+                {
+                    param.Write(writer);
+                }
+
+                foreach (var block in method.Blocks)
+                {
+                    foreach (var entry in block)
+                    {
+                        entry.Value.Write(writer);
+                    }
+
+                    block.Terminator?.Write(writer);
+                }
+            }
         }
 
         /// <summary>

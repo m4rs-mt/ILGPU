@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -1037,8 +1038,8 @@ namespace ILGPU.IR.Values
             return instance.Seal();
         }
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -1097,8 +1098,8 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer)
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer)
         {
             writer.Write(FieldSpan.Index);
             writer.Write(FieldSpan.Span);

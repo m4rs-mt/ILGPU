@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 
@@ -136,8 +137,8 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -213,8 +214,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetBasicValueType);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -328,8 +329,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) =>
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) =>
             writer.Write(TargetElementType.Id);
 
         /// <summary cref="Value.Accept"/>
@@ -428,8 +429,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetAddressSpace);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) =>
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) =>
             writer.Write(TargetAddressSpace);
 
         /// <summary cref="Value.Accept"/>
@@ -511,8 +512,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) =>
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) =>
             writer.Write(TargetElementType.Id);
 
         /// <summary cref="Value.Accept" />
@@ -587,8 +588,8 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -720,8 +721,8 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -789,8 +790,8 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

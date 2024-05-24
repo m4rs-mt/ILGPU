@@ -71,8 +71,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateAcceleratorTypeValue(Location);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -143,8 +143,8 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) =>
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) =>
             writer.Write(Dimension);
 
         #endregion
@@ -388,8 +388,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateWarpSizeValue(Location);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -439,8 +439,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateLaneIdxValue(Location);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -509,8 +509,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) =>
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) =>
             writer.Write(AddressSpace);
 
         /// <summary cref="Value.Accept" />

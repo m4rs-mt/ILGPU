@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -77,8 +78,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateNull(Location, Type);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -279,8 +280,8 @@ namespace ILGPU.IR.Values
                 BasicValueType,
                 rawValue);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer)
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer)
         {
             writer.Write(BasicValueType);
             writer.Write(rawValue);
@@ -379,8 +380,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreatePrimitiveValue(Location, String);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer)
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer)
         {
             writer.Write(Encoding.CodePage);
             writer.Write(String);

@@ -3,7 +3,7 @@
 //                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: IRWriter.cs
+// File: BinaryIRWriter.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -13,17 +13,17 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace ILGPU.IR
+namespace ILGPU.IR.Serialization
 {
     /// <summary>
     /// Wrapper class around <see cref="BinaryWriter"/> for serializing IR types and values. 
     /// </summary>
-    public sealed partial class IRWriter : IDisposable
+    public sealed partial class BinaryIRWriter : IIRWriter
     {
         private readonly BinaryWriter writer;
 
         /// <summary>
-        /// Wraps an instance of <see cref="IRWriter"/>
+        /// Wraps an instance of <see cref="BinaryIRWriter"/>
         /// around a given <see cref="Stream"/>.
         /// </summary>
         /// <param name="stream">
@@ -33,44 +33,24 @@ namespace ILGPU.IR
         /// The <see cref="Encoding"/> to use for
         /// serializing <see cref="string"/> values.
         /// </param>
-        public IRWriter(Stream stream, Encoding encoding)
+        public BinaryIRWriter(Stream stream, Encoding encoding)
         {
             writer = new BinaryWriter(stream, encoding);
         }
 
-        /// <summary>
-        /// Serializes a 32-bit integer value to the stream.
-        /// </summary>
-        /// <param name="value">
-        /// The value to serialize.
-        /// </param>
+        /// <inheritdoc/>
         public void Write(int value) =>
             writer.Write(value);
 
-        /// <summary>
-        /// Serializes a 64-bit integer value to the stream.
-        /// </summary>
-        /// <param name="value">
-        /// The value to serialize.
-        /// </param>
+        /// <inheritdoc/>
         public void Write(long value) =>
             writer.Write(value);
 
-        /// <summary>
-        /// Serializes a string value to the stream.
-        /// </summary>
-        /// <param name="value">
-        /// The value to serialize.
-        /// </param>
+        /// <inheritdoc/>
         public void Write(string value) =>
             writer.Write(value);
 
-        /// <summary>
-        /// Serializes an arbitrary <see cref="Enum"/> value as a 32-bit integer, to the stream.
-        /// </summary>
-        /// <param name="value">
-        /// The value to serialize.
-        /// </param>
+        /// <inheritdoc/>
         public void Write<T>(T value) where T : Enum =>
             writer.Write(Convert.ToInt32(value));
 
