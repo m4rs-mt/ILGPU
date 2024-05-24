@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Serialization;
 using System;
 
 namespace ILGPU.IR.Types
@@ -47,6 +48,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsArrayType => true;
 
+        /// <inheritdoc/>
+        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Array;
+
         /// <summary>
         /// Returns the underlying element type.
         /// </summary>
@@ -74,6 +78,13 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeProvider.GetArrayType(this);
+
+        /// <summary cref="TypeNode.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer)
+        {
+            writer.Write(ElementType.Id);
+            writer.Write(NumDimensions);
+        }
 
         #endregion
 

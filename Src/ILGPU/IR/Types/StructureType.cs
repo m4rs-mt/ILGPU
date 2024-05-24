@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
@@ -747,6 +748,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsRootType => NumFields < 1;
 
+        /// <inheritdoc/>
+        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Structure;
+
         /// <summary>
         /// Returns the high-level fields stored in this structure type.
         /// </summary>
@@ -938,6 +942,16 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeProvider.GetStructureType(this);
+
+        /// <summary cref="TypeNode.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer)
+        {
+            writer.Write(NumFields);
+            foreach (var fieldType in Fields)
+            {
+                writer.Write(fieldType.Id);
+            }
+        }
 
         #endregion
 
