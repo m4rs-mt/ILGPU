@@ -10,6 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.IR.Serialization;
+using ILGPU.IR.Types;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
@@ -289,6 +291,11 @@ namespace ILGPU.IR.Types
         public virtual BasicValueType BasicValueType => BasicValueType.None;
 
         /// <summary>
+        /// Returns the <see cref="TypeNodeKind"/> of this instance.
+        /// </summary>
+        public abstract TypeNodeKind TypeNodeKind { get; }
+
+        /// <summary>
         /// Returns all type flags.
         /// </summary>
         public TypeFlags Flags { get; private set; }
@@ -346,6 +353,14 @@ namespace ILGPU.IR.Types
             where TTypeProvider : IManagedTypeProvider;
 
         /// <summary>
+        /// Serializes this instance's specific internals to the given <see cref="IIRWriter"/>.
+        /// </summary>
+        /// <param name="writer">
+        /// The given serializer instance. 
+        /// </param>
+        protected internal abstract void Write(IIRWriter writer);
+
+        /// <summary>
         /// Converts the current type to the given type <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type node.</typeparam>
@@ -399,5 +414,25 @@ namespace ILGPU.IR.Types
         public override string ToString() => ToPrefixString();
 
         #endregion
+    }
+}
+
+namespace ILGPU.IR.Serialization
+{
+    public partial interface IIRWriter
+    {
+        /// <summary>
+        /// Serializes an IR <see cref="TypeNode"/> instance to the stream.
+        /// </summary>
+        /// <param name="value">
+        /// The value to serialize.
+        /// </param>
+        public void Write(TypeNode value)
+        {
+            Write(value.Id);
+            Write(value.TypeNodeKind);
+
+            value.Write(this);
+        }
     }
 }

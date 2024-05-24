@@ -9,10 +9,9 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
+using ILGPU.IR.Serialization;
 using System;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Types
 {
@@ -88,6 +87,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsPrimitiveType => true;
 
+        /// <inheritdoc/>
+        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Primitive;
+
         /// <summary>
         /// Returns the associated basic value type.
         /// </summary>
@@ -122,6 +124,10 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeProvider.GetPrimitiveType(this);
+
+        /// <summary cref="TypeNode.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) =>
+            writer.Write(BasicValueType);
 
         #endregion
 
@@ -165,6 +171,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsStringType => true;
 
+        /// <inheritdoc/>
+        public override TypeNodeKind TypeNodeKind => TypeNodeKind.String;
+
         #endregion
 
         #region Methods
@@ -175,6 +184,9 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeof(string);
+
+        /// <summary cref="TypeNode.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         #endregion
 

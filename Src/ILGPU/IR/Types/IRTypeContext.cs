@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.IR.Serialization;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
@@ -577,6 +578,37 @@ namespace ILGPU.IR.Types
             typeMapping.Clear();
             unifiedTypes.Clear();
             PopulateTypeMapping();
+        }
+
+        /// <summary>
+        /// Acquires a lock on the current <see cref="IRTypeContext"/> and
+        /// retrieves an <see cref="IEnumerable{TypeNode}"/> containing the
+        /// full type unification therewithin. 
+        /// </summary>
+        /// <returns>
+        /// The retrieved type unification as a generic collection.
+        /// </returns>
+        public IEnumerable<TypeNode> GetUnifiedTypeCollection()
+        {
+            using var readScope = typeLock.EnterReadScope();
+            foreach (var (type, _) in unifiedTypes)
+            {
+                yield return type;
+            }
+        }
+
+        /// <summary>
+        /// Serializes this instance using the given <see cref="IIRWriter"/>.
+        /// </summary>
+        /// <param name="writer">
+        /// The writer to use for serialization.
+        /// </param>
+        public void Write(IIRWriter writer)
+        {
+            foreach (var type in GetUnifiedTypeCollection())
+            {
+                writer.Write(type);
+            }
         }
 
         #endregion
