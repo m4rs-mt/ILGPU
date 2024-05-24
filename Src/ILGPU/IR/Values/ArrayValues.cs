@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System.Runtime.CompilerServices;
@@ -154,7 +155,7 @@ namespace ILGPU.IR.Values
         }
 
         /// <inheritdoc/>
-        protected internal override void Write(IRWriter writer) =>
+        protected internal override void Write(IIRWriter writer) =>
             writer.Write(Type.Id);
 
         /// <inheritdoc/>
@@ -242,7 +243,7 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Dimension));
 
         /// <inheritdoc/>
-        protected internal override void Write(IRWriter writer) { }
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

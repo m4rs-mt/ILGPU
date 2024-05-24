@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -545,12 +546,12 @@ namespace ILGPU.IR
             IRRebuilder rebuilder);
 
         /// <summary>
-        /// Serializes this instance's specific internals to the given <see cref="IRWriter"/>.
+        /// Serializes this instance's specific internals to the given <see cref="IIRWriter"/>.
         /// </summary>
         /// <param name="writer">
         /// The given serializer instance. 
         /// </param>
-        protected internal abstract void Write(IRWriter writer);
+        protected internal abstract void Write(IIRWriter writer);
 
         /// <summary>
         /// Verifies that the this value is not sealed.
@@ -786,22 +787,30 @@ namespace ILGPU.IR
 
         #endregion
     }
+}
 
-    public sealed partial class IRWriter
+namespace ILGPU.IR.Serialization
+{
+    public partial interface IIRWriter
     {
         /// <summary>
-        /// Writes an IR <see cref="Value"/> instance to the stream.
+        /// Serializes an IR <see cref="Value"/> instance to the stream.
         /// </summary>
         /// <param name="value">
-        /// The value to write to the stream.
+        /// The value to serialize.
         /// </param>
         public void Write(Value value)
         {
             Write(value.Id);
             Write(value.ValueKind);
+
+            Write(value.Method.Id);
+            Write(value.BasicBlock.Id);
+
             Write(value.Count);
             foreach (var node in value.Nodes)
                 Write(node.Id);
+
             value.Write(this);
         }
     }
