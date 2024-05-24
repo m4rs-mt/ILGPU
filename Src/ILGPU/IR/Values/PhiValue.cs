@@ -388,8 +388,8 @@ namespace ILGPU.IR.Values
             // Phi values have already been mapped in the beginning
             rebuilder.Rebuild(this);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer)
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer)
         {
             foreach (var source in Sources)
             {

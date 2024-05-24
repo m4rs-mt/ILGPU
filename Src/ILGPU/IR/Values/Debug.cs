@@ -106,8 +106,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Condition),
                 rebuilder.Rebuild(Message));
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) { }
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

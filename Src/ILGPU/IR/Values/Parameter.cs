@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 
 namespace ILGPU.IR.Values
@@ -94,8 +95,8 @@ namespace ILGPU.IR.Values
             // Params have already been mapped in the beginning
             rebuilder.Rebuild(this);
 
-        /// <summary cref="Value.Write(IRWriter)"/>
-        protected internal override void Write(IRWriter writer) =>
+        /// <summary cref="Value.Write(IIRWriter)"/>
+        protected internal override void Write(IIRWriter writer) =>
             writer.Write(ParameterType.Id);
 
         /// <summary cref="Value.Accept" />
