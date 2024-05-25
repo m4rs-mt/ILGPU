@@ -1,4 +1,15 @@
-﻿using System;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BinaryIRReader.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
@@ -12,6 +23,9 @@ namespace ILGPU.IR.Serialization
     {
         private readonly BinaryReader reader;
 
+        /// <inheritdoc/>
+        public IIRMappingContext Context { get; }
+
         /// <summary>
         /// Wraps an instance of <see cref="BinaryIRReader"/>
         /// around a given <see cref="Stream"/>.
@@ -23,9 +37,13 @@ namespace ILGPU.IR.Serialization
         /// The <see cref="Encoding"/> to use for
         /// deserializing <see cref="string"/> values.
         /// </param>
-        public BinaryIRReader(Stream stream, Encoding encoding)
+        /// <param name="context">
+        /// A mapping context instance to use for deserialization. 
+        /// </param>
+        public BinaryIRReader(Stream stream, Encoding encoding, IIRMappingContext context)
         {
             reader = new BinaryReader(stream, encoding);
+            Context = context;
         }
 
 
