@@ -17,6 +17,7 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using UseList = ILGPU.Util.InlineList<ILGPU.IR.Values.Use>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
@@ -243,6 +244,25 @@ namespace ILGPU.IR
         /// The default value flags.
         /// </summary>
         public const ValueFlags DefaultFlags = ValueFlags.None;
+
+        #endregion
+
+        #region Static Methods
+
+        /// <summary>
+        /// Generically reads a serialized IR value from a stream.
+        /// </summary>
+        /// <param name="header">
+        /// The basic header associated with the target value.
+        /// </param>
+        /// <param name="reader">
+        /// The wrapped stream reader instance.
+        /// </param>
+        /// <returns>
+        /// The reconstructed IR value.
+        /// </returns>
+        public static Value? ReadGeneric(ValueHeader header, IIRReader reader) =>
+            ValueKinds.ReaderDelegates[header.Kind](header, reader);
 
         #endregion
 
@@ -821,6 +841,58 @@ namespace ILGPU.IR.Serialization
                 Write($"{nameof(value.Nodes)}[{index++}]", node.Id);
 
             value.Write(this);
+        }
+    }
+
+    public partial interface IIRReader
+    {
+        /// <summary>
+        /// Reads an IR value out from this instance.
+        /// </summary>
+        /// <param name="value">
+        /// The value just read from the wrapped stream.
+        /// </param>
+        /// <returns>
+        /// True if successful, false otherwise. 
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// Throws upon a failed lookup for previously deserialized values. 
+        /// </exception>
+        bool Read([NotNullWhen(true)] out Value? value)
+        {
+            if (Read(out long valueId) &&
+                Read(out ValueKind valueKind) &&
+                Read(out long methodId) &&
+                Read(out long blockId) &&
+                Read(out int nodeCount))
+            {
+                var nodes = new ValueReference[nodeCount];
+                for (int i = 0; i < nodeCount; i++)
+                {
+                    nodes[i] = Read(out long nodeId) && Context.Values
+                        .TryGetValue(nodeId, out Value? node)
+                        ? (ValueReference)node
+                        : throw new InvalidOperationException(
+                            "Referential integrity error: value table is incomplete!"
+                            );
+                }
+
+                value = Value.ReadGeneric(new ValueHeader(valueKind,
+                    methodId > 0 ? Context.Methods[methodId] : null,
+                    blockId > 0 ? Context.Blocks[blockId] : null,
+                    nodes.AsSpan()), this);
+
+                if (value is not null)
+                {
+                    Context.Values.Add(valueId, value);
+                    return true;
+                }
+            }
+            else
+            {
+                value = default;
+            }
+            return false;
         }
     }
 }

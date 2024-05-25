@@ -61,6 +61,7 @@ namespace ILGPU.IR.Serialization
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        void Write<T>(string tag, T value) where T : Enum;
+        void Write<T>(T value)
+            where T : unmanaged, Enum;
     }
 }
