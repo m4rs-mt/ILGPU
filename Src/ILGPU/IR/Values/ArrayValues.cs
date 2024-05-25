@@ -156,7 +156,7 @@ namespace ILGPU.IR.Values
 
         /// <inheritdoc/>
         protected internal override void Write(IIRWriter writer) =>
-            writer.Write(Type.Id);
+            writer.Write("Type", Type.Id);
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

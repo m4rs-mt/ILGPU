@@ -142,7 +142,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer) =>
-            writer.Write(AddressSpace);
+            writer.Write("AddressSpace", AddressSpace);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -235,7 +235,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer) =>
-            writer.Write(Kind);
+            writer.Write("Kind", Kind);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

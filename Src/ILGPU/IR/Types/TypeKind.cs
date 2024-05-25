@@ -14,7 +14,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Enumeration of tHhe various special kinds of <see cref="TypeNode"/>.
     /// </summary>
-    public enum TypeNodeKind
+    public enum TypeKind
     {
         /// <summary>
         /// Fallback value for when the classification is unknown or doesn't apply
