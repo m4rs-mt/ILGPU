@@ -49,7 +49,7 @@ namespace ILGPU.IR.Types
         public override bool IsArrayType => true;
 
         /// <inheritdoc/>
-        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Array;
+        public override TypeKind TypeKind => TypeKind.Array;
 
         /// <summary>
         /// Returns the underlying element type.
@@ -82,8 +82,8 @@ namespace ILGPU.IR.Types
         /// <summary cref="TypeNode.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer)
         {
-            writer.Write(ElementType.Id);
-            writer.Write(NumDimensions);
+            writer.Write("ElementType", ElementType.Id);
+            writer.Write("NumDimensions", NumDimensions);
         }
 
         #endregion

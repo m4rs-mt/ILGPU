@@ -495,8 +495,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer)
         {
-            writer.Write(FieldSpan.Index);
-            writer.Write(FieldSpan.Span);
+            writer.Write("Index", FieldSpan.Index);
+            writer.Write("Span", FieldSpan.Span);
         }
 
         /// <summary cref="Value.Accept" />

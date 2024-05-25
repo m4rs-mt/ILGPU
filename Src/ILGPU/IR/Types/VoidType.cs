@@ -37,7 +37,7 @@ namespace ILGPU.IR.Types
         public override bool IsVoidType => true;
 
         /// <inheritdoc/>
-        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Void;
+        public override TypeKind TypeKind => TypeKind.Void;
 
         #endregion
 

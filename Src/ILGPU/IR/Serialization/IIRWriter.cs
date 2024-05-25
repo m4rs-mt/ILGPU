@@ -21,33 +21,45 @@ namespace ILGPU.IR.Serialization
         /// <summary>
         /// Serializes a 32-bit integer value to the stream.
         /// </summary>
+        /// <param name="tag">
+        /// A tag that describes the purpose of this value.
+        /// </param>
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        void Write(int value);
+        void Write(string tag, int value);
 
         /// <summary>
         /// Serializes a 64-bit integer value to the stream.
         /// </summary>
+        /// <param name="tag">
+        /// A tag that describes the purpose of this value.
+        /// </param>
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        void Write(long value);
+        void Write(string tag, long value);
 
         /// <summary>
         /// Serializes a 32-bit integer value to the stream.
         /// </summary>
+        /// <param name="tag">
+        /// A tag that describes the purpose of this value.
+        /// </param>
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        void Write(string value);
+        void Write(string tag, string value);
 
         /// <summary>
         /// Serializes a string value to the stream.
         /// </summary>
+        /// <param name="tag">
+        /// A tag that describes the purpose of this value.
+        /// </param>
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        void Write<T>(T value) where T : Enum;
+        void Write<T>(string tag, T value) where T : Enum;
     }
 }

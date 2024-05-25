@@ -88,7 +88,7 @@ namespace ILGPU.IR.Types
         public override bool IsPrimitiveType => true;
 
         /// <inheritdoc/>
-        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Primitive;
+        public override TypeKind TypeKind => TypeKind.Primitive;
 
         /// <summary>
         /// Returns the associated basic value type.
@@ -127,7 +127,7 @@ namespace ILGPU.IR.Types
 
         /// <summary cref="TypeNode.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer) =>
-            writer.Write(BasicValueType);
+            writer.Write("BasicValueType", BasicValueType);
 
         #endregion
 
@@ -172,7 +172,7 @@ namespace ILGPU.IR.Types
         public override bool IsStringType => true;
 
         /// <inheritdoc/>
-        public override TypeNodeKind TypeNodeKind => TypeNodeKind.String;
+        public override TypeKind TypeKind => TypeKind.String;
 
         #endregion
 

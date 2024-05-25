@@ -42,7 +42,7 @@ namespace ILGPU.IR.Types
         public override bool IsPaddingType => true;
 
         /// <inheritdoc/>
-        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Padding;
+        public override TypeKind TypeKind => TypeKind.Padding;
 
         /// <summary>
         /// Returns the associated basic value type.
@@ -67,7 +67,7 @@ namespace ILGPU.IR.Types
 
         /// <summary cref="TypeNode.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer) =>
-            writer.Write(PrimitiveType.Id);
+            writer.Write("PrimitiveType", PrimitiveType.Id);
 
         #endregion
 

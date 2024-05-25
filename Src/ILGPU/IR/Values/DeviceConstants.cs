@@ -146,7 +146,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer) =>
-            writer.Write(Dimension);
+            writer.Write("Dimension", Dimension);
 
         #endregion
 
@@ -512,7 +512,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer) =>
-            writer.Write(AddressSpace);
+            writer.Write("AddressSpace", AddressSpace);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

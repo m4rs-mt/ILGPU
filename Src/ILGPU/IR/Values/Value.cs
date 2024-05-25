@@ -796,20 +796,24 @@ namespace ILGPU.IR.Serialization
         /// <summary>
         /// Serializes an IR <see cref="Value"/> instance to the stream.
         /// </summary>
+        /// <param name="tag">
+        /// A tag that describes the purpose of this value.
+        /// </param>
         /// <param name="value">
         /// The value to serialize.
         /// </param>
-        public void Write(Value value)
+        public void Write(string tag, Value value)
         {
-            Write(value.Id);
-            Write(value.ValueKind);
+            Write("Id", value.Id);
+            Write("ValueKind", value.ValueKind);
 
-            Write(value.Method.Id);
-            Write(value.BasicBlock.Id);
+            Write("Method", value.Method.Id);
+            Write("BasicBlock", value.BasicBlock.Id);
 
-            Write(value.Count);
+            int index = 0;
+            Write("Count", value.Count);
             foreach (var node in value.Nodes)
-                Write(node.Id);
+                Write($"Nodes[{index++}]", node.Id);
 
             value.Write(this);
         }

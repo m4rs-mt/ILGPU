@@ -140,8 +140,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer)
         {
-            writer.Write(TargetType);
-            writer.Write(Flags);
+            writer.Write("TargetType", TargetType);
+            writer.Write("Flags", Flags);
         }
 
         /// <summary cref="Value.Accept"/>

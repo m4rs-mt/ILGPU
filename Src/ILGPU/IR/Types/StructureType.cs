@@ -749,7 +749,7 @@ namespace ILGPU.IR.Types
         public override bool IsRootType => NumFields < 1;
 
         /// <inheritdoc/>
-        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Structure;
+        public override TypeKind TypeKind => TypeKind.Structure;
 
         /// <summary>
         /// Returns the high-level fields stored in this structure type.
@@ -946,10 +946,11 @@ namespace ILGPU.IR.Types
         /// <summary cref="TypeNode.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer)
         {
-            writer.Write(NumFields);
+            int index = 0;
+            writer.Write("NumFields", NumFields);
             foreach (var fieldType in Fields)
             {
-                writer.Write(fieldType.Id);
+                writer.Write($"Fields[{index++}]", fieldType.Id);
             }
         }
 

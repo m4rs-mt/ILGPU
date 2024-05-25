@@ -392,9 +392,10 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer)
         {
+            int index = 0;
             foreach (var source in Sources)
             {
-                writer.Write(source.Id);
+                writer.Write($"Sources[{index++}]", source.Id);
             }
         }
 
