@@ -9,8 +9,10 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Serialization;
 using ILGPU.Util;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace ILGPU.IR
@@ -392,8 +394,21 @@ namespace ILGPU.IR
     /// <summary>
     /// Utility methods for <see cref="ValueKind"/> enumeration values.
     /// </summary>
-    public static class ValueKinds
+    public static partial class ValueKinds
     {
+        // TODO: Source generator writes static type
+        // constructor to initialize this value, reflection free!
+        private readonly static Dictionary<ValueKind,
+            GenericValueReader> readerDelegates;
+
+        /// <summary>
+        /// Returns a table mapping <see cref="ValueKind"/> information
+        /// to their corresponding <see cref="GenericValueReader"/> delegates.
+        /// </summary>
+        public static IReadOnlyDictionary<ValueKind,
+            GenericValueReader> ReaderDelegates =>
+            readerDelegates;
+
         /// <summary>
         /// The number of different value kinds.
         /// </summary>

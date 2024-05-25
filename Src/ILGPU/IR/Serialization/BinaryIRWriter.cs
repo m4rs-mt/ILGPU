@@ -19,7 +19,7 @@ namespace ILGPU.IR.Serialization
     /// <summary>
     /// Wrapper class around <see cref="BinaryWriter"/> for serializing IR types and values. 
     /// </summary>
-    public sealed partial class BinaryIRWriter : DisposeBase, IIRWriter
+    public sealed class BinaryIRWriter : DisposeBase, IIRWriter
     {
         private readonly BinaryWriter writer;
 
@@ -52,7 +52,8 @@ namespace ILGPU.IR.Serialization
             writer.Write(value);
 
         /// <inheritdoc/>
-        public void Write<T>(string tag, T value) where T : Enum =>
+        public void Write<T>(T value)
+            where T : unmanaged, Enum =>
             writer.Write(Convert.ToInt32(value));
 
         /// <inheritdoc/>
