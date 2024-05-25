@@ -132,8 +132,8 @@ namespace ILGPU.IR.Types
         /// <summary cref="TypeNode.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer)
         {
-            writer.Write(ElementType.Id);
-            writer.Write(AddressSpace);
+            writer.Write("ElementType", ElementType.Id);
+            writer.Write("AddressSpace", AddressSpace);
         }
 
         #endregion
@@ -198,7 +198,7 @@ namespace ILGPU.IR.Types
         public override bool IsPointerType => true;
 
         /// <inheritdoc/>
-        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Pointer;
+        public override TypeKind TypeKind => TypeKind.Pointer;
 
         /// <summary>
         /// Returns the associated basic value type.
@@ -273,7 +273,7 @@ namespace ILGPU.IR.Types
         public override bool IsViewType => true;
 
         /// <inheritdoc/>
-        public override TypeNodeKind TypeNodeKind => TypeNodeKind.View;
+        public override TypeKind TypeKind => TypeKind.View;
 
         #endregion
 

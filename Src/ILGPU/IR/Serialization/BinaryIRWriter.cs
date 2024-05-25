@@ -39,19 +39,19 @@ namespace ILGPU.IR.Serialization
         }
 
         /// <inheritdoc/>
-        public void Write(int value) =>
+        public void Write(string tag, int value) =>
             writer.Write(value);
 
         /// <inheritdoc/>
-        public void Write(long value) =>
+        public void Write(string tag, long value) =>
             writer.Write(value);
 
         /// <inheritdoc/>
-        public void Write(string value) =>
+        public void Write(string tag, string value) =>
             writer.Write(value);
 
         /// <inheritdoc/>
-        public void Write<T>(T value) where T : Enum =>
+        public void Write<T>(string tag, T value) where T : Enum =>
             writer.Write(Convert.ToInt32(value));
 
         /// <summary>

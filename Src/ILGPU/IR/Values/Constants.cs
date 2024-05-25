@@ -283,8 +283,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer)
         {
-            writer.Write(BasicValueType);
-            writer.Write(rawValue);
+            writer.Write("BasicValueType", BasicValueType);
+            writer.Write("RawValue", RawValue);
         }
 
         /// <summary cref="Value.Accept" />
@@ -383,8 +383,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer)
         {
-            writer.Write(Encoding.CodePage);
-            writer.Write(String);
+            writer.Write("Encoding", Encoding.CodePage);
+            writer.Write("String", String);
         }
 
         /// <summary cref="Value.Accept" />

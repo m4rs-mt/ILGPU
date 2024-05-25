@@ -34,7 +34,7 @@ namespace ILGPU.IR.Types
         #region Properties
 
         /// <inheritdoc/>
-        public override TypeNodeKind TypeNodeKind => TypeNodeKind.Handle;
+        public override TypeKind TypeKind => TypeKind.Handle;
 
         #endregion
 

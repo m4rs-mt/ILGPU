@@ -282,10 +282,11 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Write(IIRWriter)"/>
         protected internal override void Write(IIRWriter writer)
         {
-            writer.Write(NumTargets);
+            int index = 0;
+            writer.Write("NumTargets", NumTargets);
             foreach (var target in Targets)
             {
-                writer.Write(target.Id);
+                writer.Write($"Targets[{index++}]", target.Id);
             }
         }
 

@@ -291,9 +291,9 @@ namespace ILGPU.IR.Types
         public virtual BasicValueType BasicValueType => BasicValueType.None;
 
         /// <summary>
-        /// Returns the <see cref="TypeNodeKind"/> of this instance.
+        /// Returns the <see cref="TypeKind"/> of this instance.
         /// </summary>
-        public abstract TypeNodeKind TypeNodeKind { get; }
+        public abstract TypeKind TypeKind { get; }
 
         /// <summary>
         /// Returns all type flags.
@@ -429,8 +429,8 @@ namespace ILGPU.IR.Serialization
         /// </param>
         public void Write(TypeNode value)
         {
-            Write(value.Id);
-            Write(value.TypeNodeKind);
+            Write("Type", value.Id);
+            Write("TypeKind", value.TypeKind);
 
             value.Write(this);
         }
