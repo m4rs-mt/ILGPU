@@ -53,7 +53,7 @@ namespace ILGPU.IR.Serialization
             writer.Write(value);
 
         /// <inheritdoc/>
-        public void Write<T>(T value)
+        public void Write<T>(string tag, T value)
             where T : unmanaged, Enum =>
             writer.Write(Convert.ToInt32(value));
 
