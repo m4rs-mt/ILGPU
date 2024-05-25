@@ -396,10 +396,8 @@ namespace ILGPU.IR
     /// </summary>
     public static partial class ValueKinds
     {
-        // TODO: Source generator writes static type
-        // constructor to initialize this value, reflection free!
         private readonly static Dictionary<ValueKind,
-            GenericValueReader> readerDelegates;
+            GenericValueReader> _readerDelegates = new();
 
         /// <summary>
         /// Returns a table mapping <see cref="ValueKind"/> information
@@ -407,7 +405,7 @@ namespace ILGPU.IR
         /// </summary>
         public static IReadOnlyDictionary<ValueKind,
             GenericValueReader> ReaderDelegates =>
-            readerDelegates;
+            _readerDelegates;
 
         /// <summary>
         /// The number of different value kinds.
