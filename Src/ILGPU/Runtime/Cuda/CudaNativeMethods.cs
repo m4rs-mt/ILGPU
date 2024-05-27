@@ -323,6 +323,18 @@ namespace ILGPU.Runtime.Cuda
         private const int CUDA_IPC_HANDLE_SIZE = 64;
 
         /// <summary>
+        /// Constructs an IPC memory handle from bytes.
+        /// </summary>
+        /// <param name="data">A 64-Byte array containing the handle data.</param>
+        public CudaIpcMemHandle(byte[] data)
+        {
+            ArgumentOutOfRangeException.ThrowIfNotEqual(data.Length, CUDA_IPC_HANDLE_SIZE, nameof(data));
+            var handle = new Handle();
+            data.CopyTo(handle);
+            Data = handle;
+        }
+
+        /// <summary>
         /// The actual IPC handle.
         /// </summary>
         public Handle Data { get; set; }

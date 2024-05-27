@@ -482,6 +482,24 @@ namespace ILGPU.Runtime.Cuda
             where T : unmanaged =>
             Allocate2DPitchedY<T>(extent, PitchedAllocationAlignmentInBytes);
 
+        /// <summary>
+        /// Maps a buffer allocated by another process of the specified size in bytes on this accelerator.
+        /// </summary>
+        /// <param name="ipcMemHandle">A IPC memory handle from another process.</param>
+        /// <param name="length">The number of elements to allocate.</param>
+        /// <param name="elementSize">The size of a single element in bytes.</param>
+        /// <returns>A mapped buffer of shared memory on this accelerator.</returns>
+        public CudaIpcMemoryBuffer MapRaw(CudaIpcMemHandle ipcMemHandle, long length, int elementSize)
+        {
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length));
+            if (elementSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(elementSize));
+
+            Bind();
+            return new CudaIpcMemoryBuffer(this, ipcMemHandle, length, elementSize);
+        }
+
         #endregion
 
         #region Peer Access
