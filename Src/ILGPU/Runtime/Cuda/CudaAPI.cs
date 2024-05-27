@@ -484,6 +484,46 @@ namespace ILGPU.Runtime.Cuda
             int flags) =>
             cuMemHostGetDevicePointer_v2(out devicePtr, hostPtr, flags);
 
+        /// <summary>
+        /// Get an IPC memory handle for a memory buffer.
+        /// </summary>
+        /// <param name="handle">The IPC memory handle.</param>
+        /// <param name="devicePtr">The memory buffer.</param>
+        /// <returns>The error status.</returns>
+        /// <remarks>This will zero the memory in the buffer!
+        /// A buffer can only have one IPC handle.
+        /// </remarks>
+        public CudaError GetIpcMemoryHandle(
+            out CudaIpcMemHandle handle,
+            IntPtr devicePtr) =>
+            cuIpcGetMemHandle(out handle, devicePtr);
+
+        /// <summary>
+        /// Open a memory buffer from an IPC handle.
+        /// </summary>
+        /// <param name="devicePtr">The newly allocated memory.</param>
+        /// <param name="handle">A IPC memory handle from another process</param>
+        /// <param name="flags">The flags to use.</param>
+        /// <returns>The error status.</returns>
+        /// <remarks>This will not work with an IPC handle of the same process.</remarks>
+        public CudaError OpenIpcMemoryHandle(
+            out IntPtr devicePtr,
+            CudaIpcMemHandle handle,
+            CudaIpcMemFlags flags) =>
+            cuIpcOpenMemHandle(out devicePtr, handle, flags);
+
+        /// <summary>
+        /// Close a memory buffer opened with <see cref="OpenIpcMemoryHandle"/>.
+        /// </summary>
+        /// <param name="devicePtr">The memory to close.</param>
+        /// <returns>The error status.</returns>
+        /// <remarks>   This will decrease the reference count of memory in <paramref name="devicePtr"/> by one,
+        ///             only if the count reaches 0 the memory will be unmapped.
+        ///             The original memory in the exported process and mappings in other processes will be unaffected.
+        /// </remarks>
+        public CudaError CloseIpcMemoryHandle(IntPtr devicePtr) =>
+            cuIpcCloseMemHandle(devicePtr);
+
         #endregion
 
         #region Stream Methods
@@ -748,7 +788,7 @@ namespace ILGPU.Runtime.Cuda
                 kernelArgs);
 
         /// <summary>
-        /// Computes the maximum number of blocks for maximum occupancy. 
+        /// Computes the maximum number of blocks for maximum occupancy.
         /// </summary>
         /// <param name="numBlocks">The number of blocks.</param>
         /// <param name="func">The function.</param>

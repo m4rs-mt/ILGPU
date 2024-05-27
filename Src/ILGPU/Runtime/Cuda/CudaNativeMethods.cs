@@ -14,6 +14,7 @@
 #pragma warning disable CA1069 // Enums values should not be duplicated
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -284,7 +285,57 @@ namespace ILGPU.Runtime.Cuda
         CU_MEMHOSTREGISTER_READ_ONLY = 8,
     }
 
+    /// <summary>
+    /// Controls the behaviour of <see cref="CudaAPI.cuIpcOpenMemHandle">IpcOpenMemHandle</see>
+    /// </summary>
+    [Flags]
+    public enum CudaIpcMemFlags
+    {
+        /// <summary>
+        /// No flags.
+        /// </summary>
+        None,
+        /// <summary>
+        /// Enables peer access lazily.
+        /// </summary>
+        /// <remarks>
+        /// From <a href="https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html#group__CUDART__TYPES_1g60f28a5142ee7ae0336dfa83fd54e006">
+        /// CUDA Runtime Types
+        /// </a>
+        /// </remarks>
+        LazyEnablePeerAccess = 1 << 0
+    }
     #endregion
+
+    /// <summary>
+    /// Represents a CUDA IPC memory handle.
+    /// </summary>
+    /// <remarks>This represents the struct
+    /// <a href="https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaIpcMemHandle__t.html#structcudaIpcMemHandle__t">cudaIpcMemHandle__t</a>.
+    /// </remarks>
+    public struct CudaIpcMemHandle
+    {
+        /// <remarks>
+        /// From <a href="https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html#group__CUDART__TYPES_1g38818d647e61a5d15fb8012fe54c2d24">
+        /// CUDA Runtime Types
+        /// </a>
+        /// </remarks>
+        private const int CUDA_IPC_HANDLE_SIZE = 64;
+
+        /// <summary>
+        /// The actual IPC handle.
+        /// </summary>
+        public Handle Data { get; set; }
+
+        /// <summary>
+        /// The handle data represented as a fixed byte array of length 64.
+        /// </summary>
+        [InlineArray(CUDA_IPC_HANDLE_SIZE)]
+        public struct Handle
+        {
+            private byte element;
+        }
+    }
 }
 
 #pragma warning restore CA1069 // Enums values should not be duplicated
