@@ -490,7 +490,8 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="handle">The IPC memory handle.</param>
         /// <param name="devicePtr">The memory buffer.</param>
         /// <returns>The error status.</returns>
-        /// <remarks>This will zero the memory in the buffer!
+        /// <remarks>This will zero the memory in the buffer and
+        /// in case of small allocations under 1 MB even neighbouring memory will be zeroed.
         /// A buffer can only have one IPC handle.
         /// </remarks>
         public CudaError GetIpcMemoryHandle(
