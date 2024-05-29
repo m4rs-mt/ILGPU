@@ -221,7 +221,7 @@
         <Parameter Name="handle" Type="CudaIpcMemHandle" Flags="Out" />
         <Parameter Name="devicePtr" Type="IntPtr" />
     </Import>
-    <Import Name="cuIpcOpenMemHandle">
+    <Import Name="cuIpcOpenMemHandle_v2">
         <Parameter Name="devicePtr" Type="IntPtr" Flags="Out"/>
         <Parameter Name="handle" Type="CudaIpcMemHandle" />
         <Parameter Name="flags" Type="CudaIpcMemFlags" />

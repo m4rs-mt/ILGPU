@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAccelerator.cs
@@ -497,7 +497,7 @@ namespace ILGPU.Runtime.Cuda
                 throw new ArgumentOutOfRangeException(nameof(elementSize));
 
             Bind();
-            return new CudaIpcMemoryBuffer(this, ipcMemHandle, length, elementSize);
+            return new CudaIpcMemoryBuffer(this, ipcMemHandle, length, elementSize, CudaIpcMemFlags.None);
         }
 
         #endregion

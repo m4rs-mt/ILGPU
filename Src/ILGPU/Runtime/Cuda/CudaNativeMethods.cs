@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaNativeMethods.cs
@@ -286,7 +286,7 @@ namespace ILGPU.Runtime.Cuda
     }
 
     /// <summary>
-    /// Controls the behaviour of <see cref="CudaAPI.cuIpcOpenMemHandle">IpcOpenMemHandle</see>
+    /// Controls the behaviour of <see cref="CudaAPI.OpenIpcMemoryHandle">OpenIpcMemoryHandle</see>
     /// </summary>
     [Flags]
     public enum CudaIpcMemFlags
@@ -296,56 +296,48 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         None,
         /// <summary>
-        /// Enables peer access lazily.
+        /// Enables peer access if the memory is not on the same device as the current context uses.
         /// </summary>
-        /// <remarks>
-        /// From <a href="https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html#group__CUDART__TYPES_1g60f28a5142ee7ae0336dfa83fd54e006">
-        /// CUDA Runtime Types
-        /// </a>
-        /// </remarks>
         LazyEnablePeerAccess = 1 << 0
     }
     #endregion
 
     /// <summary>
-    /// Represents a CUDA IPC memory handle.
+    /// This represents a CUDA IPC memory handle.
     /// </summary>
-    /// <remarks>This represents the struct
-    /// <a href="https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaIpcMemHandle__t.html#structcudaIpcMemHandle__t">cudaIpcMemHandle__t</a>.
-    /// </remarks>
+    [InlineArray(CUDA_IPC_HANDLE_SIZE)]
     public struct CudaIpcMemHandle
     {
-        /// <remarks>
-        /// From <a href="https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html#group__CUDART__TYPES_1g38818d647e61a5d15fb8012fe54c2d24">
-        /// CUDA Runtime Types
-        /// </a>
-        /// </remarks>
-        private const int CUDA_IPC_HANDLE_SIZE = 64;
+        /// <summary>
+        /// The size of a IPC memory handle in bytes.
+        /// </summary>
+        public const int CUDA_IPC_HANDLE_SIZE = 64;
 
         /// <summary>
-        /// Constructs an IPC memory handle from bytes.
+        /// This is the template for the array elements of the handle.
         /// </summary>
-        /// <param name="data">A 64-Byte array containing the handle data.</param>
-        public CudaIpcMemHandle(byte[] data)
+        private byte Handle;
+
+        /// <summary>
+        /// Constructs an IPC memory handle from a byte array.
+        /// </summary>
+        /// <param name="data">The 64-Byte array containing the handle data.</param>
+        public static explicit operator CudaIpcMemHandle(byte[] data)
         {
-            ArgumentOutOfRangeException.ThrowIfNotEqual(data.Length, CUDA_IPC_HANDLE_SIZE, nameof(data));
-            var handle = new Handle();
-            data.CopyTo(handle);
-            Data = handle;
+            CudaIpcMemHandle ipcMemHandle = new CudaIpcMemHandle();
+            data.CopyTo(ipcMemHandle);
+            return ipcMemHandle;
         }
 
         /// <summary>
-        /// The actual IPC handle.
+        /// Constructs a byte array from an IPC memory handle.
         /// </summary>
-        public Handle Data { get; set; }
-
-        /// <summary>
-        /// The handle data represented as a fixed byte array of length 64.
-        /// </summary>
-        [InlineArray(CUDA_IPC_HANDLE_SIZE)]
-        public struct Handle
+        /// <param name="ipcMemHandle">The IPC memory handle.</param>
+        public static explicit operator byte[](CudaIpcMemHandle ipcMemHandle)
         {
-            private byte element;
+            byte[] data = new byte[CUDA_IPC_HANDLE_SIZE];
+            ipcMemHandle[..].CopyTo(data);
+            return data;
         }
     }
 }

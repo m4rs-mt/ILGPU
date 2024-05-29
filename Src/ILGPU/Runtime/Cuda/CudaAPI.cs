@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAPI.cs
@@ -491,8 +491,8 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="devicePtr">The memory buffer.</param>
         /// <returns>The error status.</returns>
         /// <remarks>This will zero the memory in the buffer and
-        /// in case of small allocations under 1 MB even neighbouring memory will be zeroed.
-        /// A buffer can only have one IPC handle.
+        /// in case of small allocations under 1 MB even neighboring memory will be zeroed.
+        /// A buffer can only have one IPC memory handle.
         /// </remarks>
         public CudaError GetIpcMemoryHandle(
             out CudaIpcMemHandle handle,
@@ -511,7 +511,7 @@ namespace ILGPU.Runtime.Cuda
             out IntPtr devicePtr,
             CudaIpcMemHandle handle,
             CudaIpcMemFlags flags) =>
-            cuIpcOpenMemHandle(out devicePtr, handle, flags);
+            cuIpcOpenMemHandle_v2(out devicePtr, handle, flags);
 
         /// <summary>
         /// Close a memory buffer opened with <see cref="OpenIpcMemoryHandle"/>.

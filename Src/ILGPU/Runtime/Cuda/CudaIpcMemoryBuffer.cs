@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaIpcMemoryBuffer.cs
@@ -16,7 +16,7 @@ using static ILGPU.Runtime.Cuda.CudaAPI;
 namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
-    /// Represents an unmanaged Cuda buffer.
+    /// This represents an unmanaged Cuda IPC buffer owned by another process.
     /// </summary>
     public sealed class CudaIpcMemoryBuffer : MemoryBuffer
     {
@@ -98,10 +98,10 @@ namespace ILGPU.Runtime.Cuda
         #region Instance
 
         /// <summary>
-        /// Constructs a new Cuda buffer.
+        /// Constructs a new Cuda IPC buffer.
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
-        /// <param name="ipcMemHandle">A IPC memory handle from another process.</param>
+        /// <param name="ipcMemHandle">The IPC memory handle received from another process.</param>
         /// <param name="length">The length of this buffer.</param>
         /// <param name="elementSize">The element size.</param>
         /// <param name="flags">The flags to use.</param>
@@ -110,7 +110,7 @@ namespace ILGPU.Runtime.Cuda
             CudaIpcMemHandle ipcMemHandle,
             long length,
             int elementSize,
-            CudaIpcMemFlags flags = CudaIpcMemFlags.None)
+            CudaIpcMemFlags flags)
             : base(accelerator, length, elementSize)
         {
             if (LengthInBytes == 0)
@@ -158,7 +158,7 @@ namespace ILGPU.Runtime.Cuda
         #region IDisposable
 
         /// <summary>
-        /// Disposes this Cuda buffer.
+        /// Disposes this Cuda IPC buffer.
         /// </summary>
         protected override void DisposeAcceleratorObject(bool disposing)
         {
