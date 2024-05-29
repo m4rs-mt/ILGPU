@@ -324,6 +324,10 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="data">The 64-Byte array containing the handle data.</param>
         public static explicit operator CudaIpcMemHandle(byte[] data)
         {
+            ArgumentOutOfRangeException.ThrowIfNotEqual(
+                data.Length,
+                CUDA_IPC_HANDLE_SIZE,
+                $"{nameof(data)}.{nameof(data.Length)}");
             CudaIpcMemHandle ipcMemHandle = new CudaIpcMemHandle();
             data.CopyTo(ipcMemHandle);
             return ipcMemHandle;
