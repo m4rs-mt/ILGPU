@@ -322,9 +322,12 @@ public class VelocityMathConfig
 
     [XmlElement("Velocity128")]
     public Velocity128Config Velocity128 { get; set; }
+
+    [XmlElement("Velocity256")]
+    public Velocity256Config Velocity256 { get; set; }
 }
 
-public class Velocity128Config
+public abstract class VelocityOperationConfig
 {
     [XmlAttribute]
     public bool SoftwareEmulation { get; set; }
@@ -363,6 +366,9 @@ public class Velocity128Config
         }
     }
 }
+
+public class Velocity128Config : VelocityOperationConfig { }
+public class Velocity256Config : VelocityOperationConfig { }
 
 public class MathOp
 {
