@@ -161,6 +161,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents the type of a generic pointer.
     /// </summary>
+    [TypeKind(TypeKind.Pointer)]
     public sealed class PointerType : AddressSpaceType
     {
         #region Instance
@@ -245,6 +246,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents the type of a generic view.
     /// </summary>
+    [TypeKind(TypeKind.View)]
     public sealed class ViewType : AddressSpaceType
     {
         #region Instance

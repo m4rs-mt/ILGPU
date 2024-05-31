@@ -17,6 +17,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a .Net runtime-specific handle type.
     /// </summary>
+    [TypeKind(TypeKind.Handle)]
     public sealed class HandleType : TypeNode
     {
         #region Instance
