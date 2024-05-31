@@ -352,8 +352,34 @@ namespace ILGPU.IR.Values
     /// Cast a pointer from one address space to another.
     /// </summary>
     [ValueKind(ValueKind.AddressSpaceCast)]
-    public sealed class AddressSpaceCast : BaseAddressSpaceCast
+    public sealed class AddressSpaceCast : BaseAddressSpaceCast, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out MemoryAddressSpace targetAddrSpace))
+            {
+                return blockBuilder.CreateAddressSpaceCast(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    targetAddrSpace
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>

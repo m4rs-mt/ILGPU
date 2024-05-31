@@ -104,8 +104,32 @@ namespace ILGPU.IR.Values
     /// Aligns a pointer or a view to a specified alignment in bytes.
     /// </summary>
     [ValueKind(ValueKind.AlignTo)]
-    public sealed class AlignTo : BaseAlignOperationValue
+    public sealed class AlignTo : BaseAlignOperationValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateAlignTo(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -186,8 +210,32 @@ namespace ILGPU.IR.Values
     /// bytes.
     /// </summary>
     [ValueKind(ValueKind.AsAligned)]
-    public sealed class AsAligned : BaseAlignOperationValue
+    public sealed class AsAligned : BaseAlignOperationValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateAsAligned(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>

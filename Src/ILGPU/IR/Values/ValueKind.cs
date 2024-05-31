@@ -12,6 +12,7 @@
 using ILGPU.IR.Serialization;
 using ILGPU.Util;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -396,7 +397,7 @@ namespace ILGPU.IR
     /// </summary>
     public static partial class ValueKinds
     {
-        private readonly static Dictionary<ValueKind,
+        private readonly static ConcurrentDictionary<ValueKind,
             GenericValueReader> _readerDelegates = new();
 
         /// <summary>

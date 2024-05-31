@@ -37,6 +37,8 @@ namespace ILGPU.Analyzers
             {
                 AttributeSyntax? attribute;
                 if (node is ClassDeclarationSyntax cl &&
+                    cl.Parent is NamespaceDeclarationSyntax ns &&
+                    ns.Name.ToString().StartsWith("ILGPU.IR.Values") &&
                     (attribute = cl.AttributeLists.SelectMany(x => x.Attributes)
                     .SingleOrDefault(attr => attr.Name.ToString() == "ValueKind"))
                     is not null)
@@ -72,7 +74,7 @@ namespace ILGPU.Analyzers
                 builder.AppendLine("        {");
                 foreach (var kv in valueKindReciever.ValueKinds)
                 {
-                    builder.AppendLine($"            _readerDelegates.Add({kv.Key}, {kv.Value}.Read);");
+                    builder.AppendLine($"            _readerDelegates.TryAdd({kv.Key}, {kv.Value}.Read);");
                 }
                 builder.AppendLine("        }");
                 builder.AppendLine("    }");

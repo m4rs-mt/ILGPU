@@ -17,8 +17,29 @@ namespace ILGPU.IR.Values
     /// Represents an undefined value.
     /// </summary>
     [ValueKind(ValueKind.Undefined)]
-    public sealed class UndefinedValue : Value
+    public sealed class UndefinedValue : Value, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateUndefined();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>

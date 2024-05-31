@@ -40,8 +40,30 @@ namespace ILGPU.IR.Values
     /// Represents the <see cref="Accelerator.AcceleratorType"/> property.
     /// </summary>
     [ValueKind(ValueKind.AcceleratorType)]
-    public sealed class AcceleratorTypeValue : DeviceConstantValue
+    public sealed class AcceleratorTypeValue : DeviceConstantValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateAcceleratorTypeValue(
+                    Location.Unknown);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
