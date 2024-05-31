@@ -70,11 +70,23 @@ namespace ILGPU.IR.Serialization
         /// <summary>
         /// Initializes a new, empty mapping context.
         /// </summary>
-        public IRMappingContext()
+        /// <param name="methods">
+        /// The mapping to use for IR method instances.
+        /// </param>
+        /// <param name="blocks">
+        /// The mapping to use for IR block instances.
+        /// </param>
+        /// <param name="types">
+        /// The mapping to use for IR type instances.
+        /// </param>
+        public IRMappingContext(
+            IReadOnlyDictionary<long, Method> methods,
+            IReadOnlyDictionary<long, BasicBlock> blocks,
+            IReadOnlyDictionary<long, TypeNode> types)
         {
-            methods = new ConcurrentDictionary<long, Method>();
-            blocks = new ConcurrentDictionary<long, BasicBlock>();
-            types = new ConcurrentDictionary<long, TypeNode>();
+            this.methods = new ConcurrentDictionary<long, Method>(methods);
+            this.blocks = new ConcurrentDictionary<long, BasicBlock>(blocks);
+            this.types = new ConcurrentDictionary<long, TypeNode>(types);
             values = new ConcurrentDictionary<long, Value>();
         }
     }
