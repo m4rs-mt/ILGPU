@@ -17,6 +17,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a primitive type.
     /// </summary>
+    [TypeKind(TypeKind.Primitive)]
     public sealed class PrimitiveType : TypeNode
     {
         #region Static
@@ -151,6 +152,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a string type.
     /// </summary>
+    [TypeKind(TypeKind.String)]
     public sealed class StringType : TypeNode
     {
         #region Instance

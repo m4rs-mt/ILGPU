@@ -16,6 +16,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents the type of a generic array that lives in the local address space.
     /// </summary>
+    [TypeKind(TypeKind.Array)]
     public sealed class ArrayType : TypeNode
     {
         #region Instance

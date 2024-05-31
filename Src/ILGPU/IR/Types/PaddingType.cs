@@ -16,6 +16,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a padding type.
     /// </summary>
+    [TypeKind(TypeKind.Padding)]
     public sealed class PaddingType : TypeNode
     {
         #region Instance

@@ -26,6 +26,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a structure type.
     /// </summary>
+    [TypeKind(TypeKind.Structure)]
     public sealed class StructureType : ObjectType, IEnumerable<(TypeNode, FieldAccess)>
     {
         #region Nested Types

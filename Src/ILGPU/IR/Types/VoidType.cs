@@ -16,6 +16,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a void type.
     /// </summary>
+    [TypeKind(TypeKind.Void)]
     public sealed class VoidType : TypeNode
     {
         #region Instance
