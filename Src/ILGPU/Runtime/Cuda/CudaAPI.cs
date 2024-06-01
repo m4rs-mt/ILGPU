@@ -491,13 +491,19 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="devicePtr">The memory buffer.</param>
         /// <returns>The error status.</returns>
         /// <remarks>This will zero the memory in the buffer and
-        /// in case of small allocations under 1 MB even neighboring memory will be zeroed.
-        /// A buffer can only have one IPC memory handle.
+        /// in case of small allocations under 1 MB even neighboring memory will be zeroed.<br />
+        /// A buffer can only have one IPC memory handle, but multiple processes can use the same handle.
         /// </remarks>
         public CudaError GetIpcMemoryHandle(
             out CudaIpcMemHandle handle,
-            IntPtr devicePtr) =>
-            cuIpcGetMemHandle(out handle, devicePtr);
+            IntPtr devicePtr)
+        {
+            handle = new CudaIpcMemHandle();
+            fixed (byte* handlePtr = handle.Data)
+            {
+                return cuIpcGetMemHandle(handlePtr, devicePtr);
+            }
+        }
 
         /// <summary>
         /// Open a memory buffer from an IPC handle.
@@ -510,8 +516,12 @@ namespace ILGPU.Runtime.Cuda
         public CudaError OpenIpcMemoryHandle(
             out IntPtr devicePtr,
             CudaIpcMemHandle handle,
-            CudaIpcMemFlags flags) =>
-            cuIpcOpenMemHandle_v2(out devicePtr, handle, flags);
+            CudaIpcMemFlags flags)
+        {
+            fixed (byte* dataPtr = handle.Data){
+                return cuIpcOpenMemHandle_v2(out devicePtr, dataPtr, flags);
+            }
+        }
 
         /// <summary>
         /// Close a memory buffer opened with <see cref="OpenIpcMemoryHandle"/>.
@@ -926,6 +936,43 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The error status.</returns>
         public CudaError SynchronizeEvent(IntPtr @event) =>
             cuEventSynchronize(@event);
+
+        /// <summary>
+        /// Get an IPC event handle for an evemt
+        /// </summary>
+        /// <param name="handle">The IPC event handle.</param>
+        /// <param name="devicePtr">The event.</param>
+        /// <returns>The error status.</returns>
+        public CudaError GetIpcEventHandle(
+            out CudaIpcEventHandle handle,
+            IntPtr devicePtr)
+        {
+            handle = new CudaIpcEventHandle();
+            fixed (byte* dataPtr = handle.Data)
+            {
+                return cuIpcGetEventHandle(dataPtr, devicePtr);
+            }
+        }
+
+        /// <summary>
+        /// Opens an event handle from an IPC handle.
+        /// </summary>
+        /// <param name="devicePtr">The newly opened event handle.</param>
+        /// <param name="handle">A IPC event handle from another process</param>
+        /// <returns>The error status.</returns>
+        /// <remarks>
+        /// This will not work with an IPC handle of the same process.<br />
+        /// The event will behave like a locally created event
+        /// </remarks>
+        public CudaError OpenIpcEventHandle(
+            out IntPtr devicePtr,
+            CudaIpcEventHandle handle)
+        {
+            fixed (byte* dataPtr = handle.Data)
+            {
+                return cuIpcOpenEventHandle(out devicePtr, dataPtr);
+            }
+        }
 
         #endregion
     }

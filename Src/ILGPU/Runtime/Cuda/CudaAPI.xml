@@ -217,13 +217,21 @@
     <Import Name="cuEventSynchronize">
         <Parameter Name="@event" Type="IntPtr" />
     </Import>
+    <Import Name="cuIpcGetEventHandle">
+        <Parameter Name="handle" Type="byte*" />
+        <Parameter Name="@event" Type="IntPtr" />
+    </Import>
+    <Import Name="cuIpcOpenEventHandle">
+        <Parameter Name="@event" Type="IntPtr" Flags="Out" />
+        <Parameter Name="handle" Type="byte*" />
+    </Import>
     <Import Name="cuIpcGetMemHandle">
-        <Parameter Name="handle" Type="CudaIpcMemHandle" Flags="Out" />
+        <Parameter Name="handle" Type="byte*" />
         <Parameter Name="devicePtr" Type="IntPtr" />
     </Import>
     <Import Name="cuIpcOpenMemHandle_v2">
         <Parameter Name="devicePtr" Type="IntPtr" Flags="Out"/>
-        <Parameter Name="handle" Type="CudaIpcMemHandle" />
+        <Parameter Name="handle" Type="byte*" />
         <Parameter Name="flags" Type="CudaIpcMemFlags" />
     </Import>
     <Import Name="cuIpcCloseMemHandle">
