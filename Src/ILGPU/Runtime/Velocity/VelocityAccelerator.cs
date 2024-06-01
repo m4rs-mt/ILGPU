@@ -473,6 +473,10 @@ namespace ILGPU.Runtime.Velocity
         /// <summary cref="Accelerator.OnUnbind"/>
         protected override void OnUnbind() { }
 
+        /// <inheritdoc/>
+        protected override StreamMarker CreateStreamMarkerInternal() =>
+            new VelocityStreamMarker(this);
+
         #region Peer Access
 
         /// <summary cref="Accelerator.CanAccessPeerInternal(Accelerator)"/>

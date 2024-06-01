@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AcceleratorStream.cs
@@ -79,6 +79,23 @@ namespace ILGPU.Runtime
         /// <returns>The profiling marker.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract ProfilingMarker AddProfilingMarkerInternal();
+
+        /// <summary>
+        /// Makes future work queued on this stream to wait for the marker to complete.
+        /// </summary>
+        /// <param name="streamMarker">The stream marker to await.</param>
+        public void WaitForStreamMarker(StreamMarker streamMarker)
+        {
+            using var binding = BindScoped();
+            WaitForStreamMarkerInternal(streamMarker);
+        }
+
+        /// <summary>
+        /// Makes future work queued on this stream to wait for the marker to complete.
+        /// </summary>
+        /// <param name="streamMarker">The stream marker to await.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected abstract void WaitForStreamMarkerInternal(StreamMarker streamMarker);
 
         #endregion
     }
