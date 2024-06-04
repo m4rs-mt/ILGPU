@@ -50,8 +50,8 @@ namespace ILGPU.IR.Types
             TTypeProvider typeProvider) =>
             typeof(void);
 
-        /// <summary cref="TypeNode.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         #endregion
 

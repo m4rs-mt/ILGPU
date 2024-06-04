@@ -125,9 +125,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Predicate),
                 Kind);
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) =>
-            writer.Write("Kind", Kind);
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -209,9 +209,9 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateBarrier(Location, Kind);
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) =>
-            writer.Write("Kind", Kind);
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -335,9 +335,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Origin),
                 Kind);
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) =>
-            writer.Write("Kind", Kind);
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -419,9 +419,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) =>
-            writer.Write("Kind", Kind);
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
 
         #endregion
 

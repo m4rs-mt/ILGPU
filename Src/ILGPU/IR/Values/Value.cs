@@ -548,10 +548,14 @@ namespace ILGPU.IR
         /// <summary>
         /// Serializes this instance's specific internals to the given <see cref="IIRWriter"/>.
         /// </summary>
+        /// <typeparam name="T">
+        /// The specific type of <see cref="IIRWriter"/>.
+        /// </typeparam>
         /// <param name="writer">
         /// The given serializer instance. 
         /// </param>
-        protected internal abstract void Write(IIRWriter writer);
+        protected internal abstract void Write<T>(T writer)
+            where T : IIRWriter;
 
         /// <summary>
         /// Verifies that the this value is not sealed.
@@ -804,14 +808,14 @@ namespace ILGPU.IR.Serialization
         /// </param>
         public void Write(string tag, Value value)
         {
-            Write("Id", value.Id);
-            Write("ValueKind", value.ValueKind);
+            Write(nameof(value.Id), value.Id);
+            Write(nameof(value.ValueKind), value.ValueKind);
 
-            Write("Method", value.Method.Id);
-            Write("BasicBlock", value.BasicBlock.Id);
+            Write(nameof(value.Method), value.Method.Id);
+            Write(nameof(value.BasicBlock), value.BasicBlock.Id);
 
             int index = 0;
-            Write("Count", value.Count);
+            Write(nameof(value.Count), value.Count);
             foreach (var node in value.Nodes)
                 Write($"Nodes[{index++}]", node.Id);
 

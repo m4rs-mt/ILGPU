@@ -64,8 +64,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateRuntimeHandle(Location, Handle);
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

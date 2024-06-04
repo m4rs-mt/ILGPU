@@ -943,11 +943,11 @@ namespace ILGPU.IR.Types
             TTypeProvider typeProvider) =>
             typeProvider.GetStructureType(this);
 
-        /// <summary cref="TypeNode.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer)
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
         {
             int index = 0;
-            writer.Write("NumFields", NumFields);
+            writer.Write(nameof(NumFields), NumFields);
             foreach (var fieldType in Fields)
             {
                 writer.Write($"Fields[{index++}]", fieldType.Id);
