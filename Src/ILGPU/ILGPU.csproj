@@ -53,6 +53,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ILGPU.Analyzers\ILGPU.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <None Include="AtomicFunctions.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

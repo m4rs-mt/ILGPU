@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Serialization;
 using System;
 
 namespace ILGPU.IR.Types
@@ -16,6 +17,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a .Net runtime-specific handle type.
     /// </summary>
+    [TypeKind(TypeKind.Handle)]
     public sealed class HandleType : TypeNode
     {
         #region Instance
@@ -30,6 +32,13 @@ namespace ILGPU.IR.Types
 
         #endregion
 
+        #region Properties
+
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Handle;
+
+        #endregion
+
         #region Methods
 
         /// <summary>
@@ -38,6 +47,9 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeof(object);
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         #endregion
 

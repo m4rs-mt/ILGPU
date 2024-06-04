@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 
@@ -136,6 +137,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -209,6 +213,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value),
                 TargetBasicValueType);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -322,6 +329,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetElementType), TargetElementType.Id);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -342,8 +353,34 @@ namespace ILGPU.IR.Values
     /// Cast a pointer from one address space to another.
     /// </summary>
     [ValueKind(ValueKind.AddressSpaceCast)]
-    public sealed class AddressSpaceCast : BaseAddressSpaceCast
+    public sealed class AddressSpaceCast : BaseAddressSpaceCast, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out MemoryAddressSpace targetAddrSpace))
+            {
+                return blockBuilder.CreateAddressSpaceCast(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    targetAddrSpace
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -417,6 +454,10 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value),
                 TargetAddressSpace);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetAddressSpace), TargetAddressSpace);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -497,6 +538,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetElementType), TargetElementType.Id);
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -568,6 +613,9 @@ namespace ILGPU.IR.Values
             builder.CreateArrayToViewCast(
                 Location,
                 rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -699,6 +747,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -764,6 +815,9 @@ namespace ILGPU.IR.Values
             builder.CreateIntAsFloatCast(
                 Location,
                 rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
+using ILGPU.IR.Serialization;
 using System;
 
 namespace ILGPU.IR.Types
@@ -17,6 +17,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a padding type.
     /// </summary>
+    [TypeKind(TypeKind.Padding)]
     public sealed class PaddingType : TypeNode
     {
         #region Instance
@@ -41,6 +42,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsPaddingType => true;
 
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Padding;
+
         /// <summary>
         /// Returns the associated basic value type.
         /// </summary>
@@ -61,6 +65,10 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeProvider.GetPrimitiveType(PrimitiveType);
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(PrimitiveType), PrimitiveType.Id);
 
         #endregion
 

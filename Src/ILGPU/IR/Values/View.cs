@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 
@@ -87,6 +88,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Pointer),
                 rebuilder.Rebuild(Length));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -226,6 +230,10 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(View),
                 LengthType);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>        
+            writer.Write(nameof(LengthType), LengthType);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

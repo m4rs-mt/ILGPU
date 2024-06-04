@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Runtime;
 
@@ -40,8 +41,30 @@ namespace ILGPU.IR.Values
     /// Represents the <see cref="Accelerator.AcceleratorType"/> property.
     /// </summary>
     [ValueKind(ValueKind.AcceleratorType)]
-    public sealed class AcceleratorTypeValue : DeviceConstantValue
+    public sealed class AcceleratorTypeValue : DeviceConstantValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateAcceleratorTypeValue(
+                    Location.Unknown);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -70,6 +93,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateAcceleratorTypeValue(Location);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -135,6 +161,14 @@ namespace ILGPU.IR.Values
         /// Returns the constant dimension.
         /// </summary>
         public DeviceConstantDimension3D Dimension { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Dimension), Dimension);
 
         #endregion
 
@@ -377,6 +411,9 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateWarpSizeValue(Location);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -424,6 +461,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateLaneIdxValue(Location);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -491,6 +531,10 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(AddressSpace), AddressSpace);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

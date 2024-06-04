@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 
 namespace ILGPU.IR.Values
@@ -124,6 +125,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Predicate),
                 Kind);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -203,6 +208,10 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateBarrier(Location, Kind);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -326,6 +335,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Origin),
                 Kind);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -401,6 +414,14 @@ namespace ILGPU.IR.Values
         /// Returns the kind of the shuffle operation.
         /// </summary>
         public ShuffleKind Kind { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
 
         #endregion
 

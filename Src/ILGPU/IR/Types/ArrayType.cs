@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Serialization;
 using System;
 
 namespace ILGPU.IR.Types
@@ -16,6 +17,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents the type of a generic array that lives in the local address space.
     /// </summary>
+    [TypeKind(TypeKind.Array)]
     public sealed class ArrayType : TypeNode
     {
         #region Instance
@@ -47,6 +49,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsArrayType => true;
 
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Array;
+
         /// <summary>
         /// Returns the underlying element type.
         /// </summary>
@@ -74,6 +79,13 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeProvider.GetArrayType(this);
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(ElementType), ElementType.Id);
+            writer.Write(nameof(NumDimensions), NumDimensions);
+        }
 
         #endregion
 

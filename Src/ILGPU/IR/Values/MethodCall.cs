@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using System.Runtime.CompilerServices;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
@@ -149,6 +150,10 @@ namespace ILGPU.IR.Values
                 call.Add(rebuilder.Rebuild(arg));
             return call.Seal();
         }
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Target), Target.Id);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

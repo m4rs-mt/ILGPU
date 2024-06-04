@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -387,6 +388,16 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             // Phi values have already been mapped in the beginning
             rebuilder.Rebuild(this);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            int index = 0;
+            foreach (var source in Sources)
+            {
+                writer.Write($"Sources[{index++}]", source.Id);
+            }
+        }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

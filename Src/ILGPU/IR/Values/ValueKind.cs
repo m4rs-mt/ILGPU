@@ -9,8 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Serialization;
 using ILGPU.Util;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace ILGPU.IR
@@ -392,8 +395,19 @@ namespace ILGPU.IR
     /// <summary>
     /// Utility methods for <see cref="ValueKind"/> enumeration values.
     /// </summary>
-    public static class ValueKinds
+    public static partial class ValueKinds
     {
+        private readonly static ConcurrentDictionary<ValueKind,
+            GenericValueReader> _readerDelegates = new();
+
+        /// <summary>
+        /// Returns a table mapping <see cref="ValueKind"/> information
+        /// to their corresponding <see cref="GenericValueReader"/> delegates.
+        /// </summary>
+        public static IReadOnlyDictionary<ValueKind,
+            GenericValueReader> ReaderDelegates =>
+            _readerDelegates;
+
         /// <summary>
         /// The number of different value kinds.
         /// </summary>
