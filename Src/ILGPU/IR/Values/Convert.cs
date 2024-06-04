@@ -137,11 +137,11 @@ namespace ILGPU.IR.Values
                 Type,
                 Flags);
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer)
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
         {
-            writer.Write("TargetType", TargetType);
-            writer.Write("Flags", Flags);
+            writer.Write(nameof(TargetType), TargetType);
+            writer.Write(nameof(Flags), Flags);
         }
 
         /// <summary cref="Value.Accept"/>

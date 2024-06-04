@@ -140,9 +140,9 @@ namespace ILGPU.IR.Values
                 AddressSpace,
                 rebuilder.Rebuild(ArrayLength));
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) =>
-            writer.Write("AddressSpace", AddressSpace);
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(AddressSpace), AddressSpace);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -233,9 +233,9 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateMemoryBarrier(Location, Kind);
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) =>
-            writer.Write("Kind", Kind);
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -308,8 +308,8 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Source));
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -390,8 +390,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value));
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

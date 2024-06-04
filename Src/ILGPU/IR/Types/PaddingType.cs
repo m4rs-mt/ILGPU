@@ -65,9 +65,9 @@ namespace ILGPU.IR.Types
             TTypeProvider typeProvider) =>
             typeProvider.GetPrimitiveType(PrimitiveType);
 
-        /// <summary cref="TypeNode.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) =>
-            writer.Write("PrimitiveType", PrimitiveType.Id);
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(PrimitiveType), PrimitiveType.Id);
 
         #endregion
 
