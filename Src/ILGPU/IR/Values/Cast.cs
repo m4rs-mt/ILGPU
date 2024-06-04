@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 
@@ -136,6 +137,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -209,6 +213,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value),
                 TargetBasicValueType);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -322,6 +329,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetElementType), TargetElementType.Id);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -418,6 +429,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetAddressSpace);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetAddressSpace), TargetAddressSpace);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -497,6 +512,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetElementType), TargetElementType.Id);
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -568,6 +587,9 @@ namespace ILGPU.IR.Values
             builder.CreateArrayToViewCast(
                 Location,
                 rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -699,6 +721,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -764,6 +789,9 @@ namespace ILGPU.IR.Values
             builder.CreateIntAsFloatCast(
                 Location,
                 rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

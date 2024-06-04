@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using System;
 
@@ -59,6 +60,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Methods
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary>
         /// Tries to determine an explicit alignment compile-time constant (primarily

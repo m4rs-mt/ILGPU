@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -228,6 +229,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(ReturnValue));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary>
         /// Throws an <see cref="InvalidOperationException"/>.
         /// </summary>
@@ -274,6 +278,17 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
             initializer.Context.VoidType;
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            int index = 0;
+            writer.Write(nameof(NumTargets), NumTargets);
+            foreach (var target in Targets)
+            {
+                writer.Write($"Targets[{index++}]", target.Id);
+            }
+        }
 
         #endregion
     }

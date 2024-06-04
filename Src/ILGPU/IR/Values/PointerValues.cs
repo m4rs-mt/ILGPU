@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -131,6 +132,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Offset),
                 rebuilder.Rebuild(Length));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -217,6 +221,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(Offset));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -391,6 +398,9 @@ namespace ILGPU.IR.Values
                 ref values);
         }
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -481,6 +491,13 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Source),
                 FieldSpan);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(FieldSpan.Index), FieldSpan.Index);
+            writer.Write(nameof(FieldSpan.Span), FieldSpan.Span);
+        }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

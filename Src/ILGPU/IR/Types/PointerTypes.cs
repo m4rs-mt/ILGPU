@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.IR.Serialization;
 using System;
 using System.Diagnostics;
 
@@ -126,6 +127,17 @@ namespace ILGPU.IR.Types
 
         #endregion
 
+        #region Methods
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(ElementType), ElementType.Id);
+            writer.Write(nameof(AddressSpace), AddressSpace);
+        }
+
+        #endregion
+
         #region Object
 
         /// <summary cref="TypeNode.GetHashCode"/>
@@ -184,6 +196,9 @@ namespace ILGPU.IR.Types
 
         /// <inheritdoc/>
         public override bool IsPointerType => true;
+
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Pointer;
 
         /// <summary>
         /// Returns the associated basic value type.
@@ -256,6 +271,9 @@ namespace ILGPU.IR.Types
 
         /// <inheritdoc/>
         public override bool IsViewType => true;
+
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.View;
 
         #endregion
 
