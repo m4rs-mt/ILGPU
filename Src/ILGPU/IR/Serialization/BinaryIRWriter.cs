@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.IO;
 using System.Text;
@@ -18,7 +19,7 @@ namespace ILGPU.IR.Serialization
     /// <summary>
     /// Wrapper class around <see cref="BinaryWriter"/> for serializing IR types and values. 
     /// </summary>
-    public sealed partial class BinaryIRWriter : IIRWriter
+    public sealed partial class BinaryIRWriter : DisposeBase, IIRWriter
     {
         private readonly BinaryWriter writer;
 
@@ -54,9 +55,12 @@ namespace ILGPU.IR.Serialization
         public void Write<T>(string tag, T value) where T : Enum =>
             writer.Write(Convert.ToInt32(value));
 
-        /// <summary>
-        /// Disposes of the wrapped <see cref="BinaryWriter"/> instance.
-        /// </summary>
-        public void Dispose() => ((IDisposable)writer).Dispose();
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                writer.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }

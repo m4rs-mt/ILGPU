@@ -600,15 +600,16 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Serializes this instance using the given <see cref="IIRWriter"/>.
         /// </summary>
+        /// <typeparam name="T">
+        /// The specific type of <see cref="IIRWriter"/>.
+        /// </typeparam>
         /// <param name="writer">
         /// The writer to use for serialization.
         /// </param>
-        public void Write(IIRWriter writer)
+        public void Write<T>(T writer) where T : IIRWriter
         {
             foreach (var type in GetUnifiedTypeCollection())
-            {
                 writer.Write(type);
-            }
         }
 
         #endregion

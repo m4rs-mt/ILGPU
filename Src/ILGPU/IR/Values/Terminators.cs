@@ -229,8 +229,8 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(ReturnValue));
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary>
         /// Throws an <see cref="InvalidOperationException"/>.
@@ -279,11 +279,11 @@ namespace ILGPU.IR.Values
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
             initializer.Context.VoidType;
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer)
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
         {
             int index = 0;
-            writer.Write("NumTargets", NumTargets);
+            writer.Write(nameof(NumTargets), NumTargets);
             foreach (var target in Targets)
             {
                 writer.Write($"Targets[{index++}]", target.Id);

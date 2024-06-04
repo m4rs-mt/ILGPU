@@ -125,9 +125,9 @@ namespace ILGPU.IR.Types
             TTypeProvider typeProvider) =>
             typeProvider.GetPrimitiveType(this);
 
-        /// <summary cref="TypeNode.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) =>
-            writer.Write("BasicValueType", BasicValueType);
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(BasicValueType), BasicValueType);
 
         #endregion
 
@@ -185,8 +185,8 @@ namespace ILGPU.IR.Types
             TTypeProvider typeProvider) =>
             typeof(string);
 
-        /// <summary cref="TypeNode.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         #endregion
 

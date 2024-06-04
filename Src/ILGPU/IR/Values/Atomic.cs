@@ -201,11 +201,11 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer)
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
         {
-            writer.Write("Kind", Kind);
-            writer.Write("Flags", Flags);
+            writer.Write(nameof(Kind), Kind);
+            writer.Write(nameof(Flags), Flags);
         }
 
         /// <summary cref="Value.Accept"/>
@@ -282,9 +282,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(CompareValue),
                 Flags);
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) =>
-            writer.Write("Flags", Flags);
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Flags), Flags);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

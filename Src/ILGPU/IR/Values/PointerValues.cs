@@ -132,8 +132,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Offset),
                 rebuilder.Rebuild(Length));
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -222,8 +222,8 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(Offset));
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -398,8 +398,8 @@ namespace ILGPU.IR.Values
                 ref values);
         }
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -492,11 +492,11 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Source),
                 FieldSpan);
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer)
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
         {
-            writer.Write("Index", FieldSpan.Index);
-            writer.Write("Span", FieldSpan.Span);
+            writer.Write(nameof(FieldSpan.Index), FieldSpan.Index);
+            writer.Write(nameof(FieldSpan.Span), FieldSpan.Span);
         }
 
         /// <summary cref="Value.Accept" />

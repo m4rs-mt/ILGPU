@@ -502,10 +502,13 @@ namespace ILGPU.IR
         /// <summary>
         /// Serializes this instance using the given <see cref="IIRWriter"/>.
         /// </summary>
+        /// <typeparam name="T">
+        /// The specific type of <see cref="IIRWriter"/>.
+        /// </typeparam>
         /// <param name="writer">
         /// The writer to use for serialization.
         /// </param>
-        public void Write(IIRWriter writer)
+        public void Write<T>(T writer) where T : IIRWriter
         {
             var allMethods = GetMethodCollection(new MethodCollections.AllMethods());
             foreach (var method in allMethods)

@@ -79,11 +79,11 @@ namespace ILGPU.IR.Types
             TTypeProvider typeProvider) =>
             typeProvider.GetArrayType(this);
 
-        /// <summary cref="TypeNode.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer)
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
         {
-            writer.Write("ElementType", ElementType.Id);
-            writer.Write("NumDimensions", NumDimensions);
+            writer.Write(nameof(ElementType), ElementType.Id);
+            writer.Write(nameof(NumDimensions), NumDimensions);
         }
 
         #endregion

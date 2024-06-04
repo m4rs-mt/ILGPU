@@ -355,10 +355,14 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Serializes this instance's specific internals to the given <see cref="IIRWriter"/>.
         /// </summary>
+        /// <typeparam name="T">
+        /// The specific type of <see cref="IIRWriter"/>.
+        /// </typeparam>
         /// <param name="writer">
         /// The given serializer instance. 
         /// </param>
-        protected internal abstract void Write(IIRWriter writer);
+        protected internal abstract void Write<T>(T writer)
+            where T : IIRWriter;
 
         /// <summary>
         /// Converts the current type to the given type <typeparamref name="T"/>.
@@ -429,8 +433,8 @@ namespace ILGPU.IR.Serialization
         /// </param>
         public void Write(TypeNode value)
         {
-            Write("Type", value.Id);
-            Write("TypeKind", value.TypeKind);
+            Write(nameof(value.Id), value.Id);
+            Write(nameof(value.TypeKind), value.TypeKind);
 
             value.Write(this);
         }

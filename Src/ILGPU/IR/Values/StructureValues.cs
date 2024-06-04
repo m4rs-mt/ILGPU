@@ -1038,8 +1038,8 @@ namespace ILGPU.IR.Values
             return instance.Seal();
         }
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer) { }
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -1098,11 +1098,11 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.Write(IIRWriter)"/>
-        protected internal override void Write(IIRWriter writer)
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
         {
-            writer.Write("Index", FieldSpan.Index);
-            writer.Write("Span", FieldSpan.Span);
+            writer.Write(nameof(FieldSpan.Index), FieldSpan.Index);
+            writer.Write(nameof(FieldSpan.Span), FieldSpan.Span);
         }
 
         #endregion
