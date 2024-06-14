@@ -150,10 +150,21 @@
         <Parameter Name="module" Type="IntPtr" Flags="Out" />
         <Parameter Name="moduleData" Type="string" />
     </Import>
+    <Import Name="cuModuleLoadData">
+        <Parameter Name="module" Type="IntPtr" Flags="Out" />
+        <Parameter Name="moduleData" Type="IntPtr" />
+    </Import>
     <Import Name="cuModuleLoadDataEx"
             StringMarshalling="Utf8">
         <Parameter Name="module" Type="IntPtr" Flags="Out" />
         <Parameter Name="moduleData" Type="string" />
+        <Parameter Name="numOptions" Type="int" />
+        <Parameter Name="jitOptions" Type="IntPtr" />
+        <Parameter Name="jitOptionValues" Type="IntPtr" />
+    </Import>
+    <Import Name="cuModuleLoadDataEx">
+        <Parameter Name="module" Type="IntPtr" Flags="Out" />
+        <Parameter Name="moduleData" Type="IntPtr" />
         <Parameter Name="numOptions" Type="int" />
         <Parameter Name="jitOptions" Type="IntPtr" />
         <Parameter Name="jitOptionValues" Type="IntPtr" />
@@ -179,6 +190,41 @@
         <Parameter Name="stream" Type="IntPtr" />
         <Parameter Name="args" Type="IntPtr" />
         <Parameter Name="kernelArgs" Type="IntPtr" />
+    </Import>
+    <Import Name="cuLinkCreate_v2"
+            StringMarshalling="Utf8">
+        <Parameter Name="numOptions" Type="int" />
+        <Parameter Name="jitOptions" Type="IntPtr" />
+        <Parameter Name="jitOptionValues" Type="IntPtr" />
+        <Parameter Name="linkState" Type="IntPtr" Flags="Out" />
+    </Import>
+    <Import Name="cuLinkDestroy">
+        <Parameter Name="linkState" Type="IntPtr" />
+    </Import>
+    <Import Name="cuLinkAddData_v2"
+            StringMarshalling="Utf8">
+        <Parameter Name="linkState" Type="IntPtr" />
+        <Parameter Name="inputType" Type="IntPtr" />
+        <Parameter Name="inputData" Type="IntPtr" />
+        <Parameter Name="inputDataSize" Type="IntPtr" />
+        <Parameter Name="name" Type="string" />
+        <Parameter Name="numOptions" Type="int" />
+        <Parameter Name="jitOptions" Type="IntPtr" />
+        <Parameter Name="jitOptionValues" Type="IntPtr" />
+    </Import>
+    <Import Name="cuLinkAddFile_v2"
+            StringMarshalling="Utf8">
+        <Parameter Name="linkState" Type="IntPtr" />
+        <Parameter Name="inputType" Type="IntPtr" />
+        <Parameter Name="inputFile" Type="string" />
+        <Parameter Name="numOptions" Type="int" />
+        <Parameter Name="jitOptions" Type="IntPtr" />
+        <Parameter Name="jitOptionValues" Type="IntPtr" />
+    </Import>
+    <Import Name="cuLinkComplete">
+        <Parameter Name="linkState" Type="IntPtr" />
+        <Parameter Name="module" Type="IntPtr" Flags="Out" />
+        <Parameter Name="moduleSize" Type="IntPtr" Flags="Out" />
     </Import>
     <Import Name="cuOccupancyMaxActiveBlocksPerMultiprocessor">
         <Parameter Name="numBlocks" Type="int" Flags="Out" />
