@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GenerateCompatibilitySuppre
 		GenerateCompatibilitySuppressionFiles\GenerateCompatibilitySuppressionFiles.ps1 = GenerateCompatibilitySuppressionFiles\GenerateCompatibilitySuppressionFiles.ps1
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SPIRVGenerationTool", "SPIRVGenerationTool\SPIRVGenerationTool.csproj", "{80F7A795-40B3-40D3-975F-66E986F7C8A3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +33,10 @@ Global
 		{2F92ECC4-CE02-4B1A-8B59-DC866185DA69}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F92ECC4-CE02-4B1A-8B59-DC866185DA69}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F92ECC4-CE02-4B1A-8B59-DC866185DA69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80F7A795-40B3-40D3-975F-66E986F7C8A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80F7A795-40B3-40D3-975F-66E986F7C8A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80F7A795-40B3-40D3-975F-66E986F7C8A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80F7A795-40B3-40D3-975F-66E986F7C8A3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
