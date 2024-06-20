@@ -35,12 +35,18 @@ namespace ILGPU.Analyzers
                 {
                     IsPartialDefinition: false,
                     DeclaringSyntaxReferences: var refs,
-                } => refs.Length > 0 ? model.GetOperation(refs[0].GetSyntax()) : null,
+                } => refs.Length > 0 ? GetOperationIfInTree(model, refs[0].GetSyntax()) : null,
                 {
                     PartialImplementationPart: { DeclaringSyntaxReferences: var refs },
-                } => refs.Length > 0 ? model.GetOperation(refs[0].GetSyntax()) : null,
+                } => refs.Length > 0 ? GetOperationIfInTree(model, refs[0].GetSyntax()) : null,
                 _ => null
             };
+        }
+
+        private static IOperation? GetOperationIfInTree(SemanticModel model, SyntaxNode node)
+        {
+            var root = model.SyntaxTree.GetRoot();
+            return root.Contains(node) ? model.GetOperation(node) : null;
         }
     }
 }
