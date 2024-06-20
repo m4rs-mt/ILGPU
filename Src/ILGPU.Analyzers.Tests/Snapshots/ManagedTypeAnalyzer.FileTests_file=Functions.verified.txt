@@ -1,0 +1,32 @@
+﻿[
+  {
+    Id: ILA003,
+    Title: Managed type in kernel,
+    Severity: Warning,
+    WarningLevel: 1,
+    Location: : (31,27)-(31,40),
+    MessageFormat: Type '{0}' is a managed type. Managed types like classes cannot be used in kernels, except for arrays of unmanaged types.,
+    Message: Type 'ILGPU.Analyzers.Tests.Programs.ManagedType.Functions.RefType' is a managed type. Managed types like classes cannot be used in kernels, except for arrays of unmanaged types.,
+    Category: Usage
+  },
+  {
+    Id: ILA003,
+    Title: Managed type in kernel,
+    Severity: Warning,
+    WarningLevel: 1,
+    Location: : (25,27)-(25,40),
+    MessageFormat: Type '{0}' is a managed type. Managed types like classes cannot be used in kernels, except for arrays of unmanaged types.,
+    Message: Type 'ILGPU.Analyzers.Tests.Programs.ManagedType.Functions.RefType' is a managed type. Managed types like classes cannot be used in kernels, except for arrays of unmanaged types.,
+    Category: Usage
+  },
+  {
+    Id: ILA003,
+    Title: Managed type in kernel,
+    Severity: Warning,
+    WarningLevel: 1,
+    Location: : (43,15)-(43,28),
+    MessageFormat: Type '{0}' is a managed type. Managed types like classes cannot be used in kernels, except for arrays of unmanaged types.,
+    Message: Type 'ILGPU.Analyzers.Tests.Programs.ManagedType.Functions.RefType' is a managed type. Managed types like classes cannot be used in kernels, except for arrays of unmanaged types.,
+    Category: Usage
+  }
+]
