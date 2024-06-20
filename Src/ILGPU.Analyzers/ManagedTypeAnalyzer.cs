@@ -50,8 +50,13 @@ namespace ILGPU.Analyzers
             IOperation bodyOp)
         {
             Stack<IOperation> bodies = new Stack<IOperation>();
-            // To catch recursion
-            HashSet<IOperation> seenBodies = new HashSet<IOperation>();
+            
+            // Prevents infinite looping when functions are recursive
+            // Also prevents analyzing syntax (like collection expressions) that appear
+            // twice in descendants for some unknown reason.
+            // Costs us more memory than I would like, but not sure if we have a choice. 
+            HashSet<Location> seenLocations = new HashSet<Location>();
+            
             bodies.Push(bodyOp);
 
             // We will always have a semantic model because KernelAnalyzer subscribes
@@ -64,6 +69,9 @@ namespace ILGPU.Analyzers
 
                 foreach (var descendant in op.DescendantsAndSelf())
                 {
+                    var descendantLocation = descendant.Syntax.GetLocation();
+                    if (!seenLocations.Add(descendantLocation)) continue;
+                    
                     AnalyzeKernelOperation(context, descendant);
 
                     var invokedSymbol = GetInvokedSymbolIfExists(descendant);
@@ -75,10 +83,10 @@ namespace ILGPU.Analyzers
                         MethodUtil.GetMethodBody(semanticModel, invokedSymbol);
                     if (methodBodyOp is null) continue;
 
-                    if (!seenBodies.Contains(methodBodyOp))
+                    var methodBodyLocation = methodBodyOp.Syntax.GetLocation(); 
+                    if (!seenLocations.Contains(methodBodyLocation))
                     {
                         bodies.Push(methodBodyOp);
-                        seenBodies.Add(methodBodyOp);
                     }
                 }
             }
