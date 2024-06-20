@@ -34,16 +34,20 @@ namespace ILGPU.Analyzers
             {
                 {
                     IsPartialDefinition: false,
-                    DeclaringSyntaxReferences: var refs,
-                } => refs.Length > 0 ? GetOperationIfInTree(model, refs[0].GetSyntax()) : null,
+                    DeclaringSyntaxReferences: { Length: > 0 } refs
+                } => GetOperationIfInTree(model, refs[0].GetSyntax()),
                 {
-                    PartialImplementationPart: { DeclaringSyntaxReferences: var refs },
-                } => refs.Length > 0 ? GetOperationIfInTree(model, refs[0].GetSyntax()) : null,
+                    PartialImplementationPart:
+                    {
+                        DeclaringSyntaxReferences: { Length: > 0 } refs
+                    },
+                } => GetOperationIfInTree(model, refs[0].GetSyntax()),
                 _ => null
             };
         }
 
-        private static IOperation? GetOperationIfInTree(SemanticModel model, SyntaxNode node)
+        private static IOperation? GetOperationIfInTree(SemanticModel model,
+            SyntaxNode node)
         {
             var root = model.SyntaxTree.GetRoot();
             return root.Contains(node) ? model.GetOperation(node) : null;
