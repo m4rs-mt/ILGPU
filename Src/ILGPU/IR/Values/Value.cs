@@ -817,7 +817,7 @@ namespace ILGPU.IR.Serialization
             int index = 0;
             Write(nameof(value.Count), value.Count);
             foreach (var node in value.Nodes)
-                Write($"Nodes[{index++}]", node.Id);
+                Write($"{nameof(value.Nodes)}[{index++}]", node.Id);
 
             value.Write(this);
         }
