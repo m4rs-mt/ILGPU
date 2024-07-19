@@ -285,9 +285,7 @@ namespace ILGPU.IR.Values
             int index = 0;
             writer.Write(nameof(NumTargets), NumTargets);
             foreach (var target in Targets)
-            {
-                writer.Write($"Targets[{index++}]", target.Id);
-            }
+                writer.Write($"{nameof(Targets)}[{index++}]", target.Id);
         }
 
         #endregion

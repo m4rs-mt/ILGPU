@@ -949,9 +949,7 @@ namespace ILGPU.IR.Types
             int index = 0;
             writer.Write(nameof(NumFields), NumFields);
             foreach (var fieldType in Fields)
-            {
-                writer.Write($"Fields[{index++}]", fieldType.Id);
-            }
+                writer.Write($"{nameof(Fields)}[{index++}]", fieldType.Id);
         }
 
         #endregion

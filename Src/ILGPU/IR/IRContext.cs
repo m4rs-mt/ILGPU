@@ -514,16 +514,12 @@ namespace ILGPU.IR
             foreach (var method in allMethods)
             {
                 foreach (var param in method.Parameters)
-                {
                     param.Write(writer);
-                }
 
                 foreach (var block in method.Blocks)
                 {
                     foreach (var entry in block)
-                    {
                         entry.Value.Write(writer);
-                    }
 
                     block.Terminator?.Write(writer);
                 }

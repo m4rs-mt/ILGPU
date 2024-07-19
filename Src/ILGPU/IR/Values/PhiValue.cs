@@ -394,9 +394,7 @@ namespace ILGPU.IR.Values
         {
             int index = 0;
             foreach (var source in Sources)
-            {
-                writer.Write($"Sources[{index++}]", source.Id);
-            }
+                writer.Write($"{nameof(Sources)}[{index++}]", source.Id);
         }
 
         /// <summary cref="Value.Accept" />
