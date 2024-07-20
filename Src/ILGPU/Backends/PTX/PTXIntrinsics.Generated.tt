@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXIntrinsics.Generated.tt/PTXIntrinsics.Generated.cs
@@ -35,6 +35,61 @@ var fp16Ops = new (string, string, string, string)[]
 
     ("Ternary", "MultiplyAdd", "FmaFP32", "SM_53"),
 };
+
+var unaryMathFunctions = new (string, string, TypeInformation)[]
+{
+    ("AcosF",       "Acos",     FloatTypes[2]),
+    ("AsinF",       "Asin",     FloatTypes[2]),
+    ("AtanF",       "Atan",     FloatTypes[2]),
+    ("CeilingF",    "Ceil",     FloatTypes[2]),
+    ("CosF",        "Cos",      FloatTypes[2]),
+    ("CoshF",       "Cosh",     FloatTypes[2]),
+    ("ExpF",        "Exp",      FloatTypes[2]),
+    ("Exp2F",       "Exp2",     FloatTypes[2]),
+    ("FloorF",      "Floor",    FloatTypes[2]),
+    ("LogF",        "Log",      FloatTypes[2]),
+    ("Log2F",       "Log2",     FloatTypes[2]),
+    ("Log10F",      "Log10",    FloatTypes[2]),
+    ("RsqrtF",      "Rsqrt",    FloatTypes[2]),
+    ("SinF",        "Sin",      FloatTypes[2]),
+    ("SinhF",       "Sinh",     FloatTypes[2]),
+    ("SqrtF",       "Sqrt",     FloatTypes[2]),
+    ("TanF",        "Tan",      FloatTypes[2]),
+    ("TanhF",       "Tanh",     FloatTypes[2]),
+    
+    ("AcosF",       "Acos",     FloatTypes[1]),
+    ("AsinF",       "Asin",     FloatTypes[1]),
+    ("AtanF",       "Atan",     FloatTypes[1]),
+    ("CeilingF",    "Ceil",     FloatTypes[1]),
+    ("CosF",        "Cos",      FloatTypes[1]),
+    ("CoshF",       "Cosh",     FloatTypes[1]),
+    ("ExpF",        "Exp",      FloatTypes[1]),
+    ("Exp2F",       "Exp2",     FloatTypes[1]),
+    ("FloorF",      "Floor",    FloatTypes[1]),
+    ("LogF",        "Log",      FloatTypes[1]),
+    ("Log2F",       "Log2",     FloatTypes[1]),
+    ("Log10F",      "Log10",    FloatTypes[1]),
+    ("RsqrtF",      "Rsqrt",    FloatTypes[1]),
+    ("SinF",        "Sin",      FloatTypes[1]),
+    ("SinhF",       "Sinh",     FloatTypes[1]),
+    ("SqrtF",       "Sqrt",     FloatTypes[1]),
+    ("TanF",        "Tan",      FloatTypes[1]),
+    ("TanhF",       "Tanh",     FloatTypes[1]),
+};
+
+var binaryMathFunctions = new (string, string, string, TypeInformation)[]
+{
+    ("Atan2F",      "Atan", null,                       FloatTypes[2]),
+    ("BinaryLogF",  "Log",  "IntrinsicMath.BinaryLog",  FloatTypes[2]),
+    ("PowF",        "Pow",  null,                       FloatTypes[2]),
+    ("Rem",         "Fmod", null,                       FloatTypes[2]),
+
+    ("Atan2F",      "Atan", null,                       FloatTypes[1]),
+    ("BinaryLogF",  "Log",  "IntrinsicMath.BinaryLog",  FloatTypes[1]),
+    ("PowF",        "Pow",  null,                       FloatTypes[1]),
+    ("Rem",         "Fmod", null,                       FloatTypes[1]),
+};
+
 #>
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
@@ -153,6 +208,44 @@ namespace ILGPU.Backends.PTX
                 CreateFP16Intrinsic(
                     nameof(HalfExtensions.<#= name #>),
                     <#= sm != null ? $"CudaArchitecture.{sm}" : "null" #>));
+<# } #>
+        }
+
+        #endregion
+
+        #region Math
+
+        /// <summary>
+        /// Registers all Math intrinsics with the given manager.
+        /// </summary>
+        /// <param name="manager">The target implementation manager.</param>
+        private static void RegisterMathFunctions(IntrinsicImplementationManager manager)
+        {
+<# foreach (var (kind, methodName, type) in unaryMathFunctions) { #>
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= type.GetBasicValueType() #>,
+                CreateLibDeviceMathIntrinsic(
+                    nameof(LibDevice.<#= methodName #>),
+                    typeof(<#= type.Type #>)));
+<# } #>
+
+<# foreach (var (kind, methodName, baseClass, type) in binaryMathFunctions) { #>
+            manager.RegisterBinaryArithmetic(
+                BinaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= type.GetBasicValueType() #>,
+    <# if (baseClass == null) { #>
+                CreateLibDeviceMathIntrinsic(
+                    nameof(LibDevice.<#= methodName #>),
+                    typeof(<#= type.Type #>),
+                    typeof(<#= type.Type #>)));
+    <# } else { #>
+                CreateMathIntrinsic(
+                    typeof(<#= baseClass #>),
+                    nameof(<#= baseClass #>.<#= methodName #>),
+                    typeof(<#= type.Type #>),
+                    typeof(<#= type.Type #>)));
+    <# } #>
 <# } #>
         }
 

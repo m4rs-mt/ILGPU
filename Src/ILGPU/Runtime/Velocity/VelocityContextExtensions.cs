@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2022-2023 ILGPU Project
+//                        Copyright (c) 2022-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VelocityContextExtensions.cs
@@ -41,8 +41,13 @@ namespace ILGPU.Runtime.Velocity
         /// </summary>
         /// <param name="builder">The builder instance.</param>
         /// <returns>The updated builder instance.</returns>
-        public static Context.Builder Velocity(this Context.Builder builder) =>
-            builder.Velocity(VelocityDeviceType.Scalar2);
+        public static Context.Builder Velocity(this Context.Builder builder) => builder
+            .Velocity(VelocityDeviceType.Scalar2)
+#if NET7_0_OR_GREATER
+            .Velocity(VelocityDeviceType.Vector128);
+#else
+            ;
+#endif
 
         /// <summary>
         /// Enables a specific Velocity device.

@@ -310,11 +310,16 @@ namespace ILGPU.IR.Values
         /// </summary>
         public string ToEscapedPrintFExpression() =>
             ToPrintFExpression()
+            // Replace backslash before others, so that we do not double-escape.
+            .Replace("\\", @"\\", StringComparison.Ordinal)
+            // On Unix, replaces NewLine of \n with an escaped \n.
+            // On Windows, replaces NewLine of \r\n with an escaped \n.
+            // The printf call expects \n, and will translate to the appropriate newline.
+            .Replace(Environment.NewLine, @"\n", StringComparison.Ordinal)
             .Replace("\t", @"\t", StringComparison.Ordinal)
             .Replace("\r", @"\r", StringComparison.Ordinal)
             .Replace("\n", @"\n", StringComparison.Ordinal)
-            .Replace("\"", "\\\"", StringComparison.Ordinal)
-            .Replace("\\", @"\\", StringComparison.Ordinal);
+            .Replace("\"", "\\\"", StringComparison.Ordinal);
 
         #endregion
 

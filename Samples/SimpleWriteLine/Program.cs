@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -33,7 +33,16 @@ namespace SimpleWriteLine
             var values = Enumerable.Range(0, 16).ToArray();
 
             // Create main context
-            using var context = Context.CreateDefault();
+            using var context = Context.Create(builder =>
+            {
+                // Need to enable IO operations.
+                //
+                // Need to enable debugging of optimized kernels. By default,
+                // the optimisation is at level 1, which would exclude IO operations.
+                builder.Default().DebugConfig(
+                    enableIOOperations: true,
+                    forceDebuggingOfOptimizedKernels: true);
+            });
 
             // For each available device...
             foreach (var device in context)

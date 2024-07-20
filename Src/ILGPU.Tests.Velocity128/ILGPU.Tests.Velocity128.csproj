@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(LibraryUnitTestTargetFrameworks)</TargetFrameworks>
@@ -10,7 +10,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <LangVersion>latest</LangVersion>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
   </PropertyGroup>
@@ -26,7 +25,6 @@
     <PackageReference Include="T4.Build" Version="0.2.4" PrivateAssets="All" />
     <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
     <ProjectReference Include="..\ILGPU.Tests\ILGPU.Tests.csproj" />
