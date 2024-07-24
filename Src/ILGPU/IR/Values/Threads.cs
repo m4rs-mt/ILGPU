@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 
 namespace ILGPU.IR.Values
@@ -67,8 +68,33 @@ namespace ILGPU.IR.Values
     /// Represents a predicated synchronization barrier.
     /// </summary>
     [ValueKind(ValueKind.PredicateBarrier)]
-    public sealed class PredicateBarrier : BarrierOperation
+    public sealed class PredicateBarrier : BarrierOperation, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out PredicateBarrierKind kind))
+            {
+                return blockBuilder.CreateBarrier(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    kind);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -164,8 +190,32 @@ namespace ILGPU.IR.Values
     /// Represents a synchronization barrier.
     /// </summary>
     [ValueKind(ValueKind.Barrier)]
-    public sealed class Barrier : BarrierOperation
+    public sealed class Barrier : BarrierOperation, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out BarrierKind kind))
+            {
+                return blockBuilder.CreateBarrier(
+                    Location.Unknown,
+                    kind);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -279,8 +329,34 @@ namespace ILGPU.IR.Values
     /// Represents a broadcast operation.
     /// </summary>
     [ValueKind(ValueKind.Broadcast)]
-    public sealed class Broadcast : ThreadValue
+    public sealed class Broadcast : ThreadValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out BroadcastKind kind))
+            {
+                return blockBuilder.CreateBroadcast(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    kind);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -436,8 +512,34 @@ namespace ILGPU.IR.Values
     /// Represents a shuffle operation.
     /// </summary>
     [ValueKind(ValueKind.WarpShuffle)]
-    public sealed class WarpShuffle : ShuffleOperation
+    public sealed class WarpShuffle : ShuffleOperation, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out ShuffleKind kind))
+            {
+                return blockBuilder.CreateShuffle(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    kind);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -495,8 +597,35 @@ namespace ILGPU.IR.Values
     /// Represents an sub-warp shuffle operation.
     /// </summary>
     [ValueKind(ValueKind.SubWarpShuffle)]
-    public sealed class SubWarpShuffle : ShuffleOperation
+    public sealed class SubWarpShuffle : ShuffleOperation, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out ShuffleKind kind))
+            {
+                return blockBuilder.CreateShuffle(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    header.Nodes[2],
+                    kind);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
