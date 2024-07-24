@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2024 ILGPU Project
+//                           Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BinaryIRWriter.cs
