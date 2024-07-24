@@ -75,7 +75,7 @@ namespace ILGPU.IR.Values
     /// Represents a comparison.
     /// </summary>
     [ValueKind(ValueKind.Compare)]
-    public sealed class CompareValue : Value
+    public sealed class CompareValue : Value, IValueReader
     {
         #region Static
 
@@ -187,6 +187,30 @@ namespace ILGPU.IR.Values
         /// <returns>True, if the given kind is commutative.</returns>
         public static bool IsCommutative(CompareKind kind) =>
             kind <= CompareKind.NotEqual;
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out CompareKind kind) &&
+                reader.Read(out CompareFlags flags))
+            {
+                return blockBuilder.CreateCompare(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    kind, flags
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         #endregion
 

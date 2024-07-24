@@ -177,8 +177,31 @@ namespace ILGPU.IR.Values
     /// Represents a simple return terminator.
     /// </summary>
     [ValueKind(ValueKind.Return)]
-    public sealed class ReturnTerminator : TerminatorValue
+    public sealed class ReturnTerminator : TerminatorValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateReturn(
+                    Location.Unknown,
+                    header.Nodes[0]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -294,8 +317,33 @@ namespace ILGPU.IR.Values
     /// Represents an unconditional branch terminator.
     /// </summary>
     [ValueKind(ValueKind.UnconditionalBranch)]
-    public sealed class UnconditionalBranch : Branch
+    public sealed class UnconditionalBranch : Branch, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out int numTargets) &&
+                reader.Read(out long targetId))
+            {
+                return blockBuilder.CreateBranch(
+                    Location.Unknown,
+                    reader.Context.Blocks[targetId]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -474,8 +522,36 @@ namespace ILGPU.IR.Values
     /// Represents an if branch terminator.
     /// </summary>
     [ValueKind(ValueKind.IfBranch)]
-    public sealed class IfBranch : ConditionalBranch
+    public sealed class IfBranch : ConditionalBranch, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out int numTargets) &&
+                reader.Read(out long trueTargetId) &&
+                reader.Read(out long falseTargetId))
+            {
+                return blockBuilder.CreateIfBranch(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    reader.Context.Blocks[trueTargetId],
+                    reader.Context.Blocks[falseTargetId]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -627,8 +703,41 @@ namespace ILGPU.IR.Values
     /// Represents a single switch terminator.
     /// </summary>
     [ValueKind(ValueKind.SwitchBranch)]
-    public sealed class SwitchBranch : ConditionalBranch
+    public sealed class SwitchBranch : ConditionalBranch, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out int numTargets))
+            {
+                var switchBranchBuilder = blockBuilder.CreateSwitchBranch(
+                    Location.Unknown, header.Nodes[0]);
+
+                for (int i = 0; i < numTargets; i++)
+                {
+                    if (reader.Read(out long targetId))
+                        switchBranchBuilder.Add(reader.Context.Blocks[targetId]);
+                    else
+                        return null;
+                }
+
+                return switchBranchBuilder.Seal();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Nested Types
 
         /// <summary>
@@ -836,8 +945,41 @@ namespace ILGPU.IR.Values
     /// Represents a temporary builder terminator.
     /// </summary>
     [ValueKind(ValueKind.BuilderTerminator)]
-    public sealed class BuilderTerminator : Branch
+    public sealed class BuilderTerminator : Branch, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out int numTargets))
+            {
+                var builderTerminatorBuilder =
+                    blockBuilder.CreateBuilderTerminator(numTargets);
+
+                for (int i = 0; i < numTargets; i++)
+                {
+                    if (reader.Read(out long targetId))
+                        builderTerminatorBuilder.Add(reader.Context.Blocks[targetId]);
+                    else
+                        return null;
+                }
+
+                return builderTerminatorBuilder.Seal();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Nested Types
 
         /// <summary>

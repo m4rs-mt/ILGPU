@@ -53,7 +53,7 @@ namespace ILGPU.IR.Serialization
         void Write(string tag, string value);
 
         /// <summary>
-        /// Serializes a string value to the stream.
+        /// Serializes an enum value to the stream.
         /// </summary>
         /// <param name="tag">
         /// A tag that describes the purpose of this value.

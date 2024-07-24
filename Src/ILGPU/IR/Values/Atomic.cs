@@ -146,8 +146,36 @@ namespace ILGPU.IR.Values
     /// Represents a generic atomic operation.
     /// </summary>
     [ValueKind(ValueKind.GenericAtomic)]
-    public sealed class GenericAtomic : AtomicValue
+    public sealed class GenericAtomic : AtomicValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out AtomicKind kind) &&
+                reader.Read(out AtomicFlags flags))
+            {
+                return blockBuilder.CreateAtomic(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    kind, flags
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -227,8 +255,36 @@ namespace ILGPU.IR.Values
     /// Represents an atomic compare-and-swap operation.
     /// </summary>
     [ValueKind(ValueKind.AtomicCAS)]
-    public sealed class AtomicCAS : AtomicValue
+    public sealed class AtomicCAS : AtomicValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out AtomicFlags flags))
+            {
+                return blockBuilder.CreateAtomicCAS(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    header.Nodes[2],
+                    flags
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>

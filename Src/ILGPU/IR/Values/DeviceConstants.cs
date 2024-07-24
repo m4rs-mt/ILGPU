@@ -183,8 +183,31 @@ namespace ILGPU.IR.Values
     /// Represents the <see cref="Grid.Index"/> property.
     /// </summary>
     [ValueKind(ValueKind.GridIndex)]
-    public sealed class GridIndexValue : DeviceConstantDimensionValue
+    public sealed class GridIndexValue : DeviceConstantDimensionValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out DeviceConstantDimension3D dimension))
+            {
+                return blockBuilder.CreateGridIndexValue(
+                    Location.Unknown, dimension);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -232,8 +255,31 @@ namespace ILGPU.IR.Values
     /// Represents the <see cref="Group.Index"/> property.
     /// </summary>
     [ValueKind(ValueKind.GroupIndex)]
-    public sealed class GroupIndexValue : DeviceConstantDimensionValue
+    public sealed class GroupIndexValue : DeviceConstantDimensionValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out DeviceConstantDimension3D dimension))
+            {
+                return blockBuilder.CreateGroupIndexValue(
+                    Location.Unknown, dimension);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -281,8 +327,31 @@ namespace ILGPU.IR.Values
     /// Represents the <see cref="Grid.Dimension"/> property.
     /// </summary>
     [ValueKind(ValueKind.GridDimension)]
-    public sealed class GridDimensionValue : DeviceConstantDimensionValue
+    public sealed class GridDimensionValue : DeviceConstantDimensionValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out DeviceConstantDimension3D dimension))
+            {
+                return blockBuilder.CreateGridDimensionValue(
+                    Location.Unknown, dimension);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -330,8 +399,31 @@ namespace ILGPU.IR.Values
     /// Represents the <see cref="Group.Dimension"/> property.
     /// </summary>
     [ValueKind(ValueKind.GroupDimension)]
-    public sealed class GroupDimensionValue : DeviceConstantDimensionValue
+    public sealed class GroupDimensionValue : DeviceConstantDimensionValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out DeviceConstantDimension3D dimension))
+            {
+                return blockBuilder.CreateGroupDimensionValue(
+                    Location.Unknown, dimension);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -379,8 +471,30 @@ namespace ILGPU.IR.Values
     /// Represents the <see cref="Warp.WarpSize"/> property.
     /// </summary>
     [ValueKind(ValueKind.WarpSize)]
-    public sealed class WarpSizeValue : DeviceConstantValue
+    public sealed class WarpSizeValue : DeviceConstantValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateWarpSizeValue(
+                    Location.Unknown);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -430,8 +544,30 @@ namespace ILGPU.IR.Values
     /// Represents the <see cref="Warp.LaneIdx"/> property.
     /// </summary>
     [ValueKind(ValueKind.LaneIdx)]
-    public sealed class LaneIdxValue : DeviceConstantValue
+    public sealed class LaneIdxValue : DeviceConstantValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateLaneIdxValue(
+                    Location.Unknown);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -482,8 +618,34 @@ namespace ILGPU.IR.Values
     /// property on a dynamic memory view.
     /// </summary>
     [ValueKind(ValueKind.DynamicMemoryLength)]
-    public sealed class DynamicMemoryLengthValue : DeviceConstantValue
+    public sealed class DynamicMemoryLengthValue : DeviceConstantValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out long elementTypeId) &&
+                reader.Read(out MemoryAddressSpace addressSpace))
+            {
+                return blockBuilder.CreateDynamicMemoryLengthValue(
+                    Location.Unknown,
+                    reader.Context.Types[elementTypeId],
+                    addressSpace);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -532,8 +694,11 @@ namespace ILGPU.IR.Values
             builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
 
         /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) =>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(ElementType), ElementType.Id);
             writer.Write(nameof(AddressSpace), AddressSpace);
+        }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
