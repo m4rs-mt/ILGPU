@@ -17,7 +17,8 @@ using System.Text;
 namespace ILGPU.IR.Serialization
 {
     /// <summary>
-    /// Wrapper class around <see cref="BinaryWriter"/> for serializing IR types and values. 
+    /// Wrapper class around <see cref="BinaryWriter"/>
+    /// for serializing IR types and values. 
     /// </summary>
     public sealed partial class BinaryIRWriter : DisposeBase, IIRWriter
     {
