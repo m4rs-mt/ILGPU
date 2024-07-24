@@ -14,7 +14,8 @@ using System;
 namespace ILGPU.IR.Serialization
 {
     /// <summary>
-    /// Describes a wrapper that serializes IR values and types to some implementation-specific instance
+    /// Describes a wrapper that serializes IR values and types
+    /// to some implementation-specific instance
     /// </summary>
     public partial interface IIRWriter
     {

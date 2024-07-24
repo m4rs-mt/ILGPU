@@ -353,7 +353,8 @@ namespace ILGPU.IR.Types
             where TTypeProvider : IManagedTypeProvider;
 
         /// <summary>
-        /// Serializes this instance's specific internals to the given <see cref="IIRWriter"/>.
+        /// Serializes this instance's specific internals
+        /// to the given <see cref="IIRWriter"/>.
         /// </summary>
         /// <typeparam name="T">
         /// The specific type of <see cref="IIRWriter"/>.
