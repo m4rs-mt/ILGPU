@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Convert.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -58,8 +59,35 @@ namespace ILGPU.IR.Values
     /// Converts a node into a target type.
     /// </summary>
     [ValueKind(ValueKind.Convert)]
-    public sealed class ConvertValue : Value
+    public sealed class ConvertValue : Value, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out long typeId) &&
+                reader.Read(out ConvertFlags flags))
+            {
+                return blockBuilder.CreateConvert(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    reader.Context.Types[typeId],
+                    flags);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -135,6 +163,13 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 Type,
                 Flags);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(Type), Type.Id);
+            writer.Write(nameof(Flags), Flags);
+        }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

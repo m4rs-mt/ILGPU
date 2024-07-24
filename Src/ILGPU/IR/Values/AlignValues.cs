@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AlignValues.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using System;
 
@@ -60,6 +61,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary>
         /// Tries to determine an explicit alignment compile-time constant (primarily
         /// for compiler analysis purposes). If this alignment information could not be
@@ -101,8 +105,32 @@ namespace ILGPU.IR.Values
     /// Aligns a pointer or a view to a specified alignment in bytes.
     /// </summary>
     [ValueKind(ValueKind.AlignTo)]
-    public sealed class AlignTo : BaseAlignOperationValue
+    public sealed class AlignTo : BaseAlignOperationValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateAlignTo(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -183,8 +211,32 @@ namespace ILGPU.IR.Values
     /// bytes.
     /// </summary>
     [ValueKind(ValueKind.AsAligned)]
-    public sealed class AsAligned : BaseAlignOperationValue
+    public sealed class AsAligned : BaseAlignOperationValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateAsAligned(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>

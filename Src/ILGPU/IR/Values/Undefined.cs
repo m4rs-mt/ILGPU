@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Undefined.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 
 namespace ILGPU.IR.Values
 {
@@ -17,8 +18,29 @@ namespace ILGPU.IR.Values
     /// Represents an undefined value.
     /// </summary>
     [ValueKind(ValueKind.Undefined)]
-    public sealed class UndefinedValue : Value
+    public sealed class UndefinedValue : Value, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateUndefined();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -48,6 +70,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateUndefined();
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

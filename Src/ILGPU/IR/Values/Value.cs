@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Value.cs
@@ -10,12 +10,14 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using UseList = ILGPU.Util.InlineList<ILGPU.IR.Values.Use>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
@@ -242,6 +244,25 @@ namespace ILGPU.IR
         /// The default value flags.
         /// </summary>
         public const ValueFlags DefaultFlags = ValueFlags.None;
+
+        #endregion
+
+        #region Static Methods
+
+        /// <summary>
+        /// Generically reads a serialized IR value from a stream.
+        /// </summary>
+        /// <param name="header">
+        /// The basic header associated with the target value.
+        /// </param>
+        /// <param name="reader">
+        /// The wrapped stream reader instance.
+        /// </param>
+        /// <returns>
+        /// The reconstructed IR value.
+        /// </returns>
+        public static Value? ReadGeneric(ValueHeader header, IIRReader reader) =>
+            ValueKinds.ReaderDelegates[header.Kind](header, reader);
 
         #endregion
 
@@ -545,6 +566,19 @@ namespace ILGPU.IR
             IRRebuilder rebuilder);
 
         /// <summary>
+        /// Serializes this instance's specific internals
+        /// to the given <see cref="IIRWriter"/>.
+        /// </summary>
+        /// <typeparam name="T">
+        /// The specific type of <see cref="IIRWriter"/>.
+        /// </typeparam>
+        /// <param name="writer">
+        /// The given serializer instance. 
+        /// </param>
+        protected internal abstract void Write<T>(T writer)
+            where T : IIRWriter;
+
+        /// <summary>
         /// Verifies that the this value is not sealed.
         /// </summary>
         protected void VerifyNotSealed() =>
@@ -777,5 +811,88 @@ namespace ILGPU.IR
         public virtual bool IsMethod => false;
 
         #endregion
+    }
+}
+
+namespace ILGPU.IR.Serialization
+{
+    public partial interface IIRWriter
+    {
+        /// <summary>
+        /// Serializes an IR <see cref="Value"/> instance to the stream.
+        /// </summary>
+        /// <param name="tag">
+        /// A tag that describes the purpose of this value.
+        /// </param>
+        /// <param name="value">
+        /// The value to serialize.
+        /// </param>
+        public void Write(string tag, Value value)
+        {
+            Write(nameof(value.Id), value.Id);
+            Write(nameof(value.ValueKind), value.ValueKind);
+
+            Write(nameof(value.Method), value.Method.Id);
+            Write(nameof(value.BasicBlock), value.BasicBlock.Id);
+
+            int index = 0;
+            Write(nameof(value.Count), value.Count);
+            foreach (var node in value.Nodes)
+                Write($"{nameof(value.Nodes)}[{index++}]", node.Id);
+
+            value.Write(this);
+        }
+    }
+
+    public partial interface IIRReader
+    {
+        /// <summary>
+        /// Reads an IR value out from this instance.
+        /// </summary>
+        /// <param name="value">
+        /// The value just read from the wrapped stream.
+        /// </param>
+        /// <returns>
+        /// True if successful, false otherwise. 
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// Throws upon a failed lookup for previously deserialized values. 
+        /// </exception>
+        bool Read([NotNullWhen(true)] out Value? value)
+        {
+            if (Read(out long valueId) &&
+                Read(out ValueKind valueKind) &&
+                Read(out long methodId) &&
+                Read(out long blockId) &&
+                Read(out int nodeCount))
+            {
+                var nodes = new ValueReference[nodeCount];
+                for (int i = 0; i < nodeCount; i++)
+                {
+                    nodes[i] = Read(out long nodeId) && Context.Values
+                        .TryGetValue(nodeId, out Value? node)
+                        ? (ValueReference)node
+                        : throw new InvalidOperationException(
+                            "Referential integrity error: value table is incomplete!"
+                            );
+                }
+
+                value = Value.ReadGeneric(new ValueHeader(valueKind,
+                    methodId > 0 ? Context.Methods[methodId] : null,
+                    blockId > 0 ? Context.Blocks[blockId] : null,
+                    nodes.AsSpan()), this);
+
+                if (value is not null)
+                {
+                    Context.Values.Add(valueId, value);
+                    return true;
+                }
+            }
+            else
+            {
+                value = default;
+            }
+            return false;
+        }
     }
 }

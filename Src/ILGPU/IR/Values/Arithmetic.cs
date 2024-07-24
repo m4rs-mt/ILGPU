@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Arithmetic.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -113,8 +114,31 @@ namespace ILGPU.IR.Values
     /// Represents a unary arithmetic operation.
     /// </summary>
     [ValueKind(ValueKind.UnaryArithmetic)]
-    public sealed class UnaryArithmeticValue : ArithmeticValue
+    public sealed class UnaryArithmeticValue : ArithmeticValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out UnaryArithmeticKind kind))
+            {
+                return blockBuilder.CreateArithmetic(
+                    Location.Unknown, header.Nodes[0], kind);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -189,6 +213,13 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(Kind), Kind);
+            writer.Write(nameof(Flags), Flags);
+        }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -209,7 +240,7 @@ namespace ILGPU.IR.Values
     /// Represents a binary arithmetic operation.
     /// </summary>
     [ValueKind(ValueKind.BinaryArithmetic)]
-    public sealed class BinaryArithmeticValue : ArithmeticValue
+    public sealed class BinaryArithmeticValue : ArithmeticValue, IValueReader
     {
         #region Static
 
@@ -238,6 +269,28 @@ namespace ILGPU.IR.Values
         {
             inverted = InvertLogical(kind);
             return kind != inverted;
+        }
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out BinaryArithmeticKind kind))
+            {
+                return blockBuilder.CreateArithmetic(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    kind);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         #endregion
@@ -321,6 +374,13 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(Kind), Kind);
+            writer.Write(nameof(Flags), Flags);
+        }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -341,7 +401,7 @@ namespace ILGPU.IR.Values
     /// Represents a binary arithmetic operation.
     /// </summary>
     [ValueKind(ValueKind.TernaryArithmetic)]
-    public sealed class TernaryArithmeticValue : ArithmeticValue
+    public sealed class TernaryArithmeticValue : ArithmeticValue, IValueReader
     {
         #region Static
 
@@ -372,6 +432,29 @@ namespace ILGPU.IR.Values
                 TernaryArithmeticKind.MultiplyAdd => BinaryArithmeticKind.Add,
                 _ => throw new ArgumentOutOfRangeException(nameof(kind)),
             };
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out TernaryArithmeticKind kind))
+            {
+                return blockBuilder.CreateArithmetic(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    header.Nodes[2],
+                    kind);
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         #endregion
 
@@ -449,6 +532,13 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Third),
                 Kind,
                 Flags);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(Kind), Kind);
+            writer.Write(nameof(Flags), Flags);
+        }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

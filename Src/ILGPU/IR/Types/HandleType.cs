@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: HandleType.cs
@@ -16,6 +16,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a .Net runtime-specific handle type.
     /// </summary>
+    [TypeKind(TypeKind.Handle)]
     public sealed class HandleType : TypeNode
     {
         #region Instance
@@ -30,6 +31,13 @@ namespace ILGPU.IR.Types
 
         #endregion
 
+        #region Properties
+
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Handle;
+
+        #endregion
+
         #region Methods
 
         /// <summary>
@@ -38,6 +46,9 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeof(object);
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         #endregion
 

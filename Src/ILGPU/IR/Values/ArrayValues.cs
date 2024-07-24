@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayValues.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System.Runtime.CompilerServices;
@@ -21,8 +22,37 @@ namespace ILGPU.IR.Values
     /// Represents an allocation operation of a new array in a particular address space.
     /// </summary>
     [ValueKind(ValueKind.Array)]
-    public sealed class NewArray : ControlFlowValue
+    public sealed class NewArray : ControlFlowValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out long typeId))
+            {
+                var newArrayBuilder = blockBuilder.CreateNewArray(
+                    Location.Unknown, reader.Context.Types[typeId]
+                    .AsNotNullCast<ArrayType>());
+
+                foreach (var node in header.Nodes)
+                    newArrayBuilder.Add(node);
+
+                return newArrayBuilder.Seal();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Nested Types
 
         /// <summary>
@@ -154,6 +184,10 @@ namespace ILGPU.IR.Values
         }
 
         /// <inheritdoc/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Type), Type.Id);
+
+        /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
@@ -181,8 +215,32 @@ namespace ILGPU.IR.Values
     /// Gets the length of an array value or a particular array dimension.
     /// </summary>
     [ValueKind(ValueKind.GetArrayLength)]
-    public sealed class GetArrayLength : Value, IArrayValueOperation
+    public sealed class GetArrayLength : Value, IArrayValueOperation, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateGetArrayLength(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -236,6 +294,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(ArrayValue),
                 rebuilder.Rebuild(Dimension));
+
+        /// <inheritdoc/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Atomic.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -146,8 +147,36 @@ namespace ILGPU.IR.Values
     /// Represents a generic atomic operation.
     /// </summary>
     [ValueKind(ValueKind.GenericAtomic)]
-    public sealed class GenericAtomic : AtomicValue
+    public sealed class GenericAtomic : AtomicValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out AtomicKind kind) &&
+                reader.Read(out AtomicFlags flags))
+            {
+                return blockBuilder.CreateAtomic(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    kind, flags
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -200,6 +229,13 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(Kind), Kind);
+            writer.Write(nameof(Flags), Flags);
+        }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -220,8 +256,36 @@ namespace ILGPU.IR.Values
     /// Represents an atomic compare-and-swap operation.
     /// </summary>
     [ValueKind(ValueKind.AtomicCAS)]
-    public sealed class AtomicCAS : AtomicValue
+    public sealed class AtomicCAS : AtomicValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out AtomicFlags flags))
+            {
+                return blockBuilder.CreateAtomicCAS(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    header.Nodes[2],
+                    flags
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -273,6 +337,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 rebuilder.Rebuild(CompareValue),
                 Flags);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Flags), Flags);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PointerTypes.cs
@@ -126,6 +126,17 @@ namespace ILGPU.IR.Types
 
         #endregion
 
+        #region Methods
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(ElementType), ElementType.Id);
+            writer.Write(nameof(AddressSpace), AddressSpace);
+        }
+
+        #endregion
+
         #region Object
 
         /// <summary cref="TypeNode.GetHashCode"/>
@@ -149,6 +160,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents the type of a generic pointer.
     /// </summary>
+    [TypeKind(TypeKind.Pointer)]
     public sealed class PointerType : AddressSpaceType
     {
         #region Instance
@@ -184,6 +196,9 @@ namespace ILGPU.IR.Types
 
         /// <inheritdoc/>
         public override bool IsPointerType => true;
+
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Pointer;
 
         /// <summary>
         /// Returns the associated basic value type.
@@ -230,6 +245,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents the type of a generic view.
     /// </summary>
+    [TypeKind(TypeKind.View)]
     public sealed class ViewType : AddressSpaceType
     {
         #region Instance
@@ -256,6 +272,9 @@ namespace ILGPU.IR.Types
 
         /// <inheritdoc/>
         public override bool IsViewType => true;
+
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.View;
 
         #endregion
 

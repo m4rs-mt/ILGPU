@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Compare.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -75,7 +76,7 @@ namespace ILGPU.IR.Values
     /// Represents a comparison.
     /// </summary>
     [ValueKind(ValueKind.Compare)]
-    public sealed class CompareValue : Value
+    public sealed class CompareValue : Value, IValueReader
     {
         #region Static
 
@@ -188,6 +189,30 @@ namespace ILGPU.IR.Values
         public static bool IsCommutative(CompareKind kind) =>
             kind <= CompareKind.NotEqual;
 
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out CompareKind kind) &&
+                reader.Read(out CompareFlags flags))
+            {
+                return blockBuilder.CreateCompare(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    header.Nodes[1],
+                    kind, flags
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         #endregion
 
         #region Instance
@@ -272,6 +297,13 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Right),
                 Kind,
                 Flags);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(Kind), Kind);
+            writer.Write(nameof(Flags), Flags);
+        }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

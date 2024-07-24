@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Cast.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 
@@ -90,8 +91,30 @@ namespace ILGPU.IR.Values
     /// Casts from an integer to a raw pointer value.
     /// </summary>
     [ValueKind(ValueKind.IntAsPointerCast)]
-    public sealed class IntAsPointerCast : PointerIntCast
+    public sealed class IntAsPointerCast : PointerIntCast, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateIntAsPointerCast(
+                    Location.Unknown, header.Nodes[0]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -136,6 +159,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -153,8 +179,32 @@ namespace ILGPU.IR.Values
     /// Casts from a pointer value to an integer.
     /// </summary>
     [ValueKind(ValueKind.PointerAsIntCast)]
-    public sealed class PointerAsIntCast : PointerIntCast
+    public sealed class PointerAsIntCast : PointerIntCast, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out BasicValueType targetBasicValueType))
+            {
+                return blockBuilder.CreatePointerAsIntCast(
+                    Location.Unknown, header.Nodes[0],
+                    targetBasicValueType);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -210,6 +260,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetBasicValueType);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetBasicValueType), TargetBasicValueType);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -263,8 +317,32 @@ namespace ILGPU.IR.Values
     /// Casts the type of a pointer to a different type.
     /// </summary>
     [ValueKind(ValueKind.PointerCast)]
-    public sealed class PointerCast : BaseAddressSpaceCast
+    public sealed class PointerCast : BaseAddressSpaceCast, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out long targetTypeId))
+            {
+                return blockBuilder.CreatePointerCast(
+                    Location.Unknown, header.Nodes[0],
+                    reader.Context.Types[targetTypeId]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -322,6 +400,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetElementType), TargetElementType.Id);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -342,8 +424,34 @@ namespace ILGPU.IR.Values
     /// Cast a pointer from one address space to another.
     /// </summary>
     [ValueKind(ValueKind.AddressSpaceCast)]
-    public sealed class AddressSpaceCast : BaseAddressSpaceCast
+    public sealed class AddressSpaceCast : BaseAddressSpaceCast, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out MemoryAddressSpace targetAddrSpace))
+            {
+                return blockBuilder.CreateAddressSpaceCast(
+                    Location.Unknown,
+                    header.Nodes[0],
+                    targetAddrSpace
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -418,6 +526,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetAddressSpace);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetAddressSpace), TargetAddressSpace);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -438,8 +550,33 @@ namespace ILGPU.IR.Values
     /// Casts a view from one element type to another.
     /// </summary>
     [ValueKind(ValueKind.ViewCast)]
-    public sealed class ViewCast : BaseAddressSpaceCast
+    public sealed class ViewCast : BaseAddressSpaceCast, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out long targetElementTypeId))
+            {
+                return blockBuilder.CreateViewCast(
+                    Location.Unknown, header.Nodes[0],
+                    reader.Context.Types[targetElementTypeId]
+                    );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -497,6 +634,10 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(TargetElementType), TargetElementType.Id);
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -517,8 +658,30 @@ namespace ILGPU.IR.Values
     /// Casts an array to a linear array view.
     /// </summary>
     [ValueKind(ValueKind.ArrayToViewCast)]
-    public sealed class ArrayToViewCast : CastValue
+    public sealed class ArrayToViewCast : CastValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateArrayToViewCast(
+                    Location.Unknown, header.Nodes[0]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -568,6 +731,9 @@ namespace ILGPU.IR.Values
             builder.CreateArrayToViewCast(
                 Location,
                 rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <inheritdoc/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -650,8 +816,30 @@ namespace ILGPU.IR.Values
     /// Casts from a float to an int while preserving bits.
     /// </summary>
     [ValueKind(ValueKind.FloatAsIntCast)]
-    public sealed class FloatAsIntCast : BitCast
+    public sealed class FloatAsIntCast : BitCast, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateFloatAsIntCast(
+                    Location.Unknown, header.Nodes[0]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -699,6 +887,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Value));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -716,8 +907,30 @@ namespace ILGPU.IR.Values
     /// Casts from an int to a float while preserving bits.
     /// </summary>
     [ValueKind(ValueKind.IntAsFloatCast)]
-    public sealed class IntAsFloatCast : BitCast
+    public sealed class IntAsFloatCast : BitCast, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder))
+            {
+                return blockBuilder.CreateIntAsFloatCast(
+                    Location.Unknown, header.Nodes[0]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -764,6 +977,9 @@ namespace ILGPU.IR.Values
             builder.CreateIntAsFloatCast(
                 Location,
                 rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

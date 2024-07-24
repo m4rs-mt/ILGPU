@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PrimitiveTypes.cs
@@ -9,16 +9,15 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Types
 {
     /// <summary>
     /// Represents a primitive type.
     /// </summary>
+    [TypeKind(TypeKind.Primitive)]
     public sealed class PrimitiveType : TypeNode
     {
         #region Static
@@ -88,6 +87,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsPrimitiveType => true;
 
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Primitive;
+
         /// <summary>
         /// Returns the associated basic value type.
         /// </summary>
@@ -123,6 +125,10 @@ namespace ILGPU.IR.Types
             TTypeProvider typeProvider) =>
             typeProvider.GetPrimitiveType(this);
 
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(BasicValueType), BasicValueType);
+
         #endregion
 
         #region Object
@@ -146,6 +152,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a string type.
     /// </summary>
+    [TypeKind(TypeKind.String)]
     public sealed class StringType : TypeNode
     {
         #region Instance
@@ -165,6 +172,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsStringType => true;
 
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.String;
+
         #endregion
 
         #region Methods
@@ -175,6 +185,9 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeof(string);
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         #endregion
 

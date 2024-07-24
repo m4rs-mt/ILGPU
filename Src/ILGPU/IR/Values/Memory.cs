@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Memory.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System.Diagnostics.CodeAnalysis;
@@ -47,8 +48,35 @@ namespace ILGPU.IR.Values
     /// Represents an allocation operation on the stack.
     /// </summary>
     [ValueKind(ValueKind.Alloca)]
-    public sealed class Alloca : MemoryValue
+    public sealed class Alloca : MemoryValue, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+
+                reader.Read(out long allocaTypeId) &&
+                reader.Read(out MemoryAddressSpace addrSpace))
+            {
+                return blockBuilder.CreateAlloca(
+                    Location.Unknown,
+                    reader.Context.Types[allocaTypeId],
+                    addrSpace);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -139,6 +167,13 @@ namespace ILGPU.IR.Values
                 AddressSpace,
                 rebuilder.Rebuild(ArrayLength));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(AllocaType), AllocaType.Id);
+            writer.Write(nameof(AddressSpace), AddressSpace);
+        }
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -228,6 +263,10 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateMemoryBarrier(Location, Kind);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Kind), Kind);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -298,6 +337,9 @@ namespace ILGPU.IR.Values
             builder.CreateLoad(
                 Location,
                 rebuilder.Rebuild(Source));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -377,6 +419,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Constants.cs
@@ -10,9 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.Util;
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -47,8 +47,32 @@ namespace ILGPU.IR.Values
     /// Represents an immutable null value.
     /// </summary>
     [ValueKind(ValueKind.Null)]
-    public sealed class NullValue : ConstantNode
+    public sealed class NullValue : ConstantNode, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out long typeId))
+            {
+                return blockBuilder.CreateNull(
+                    Location.Unknown,
+                    reader.Context.Types[typeId]);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -77,6 +101,10 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateNull(Location, Type);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(Type), Type.Id);
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -97,8 +125,34 @@ namespace ILGPU.IR.Values
     /// Represents a primitive value.
     /// </summary>
     [ValueKind(ValueKind.Primitive)]
-    public sealed class PrimitiveValue : ConstantNode
+    public sealed class PrimitiveValue : ConstantNode, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out BasicValueType basicValueType) &&
+                reader.Read(out long rawValue))
+            {
+                return blockBuilder.CreatePrimitiveValue(
+                    Location.Unknown,
+                    basicValueType,
+                    rawValue);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -276,6 +330,13 @@ namespace ILGPU.IR.Values
                 BasicValueType,
                 rawValue);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(BasicValueType), BasicValueType);
+            writer.Write(nameof(RawValue), RawValue);
+        }
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -317,8 +378,33 @@ namespace ILGPU.IR.Values
     /// Represents an immutable string value.
     /// </summary>
     [ValueKind(ValueKind.String)]
-    public sealed class StringValue : ConstantNode
+    public sealed class StringValue : ConstantNode, IValueReader
     {
+        #region Static
+
+        /// <summary cref="IValueReader.Read(ValueHeader, IIRReader)"/>
+        public static Value? Read(ValueHeader header, IIRReader reader)
+        {
+            var methodBuilder = header.Method?.MethodBuilder;
+            if (methodBuilder is not null &&
+                header.Block is not null &&
+                header.Block.GetOrCreateBuilder(methodBuilder,
+                out BasicBlock.Builder? blockBuilder) &&
+                reader.Read(out int codePage) &&
+                reader.Read(out string? strValue))
+            {
+                return blockBuilder.CreatePrimitiveValue(
+                    Location.Unknown, strValue,
+                    Encoding.GetEncoding(codePage));
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -368,6 +454,13 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreatePrimitiveValue(Location, String);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(Encoding), Encoding.CodePage);
+            writer.Write(nameof(String), String);
+        }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
