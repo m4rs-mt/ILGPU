@@ -116,7 +116,8 @@ jobs:
             )
           ) && os+=("macos-latest")
 
-          [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda")
+          # Temporarily disabled cuda
+          # [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda")
 
           echo "os=$(jq -cn '$ARGS.positional' --args ${os[@]})" >> $GITHUB_OUTPUT
     outputs:
