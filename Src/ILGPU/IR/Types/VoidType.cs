@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VoidType.cs
@@ -35,6 +35,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsVoidType => true;
 
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Void;
+
         #endregion
 
         #region Methods
@@ -45,6 +48,9 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeof(void);
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         #endregion
 

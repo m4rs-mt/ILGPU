@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PaddingType.cs
@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
 
 namespace ILGPU.IR.Types
@@ -41,6 +40,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsPaddingType => true;
 
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Padding;
+
         /// <summary>
         /// Returns the associated basic value type.
         /// </summary>
@@ -61,6 +63,10 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeProvider.GetPrimitiveType(PrimitiveType);
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) =>
+            writer.Write(nameof(PrimitiveType), PrimitiveType.Id);
 
         #endregion
 

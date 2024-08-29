@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Terminators.cs
@@ -228,6 +228,9 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(ReturnValue));
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
+
         /// <summary>
         /// Throws an <see cref="InvalidOperationException"/>.
         /// </summary>
@@ -274,6 +277,15 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
             initializer.Context.VoidType;
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            int index = 0;
+            writer.Write(nameof(NumTargets), NumTargets);
+            foreach (var target in Targets)
+                writer.Write($"{nameof(Targets)}[{index++}]", target.Id);
+        }
 
         #endregion
     }
