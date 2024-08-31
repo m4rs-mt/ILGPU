@@ -287,6 +287,21 @@ Src/ILGPU/StrideTypes.cs
 Src/ILGPU/Util/DataBlocks.cs
 Src/ILGPU/Util/PrimitiveDataBlocks.cs
 
+# Ignore specific template outputs
+Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
+Src/ILGPU/Backends/PTX/PTXLibDeviceMethods.cs
+Src/ILGPU/Backends/PTX/PTXLibDeviceNvvm.cs
+Src/ILGPU/Backends/Velocity/Scalar/ScalarOperations.cs
+Src/ILGPU/Backends/Velocity/Vec128/Vec128Operations.cs
+Src/ILGPU/Backends/Velocity/VelocityIntrinsics.Generated.cs
+Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
+Src/ILGPU/HalfConversion.cs
+Src/ILGPU/IR/Construction/ArithmeticOperations.cs
+Src/ILGPU/IR/Construction/CompareOperations.cs
+Src/ILGPU/IR/Intrinsics/IntrinsicMatchers.cs
+Src/ILGPU/IR/Types/ValueTuples.cs
+Src/ILGPU/Static/ArithmeticEnums.cs
+
 # Ignore specific template outputs (Algorithms)
 Src/ILGPU.Algorithms/AlgorithmContextMappings.cs
 Src/ILGPU.Algorithms/CL/CLContext.Generated.cs
