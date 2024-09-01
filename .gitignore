@@ -254,88 +254,68 @@ ModelManifest.xml
 
 # Ignore specific template outputs
 Src/ILGPU/AtomicFunctions.cs
-Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
-Src/ILGPU/Backends/PTX/PTXLibDeviceMethods.cs
-Src/ILGPU/Backends/PTX/PTXLibDeviceNvvm.cs
-Src/ILGPU/Backends/Velocity/Scalar/ScalarOperations.cs
-Src/ILGPU/Backends/Velocity/Vec128/Vec128Operations.cs
-Src/ILGPU/Backends/Velocity/VelocityIntrinsics.Generated.cs
-Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
+Src/ILGPU/FixedPrecision/FixedInts.cs
 Src/ILGPU/HalfConversion.cs
 Src/ILGPU/IR/Construction/ArithmeticOperations.cs
 Src/ILGPU/IR/Construction/CompareOperations.cs
-Src/ILGPU/IR/Intrinsics/IntrinsicMatchers.cs
 Src/ILGPU/IR/Types/ValueTuples.cs
 Src/ILGPU/IndexTypes.cs
 Src/ILGPU/Interop.Generated.cs
-Src/ILGPU/IntrinsicMath.CPUOnly.cs
-Src/ILGPU/Memory.cs
+Src/ILGPU/RadixSort/RadixSortOperations.cs
 Src/ILGPU/Runtime/ArrayViewExtensions.Generated.cs
 Src/ILGPU/Runtime/ArrayViews.cs
 Src/ILGPU/Runtime/Cuda/CudaArchitecture.Generated.cs
 Src/ILGPU/Runtime/Cuda/CudaAsm.Generated.cs
 Src/ILGPU/Runtime/Cuda/CudaDriverVersion.Generated.cs
 Src/ILGPU/Runtime/Cuda/CudaInstructionSet.Generated.cs
-Src/ILGPU/Runtime/Cuda/LibDevice.cs
-Src/ILGPU/Runtime/KernelLoaders.cs
+Src/ILGPU/Runtime/Cuda/CudaLibDevice.cs
+Src/ILGPU/Runtime/Cuda/Libraries/API/CuBlasNativeMethods.cs
+Src/ILGPU/Runtime/Cuda/Libraries/API/CuFFTAPI.Generated.cs
+Src/ILGPU/Runtime/Cuda/Libraries/API/CuFFTNativeMethods.cs
+Src/ILGPU/Runtime/Cuda/Libraries/API/CuFFTWAPI.Generated.cs
+Src/ILGPU/Runtime/Cuda/Libraries/API/CuFFTWNativeMethods.cs
+Src/ILGPU/Runtime/Cuda/Libraries/API/CuRandNativeMethods.cs
+Src/ILGPU/Runtime/Cuda/Libraries/API/NvJpegNativeMethods.cs
+Src/ILGPU/Runtime/Cuda/Libraries/API/NvmlNativeMethods.cs
+Src/ILGPU/Runtime/Cuda/Libraries/CuBlasMethodsLevel1.cs
+Src/ILGPU/Runtime/Cuda/Libraries/CuBlasMethodsLevel2.cs
+Src/ILGPU/Runtime/Cuda/Libraries/CuBlasMethodsLevel3.cs
+Src/ILGPU/Runtime/Cuda/Libraries/CuFFTPlan.Generated.cs
+Src/ILGPU/Runtime/Cuda/Libraries/CuFFTW.Generated.cs
+Src/ILGPU/Runtime/Cuda/Libraries/CuFFTWPlan.cs
+Src/ILGPU/Runtime/Cuda/Libraries/NvvmLibDeviceMethods.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/PageLockedArrays.Generated.cs
-Src/ILGPU/Static/ArithmeticEnums.cs
+Src/ILGPU/ScanReduce/ScanReduceOperations.cs
 Src/ILGPU/Static/CapabilityContext.cs
 Src/ILGPU/Static/DllImports.cs
 Src/ILGPU/StrideTypes.cs
 Src/ILGPU/Util/DataBlocks.cs
 Src/ILGPU/Util/PrimitiveDataBlocks.cs
+Src/ILGPU/Vectors/VectorTypes.cs
+Src/ILGPU/XMath/RoundingModes.cs
 
 # Ignore specific template outputs
-Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
-Src/ILGPU/Backends/PTX/PTXLibDeviceMethods.cs
-Src/ILGPU/Backends/PTX/PTXLibDeviceNvvm.cs
-Src/ILGPU/Backends/Velocity/Scalar/ScalarOperations.cs
-Src/ILGPU/Backends/Velocity/Vec128/Vec128Operations.cs
-Src/ILGPU/Backends/Velocity/VelocityIntrinsics.Generated.cs
-Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
-Src/ILGPU/HalfConversion.cs
-Src/ILGPU/IR/Construction/ArithmeticOperations.cs
-Src/ILGPU/IR/Construction/CompareOperations.cs
-Src/ILGPU/IR/Intrinsics/IntrinsicMatchers.cs
-Src/ILGPU/IR/Types/ValueTuples.cs
-Src/ILGPU/Static/ArithmeticEnums.cs
+Src/ILGPUC/Backends/PTX/PTXLibDeviceNvvm.cs
+Src/ILGPUC/Backends/PTX/Intrinsics/PTXThreads.Generated.cs
+Src/ILGPUC/IR/Construction/ArithmeticOperations.cs
+Src/ILGPUC/IR/Construction/CompareOperations.cs
+Src/ILGPUC/IR/Types/ValueTuples.cs
+Src/ILGPUC/Intrinsic/Cordic.Log.cs
+Src/ILGPUC/Intrinsic/Cordic.Pow.cs
+Src/ILGPUC/Intrinsic/Cordic.Trig.cs
+Src/ILGPUC/Intrinsic/Cordic.cs
+Src/ILGPUC/Static/BasicEnums.cs
+Src/ILGPUC/Static/BackendCodeGenerators.cs
+Src/ILGPUC/Static/IntrinsicGeneration.cs
+Src/ILGPUC/Static/IntrinsicImplementations.cs
+Src/ILGPUC/Static/IntrinsicRemapping.cs
+Src/ILGPUC/Static/ValueKinds.cs
 
 # Ignore specific template outputs (Algorithms)
-Src/ILGPU.Algorithms/AlgorithmContextMappings.cs
-Src/ILGPU.Algorithms/CL/CLContext.Generated.cs
 Src/ILGPU.Algorithms/ComparisonOperations.cs
-Src/ILGPU.Algorithms/FixedPrecision/FixedInts.cs
 Src/ILGPU.Algorithms/HistogramLaunchers.cs
 Src/ILGPU.Algorithms/HistogramOperations.cs
-Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
-Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
-Src/ILGPU.Algorithms/RadixSortOperations.cs
-Src/ILGPU.Algorithms/Random/RandomRanges.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/CuBlasNativeMethods.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTAPI.Generated.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTNativeMethods.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTWAPI.Generated.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/CuFFTWNativeMethods.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/CuRandNativeMethods.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/NvJpegNativeMethods.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/API/NvmlNativeMethods.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel1.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel2.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasMethodsLevel3.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/CuFFTPlan.Generated.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/CuFFTW.Generated.cs
-Src/ILGPU.Algorithms/Runtime/Cuda/CuFFTWPlan.cs
-Src/ILGPU.Algorithms/ScanReduceOperations.cs
-Src/ILGPU.Algorithms/Sequencers.cs
-Src/ILGPU.Algorithms/UniqueLaunchers.cs
-Src/ILGPU.Algorithms/Vectors/VectorTypes.cs
-Src/ILGPU.Algorithms/XMath/Cordic.Log.cs
-Src/ILGPU.Algorithms/XMath/Cordic.Pow.cs
-Src/ILGPU.Algorithms/XMath/Cordic.Trig.cs
-Src/ILGPU.Algorithms/XMath/Cordic.cs
-Src/ILGPU.Algorithms/XMath/RoundingModes.cs
 
 # Generated test source files
 Src/ILGPU.Tests/Generic/ConfigurationBase.cs
@@ -357,9 +337,6 @@ Src/ILGPU.Tests/ValueTuples.cs
 Src/ILGPU.Tests/.test.runsettings
 Src/ILGPU.Tests.CPU/Configurations.cs
 Src/ILGPU.Tests.Cuda/Configurations.cs
-Src/ILGPU.Tests.OpenCL/Configurations.cs
-Src/ILGPU.Tests.Velocity/Configurations.cs
-Src/ILGPU.Tests.Velocity128/Configurations.cs
 
 # Generated test source files (Algorithms)
 Src/ILGPU.Algorithms.Tests/Generic/ConfigurationBase.cs
@@ -388,4 +365,3 @@ Src/ILGPU.Algorithms.Tests/XMathTests.Trig.cs
 
 Src/ILGPU.Algorithms.Tests.CPU/Configurations.cs
 Src/ILGPU.Algorithms.Tests.Cuda/Configurations.cs
-Src/ILGPU.Algorithms.Tests.OpenCL/Configurations.cs
