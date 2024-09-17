@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAPI.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -573,6 +574,19 @@ namespace ILGPU.Runtime.Cuda
         public unsafe CudaError LoadModule(
             out IntPtr kernelModule,
             string moduleData,
+            out string? errorLog) =>
+            LoadModule(out kernelModule, new string[] { moduleData }, out errorLog);
+
+        /// <summary>
+        /// Loads the given kernel module into driver memory.
+        /// </summary>
+        /// <param name="kernelModule">The loaded module.</param>
+        /// <param name="modules">The module data to load.</param>
+        /// <param name="errorLog">The error log.</param>
+        /// <returns>The error status.</returns>
+        public unsafe CudaError LoadModule(
+            out IntPtr kernelModule,
+            ReadOnlySpan<string> modules,
             out string? errorLog)
         {
             const int BufferSize = 1024;
@@ -591,16 +605,62 @@ namespace ILGPU.Runtime.Cuda
             values[0] = errorBuffer;
             values[1] = (void*)BufferSize;
 
-            var result = LoadModule(
-                out kernelModule,
-                moduleData,
+            var result = CurrentAPI.cuLinkCreate_v2(
                 NumOptions,
                 new IntPtr(options),
-                new IntPtr(optionValues));
-
+                new IntPtr(optionValues),
+                out IntPtr linkState);
             errorLog = result != CudaError.CUDA_SUCCESS
                 ? Encoding.ASCII.GetString(errorBuffer, BufferSize)
                 : null;
+            CudaException.ThrowIfFailed(result);
+
+            using var stringCache = new StringCache();
+            try
+            {
+                foreach (var module in modules)
+                {
+                    var moduleStrEntry = stringCache.AddString(module);
+
+                    result = CurrentAPI.cuLinkAddData_v2(
+                        linkState,
+                        new IntPtr(1), // CU_JIT_INPUT_PTX
+                        moduleStrEntry.NativePtr,
+                        new IntPtr(moduleStrEntry.Length),
+                        string.Empty,
+                        0,
+                        IntPtr.Zero,
+                        IntPtr.Zero);
+                    errorLog = result != CudaError.CUDA_SUCCESS
+                        ? Encoding.ASCII.GetString(errorBuffer, BufferSize)
+                        : null;
+                    CudaException.ThrowIfFailed(result);
+                }
+
+                result = CurrentAPI.cuLinkComplete(
+                    linkState,
+                    out IntPtr cubin,
+                    out IntPtr cubinSize);
+                errorLog = result != CudaError.CUDA_SUCCESS
+                    ? Encoding.ASCII.GetString(errorBuffer, BufferSize)
+                    : null;
+                CudaException.ThrowIfFailed(result);
+
+                result = CurrentAPI.cuModuleLoadDataEx(
+                    out kernelModule,
+                    cubin,
+                    NumOptions,
+                    new IntPtr(options),
+                    new IntPtr(optionValues));
+                errorLog = result != CudaError.CUDA_SUCCESS
+                    ? Encoding.ASCII.GetString(errorBuffer, BufferSize)
+                    : null;
+            }
+            finally
+            {
+                CurrentAPI.cuLinkDestroy(linkState);
+            }
+
             return result;
         }
 

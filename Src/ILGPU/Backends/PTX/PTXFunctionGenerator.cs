@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXFunctionGenerator.cs
@@ -78,13 +78,16 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Generates a function declaration in PTX code.
         /// </summary>
-        public override void GenerateHeader(StringBuilder builder)
+        public override void GenerateHeader(PTXAssembly.Builder builder)
         {
-            if (PTXLibDeviceMethods.IsLibDeviceMethod(Method))
+            if (Method.HasSource &&
+                Method.Source.DeclaringType == typeof(PTXLibDeviceMethods))
+            {
                 return;
+            }
 
-            GenerateHeaderDeclaration(builder);
-            builder.AppendLine(";");
+            GenerateHeaderDeclaration(builder.KernelBuilder);
+            builder.KernelBuilder.AppendLine(";");
         }
 
         /// <summary>
