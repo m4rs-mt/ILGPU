@@ -141,6 +141,11 @@
     <Import Name="cuStreamSynchronize">
         <Parameter Name="stream" Type="IntPtr" />
     </Import>
+    <Import Name="cuStreamWaitEvent">
+        <Parameter Name="stream" Type="IntPtr" />
+        <Parameter Name="@event" Type="IntPtr" />
+        <Parameter Name="flags" Type="IntPtr" />
+    </Import>
     <Import Name="cuGetErrorString">
         <Parameter Name="error" Type="CudaError" />
         <Parameter Name="pStr" Type="IntPtr" Flags="Out" />

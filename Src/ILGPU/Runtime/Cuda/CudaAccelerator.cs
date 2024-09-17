@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAccelerator.cs
@@ -439,6 +439,10 @@ namespace ILGPU.Runtime.Cuda
                 CurrentAPI.GetMemoryInfo(out long free, out long _));
             return free;
         }
+
+        /// <inheritdoc/>
+        protected override StreamMarker CreateStreamMarkerInternal() =>
+            new CudaStreamMarker(this);
 
         #endregion
 

@@ -241,9 +241,12 @@
     <value>Unknown parent accelerator</value>
   </data>
   <data name="VelocityPlatform64" xml:space="preserve">
-      <value>Velocity accelerator requires 64-bit application ({0} not supported). Ensure Prefer32Bit is set to 'false'</value>
+    <value>Velocity accelerator requires 64-bit application ({0} not supported). Ensure Prefer32Bit is set to 'false'</value>
   </data>
   <data name="VelocityLittleEndian" xml:space="preserve">
-      <value>The Velocity accelerator supports little-endian machines only</value>
+    <value>The Velocity accelerator supports little-endian machines only</value>
+  </data>
+  <data name="NotSupportedAcceleratorStreamMarker" xml:space="preserve">
+    <value>The accelerator stream marker is not supported for this operation</value>
   </data>
 </root>

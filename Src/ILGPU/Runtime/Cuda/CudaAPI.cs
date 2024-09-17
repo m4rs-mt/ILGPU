@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAPI.cs
@@ -527,6 +527,16 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The error status.</returns>
         public CudaError SynchronizeStream(IntPtr stream) =>
             cuStreamSynchronize(stream);
+
+        /// <summary>
+        /// Make the stream wait for the event.
+        /// </summary>
+        /// <param name="stream">The stream to wait.</param>
+        /// <param name="event">The event to await.</param>
+        /// <param name="flags">The flags to use.</param>
+        /// <returns>The error status.</returns>
+        public CudaError WaitForEvent(IntPtr stream, IntPtr @event, IntPtr flags) =>
+            cuStreamWaitEvent(stream, @event, flags);
 
         #endregion
 

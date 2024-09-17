@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.cs
@@ -16,6 +16,7 @@ using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ILGPU.Runtime
@@ -263,6 +264,22 @@ namespace ILGPU.Runtime
                 base.ClearCache(mode);
             }
         }
+        /// <summary>
+        /// Creates a new accelerator stream marker.
+        /// </summary>
+        /// <returns>The created accelerator stream marker.</returns>
+        public StreamMarker CreateStreamMarker()
+        {
+            Bind();
+            return CreateStreamMarkerInternal();
+        }
+
+        /// <summary>
+        /// Creates a new accelerator stream marker.
+        /// </summary>
+        /// <returns>The created accelerator stream marker.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected abstract StreamMarker CreateStreamMarkerInternal();
 
         #endregion
 
