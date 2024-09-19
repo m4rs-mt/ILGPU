@@ -9,6 +9,9 @@
             <Velocity128>
                 <Implementation>Vector128.Add(Vector128.Multiply({Value0}, {Value1}), {Value2})</Implementation>
             </Velocity128>
+            <Velocity256>
+                <Implementation>FMAImpl({Value0}, {Value1}, {Value2})</Implementation>
+            </Velocity256>
         </Velocity>
     </Operation>
 </Operations>

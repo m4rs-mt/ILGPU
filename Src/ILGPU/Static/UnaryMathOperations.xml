@@ -17,6 +17,9 @@
             <Velocity128>
                 <Implementation>-{Value0}</Implementation>
             </Velocity128>
+            <Velocity256>
+                <Implementation>-{Value0}</Implementation>
+            </Velocity256>
         </Velocity>
     </Operation>
     <Operation Name="Not">
@@ -45,6 +48,9 @@
             <Velocity128>
                 <Implementation>~{Value0}</Implementation>
             </Velocity128>
+            <Velocity256>
+                <Implementation>~{Value0}</Implementation>
+            </Velocity256>
         </Velocity>
     </Operation>
     <Operation Name="Abs">
@@ -61,6 +67,9 @@
             <Velocity128>
                 <Implementation>Vector128.Abs({Value0})</Implementation>
             </Velocity128>
+            <Velocity256>
+                <Implementation>Vector256.Abs({Value0})</Implementation>
+            </Velocity256>
         </Velocity>
     </Operation>
     <Operation Name="PopC">
@@ -69,6 +78,7 @@
         <Call>IntrinsicMath.BitOperations.PopCount</Call>
         <Velocity ReturnAsWarp32="true">
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="CLZ">
@@ -77,6 +87,7 @@
         <Call>IntrinsicMath.BitOperations.LeadingZeroCount</Call>
         <Velocity ReturnAsWarp32="true">
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="CTZ">
@@ -85,6 +96,7 @@
         <Call>IntrinsicMath.BitOperations.TrailingZeroCount</Call>
         <Velocity ReturnAsWarp32="true">
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="RcpF">
@@ -96,6 +108,9 @@
             <Velocity128>
                 <Implementation>RcpImpl({Value0})</Implementation>
             </Velocity128>
+            <Velocity256>
+                <Implementation>RcpImpl({Value0})</Implementation>
+            </Velocity256>
         </Velocity>
     </Operation>
 
@@ -106,6 +121,7 @@
         <Implementation>{TypeName}.IsNaN({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="IsInfF" IsPredicate="true">
@@ -115,6 +131,7 @@
         <Implementation>{TypeName}.IsInfinity({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="IsFinF" IsPredicate="true">
@@ -124,6 +141,7 @@
         <Implementation>!IsNaN({Value0}) &amp;&amp; !IsInfinity({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
 
@@ -136,6 +154,9 @@
             <Velocity128>
                 <Implementation>Vector128.Sqrt({Value0})</Implementation>
             </Velocity128>
+            <Velocity256>
+                <Implementation>Vector256.Sqrt({Value0})</Implementation>
+            </Velocity256>
         </Velocity>
     </Operation>
     <Operation Name="RsqrtF">
@@ -147,6 +168,9 @@
             <Velocity128>
                 <Implementation>RcpImpl(Vector128.Sqrt({Value0}))</Implementation>
             </Velocity128>
+            <Velocity256>
+                <Implementation>RsqrtImpl({Value0})</Implementation>
+            </Velocity256>
         </Velocity>
     </Operation>
 
@@ -157,6 +181,7 @@
         <Implementation>{MathType}.Asin({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="SinF">
@@ -166,6 +191,7 @@
         <Implementation>{MathType}.Sin({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="SinhF">
@@ -175,6 +201,7 @@
         <Implementation>{MathType}.Sinh({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
 
@@ -185,6 +212,7 @@
         <Implementation>{MathType}.Acos({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="CosF">
@@ -194,6 +222,7 @@
         <Implementation>{MathType}.Cos({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="CoshF">
@@ -203,6 +232,7 @@
         <Implementation>{MathType}.Cosh({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
 
@@ -213,6 +243,7 @@
         <Implementation>{MathType}.Tan({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="TanhF">
@@ -222,6 +253,7 @@
         <Implementation>{MathType}.Tanh({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="AtanF">
@@ -231,6 +263,7 @@
         <Implementation>{MathType}.Atan({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
 
@@ -241,6 +274,7 @@
         <Implementation>{MathType}.Exp({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="Exp2F">
@@ -250,6 +284,7 @@
         <Implementation>{MathType}.Pow({Const2}, {Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
 
@@ -262,6 +297,9 @@
             <Velocity128>
                 <Implementation>Vector128.Floor({Value0})</Implementation>
             </Velocity128>
+            <Velocity256>
+                <Implementation>Vector256.Floor({Value0})</Implementation>
+            </Velocity256>
         </Velocity>
     </Operation>
     <Operation Name="CeilingF">
@@ -273,6 +311,9 @@
             <Velocity128>
                 <Implementation>Vector128.Ceiling({Value0})</Implementation>
             </Velocity128>
+            <Velocity256>
+                <Implementation>Vector256.Ceiling({Value0})</Implementation>
+            </Velocity256>
         </Velocity>
     </Operation>
 
@@ -283,6 +324,7 @@
         <Implementation>{MathType}.Log({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="Log2F">
@@ -292,6 +334,7 @@
         <Implementation>{MathType}.Log({Value0}, {Const2})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
     <Operation Name="Log10F">
@@ -301,6 +344,7 @@
         <Implementation>{MathType}.Log10({Value0})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
+            <Velocity256 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
 </Operations>

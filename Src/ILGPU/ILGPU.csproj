@@ -185,6 +185,14 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CudaInstructionSet.Generated.cs</LastGenOutput>
     </None>
+    <None Update="Backends\Velocity\Vec128\Vec128Operations.tt">
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+      <LastGenOutput>Vec128Operations.cs</LastGenOutput>
+    </None>
+    <None Update="Backends\Velocity\Vec256\Vec256Operations.tt">
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+      <LastGenOutput>Vec256Operations.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -352,6 +360,12 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Backends\Velocity\Vec128\Vec128Operations.cs">
+      <DependentUpon>Vec128Operations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Backends\Velocity\Vec256\Vec256Operations.cs">
+      <DependentUpon>Vec256Operations.tt</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
