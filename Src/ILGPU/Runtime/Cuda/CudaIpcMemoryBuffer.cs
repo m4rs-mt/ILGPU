@@ -119,14 +119,30 @@ namespace ILGPU.Runtime.Cuda
             }
             else
             {
+                MemHandle = ipcMemHandle;
+                Flags = flags;
                 CudaException.ThrowIfFailed(
                     CurrentAPI.OpenIpcMemoryHandle(
                         out IntPtr resultPtr,
-                        ipcMemHandle,
-                        flags));
+                        MemHandle,
+                        Flags));
                 NativePtr = resultPtr;
             }
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The IPC memory handle used to create this Cuda IPC buffer.
+        /// </summary>
+        public CudaIpcMemHandle MemHandle { get; }
+
+        /// <summary>
+        /// The IPC memory flags used to create this Cuda IPC buffer.
+        /// </summary>
+        public CudaIpcMemFlags Flags { get; }
 
         #endregion
 
