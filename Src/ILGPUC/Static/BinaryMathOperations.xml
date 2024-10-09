@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Operations>
     <Operation Name="Add" IsCommutative="true">
         <Summary>The + operation.</Summary>
@@ -21,10 +21,10 @@
             <Source>{Value0}.IsZero</Source>
             <Target>
                 CreateArithmetic(
-                    {Location},
-                    {Value1},
-                    UnaryArithmeticKind.Neg,
-                    {Flags})
+                {Location},
+                {Value1},
+                UnaryArithmeticKind.Neg,
+                {Flags})
             </Target>
         </Rewriter>
         <Rewriter>
@@ -54,14 +54,14 @@
         <Rewriter>
             <Source>
                 {Value1}.IsInt &amp;&amp; {Value1}.RawValue > 0 &amp;&amp;
-                Utilities.IsPowerOf2({Value1}.RawValue)
+                XMath.IsPowerOf2({Value1}.RawValue)
             </Source>
             <Target>
                 CreateArithmetic(
-                    {Location},
-                    {Value0},
-                    GetDivMulShiftAmount({Location}, {Value1}),
-                    BinaryArithmeticKind.Shl)
+                {Location},
+                {Value0},
+                GetDivMulShiftAmount({Location}, {Value1}),
+                BinaryArithmeticKind.Shl)
             </Target>
         </Rewriter>
         <Rewriter Mode="CombineNestedRightConstant">
@@ -81,10 +81,10 @@
             <Source>{Value0}.HasFloatValue(1.0f, 1.0)</Source>
             <Target>
                 CreateArithmetic(
-                    {Location},
-                    {Value1},
-                    UnaryArithmeticKind.RcpF,
-                    {Flags})
+                {Location},
+                {Value1},
+                UnaryArithmeticKind.Rcp,
+                {Flags})
             </Target>
         </Rewriter>
         <Rewriter>
@@ -94,14 +94,14 @@
         <Rewriter>
             <Source>
                 {Value1}.IsInt &amp;&amp; {Value1}.RawValue > 0 &amp;&amp;
-                Utilities.IsPowerOf2({Value1}.RawValue)
+                XMath.IsPowerOf2({Value1}.RawValue)
             </Source>
             <Target>
                 CreateArithmetic(
-                    {Location},
-                    {Value0},
-                    GetDivMulShiftAmount({Location}, {Value1}),
-                    BinaryArithmeticKind.Shr)
+                {Location},
+                {Value0},
+                GetDivMulShiftAmount({Location}, {Value1}),
+                BinaryArithmeticKind.Shr)
             </Target>
         </Rewriter>
     </Operation>
@@ -109,7 +109,21 @@
         <Summary>The % operation.</Summary>
         <Flags>IntsAndFloats</Flags>
         <Op>{Value0} % {Value1}</Op>
-        <Call>IntrinsicMath.CPUOnly.Rem</Call>
+        <Call>XMath.Rem</Call>
+        <Implementation>{Value0} % {Value1}</Implementation>
+        <Velocity>
+            <Velocity128>
+                <Implementation>{Value0} - {Value0} / {Value1} * {Value1}</Implementation>
+            </Velocity128>
+        </Velocity>
+        <!-- If we add some rules here we have to enable specific test cases
+             in BinaryIntOperations.tt -->
+    </Operation>
+    <Operation Name="IEEERemainder">
+        <Summary>The IEEERemainder operation.</Summary>
+        <Flags>Floats</Flags>
+        <Op>{Value0} % {Value1}</Op>
+        <Call>XMath.IEEERemainder</Call>
         <Implementation>{Value0} % {Value1}</Implementation>
         <Velocity>
             <Velocity128>
@@ -220,7 +234,7 @@
     <Operation Name="Min" IsCommutative="true">
         <Summary>The min operation.</Summary>
         <Flags>IntsAndFloats</Flags>
-        <Call>IntrinsicMath.Min</Call>
+        <Call>XMath.Min</Call>
         <Implementation>{MathType}.Min({Value0}, {Value1})</Implementation>
         <Velocity>
             <Velocity128>
@@ -235,7 +249,7 @@
     <Operation Name="Max" IsCommutative="true">
         <Summary>The max operation.</Summary>
         <Flags>IntsAndFloats</Flags>
-        <Call>IntrinsicMath.Max</Call>
+        <Call>XMath.Max</Call>
         <Implementation>{MathType}.Max({Value0}, {Value1})</Implementation>
         <Velocity>
             <Velocity128>
@@ -248,38 +262,38 @@
         </Rewriter>
     </Operation>
 
-    <Operation Name="Atan2F">
+    <Operation Name="Atan2">
         <Summary>The atan2 operation.</Summary>
         <Flags>Floats</Flags>
-        <Call>IntrinsicMath.CPUOnly.Atan2</Call>
+        <Call>XMath.Atan2</Call>
         <Implementation>{MathType}.Atan2({Value0}, {Value1})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
-    <Operation Name="PowF">
+    <Operation Name="Pow">
         <Summary>The pow operation.</Summary>
         <Flags>Floats</Flags>
-        <Call>IntrinsicMath.CPUOnly.Pow</Call>
+        <Call>XMath.Pow</Call>
         <Implementation>{MathType}.Pow({Value0}, {Value1})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
-    <Operation Name="BinaryLogF">
+    <Operation Name="BinaryLog">
         <Summary>The binary log operation.</Summary>
         <Flags>Floats</Flags>
-        <Call>IntrinsicMath.CPUOnly.Log</Call>
+        <Call>XMath.Log</Call>
         <Implementation>{MathType}.Log({Value0}, {Value1})</Implementation>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
         </Velocity>
     </Operation>
 
-    <Operation Name="CopySignF">
+    <Operation Name="CopySign">
         <Summary>The copy sign operation.</Summary>
         <Flags>Floats</Flags>
-        <Call>IntrinsicMath.CopySign</Call>
+        <Call>XMath.CopySign</Call>
         <Velocity>
             <Velocity128 SoftwareEmulation="true" />
         </Velocity>
