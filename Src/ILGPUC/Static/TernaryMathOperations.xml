@@ -3,7 +3,7 @@
     <Operation Name="MultiplyAdd">
         <Summary>The FMA operation.</Summary>
         <Flags>IntsAndFloats</Flags>
-        <Call>IntrinsicMath.CPUOnly.FMA</Call>
+        <Call>XMath.FMA</Call>
         <Implementation>{Value0} * {Value1} + {Value2}</Implementation>
         <Velocity>
             <Velocity128>
