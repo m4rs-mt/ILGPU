@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: FloorCeil.cs
@@ -9,46 +9,47 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Intrinsic;
+using System;
 using System.Runtime.CompilerServices;
 
-namespace ILGPU.Algorithms
+namespace ILGPU;
+
+partial class XMath
 {
-    partial class XMath
-    {
-        /// <summary>
-        /// Computes floor(value).
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>floor(value).</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Floor(double value) =>
-            IntrinsicMath.CPUOnly.Floor(value);
+    /// <summary>
+    /// Computes floor(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>floor(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Floor(double value) => Math.Floor(value);
 
-        /// <summary>
-        /// Computes floor(value).
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>floor(value).</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Floor(float value) =>
-            IntrinsicMath.CPUOnly.Floor(value);
+    /// <summary>
+    /// Computes floor(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>floor(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float Floor(float value) => MathF.Floor(value);
 
-        /// <summary>
-        /// Computes ceiling(value).
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>ceiling(value).</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Ceiling(double value) =>
-            IntrinsicMath.CPUOnly.Ceiling(value);
+    /// <summary>
+    /// Computes ceiling(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>ceiling(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Ceiling(double value) => Math.Ceiling(value);
 
-        /// <summary>
-        /// Computes ceiling(value).
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>ceiling(value).</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Ceiling(float value) =>
-            IntrinsicMath.CPUOnly.Ceiling(value);
-    }
+    /// <summary>
+    /// Computes ceiling(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>ceiling(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float Ceiling(float value) => MathF.Ceiling(value);
 }
