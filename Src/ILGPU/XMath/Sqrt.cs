@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Sqrt.cs
@@ -9,46 +9,47 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Intrinsic;
+using System;
 using System.Runtime.CompilerServices;
 
-namespace ILGPU.Algorithms
+namespace ILGPU;
+
+partial class XMath
 {
-    partial class XMath
-    {
-        /// <summary>
-        /// Computes sqrt(value).
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>sqrt(value).</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Sqrt(double value) =>
-            IntrinsicMath.CPUOnly.Sqrt(value);
+    /// <summary>
+    /// Computes sqrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>sqrt(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Sqrt(double value) => Math.Sqrt(value);
 
-        /// <summary>
-        /// Computes sqrt(value).
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>sqrt(value).</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Sqrt(float value) =>
-            IntrinsicMath.CPUOnly.Sqrt(value);
+    /// <summary>
+    /// Computes sqrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>sqrt(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float Sqrt(float value) => MathF.Sqrt(value);
 
-        /// <summary>
-        /// Computes 1/sqrt(value).
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>1/sqrt(value).</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Rsqrt(double value) =>
-            IntrinsicMath.CPUOnly.Rsqrt(value);
+    /// <summary>
+    /// Computes 1/sqrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>1/sqrt(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Rsqrt(double value) => Rcp(Sqrt(value));
 
-        /// <summary>
-        /// Computes 1/sqrt(value).
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>1/sqrt(value).</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Rsqrt(float value) =>
-            IntrinsicMath.CPUOnly.Rsqrt(value);
-    }
+    /// <summary>
+    /// Computes 1/sqrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>1/sqrt(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float Rsqrt(float value) => Rcp(Sqrt(value));
 }
