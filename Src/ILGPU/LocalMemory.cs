@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LocalMemory.cs
@@ -9,30 +9,21 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.Intrinsic;
-using ILGPU.Runtime.CPU;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
+using ILGPU.Intrinsic;
 
-namespace ILGPU
+namespace ILGPU;
+
+/// <summary>
+/// Contains methods to allocate and manage local memory.
+/// </summary>
+public static partial class LocalMemory
 {
     /// <summary>
-    /// Contains methods to allocate and manage local memory.
+    /// Allocates a single element in local memory.
     /// </summary>
-    public static partial class LocalMemory
-    {
-        /// <summary>
-        /// Allocates a single element in local memory.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <returns>An allocated element in local memory.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [LocalMemoryIntrinsic(LocalMemoryIntrinsicKind.Allocate)]
-        public static ArrayView<T> Allocate<T>(int extent)
-            where T : unmanaged
-        {
-            Trace.Assert(extent >= 0, "Invalid extent");
-            return CPURuntimeGroupContext.Current.AllocateLocalMemory<T>(extent);
-        }
-    }
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <returns>An allocated element in local memory.</returns>
+    [LocalMemoryIntrinsic]
+    public static ArrayView<T> Allocate<T>(int extent) where T : unmanaged =>
+        throw new InvalidKernelOperationException();
 }
