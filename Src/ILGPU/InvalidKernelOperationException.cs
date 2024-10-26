@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InvalidKernelOperationException.cs
@@ -13,39 +13,29 @@ using ILGPU.Resources;
 using System;
 using System.Runtime.Serialization;
 
-namespace ILGPU
+namespace ILGPU;
+
+/// <summary>
+/// An exception that is thrown when an ILGPU kernel method is called from the
+/// managed CPU side instead of a kernel.
+/// </summary>
+[Serializable]
+public sealed class InvalidKernelOperationException : InvalidOperationException
 {
     /// <summary>
-    /// An exception that is thrown when an ILGPU kernel method is called from the
-    /// managed CPU side instead of a kernel.
+    /// Constructs a new exception.
     /// </summary>
-    [Serializable]
-    public sealed class InvalidKernelOperationException : InvalidOperationException
-    {
-        /// <summary>
-        /// Constructs a new exception.
-        /// </summary>
-        public InvalidKernelOperationException()
-            : base(ErrorMessages.InvalidKernelOperation)
-        { }
+    public InvalidKernelOperationException()
+        : base(ErrorMessages.InvalidKernelOperation)
+    { }
 
-        /// <summary cref="Exception(string)"/>
-        public InvalidKernelOperationException(string message)
-            : base(message)
-        { }
+    /// <summary cref="Exception(string)"/>
+    public InvalidKernelOperationException(string message)
+        : base(message)
+    { }
 
-        /// <summary cref="Exception(string, Exception)"/>
-        public InvalidKernelOperationException(string message, Exception innerException)
-            : base(message, innerException)
-        { }
-
-#if NET8_0_OR_GREATER
-        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
-#endif
-        private InvalidKernelOperationException(
-            SerializationInfo serializationInfo,
-            StreamingContext streamingContext)
-            : base(serializationInfo, streamingContext)
-        { }
-    }
+    /// <summary cref="Exception(string, Exception)"/>
+    public InvalidKernelOperationException(string message, Exception innerException)
+        : base(message, innerException)
+    { }
 }
