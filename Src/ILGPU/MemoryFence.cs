@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MemoryFence.cs
@@ -9,33 +9,31 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.Intrinsic;
-using ILGPU.IR.Values;
-using System.Threading;
 
-namespace ILGPU
+using ILGPU.Intrinsic;
+
+namespace ILGPU;
+
+/// <summary>
+/// Contains memory-fence functions.
+/// </summary>
+public static class MemoryFence
 {
     /// <summary>
-    /// Contains memory-fence functions.
+    /// A memory fence at the group level.
     /// </summary>
-    public static class MemoryFence
-    {
-        /// <summary>
-        /// A memory fence at the group level.
-        /// </summary>
-        [MemoryBarrierIntrinsic(MemoryBarrierKind.GroupLevel)]
-        public static void GroupLevel() => Interlocked.MemoryBarrier();
+    [MemoryFenceIntrinsic]
+    public static void GroupLevel() => throw new InvalidKernelOperationException();
 
-        /// <summary>
-        /// A memory fence at the device level.
-        /// </summary>
-        [MemoryBarrierIntrinsic(MemoryBarrierKind.DeviceLevel)]
-        public static void DeviceLevel() => Interlocked.MemoryBarrier();
+    /// <summary>
+    /// A memory fence at the device level.
+    /// </summary>
+    [MemoryFenceIntrinsic]
+    public static void DeviceLevel() => throw new InvalidKernelOperationException();
 
-        /// <summary>
-        /// A memory fence at the system level.
-        /// </summary>
-        [MemoryBarrierIntrinsic(MemoryBarrierKind.SystemLevel)]
-        public static void SystemLevel() => Interlocked.MemoryBarrier();
-    }
+    /// <summary>
+    /// A memory fence at the system level.
+    /// </summary>
+    [MemoryFenceIntrinsic]
+    public static void SystemLevel() => throw new InvalidKernelOperationException();
 }
