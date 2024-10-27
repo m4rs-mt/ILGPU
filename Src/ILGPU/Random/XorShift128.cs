@@ -31,8 +31,6 @@ public struct XorShift128 : IEquatable<XorShift128>, IRandomProvider<XorShift128
     /// <returns>A new rng instance.</returns>
     public static XorShift128 Create(System.Random random)
     {
-        if (random == null)
-            throw new ArgumentNullException(nameof(random));
         var state0 = (uint)random.Next(1, int.MaxValue);
         var state1 = (uint)random.Next();
         var state2 = (uint)random.Next();
@@ -126,7 +124,7 @@ public struct XorShift128 : IEquatable<XorShift128>, IRandomProvider<XorShift128
     /// <inheritdoc cref="IRandomProvider.NextDouble"/>
     public double NextDouble() => NextLong() * InverseLongDoubleRange;
 
-    /// <inheritdoc cref="IRandomProvider{TProvider}.ShiftPeriod(int)"/>
+    /// <inheritdoc cref="IRandomProvider.ShiftPeriod(int)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ShiftPeriod(int shift)
     {
@@ -141,14 +139,10 @@ public struct XorShift128 : IEquatable<XorShift128>, IRandomProvider<XorShift128
 
     /// <inheritdoc cref="IRandomProvider{TProvider}.NextProvider()"/>
     public XorShift128 NextProvider() =>
-        new XorShift128(
-            NextUInt(),
-            NextUInt(),
-            NextUInt(),
-            NextUInt());
+        new(NextUInt(), NextUInt(), NextUInt(), NextUInt());
 
     /// <inheritdoc cref="IRandomProvider{TProvider}.CreateProvider(System.Random)"/>
-    public readonly XorShift128 CreateProvider(System.Random random) =>
+    public static XorShift128 CreateProvider(System.Random random) =>
         Create(random);
 
     /// <summary>
@@ -156,10 +150,10 @@ public struct XorShift128 : IEquatable<XorShift128>, IRandomProvider<XorShift128
     /// </summary>
     /// <param name="random">The random instance.</param>
     /// <returns>The created provider.</returns>
-    public readonly XorShift128 CreateProvider<TRandomProvider>(
+    public static XorShift128 CreateProvider<TRandomProvider>(
         ref TRandomProvider random)
         where TRandomProvider : struct, IRandomProvider<TRandomProvider> =>
-        new XorShift128(
+        new(
             (uint)random.Next() + 1U,
             (uint)random.Next() + 1U,
             (uint)random.Next() + 1U,
@@ -213,9 +207,9 @@ public struct XorShift128 : IEquatable<XorShift128>, IRandomProvider<XorShift128
     /// <param name="second">The second rng.</param>
     /// <returns>True, if the first and second rng are the same.</returns>
     public static bool operator ==(XorShift128 first, XorShift128 second) =>
-        first.State0 == second.State0 &&
-        first.State1 == second.State1 &&
-        first.State2 == second.State2 &&
+        first.State0 == second.State0 &
+        first.State1 == second.State1 &
+        first.State2 == second.State2 &
         first.State3 == second.State3;
 
     /// <summary>
@@ -225,9 +219,9 @@ public struct XorShift128 : IEquatable<XorShift128>, IRandomProvider<XorShift128
     /// <param name="second">The second rng.</param>
     /// <returns>True, if the first and second rng are not the same.</returns>
     public static bool operator !=(XorShift128 first, XorShift128 second) =>
-        first.State0 != second.State0 ||
-        first.State1 != second.State1 ||
-        first.State2 != second.State2 ||
+        first.State0 != second.State0 |
+        first.State1 != second.State1 |
+        first.State2 != second.State2 |
         first.State3 != second.State3;
 
     #endregion
