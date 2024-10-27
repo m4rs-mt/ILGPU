@@ -33,8 +33,6 @@ public struct XorShift128Plus :
     /// <returns>A new rng instance.</returns>
     public static XorShift128Plus Create(System.Random random)
     {
-        if (random == null)
-            throw new ArgumentNullException(nameof(random));
         var state0 = (ulong)random.Next(1, int.MaxValue) << 32;
         var state1 = (ulong)random.Next();
         var state2 = (ulong)random.Next() << 32;
@@ -109,7 +107,7 @@ public struct XorShift128Plus :
     /// <inheritdoc cref="IRandomProvider.NextDouble"/>
     public double NextDouble() => NextLong() * InverseLongDoubleRange;
 
-    /// <inheritdoc cref="IRandomProvider{TProvider}.ShiftPeriod(int)"/>
+    /// <inheritdoc cref="IRandomProvider.ShiftPeriod(int)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ShiftPeriod(int shift)
     {
@@ -125,13 +123,10 @@ public struct XorShift128Plus :
     }
 
     /// <inheritdoc cref="IRandomProvider{TProvider}.NextProvider()"/>
-    public XorShift128Plus NextProvider() =>
-        new XorShift128Plus(
-            NextULong(),
-            NextULong());
+    public XorShift128Plus NextProvider() => new(NextULong(), NextULong());
 
     /// <inheritdoc cref="IRandomProvider{TProvider}.CreateProvider(System.Random)"/>
-    public readonly XorShift128Plus CreateProvider(System.Random random) =>
+    public static XorShift128Plus CreateProvider(System.Random random) =>
         Create(random);
 
     /// <summary>
@@ -139,12 +134,10 @@ public struct XorShift128Plus :
     /// </summary>
     /// <param name="random">The random instance.</param>
     /// <returns>The created provider.</returns>
-    public readonly XorShift128Plus CreateProvider<TRandomProvider>(
+    public static XorShift128Plus CreateProvider<TRandomProvider>(
         ref TRandomProvider random)
         where TRandomProvider : struct, IRandomProvider<TRandomProvider> =>
-        new XorShift128Plus(
-            (ulong)random.NextLong() + 1UL,
-            (ulong)random.NextLong() + 1UL);
+        new((ulong)random.NextLong() + 1UL, (ulong)random.NextLong() + 1UL);
 
     #endregion
 
@@ -192,7 +185,7 @@ public struct XorShift128Plus :
     /// <param name="second">The second rng.</param>
     /// <returns>True, if the first and second rng are the same.</returns>
     public static bool operator ==(XorShift128Plus first, XorShift128Plus second) =>
-        first.State0 == second.State0 && first.State1 == second.State1;
+        first.State0 == second.State0 & first.State1 == second.State1;
 
     /// <summary>
     /// Returns true if the first and second rng are not the same.
@@ -201,7 +194,7 @@ public struct XorShift128Plus :
     /// <param name="second">The second rng.</param>
     /// <returns>True, if the first and second rng are not the same.</returns>
     public static bool operator !=(XorShift128Plus first, XorShift128Plus second) =>
-        first.State0 != second.State0 || first.State1 != second.State1;
+        first.State0 != second.State0 | first.State1 != second.State1;
 
     #endregion
 }
