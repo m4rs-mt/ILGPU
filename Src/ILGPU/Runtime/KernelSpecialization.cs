@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelSpecialization.cs
@@ -10,168 +10,106 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.IO;
 
-namespace ILGPU.Runtime
+namespace ILGPU.Runtime;
+
+/// <summary>
+/// Marks kernels to be specialized for specific execution scenarios.
+/// </summary>
+/// <param name="maxNumThreadsPerGroup">
+/// The maximum number of threads per group.
+/// </param>
+/// <param name="minNumGroupsPerMultiprocessor">
+/// The minimum number of groups per multiprocessor.
+/// </param>
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+public sealed class KernelSpecializationAttribute(
+    int? maxNumThreadsPerGroup = null,
+    int? minNumGroupsPerMultiprocessor = null) : Attribute
 {
     /// <summary>
-    /// Represents a kernel specialization.
+    /// Returns the kernel specialization.
     /// </summary>
-    public readonly struct KernelSpecialization : IEquatable<KernelSpecialization>
+    public KernelSpecialization Specialization { get; } = KernelSpecialization.Create(
+        maxNumThreadsPerGroup,
+        minNumGroupsPerMultiprocessor);
+
+    /// <summary>
+    /// Returns the desired maximum number of threads per group.
+    /// </summary>
+    public int? MaxNumThreadsPerGroup => Specialization.MaxNumThreadsPerGroup;
+
+    /// <summary>
+    /// Returns the desired minimum number of groups per multiprocessor.
+    /// </summary>
+    public int? MinNumGroupsPerMultiprocessor =>
+        Specialization.MinNumGroupsPerMultiprocessor;
+}
+
+/// <summary>
+/// Marks kernels to be specialized for specific execution scenarios.
+/// </summary>
+/// <param name="MaxNumThreadsPerGroup">
+/// The desired maximum number of threads per group.
+/// </param>
+/// <param name="MinNumGroupsPerMultiprocessor">
+/// The desired minimum number of groups per multiprocessor.
+/// </param>
+public readonly record struct KernelSpecialization(
+    int? MaxNumThreadsPerGroup,
+    int? MinNumGroupsPerMultiprocessor)
+{
+    /// <summary>
+    /// Constructs a new specialization object.
+    /// </summary>
+    /// <param name="maxNumThreadsPerGroup">
+    /// The maximum number of threads per group.
+    /// </param>
+    /// <param name="minNumGroupsPerMultiprocessor">
+    /// The minimum number of groups per multiprocessor.
+    /// </param>
+    public static KernelSpecialization Create(
+        int? maxNumThreadsPerGroup = null,
+        int? minNumGroupsPerMultiprocessor = null)
     {
-        #region Constants
-
-        /// <summary>
-        /// Represents an empty (or *no*) specialization that allows the compiler to
-        /// freely decide on its own.
-        /// </summary>
-        public static readonly KernelSpecialization Empty;
-
-        #endregion
-
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new specialization object.
-        /// </summary>
-        /// <param name="maxNumThreadsPerGroup">
-        /// The maximum number of threads per group.
-        /// </param>
-        /// <param name="minNumGroupsPerMultiprocessor">
-        /// The minimum number of groups per multiprocessor.
-        /// </param>
-        public KernelSpecialization(
-            int? maxNumThreadsPerGroup,
-            int? minNumGroupsPerMultiprocessor)
+        if (maxNumThreadsPerGroup.HasValue && maxNumThreadsPerGroup < 1)
+            throw new ArgumentOutOfRangeException(nameof(maxNumThreadsPerGroup));
+        if (minNumGroupsPerMultiprocessor.HasValue &&
+            minNumGroupsPerMultiprocessor < 1)
         {
-            if (maxNumThreadsPerGroup.HasValue && maxNumThreadsPerGroup < 1)
-                throw new ArgumentOutOfRangeException(nameof(maxNumThreadsPerGroup));
-            if (minNumGroupsPerMultiprocessor.HasValue &&
-                minNumGroupsPerMultiprocessor < 1)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(minNumGroupsPerMultiprocessor));
-            }
-
-            MaxNumThreadsPerGroup = maxNumThreadsPerGroup;
-            MinNumGroupsPerMultiprocessor = minNumGroupsPerMultiprocessor;
+            throw new ArgumentOutOfRangeException(
+                nameof(minNumGroupsPerMultiprocessor));
         }
 
-        #endregion
+        return new(maxNumThreadsPerGroup, minNumGroupsPerMultiprocessor);
+    }
 
-        #region Properties
+    /// <summary>
+    /// Writes this specialization kernel to the given writer.
+    /// </summary>
+    /// <param name="writer">The target writer to write to.</param>
+    public void Write(BinaryWriter writer)
+    {
+        writer.Write(MaxNumThreadsPerGroup.HasValue);
+        if (MaxNumThreadsPerGroup.HasValue)
+            writer.Write(MaxNumThreadsPerGroup.Value);
+        writer.Write(MinNumGroupsPerMultiprocessor.HasValue);
+        if (MinNumGroupsPerMultiprocessor.HasValue)
+            writer.Write(MinNumGroupsPerMultiprocessor.Value);
+    }
 
-        /// <summary>
-        /// Returns the desired maximum number of threads per group.
-        /// </summary>
-        public int? MaxNumThreadsPerGroup { get; }
-
-        /// <summary>
-        /// Returns the desired minimum number of groups per multiprocessor.
-        /// </summary>
-        public int? MinNumGroupsPerMultiprocessor { get; }
-
-        #endregion
-
-        #region IEquatable
-
-        /// <summary>
-        /// Returns true if the given specialization is equal to the current
-        /// specialization.
-        /// </summary>
-        /// <param name="other">The other specialization.</param>
-        /// <returns>
-        /// True, if the given specialization is equal to the current specialization.
-        /// </returns>
-        public bool Equals(KernelSpecialization other) => this == other;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Checks whether the given accelerator is compatible with the current
-        /// specialization.
-        /// </summary>
-        /// <param name="accelerator">The target accelerator.</param>
-        /// <returns>
-        /// True, if the given accelerator is compatible with the current specialization.
-        /// </returns>
-        public bool IsCompatibleWith(Accelerator accelerator)
-        {
-            if (accelerator == null)
-                throw new ArgumentNullException(nameof(accelerator));
-
-            // TODO: We might want to verify MinNumGroupsPerMultiprocessor in the future
-            // at this point. However, this requires further extensions of the
-            // accelerator API.
-            return
-                !MaxNumThreadsPerGroup.HasValue ||
-                MaxNumThreadsPerGroup <= accelerator.MaxNumThreadsPerGroup;
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary>
-        /// Returns true if the given object is equal to the current specialization.
-        /// </summary>
-        /// <param name="obj">The other object.</param>
-        /// <returns>
-        /// True, if the given object is equal to the current specialization.
-        /// </returns>
-        public override bool Equals(object? obj) =>
-            obj is KernelSpecialization specialization && specialization == this;
-
-        /// <summary>
-        /// Returns the hash code of this specialization.
-        /// </summary>
-        /// <returns>The hash code of this specialization.</returns>
-        public override int GetHashCode() =>
-            MaxNumThreadsPerGroup.GetHashCode() ^
-            MinNumGroupsPerMultiprocessor.GetHashCode();
-
-        /// <summary>
-        /// Returns the string representation of this specialization.
-        /// </summary>
-        /// <returns>The string representation of this specialization.</returns>
-        public override string ToString() =>
-            $"MaxNumThreadsPerGroup: {MaxNumThreadsPerGroup ?? 0}, " +
-            $"MinNumGroupsPerMP: {MinNumGroupsPerMultiprocessor ?? 0}";
-
-        #endregion
-
-        #region Operators
-
-        /// <summary>
-        /// Returns true if the specialization and second specialization are the same.
-        /// </summary>
-        /// <param name="first">The first specialization.</param>
-        /// <param name="second">The second specialization.</param>
-        /// <returns>
-        /// True, if the first and second specialization are the same.
-        /// </returns>
-        public static bool operator ==(
-            KernelSpecialization first,
-            KernelSpecialization second) =>
-            first.MaxNumThreadsPerGroup.GetValueOrDefault(0) ==
-            second.MaxNumThreadsPerGroup.GetValueOrDefault(0) &&
-            first.MinNumGroupsPerMultiprocessor.GetValueOrDefault(0) ==
-            second.MinNumGroupsPerMultiprocessor.GetValueOrDefault(0);
-
-        /// <summary>
-        /// Returns true if the first and second specialization are not the same.
-        /// </summary>
-        /// <param name="first">The first specialization.</param>
-        /// <param name="second">The second specialization.</param>
-        /// <returns>
-        /// True, if the first and second specialization are not the same.
-        /// </returns>
-        public static bool operator !=(
-            KernelSpecialization first,
-            KernelSpecialization second) =>
-            !(first == second);
-
-        #endregion
+    /// <summary>
+    /// Loads a kernel specialization definition from the given reader.
+    /// </summary>
+    /// <param name="reader">The reader to read from.</param>
+    /// <returns>The loaded specialization.</returns>
+    public static KernelSpecialization Read(BinaryReader reader)
+    {
+        bool hasMasNumThreads = reader.ReadBoolean();
+        int? maxNumThreadsPerGroup = hasMasNumThreads ? reader.ReadInt32() : null;
+        bool hasMinNumGroups = reader.ReadBoolean();
+        int? minNumGroupsPerMultiprocessor = hasMinNumGroups ? reader.ReadInt32() : null;
+        return new(maxNumThreadsPerGroup, minNumGroupsPerMultiprocessor);
     }
 }
