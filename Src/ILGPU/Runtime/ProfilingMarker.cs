@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ProfilingMarker.cs
@@ -11,54 +11,35 @@
 
 using System;
 
-namespace ILGPU.Runtime
+namespace ILGPU.Runtime;
+
+/// <summary>
+/// Represents a point-in-time marker used in profiling.
+/// </summary>
+/// <param name="accelerator">The associated accelerator.</param>
+public abstract class ProfilingMarker(Accelerator accelerator) :
+    AcceleratorObject(accelerator)
 {
     /// <summary>
-    /// Represents a point-in-time marker used in profiling.
+    /// Waits for the profiling marker to complete.
     /// </summary>
-    public abstract class ProfilingMarker : AcceleratorObject
-    {
-        /// <summary>
-        /// Constructs a profiling marker.
-        /// </summary>
-        /// <param name="accelerator">The associated accelerator.</param>
-        protected ProfilingMarker(Accelerator accelerator)
-            : base(accelerator)
-        { }
-
-        /// <summary>
-        /// Waits for the profiling marker to complete.
-        /// </summary>
-        public abstract void Synchronize();
-
-        /// <summary>
-        /// Returns the elapsed time from this profiling marker to the given marker.
-        /// </summary>
-        /// <param name="marker">The comparison profiing marker.</param>
-        /// <returns>The elapsed time.</returns>
-        /// <remarks>Will block until the profiling markers have completed.</remarks>
-        public abstract TimeSpan MeasureFrom(ProfilingMarker marker);
-
-        /// <summary>
-        /// Returns the elapsed time between two profiling markers.
-        /// </summary>
-        /// <param name="end">The end profiing marker.</param>
-        /// <param name="start">The start profiing marker.</param>
-        /// <returns>The elapsed time.</returns>
-        /// <remarks>Will block until the profiling markers has completed.</remarks>
-        public static TimeSpan operator -(ProfilingMarker end, ProfilingMarker start) =>
-            end.MeasureFrom(start);
-    }
+    public abstract void Synchronize();
 
     /// <summary>
-    /// Profiling marker extensions for accelerators.
+    /// Returns the elapsed time from this profiling marker to the given marker.
     /// </summary>
-    public static class ProfilingMarkers
-    {
-        /// <summary>
-        /// Adds a profiling marker to the accelerator default stream.
-        /// </summary>
-        public static ProfilingMarker AddProfilingMarker(this Accelerator accelerator) =>
-            accelerator.DefaultStream.AddProfilingMarker();
-    }
+    /// <param name="marker">The comparison profiling marker.</param>
+    /// <returns>The elapsed time.</returns>
+    /// <remarks>Will block until the profiling markers have completed.</remarks>
+    public abstract TimeSpan MeasureFrom(ProfilingMarker marker);
+
+    /// <summary>
+    /// Returns the elapsed time between two profiling markers.
+    /// </summary>
+    /// <param name="end">The end profiling marker.</param>
+    /// <param name="start">The start profiling marker.</param>
+    /// <returns>The elapsed time.</returns>
+    /// <remarks>Will block until the profiling markers has completed.</remarks>
+    public static TimeSpan operator -(ProfilingMarker end, ProfilingMarker start) =>
+        end.MeasureFrom(start);
 }
