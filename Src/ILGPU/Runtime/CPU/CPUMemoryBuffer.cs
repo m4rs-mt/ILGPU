@@ -72,12 +72,14 @@ namespace ILGPU.Runtime.CPU
             ref byte sourcePtr,
             ref byte targetPtr,
             long sourceLengthInBytes,
-            long targetLengthInBytes) =>
-            Buffer.MemoryCopy(
-                Unsafe.AsPointer(ref sourcePtr),
-                Unsafe.AsPointer(ref targetPtr),
-                sourceLengthInBytes,
-                targetLengthInBytes);
+            long targetLengthInBytes)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(targetLengthInBytes, sourceLengthInBytes);
+            Unsafe.CopyBlock(
+                ref targetPtr,
+                ref sourcePtr,
+                (uint)sourceLengthInBytes);
+        }
 
         /// <summary>
         /// Copies CPU data (target view) from the given source view.
