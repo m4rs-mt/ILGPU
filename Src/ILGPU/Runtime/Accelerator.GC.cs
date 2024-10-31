@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.GC.cs
@@ -11,87 +11,84 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace ILGPU.Runtime
+namespace ILGPU.Runtime;
+
+partial class Accelerator
 {
-    partial class Accelerator
+    #region Instance
+
+    /// <summary>
+    /// True, if the GC thread is activated.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private volatile bool _gcActivated = false;
+
+    /// <summary>
+    /// The child-object GC thread
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Thread _gcThread;
+
+    /// <summary>
+    /// Initializes the GC functionality.
+    /// </summary>
+    [MemberNotNull(nameof(_gcThread))]
+    private void InitGC()
     {
-        #region Instance
-
-        /// <summary>
-        /// True, if the GC thread is activated.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private volatile bool gcActivated = false;
-
-        /// <summary>
-        /// The child-object GC thread
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Thread gcThread;
-
-        /// <summary>
-        /// Initializes the GC functionality.
-        /// </summary>
-        [MemberNotNull(nameof(gcThread))]
-        private void InitGC()
+        _gcActivated = true;
+        _gcThread = new Thread(GCThread)
         {
-            gcActivated = true;
-            gcThread = new Thread(GCThread)
+            Name = $"ILGPU_{InstanceId}_GCThread",
+            IsBackground = true,
+        };
+        _gcThread.Start();
+    }
+
+    /// <summary>
+    /// Disposes the GC functionality.
+    /// </summary>
+    private void DisposeGC_Locked()
+    {
+        _gcActivated = false;
+        Monitor.PulseAll(_lock);
+    }
+
+    #endregion
+
+    #region Methods
+
+    /// <summary>
+    /// Requests a GC run.
+    /// </summary>
+    /// <remarks>This method is invoked in the scope of the locked <see cref="_lock"/>
+    /// object.
+    /// </remarks>
+    private void RequestGC_SyncRoot()
+    {
+        if (RequestChildObjectsGC_SyncRoot)
+            Monitor.PulseAll(_lock);
+    }
+
+    /// <summary>
+    /// GC thread to clean up cached resources.
+    /// </summary>
+    private void GCThread()
+    {
+        lock (_lock)
+        {
+            while (_gcActivated)
             {
-                Name = $"ILGPU_{InstanceId}_GCThread",
-                IsBackground = true,
-            };
-            gcThread.Start();
-        }
+                Monitor.Wait(_lock);
 
-        /// <summary>
-        /// Disposes the GC functionality.
-        /// </summary>
-        private void DisposeGC_SyncRoot()
-        {
-            gcActivated = false;
-            Monitor.PulseAll(syncRoot);
-        }
+                if (!_gcActivated)
+                    break;
 
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Requests a GC run.
-        /// </summary>
-        /// <remarks>This method is invoked in the scope of the locked
-        /// <see cref="syncRoot"/> object.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void RequestGC_SyncRoot()
-        {
-            if (RequestChildObjectsGC_SyncRoot || RequestKernelCacheGC_SyncRoot)
-                Monitor.PulseAll(syncRoot);
-        }
-
-        /// <summary>
-        /// GC thread to clean up cached resources.
-        /// </summary>
-        private void GCThread()
-        {
-            lock (syncRoot)
-            {
-                while (gcActivated)
-                {
-                    Monitor.Wait(syncRoot);
-
-                    if (!gcActivated)
-                        break;
-
-                    ChildObjectsGC_SyncRoot();
-                    KernelCacheGC_SyncRoot();
-                }
+                ChildObjectsGC_SyncRoot();
             }
         }
-
-        #endregion
     }
+
+    #endregion
 }
