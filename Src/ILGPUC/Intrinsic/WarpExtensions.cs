@@ -105,22 +105,22 @@ namespace ILGPU.Algorithms
                 var key0 = key == 0 ? 1 : 0;
                 var key1 = 1 - key0;
 
-                for (int offset = 1; offset < Warp.WarpSize - 1; offset <<= 1)
+                for (int offset = 1; offset < Warp.Dimension - 1; offset <<= 1)
                 {
                     var partialKey0 = Warp.ShuffleUp(key0, offset);
                     var partialKey1 = Warp.ShuffleUp(key1, offset);
-                    key0 += Utilities.Select(Warp.LaneIdx >= offset, partialKey0, 0);
-                    key1 += Utilities.Select(Warp.LaneIdx >= offset, partialKey1, 0);
+                    key0 += Utilities.Select(Warp.LaneIndex >= offset, partialKey0, 0);
+                    key1 += Utilities.Select(Warp.LaneIndex >= offset, partialKey1, 0);
                 }
-                key1 += Warp.Shuffle(key0, Warp.WarpSize - 1);
+                key1 += Warp.Shuffle(key0, Warp.Dimension - 1);
 
                 var target = key == 0 ? key0 - 1 : key1 - 1;
                 T newElement = operation.DefaultValue;
-                for (int k = 0; k < Warp.WarpSize; k++)
+                for (int k = 0; k < Warp.Dimension; k++)
                 {
                     var targetLane = Warp.Shuffle(target, k);
                     var retrievedElement = Warp.Shuffle(value, k);
-                    if (targetLane == Warp.LaneIdx)
+                    if (targetLane == Warp.LaneIndex)
                         newElement = retrievedElement;
                 }
 
@@ -149,15 +149,15 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
         {
-            int lane = (rngView.Next() & 0x7fffffc0) + Warp.LaneIdx;
+            int lane = (rngView.Next() & 0x7fffffc0) + Warp.LaneIndex;
             lane = WarpExtensions.RadixSort<int, AscendingInt32>(lane);
             var newLane = lane & 0x0000003F;
             T newElement = default;
-            for (int i = 0; i < Warp.WarpSize; i++)
+            for (int i = 0; i < Warp.Dimension; i++)
             {
                 var targetLane = Warp.Shuffle(newLane, i);
                 var retrievedElement = Warp.Shuffle(value, i);
-                if (targetLane == Warp.LaneIdx)
+                if (targetLane == Warp.LaneIndex)
                     newElement = retrievedElement;
             }
             return newElement;
