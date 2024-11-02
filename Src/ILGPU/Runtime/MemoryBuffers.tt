@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2021 ILGPU Project
+//                        Copyright (c) 2016-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MemoryBuffers.tt/MemoryBuffers.cs
@@ -19,8 +19,8 @@
 
 using System.Diagnostics;
 
-namespace ILGPU.Runtime
-{
+namespace ILGPU.Runtime;
+
 <#  foreach (var dim in IndexDimensions) { #>
 <#      var dimension = dim.Dimension; #>
 <#      var typeName = $"MemoryBuffer{dimension}D"; #>
@@ -28,68 +28,67 @@ namespace ILGPU.Runtime
 <#      var strideName = $"Stride{dimension}D"; #>
 <#      var intIndexType = $"Index{dimension}D"; #>
 <#      var indexType = "Long" + intIndexType; #>
+/// <summary>
+/// Represents an opaque <#= dimension #>D memory buffer that can be used in the
+/// scope of ILGPU runtime kernels.
+/// </summary>
+/// <typeparam name="T">The element type.</typeparam>
+/// <typeparam name="TStride">The <#= dimension #>D stride type.</typeparam>
+/// <remarks>Members of this class are not thread safe.</remarks>
+[DebuggerDisplay("{View}")]
+public class <#= typeName #><T, TStride> : MemoryBuffer<<#= viewName #><T, TStride>>
+    where T : unmanaged
+    where TStride : struct, I<#= strideName #>
+{
+    #region Instance
+
     /// <summary>
-    /// Represents an opaque <#= dimension #>D memory buffer that can be used in the
-    /// scope of ILGPU runtime kernels.
+    /// Initializes this memory buffer.
     /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TStride">The <#= dimension #>D stride type.</typeparam>
-    /// <remarks>Members of this class are not thread safe.</remarks>
-    [DebuggerDisplay("{View}")]
-    public class <#= typeName #><T, TStride> : MemoryBuffer<<#= viewName #><T, TStride>>
-        where T : unmanaged
-        where TStride : struct, I<#= strideName #>
-    {
-        #region Instance
+    /// <param name="accelerator">The associated accelerator.</param>
+    /// <param name="view">The extent (number of elements).</param>
+    protected internal <#= typeName #>(
+        Accelerator accelerator,
+        in <#= viewName #><T, TStride> view)
+        : base(accelerator, view)
+    { }
 
-        /// <summary>
-        /// Initializes this memory buffer.
-        /// </summary>
-        /// <param name="accelerator">The associated accelerator.</param>
-        /// <param name="view">The extent (number of elements).</param>
-        protected internal <#= typeName #>(
-            Accelerator accelerator,
-            in <#= viewName #><T, TStride> view)
-            : base(accelerator, view)
-        { }
+    #endregion
 
-        #endregion
+    #region Properties
 
-        #region Properties
+    /// <summary>
+    /// Returns the extent of this view.
+    /// </summary>
+    public <#= indexType #> Extent => View.Extent;
 
-        /// <summary>
-        /// Returns the extent of this view.
-        /// </summary>
-        public <#= indexType #> Extent => View.Extent;
+    /// <summary>
+    /// Returns the 32-bit extent of this view.
+    /// </summary>
+    public <#= intIndexType #> IntExtent => View.IntExtent;
 
-        /// <summary>
-        /// Returns the 32-bit extent of this view.
-        /// </summary>
-        public <#= intIndexType #> IntExtent => View.IntExtent;
+    #endregion
 
-        #endregion
+    #region Methods
 
-        #region Methods
+    /// <summary>
+    /// Returns a contiguous view to this buffer.
+    /// </summary>
+    public ArrayView<T> AsContiguous() => View.AsContiguous();
 
-        /// <summary>
-        /// Returns a contiguous view to this buffer.
-        /// </summary>
-        public ArrayView<T> AsContiguous() => View.AsContiguous();
+    #endregion
 
-        #endregion
+    #region Operators
 
-        #region Operators
+    /// <summary>
+    /// Explicitly converts this buffer into a contiguous array view.
+    /// </summary>
+    /// <param name="buffer">The source buffer.</param>
+    public static explicit operator ArrayView<T>(
+        <#= typeName #><T, TStride> buffer) =>
+        buffer.AsContiguous();
 
-        /// <summary>
-        /// Explicitly converts this buffer into a contiguous array view.
-        /// </summary>
-        /// <param name="buffer">The source buffer.</param>
-        public static explicit operator ArrayView<T>(
-            <#= typeName #><T, TStride> buffer) =>
-            buffer.AsContiguous();
-
-        #endregion
-    }
+    #endregion
+}
 
 <#  } #>
-}
