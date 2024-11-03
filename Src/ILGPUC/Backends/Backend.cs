@@ -28,33 +28,6 @@ using System.Runtime.InteropServices;
 
 namespace ILGPU.Backends
 {
-    /// <summary>
-    /// Represents a target platform.
-    /// </summary>
-    public enum TargetPlatform
-    {
-        /// <summary>
-        /// The target platform is 32-bit.
-        /// </summary>
-        Platform32Bit,
-
-        /// <summary>
-        /// The target platform is 64-bit.
-        /// </summary>
-        Platform64Bit,
-    }
-
-    /// <summary>
-    /// Extension methods for TargetPlatform related objects.
-    /// </summary>
-    public static class TargetPlatformExtensions
-    {
-        /// <summary>
-        /// Returns true if the current runtime platform is 64-bit.
-        /// </summary>
-        public static bool Is64Bit(this TargetPlatform targetPlatform) =>
-            targetPlatform == TargetPlatform.Platform64Bit;
-    }
 
     /// <summary>
     /// Represents the general type of a backend.
@@ -389,38 +362,6 @@ namespace ILGPU.Backends
 
         #region Static
 
-        /// <summary>
-        /// Returns the current execution platform.
-        /// </summary>
-        public static TargetPlatform RuntimePlatform =>
-            RuntimeInformation.ProcessArchitecture switch
-            {
-                Architecture.X86 => TargetPlatform.Platform32Bit,
-                Architecture.X64 => TargetPlatform.Platform64Bit,
-                Architecture.Arm => TargetPlatform.Platform32Bit,
-                Architecture.Arm64 => TargetPlatform.Platform64Bit,
-                Architecture.Wasm => TargetPlatform.Platform64Bit,
-                _ => throw new NotSupportedException(),
-            };
-
-        /// <summary>
-        /// Returns the native OS platform.
-        /// </summary>
-        public static TargetPlatform OSPlatform =>
-            RuntimeInformation.OSArchitecture switch
-            {
-                Architecture.X86 => TargetPlatform.Platform32Bit,
-                Architecture.X64 => TargetPlatform.Platform64Bit,
-                Architecture.Arm => TargetPlatform.Platform32Bit,
-                Architecture.Arm64 => TargetPlatform.Platform64Bit,
-                Architecture.Wasm => TargetPlatform.Platform64Bit,
-                _ => throw new NotSupportedException(),
-            };
-
-        /// <summary>
-        /// Returns true if the current runtime platform is equal to the OS platform.
-        /// </summary>
-        public static bool RunningOnNativePlatform => RuntimePlatform == OSPlatform;
 
         /// <summary>
         /// Ensures that the current runtime platform is equal to the OS platform.
