@@ -14,47 +14,6 @@ using System.Collections.Generic;
 namespace ILGPU;
 
 /// <summary>
-/// Internal flags to specify the caching behavior.
-/// </summary>
-public enum CachingMode
-{
-    /// <summary>
-    /// All implicit caches are enabled by default.
-    /// </summary>
-    /// <remarks>
-    /// This is the default setting.
-    /// </remarks>
-    Default,
-
-    /// <summary>
-    /// Disables all kernel-loading caches.
-    /// </summary>
-    /// <remarks>
-    /// However, IR nodes, type information and debug information will still
-    /// be cached, since they are used for different kernel compilation operations.
-    /// If you want to clear those caches as well, you will have to clear them
-    /// manually using <see cref="Context.ClearCache(ClearCacheMode)"/>.
-    /// </remarks>
-    NoKernelCaching,
-
-    /// <summary>
-    /// Disables the implicit kernel launch cache.
-    /// </summary>
-    /// <remarks>
-    /// However, IR nodes, type information and debug information will still
-    /// be cached, since they are used for different kernel compilation operations.
-    /// If you want to clear those caches as well, you will have to clear them
-    /// manually using <see cref="Context.ClearCache(ClearCacheMode)"/>.
-    /// </remarks>
-    NoLaunchCaching,
-
-    /// <summary>
-    /// Disables all caches.
-    /// </summary>
-    Disabled,
-}
-
-/// <summary>
 /// Internal flags to specify the behavior of automatic page locking.
 /// </summary>
 public enum PageLockingMode
@@ -111,13 +70,6 @@ public class ContextProperties
     #region Properties
 
     /// <summary>
-    /// Defines which functions/kernels/modules should be cached.
-    /// </summary>
-    /// <remarks><see cref="CachingMode.Default"/> by default.</remarks>
-    public CachingMode CachingMode { get; protected set; } =
-        CachingMode.Default;
-
-    /// <summary>
     /// Defines which buffers should be automatically page locked by default.
     /// </summary>
     /// <remarks><see cref="PageLockingMode.Default"/> by default.</remarks>
@@ -166,7 +118,6 @@ public class ContextProperties
     internal ContextProperties InstantiateProperties() =>
         new(_extensionProperties)
         {
-            CachingMode = CachingMode,
             PageLockingMode = PageLockingMode,
             EnableProfiling = EnableProfiling,
         };
