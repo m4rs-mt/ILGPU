@@ -11,6 +11,7 @@
 
 using ILGPU.Intrinsic;
 using ILGPU.Random;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU;
 
@@ -22,9 +23,9 @@ public static class Group
     #region Properties
 
     /// <summary>
-    /// Returns the X index withing the scheduled thread group.
+    /// Returns the linear index withing the scheduled thread group.
     /// </summary>
-    /// <returns>The X grid dimension.</returns>
+    /// <returns>The linear group index.</returns>
     public static int Index
     {
         [GroupIntrinsic]
@@ -46,11 +47,6 @@ public static class Group
     /// Returns true if the current thread is the first in the group.
     /// </summary>
     public static bool IsFirstThread => Index == 0;
-
-    /// <summary>
-    /// Returns true if the current thread is the last in the group.
-    /// </summary>
-    public static bool IsLastThread => Index == Dimension - 1;
 
     #endregion
 
@@ -103,12 +99,11 @@ public static class Group
     /// from the specified thread to all other threads in the group.
     /// </summary>
     /// <param name="value">The value to broadcast.</param>
-    /// <param name="groupIndex">The source thread index within the group.</param>
     /// <remarks>
     /// Note that the group index must be the same for all threads in the group.
     /// </remarks>
     [GroupIntrinsic]
-    public static T Broadcast<T>(T value, int groupIndex) where T : unmanaged =>
+    public static T Broadcast<T>(FirstThreadValue<T> value) where T : unmanaged =>
         throw new InvalidKernelOperationException();
 
     #endregion
@@ -123,7 +118,7 @@ public static class Group
     /// <param name="value">The current value.</param>
     /// <returns>All lanes in the first warp contain the reduced value.</returns>
     [GroupIntrinsic]
-    public static T Reduce<T, TReduction>(T value)
+    public static FirstThreadValue<T> Reduce<T, TReduction>(T value)
         where T : unmanaged
         where TReduction : struct, IScanReduceOperation<T> =>
         throw new InvalidKernelOperationException();
@@ -171,76 +166,6 @@ public static class Group
         where TScanOperation : struct, IScanReduceOperation<T> =>
         throw new InvalidKernelOperationException();
 
-    /// <summary>
-    /// Performs a group-wide exclusive scan.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
-    /// <param name="value">The value to scan.</param>
-    /// <param name="boundaries">The scan boundaries.</param>
-    /// <returns>The resulting value for the current lane.</returns>
-    [GroupIntrinsic]
-    public static T ExclusiveScanWithBoundaries<T, TScanOperation>(
-        T value,
-        out ScanBoundaries<T> boundaries)
-        where T : unmanaged
-        where TScanOperation : struct, IScanReduceOperation<T> =>
-        throw new InvalidKernelOperationException();
-
-    /// <summary>
-    /// Performs a group-wide inclusive scan.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
-    /// <param name="value">The value to scan.</param>
-    /// <param name="boundaries">The scan boundaries.</param>
-    /// <returns>The resulting value for the current lane.</returns>
-    [GroupIntrinsic]
-    public static T InclusiveScanWithBoundaries<T, TScanOperation>(
-        T value,
-        out ScanBoundaries<T> boundaries)
-        where T : unmanaged
-        where TScanOperation : struct, IScanReduceOperation<T> =>
-        throw new InvalidKernelOperationException();
-
-    /// <summary>
-    /// Prepares for the next iteration of a group-wide exclusive scan within the
-    /// same kernel.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
-    /// <param name="leftBoundary">The left boundary value.</param>
-    /// <param name="rightBoundary">The right boundary value.</param>
-    /// <param name="currentValue">The current value.</param>
-    /// <returns>The starting value for the next iteration.</returns>
-    [GroupIntrinsic]
-    public static T ExclusiveScanNextIteration<T, TScanOperation>(
-        T leftBoundary,
-        T rightBoundary,
-        T currentValue)
-        where T : unmanaged
-        where TScanOperation : struct, IScanReduceOperation<T> =>
-        throw new InvalidKernelOperationException();
-
-    /// <summary>
-    /// Prepares for the next iteration of a group-wide inclusive scan within the
-    /// same kernel.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
-    /// <param name="leftBoundary">The left boundary value.</param>
-    /// <param name="rightBoundary">The right boundary value.</param>
-    /// <param name="currentValue">The current value.</param>
-    /// <returns>The starting value for the next iteration.</returns>
-    [GroupIntrinsic]
-    public static T InclusiveScanNextIteration<T, TScanOperation>(
-        T leftBoundary,
-        T rightBoundary,
-        T currentValue)
-        where T : unmanaged
-        where TScanOperation : struct, IScanReduceOperation<T> =>
-        throw new InvalidKernelOperationException();
-
     #endregion
 
     #region Sort
@@ -260,10 +185,100 @@ public static class Group
 
     #endregion
 
+    #region Random
+
+    /// <summary>
+    /// A wrapped random provider valid in the scope of the current warp.
+    /// </summary>
+    /// <typeparam name="TRandomProvider"></typeparam>
+    public struct RandomScope<TRandomProvider> : IRandomProvider
+        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
+    {
+        private Warp.RandomScope<TRandomProvider> _scope;
+
+        /// <summary>
+        /// Constructs a new random scope.
+        /// </summary>
+        public RandomScope()
+        {
+            _scope = Warp.GetRandom<TRandomProvider>();
+        }
+
+        /// <summary>
+        /// Generates a random int in [0..int.MaxValue].
+        /// </summary>
+        /// <returns>A random int in [0..int.MaxValue].</returns>
+        public int Next() => _scope.Next();
+
+        /// <summary>
+        /// Generates a random long in [0..long.MaxValue].
+        /// </summary>
+        /// <returns>A random long in [0..long.MaxValue].</returns>
+        public long NextLong() => _scope.NextLong();
+
+        /// <summary>
+        /// Generates a random float in [0..1).
+        /// </summary>
+        /// <returns>A random float in [0..1).</returns>
+        public float NextFloat() => _scope.NextFloat();
+
+        /// <summary>
+        /// Generates a random double in [0..1).
+        /// </summary>
+        /// <returns>A random double in [0..1).</returns>
+        public double NextDouble() => _scope.NextDouble();
+
+        /// <summary>
+        /// Shifts the current period.
+        /// </summary>
+        /// <param name="shift">The shift amount.</param>
+        public void ShiftPeriod(int shift) => _scope.ShiftPeriod(shift);
+
+        /// <summary>
+        /// Commits changes and updates to this random provider to ensure new random
+        /// values will be generated by future calls to
+        /// <see cref="GetRandom{TRandomProvider}"/>.
+        /// </summary>
+        public readonly void Commit() => _scope.Commit();
+    }
+
+    /// <summary>
+    /// Creates a new random number of the current warp.
+    /// </summary>
+    /// <typeparam name="TRandomProvider">
+    /// The random number provider type.
+    /// </typeparam>
+    /// <returns>A permuted value from another random warp lane.</returns>
+    public static RandomScope<TRandomProvider> GetRandom<TRandomProvider>()
+        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider> =>
+        new();
+
+    #endregion
+
     #region Permute
 
     /// <summary>
-    /// Permutes the given value within a warp.
+    /// Permutes the given value within a group.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <typeparam name="TRandomProvider">
+    /// The random number provider type.
+    /// </typeparam>
+    /// <param name="value">The value to permute.</param>
+    /// <returns>A permuted value from another random warp lane.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T Permute<T, TRandomProvider>(T value)
+        where T : unmanaged
+        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
+    {
+        var randomScope = GetRandom<TRandomProvider>();
+        var result = Permute(value, ref randomScope);
+        randomScope.Commit();
+        return result;
+    }
+
+    /// <summary>
+    /// Permutes the given value within a group.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TRandomProvider">
@@ -271,11 +286,27 @@ public static class Group
     /// </typeparam>
     /// <param name="value">The value to permute.</param>
     /// <param name="random">The random number generator.</param>
+    /// <returns>A permuted value from another random warp lane.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T Permute<T, TRandomProvider>(
+        T value,
+        ref TRandomProvider random)
+        where T : unmanaged
+        where TRandomProvider : struct, IRandomProvider
+    {
+        var threadValue = random.Next() & 0x7fffc000 + Index;
+        return Permute(value, threadValue);
+    }
+
+    /// <summary>
+    /// Permutes the given value within a group.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="value">The value to permute.</param>
+    /// <param name="threadValue">The random number for this thread.</param>
     /// <returns>A permuted value from another random group index.</returns>
     [GroupIntrinsic]
-    public static T Permute<T, TRandomProvider>(T value, ref TRandomProvider random)
-        where T : unmanaged
-        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider> =>
+    private static T Permute<T>(T value, int threadValue) where T : unmanaged =>
         throw new InvalidKernelOperationException();
 
     #endregion
