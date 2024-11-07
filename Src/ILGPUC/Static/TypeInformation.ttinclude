@@ -51,12 +51,14 @@ public class TypeInformation
     public TypeInformation(
         string name,
         string type,
+        int size,
         TypeInformationKind kind,
         string prefix = null,
         string suffix = null)
     {
         Name = name;
         Type = type;
+        Size = size;
         Kind = kind;
         Prefix = prefix;
         Suffix = suffix;
@@ -65,6 +67,8 @@ public class TypeInformation
     public string Name { get; }
     public string Type { get; }
     public TypeInformationKind Kind { get; }
+    public int Size { get; }
+    public int Bits => Size * 8;
 
     public string Prefix { get; }
     public string Suffix { get; }
@@ -93,18 +97,34 @@ public class TypeInformation
 
 public static readonly TypeInformation[] SignedIntTypes =
     {
-        new TypeInformation("Int8", "sbyte", TypeInformationKind.SignedInt),
-        new TypeInformation("Int16", "short", TypeInformationKind.SignedInt),
-        new TypeInformation("Int32", "int", TypeInformationKind.SignedInt),
-        new TypeInformation("Int64", "long", TypeInformationKind.SignedInt),
+        new TypeInformation("Int8", "sbyte", 1, TypeInformationKind.SignedInt),
+        new TypeInformation("Int16", "short", 2, TypeInformationKind.SignedInt),
+        new TypeInformation("Int32", "int", 4, TypeInformationKind.SignedInt),
+        new TypeInformation("Int64", "long", 8, TypeInformationKind.SignedInt),
+    };
+
+public static readonly Dictionary<string, TypeInformation> SignedIntTypesByName = new()
+    {
+        { "Int8", SignedIntTypes[0] },
+        { "Int16", SignedIntTypes[1] },
+        { "Int32", SignedIntTypes[2] },
+        { "Int64", SignedIntTypes[3] },
     };
 
 public static readonly TypeInformation[] UnsignedIntTypes =
     {
-        new TypeInformation("UInt8", "byte", TypeInformationKind.UnsignedInt),
-        new TypeInformation("UInt16", "ushort", TypeInformationKind.UnsignedInt),
-        new TypeInformation("UInt32", "uint", TypeInformationKind.UnsignedInt),
-        new TypeInformation("UInt64", "ulong", TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt8", "byte", 1, TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt16", "ushort", 2, TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt32", "uint", 4, TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt64", "ulong", 8, TypeInformationKind.UnsignedInt),
+    };
+
+public static readonly Dictionary<string, TypeInformation> UnsignedIntTypesByName = new()
+    {
+        { "UInt8", UnsignedIntTypes[0] },
+        { "UInt16", UnsignedIntTypes[1] },
+        { "UInt32", UnsignedIntTypes[2] },
+        { "UInt64", UnsignedIntTypes[3] },
     };
 
 public static readonly TypeInformation[] IntTypes =
@@ -112,9 +132,28 @@ public static readonly TypeInformation[] IntTypes =
 
 public static readonly TypeInformation[] FloatTypes =
     {
-        new TypeInformation("Half", "Half", TypeInformationKind.Float, "(Half)", "f"),
-        new TypeInformation("Float", "float", TypeInformationKind.Float, null, "f"),
-        new TypeInformation("Double", "double", TypeInformationKind.Float),
+        new TypeInformation("Half", "Half", 2, TypeInformationKind.Float, "(Half)", "f"),
+        new TypeInformation("Float", "float", 4, TypeInformationKind.Float, null, "f"),
+        new TypeInformation("Double", "double", 8, TypeInformationKind.Float),
+    };
+
+public static readonly Dictionary<string, TypeInformation> FloatTypesByName = new()
+    {
+        { "Half", FloatTypes[0] },
+        { "Float", FloatTypes[1] },
+        { "Double", FloatTypes[2] },
+
+        { "Float16", FloatTypes[0] },
+        { "Float32", FloatTypes[1] },
+        { "Float64", FloatTypes[2] },
+    };
+
+public static readonly Dictionary<TypeInformation, TypeInformation> FloatToIntTypes =
+    new()
+    {
+        { FloatTypes[0], UnsignedIntTypes[1] },
+        { FloatTypes[1], UnsignedIntTypes[2] },
+        { FloatTypes[2], UnsignedIntTypes[3] },
     };
 
 public static readonly TypeInformation[] NumericTypes =
@@ -587,4 +626,14 @@ public static class XmlHelper
     }
 }
 
+// Warp functions
+
+public static readonly string[] WarpFunctions =
+    {
+        "Reduce",
+        "AllReduce",
+
+        "ExclusiveScan",
+        "InclusiveScan"
+    };
 #>
