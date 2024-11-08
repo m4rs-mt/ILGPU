@@ -9,31 +9,29 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-namespace ILGPU.RadixSort
+namespace ILGPU.RadixSort;
+
+/// <summary>
+/// Implements a radix sort operation.
+/// </summary>
+/// <typeparam name="T">The underlying type of the sort operation.</typeparam>
+public interface IRadixSortOperation<T> where T : struct
 {
     /// <summary>
-    /// Implements a radix sort operation.
+    /// Returns the number of bits to sort.
     /// </summary>
-    /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
-    public interface IRadixSortOperation<T>
-        where T : struct
-    {
-        /// <summary>
-        /// Returns the number of bits to sort.
-        /// </summary>
-        int NumBits { get; }
+    static abstract int NumBits { get; }
 
-        /// <summary>
-        /// The default element value.
-        /// </summary>
-        T DefaultValue { get; }
+    /// <summary>
+    /// The default element value.
+    /// </summary>
+    static abstract T DefaultValue { get; }
 
-        /// <summary>
-        /// Converts the given value to a radix-sort compatible value.
-        /// </summary>
-        /// <param name="value">The value to map.</param>
-        /// <param name="shift">The shift amount in bits.</param>
-        /// <param name="bitMask">The lower bit mask bit use.</param>
-        int ExtractRadixBits(T value, int shift, int bitMask);
-    }
+    /// <summary>
+    /// Converts the given value to a radix-sort compatible value.
+    /// </summary>
+    /// <param name="value">The value to map.</param>
+    /// <param name="shift">The shift amount in bits.</param>
+    /// <param name="bitMask">The lower bit mask bit use.</param>
+    static abstract int ExtractRadixBits(T value, int shift, int bitMask);
 }
