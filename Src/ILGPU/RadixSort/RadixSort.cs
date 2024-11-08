@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RadixSortExtensions.cs
@@ -9,10 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Algorithms.RadixSortOperations;
-using ILGPU.Algorithms.Resources;
-using ILGPU.Algorithms.ScanReduceOperations;
-using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
@@ -21,7 +17,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace ILGPU.Algorithms
+namespace ILGPU.RadixSort
 {
     #region Delegates
 
