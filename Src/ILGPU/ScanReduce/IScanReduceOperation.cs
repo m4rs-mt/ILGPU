@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IScanReduceOperation.cs
@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-namespace ILGPU.Algorithms.ScanReduceOperations
+namespace ILGPU.ScanReduce
 {
     /// <summary>
     /// Implements a scan or a reduction operation.
