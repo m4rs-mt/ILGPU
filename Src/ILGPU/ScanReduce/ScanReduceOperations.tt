@@ -20,58 +20,52 @@
 var reductionTypes = AtomicNumericTypes;
 var operations = new []
     {
-        new { Name = "Add", NeutralElement = "0", Prefix = "", Operation = " + ", Suffix = "" },
-        new { Name = "Max", NeutralElement = "{0}.MinValue", Prefix = "XMath.Max(", Operation = ", ", Suffix = ")" },
-        new { Name = "Min", NeutralElement = "{0}.MaxValue", Prefix = "XMath.Min(", Operation = ", ", Suffix = ")" },
+        new { Name = "And", Floats = false, NeutralElement = "0", Prefix = "", Operation = " & ", Suffix = "" },
+        new { Name = "Or",  Floats = false, NeutralElement = "0", Prefix = "", Operation = " | ", Suffix = "" },
+        new { Name = "Add", Floats = true,  NeutralElement = "0", Prefix = "", Operation = " + ", Suffix = "" },
+        new { Name = "Max", Floats = true,  NeutralElement = "{0}.MinValue", Prefix = "XMath.Max(", Operation = ", ", Suffix = ")" },
+        new { Name = "Min", Floats = true,  NeutralElement = "{0}.MaxValue", Prefix = "XMath.Min(", Operation = ", ", Suffix = ")" },
     };
 #>
-using System;
-using ILGPU.Algorithms;
 
 // disable: max_line_length
 #pragma warning disable IDE0004 // Cast is redundant
 
-namespace ILGPU.ScanReduce
-{
+namespace ILGPU.ScanReduce;
+
 <#  foreach (var type in reductionTypes) { #>
 <#      foreach (var op in operations) { #>
+<#          if (!op.Floats && type.IsFloat) continue; #>
+/// <summary>
+/// Represents an <#= op.Name #> reduction of type <#= type.Type #>.
+/// </summary>
+public readonly struct <#= op.Name #><#= type.Name #> : IScanReduceOperation<<#= type.Type #>>
+{
     /// <summary>
-    /// Represents an <#= op.Name #> reduction of type <#= type.Type #>.
+    /// Returns the identity value (the neutral element of the operation), such that
+    /// Apply(Apply(Identity, left), right) == Apply(left, right).
     /// </summary>
-    public readonly struct <#= op.Name #><#= type.Name #> : IScanReduceOperation<<#= type.Type #>>
-    {
-        /// <summary>
-        /// Returns the associated OpenCL command suffix for the internal code generator
-        /// to build the final OpenCL command to use.
-        /// </summary>
-        public string CLCommand => "<#= op.Name.ToLower() #>";
+    public static <#= type.Type #> Identity => <#= string.Format(op.NeutralElement, type.Type) #>;
 
-        /// <summary>
-        /// Returns the identity value (the neutral element of the operation), such that
-        /// Apply(Apply(Identity, left), right) == Apply(left, right).
-        /// </summary>
-        public <#= type.Type #> Identity => <#= string.Format(op.NeutralElement, type.Type) #>;
+    /// <summary>
+    /// Applies the current operation.
+    /// </summary>
+    /// <param name="first">The first operand.</param>
+    /// <param name="second">The second operand.</param>
+    /// <returns>The result of the operation.</returns>
+    public static <#= type.Type #> Apply(<#= type.Type #> first, <#= type.Type #> second) =>
+        (<#= type.Type #>)(<#= op.Prefix #>first<#= op.Operation #>second<#= op.Suffix #>);
 
-        /// <summary>
-        /// Applies the current operation.
-        /// </summary>
-        /// <param name="first">The first operand.</param>
-        /// <param name="second">The second operand.</param>
-        /// <returns>The result of the operation.</returns>
-        public <#= type.Type #> Apply(<#= type.Type #> first, <#= type.Type #> second) =>
-            (<#= type.Type #>)(<#= op.Prefix #>first<#= op.Operation #>second<#= op.Suffix #>);
-
-        /// <summary>
-        /// Performs an atomic operation of the form target = AtomicUpdate(target.Value, value).
-        /// </summary>
-        /// <param name="target">The target address to update.</param>
-        /// <param name="value">The value.</param>
-        public void AtomicApply(ref <#= type.Type #> target, <#= type.Type #> value) =>
-            Atomic.<#= op.Name #>(ref target, value);
-    }
+    /// <summary>
+    /// Performs an atomic operation of the form target = AtomicUpdate(target.Value, value).
+    /// </summary>
+    /// <param name="target">The target address to update.</param>
+    /// <param name="value">The value.</param>
+    public static void AtomicApply(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        Atomic.<#= op.Name #>(ref target, value);
+}
 
 <#      } #>
 <#  } #>
-}
 
 #pragma warning restore IDE0004
