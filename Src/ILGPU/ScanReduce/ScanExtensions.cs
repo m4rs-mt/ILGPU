@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ScanExtensions.cs
@@ -9,17 +9,14 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Algorithms.Resources;
-using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using static ILGPU.Algorithms.GroupExtensions;
 
 // disable: max_line_length
 
-namespace ILGPU.Algorithms
+namespace ILGPU.ScanReduce
 {
     /// <summary>
     /// Represents the scan operation type.
