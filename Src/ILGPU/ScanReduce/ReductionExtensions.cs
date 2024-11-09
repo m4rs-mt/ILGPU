@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ReductionExtensions.cs
@@ -9,13 +9,12 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
-namespace ILGPU.Algorithms
+namespace ILGPU.ScanReduce
 {
     #region Reduction Delegates
 
