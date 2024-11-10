@@ -1,20 +1,19 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: SequenceExtensions.cs
+// File: Sequencer.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace ILGPU.Algorithms
+namespace ILGPU.Initialization
 {
     #region Sequence Delegates
 
@@ -463,7 +462,7 @@ namespace ILGPU.Algorithms
         /// Computes a new repeated sequence (of length sequenceLength) of batched values
         /// (of length sequenceBatchLength), and writes the computed values to the given
         /// view. Afterwards, the target view will contain the following values:
-        /// - [0, sequenceLength - 1] = 
+        /// - [0, sequenceLength - 1] =
         ///       - [0, sequenceBatchLength - 1] = sequencer(0),
         ///       - [sequenceBatchLength, sequenceBatchLength * 2 - 1] = sequencer(1),
         ///       - ...
@@ -589,7 +588,7 @@ namespace ILGPU.Algorithms
         /// Computes a new repeated sequence (of length sequenceLength) of batched values
         /// (of length sequenceBatchLength), and writes the computed values to the given
         /// view. Afterwards, the target view will contain the following values:
-        /// - [0, sequenceLength - 1] = 
+        /// - [0, sequenceLength - 1] =
         ///       - [0, sequenceBatchLength - 1] = sequencer(0),
         ///       - [sequenceBatchLength, sequenceBatchLength * 2 - 1] = sequencer(1),
         ///       - ...
