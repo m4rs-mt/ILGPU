@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2023-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ConcurrentStreamProcessor.cs
@@ -9,12 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Threading.Tasks;
 
-namespace ILGPU.Algorithms
+namespace ILGPU.Runtime
 {
     /// <summary>
     /// Processes actions in parallel on multiple asynchronous accelerator streams.
@@ -23,7 +22,7 @@ namespace ILGPU.Algorithms
     {
         #region Instance
 
-        private readonly AcceleratorStream[] streams;
+        private readonly AcceleratorStream[] _streams;
 
         /// <summary>
         /// Constructs a new concurrent stream processor.
@@ -44,12 +43,12 @@ namespace ILGPU.Algorithms
                 Math.Max(maxNumConcurrentStreams, 1),
                 Environment.ProcessorCount);
 
-            streams = new AcceleratorStream[maxNumConcurrentStreams];
+            _streams = new AcceleratorStream[maxNumConcurrentStreams];
             if (maxNumConcurrentStreams > 1)
             {
                 streamProvider ??= accel => accel.CreateStream();
-                for (int i = 0; i < streams.Length; ++i)
-                    streams[i] = streamProvider(accelerator);
+                for (int i = 0; i < _streams.Length; ++i)
+                    _streams[i] = streamProvider(accelerator);
             }
         }
 
@@ -60,7 +59,7 @@ namespace ILGPU.Algorithms
         /// <summary>
         /// Returns the maximum number of concurrent streams supported by this processor.
         /// </summary>
-        public int MaxNumConcurrentStreams => streams.Length;
+        public int MaxNumConcurrentStreams => _streams.Length;
 
         #endregion
 
@@ -93,7 +92,7 @@ namespace ILGPU.Algorithms
         /// The action to invoke on each stream to submit work.
         /// </param>
         public void ProcessConcurrently(
-            AcceleratorStream? stream,
+            AcceleratorStream stream,
             int numActions,
             Action<AcceleratorStream, int> action)
         {
@@ -104,7 +103,7 @@ namespace ILGPU.Algorithms
             if (action == null)
                 throw new ArgumentOutOfRangeException(nameof(action));
 
-            if (stream != null && numActions == 1 && MaxNumConcurrentStreams == 1)
+            if (numActions == 1 && MaxNumConcurrentStreams == 1)
             {
                 // Use the given stream to process the action request
                 action(stream, 0);
@@ -121,7 +120,7 @@ namespace ILGPU.Algorithms
                 var actionStride = new Stride2D.DenseY(numActionsPerStream);
                 Parallel.For(0, MaxNumConcurrentStreams, i =>
                 {
-                    var currentStream = streams[i];
+                    var currentStream = _streams[i];
                     using var binding = currentStream.BindScoped();
 
                     for (int j = 0; j < numActionsPerStream; ++j)
@@ -150,7 +149,7 @@ namespace ILGPU.Algorithms
             if (disposing)
             {
                 // Free all internal streams
-                foreach (var stream in streams)
+                foreach (var stream in _streams)
                     stream?.Dispose();
             }
             base.Dispose(disposing);
