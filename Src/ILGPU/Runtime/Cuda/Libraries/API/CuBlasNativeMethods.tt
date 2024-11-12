@@ -11,7 +11,7 @@
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="../CuBlasMappings.ttinclude"#>
-<#@ include file="../../../../ILGPU/Static/DllLibraryImporter.ttinclude" #>
+<#@ include file="../../../../Static/DllLibraryImporter.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
@@ -31,11 +31,11 @@ var libraryVersions = new (string, Platform, string)[]
         ("V10", Platform.Windows,   "cublas64_10.dll"),
         ("V10", Platform.Linux,     "libcublas.so.10"),
         ("V10", Platform.OSX,       "libcublas.10.dylib"),
-    
+
         ("V11", Platform.Windows,   "cublas64_11.dll"),
         ("V11", Platform.Linux,     "libcublas.so.11"),
         ("V11", Platform.OSX,       "libcublas.11.dylib"),
-    
+
         ("V12", Platform.Windows,   "cublas64_12.dll"),
         ("V12", Platform.Linux,     "libcublas.so.12"),
     };
