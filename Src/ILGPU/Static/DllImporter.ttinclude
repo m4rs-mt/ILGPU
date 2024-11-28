@@ -11,7 +11,7 @@
 
 <#@ assembly name="System.Core" #>
 <#@ assembly name="System.Xml" #>
-<#@ include file="TextTemplateHelpers.ttinclude" #>
+<#@ include file="../../ILGPUC/Static/TextTemplateHelpers.ttinclude" #>
 <#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.IO" #>
@@ -38,7 +38,7 @@ public class EntryPoint
 
     [XmlAttribute]
     public string AccessModifier { get; set; }
-    
+
     [XmlAttribute]
     public string DllImportSearchPath { get; set; }
 
@@ -47,7 +47,7 @@ public class EntryPoint
 
     [XmlAttribute]
     public string StringMarshalling { get; set; }
-    
+
     [XmlElement("Parameter")]
     public Parameter[] Parameters { get; set; }
 
@@ -98,7 +98,7 @@ public class Parameter
 
     [XmlAttribute]
     public ParameterDllFlags DllFlags { get; set; }
-    
+
     [XmlAttribute]
     public string MarshalAs { get; set; }
 
@@ -128,7 +128,7 @@ public class Parameter
                 ? "[Out]"
                 : "[In]"
         };
-        
+
     [XmlIgnore]
     public string MarshalAsExpression =>
         string.IsNullOrWhiteSpace(MarshalAs)
