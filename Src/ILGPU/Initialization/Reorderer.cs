@@ -1,20 +1,19 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: ReorderExtensions.cs
+// File: Reorderer.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Algorithms.Resources;
 using ILGPU.Runtime;
 using System;
 using System.Runtime.InteropServices;
 
-namespace ILGPU.Algorithms
+namespace ILGPU.Initialization
 {
     /// <summary>
     /// Reorders and transforms elements in the source view by storing the reordered
