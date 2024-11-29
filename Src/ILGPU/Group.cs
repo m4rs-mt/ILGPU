@@ -10,7 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Intrinsic;
-using ILGPU.Random;
+using ILGPU.Runtime;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -18,7 +19,7 @@ namespace ILGPU;
 /// <summary>
 /// Contains general grid functions.
 /// </summary>
-public static class Group
+public static partial class Group
 {
     #region Properties
 
@@ -47,6 +48,16 @@ public static class Group
     /// Returns true if the current thread is the first in the group.
     /// </summary>
     public static bool IsFirstThread => Index == 0;
+
+    /// <summary>
+    /// Returns true if the current thread is the last in the group.
+    /// </summary>
+    public static bool IsLastThread => Index == Dimension - 1;
+
+    /// <summary>
+    /// Returns a thread bit mask including all threads in this group.
+    /// </summary>
+    public static int Mask => Dimension - 1;
 
     #endregion
 
@@ -95,8 +106,8 @@ public static class Group
     #region Broadcast
 
     /// <summary>
-    /// Performs a broadcast operation that broadcasts the given value
-    /// from the specified thread to all other threads in the group.
+    /// Performs a broadcast operation that broadcasts the given value from the first
+    /// thread to all other threads in the group.
     /// </summary>
     /// <param name="value">The value to broadcast.</param>
     /// <remarks>
@@ -106,208 +117,212 @@ public static class Group
     public static T Broadcast<T>(FirstThreadValue<T> value) where T : unmanaged =>
         throw new InvalidKernelOperationException();
 
-    #endregion
-
-    #region Reduce
-
     /// <summary>
-    /// Implements a block-wide reduction algorithm.
+    /// Performs a broadcast operation that broadcasts the given value from the last
+    /// thread to all other threads in the group.
     /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-    /// <param name="value">The current value.</param>
-    /// <returns>All lanes in the first warp contain the reduced value.</returns>
+    /// <param name="value">The value to broadcast.</param>
+    /// <remarks>
+    /// Note that the group index must be the same for all threads in the group.
+    /// </remarks>
     [GroupIntrinsic]
-    public static FirstThreadValue<T> Reduce<T, TReduction>(T value)
-        where T : unmanaged
-        where TReduction : struct, IScanReduceOperation<T> =>
+    public static T Broadcast<T>(LastThreadValue<T> value) where T : unmanaged =>
         throw new InvalidKernelOperationException();
 
     /// <summary>
-    /// Implements a block-wide reduction algorithm.
+    /// Performs a broadcast operation that broadcasts the given value from the specified
+    /// thread to all other threads in the group.
     /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-    /// <param name="value">The current value.</param>
-    /// <returns>All threads in the whole group contain the reduced value.</returns>
+    /// <param name="value">The value to broadcast.</param>
+    /// <param name="threadIndex">The thread index within the group to read from.</param>
+    /// <remarks>
+    /// Note that the group index must be the same for all threads in the group.
+    /// </remarks>
     [GroupIntrinsic]
-    public static T AllReduce<T, TReduction>(T value)
-        where T : unmanaged
-        where TReduction : struct, IScanReduceOperation<T> =>
+    public static T Broadcast<T>(T value, int threadIndex)
+        where T : unmanaged =>
         throw new InvalidKernelOperationException();
 
     #endregion
 
-    #region Scan
+    #region Shared Memory
 
     /// <summary>
-    /// Performs a group-wide exclusive scan.
+    /// Allocates a single element in shared memory.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
-    /// <param name="value">The value to scan.</param>
-    /// <returns>The resulting value for the current lane.</returns>
+    /// <returns>An allocated element in shared memory.</returns>
     [GroupIntrinsic]
-    public static T ExclusiveScan<T, TScanOperation>(T value)
-        where T : unmanaged
-        where TScanOperation : struct, IScanReduceOperation<T> =>
+    public static ref T GetSharedMemory<T>() where T : unmanaged =>
         throw new InvalidKernelOperationException();
 
     /// <summary>
-    /// Performs a group-wide inclusive scan.
+    /// Allocates a chunk of shared memory with the specified number of elements.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
-    /// <param name="value">The value to scan.</param>
-    /// <returns>The resulting value for the current lane.</returns>
+    /// <param name="extent">The extent (number of elements to allocate).</param>
+    /// <returns>An allocated region of shared memory.</returns>
     [GroupIntrinsic]
-    public static T InclusiveScan<T, TScanOperation>(T value)
-        where T : unmanaged
-        where TScanOperation : struct, IScanReduceOperation<T> =>
+    public static ArrayView<T> GetSharedMemory<T>(int extent) where T : unmanaged =>
         throw new InvalidKernelOperationException();
 
-    #endregion
-
-    #region Sort
-
     /// <summary>
-    /// Performs a group-wide radix sort pass.
+    /// Allocates a chunk of shared memory with the specified number of elements.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TRadixSortOperation">The radix sort operation.</typeparam>
-    /// <param name="value">The original value in the current lane.</param>
-    /// <returns>The sorted value in the current lane.</returns>
-    [GroupIntrinsic]
-    public static T RadixSort<T, TRadixSortOperation>(T value)
-        where T : unmanaged
-        where TRadixSortOperation : struct, IRadixSortOperation<T> =>
-        throw new InvalidKernelOperationException();
-
-    #endregion
-
-    #region Random
-
-    /// <summary>
-    /// A wrapped random provider valid in the scope of the current warp.
-    /// </summary>
-    /// <typeparam name="TRandomProvider"></typeparam>
-    public struct RandomScope<TRandomProvider> : IRandomProvider
-        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
-    {
-        private Warp.RandomScope<TRandomProvider> _scope;
-
-        /// <summary>
-        /// Constructs a new random scope.
-        /// </summary>
-        public RandomScope()
-        {
-            _scope = Warp.GetRandom<TRandomProvider>();
-        }
-
-        /// <summary>
-        /// Generates a random int in [0..int.MaxValue].
-        /// </summary>
-        /// <returns>A random int in [0..int.MaxValue].</returns>
-        public int Next() => _scope.Next();
-
-        /// <summary>
-        /// Generates a random long in [0..long.MaxValue].
-        /// </summary>
-        /// <returns>A random long in [0..long.MaxValue].</returns>
-        public long NextLong() => _scope.NextLong();
-
-        /// <summary>
-        /// Generates a random float in [0..1).
-        /// </summary>
-        /// <returns>A random float in [0..1).</returns>
-        public float NextFloat() => _scope.NextFloat();
-
-        /// <summary>
-        /// Generates a random double in [0..1).
-        /// </summary>
-        /// <returns>A random double in [0..1).</returns>
-        public double NextDouble() => _scope.NextDouble();
-
-        /// <summary>
-        /// Shifts the current period.
-        /// </summary>
-        /// <param name="shift">The shift amount.</param>
-        public void ShiftPeriod(int shift) => _scope.ShiftPeriod(shift);
-
-        /// <summary>
-        /// Commits changes and updates to this random provider to ensure new random
-        /// values will be generated by future calls to
-        /// <see cref="GetRandom{TRandomProvider}"/>.
-        /// </summary>
-        public readonly void Commit() => _scope.Commit();
-    }
-
-    /// <summary>
-    /// Creates a new random number of the current warp.
-    /// </summary>
-    /// <typeparam name="TRandomProvider">
-    /// The random number provider type.
-    /// </typeparam>
-    /// <returns>A permuted value from another random warp lane.</returns>
-    public static RandomScope<TRandomProvider> GetRandom<TRandomProvider>()
-        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider> =>
-        new();
-
-    #endregion
-
-    #region Permute
-
-    /// <summary>
-    /// Permutes the given value within a group.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TRandomProvider">
-    /// The random number provider type.
-    /// </typeparam>
-    /// <param name="value">The value to permute.</param>
-    /// <returns>A permuted value from another random warp lane.</returns>
+    /// <param name="extent">The extent (number of elements to allocate).</param>
+    /// <returns>An allocated region of shared memory.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Permute<T, TRandomProvider>(T value)
+    public static ArrayView2D<T, TStride> GetSharedMemory2D<T, TStride>(Index2D extent)
         where T : unmanaged
-        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
+        where TStride : struct, IStride2D<TStride>
     {
-        var randomScope = GetRandom<TRandomProvider>();
-        var result = Permute(value, ref randomScope);
-        randomScope.Commit();
-        return result;
+        var stride = TStride.FromExtent(extent);
+        int totalLength = stride.ComputeBufferLength(extent);
+        var localPerThread = GetSharedMemory<T>(totalLength);
+        return localPerThread.AsDense().As2DView(extent, stride);
     }
 
     /// <summary>
-    /// Permutes the given value within a group.
+    /// Allocates a chunk of shared memory with the specified number of elements.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TRandomProvider">
-    /// The random number provider type.
-    /// </typeparam>
-    /// <param name="value">The value to permute.</param>
-    /// <param name="random">The random number generator.</param>
-    /// <returns>A permuted value from another random warp lane.</returns>
+    /// <param name="extent">The extent (number of elements to allocate).</param>
+    /// <returns>An allocated region of shared memory.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Permute<T, TRandomProvider>(
-        T value,
-        ref TRandomProvider random)
+    public static ArrayView3D<T, TStride> GetSharedMemory3D<T, TStride>(Index3D extent)
         where T : unmanaged
-        where TRandomProvider : struct, IRandomProvider
+        where TStride : struct, IStride3D<TStride>
     {
-        var threadValue = random.Next() & 0x7fffc000 + Index;
-        return Permute(value, threadValue);
+        var stride = TStride.FromExtent(extent);
+        int totalLength = stride.ComputeBufferLength(extent);
+        var localPerThread = GetSharedMemory<T>(totalLength);
+        return localPerThread.AsDense().As3DView(extent, stride);
     }
 
     /// <summary>
-    /// Permutes the given value within a group.
+    /// Allocates a single element of the given element type for each thread in the
+    /// current group.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <param name="value">The value to permute.</param>
-    /// <param name="threadValue">The random number for this thread.</param>
-    /// <returns>A permuted value from another random group index.</returns>
+    /// <returns>
+    /// An allocated region of shared memory holding a single element per thread.
+    /// </returns>
     [GroupIntrinsic]
-    private static T Permute<T>(T value, int threadValue) where T : unmanaged =>
+    public static ArrayView<T> GetSharedMemoryPerThread<T>() where T : unmanaged =>
         throw new InvalidKernelOperationException();
+
+    /// <summary>
+    /// Allocates a set of elements of the given element type for each thread in the
+    /// current group.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="multiplier">The multiplier to use per element.</param>
+    /// <returns>
+    /// An allocated region of shared memory holding a set of elements per thread.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ArrayView<T> GetSharedMemoryPerThread<T>(int multiplier)
+        where T : unmanaged
+    {
+        Trace.Assert(multiplier > 0, "Invalid shared memory multiplier");
+        return GetSharedMemoryPerThreadMultiplier<T>(multiplier);
+    }
+
+    /// <summary>
+    /// Allocates a set of elements of the given element type for each thread in the
+    /// current group.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="multiplier">The multiplier to use per element.</param>
+    /// <returns>
+    /// An allocated region of shared memory holding a set of elements per thread.
+    /// </returns>
+    [GroupIntrinsic]
+    private static ArrayView<T> GetSharedMemoryPerThreadMultiplier<T>(int multiplier)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    /// <summary>
+    /// Allocates a single element of the given element type for each warp in the
+    /// current group.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <returns>
+    /// An allocated region of shared memory holding a single element per warp.
+    /// </returns>
+    [GroupIntrinsic]
+    public static ArrayView<T> GetSharedMemoryPerWarp<T>() where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    #endregion
+
+    #region Local Memory
+
+    /// <summary>
+    /// Allocates a sequence of elements in local memory per thread.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="extent">The extent (number of elements to allocate).</param>
+    /// <returns>
+    /// An allocated region of local memory for each thread in the group.
+    /// </returns>
+    [GroupIntrinsic]
+    public static ArrayView<T> GetLocalMemoryPerThread<T>(int extent)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    /// <summary>
+    /// Allocates a 2D sequence of elements in local memory per thread.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <typeparam name="TStride">The stride type.</typeparam>
+    /// <param name="extent">The extent (number of elements to allocate).</param>
+    /// <returns>
+    /// An allocated region of local memory for each thread in the group.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ArrayView2D<T, TStride> GetLocalMemoryPerThread2D<T, TStride>(
+        Index2D extent)
+        where T : unmanaged
+        where TStride : struct, IStride2D<TStride>
+    {
+        var stride = TStride.FromExtent(extent);
+        int totalLength = stride.ComputeBufferLength(extent);
+        var localPerThread = GetLocalMemoryPerThread<T>(totalLength);
+        return localPerThread.AsDense().As2DView(extent, stride);
+    }
+
+    /// <summary>
+    /// Allocates a 3D sequence of elements in local memory per thread.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <typeparam name="TStride">The stride type.</typeparam>
+    /// <param name="extent">The extent (number of elements to allocate).</param>
+    /// <returns>
+    /// An allocated region of local memory for each thread in the group.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ArrayView3D<T, TStride> GetLocalMemoryPerThread3D<T, TStride>(
+        Index3D extent)
+        where T : unmanaged
+        where TStride : struct, IStride3D<TStride>
+    {
+        var stride = TStride.FromExtent(extent);
+        int totalLength = stride.ComputeBufferLength(extent);
+        var localPerThread = GetLocalMemoryPerThread<T>(totalLength);
+        return localPerThread.AsDense().As3DView(extent, stride);
+    }
+
+    #endregion
+
+    #region Memory Fence
+
+    /// <summary>
+    /// A memory fence at the group level.
+    /// </summary>
+    [GroupIntrinsic]
+    public static void MemoryFence() => throw new InvalidKernelOperationException();
 
     #endregion
 }

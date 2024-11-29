@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Intrinsic;
-using ILGPU.Random;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -18,7 +17,7 @@ namespace ILGPU;
 /// <summary>
 /// Contains warp-wide functions.
 /// </summary>
-public static class Warp
+public static partial class Warp
 {
     #region General properties
 
@@ -46,6 +45,11 @@ public static class Warp
     public static bool IsFirstLane => LaneIndex == 0;
 
     /// <summary>
+    /// Returns true if the current lane is the last lane.
+    /// </summary>
+    public static bool IsLastLane => LaneIndex == Dimension - 1;
+
+    /// <summary>
     /// Returns the current warp index in the range [0, NumUsedWarps - 1] in the current
     /// group.
     /// </summary>
@@ -55,6 +59,16 @@ public static class Warp
         [WarpIntrinsic]
         get => throw new InvalidKernelOperationException();
     }
+
+    /// <summary>
+    /// Returns true if the current warp is the first warp in the group.
+    /// </summary>
+    public static bool IsFirstWarp => Index == 0;
+
+    /// <summary>
+    /// Returns a lane bit mask including all lanes in a single warp.
+    /// </summary>
+    public static int Mask => Dimension - 1;
 
     /// <summary>
     /// Returns the current warp index in the range [0, NumUsedWarps - 1] in the current
@@ -217,225 +231,6 @@ public static class Warp
     /// </remarks>
     [WarpIntrinsic]
     public static T Broadcast<T>(FirstLaneValue<T> value) where T : unmanaged =>
-        throw new InvalidKernelOperationException();
-
-    #endregion
-
-    #region Reduce
-
-    /// <summary>
-    /// Performs a warp-wide reduction.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-    /// <param name="value">The current value.</param>
-    /// <returns>The first lane (lane id = 0) will return reduced result.</returns>
-    [WarpIntrinsic]
-    public static FirstLaneValue<T> Reduce<T, TReduction>(T value)
-        where T : unmanaged
-        where TReduction : struct, IScanReduceOperation<T> =>
-        throw new InvalidKernelOperationException();
-
-    /// <summary>
-    /// Performs a warp-wide reduction.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-    /// <param name="value">The current value.</param>
-    /// <returns>All lanes will return the reduced result.</returns>
-    [WarpIntrinsic]
-    public static T AllReduce<T, TReduction>(T value)
-        where T : unmanaged
-        where TReduction : struct, IScanReduceOperation<T> =>
-        throw new InvalidKernelOperationException();
-
-    #endregion
-
-    #region Scan
-
-    /// <summary>
-    /// Performs a warp-wide exclusive scan.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The type of the warp scan logic.</typeparam>
-    /// <param name="value">The value to scan.</param>
-    /// <returns>The resulting value for the current lane.</returns>
-    [WarpIntrinsic]
-    public static T ExclusiveScan<T, TScan>(T value)
-        where T : unmanaged
-        where TScan : struct, IScanReduceOperation<T> =>
-        throw new InvalidKernelOperationException();
-
-    /// <summary>
-    /// Performs a warp-wide inclusive scan.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The type of the warp scan logic.</typeparam>
-    /// <param name="value">The value to scan.</param>
-    /// <returns>The resulting value for the current lane.</returns>
-    [WarpIntrinsic]
-    public static T InclusiveScan<T, TScan>(T value)
-        where T : unmanaged
-        where TScan : struct, IScanReduceOperation<T> =>
-        throw new InvalidKernelOperationException();
-
-    #endregion
-
-    #region Sort
-
-    /// <summary>
-    /// Performs a warp-wide radix sort operation.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TRadixSortOperation">
-    /// The radix sort operation type.
-    /// </typeparam>
-    /// <param name="value">The original value in the current lane.</param>
-    /// <returns>The sorted value for the current lane.</returns>
-    [WarpIntrinsic]
-    public static T RadixSort<T, TRadixSortOperation>(T value)
-        where T : unmanaged
-        where TRadixSortOperation : struct, IRadixSortOperation<T> =>
-        throw new InvalidKernelOperationException();
-
-    #endregion
-
-    #region Random
-
-    /// <summary>
-    /// A wrapped random provider valid in the scope of the current warp.
-    /// </summary>
-    /// <typeparam name="TRandomProvider"></typeparam>
-    public struct RandomScope<TRandomProvider> : IRandomProvider
-        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
-    {
-        private readonly FirstLaneRandomProviderView<TRandomProvider> _view;
-        private TRandomProvider _randomProvider;
-
-        /// <summary>
-        /// Constructs a new random scope.
-        /// </summary>
-        public RandomScope()
-        {
-            _view = IntrinsicProvider.Provide<
-                FirstLaneValue<TRandomProvider>,
-                FirstLaneRandomProviderView<TRandomProvider>,
-                FirstLaneRandomProvider<TRandomProvider>>();
-
-            var firstLaneValue = _view[GlobalIndex];
-            var value = Broadcast(firstLaneValue);
-            value.ShiftPeriod(LaneIndex);
-
-            _randomProvider = value;
-        }
-
-        /// <summary>
-        /// Generates a random int in [0..int.MaxValue].
-        /// </summary>
-        /// <returns>A random int in [0..int.MaxValue].</returns>
-        public int Next() => _randomProvider.Next();
-
-        /// <summary>
-        /// Generates a random long in [0..long.MaxValue].
-        /// </summary>
-        /// <returns>A random long in [0..long.MaxValue].</returns>
-        public long NextLong() => _randomProvider.NextLong();
-
-        /// <summary>
-        /// Generates a random float in [0..1).
-        /// </summary>
-        /// <returns>A random float in [0..1).</returns>
-        public float NextFloat() => _randomProvider.NextFloat();
-
-        /// <summary>
-        /// Generates a random double in [0..1).
-        /// </summary>
-        /// <returns>A random double in [0..1).</returns>
-        public double NextDouble() => _randomProvider.NextDouble();
-
-        /// <summary>
-        /// Shifts the current period.
-        /// </summary>
-        /// <param name="shift">The shift amount.</param>
-        public void ShiftPeriod(int shift) => _randomProvider.ShiftPeriod(shift);
-
-        /// <summary>
-        /// Commits changes and updates to this random provider to ensure new random
-        /// values will be generated by future calls to
-        /// <see cref="GetRandom{TRandomProvider}"/>.
-        /// </summary>
-        public readonly void Commit()
-        {
-            if (IsFirstLane)
-                _view[GlobalIndex] = new(_randomProvider);
-        }
-    }
-
-    /// <summary>
-    /// Creates a new random number of the current warp.
-    /// </summary>
-    /// <typeparam name="TRandomProvider">
-    /// The random number provider type.
-    /// </typeparam>
-    /// <returns>A permuted value from another random warp lane.</returns>
-    public static RandomScope<TRandomProvider> GetRandom<TRandomProvider>()
-        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider> =>
-        new();
-
-    #endregion
-
-    #region Permute
-
-    /// <summary>
-    /// Permutes the given value within a warp.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TRandomProvider">
-    /// The random number provider type.
-    /// </typeparam>
-    /// <param name="value">The value to permute.</param>
-    /// <returns>A permuted value from another random warp lane.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Permute<T, TRandomProvider>(T value)
-        where T : unmanaged
-        where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider>
-    {
-        var randomScope = GetRandom<TRandomProvider>();
-        var result = Permute(value, ref randomScope);
-        randomScope.Commit();
-        return result;
-    }
-
-    /// <summary>
-    /// Permutes the given value within a warp.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TRandomProvider">
-    /// The random number provider type.
-    /// </typeparam>
-    /// <param name="value">The value to permute.</param>
-    /// <param name="random">The random number generator.</param>
-    /// <returns>A permuted value from another random warp lane.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Permute<T, TRandomProvider>(
-        T value,
-        ref TRandomProvider random)
-        where T : unmanaged
-        where TRandomProvider : struct, IRandomProvider
-    {
-        var laneValue = random.Next() & 0x7fffc000 + LaneIndex;
-        return Permute(value, laneValue);
-    }
-
-    /// <summary>
-    /// Permutes the given value within a warp.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <param name="value">The value to permute.</param>
-    /// <param name="laneValue">The random number for this lane.</param>
-    /// <returns>A permuted value from another random warp lane.</returns>
-    [WarpIntrinsic]
-    private static T Permute<T>(T value, int laneValue) where T : unmanaged =>
         throw new InvalidKernelOperationException();
 
     #endregion
