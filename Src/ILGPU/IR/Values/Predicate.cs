@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Predicate.cs
@@ -87,6 +87,9 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Condition),
                 rebuilder.Rebuild(TrueValue),
                 rebuilder.Rebuild(FalseValue));
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayType.cs
@@ -47,6 +47,9 @@ namespace ILGPU.IR.Types
         /// <inheritdoc/>
         public override bool IsArrayType => true;
 
+        /// <inheritdoc/>
+        public override TypeKind TypeKind => TypeKind.Array;
+
         /// <summary>
         /// Returns the underlying element type.
         /// </summary>
@@ -74,6 +77,13 @@ namespace ILGPU.IR.Types
         protected override Type GetManagedType<TTypeProvider>(
             TTypeProvider typeProvider) =>
             typeProvider.GetArrayType(this);
+
+        /// <summary cref="TypeNode.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(ElementType), ElementType.Id);
+            writer.Write(nameof(NumDimensions), NumDimensions);
+        }
 
         #endregion
 
