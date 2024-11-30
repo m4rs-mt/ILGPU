@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: FormatString.cs
@@ -15,159 +15,158 @@ using System.Diagnostics;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
     ILGPU.Util.FormatString.FormatExpression>;
 
-namespace ILGPU.Util
+namespace ILGPU.Util;
+
+/// <summary>
+/// Helper class to parse a string containing .NET style string formatting.
+/// e.g. "Hello {0}"
+/// </summary>
+public static class FormatString
 {
+    #region Nested Types
+
     /// <summary>
-    /// Helper class to parse a string containing .NET style string formatting.
-    /// e.g. "Hello {0}"
+    /// Represents a single format command.
     /// </summary>
-    public static class FormatString
+    public readonly struct FormatExpression
     {
-        #region Nested Types
+        /// <summary>
+        /// Constructs a new format expression.
+        /// </summary>
+        /// <param name="string">The string expression.</param>
+        public FormatExpression(ReadOnlySpan<char> @string)
+            : this(@string.ToString())
+        { }
 
         /// <summary>
-        /// Represents a single format command.
+        /// Constructs a new format expression.
         /// </summary>
-        public readonly struct FormatExpression
+        /// <param name="string">The string expression.</param>
+        public FormatExpression(string @string)
         {
-            /// <summary>
-            /// Constructs a new format expression.
-            /// </summary>
-            /// <param name="string">The string expression.</param>
-            public FormatExpression(ReadOnlySpan<char> @string)
-                : this(@string.ToString())
-            { }
-
-            /// <summary>
-            /// Constructs a new format expression.
-            /// </summary>
-            /// <param name="string">The string expression.</param>
-            public FormatExpression(string @string)
-            {
-                String = @string ?? string.Empty;
-                Argument = -1;
-            }
-
-            /// <summary>
-            /// Constructs a new format expression.
-            /// </summary>
-            /// <param name="argument">The argument reference.</param>
-            public FormatExpression(int argument)
-            {
-                String = null;
-                Argument = argument;
-            }
-
-            /// <summary>
-            /// Returns the string to output (if any).
-            /// </summary>
-            public string? String { get; }
-
-            /// <summary>
-            /// Returns the argument reference to output.
-            /// </summary>
-            public int Argument { get; }
-
-            /// <summary>
-            /// Returns true if the current expression has an argument reference.
-            /// </summary>
-            public readonly bool HasArgument => String is null;
+            String = @string ?? string.Empty;
+            Argument = -1;
         }
 
-        #endregion
+        /// <summary>
+        /// Constructs a new format expression.
+        /// </summary>
+        /// <param name="argument">The argument reference.</param>
+        public FormatExpression(int argument)
+        {
+            String = null;
+            Argument = argument;
+        }
 
         /// <summary>
-        /// Parses the given format expression into an array of format expressions.
+        /// Returns the string to output (if any).
         /// </summary>
-        /// <param name="formatExpression">The format expression.</param>
-        /// <param name="expressions">The array of managed format expressions.</param>
-        /// <returns>True, if all expressions could be parsed successfully.</returns>
-        public static bool TryParse(string formatExpression, out FormatArray expressions)
+        public string? String { get; }
+
+        /// <summary>
+        /// Returns the argument reference to output.
+        /// </summary>
+        public int Argument { get; }
+
+        /// <summary>
+        /// Returns true if the current expression has an argument reference.
+        /// </summary>
+        public readonly bool HasArgument => String is null;
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Parses the given format expression into an array of format expressions.
+    /// </summary>
+    /// <param name="formatExpression">The format expression.</param>
+    /// <param name="expressions">The array of managed format expressions.</param>
+    /// <returns>True, if all expressions could be parsed successfully.</returns>
+    public static bool TryParse(string formatExpression, out FormatArray expressions)
+    {
+        expressions = FormatArray.Empty;
+
+        // Search for '{xyz}' patterns
+        var result = ImmutableArray.CreateBuilder<FormatExpression>(10);
+        var expression = formatExpression.AsSpan();
+        var inArgumentPart = false;
+
+        while (expression.Length > 0)
         {
-            expressions = FormatArray.Empty;
-
-            // Search for '{xyz}' patterns
-            var result = ImmutableArray.CreateBuilder<FormatExpression>(10);
-            var expression = formatExpression.AsSpan();
-            var inArgumentPart = false;
-
-            while (expression.Length > 0)
+            // Search for next {
+            int foundIndex = expression.IndexOfAny(new[] { '{', '}' });
+            if (foundIndex < 0)
             {
-                // Search for next {
-                int foundIndex = expression.IndexOfAny(new[] { '{', '}' });
-                if (foundIndex < 0)
-                {
-                    result.Add(new FormatExpression(expression));
-                    break;
-                }
+                result.Add(new FormatExpression(expression));
+                break;
+            }
 
-                var foundOpenBracket = expression[foundIndex] == '{';
-                var escaped =
-                    foundIndex + 1 < expression.Length &&
-                    expression[foundIndex] == expression[foundIndex + 1];
-                if (foundOpenBracket)
-                {
-                    // Cannot start another argument when one is already opened.
-                    if (inArgumentPart)
-                        return false;
-                    if (escaped)
-                    {
-                        result.Add(new FormatExpression(
-                            expression.Slice(0, foundIndex + 1)));
-                        expression = expression.Slice(foundIndex + 2);
-                    }
-                    else
-                    {
-                        // Open new {
-                        inArgumentPart = true;
-                        if (foundIndex > 0)
-                        {
-                            result.Add(new FormatExpression(
-                                expression.Slice(0, foundIndex)));
-                        }
-                        expression = expression.Slice(foundIndex + 1);
-                    }
-                    continue;
-                }
-
-                Debug.Assert(!foundOpenBracket);
-                if (!inArgumentPart)
-                {
-                    // Handle escaping }
-                    if (escaped)
-                    {
-                        result.Add(new FormatExpression(
-                            expression.Slice(0, foundIndex + 1)));
-                        expression = expression.Slice(foundIndex + 2);
-                    }
-                    else
-                    {
-                        // Cannot have singular } without opening {
-                        return false;
-                    }
-                    continue;
-                }
-
-                // Check sub expression
-                var endIndex = foundIndex;
-                var subExpr = expression.Slice(0, endIndex);
-
-                // Check whether the argument can be resolved to an integer
-                if (!int.TryParse(subExpr.ToString(), out int argument) || argument < 0)
+            var foundOpenBracket = expression[foundIndex] == '{';
+            var escaped =
+                foundIndex + 1 < expression.Length &&
+                expression[foundIndex] == expression[foundIndex + 1];
+            if (foundOpenBracket)
+            {
+                // Cannot start another argument when one is already opened.
+                if (inArgumentPart)
                     return false;
-
-                // Append current argument
-                result.Add(new FormatExpression(argument));
-                expression = expression.Slice(endIndex + 1);
-                inArgumentPart = false;
+                if (escaped)
+                {
+                    result.Add(new FormatExpression(
+                        expression.Slice(0, foundIndex + 1)));
+                    expression = expression.Slice(foundIndex + 2);
+                }
+                else
+                {
+                    // Open new {
+                    inArgumentPart = true;
+                    if (foundIndex > 0)
+                    {
+                        result.Add(new FormatExpression(
+                            expression.Slice(0, foundIndex)));
+                    }
+                    expression = expression.Slice(foundIndex + 1);
+                }
+                continue;
             }
 
-            // Open { without matching }
-            if (inArgumentPart)
-                result.Add(new FormatExpression("{".AsSpan()));
+            Debug.Assert(!foundOpenBracket);
+            if (!inArgumentPart)
+            {
+                // Handle escaping }
+                if (escaped)
+                {
+                    result.Add(new FormatExpression(
+                        expression.Slice(0, foundIndex + 1)));
+                    expression = expression.Slice(foundIndex + 2);
+                }
+                else
+                {
+                    // Cannot have singular } without opening {
+                    return false;
+                }
+                continue;
+            }
 
-            expressions = result.ToImmutable();
-            return true;
+            // Check sub expression
+            var endIndex = foundIndex;
+            var subExpr = expression.Slice(0, endIndex);
+
+            // Check whether the argument can be resolved to an integer
+            if (!int.TryParse(subExpr.ToString(), out int argument) || argument < 0)
+                return false;
+
+            // Append current argument
+            result.Add(new FormatExpression(argument));
+            expression = expression.Slice(endIndex + 1);
+            inArgumentPart = false;
         }
+
+        // Open { without matching }
+        if (inArgumentPart)
+            result.Add(new FormatExpression("{".AsSpan()));
+
+        expressions = result.ToImmutable();
+        return true;
     }
 }
