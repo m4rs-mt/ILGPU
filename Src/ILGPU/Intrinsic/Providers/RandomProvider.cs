@@ -12,23 +12,23 @@
 using ILGPU.Random;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Extensions;
+using System.Runtime.CompilerServices;
 
-namespace ILGPU.Intrinsic;
+namespace ILGPU.Intrinsic.Providers;
 
 /// <summary>
 /// A view to manage access to RNG providers for first warp lanes.
 /// </summary>
 /// <typeparam name="TRandom">The RNG type.</typeparam>
 /// <param name="View">The underlying linear view.</param>
-readonly record struct FirstLaneRandomProviderView<TRandom>(
-    ArrayView<FirstLaneValue<TRandom>> View) :
-    IIntrinsicProviderView<FirstLaneValue<TRandom>>
+readonly record struct RandomProviderView<TRandom>(ArrayView<TRandom> View) :
+    IIntrinsicProviderView<TRandom>
     where TRandom : unmanaged, IRandomProvider
 {
     /// <summary>
     /// Access the i-th RNG value in this view.
     /// </summary>
-    public ref FirstLaneValue<TRandom> this[long index] => ref View[index];
+    public ref TRandom this[long index] => ref View[index];
 
     /// <summary>
     /// Copies data from the CPU into this view.
@@ -37,16 +37,14 @@ readonly record struct FirstLaneRandomProviderView<TRandom>(
         View.Cast<TRandom>().CopyFromCPU(stream, random);
 }
 
-sealed class FirstLaneRandomProvider<TRandom> :
-    IIntrinsicProvider<FirstLaneValue<TRandom>, FirstLaneRandomProviderView<TRandom>>
+/// <summary>
+/// A RNG instance provider for specific generator types.
+/// </summary>
+/// <typeparam name="TRandom">The RNG type.</typeparam>
+sealed class RandomProvider<TRandom> :
+    IIntrinsicProvider<TRandom, RandomProviderView<TRandom>>
     where TRandom : unmanaged, IRandomProvider<TRandom>
 {
-    /// <summary>
-    /// Returns the for each first thread in warp.
-    /// </summary>
-    public static IntrinsicProviderKind ProviderKind =>
-        IntrinsicProviderKind.ForEachFirstLane;
-
     /// <summary>
     /// Returns true.
     /// </summary>
@@ -60,13 +58,15 @@ sealed class FirstLaneRandomProvider<TRandom> :
     /// <summary>
     /// Allocates a simple 1D buffer to hold all RNGs.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemoryBuffer Allocate(AcceleratorStream stream, long maxExtent) =>
-        stream.Accelerator.Allocate1D<FirstLaneValue<TRandom>>(maxExtent);
+        stream.Allocate1D<FirstLaneValue<TRandom>>(maxExtent);
 
     /// <summary>
     /// Initializes the given buffer using the <see cref="IRandomExtension"/> extension
     /// of the accelerator to initialize data.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Init(AcceleratorStream stream, MemoryBuffer buffer, long extent)
     {
         // Get random extension and initialize random number generators
@@ -79,15 +79,14 @@ sealed class FirstLaneRandomProvider<TRandom> :
     }
 
     /// <summary>
-    /// Returns a new <see cref="FirstLaneRandomProviderView{TRandom}"/>.
+    /// Returns a new <see cref="RandomProviderView{TRandom}"/>.
     /// </summary>
-    public static FirstLaneRandomProviderView<TRandom> GetView(
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RandomProviderView<TRandom> GetView(
         MemoryBuffer buffer,
         long extent)
     {
-        var baseView = buffer.AsArrayView<FirstLaneValue<TRandom>>(
-            0L,
-            extent * Interop.SizeOf<FirstLaneValue<TRandom>>());
+        var baseView = buffer.AsArrayView<TRandom>(0L, extent);
         return new(baseView);
     }
 }
