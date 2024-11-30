@@ -11,7 +11,7 @@
 
 using System;
 
-namespace ILGPU.Intrinsic;
+namespace ILGPU.CodeGeneration;
 
 /// <summary>
 /// Marks methods that act as wrappers around kernel launches.
