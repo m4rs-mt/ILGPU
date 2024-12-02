@@ -1,16 +1,14 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2022 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: UniqueExtensions.cs
+// File: Unique.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Algorithms.ComparisonOperations;
-using ILGPU.Algorithms.Resources;
 using ILGPU.Runtime;
 using System;
 
