@@ -558,27 +558,5 @@ namespace ILGPU.Util
         /// <returns>The required conversion flags.</returns>
         internal static ConvertFlags ToTargetUnsignedFlags(this Type type) =>
             type.IsUnsignedInt() ? ConvertFlags.TargetUnsigned : ConvertFlags.None;
-
-        /// <summary>
-        /// Applies the null-forgiving operator.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T AsNotNull<T>(this T? value)
-            => value!;
-
-        /// <summary>
-        /// Applies the null-forgiving operator.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T AsNotNullCast<T>(this object? value)
-            where T : class
-            => (value as T).AsNotNull();
-
-        /// <summary>
-        /// Throws exception of the value is null.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T ThrowIfNull<T>(this T? value)
-            => value ?? throw new ArgumentNullException(nameof(value));
     }
 }
