@@ -22,364 +22,209 @@ var atomicSignedIntAndFloatTypes = AtomicSignedIntTypes.
 var atomicUnsignedIntAndFloatTypes = AtomicUnsignedIntTypes.
     Concat(AtomicFloatTypes).ToArray();
 #>
-using ILGPU.Frontend.Intrinsic;
-using ILGPU.IR.Values;
-using System;
+using ILGPU.Intrinsic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace ILGPU
+// disable: max_line_length
+
+namespace ILGPU;
+
+partial class Atomic
 {
-    namespace AtomicOperations
-    {
-<#      foreach (var type in AtomicNumericTypes) { #>
-        /// <summary>
-        /// Represents an atomic compare-exchange operation of type <#= type.Type #>.
-        /// </summary>
-        public readonly struct CompareExchange<#= type.Name #> :
-            ICompareExchangeOperation<<#= type.Type #>>
-        {
-            /// <summary>
-            /// Realizes an atomic compare-exchange operation.
-            /// </summary>
-            /// <param name="target">The target location.</param>
-            /// <param name="compare">The expected comparison value.</param>
-            /// <param name="value">The target value.</param>
-            /// <returns>The old value.</returns>
-            public <#= type.Type #> CompareExchange(
-                ref <#= type.Type #> target,
-                <#= type.Type #> compare,
-                <#= type.Type #> value) =>
-                Atomic.CompareExchange(ref target, compare, value);
+    #region Add
 
-            /// <summary>
-            /// Returns true if both operands represent the same value.
-            /// </summary>
-            /// <param name="left">The left operand.</param>
-            /// <param name="right">The right operand.</param>
-            /// <returns>True, if both operands represent the same value.</returns>
-            public bool IsSame(
-                <#= type.Type #> left,
-                <#= type.Type #> right) => left == right;
-        }
+<# foreach (var type in AtomicSignedIntTypes) { #>
+    /// <summary>
+    /// Atomically adds the given value and the value at the target location
+    /// and returns the old value.
+    /// </summary>
+    /// <param name="target">The target location.</param>
+    /// <param name="value">The value to add.</param>
+    /// <returns>The old value that was stored at the target location.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [AtomicIntrinsic]
+    public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        Interlocked.Add(ref target, value) - value;
 
-<#      } #>
-    }
+<# } #>
 
-    public static partial class Atomic
-    {
-        #region Add
+<# foreach (var type in atomicUnsignedIntAndFloatTypes) { #>
+    /// <summary>
+    /// Atomically adds the given value and the value at the target location
+    /// and returns the old value.
+    /// </summary>
+    /// <param name="target">The target location.</param>
+    /// <param name="value">The value to add.</param>
+    /// <returns>The old value that was stored at the target location.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [AtomicIntrinsic]
+    public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        MakeAtomic(
+            ref target,
+            value,
+            static (current, newValue) => current + newValue,
+            CompareExchange);
 
-<#      foreach (var type in AtomicSignedIntTypes) { #>
-        /// <summary>
-        /// Atomically adds the given value and the value at the target location
-        /// and returns the old value.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The value to add.</param>
-        /// <returns>The old value that was stored at the target location.</returns>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.None)]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Add(
-            ref <#= type.Type #> target,
-            <#= type.Type #> value) =>
-            Interlocked.Add(ref target, value) - value;
+<# } #>
 
-<#      } #>
+    #endregion
 
-<#      foreach (var type in atomicUnsignedIntAndFloatTypes) { #>
-        readonly struct Add<#= type.Name #> :
-            AtomicOperations.IAtomicOperation<<#= type.Type #>>
-        {
-            public <#= type.Type #> Operation(
-                <#= type.Type #> current,
-                <#= type.Type #> value) =>
-                current + value;
-        }
+    #region Max
 
-<#      } #>
+<# foreach (var type in AtomicNumericTypes) { #>
+    /// <summary>
+    /// Atomically computes the maximum at the target location with the given value
+    /// and returns the old value that was stored at the target location.
+    /// </summary>
+    /// <param name="target">The target location.</param>
+    /// <param name="value">The comparison value.</param>
+    /// <returns>The old value that was stored at the target location.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [AtomicIntrinsic]
+    public static <#= type.Type #> Max(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        MakeAtomic(
+            ref target,
+            value,
+            static (current, newValue) => XMath.Max(current, newValue),
+            CompareExchange);
 
-<#      foreach (var type in AtomicUnsignedIntTypes) { #>
-        /// <summary>
-        /// Atomically adds the given value and the value at the target location
-        /// and returns the old value.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The value to add.</param>
-        /// <returns>The old value that was stored at the target location.</returns>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.Unsigned)]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Add(
-            ref <#= type.Type #> target,
-            <#= type.Type #> value) =>
-            MakeAtomic(
-                ref target,
-                value,
-                new Add<#= type.Name #>(),
-                new AtomicOperations.CompareExchange<#= type.Name #>());
+<# } #>
 
-<#      } #>
+    #endregion
 
-<#      foreach (var type in AtomicFloatTypes) { #>
-        /// <summary>
-        /// Atomically adds the given value and the value at the target location
-        /// and returns the old value.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The value to add.</param>
-        /// <returns>The old value that was stored at the target location.</returns>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.None)]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Add(
-            ref <#= type.Type #> target,
-            <#= type.Type #> value) =>
-            MakeAtomic(
-                ref target,
-                value,
-                new Add<#= type.Name #>(),
-                new AtomicOperations.CompareExchange<#= type.Name #>());
+    #region Min
 
-<#      } #>
+<# foreach (var type in AtomicNumericTypes) { #>
+    /// <summary>
+    /// Atomically computes the minimum at the target location with the given value
+    /// and returns the old value that was stored at the target location.
+    /// </summary>
+    /// <param name="target">The target location.</param>
+    /// <param name="value">The comparison value.</param>
+    /// <returns>The old value that was stored at the target location.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [AtomicIntrinsic]
+    public static <#= type.Type #> Min(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        MakeAtomic(
+            ref target,
+            value,
+            static (current, newValue) => XMath.Min(current, newValue),
+            CompareExchange);
 
-        #endregion
+<# } #>
 
-        #region Max
+    #endregion
 
-<#      foreach (var type in AtomicNumericTypes) { #>
-        readonly struct Max<#= type.Name #> :
-            AtomicOperations.IAtomicOperation<<#= type.Type #>>
-        {
-            public <#= type.Type #> Operation(
-                <#= type.Type #> current,
-                <#= type.Type #> value) =>
-                IntrinsicMath.Max(current, value);
-        }
+    #region And
 
-        /// <summary>
-        /// Atomically computes the maximum at the target location with the given value
-        /// and returns the old value that was stored at the target location.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The comparison value.</param>
-        /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Max, AtomicFlags.Unsigned)]
-<#      } else if (type.IsInt || type.IsFloat) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Max, AtomicFlags.None)]
-<#      } #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Max(
-            ref <#= type.Type #> target,
-            <#= type.Type #> value) =>
-            MakeAtomic(
-                ref target,
-                value,
-                new Max<#= type.Name #>(),
-                new AtomicOperations.CompareExchange<#= type.Name #>());
+<# foreach (var type in AtomicIntTypes) { #>
+    /// <summary>
+    /// Atomically computes the logical and of the value at the target location with
+    /// the given value and returns the old value that was stored at the target
+    /// location.
+    /// </summary>
+    /// <param name="target">The target location.</param>
+    /// <param name="value">The comparison value.</param>
+    /// <returns>The old value that was stored at the target location.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [AtomicIntrinsic]
+    public static <#= type.Type #> And(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        MakeAtomic(
+            ref target,
+            value,
+            static (current, newValue) => current & newValue,
+            CompareExchange);
 
-<#      } #>
+<# } #>
 
-        #endregion
+    #endregion
 
-        #region Min
+    #region Or
 
-<#      foreach (var type in AtomicNumericTypes) { #>
-        readonly struct Min<#= type.Name #> :
-            AtomicOperations.IAtomicOperation<<#= type.Type #>>
-        {
-            public <#= type.Type #> Operation(
-                <#= type.Type #> current,
-                <#= type.Type #> value) =>
-                IntrinsicMath.Min(current, value);
-        }
+<# foreach (var type in AtomicIntTypes) { #>
+    /// <summary>
+    /// Atomically computes the logical or of the value at the target location with
+    /// the given value and returns the old value that was stored at the target
+    /// location.
+    /// </summary>
+    /// <param name="target">The target location.</param>
+    /// <param name="value">The comparison value.</param>
+    /// <returns>The old value that was stored at the target location.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [AtomicIntrinsic]
+    public static <#= type.Type #> Or(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        MakeAtomic(
+            ref target,
+            value,
+            static (current, newValue) => current | newValue,
+            CompareExchange);
 
-        /// <summary>
-        /// Atomically computes the minimum at the target location with the given value
-        /// and returns the old value that was stored at the target location.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The comparison value.</param>
-        /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Min, AtomicFlags.Unsigned)]
-<#      } else if (type.IsInt || type.IsFloat) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Min, AtomicFlags.None)]
-<#      } #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Min(
-            ref <#= type.Type #> target,
-            <#= type.Type #> value) =>
-            MakeAtomic(
-                ref target,
-                value,
-                new Min<#= type.Name #>(),
-                new AtomicOperations.CompareExchange<#= type.Name #>());
+<# } #>
 
-<#      } #>
+    #endregion
 
-        #endregion
+    #region Xor
 
-        #region And
+<# foreach (var type in AtomicIntTypes) { #>
+    /// <summary>
+    /// Atomically computes the logical xor of the value at the target location with
+    /// the given value and returns the old value that was stored at the target
+    /// location.
+    /// </summary>
+    /// <param name="target">The target location.</param>
+    /// <param name="value">The comparison value.</param>
+    /// <returns>The old value that was stored at the target location.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [AtomicIntrinsic]
+    public static <#= type.Type #> Xor(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        MakeAtomic(
+            ref target,
+            value,
+            static (current, newValue) => current ^ newValue,
+            CompareExchange);
 
-<#      foreach (var type in AtomicIntTypes) { #>
-        readonly struct And<#= type.Name #> :
-            AtomicOperations.IAtomicOperation<<#= type.Type #>>
-        {
-            public <#= type.Type #> Operation(
-                <#= type.Type #> current,
-                <#= type.Type #> value) =>
-                current & value;
-        }
+<# } #>
 
-        /// <summary>
-        /// Atomically computes the logical and of the value at the target location with
-        /// the given value and returns the old value that was stored at the target
-        /// location.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The comparison value.</param>
-        /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.And, AtomicFlags.Unsigned)]
-<#      } else if (type.IsInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.And, AtomicFlags.None)]
-<#      } #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> And(
-            ref <#= type.Type #> target,
-            <#= type.Type #> value) =>
-            MakeAtomic(
-                ref target,
-                value,
-                new And<#= type.Name #>(),
-                new AtomicOperations.CompareExchange<#= type.Name #>());
+    #endregion
 
-<#      } #>
+    #region Exchange
 
-        #endregion
+<# foreach (var type in AtomicSignedIntTypes) { #>
+    /// <summary>
+    /// Represents an atomic exchange operation.
+    /// </summary>
+    /// <param name="target">The target location.</param>
+    /// <param name="value">The target value.</param>
+    /// <returns>The old value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [AtomicIntrinsic]
+    public static <#= type.Type #> Exchange(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        Interlocked.Exchange(ref target, value);
 
-        #region Or
+<# } #>
 
-<#      foreach (var type in AtomicIntTypes) { #>
-        readonly struct Or<#= type.Name #> :
-            AtomicOperations.IAtomicOperation<<#= type.Type #>>
-        {
-            public <#= type.Type #> Operation(
-                <#= type.Type #> current,
-                <#= type.Type #> value) =>
-                current | value;
-        }
+    #endregion
 
-        /// <summary>
-        /// Atomically computes the logical or of the value at the target location with
-        /// the given value and returns the old value that was stored at the target
-        /// location.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The comparison value.</param>
-        /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Or, AtomicFlags.Unsigned)]
-<#      } else if (type.IsInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Or, AtomicFlags.None)]
-<#      } #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Or(
-            ref <#= type.Type #> target,
-            <#= type.Type #> value) =>
-            MakeAtomic(
-                ref target,
-                value,
-                new Or<#= type.Name #>(),
-                new AtomicOperations.CompareExchange<#= type.Name #>());
+    #region Compare & Exchange
 
-<#      } #>
+<# foreach (var type in AtomicSignedIntTypes) { #>
+    /// <summary>
+    /// Represents an atomic compare-exchange operation.
+    /// </summary>
+    /// <param name="target">The target location.</param>
+    /// <param name="compare">The expected comparison value.</param>
+    /// <param name="value">The target value.</param>
+    /// <returns>The old value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [AtomicIntrinsic]
+    public static <#= type.Type #> CompareExchange(
+        ref <#= type.Type #> target,
+        <#= type.Type #> compare,
+        <#= type.Type #> value) =>
+        Interlocked.CompareExchange(ref target, value, compare);
 
-        #endregion
+<# } #>
 
-        #region Xor
-
-<#      foreach (var type in AtomicIntTypes) { #>
-        readonly struct Xor<#= type.Name #> :
-            AtomicOperations.IAtomicOperation<<#= type.Type #>>
-        {
-            public <#= type.Type #> Operation(
-                <#= type.Type #> current,
-                <#= type.Type #> value) =>
-                current ^ value;
-        }
-
-        /// <summary>
-        /// Atomically computes the logical xor of the value at the target location with
-        /// the given value and returns the old value that was stored at the target
-        /// location.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The comparison value.</param>
-        /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Xor, AtomicFlags.Unsigned)]
-<#      } else if (type.IsInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Xor, AtomicFlags.None)]
-<#      } #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Xor(
-            ref <#= type.Type #> target,
-            <#= type.Type #> value) =>
-            MakeAtomic(
-                ref target,
-                value,
-                new Xor<#= type.Name #>(),
-                new AtomicOperations.CompareExchange<#= type.Name #>());
-
-<#      } #>
-
-        #endregion
-
-        #region Exchange
-
-<#      foreach (var type in AtomicSignedIntTypes) { #>
-        /// <summary>
-        /// Represents an atomic exchange operation.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The target value.</param>
-        /// <returns>The old value.</returns>
-<#      if (type.IsUnsignedInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.Unsigned)]
-<#      } else if (type.IsInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.None)]
-<#      } #>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Exchange(
-            ref <#= type.Type #> target,
-            <#= type.Type #> value) =>
-            Interlocked.Exchange(ref target, value);
-
-<#      } #>
-
-        #endregion
-
-        #region Compare & Exchange
-
-<#      foreach (var type in AtomicSignedIntTypes) { #>
-        /// <summary>
-        /// Represents an atomic compare-exchange operation.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="compare">The expected comparison value.</param>
-        /// <param name="value">The target value.</param>
-        /// <returns>The old value.</returns>
-        [AtomicIntrinsic(AtomicIntrinsicKind.CompareExchange, AtomicFlags.None)]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> CompareExchange(
-            ref <#= type.Type #> target,
-            <#= type.Type #> compare,
-            <#= type.Type #> value) =>
-            Interlocked.CompareExchange(ref target, value, compare);
-
-<#      } #>
-
-        #endregion
-    }
+    #endregion
 }
