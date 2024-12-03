@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                           Copyright (c) 2024 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2024-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PermutationExtensions.cs
@@ -9,18 +9,14 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Algorithms.RadixSortOperations;
-using ILGPU.Algorithms.Random;
-using ILGPU.IR.Values;
 using ILGPU.Runtime;
-using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace ILGPU.Algorithms
+namespace ILGPU.Permutation
 {
     #region Delegates
 
