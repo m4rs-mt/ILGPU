@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DisassemblerDriver.cs
@@ -403,7 +403,7 @@ namespace ILGPU.Frontend
                     AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(double));
                     return true;
                 case ILOpCode.Conv_R_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Unsigned, typeof(double));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Unsigned, typeof(float));
                     return true;
                 case ILOpCode.Conv_U1:
                     AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(byte));
