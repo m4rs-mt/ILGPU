@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.CodeGeneration;
-using ILGPU.Intrinsic;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using ILGPU.Vectors;
@@ -256,8 +255,8 @@ public static partial class RandomExtensions
     /// <param name="provider">The random range sampler to use.</param>
     [NotInsideKernel, DelayCodeGeneration, ReplaceWithLauncher]
     public static void FillUniform<T, TRandomProvider>(
-        this ArrayView<T> arrayView,
-        AcceleratorStream stream,
+        this AcceleratorStream stream,
+        ArrayView<T> arrayView,
         RandomRangeProvider<T, TRandomProvider> provider)
         where T : unmanaged
         where TRandomProvider : unmanaged, IRandomProvider<TRandomProvider> =>
