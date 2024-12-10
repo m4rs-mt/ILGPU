@@ -35,3 +35,38 @@ public interface IRadixSortOperation<T> where T : struct
     /// <param name="bitMask">The lower bit mask bit use.</param>
     static abstract int ExtractRadixBits(T value, int shift, int bitMask);
 }
+
+/// <summary>
+/// Represents a single specialization.
+/// </summary>
+public interface IRadixSortSpecialization
+{
+    /// <summary>
+    /// Returns the associated constant unroll factor.
+    /// </summary>
+    static abstract int UnrollFactor { get; }
+
+    /// <summary>
+    /// Returns the number of bits to increment for the
+    /// next radix-sort iteration.
+    /// </summary>
+    static abstract int BitIncrement { get; }
+}
+
+/// <summary>
+/// Provides pre-defined specializations for RadixSort algorithm.
+/// </summary>
+public static class RadixSortSpecializations
+{
+    /// <summary>
+    /// A specialization with unroll factor 4.
+    /// </summary>
+    public readonly struct Specialization4 : IRadixSortSpecialization
+    {
+        /// <inheritdoc cref="IRadixSortSpecialization.UnrollFactor"/>
+        public static int UnrollFactor => 4;
+
+        /// <inheritdoc cref="IRadixSortSpecialization.BitIncrement"/>
+        public static int BitIncrement => 2;
+    }
+}
