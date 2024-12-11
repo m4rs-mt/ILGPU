@@ -10,8 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Intrinsic;
-using ILGPU.Runtime;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU;
 
@@ -46,12 +46,17 @@ public static partial class Grid
     /// Returns the linear thread index of the current thread within the current
     /// thread grid.
     /// </summary>
-    public static long GlobalIndex => Index * Group.Dimension + Group.Index;
+    public static long GlobalThreadIndex => Index * Group.Dimension + Group.Index;
 
     /// <summary>
     /// Returns the loop stride for a grid-stride loop.
     /// </summary>
     public static long GridStrideLoopStride => Dimension * Group.Dimension;
+
+    /// <summary>
+    /// Returns true if this is the first group in the thread grid.
+    /// </summary>
+    public static bool IsFirstGroup => Index == 0;
 
     #endregion
 
@@ -60,13 +65,15 @@ public static partial class Grid
     /// <summary>
     /// Performs a grid-stride loop.
     /// </summary>
-    /// <param name="length">The global length.</param>
+    /// <param name="numIterationsPerGroup">Number of iterations per group.</param>
     /// <param name="loopBody">The loop body.</param>
-    public static void GridStrideLoop(long length, Action<long> loopBody)
+    public static void GridStrideLoop(int numIterationsPerGroup, Action<long> loopBody)
     {
-        long stride = GridStrideLoopStride;
-        for (long idx = GlobalIndex; idx < length; idx += stride)
-            loopBody(idx);
+        for (int i = 0; i < numIterationsPerGroup; ++i)
+        {
+            long index = GlobalThreadIndex + i * GridStrideLoopStride;
+            loopBody(index);
+        }
     }
 
     /// <summary>
@@ -74,29 +81,50 @@ public static partial class Grid
     /// using the maximum number of threads per group to launch common grid-stride
     /// loop kernels.
     /// </summary>
-    /// <param name="accelerator">The accelerator.</param>
+    /// <param name="kernelSize">The maximum kernel dimension.</param>
     /// <param name="numDataElements">
     /// The number of parallel data elements to process.
     /// </param>
     /// <param name="numIterationsPerGroup">
     /// The number of loop iterations per group.
     /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [NotInsideKernel]
-    public static (Index1D, Index1D) ComputeGridStrideLoopExtent(
-        this Accelerator accelerator,
-        Index1D numDataElements,
+    public static KernelConfig ComputeGridStrideKernelConfig(
+        this KernelSize kernelSize,
+        long numDataElements,
         out int numIterationsPerGroup)
     {
-        var (gridDim, groupDim) = accelerator.MaxNumGroupsExtent;
+        if (numDataElements < 1)
+            throw new ArgumentOutOfRangeException(nameof(numDataElements));
 
-        var numParallelGroups = XMath.DivRoundUp(numDataElements, groupDim);
-        var dimension = XMath.Min(gridDim, numParallelGroups);
+        var numParallelGroups = XMath.DivRoundUp(
+            numDataElements,
+            kernelSize.GroupSize);
+        long dimension = XMath.Min(kernelSize.GridSize, numParallelGroups);
 
-        numIterationsPerGroup =
-            XMath.DivRoundUp(numDataElements, dimension * groupDim);
+        numIterationsPerGroup = (int)XMath.DivRoundUp(
+            numDataElements,
+            dimension * kernelSize.GroupSize);
 
-        return (dimension, groupDim);
+        return (dimension, kernelSize.GroupSize);
     }
+
+    #endregion
+
+    #region Memory Fence
+
+    /// <summary>
+    /// A memory fence at the device level.
+    /// </summary>
+    [GridIntrinsic]
+    public static void MemoryFence() => throw new InvalidKernelOperationException();
+
+    /// <summary>
+    /// A memory fence at the system level.
+    /// </summary>
+    [GridIntrinsic]
+    public static void SystemMemoryFence() => throw new InvalidKernelOperationException();
 
     #endregion
 }
