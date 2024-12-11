@@ -24,6 +24,11 @@ public enum IntrinsicType : int
     Accelerator,
 
     /// <summary>
+    /// A backend intrinsic.
+    /// </summary>
+    Backend,
+
+    /// <summary>
     /// An atomic intrinsic.
     /// </summary>
     Atomic,
@@ -57,20 +62,6 @@ public enum IntrinsicType : int
     /// A math intrinsic.
     /// </summary>
     Math,
-    /// <summary>
-    /// A memory fence intrinsic.
-    /// </summary>
-    MemoryFence,
-
-    /// <summary>
-    /// A shared memory intrinsic.
-    /// </summary>
-    SharedMemory,
-
-    /// <summary>
-    /// A local memory intrinsic.
-    /// </summary>
-    LocalMemory,
 
     /// <summary>
     /// A view intrinsic.
