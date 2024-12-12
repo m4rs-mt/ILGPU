@@ -21,9 +21,6 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <LangVersion>11.0</LangVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <LangVersion>12.0</LangVersion>
   </PropertyGroup>
 
@@ -58,21 +55,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>AtomicFunctions.tt</DependentUpon>
     </None>
-    <None Include="Backends\PTX\PTXIntrinsics.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
-    </None>
-    <None Include="Backends\Velocity\Scalar\ScalarOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ScalarOperations.tt</DependentUpon>
-    </None>
-    <None Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
-    </None>
     <None Include="IndexTypes.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -83,20 +65,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Interop.Generated.tt</DependentUpon>
     </None>
-    <None Include="IntrinsicMath.CPUOnly.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
-    </None>
     <None Include="HalfConversion.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>HalfConversion.tt</DependentUpon>
-    </None>
-    <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
     </None>
     <None Include="Runtime\Cuda\CudaArchitecture.Generated.cs">
       <DesignTime>True</DesignTime>
@@ -138,16 +110,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>MemoryBuffers.tt</DependentUpon>
     </None>
-    <None Include="IR\Construction\CompareOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CompareOperations.tt</DependentUpon>
-    </None>
-    <None Include="IR\Construction\ArithmeticOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ArithmeticOperations.tt</DependentUpon>
-    </None>
     <None Include="Resources\ErrorMessages.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -173,6 +135,18 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
     </None>
+    <None Update="FixedPrecision\FixedIntConfig.ttinclude">
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+      <LastGenOutput>FixedIntConfig.cs</LastGenOutput>
+    </None>
+    <None Update="FixedPrecision\FixedInts.tt">
+      <LastGenOutput>FixedInts.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="RadixSort\RadixSortOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Cuda\CudaArchitecture.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CudaArchitecture.Generated.cs</LastGenOutput>
@@ -185,29 +159,78 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CudaInstructionSet.Generated.cs</LastGenOutput>
     </None>
+    <None Include="Runtime\Cuda\API\CuRandNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
+    </None>
+    <None Update="Runtime\Cuda\API\CuFFTAPI.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTAPI.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuFFTNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuFFTWAPI.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTWAPI.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuFFTWNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTWNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\NvJpegNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>NvJpegNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\NvmlNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>NvmlNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasMethodsLevel1.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasMethodsLevel1.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasMethodsLevel2.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasMethodsLevel2.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasMethodsLevel3.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasMethodsLevel3.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuBlasNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\API\CuRandNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuRandNativeMethods.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuFFTPlan.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTPlan.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuFFTW.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTW.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuFFTWPlan.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuFFTWPlan.cs</LastGenOutput>
+    </None>
+    <None Update="ScanReduce\ScanReduceOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ScanReduceOperations.cs</LastGenOutput>
+    </None>
+    <None Update="Vectors\VectorTypes.tt">
+      <LastGenOutput>VectorTypes.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Backends\PTX\PTXLibDeviceMethods.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>PTXLibDeviceMethods.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Backends\PTX\PTXLibDeviceNvvm.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>PTXLibDeviceNvvm.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Backends\Velocity\Scalar\ScalarOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ScalarOperations.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Memory.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Memory.tt</DependentUpon>
-    </Compile>
     <Compile Update="Runtime\ArrayViews.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -222,16 +245,6 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>AtomicFunctions.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Backends\PTX\PTXIntrinsics.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="IndexTypes.cs">
       <DesignTime>True</DesignTime>
@@ -248,20 +261,20 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
     </Compile>
+    <Compile Update="FixedPrecision\FixedInts.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FixedInts.tt</DependentUpon>
+    </Compile>
     <Compile Update="HalfConversion.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>HalfConversion.tt</DependentUpon>
     </Compile>
-    <Compile Update="IR\Intrinsics\IntrinsicMatchers.cs">
+    <Compile Update="RadixSort\RadixSortOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
-    </Compile>
-    <Compile Update="IR\Types\ValueTuples.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ValueTuples.tt</DependentUpon>
+      <DependentUpon>RadixSortOperations.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\Cuda\CudaArchitecture.Generated.cs">
       <DesignTime>True</DesignTime>
@@ -283,10 +296,80 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>CudaInstructionSet.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="Runtime\Cuda\LibDevice.cs">
+    <Compile Update="Runtime\Cuda\API\CuFFTAPI.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>LibDevice.tt</DependentUpon>
+      <DependentUpon>CuFFTAPI.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTWAPI.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTWAPI.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuFFTWNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTWNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\NvJpegNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>NvJpegNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\NvmlNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>NvmlNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasMethodsLevel1.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasMethodsLevel1.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasMethodsLevel2.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasMethodsLevel2.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasMethodsLevel3.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasMethodsLevel3.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuBlasNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\API\CuRandNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuRandNativeMethods.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuFFTPlan.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTPlan.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuFFTW.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTW.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuFFTWPlan.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuFFTWPlan.tt</DependentUpon>
+    </Compile>
+    <Compile Update="ScanReduce\ScanReduceOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ScanReduceOperations.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\MemoryBuffers.cs">
       <DesignTime>True</DesignTime>
@@ -307,16 +390,6 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>KernelLoaders.tt</DependentUpon>
-    </Compile>
-    <Compile Update="IR\Construction\CompareOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CompareOperations.tt</DependentUpon>
-    </Compile>
-    <Compile Update="IR\Construction\ArithmeticOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ArithmeticOperations.tt</DependentUpon>
     </Compile>
     <Compile Update="Resources\ErrorMessages.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -353,16 +426,13 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
     </Compile>
+    <Compile Update="Vectors\VectorTypes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>VectorTypes.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Update="Backends\PTX\PTXLibDeviceNvvm.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>PTXLibDeviceNvvm.cs</LastGenOutput>
-    </None>
-    <None Update="Backends\PTX\PTXLibDeviceMethods.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>PTXLibDeviceMethods.cs</LastGenOutput>
-    </None>
     <None Update="Runtime\ArrayViews.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ArrayViews.cs</LastGenOutput>
@@ -375,14 +445,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AtomicFunctions.cs</LastGenOutput>
     </None>
-    <None Update="Backends\PTX\PTXIntrinsics.Generated.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>PTXIntrinsics.Generated.cs</LastGenOutput>
-    </None>
-    <None Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
-    </None>
     <None Update="IndexTypes.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>IndexTypes.cs</LastGenOutput>
@@ -391,29 +453,9 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Interop.Generated.cs</LastGenOutput>
     </None>
-    <None Update="IntrinsicMath.CPUOnly.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>IntrinsicMath.CPUOnly.cs</LastGenOutput>
-    </None>
     <None Update="HalfConversion.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>HalfConversion.cs</LastGenOutput>
-    </None>
-    <None Update="IR\Construction\CompareOperations.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>CompareOperations.cs</LastGenOutput>
-    </None>
-    <None Update="IR\Construction\ArithmeticOperations.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>ArithmeticOperations.cs</LastGenOutput>
-    </None>
-    <None Update="IR\Intrinsics\IntrinsicMatchers.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>IntrinsicMatchers.cs</LastGenOutput>
-    </None>
-    <None Update="IR\Types\ValueTuples.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>ValueTuples.cs</LastGenOutput>
     </None>
     <None Update="Runtime\Cuda\CudaAsm.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -443,10 +485,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
     </None>
-    <None Update="Memory.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Memory.cs</LastGenOutput>
-    </None>
     <None Update="Static\CapabilitiesImporter.ttinclude">
       <Generator></Generator>
     </None>
@@ -470,9 +508,6 @@
       <LastGenOutput>DataBlocks.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources\ErrorMessages.resx">
