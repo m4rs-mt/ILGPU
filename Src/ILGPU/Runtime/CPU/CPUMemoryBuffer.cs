@@ -98,8 +98,8 @@ namespace ILGPU.Runtime.CPU
                 case AcceleratorType.Velocity:
                     break;
                 default:
-                throw new NotSupportedException(
-                    RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                    throw new NotSupportedException(
+                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
             if (sourceView.Length > targetView.Length)
                 throw new ArgumentOutOfRangeException(nameof(sourceView));
