@@ -1,9 +1,9 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: CPUContextExtensions.cs
+// File: DebugContextExtensions.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
@@ -12,172 +12,155 @@
 using System;
 using System.Threading;
 
-namespace ILGPU.Runtime.CPU
+namespace ILGPU.Runtime.Debugging;
+
+/// <summary>
+/// Debugging specific context extensions.
+/// </summary>
+public static class DebugContextExtensions
 {
+    #region Builder
+
     /// <summary>
-    /// CPU specific context extensions.
+    /// Enables the default debug device (see <see cref="DebugDevice.Default"/>).
     /// </summary>
-    public static class CPUContextExtensions
+    /// <param name="builder">The builder instance.</param>
+    /// <returns>The updated builder instance.</returns>
+    public static Context.Builder DefaultDebug(this Context.Builder builder) =>
+        builder.Debug(DebugDeviceKind.Default);
+
+    /// <summary>
+    /// Enables a debug device of the given kind.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <param name="kind">The CPU device kind.</param>
+    /// <returns>The updated builder instance.</returns>
+    public static Context.Builder Debug(
+        this Context.Builder builder,
+        DebugDeviceKind kind)
     {
-        #region Builder
-
-        /// <summary>
-        /// Enables the default CPU device (see <see cref="CPUDevice.Default"/>).
-        /// </summary>
-        /// <param name="builder">The builder instance.</param>
-        /// <returns>The updated builder instance.</returns>
-        public static Context.Builder DefaultCPU(this Context.Builder builder) =>
-            builder.CPU(CPUDeviceKind.Default);
-
-        /// <summary>
-        /// Enables a CPU device of the given kind.
-        /// </summary>
-        /// <param name="builder">The builder instance.</param>
-        /// <param name="kind">The CPU device kind.</param>
-        /// <returns>The updated builder instance.</returns>
-        public static Context.Builder CPU(
-            this Context.Builder builder,
-            CPUDeviceKind kind)
-        {
-            builder.DeviceRegistry.Register(CPUDevice.GetDevice(kind));
-            return builder;
-        }
-
-        /// <summary>
-        /// Enables a CPU device of the given kind.
-        /// </summary>
-        /// <param name="builder">The builder instance.</param>
-        /// <param name="device">The custom CPU device.</param>
-        /// <returns>The updated builder instance.</returns>
-        public static Context.Builder CPU(
-            this Context.Builder builder,
-            CPUDevice device)
-        {
-            builder.DeviceRegistry.Register(device);
-            return builder;
-        }
-
-        /// <summary>
-        /// Enables all CPU devices.
-        /// </summary>
-        /// <param name="builder">The builder instance.</param>
-        /// <returns>The updated builder instance.</returns>
-        public static Context.Builder CPU(this Context.Builder builder) =>
-            builder.CPU(desc => true);
-
-        /// <summary>
-        /// Enables all CPU devices.
-        /// </summary>
-        /// <param name="builder">The builder instance.</param>
-        /// <param name="predicate">
-        /// The predicate to include a given device.
-        /// </param>
-        /// <returns>The updated builder instance.</returns>
-        public static Context.Builder CPU(
-            this Context.Builder builder,
-            Predicate<CPUDevice> predicate)
-        {
-            CPUDevice.GetDevices(
-                predicate,
-                builder.DeviceRegistry);
-            return builder;
-        }
-
-        #endregion
-
-        #region Context
-
-        /// <summary>
-        /// Returns the implicitly created CPU accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <returns>
-        /// The implicitly defined CPU accelerator with 0 threads per warp, 0 warps per
-        /// MP and 0 MPs.
-        /// </returns>
-        /// <remarks>
-        /// CAUTION: This accelerator is not intended for simulation purposes.
-        /// </remarks>
-        public static CPUAccelerator GetImplicitCPUAccelerator(this Context context) =>
-            context.CPUAccelerator;
-
-        /// <summary>
-        /// Gets the i-th registered CPU device.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="cpuDeviceIndex">
-        /// The relative device index for the CPU device. 0 here refers to the first
-        /// CPU device, 1 to the second, etc.
-        /// </param>
-        /// <returns>The registered CPU device.</returns>
-        public static CPUDevice GetCPUDevice(
-            this Context context,
-            int cpuDeviceIndex) =>
-            context.GetDevice<CPUDevice>(cpuDeviceIndex);
-
-        /// <summary>
-        /// Gets all registered CPU devices.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <returns>All registered CPU devices.</returns>
-        public static Context.DeviceCollection<CPUDevice> GetCPUDevices(
-            this Context context) =>
-            context.GetDevices<CPUDevice>();
-
-        /// <summary>
-        /// Creates a new CPU accelerator using <see cref="CPUAcceleratorMode.Auto"/>
-        /// and default thread priority.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="cpuDeviceIndex">
-        /// The relative device index for the CPU device. 0 here refers to the first
-        /// CPU device, 1 to the second, etc.
-        /// </param>
-        /// <returns>The created CPU accelerator.</returns>
-        public static CPUAccelerator CreateCPUAccelerator(
-            this Context context,
-            int cpuDeviceIndex) =>
-            context.GetCPUDevice(cpuDeviceIndex)
-                .CreateCPUAccelerator(context);
-
-        /// <summary>
-        /// Creates a new CPU accelerator with default thread priority.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="cpuDeviceIndex">
-        /// The relative device index for the CPU device. 0 here refers to the first
-        /// CPU device, 1 to the second, etc.
-        /// </param>
-        /// <param name="mode">The CPU accelerator mode.</param>
-        /// <returns>The created CPU accelerator.</returns>
-        public static CPUAccelerator CreateCPUAccelerator(
-            this Context context,
-            int cpuDeviceIndex,
-            CPUAcceleratorMode mode) =>
-            context.GetCPUDevice(cpuDeviceIndex)
-                .CreateCPUAccelerator(context, mode);
-
-        /// <summary>
-        /// Creates a new CPU accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="cpuDeviceIndex">
-        /// The relative device index for the CPU device. 0 here refers to the first
-        /// CPU device, 1 to the second, etc.
-        /// </param>
-        /// <param name="mode">The CPU accelerator mode.</param>
-        /// <param name="threadPriority">
-        /// The thread priority of the execution threads.
-        /// </param>
-        /// <returns>The created CPU accelerator.</returns>
-        public static CPUAccelerator CreateCPUAccelerator(
-            this Context context,
-            int cpuDeviceIndex,
-            CPUAcceleratorMode mode,
-            ThreadPriority threadPriority) =>
-            context.GetCPUDevice(cpuDeviceIndex)
-                .CreateCPUAccelerator(context, mode, threadPriority);
-
-        #endregion
+        builder.DeviceRegistry.Register(DebugDevice.GetDevice(kind));
+        return builder;
     }
+
+    /// <summary>
+    /// Enables a debug device of the given kind.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <param name="device">The custom CPU device.</param>
+    /// <returns>The updated builder instance.</returns>
+    public static Context.Builder Debug(
+        this Context.Builder builder,
+        DebugDevice device)
+    {
+        builder.DeviceRegistry.Register(device);
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables all debug devices.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <returns>The updated builder instance.</returns>
+    public static Context.Builder Debug(this Context.Builder builder) =>
+        builder.Debug(static _ => true);
+
+    /// <summary>
+    /// Enables all CPU devices.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <param name="predicate">
+    /// The predicate to include a given device.
+    /// </param>
+    /// <returns>The updated builder instance.</returns>
+    public static Context.Builder Debug(
+        this Context.Builder builder,
+        Predicate<DebugDevice> predicate)
+    {
+        DebugDevice.GetDevices(predicate, builder.DeviceRegistry);
+        return builder;
+    }
+
+    #endregion
+
+    #region Context
+
+    /// <summary>
+    /// Gets the i-th registered debug device.
+    /// </summary>
+    /// <param name="context">The ILGPU context.</param>
+    /// <param name="debugDeviceIndex">
+    /// The relative device index for the debug device. 0 here refers to the first
+    /// debug device, 1 to the second, etc.
+    /// </param>
+    /// <returns>The registered debug device.</returns>
+    public static DebugDevice GetDebugDevice(
+        this Context context,
+        int debugDeviceIndex) =>
+        context.GetDevice<DebugDevice>(debugDeviceIndex);
+
+    /// <summary>
+    /// Gets all registered debug devices.
+    /// </summary>
+    /// <param name="context">The ILGPU context.</param>
+    /// <returns>All registered debug devices.</returns>
+    public static Context.DeviceCollection<DebugDevice> GetDebugDevices(
+        this Context context) =>
+        context.GetDevices<DebugDevice>();
+
+    /// <summary>
+    /// Creates a new debug accelerator using <see cref="DebugAccelerationMode.Auto"/>
+    /// and default thread priority.
+    /// </summary>
+    /// <param name="context">The ILGPU context.</param>
+    /// <param name="debugDeviceIndex">
+    /// The relative device index for the debug device. 0 here refers to the first
+    /// debug device, 1 to the second, etc.
+    /// </param>
+    /// <returns>The created debug accelerator.</returns>
+    public static DebugAccelerator CreateDebugAccelerator(
+        this Context context,
+        int debugDeviceIndex) => context
+            .GetDebugDevice(debugDeviceIndex)
+            .CreateDebugAccelerator(context);
+
+    /// <summary>
+    /// Creates a new CPU accelerator with default thread priority.
+    /// </summary>
+    /// <param name="context">The ILGPU context.</param>
+    /// <param name="debugDeviceIndex">
+    /// The relative device index for the CPU device. 0 here refers to the first
+    /// CPU device, 1 to the second, etc.
+    /// </param>
+    /// <param name="mode">The CPU accelerator mode.</param>
+    /// <returns>The created CPU accelerator.</returns>
+    public static DebugAccelerator CreateDebugAccelerator(
+        this Context context,
+        int debugDeviceIndex,
+        DebugAccelerationMode mode) => context
+            .GetDebugDevice(debugDeviceIndex)
+            .CreateDebugAccelerator(context, mode);
+
+    /// <summary>
+    /// Creates a new CPU accelerator.
+    /// </summary>
+    /// <param name="context">The ILGPU context.</param>
+    /// <param name="debugDeviceIndex">
+    /// The relative device index for the CPU device. 0 here refers to the first
+    /// CPU device, 1 to the second, etc.
+    /// </param>
+    /// <param name="mode">The CPU accelerator mode.</param>
+    /// <param name="threadPriority">
+    /// The thread priority of the execution threads.
+    /// </param>
+    /// <returns>The created CPU accelerator.</returns>
+    public static DebugAccelerator CreateDebugAccelerator(
+        this Context context,
+        int debugDeviceIndex,
+        DebugAccelerationMode mode,
+        ThreadPriority threadPriority) => context
+            .GetDebugDevice(debugDeviceIndex)
+            .CreateDebugAccelerator(context, mode, threadPriority);
+
+    #endregion
 }
