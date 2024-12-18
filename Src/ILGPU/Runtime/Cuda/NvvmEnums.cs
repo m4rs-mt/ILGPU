@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvvmEnums.cs
@@ -11,21 +11,20 @@
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace ILGPU.Runtime.Cuda
+namespace ILGPU.Runtime.Cuda.Nvvm;
+
+public enum NvvmResult
 {
-    public enum NvvmResult
-    {
-        NVVM_SUCCESS = 0,
-        NVVM_ERROR_OUT_OF_MEMORY = 1,
-        NVVM_ERROR_PROGRAM_CREATION_FAILURE = 2,
-        NVVM_ERROR_IR_VERSION_MISMATCH = 3,
-        NVVM_ERROR_INVALID_INPUT = 4,
-        NVVM_ERROR_INVALID_PROGRAM = 5,
-        NVVM_ERROR_INVALID_IR = 6,
-        NVVM_ERROR_INVALID_OPTION = 7,
-        NVVM_ERROR_NO_MODULE_IN_PROGRAM = 8,
-        NVVM_ERROR_COMPILATION = 9
-    }
+    NVVM_SUCCESS = 0,
+    NVVM_ERROR_OUT_OF_MEMORY = 1,
+    NVVM_ERROR_PROGRAM_CREATION_FAILURE = 2,
+    NVVM_ERROR_IR_VERSION_MISMATCH = 3,
+    NVVM_ERROR_INVALID_INPUT = 4,
+    NVVM_ERROR_INVALID_PROGRAM = 5,
+    NVVM_ERROR_INVALID_IR = 6,
+    NVVM_ERROR_INVALID_OPTION = 7,
+    NVVM_ERROR_NO_MODULE_IN_PROGRAM = 8,
+    NVVM_ERROR_COMPILATION = 9
 }
 
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
