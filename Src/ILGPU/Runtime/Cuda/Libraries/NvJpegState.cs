@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvJpegState.cs
@@ -13,42 +13,41 @@ using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 
-namespace ILGPU.Runtime.Cuda
+namespace ILGPU.Runtime.Cuda.Libraries;
+
+/// <summary>
+/// Represents an NvJpeg state.
+/// </summary>
+public sealed partial class NvJpegState : DisposeBase
 {
     /// <summary>
-    /// Represents an NvJpeg state.
+    /// Constructs a new instance to wrap an NvJpeg state.
     /// </summary>
-    public sealed partial class NvJpegState : DisposeBase
+    public NvJpegState(NvJpegAPI api, IntPtr stateHandle)
     {
-        /// <summary>
-        /// Constructs a new instance to wrap an NvJpeg state.
-        /// </summary>
-        public NvJpegState(NvJpegAPI api, IntPtr stateHandle)
+        API = api;
+        StateHandle = stateHandle;
+    }
+
+    /// <summary>
+    /// The underlying API wrapper.
+    /// </summary>
+    public NvJpegAPI API { get; }
+
+    /// <summary>
+    /// The native handle.
+    /// </summary>
+    public IntPtr StateHandle { get; private set; }
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
         {
-            API = api;
-            StateHandle = stateHandle;
+            NvJpegException.ThrowIfFailed(
+                API.JpegStateDestroy(StateHandle));
+            StateHandle = IntPtr.Zero;
         }
-
-        /// <summary>
-        /// The underlying API wrapper.
-        /// </summary>
-        public NvJpegAPI API { get; }
-
-        /// <summary>
-        /// The native handle.
-        /// </summary>
-        public IntPtr StateHandle { get; private set; }
-
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                NvJpegException.ThrowIfFailed(
-                    API.JpegStateDestroy(StateHandle));
-                StateHandle = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
-        }
+        base.Dispose(disposing);
     }
 }
