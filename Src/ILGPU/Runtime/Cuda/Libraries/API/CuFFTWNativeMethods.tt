@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTWNativeMethods.tt/CuFFTWNativeMethods.cs
@@ -11,12 +11,13 @@
 
 <#@ template debug="false" hostspecific="true" language="C#" #>
 <#@ assembly name="System.Core" #>
-<#@ include file="../../../../ILGPU/Static/DllLibraryImporter.ttinclude" #>
+<#@ include file="../../../../Static/DllLibraryImporter.ttinclude" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Text.RegularExpressions" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
+using ILGPU.Runtime.Cuda.Libraries;
 using System;
 using System.Runtime.InteropServices;
 
