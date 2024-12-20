@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTAPI.Generated.tt/CuFFTAPI.Generated.cs
@@ -17,81 +17,81 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 
+using ILGPU.Runtime.Cuda.Libraries;
 using ILGPU.Util;
 using System;
 using System.Numerics;
 
-namespace ILGPU.Runtime.Cuda.API
+namespace ILGPU.Runtime.Cuda.API;
+
+partial class CuFFTAPI
 {
-    partial class CuFFTAPI
-    {
-        #region Execution
+    #region Execution
 
 <#
-    foreach (var (displayName, transformCode) in InputCombinations) {
-        foreach (var inputType in InputTypes) {
-            foreach (var complexType in inputType.ComplexTypes) {
-                if (transformCode == inputType.TypeCodeC2C) {
+foreach (var (displayName, transformCode) in InputCombinations) {
+    foreach (var inputType in InputTypes) {
+        foreach (var complexType in inputType.ComplexTypes) {
+            if (transformCode == inputType.TypeCodeC2C) {
 #>
-        /// <summary>
-        /// Executes the plan on the given arrays - <#= displayName #>.
-        /// </summary>
-        /// <param name="plan">The plan handle.</param>
-        /// <param name="in">The input array.</param>
-        /// <param name="out">The output array.</param>
-        /// <param name="direction">The transform direction.</param>
-        /// <returns>The error code.</returns>
-        public CuFFTResult Exec<#= transformCode #>(
-            IntPtr plan,
-            ArrayView<<#= complexType #>> @in,
-            ArrayView<<#= complexType #>> @out,
-            CuFFTDirection direction) =>
-            Exec<#= transformCode #>(
-                plan,
-                @in.LoadEffectiveAddressAsPtr(),
-                @out.LoadEffectiveAddressAsPtr(),
-                direction);
+    /// <summary>
+    /// Executes the plan on the given arrays - <#= displayName #>.
+    /// </summary>
+    /// <param name="plan">The plan handle.</param>
+    /// <param name="in">The input array.</param>
+    /// <param name="out">The output array.</param>
+    /// <param name="direction">The transform direction.</param>
+    /// <returns>The error code.</returns>
+    public CuFFTResult Exec<#= transformCode #>(
+        IntPtr plan,
+        ArrayView<<#= complexType #>> @in,
+        ArrayView<<#= complexType #>> @out,
+        CuFFTDirection direction) =>
+        Exec<#= transformCode #>(
+            plan,
+            @in.LoadEffectiveAddressAsPtr(),
+            @out.LoadEffectiveAddressAsPtr(),
+            direction);
 
 <#              } else if (transformCode == inputType.TypeCodeC2R) { #>
-        /// <summary>
-        /// Executes the plan on the given arrays - <#= displayName #>.
-        /// </summary>
-        /// <param name="plan">The plan handle.</param>
-        /// <param name="in">The input array.</param>
-        /// <param name="out">The output array.</param>
-        /// <returns>The error code.</returns>
-        public CuFFTResult Exec<#= transformCode #>(
-            IntPtr plan,
-            ArrayView<<#= complexType #>> @in,
-            ArrayView<<#= inputType.RealType #>> @out) =>
-            Exec<#= transformCode #>(
-                plan,
-                @in.LoadEffectiveAddressAsPtr(),
-                @out.LoadEffectiveAddressAsPtr());
+    /// <summary>
+    /// Executes the plan on the given arrays - <#= displayName #>.
+    /// </summary>
+    /// <param name="plan">The plan handle.</param>
+    /// <param name="in">The input array.</param>
+    /// <param name="out">The output array.</param>
+    /// <returns>The error code.</returns>
+    public CuFFTResult Exec<#= transformCode #>(
+        IntPtr plan,
+        ArrayView<<#= complexType #>> @in,
+        ArrayView<<#= inputType.RealType #>> @out) =>
+        Exec<#= transformCode #>(
+            plan,
+            @in.LoadEffectiveAddressAsPtr(),
+            @out.LoadEffectiveAddressAsPtr());
 
 <#              } else if (transformCode == inputType.TypeCodeR2C) { #>
-        /// <summary>
-        /// Executes the plan on the given arrays - <#= displayName #>.
-        /// </summary>
-        /// <param name="plan">The plan handle.</param>
-        /// <param name="in">The input array.</param>
-        /// <param name="out">The output array.</param>
-        /// <returns>The error code.</returns>
-        public CuFFTResult Exec<#= transformCode #>(
-            IntPtr plan,
-            ArrayView<<#= inputType.RealType #>> @in,
-            ArrayView<<#= complexType #>> @out) =>
-            Exec<#= transformCode #>(
-                plan,
-                @in.LoadEffectiveAddressAsPtr(),
-                @out.LoadEffectiveAddressAsPtr());
+    /// <summary>
+    /// Executes the plan on the given arrays - <#= displayName #>.
+    /// </summary>
+    /// <param name="plan">The plan handle.</param>
+    /// <param name="in">The input array.</param>
+    /// <param name="out">The output array.</param>
+    /// <returns>The error code.</returns>
+    public CuFFTResult Exec<#= transformCode #>(
+        IntPtr plan,
+        ArrayView<<#= inputType.RealType #>> @in,
+        ArrayView<<#= complexType #>> @out) =>
+        Exec<#= transformCode #>(
+            plan,
+            @in.LoadEffectiveAddressAsPtr(),
+            @out.LoadEffectiveAddressAsPtr());
 
 <#
-                }
             }
         }
     }
+}
 #>
-        #endregion
-    }
+    #endregion
 }
