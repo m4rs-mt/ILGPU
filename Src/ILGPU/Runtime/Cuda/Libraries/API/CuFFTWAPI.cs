@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTWAPI.cs
@@ -11,59 +11,57 @@
 
 using System;
 
-namespace ILGPU.Runtime.Cuda.API
+namespace ILGPU.Runtime.Cuda.API;
+
+/// <summary>
+/// An implementation of the cuFFT API.
+/// </summary>
+public abstract partial class CuFFTWAPI
 {
+    #region Static
+
     /// <summary>
-    /// An implementation of the cuFFT API.
+    /// Creates a new API wrapper.
     /// </summary>
-    public abstract partial class CuFFTWAPI
+    /// <param name="version">The cuFFT version to use.</param>
+    /// <returns>The created API wrapper.</returns>
+    public static CuFFTWAPI Create(CuFFTWAPIVersion? version) =>
+        version.HasValue
+        ? CreateInternal(version.Value)
+            ?? throw new DllNotFoundException(nameof(CuFFTWAPI))
+        : CreateLatest();
+
+    /// <summary>
+    /// Creates a new API wrapper using the latest installed version.
+    /// </summary>
+    /// <returns>The created API wrapper.</returns>
+    private static CuFFTWAPI CreateLatest()
     {
-        #region Static
-
-        /// <summary>
-        /// Creates a new API wrapper.
-        /// </summary>
-        /// <param name="version">The cuFFT version to use.</param>
-        /// <returns>The created API wrapper.</returns>
-        public static CuFFTWAPI Create(CuFFTWAPIVersion? version) =>
-            version.HasValue
-            ? CreateInternal(version.Value)
-                ?? throw new DllNotFoundException(nameof(CuFFTWAPI))
-            : CreateLatest();
-
-        /// <summary>
-        /// Creates a new API wrapper using the latest installed version.
-        /// </summary>
-        /// <returns>The created API wrapper.</returns>
-        private static CuFFTWAPI CreateLatest()
+        Exception? firstException = null;
+        var versions = Enum.GetValues<CuFFTWAPIVersion>();
+        for (var i = versions.Length - 1; i >= 0; i--)
         {
-            Exception? firstException = null;
-            var versions = Enum.GetValues<CuFFTWAPIVersion>();
-            for (var i = versions.Length - 1; i >= 0; i--)
+            var version = versions[i];
+            var api = CreateInternal(version);
+            if (api is null)
+                continue;
+
+            try
             {
-                var version = versions[i];
-                var api = CreateInternal(version);
-                if (api is null)
-                    continue;
-
-                try
-                {
-                    var ptr = api.malloc(new IntPtr(1));
-                    api.free(ptr);
-                    return api;
-                }
-                catch (Exception ex) when (
-                    ex is DllNotFoundException ||
-                    ex is EntryPointNotFoundException)
-                {
-                    firstException ??= ex;
-                }
+                var ptr = api.malloc(new IntPtr(1));
+                api.free(ptr);
+                return api;
             }
-
-            throw firstException ?? new DllNotFoundException(nameof(CuFFTWAPI));
+            catch (Exception ex) when (
+                ex is DllNotFoundException ||
+                ex is EntryPointNotFoundException)
+            {
+                firstException ??= ex;
+            }
         }
 
-        #endregion
+        throw firstException ?? new DllNotFoundException(nameof(CuFFTWAPI));
     }
-}
 
+    #endregion
+}
