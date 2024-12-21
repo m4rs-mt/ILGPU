@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTWStructs.cs
@@ -16,21 +16,20 @@ using System;
 #pragma warning disable CS8981 // The type name only contains lower-cased ascii characters
 #pragma warning disable IDE1006 // Naming Styles
 
-namespace ILGPU.Runtime.Cuda
-{
-    public struct iodim
-    {
-        public int n;
-        public int @is;
-        public int os;
-    }
+namespace ILGPU.Runtime.Cuda.Libraries;
 
-    public struct iodim64
-    {
-        public IntPtr n;
-        public IntPtr @is;
-        public IntPtr os;
-    }
+public struct iodim
+{
+    public int n;
+    public int @is;
+    public int os;
+}
+
+public struct iodim64
+{
+    public IntPtr n;
+    public IntPtr @is;
+    public IntPtr os;
 }
 
 #pragma warning restore CA1051 // Do not declare visible instance fields
