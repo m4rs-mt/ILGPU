@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTW.cs
@@ -10,33 +10,31 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.Cuda.API;
-using System;
 
-namespace ILGPU.Runtime.Cuda
+namespace ILGPU.Runtime.Cuda.Libraries;
+
+/// <summary>
+/// Wrapper over cuFFTW to simplify integration with ILGPU.
+/// </summary>
+public sealed partial class CuFFTW
 {
     /// <summary>
-    /// Wrapper over cuFFTW to simplify integration with ILGPU.
+    /// Constructs a new CuFFTW instance.
     /// </summary>
-    public sealed partial class CuFFTW
+    public CuFFTW()
+        : this(default)
+    { }
+
+    /// <summary>
+    /// Constructs a new CuFFTW instance.
+    /// </summary>
+    public CuFFTW(CuFFTWAPIVersion? version)
     {
-        /// <summary>
-        /// Constructs a new CuFFTW instance.
-        /// </summary>
-        public CuFFTW()
-            : this(default)
-        { }
-
-        /// <summary>
-        /// Constructs a new CuFFTW instance.
-        /// </summary>
-        public CuFFTW(CuFFTWAPIVersion? version)
-        {
-            API = CuFFTWAPI.Create(version);
-        }
-
-        /// <summary>
-        /// The underlying API wrapper.
-        /// </summary>
-        public CuFFTWAPI API { get; }
+        API = CuFFTWAPI.Create(version);
     }
+
+    /// <summary>
+    /// The underlying API wrapper.
+    /// </summary>
+    public CuFFTWAPI API { get; }
 }
