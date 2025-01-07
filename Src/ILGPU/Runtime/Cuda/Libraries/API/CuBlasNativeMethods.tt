@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
-//                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                                        ILGPU
+//                        Copyright (c) 2020-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuBlasNativeMethods.tt/CuBlasNativeMethods.cs
@@ -19,6 +19,7 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 
+using ILGPU.Runtime.Cuda.Libraries;
 using System;
 using System.Runtime.InteropServices;
 
