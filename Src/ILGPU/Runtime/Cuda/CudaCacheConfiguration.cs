@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaCacheConfiguration.cs
@@ -9,31 +9,30 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-namespace ILGPU.Runtime.Cuda
+namespace ILGPU.Runtime.Cuda;
+
+/// <summary>
+/// Represents a cache configuration of a device.
+/// </summary>
+public enum CudaCacheConfiguration
 {
     /// <summary>
-    /// Represents a cache configuration of a device.
+    /// The default cache configuration.
     /// </summary>
-    public enum CudaCacheConfiguration
-    {
-        /// <summary>
-        /// The default cache configuration.
-        /// </summary>
-        Default = 0,
+    Default = 0,
 
-        /// <summary>
-        /// Prefer shared cache.
-        /// </summary>
-        PreferShared = 1,
+    /// <summary>
+    /// Prefer shared cache.
+    /// </summary>
+    PreferShared = 1,
 
-        /// <summary>
-        /// Prefer L1 cache.
-        /// </summary>
-        PreferL1 = 2,
+    /// <summary>
+    /// Prefer L1 cache.
+    /// </summary>
+    PreferL1 = 2,
 
-        /// <summary>
-        /// Prefer shared or L1 cache.
-        /// </summary>
-        PreferEqual = 3
-    }
+    /// <summary>
+    /// Prefer shared or L1 cache.
+    /// </summary>
+    PreferEqual = 3
 }
