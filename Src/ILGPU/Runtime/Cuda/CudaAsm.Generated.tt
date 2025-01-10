@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAsm.Generated.tt/CudaAsm.Generated.cs
@@ -53,52 +53,51 @@
 using ILGPU.Frontend.Intrinsic;
 using System;
 
-namespace ILGPU.Runtime.Cuda
-{
-    /// <summary>
-    /// Provides library calls for inline PTX assembly instructions.
-    /// </summary>
-    partial class CudaAsm
-    {
-<# foreach (var cfg in emitCfgs) { #>
-        /// <summary>
-        /// Writes the inline PTX assembly instructions into the kernel.
-        /// </summary>
-        /// <param name="asm">The PTX assembly instruction string.</param>
-        /// <#= cfg.MethodParamsDocumentation #>
-        [LanguageIntrinsic(LanguageIntrinsicKind.EmitPTX)]
-        public static void Emit<<#= cfg.TypeParams #>>(
-            string asm,
-            <#= cfg.MethodParams #>)
-            <#= cfg.TypeRestrictions #> =>
-            throw new NotImplementedException();
+namespace ILGPU.Runtime.Cuda;
 
-        /// <summary>
-        /// Writes the inline PTX assembly instructions into the kernel.
-        /// </summary>
-        /// <param name="asm">The PTX assembly instruction string.</param>
-        /// <#= cfg.MethodParamsDocumentation #>
-        [LanguageIntrinsic(LanguageIntrinsicKind.EmitPTX)]
-        public static void Emit<<#= cfg.TypeParams #>>(
-            string asm,
-            out <#= cfg.MethodParams #>)
-            <#= cfg.TypeRestrictions #> =>
-            throw new NotImplementedException();
+/// <summary>
+/// Provides library calls for inline PTX assembly instructions.
+/// </summary>
+partial class CudaAsm
+{
+<# foreach (var cfg in emitCfgs) { #>
+    /// <summary>
+    /// Writes the inline PTX assembly instructions into the kernel.
+    /// </summary>
+    /// <param name="asm">The PTX assembly instruction string.</param>
+    /// <#= cfg.MethodParamsDocumentation #>
+    [LanguageIntrinsic(LanguageIntrinsicKind.EmitPTX)]
+    public static void Emit<<#= cfg.TypeParams #>>(
+        string asm,
+        <#= cfg.MethodParams #>)
+        <#= cfg.TypeRestrictions #> =>
+        throw new NotImplementedException();
+
+    /// <summary>
+    /// Writes the inline PTX assembly instructions into the kernel.
+    /// </summary>
+    /// <param name="asm">The PTX assembly instruction string.</param>
+    /// <#= cfg.MethodParamsDocumentation #>
+    [LanguageIntrinsic(LanguageIntrinsicKind.EmitPTX)]
+    public static void Emit<<#= cfg.TypeParams #>>(
+        string asm,
+        out <#= cfg.MethodParams #>)
+        <#= cfg.TypeRestrictions #> =>
+        throw new NotImplementedException();
 
 <# } #>
 <# foreach (var cfg in emitRefCfgs) { #>
-        /// <summary>
-        /// Writes the inline PTX assembly instructions into the kernel.
-        /// </summary>
-        /// <param name="asm">The PTX assembly instruction string.</param>
-        /// <#= cfg.MethodParamsDocumentation #>
-        [LanguageIntrinsic(LanguageIntrinsicKind.EmitRefPTX)]
-        public static void EmitRef<<#= cfg.TypeParams #>>(
-            string asm,
-            <#= cfg.MethodParams #>)
-            <#= cfg.TypeRestrictions #> =>
-            throw new NotImplementedException();
+    /// <summary>
+    /// Writes the inline PTX assembly instructions into the kernel.
+    /// </summary>
+    /// <param name="asm">The PTX assembly instruction string.</param>
+    /// <#= cfg.MethodParamsDocumentation #>
+    [LanguageIntrinsic(LanguageIntrinsicKind.EmitRefPTX)]
+    public static void EmitRef<<#= cfg.TypeParams #>>(
+        string asm,
+        <#= cfg.MethodParams #>)
+        <#= cfg.TypeRestrictions #> =>
+        throw new NotImplementedException();
 
 <# } #>
-    }
 }
