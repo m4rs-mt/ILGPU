@@ -16,7 +16,7 @@ using System;
 #pragma warning disable CA1707 // Identifiers should not contain underscores
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace ILGPU.Runtime.Cuda.NvJpeg;
+namespace ILGPU.Runtime.Cuda.Libraries;
 
 public unsafe struct NvJpegImage_Interop
 {
@@ -35,17 +35,19 @@ public struct NvJpegImage
 
     #region Static
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
+
     /// <summary>
     /// Creates image buffers to hold an image of the specified width, height and
     /// number of components/channels.
     /// </summary>
-    /// <param name="accelerator">The accelerator.</param>
+    /// <param name="stream">The accelerator stream.</param>
     /// <param name="width">The width (in bytes) per channel.</param>
     /// <param name="height">The height (in bytes) per channel.</param>
     /// <param name="numComponents">The number of components/channels.</param>
     /// <returns>The allocated buffers.</returns>
     public static NvJpegImage Create(
-        CudaAccelerator accelerator,
+        AcceleratorStream stream,
         int width,
         int height,
         int numComponents)
@@ -56,33 +58,35 @@ public struct NvJpegImage
             throw new ArgumentOutOfRangeException(nameof(height));
         if (numComponents <= 0 ||
             numComponents > NvJpegConstants.NVJPEG_MAX_COMPONENT)
-
-
+        {
             throw new ArgumentOutOfRangeException(nameof(numComponents));
+        }
 
         var size = width * height;
         var outputImage = new NvJpegImage
         {
-            Channel = new MemoryBuffer1D<byte, Stride1D.Dense>?[]
-            {
-                    numComponents >= 1 ? accelerator.Allocate1D<byte>(size) : null,
-                    numComponents >= 2 ? accelerator.Allocate1D<byte>(size) : null,
-                    numComponents >= 3 ? accelerator.Allocate1D<byte>(size) : null,
-                    numComponents >= 4 ? accelerator.Allocate1D<byte>(size) : null
-            },
-            Pitch = new ulong[]
-            {
+            Channel =
+            [
+                    numComponents >= 1 ? stream.Allocate1D<byte>(size) : null,
+                    numComponents >= 2 ? stream.Allocate1D<byte>(size) : null,
+                    numComponents >= 3 ? stream.Allocate1D<byte>(size) : null,
+                    numComponents >= 4 ? stream.Allocate1D<byte>(size) : null
+            ],
+            Pitch =
+            [
                     numComponents >= 1 ? (ulong)width : 0,
                     numComponents >= 2 ? (ulong)width : 0,
                     numComponents >= 3 ? (ulong)width : 0,
                     numComponents >= 4 ? (ulong)width : 0,
-            }
+            ]
         };
 
         return outputImage;
     }
 
     #endregion
+
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
     #region Methods
 
@@ -93,7 +97,7 @@ public struct NvJpegImage
     /// <returns>The interop data structure.</returns>
     public unsafe NvJpegImage_Interop ToInterop()
     {
-        ulong MemoryBufferToUInt64(MemoryBuffer1D<byte, Stride1D.Dense> buffer) =>
+        static ulong MemoryBufferToUInt64(MemoryBuffer1D<byte, Stride1D.Dense> buffer) =>
             buffer != null
             ? (ulong)buffer.View.BaseView.LoadEffectiveAddressAsPtr().ToInt64()
             : 0L;
