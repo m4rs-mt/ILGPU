@@ -17,7 +17,7 @@ using System.Text;
 
 #pragma warning disable CA2216 // Disposable types should declare finalizer
 
-namespace ILGPU.Runtime.Cuda.Nvvm;
+namespace ILGPU.Runtime.Cuda.Libraries;
 
 /// <summary>
 /// Wrapper for the NVVM API.
