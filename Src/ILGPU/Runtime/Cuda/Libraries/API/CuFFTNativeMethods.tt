@@ -17,7 +17,7 @@
 <#@ import namespace="System.Text.RegularExpressions" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
-using ILGPU.Runtime.Cuda.CuFFT;
+using ILGPU.Runtime.Cuda.Libraries;
 using System;
 using System.Runtime.InteropServices;
 
