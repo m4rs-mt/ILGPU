@@ -11,7 +11,7 @@
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace ILGPU.Runtime.Cuda.Nvvm;
+namespace ILGPU.Runtime.Cuda.Libraries;
 
 public enum NvvmResult
 {
