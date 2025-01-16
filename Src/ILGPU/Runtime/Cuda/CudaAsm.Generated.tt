@@ -50,7 +50,7 @@
         };
 #>
 
-using ILGPU.Frontend.Intrinsic;
+using ILGPU.Intrinsic;
 using System;
 
 namespace ILGPU.Runtime.Cuda;
@@ -66,7 +66,7 @@ partial class CudaAsm
     /// </summary>
     /// <param name="asm">The PTX assembly instruction string.</param>
     /// <#= cfg.MethodParamsDocumentation #>
-    [LanguageIntrinsic(LanguageIntrinsicKind.EmitPTX)]
+    [LanguageIntrinsic]
     public static void Emit<<#= cfg.TypeParams #>>(
         string asm,
         <#= cfg.MethodParams #>)
@@ -78,7 +78,7 @@ partial class CudaAsm
     /// </summary>
     /// <param name="asm">The PTX assembly instruction string.</param>
     /// <#= cfg.MethodParamsDocumentation #>
-    [LanguageIntrinsic(LanguageIntrinsicKind.EmitPTX)]
+    [LanguageIntrinsic]
     public static void Emit<<#= cfg.TypeParams #>>(
         string asm,
         out <#= cfg.MethodParams #>)
@@ -92,7 +92,7 @@ partial class CudaAsm
     /// </summary>
     /// <param name="asm">The PTX assembly instruction string.</param>
     /// <#= cfg.MethodParamsDocumentation #>
-    [LanguageIntrinsic(LanguageIntrinsicKind.EmitRefPTX)]
+    [LanguageIntrinsic]
     public static void EmitRef<<#= cfg.TypeParams #>>(
         string asm,
         <#= cfg.MethodParams #>)
