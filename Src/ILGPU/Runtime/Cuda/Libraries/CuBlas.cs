@@ -16,7 +16,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace ILGPU.Runtime.Cuda.CuBlas;
+namespace ILGPU.Runtime.Cuda.Libraries;
 
 /// <summary>
 /// Wraps library calls to the external native Nvidia cuBlas library.
