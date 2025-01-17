@@ -170,6 +170,7 @@ public static partial class Group
     /// Allocates a chunk of shared memory with the specified number of elements.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
+    /// <typeparam name="TStride">The shared memory stride.</typeparam>
     /// <param name="extent">The extent (number of elements to allocate).</param>
     /// <returns>An allocated region of shared memory.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -187,6 +188,7 @@ public static partial class Group
     /// Allocates a chunk of shared memory with the specified number of elements.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
+    /// <typeparam name="TStride">The shared memory stride.</typeparam>
     /// <param name="extent">The extent (number of elements to allocate).</param>
     /// <returns>An allocated region of shared memory.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
