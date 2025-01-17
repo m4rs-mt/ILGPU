@@ -13,7 +13,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
-namespace ILGPU.Runtime.Cuda.CuFFT;
+namespace ILGPU.Runtime.Cuda.Libraries;
 
 /// <summary>
 /// Represents an exception that can be thrown by the cuFFT library.
