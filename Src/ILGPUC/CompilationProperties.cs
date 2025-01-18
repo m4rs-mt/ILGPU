@@ -1,30 +1,21 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: ContextProperties.cs
+// File: CompilationProperties.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPUC;
 
 /// <summary>
 /// The inlining behavior.
 /// </summary>
-[SuppressMessage(
-    "Design",
-    "CA1027:Mark enums with FlagsAttribute",
-    Justification = "This no flags enumeration")]
-[SuppressMessage(
-    "Design",
-    "CA1069:Enums values should not be duplicated",
-    Justification = "This is required to be backwards compatible")]
 enum InliningMode
 {
     /// <summary>
@@ -94,29 +85,8 @@ enum DebugSymbolsMode
 /// <summary>
 /// Represent an optimization level.
 /// </summary>
-[SuppressMessage(
-    "Design",
-    "CA1027:Mark enums with FlagsAttribute",
-    Justification = "This no flags enumeration")]
-[SuppressMessage(
-    "Design",
-    "CA1069:Enums values should not be duplicated",
-    Justification = "This is required to be backwards compatible")]
 enum OptimizationLevel
 {
-    /// <summary>
-    /// Defaults to O0.
-    /// </summary>
-    Debug = O0,
-
-    /// <summary>
-    /// Defaults to O1.
-    /// </summary>
-    /// <remarks>
-    /// This is the default setting for new <see cref="Context"/> instances.
-    /// </remarks>
-    Release = O1,
-
     /// <summary>
     /// Lightweight (required) transformations only.
     /// </summary>
