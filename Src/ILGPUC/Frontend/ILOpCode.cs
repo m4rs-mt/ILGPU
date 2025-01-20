@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILOpCode.cs
@@ -19,465 +19,462 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ILGPU.Frontend
+namespace ILGPUC.Frontend;
+
+enum ILOpCode
 {
 
+    Nop = 0,
 
-    enum ILOpCode
-    {
+    Break = 1,
 
-        Nop = 0,
+    Ldarg_0 = 2,
 
-        Break = 1,
+    Ldarg_1 = 3,
 
-        Ldarg_0 = 2,
+    Ldarg_2 = 4,
 
-        Ldarg_1 = 3,
+    Ldarg_3 = 5,
 
-        Ldarg_2 = 4,
+    Ldloc_0 = 6,
 
-        Ldarg_3 = 5,
+    Ldloc_1 = 7,
 
-        Ldloc_0 = 6,
+    Ldloc_2 = 8,
 
-        Ldloc_1 = 7,
+    Ldloc_3 = 9,
 
-        Ldloc_2 = 8,
+    Stloc_0 = 10,
 
-        Ldloc_3 = 9,
+    Stloc_1 = 11,
 
-        Stloc_0 = 10,
+    Stloc_2 = 12,
 
-        Stloc_1 = 11,
+    Stloc_3 = 13,
 
-        Stloc_2 = 12,
+    Ldarg_S = 14,
 
-        Stloc_3 = 13,
+    Ldarga_S = 15,
 
-        Ldarg_S = 14,
+    Starg_S = 16,
 
-        Ldarga_S = 15,
+    Ldloc_S = 17,
 
-        Starg_S = 16,
+    Ldloca_S = 18,
 
-        Ldloc_S = 17,
+    Stloc_S = 19,
 
-        Ldloca_S = 18,
+    Ldnull = 20,
 
-        Stloc_S = 19,
+    Ldc_I4_M1 = 21,
 
-        Ldnull = 20,
+    Ldc_I4_0 = 22,
 
-        Ldc_I4_M1 = 21,
+    Ldc_I4_1 = 23,
 
-        Ldc_I4_0 = 22,
+    Ldc_I4_2 = 24,
 
-        Ldc_I4_1 = 23,
+    Ldc_I4_3 = 25,
 
-        Ldc_I4_2 = 24,
+    Ldc_I4_4 = 26,
 
-        Ldc_I4_3 = 25,
+    Ldc_I4_5 = 27,
 
-        Ldc_I4_4 = 26,
+    Ldc_I4_6 = 28,
 
-        Ldc_I4_5 = 27,
+    Ldc_I4_7 = 29,
 
-        Ldc_I4_6 = 28,
+    Ldc_I4_8 = 30,
 
-        Ldc_I4_7 = 29,
+    Ldc_I4_S = 31,
 
-        Ldc_I4_8 = 30,
+    Ldc_I4 = 32,
 
-        Ldc_I4_S = 31,
+    Ldc_I8 = 33,
 
-        Ldc_I4 = 32,
+    Ldc_R4 = 34,
 
-        Ldc_I8 = 33,
+    Ldc_R8 = 35,
 
-        Ldc_R4 = 34,
+    Dup = 37,
 
-        Ldc_R8 = 35,
+    Pop = 38,
 
-        Dup = 37,
+    Jmp = 39,
 
-        Pop = 38,
+    Call = 40,
 
-        Jmp = 39,
+    Calli = 41,
 
-        Call = 40,
+    Ret = 42,
 
-        Calli = 41,
+    Br_S = 43,
 
-        Ret = 42,
+    Brfalse_S = 44,
 
-        Br_S = 43,
+    Brtrue_S = 45,
 
-        Brfalse_S = 44,
+    Beq_S = 46,
 
-        Brtrue_S = 45,
+    Bge_S = 47,
 
-        Beq_S = 46,
+    Bgt_S = 48,
 
-        Bge_S = 47,
+    Ble_S = 49,
 
-        Bgt_S = 48,
+    Blt_S = 50,
 
-        Ble_S = 49,
+    Bne_Un_S = 51,
 
-        Blt_S = 50,
+    Bge_Un_S = 52,
 
-        Bne_Un_S = 51,
+    Bgt_Un_S = 53,
 
-        Bge_Un_S = 52,
+    Ble_Un_S = 54,
 
-        Bgt_Un_S = 53,
+    Blt_Un_S = 55,
 
-        Ble_Un_S = 54,
+    Br = 56,
 
-        Blt_Un_S = 55,
+    Brfalse = 57,
 
-        Br = 56,
+    Brtrue = 58,
 
-        Brfalse = 57,
+    Beq = 59,
 
-        Brtrue = 58,
+    Bge = 60,
 
-        Beq = 59,
+    Bgt = 61,
 
-        Bge = 60,
+    Ble = 62,
 
-        Bgt = 61,
+    Blt = 63,
 
-        Ble = 62,
+    Bne_Un = 64,
 
-        Blt = 63,
+    Bge_Un = 65,
 
-        Bne_Un = 64,
+    Bgt_Un = 66,
 
-        Bge_Un = 65,
+    Ble_Un = 67,
 
-        Bgt_Un = 66,
+    Blt_Un = 68,
 
-        Ble_Un = 67,
+    Switch = 69,
 
-        Blt_Un = 68,
+    Ldind_I1 = 70,
 
-        Switch = 69,
+    Ldind_U1 = 71,
 
-        Ldind_I1 = 70,
+    Ldind_I2 = 72,
 
-        Ldind_U1 = 71,
+    Ldind_U2 = 73,
 
-        Ldind_I2 = 72,
+    Ldind_I4 = 74,
 
-        Ldind_U2 = 73,
+    Ldind_U4 = 75,
 
-        Ldind_I4 = 74,
+    Ldind_I8 = 76,
 
-        Ldind_U4 = 75,
+    Ldind_I = 77,
 
-        Ldind_I8 = 76,
+    Ldind_R4 = 78,
 
-        Ldind_I = 77,
+    Ldind_R8 = 79,
 
-        Ldind_R4 = 78,
+    Ldind_Ref = 80,
 
-        Ldind_R8 = 79,
+    Stind_Ref = 81,
 
-        Ldind_Ref = 80,
+    Stind_I1 = 82,
 
-        Stind_Ref = 81,
+    Stind_I2 = 83,
 
-        Stind_I1 = 82,
+    Stind_I4 = 84,
 
-        Stind_I2 = 83,
+    Stind_I8 = 85,
 
-        Stind_I4 = 84,
+    Stind_R4 = 86,
 
-        Stind_I8 = 85,
+    Stind_R8 = 87,
 
-        Stind_R4 = 86,
+    Add = 88,
 
-        Stind_R8 = 87,
+    Sub = 89,
 
-        Add = 88,
+    Mul = 90,
 
-        Sub = 89,
+    Div = 91,
 
-        Mul = 90,
+    Div_Un = 92,
 
-        Div = 91,
+    Rem = 93,
 
-        Div_Un = 92,
+    Rem_Un = 94,
 
-        Rem = 93,
+    And = 95,
 
-        Rem_Un = 94,
+    Or = 96,
 
-        And = 95,
+    Xor = 97,
 
-        Or = 96,
+    Shl = 98,
 
-        Xor = 97,
+    Shr = 99,
 
-        Shl = 98,
+    Shr_Un = 100,
 
-        Shr = 99,
+    Neg = 101,
 
-        Shr_Un = 100,
+    Not = 102,
 
-        Neg = 101,
+    Conv_I1 = 103,
 
-        Not = 102,
+    Conv_I2 = 104,
 
-        Conv_I1 = 103,
+    Conv_I4 = 105,
 
-        Conv_I2 = 104,
+    Conv_I8 = 106,
 
-        Conv_I4 = 105,
+    Conv_R4 = 107,
 
-        Conv_I8 = 106,
+    Conv_R8 = 108,
 
-        Conv_R4 = 107,
+    Conv_U4 = 109,
 
-        Conv_R8 = 108,
+    Conv_U8 = 110,
 
-        Conv_U4 = 109,
+    Callvirt = 111,
 
-        Conv_U8 = 110,
+    Cpobj = 112,
 
-        Callvirt = 111,
+    Ldobj = 113,
 
-        Cpobj = 112,
+    Ldstr = 114,
 
-        Ldobj = 113,
+    Newobj = 115,
 
-        Ldstr = 114,
+    Castclass = 116,
 
-        Newobj = 115,
+    Isinst = 117,
 
-        Castclass = 116,
+    Conv_R_Un = 118,
 
-        Isinst = 117,
+    Unbox = 121,
 
-        Conv_R_Un = 118,
+    Throw = 122,
 
-        Unbox = 121,
+    Ldfld = 123,
 
-        Throw = 122,
+    Ldflda = 124,
 
-        Ldfld = 123,
+    Stfld = 125,
 
-        Ldflda = 124,
+    Ldsfld = 126,
 
-        Stfld = 125,
+    Ldsflda = 127,
 
-        Ldsfld = 126,
+    Stsfld = 128,
 
-        Ldsflda = 127,
+    Stobj = 129,
 
-        Stsfld = 128,
+    Conv_Ovf_I1_Un = 130,
 
-        Stobj = 129,
+    Conv_Ovf_I2_Un = 131,
 
-        Conv_Ovf_I1_Un = 130,
+    Conv_Ovf_I4_Un = 132,
 
-        Conv_Ovf_I2_Un = 131,
+    Conv_Ovf_I8_Un = 133,
 
-        Conv_Ovf_I4_Un = 132,
+    Conv_Ovf_U1_Un = 134,
 
-        Conv_Ovf_I8_Un = 133,
+    Conv_Ovf_U2_Un = 135,
 
-        Conv_Ovf_U1_Un = 134,
+    Conv_Ovf_U4_Un = 136,
 
-        Conv_Ovf_U2_Un = 135,
+    Conv_Ovf_U8_Un = 137,
 
-        Conv_Ovf_U4_Un = 136,
+    Conv_Ovf_I_Un = 138,
 
-        Conv_Ovf_U8_Un = 137,
+    Conv_Ovf_U_Un = 139,
 
-        Conv_Ovf_I_Un = 138,
+    Box = 140,
 
-        Conv_Ovf_U_Un = 139,
+    Newarr = 141,
 
-        Box = 140,
+    Ldlen = 142,
 
-        Newarr = 141,
+    Ldelema = 143,
 
-        Ldlen = 142,
+    Ldelem_I1 = 144,
 
-        Ldelema = 143,
+    Ldelem_U1 = 145,
 
-        Ldelem_I1 = 144,
+    Ldelem_I2 = 146,
 
-        Ldelem_U1 = 145,
+    Ldelem_U2 = 147,
 
-        Ldelem_I2 = 146,
+    Ldelem_I4 = 148,
 
-        Ldelem_U2 = 147,
+    Ldelem_U4 = 149,
 
-        Ldelem_I4 = 148,
+    Ldelem_I8 = 150,
 
-        Ldelem_U4 = 149,
+    Ldelem_I = 151,
 
-        Ldelem_I8 = 150,
+    Ldelem_R4 = 152,
 
-        Ldelem_I = 151,
+    Ldelem_R8 = 153,
 
-        Ldelem_R4 = 152,
+    Ldelem_Ref = 154,
 
-        Ldelem_R8 = 153,
+    Stelem_I = 155,
 
-        Ldelem_Ref = 154,
+    Stelem_I1 = 156,
 
-        Stelem_I = 155,
+    Stelem_I2 = 157,
 
-        Stelem_I1 = 156,
+    Stelem_I4 = 158,
 
-        Stelem_I2 = 157,
+    Stelem_I8 = 159,
 
-        Stelem_I4 = 158,
+    Stelem_R4 = 160,
 
-        Stelem_I8 = 159,
+    Stelem_R8 = 161,
 
-        Stelem_R4 = 160,
+    Stelem_Ref = 162,
 
-        Stelem_R8 = 161,
+    Ldelem = 163,
 
-        Stelem_Ref = 162,
+    Stelem = 164,
 
-        Ldelem = 163,
+    Unbox_Any = 165,
 
-        Stelem = 164,
+    Conv_Ovf_I1 = 179,
 
-        Unbox_Any = 165,
+    Conv_Ovf_U1 = 180,
 
-        Conv_Ovf_I1 = 179,
+    Conv_Ovf_I2 = 181,
 
-        Conv_Ovf_U1 = 180,
+    Conv_Ovf_U2 = 182,
 
-        Conv_Ovf_I2 = 181,
+    Conv_Ovf_I4 = 183,
 
-        Conv_Ovf_U2 = 182,
+    Conv_Ovf_U4 = 184,
 
-        Conv_Ovf_I4 = 183,
+    Conv_Ovf_I8 = 185,
 
-        Conv_Ovf_U4 = 184,
+    Conv_Ovf_U8 = 186,
 
-        Conv_Ovf_I8 = 185,
+    Refanyval = 194,
 
-        Conv_Ovf_U8 = 186,
+    Ckfinite = 195,
 
-        Refanyval = 194,
+    Mkrefany = 198,
 
-        Ckfinite = 195,
+    Ldtoken = 208,
 
-        Mkrefany = 198,
+    Conv_U2 = 209,
 
-        Ldtoken = 208,
+    Conv_U1 = 210,
 
-        Conv_U2 = 209,
+    Conv_I = 211,
 
-        Conv_U1 = 210,
+    Conv_Ovf_I = 212,
 
-        Conv_I = 211,
+    Conv_Ovf_U = 213,
 
-        Conv_Ovf_I = 212,
+    Add_Ovf = 214,
 
-        Conv_Ovf_U = 213,
+    Add_Ovf_Un = 215,
 
-        Add_Ovf = 214,
+    Mul_Ovf = 216,
 
-        Add_Ovf_Un = 215,
+    Mul_Ovf_Un = 217,
 
-        Mul_Ovf = 216,
+    Sub_Ovf = 218,
 
-        Mul_Ovf_Un = 217,
+    Sub_Ovf_Un = 219,
 
-        Sub_Ovf = 218,
+    Endfinally = 220,
 
-        Sub_Ovf_Un = 219,
+    Leave = 221,
 
-        Endfinally = 220,
+    Leave_S = 222,
 
-        Leave = 221,
+    Stind_I = 223,
 
-        Leave_S = 222,
+    Conv_U = 224,
 
-        Stind_I = 223,
+    Prefix7 = 248,
 
-        Conv_U = 224,
+    Prefix6 = 249,
 
-        Prefix7 = 248,
+    Prefix5 = 250,
 
-        Prefix6 = 249,
+    Prefix4 = 251,
 
-        Prefix5 = 250,
+    Prefix3 = 252,
 
-        Prefix4 = 251,
+    Prefix2 = 253,
 
-        Prefix3 = 252,
+    Prefix1 = 254,
 
-        Prefix2 = 253,
+    Prefixref = 255,
 
-        Prefix1 = 254,
+    Arglist = 65024,
 
-        Prefixref = 255,
+    Ceq = 65025,
 
-        Arglist = 65024,
+    Cgt = 65026,
 
-        Ceq = 65025,
+    Cgt_Un = 65027,
 
-        Cgt = 65026,
+    Clt = 65028,
 
-        Cgt_Un = 65027,
+    Clt_Un = 65029,
 
-        Clt = 65028,
+    Ldftn = 65030,
 
-        Clt_Un = 65029,
+    Ldvirtftn = 65031,
 
-        Ldftn = 65030,
+    Ldarg = 65033,
 
-        Ldvirtftn = 65031,
+    Ldarga = 65034,
 
-        Ldarg = 65033,
+    Starg = 65035,
 
-        Ldarga = 65034,
+    Ldloc = 65036,
 
-        Starg = 65035,
+    Ldloca = 65037,
 
-        Ldloc = 65036,
+    Stloc = 65038,
 
-        Ldloca = 65037,
+    Localloc = 65039,
 
-        Stloc = 65038,
+    Endfilter = 65041,
 
-        Localloc = 65039,
+    Unaligned = 65042,
 
-        Endfilter = 65041,
+    Volatile = 65043,
 
-        Unaligned = 65042,
+    Tail = 65044,
 
-        Volatile = 65043,
+    Initobj = 65045,
 
-        Tail = 65044,
+    Constrained = 65046,
 
-        Initobj = 65045,
+    Cpblk = 65047,
 
-        Constrained = 65046,
+    Initblk = 65048,
 
-        Cpblk = 65047,
+    No = 65049,
 
-        Initblk = 65048,
+    Rethrow = 65050,
 
-        No = 65049,
+    Sizeof = 65052,
 
-        Rethrow = 65050,
+    Refanytype = 65053,
 
-        Sizeof = 65052,
-
-        Refanytype = 65053,
-
-        Readonly = 65054,
-    }
+    Readonly = 65054,
 }
