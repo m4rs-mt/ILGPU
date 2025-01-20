@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using System;
+using ILGPU;
 
 namespace ILGPUC;
 
@@ -18,14 +18,6 @@ namespace ILGPUC;
 /// </summary>
 enum InliningMode
 {
-    /// <summary>
-    /// All functions will be inlined by default.
-    /// </summary>
-    /// <remarks>
-    /// This is the default setting.
-    /// </remarks>
-    Default = Aggressive,
-
     /// <summary>
     /// Enables aggressive function inlining that inlines all functions by default.
     /// </summary>
@@ -36,12 +28,6 @@ enum InliningMode
     /// behavior to reduce the overall code size.
     /// </summary>
     Conservative,
-
-    /// <summary>
-    /// No functions will be inlined at all.
-    /// </summary>
-    [Obsolete("Disabling inlining is no longer supported")]
-    Disabled,
 }
 
 /// <summary>
@@ -50,36 +36,14 @@ enum InliningMode
 enum DebugSymbolsMode
 {
     /// <summary>
-    /// Automatic decision on debug symbols. If a debugger is attached, this mode
-    /// changes to <see cref="Basic"/>. If not, all debug symbols will be
-    /// <see cref="Disabled"/>.
+    /// No debug symbols in kernels.
     /// </summary>
-    /// <remarks>
-    /// This is the default setting.
-    /// </remarks>
-    Auto,
-
-    /// <summary>
-    /// No debug symbols will be loaded.
-    /// </summary>
-    Disabled,
-
-    /// <summary>
-    /// Debug information loaded from portable PDBs to enhance error messages
-    /// and assertion checks.
-    /// </summary>
-    Basic,
+    None,
 
     /// <summary>
     /// Enables debug information in kernels (if available).
     /// </summary>
-    Kernel,
-
-    /// <summary>
-    /// Enabled source-code annotations in generated kernels (implies
-    /// <see cref="Kernel"/>).
-    /// </summary>
-    KernelSourceAnnotations,
+    Default,
 }
 
 /// <summary>
@@ -181,22 +145,21 @@ enum ArrayMode
 /// <summary>
 /// Defines global context specific properties.
 /// </summary>
-class CodeGenerationProperties
+class CompilationProperties
 {
     #region Properties
 
     /// <summary>
-    /// Returns the current debug symbols mode.
+    /// Represents the target platform to use.
     /// </summary>
-    /// <remarks><see cref="DebugSymbolsMode.Auto"/> by default.</remarks>
-    public DebugSymbolsMode DebugSymbolsMode { get; protected set; } =
-        DebugSymbolsMode.Auto;
+    public TargetPlatform TargetPlatform { get; } = TargetPlatform.Platform64Bit;
 
     /// <summary>
-    /// Returns true if the optimized kernels should be debugged.
+    /// Returns the current debug symbols mode.
     /// </summary>
-    /// <remarks>Disabled by default.</remarks>
-    public bool ForceDebuggingOfOptimizedKernels { get; protected set; }
+    /// <remarks><see cref="DebugSymbolsMode.Default"/> by default.</remarks>
+    public DebugSymbolsMode DebugSymbolsMode { get; protected set; } =
+        DebugSymbolsMode.Default;
 
     /// <summary>
     /// Returns true if the internal IR verifier is enabled.
@@ -217,30 +180,23 @@ class CodeGenerationProperties
     public bool EnableIOOperations { get; protected set; }
 
     /// <summary>
-    /// Returns true if additional kernel information is enabled.
+    /// Returns true if denorm floats should be flushed to zero.
     /// </summary>
     /// <remarks>Disabled by default.</remarks>
-    public bool EnableKernelInformation { get; protected set; }
-
-    /// <summary>
-    /// Returns true if multiple threads should be used to generate code for
-    /// different methods in parallel.
-    /// </summary>
-    /// <remarks>Disabled by default.</remarks>
-    public bool EnableParallelCodeGenerationInFrontend { get; private set; }
+    public bool EnableMathFlushToZero { get; protected set; }
 
     /// <summary>
     /// The current optimization level to use.
     /// </summary>
-    /// <remarks><see cref="OptimizationLevel.Release"/> by default.</remarks>
+    /// <remarks><see cref="OptimizationLevel.O1"/> by default.</remarks>
     public OptimizationLevel OptimizationLevel { get; protected set; } =
-        OptimizationLevel.Release;
+        OptimizationLevel.O2;
 
     /// <summary>
     /// The current inlining mode to use.
     /// </summary>
-    /// <remarks><see cref="InliningMode.Default"/> by default.</remarks>
-    public InliningMode InliningMode { get; protected set; } = InliningMode.Default;
+    /// <remarks><see cref="InliningMode.Aggressive"/> by default.</remarks>
+    public InliningMode InliningMode { get; protected set; } = InliningMode.Aggressive;
 
     /// <summary>
     /// The current math mode.
@@ -265,12 +221,7 @@ class CodeGenerationProperties
     /// <summary>
     /// Returns the path to LibNVVM DLL.
     /// </summary>
-    public string? LibNvvmPath { get; protected set; }
-
-    /// <summary>
-    /// Returns the path to LibDevice bitcode.
-    /// </summary>
-    public string? LibDevicePath { get; protected set; }
+    public bool PTXUseLibDevice { get; protected set; }
 
     #endregion
 }
