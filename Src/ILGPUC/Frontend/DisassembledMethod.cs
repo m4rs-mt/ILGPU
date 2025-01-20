@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DisassembledMethod.cs
@@ -9,114 +9,129 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.DebugInformation;
-using ILGPU.IR;
-using System.Collections.Immutable;
-using System.Diagnostics;
+using ILGPUC.IR;
+using System;
 using System.Reflection;
-using System.Threading.Tasks;
 
-namespace ILGPU.Frontend
+namespace ILGPUC.Frontend;
+
+record CatchClause(
+    int TryStart,
+    int TryLength,
+    int HandlerOffset,
+    int HandlerLength,
+    int? FilterBlock = null,
+    Type? CatchType = null)
+{
+    public bool IsFilter => FilterBlock.HasValue;
+}
+
+record FinallyClause(
+    int TryStart,
+    int TryLength,
+    int FinallyOffset,
+    int FinallyLength);
+
+[Flags]
+enum DisassembledMethodFlags
 {
     /// <summary>
-    /// Represents a disassembled method.
+    /// No flags
     /// </summary>
-    /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed class DisassembledMethod
-    {
-        #region Instance
+    None = 0,
 
-        internal DisassembledMethod(
-            MethodBase method,
-            ImmutableArray<ILInstruction> instructions,
-            int maxStackSize)
-        {
-            Debug.Assert(method != null, "Invalid method");
-            Debug.Assert(
-                instructions != null && instructions.Length > 0,
-                "Invalid instructions");
-            Method = method;
-            Instructions = instructions;
-            MaxStackSize = maxStackSize;
-        }
+    /// <summary>
+    /// Delay code generation for this method.
+    /// </summary>
+    DelayCodeGeneration = 1 << 0,
 
-        #endregion
+    /// <summary>
+    /// Marks methods to be replaced with a launcher.
+    /// </summary>
+    ReplaceWithLauncher = 1 << 1,
 
-        #region Properties
+    /// <summary>
+    /// Marks methods acting as real launchers.
+    /// </summary>
+    IsLauncher = 1 << 2,
+}
 
-        /// <summary>
-        /// Returns the method that was disassembled.
-        /// </summary>
-        public MethodBase Method { get; }
+/// <summary>
+/// Represents a disassembled method.
+/// </summary>
+/// <remarks>Members of this class are not thread safe.</remarks>
+sealed class DisassembledMethod(
+    MethodBase method,
+    DisassembledMethodFlags flags,
+    ReadOnlyMemory<ILInstruction> instructions,
+    ReadOnlyMemory<CatchClause> catchClauses,
+    ReadOnlyMemory<FinallyClause> finallyClauses,
+    int maxStackSize)
+{
+    private readonly ReadOnlyMemory<ILInstruction> _instructions = instructions;
 
-        /// <summary>
-        /// Returns the first disassembled instruction.
-        /// </summary>
-        public ILInstruction FirstInstruction => Instructions[0];
+    /// <summary>
+    /// Returns method that was disassembled.
+    /// </summary>
+    public MethodBase Method { get; } = method;
 
-        /// <summary>
-        /// Returns the first location of this function.
-        /// </summary>
-        public Location FirstLocation => FirstInstruction.Location;
+    /// <summary>
+    /// Returns associated flags.
+    /// </summary>
+    public DisassembledMethodFlags Flags { get; } = flags;
 
-        /// <summary>
-        /// Returns the disassembled instructions.
-        /// </summary>
-        public ImmutableArray<ILInstruction> Instructions { get; }
+    /// <summary>
+    /// Returns the first disassembled instruction.
+    /// </summary>
+    public ILInstruction FirstInstruction => Instructions[0];
 
-        /// <summary>
-        /// Returns the maximum stack size.
-        /// </summary>
-        public int MaxStackSize { get; }
+    /// <summary>
+    /// Returns the first location of this function.
+    /// </summary>
+    public Location FirstLocation => FirstInstruction.Location;
 
-        /// <summary>
-        /// Returns the number of instructions.
-        /// </summary>
-        public int Count => Instructions.Length;
+    /// <summary>
+    /// Returns the disassembled instructions.
+    /// </summary>
+    public ReadOnlySpan<ILInstruction> Instructions => _instructions.Span;
 
-        /// <summary>
-        /// Returns the instruction at the given index.
-        /// </summary>
-        /// <param name="index">The instruction index.</param>
-        /// <returns>The instruction at the given index.</returns>
-        public ILInstruction this[int index] => Instructions[index];
+    /// <summary>
+    /// Returns all catch clauses.
+    /// </summary>
+    public ReadOnlyMemory<CatchClause> CatchClauses { get; } = catchClauses;
 
-        #endregion
+    /// <summary>
+    /// Returns all finally clauses.
+    /// </summary>
+    public ReadOnlyMemory<FinallyClause> FinallyClauses { get; } = finallyClauses;
 
-        #region Methods
+    /// <summary>
+    /// Returns the maximum stack size.
+    /// </summary>
+    public int MaxStackSize { get; } = maxStackSize;
 
-        /// <summary>
-        /// Returns an instruction enumerator.
-        /// </summary>
-        /// <returns>An instruction enumerator.</returns>
-        public ImmutableArray<ILInstruction>.Enumerator GetEnumerator() =>
-            Instructions.GetEnumerator();
+    /// <summary>
+    /// Returns the number of instructions.
+    /// </summary>
+    public int Count => Instructions.Length;
 
-        /// <summary>
-        /// Disassembles the given method.
-        /// </summary>
-        /// <param name="method">The method to disassemble.</param>
-        /// <returns>The disassembled method.</returns>
-        public static Task<DisassembledMethod> DisassembleAsync(MethodBase method) =>
-            DisassembleAsync(method, SequencePointEnumerator.Empty);
+    /// <summary>
+    /// Returns the instruction at the given index.
+    /// </summary>
+    /// <param name="index">The instruction index.</param>
+    /// <returns>The instruction at the given index.</returns>
+    public ILInstruction this[int index] => Instructions[index];
 
-        /// <summary>
-        /// Disassembles the given method.
-        /// </summary>
-        /// <param name="method">The method to disassemble.</param>
-        /// <param name="sequencePointEnumerator">
-        /// The associated sequence-point enumerator.
-        /// </param>
-        /// <returns>The disassembled method.</returns>
-        public static Task<DisassembledMethod> DisassembleAsync(
-            MethodBase method,
-            SequencePointEnumerator sequencePointEnumerator) =>
-            Task.Run(() =>
-            {
-                var context = new Disassembler(method, sequencePointEnumerator);
-                return context.Disassemble();
-            });
+    /// <summary>
+    /// Returns true if this is a low-level launcher.
+    /// </summary>
+    public bool IsLauncher =>
+        (Flags & DisassembledMethodFlags.IsLauncher) != DisassembledMethodFlags.None;
 
-        #endregion
-    }
+    /// <summary>
+    /// Returns an instruction enumerator.
+    /// </summary>
+    /// <returns>An instruction enumerator.</returns>
+    public ReadOnlySpan<ILInstruction>.Enumerator GetEnumerator() =>
+        Instructions.GetEnumerator();
 }
