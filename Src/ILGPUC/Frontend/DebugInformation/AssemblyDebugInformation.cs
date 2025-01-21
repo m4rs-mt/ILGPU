@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AssemblyDebugInformation.cs
@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -19,162 +18,120 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 
-namespace ILGPU.Frontend.DebugInformation
+namespace ILGPUC.Frontend.DebugInformation;
+
+/// <summary>
+/// Represents assembly debug information.
+/// </summary>
+sealed class AssemblyDebugInformation
 {
+    #region Static
+
     /// <summary>
-    /// Represents assembly debug information.
+    /// Loads assembly debug information for the given assembly and stream.
     /// </summary>
-    public sealed class AssemblyDebugInformation : IMetadataReaderOperationProvider
+    /// <param name="assembly">The assembly.</param>
+    /// <param name="pdbStream">The source stream to load debug information from.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static AssemblyDebugInformation Load(Assembly assembly, Stream pdbStream)
     {
-        #region Instance
-
-        /// <summary>
-        /// The internal mapping of methods to cached debug information.
-        /// </summary>
-        private readonly Dictionary<MethodBase, MethodDebugInformation>
-            debugInformation =
-            new Dictionary<MethodBase, MethodDebugInformation>();
-
-        /// <summary>
-        /// The internal reader provider.
-        /// </summary>
-        private readonly MetadataReaderProvider readerProvider;
-
-        /// <summary>
-        /// The internal synchronization object.
-        /// </summary>
-        private readonly object syncLock = new object();
-
-        /// <summary>
-        /// Constructs new empty assembly debug information.
-        /// </summary>
-        /// <param name="assembly">The referenced assembly.</param>
-        internal AssemblyDebugInformation(Assembly assembly)
-        {
-            Assembly = assembly;
-            Modules = ImmutableArray<Module>.Empty;
-
-            readerProvider =
-                MetadataReaderProvider.FromPortablePdbImage(ImmutableArray<byte>.Empty);
-            MetadataReader = readerProvider.GetMetadataReader();
-        }
-
-        /// <summary>
-        /// Constructs new assembly debug information.
-        /// </summary>
-        /// <param name="assembly">The referenced assembly.</param>
-        /// <param name="pdbStream">
-        /// The associated PDB stream (hast to be kept open).
-        /// </param>
-        internal AssemblyDebugInformation(Assembly assembly, Stream pdbStream)
-        {
-            Assembly = assembly;
-            Modules = ImmutableArray.Create(assembly.GetModules());
-
-            readerProvider = MetadataReaderProvider.FromPortablePdbStream(
-                pdbStream,
-                MetadataStreamOptions.Default);
-            MetadataReader = readerProvider.GetMetadataReader();
-
-            foreach (var methodHandle in MetadataReader.MethodDebugInformation)
-            {
-                var definitionHandle = methodHandle.ToDefinitionHandle();
-                var metadataToken = MetadataTokens.GetToken(definitionHandle);
-                if (TryResolveMethod(metadataToken, out MethodBase? method))
-                {
-                    debugInformation.Add(
-                        method,
-                        new MethodDebugInformation(
-                            this,
-                            method,
-                            definitionHandle));
-                }
-            }
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated assembly.
-        /// </summary>
-        public Assembly Assembly { get; }
-
-        /// <summary>
-        /// Returns the associated modules.
-        /// </summary>
-        public ImmutableArray<Module> Modules { get; }
-
-        /// <summary>
-        /// Returns true if this container holds valid debug information.
-        /// </summary>
-        public bool IsValid => !Modules.IsDefaultOrEmpty;
-
-        /// <summary>
-        /// Returns the associated metadata reader.
-        /// </summary>
-        private MetadataReader MetadataReader { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Begins a synchronized metadata reader operation.
-        /// </summary>
-        /// <returns>The operation instance.</returns>
-        MetadataReaderOperation IMetadataReaderOperationProvider.BeginOperation() =>
-            new MetadataReaderOperation(MetadataReader, syncLock);
-
-        /// <summary>
-        /// Tries to resolve the given metadata token to a method.
-        /// </summary>
-        /// <param name="metadataToken">The metadata token to resolve.</param>
-        /// <param name="method">The resolved method (or null).</param>
-        /// <returns>True, if the given token could be resolved.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryResolveMethod(
+        var modules = assembly.GetModules();
+        bool TryResolveMethod(
             int metadataToken,
             [NotNullWhen(true)] out MethodBase? method)
         {
-            foreach (var module in Modules)
+            foreach (var module in modules)
             {
                 method = module.ResolveMethod(metadataToken);
-                if (method != null)
+                if (method is not null)
                     return true;
             }
             method = null;
             return false;
         }
 
-        /// <summary>
-        /// Tries to load debug information for the given method base.
-        /// </summary>
-        /// <param name="methodBase">The method base.</param>
-        /// <param name="methodDebugInformation">
-        /// The loaded debug information (or null).
-        /// </param>
-        /// <returns>True, if the requested debug information could be loaded.</returns>
-        public bool TryLoadDebugInformation(
-            MethodBase methodBase,
-            [NotNullWhen(true)] out MethodDebugInformation? methodDebugInformation)
+        using var readerProvider = MetadataReaderProvider.FromPortablePdbStream(
+            pdbStream,
+            MetadataStreamOptions.PrefetchMetadata);
+        var reader = readerProvider.GetMetadataReader();
+        var debugInformation = new Dictionary<MethodBase, MethodDebugInformation>(128);
+        foreach (var methodHandle in reader.MethodDebugInformation)
         {
-            Debug.Assert(methodBase != null, "Invalid method");
-            Debug.Assert(
-                methodBase.Module.Assembly == Assembly,
-                "Invalid method association");
-
-            if (methodBase is MethodInfo methodInfo &&
-                methodInfo.GetGenericArguments().Length > 0)
-            {
-                methodBase = methodInfo.GetGenericMethodDefinition();
-            }
-            return debugInformation.TryGetValue(
-                methodBase,
-                out methodDebugInformation);
+            var definitionHandle = methodHandle.ToDefinitionHandle();
+            var metadataToken = MetadataTokens.GetToken(definitionHandle);
+            if (!TryResolveMethod(metadataToken, out MethodBase? method))
+                continue;
+            debugInformation.Add(
+                method,
+                MethodDebugInformation.Load(reader, definitionHandle));
         }
 
-        #endregion
+        return new AssemblyDebugInformation(assembly, debugInformation);
     }
+
+    #endregion
+
+    #region Instance
+
+    /// <summary>
+    /// The internal mapping of methods to cached debug information.
+    /// </summary>
+    private readonly Dictionary<MethodBase, MethodDebugInformation> _debugInformation;
+
+    /// <summary>
+    /// Constructs new assembly debug information.
+    /// </summary>
+    /// <param name="assembly">The referenced assembly.</param>
+    /// <param name="debugInformation">
+    /// Associated debug information mappings for each method.
+    /// </param>
+    private AssemblyDebugInformation(
+        Assembly assembly,
+        Dictionary<MethodBase, MethodDebugInformation> debugInformation)
+    {
+        Assembly = assembly;
+
+        _debugInformation = debugInformation;
+    }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Returns the associated assembly.
+    /// </summary>
+    public Assembly Assembly { get; }
+
+    #endregion
+
+    #region Methods
+
+    /// <summary>
+    /// Tries to load debug information for the given method base.
+    /// </summary>
+    /// <param name="methodBase">The method base.</param>
+    /// <param name="methodDebugInformation">
+    /// The loaded debug information (or null).
+    /// </param>
+    /// <returns>True, if the requested debug information could be loaded.</returns>
+    public bool TryLoadDebugInformation(
+        MethodBase methodBase,
+        [NotNullWhen(true)] out MethodDebugInformation methodDebugInformation)
+    {
+        Debug.Assert(
+            methodBase.Module.Assembly == Assembly,
+            "Invalid method association");
+
+        if (methodBase is MethodInfo methodInfo &&
+            methodInfo.GetGenericArguments().Length > 0)
+        {
+            methodBase = methodInfo.GetGenericMethodDefinition();
+        }
+        return _debugInformation.TryGetValue(
+            methodBase,
+            out methodDebugInformation);
+    }
+
+    #endregion
 }
