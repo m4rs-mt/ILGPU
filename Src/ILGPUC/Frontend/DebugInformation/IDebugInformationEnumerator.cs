@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IDebugInformationEnumerator.cs
@@ -9,23 +9,22 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-namespace ILGPU.Frontend.DebugInformation
+namespace ILGPUC.Frontend.DebugInformation;
+
+/// <summary>
+/// Represents a debug-information enumerator.
+/// </summary>
+/// <typeparam name="T">The enumerator type.</typeparam>
+interface IDebugInformationEnumerator<T>
 {
     /// <summary>
-    /// Represents a debug-information enumerator.
+    /// Returns the current object.
     /// </summary>
-    /// <typeparam name="T">The enumerator type.</typeparam>
-    public interface IDebugInformationEnumerator<T>
-    {
-        /// <summary>
-        /// Returns the current object.
-        /// </summary>
-        T Current { get; }
+    T Current { get; }
 
-        /// <summary>
-        /// Moves the enumerator forward to the given instruction offset.
-        /// </summary>
-        /// <param name="offset">The instruction offset in bytes.</param>
-        bool MoveTo(int offset);
-    }
+    /// <summary>
+    /// Moves the enumerator forward to the given instruction offset.
+    /// </summary>
+    /// <param name="offset">The instruction offset in bytes.</param>
+    bool MoveTo(int offset);
 }
