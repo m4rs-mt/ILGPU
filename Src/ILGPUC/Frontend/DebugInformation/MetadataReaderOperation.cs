@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MetadataReaderOperation.cs
@@ -13,59 +13,58 @@ using System;
 using System.Reflection.Metadata;
 using System.Threading;
 
-namespace ILGPU.Frontend.DebugInformation
+namespace ILGPUC.Frontend.DebugInformation;
+
+/// <summary>
+/// An abstract provider for synchronized metadata reader operations.
+/// </summary>
+interface IMetadataReaderOperationProvider
 {
     /// <summary>
-    /// An abstract provider for synchronized metadata reader operations.
+    /// Begins a synchronized metadata reader operation.
     /// </summary>
-    internal interface IMetadataReaderOperationProvider
+    /// <returns>The operation instance.</returns>
+    MetadataReaderOperation BeginOperation();
+}
+
+/// <summary>
+/// Represents a synchronized metadata reader operation.
+/// </summary>
+/// <remarks>
+/// The current implementation of the <see cref="MetadataReader"/> seems to be
+/// thread safe based on the source code. However, this is not 100% safe.
+/// Wrap all operations using a thread-safe locking to ensure reliable functionality.
+/// </remarks>
+readonly struct MetadataReaderOperation : IDisposable
+{
+    /// <summary>
+    /// Constructs a new reader operation.
+    /// </summary>
+    /// <param name="reader">The parent reader.</param>
+    /// <param name="syncLock">The synchronization object.</param>
+    internal MetadataReaderOperation(MetadataReader reader, object syncLock)
     {
-        /// <summary>
-        /// Begins a synchronized metadata reader operation.
-        /// </summary>
-        /// <returns>The operation instance.</returns>
-        MetadataReaderOperation BeginOperation();
+        Reader = reader;
+        SyncLock = syncLock;
+
+        Monitor.Enter(syncLock);
     }
 
     /// <summary>
-    /// Represents a synchronized metadata reader operation.
+    /// Returns the parent synchronization object.
     /// </summary>
     /// <remarks>
-    /// The current implementation of the <see cref="MetadataReader"/> seems to be
-    /// thread safe based on the source code. However, this is not 100% safe.
-    /// Wrap all operations using a thread-safe locking to ensure reliable functionality.
+    /// Might be required in the future to synchronize accesses.
     /// </remarks>
-    internal readonly struct MetadataReaderOperation : IDisposable
-    {
-        /// <summary>
-        /// Constructs a new reader operation.
-        /// </summary>
-        /// <param name="reader">The parent reader.</param>
-        /// <param name="syncLock">The synchronization object.</param>
-        internal MetadataReaderOperation(MetadataReader reader, object syncLock)
-        {
-            Reader = reader;
-            SyncLock = syncLock;
+    private object SyncLock { get; }
 
-            Monitor.Enter(syncLock);
-        }
+    /// <summary>
+    /// Returns the parent reader.
+    /// </summary>
+    public MetadataReader Reader { get; }
 
-        /// <summary>
-        /// Returns the parent synchronization object.
-        /// </summary>
-        /// <remarks>
-        /// Might be required in the future to synchronize accesses.
-        /// </remarks>
-        private object SyncLock { get; }
-
-        /// <summary>
-        /// Returns the parent reader.
-        /// </summary>
-        public MetadataReader Reader { get; }
-
-        /// <summary>
-        /// Releases the current synchronization lock.
-        /// </summary>
-        public void Dispose() => Monitor.Exit(SyncLock);
-    }
+    /// <summary>
+    /// Releases the current synchronization lock.
+    /// </summary>
+    public void Dispose() => Monitor.Exit(SyncLock);
 }
