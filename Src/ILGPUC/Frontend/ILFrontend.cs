@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILFrontend.cs
@@ -9,534 +9,388 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.DebugInformation;
-using ILGPU.IR;
-using ILGPU.IR.Transformations;
 using ILGPU.Util;
-using System;
+using ILGPUC.Backends;
+using ILGPUC.Frontend.DebugInformation;
+using ILGPUC.Frontend.Intrinsic;
+using ILGPUC.IR;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Linq;
 using System.Reflection;
-using System.Threading;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
-namespace ILGPU.Frontend
+namespace ILGPUC.Frontend;
+
+/// <summary>
+/// The ILGPUC MSIL frontend.
+/// </summary>
+sealed class ILFrontend
 {
+    #region Constants & Nested Types
+
     /// <summary>
-    /// The ILGPU MSIL frontend.
+    /// The PDB file extension (.pdb).
     /// </summary>
-    public sealed class ILFrontend : DisposeBase
+    private const string PDBFileExtensions = ".pdb";
+
+    #endregion
+
+    #region Instance
+
+    private readonly List<string?> _pdbSearchPaths;
+    private readonly Dictionary<Assembly, AssemblyDebugInformation?>
+        _referencedAssemblies = new(16);
+    private readonly Dictionary<MethodBase, DisassembledMethod?> _methods = new(1024);
+    private readonly Stack<HashSet<MethodBase>> _methodsStack = new(2);
+
+    /// <summary>
+    /// Constructs a new IL frontend using the given paths to resolve debug information
+    /// </summary>
+    /// <param name="backendType">The current backend type we are compiling for.</param>
+    /// <param name="pdbSearchPaths">The list of search paths.</param>
+    public ILFrontend(BackendType backendType, params List<string?> pdbSearchPaths)
     {
-        #region Nested Types
+        BackendType = backendType;
 
-        /// <summary>
-        /// Represents a single processing entry.
-        /// </summary>
-        private readonly struct ProcessingEntry
+        // Determine pdb lookup directories
+        var currentDirectory = Directory.GetCurrentDirectory();
+        if (Directory.Exists(currentDirectory))
+            pdbSearchPaths.Insert(0, currentDirectory);
+        _pdbSearchPaths = pdbSearchPaths;
+    }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Returns the current backend type we are compiling for.
+    /// </summary>
+    public BackendType BackendType { get; }
+
+    #endregion
+
+    #region Methods
+
+    /// <summary>
+    /// Pushes a processing scope to record all methods to be encountered.
+    /// </summary>
+    public void PushScope() => _methodsStack.Push(new(256));
+
+    /// <summary>
+    /// Pops a processing scope and returns the set of all methods encountered.
+    /// </summary>
+    public IReadOnlyCollection<MethodBase> PopScope() => _methodsStack.Pop();
+
+    /// <summary>
+    /// Tries to find a pdb file for the given assembly.
+    /// </summary>
+    /// <param name="assembly">The assembly to find the pdb file for.</param>
+    /// <param name="pdbFilePath">The determined pdb file path (or null).</param>
+    /// <returns>True if a valid pdb file path could be found.</returns>
+    private bool TryFindPdbFile(
+        Assembly assembly,
+        [NotNullWhen(true)] out string? pdbFilePath)
+    {
+        pdbFilePath = null;
+        var debugDir = Path.GetDirectoryName(assembly.Location).AsNotNull();
+        var pdbFileName = assembly.GetName().Name;
+        if (pdbFileName is null) return false;
+
+        pdbFileName += PDBFileExtensions;
+        pdbFilePath = Path.Combine(debugDir, pdbFileName);
+        if (File.Exists(pdbFilePath)) return true;
+
+        foreach (var searchPath in _pdbSearchPaths)
         {
-            public ProcessingEntry(
-                MethodBase method,
-                CompilationStackLocation compilationStackLocation,
-                CodeGenerationResult? result)
-            {
-                Method = method;
-                CompilationStackLocation = compilationStackLocation;
-                Result = result;
-            }
-
-            /// <summary>
-            /// Returns the method.
-            /// </summary>
-            public MethodBase Method { get; }
-
-            /// <summary>
-            /// Returns the source location.
-            /// </summary>
-            public CompilationStackLocation CompilationStackLocation { get; }
-
-            /// <summary>
-            /// Returns the processing future.
-            /// </summary>
-            public CodeGenerationResult? Result { get; }
-
-            /// <summary>
-            /// Returns true if this is an external processing request.
-            /// </summary>
-            public bool IsExternalRequest => Result != null;
-
-            /// <summary>
-            /// Signals the future with the given value.
-            /// </summary>
-            /// <param name="irFunction">The function value.</param>
-            public void SetResult(Method irFunction)
-            {
-                Debug.Assert(irFunction != null, "Invalid function value");
-                if (Result != null)
-                    Result.Result = irFunction;
-            }
+            if (string.IsNullOrWhiteSpace(searchPath)) continue;
+            pdbFilePath = Path.Combine(searchPath, pdbFileName);
+            if (File.Exists(pdbFilePath)) return true;
         }
-
-        #endregion
-
-        #region Instance
-
-        private volatile bool running = true;
-        private readonly Thread[] threads;
-        private readonly ManualResetEventSlim driverNotifier;
-        private volatile int activeThreads;
-        private readonly object processingSyncObject = new object();
-        private readonly Stack<ProcessingEntry> processing =
-            new Stack<ProcessingEntry>(1 << 6);
-
-        private volatile CodeGenerationPhase? codeGenerationPhase;
-
-        /// <summary>
-        /// Constructs a new frontend with two threads.
-        /// </summary>
-        /// <param name="context">The context instance.</param>
-        /// <param name="debugInformationManager">
-        /// The associated debug information manager.
-        /// </param>
-        public ILFrontend(
-            Context context,
-            DebugInformationManager? debugInformationManager)
-            : this(context, debugInformationManager, 2)
-        { }
-
-        /// <summary>
-        /// Constructs a new frontend that uses the given number of
-        /// threads for code generation.
-        /// </summary>
-        /// <param name="context">The context instance.</param>
-        /// <param name="debugInformationManager">
-        /// The associated debug information manager.
-        /// </param>
-        /// <param name="numThreads">The number of threads.</param>
-        public ILFrontend(
-            Context context,
-            DebugInformationManager? debugInformationManager,
-            int numThreads)
-        {
-            if (numThreads < 1)
-                throw new ArgumentOutOfRangeException(nameof(numThreads));
-            DebugInformationManager = debugInformationManager;
-            driverNotifier = new ManualResetEventSlim(false);
-            threads = new Thread[numThreads];
-            for (int i = 0; i < numThreads; ++i)
-            {
-                var thread = new Thread(DoWork)
-                {
-                    Name = $"ILGPU_{context.InstanceId}_Frontend_{i}",
-                    IsBackground = true,
-                };
-                threads[i] = thread;
-                thread.Start();
-            }
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated debug information manager (if any).
-        /// </summary>
-        public DebugInformationManager? DebugInformationManager { get; }
-
-        /// <summary>
-        /// Returns true if the code generation has failed.
-        /// </summary>
-        public bool IsFaulted => LastException != null;
-
-        /// <summary>
-        /// Returns the exception from code generation failure.
-        /// </summary>
-        public Exception? LastException { get; private set; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// The code-generation thread.
-        /// </summary>
-        [SuppressMessage(
-            "Design",
-            "CA1031:Do not catch general exception types",
-            Justification = "Must be caught to propagate errors")]
-        private void DoWork()
-        {
-            var detectedMethods = new Dictionary<MethodBase, CompilationStackLocation>();
-            for (; ; )
-            {
-                ProcessingEntry current;
-                lock (processingSyncObject)
-                {
-                    while (processing.Count < 1 & running)
-                        Monitor.Wait(processingSyncObject);
-
-                    if (!running)
-                        break;
-
-                    ++activeThreads;
-                    current = processing.Pop();
-                }
-
-                Debug.Assert(
-                    codeGenerationPhase != null,
-                    "Invalid processing state");
-
-                detectedMethods.Clear();
-                try
-                {
-                    codeGenerationPhase.GenerateCodeInternal(
-                        current.Method,
-                        current.IsExternalRequest,
-                        current.CompilationStackLocation,
-                        detectedMethods,
-                        out Method method);
-                    current.SetResult(method);
-                }
-                catch (Exception e)
-                {
-                    codeGenerationPhase.RecordException(e);
-                    detectedMethods.Clear();
-                }
-
-                // Check dependencies
-                lock (processingSyncObject)
-                {
-                    --activeThreads;
-
-                    try
-                    {
-                        foreach (var detectedMethod in detectedMethods)
-                        {
-                            processing.Push(new ProcessingEntry(
-                                detectedMethod.Key,
-                                detectedMethod.Value,
-                                null));
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        codeGenerationPhase.RecordException(e);
-                        detectedMethods.Clear();
-                        processing.Clear();
-                    }
-
-                    if (detectedMethods.Count > 0)
-                    {
-                        Monitor.PulseAll(processingSyncObject);
-                    }
-                    else
-                    {
-                        if (activeThreads == 0 && processing.Count < 1)
-                            driverNotifier.Set();
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Internal method used for code generation.
-        /// </summary>
-        /// <param name="method">The method.</param>
-        /// <returns>The generation future.</returns>
-        internal CodeGenerationResult GenerateCode(MethodBase method)
-        {
-            var result = new CodeGenerationResult(method);
-            lock (processingSyncObject)
-            {
-                driverNotifier.Reset();
-                processing.Push(new ProcessingEntry(
-                    method,
-                    new CompilationStackLocation(new Method.MethodLocation(method)),
-                    result));
-                Monitor.Pulse(processingSyncObject);
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Starts a code-generation phase.
-        /// </summary>
-        /// <param name="context">The target IR context.</param>
-        /// <returns>The created code-generation phase.</returns>
-        public CodeGenerationPhase BeginCodeGeneration(IRContext context)
-        {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-            var newPhase = new CodeGenerationPhase(this, context, context.Verifier);
-            if (Interlocked.CompareExchange(
-                ref codeGenerationPhase,
-                newPhase,
-                null) != null)
-            {
-                throw new InvalidOperationException();
-            }
-            driverNotifier.Reset();
-            return newPhase;
-        }
-
-        /// <summary>
-        /// Finishes the current code-generation phase.
-        /// </summary>
-        /// <param name="phase">The current phase.</param>
-        internal void FinishCodeGeneration(CodeGenerationPhase phase)
-        {
-            Debug.Assert(phase != null, "Invalid phase");
-            Debug.WriteLineIf(
-                !phase.HadWorkToDo,
-                "This code generation phase had nothing to do");
-            if (phase.HadWorkToDo)
-                driverNotifier.Wait();
-            LastException = codeGenerationPhase?.FirstException;
-
-            if (Interlocked.CompareExchange(
-                ref codeGenerationPhase,
-                null,
-                phase) != phase)
-            {
-                throw new InvalidOperationException();
-            }
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                running = false;
-                lock (processingSyncObject)
-                    Monitor.PulseAll(processingSyncObject);
-                foreach (var thread in threads)
-                    thread.Join();
-                driverNotifier.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
-        #endregion
+        return false;
     }
 
     /// <summary>
-    /// Represents a code-generation future.
+    /// Tries to get the disassembled method for the given method base.
     /// </summary>
-    public sealed class CodeGenerationResult
+    /// <param name="methodBase">The method base to map to a disassembled method.</param>
+    /// <returns>True if a valid disassembled method could be found.</returns>
+    public DisassembledMethod? GetDisassembledMethod(MethodBase methodBase) =>
+        _methods.TryGetValue(methodBase, out var disassembled) ? disassembled : null;
+
+    /// <summary>
+    /// Tries to load debug information for the given method.
+    /// </summary>
+    /// <param name="methodBase">The method.</param>
+    /// <param name="methodDebugInformation">
+    /// Loaded debug information (or null).
+    /// </param>
+    /// <returns>True, if debug information could be loaded.</returns>
+    public bool TryLoadDebugInformation(
+        MethodBase methodBase,
+        out MethodDebugInformation methodDebugInformation)
     {
-        /// <summary>
-        /// Creates a new code generation result.
-        /// </summary>
-        /// <param name="method">The associated method.</param>
-        internal CodeGenerationResult(MethodBase method)
-        {
-            Method = method;
-        }
-
-        /// <summary>
-        /// Returns the associated method.
-        /// </summary>
-        public MethodBase Method { get; }
-
-        /// <summary>
-        /// The associated function result.
-        /// </summary>
-        public Method? Result { get; internal set; }
-
-        /// <summary>
-        /// Returns true if this result has a function value.
-        /// </summary>
-        public bool HasResult => Result != null;
-
-        /// <summary>
-        /// The first exception during code generation, if any.
-        /// </summary>
-        public Exception? FirstException { get; internal set; }
-
+        methodDebugInformation = default;
+        return _referencedAssemblies.TryGetValue(
+            methodBase.Module.Assembly,
+            out var assemblyDebugInformation) &&
+            (assemblyDebugInformation?.TryLoadDebugInformation(
+                methodBase,
+                out methodDebugInformation) ?? false);
     }
 
     /// <summary>
-    /// A single code generation phase.
-    /// Note that only a single phase instance can be created at a time.
+    /// Loads the sequence points of the given method.
     /// </summary>
-    public sealed class CodeGenerationPhase : DisposeBase
+    /// <param name="methodBase">The method base.</param>
+    /// <returns>
+    /// A sequence-point enumerator that targets the given method.
+    /// </returns>
+    /// <remarks>
+    /// If no debug information could be loaded for the given method, an empty
+    /// <see cref="SequencePointEnumerator"/> will be returned.
+    /// </remarks>
+    public SequencePointEnumerator LoadSequencePoints(MethodBase methodBase) =>
+        TryLoadDebugInformation(
+            methodBase,
+            out MethodDebugInformation methodDebugInformation)
+        ? methodDebugInformation.CreateSequencePointEnumerator()
+        : SequencePointEnumerator.Empty;
+
+    /// <summary>
+    /// Loads all methods while fully disassembling all methods and all called methods.
+    /// </summary>
+    /// <param name="methods">methods to load.</param>
+    public void LoadMethods(IReadOnlyCollection<MethodBase> methods)
     {
-        #region Instance
+        // Disassemble all methods
+        DisassembleMethods(methods);
 
-        private volatile bool isFinished;
-        private volatile bool hadWorkToDo;
-        private volatile Exception? firstException;
+        // Load debug symbols of all assemblies in parallel
+        Parallel.ForEach(
+            _methods.Keys.Select(t => t.Module.Assembly).Distinct(),
+            LoadDebugSymbols);
 
-        /// <summary>
-        /// Constructs a new generation phase.
-        /// </summary>
-        /// <param name="frontend">The current frontend instance.</param>
-        /// <param name="context">The target IR context.</param>
-        /// <param name="verifier">The associated verifier.</param>
-        internal CodeGenerationPhase(
-            ILFrontend frontend,
-            IRContext context,
-            Verifier verifier)
+        // Process all methods and get debug info assigned to them
+        Parallel.ForEach(_methods, method =>
         {
-            Context = context;
-            Frontend = frontend;
-            DebugInformationManager = frontend.DebugInformationManager;
-            Verifier = verifier;
-        }
+            // Make sure the method is valid
+            if (method.Value is null) return;
 
-        #endregion
+            // Get sequence information from data
+            var sequencePoints = LoadSequencePoints(method.Key);
+            if (!sequencePoints.IsValid) return;
 
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated context.
-        /// </summary>
-        public IRContext Context { get; }
-
-        /// <summary>
-        /// Returns the associated context.
-        /// </summary>
-        public ILFrontend Frontend { get; }
-
-        /// <summary>
-        /// Returns the associated debug information manager (if any).
-        /// </summary>
-        public DebugInformationManager? DebugInformationManager { get; }
-
-        /// <summary>
-        /// Returns the associated verifier instance.
-        /// </summary>
-        internal Verifier Verifier { get; }
-
-        /// <summary>
-        /// Returns true if the generation phase has been finished.
-        /// </summary>
-        public bool IsFinished => isFinished;
-
-        /// <summary>
-        /// Returns true if the code generation phase had work to do.
-        /// </summary>
-        public bool HadWorkToDo => hadWorkToDo;
-
-        /// <summary>
-        /// Returns the first exception recorded during code-generation.
-        /// </summary>
-        public Exception? FirstException => firstException;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Performs the actual (asynchronous) code generation.
-        /// </summary>
-        /// <param name="method">The method.</param>
-        /// <param name="isExternalRequest">
-        /// True, if processing of this method was requested by a user.
-        /// </param>
-        /// <param name="compilationStackLocation">The source location.</param>
-        /// <param name="detectedMethods">The set of newly detected methods.</param>
-        /// <param name="generatedMethod">The resolved IR method.</param>
-        internal void GenerateCodeInternal(
-            MethodBase method,
-            bool isExternalRequest,
-            CompilationStackLocation compilationStackLocation,
-            Dictionary<MethodBase, CompilationStackLocation> detectedMethods,
-            out Method generatedMethod)
-        {
-            ILocation? location = null;
-            try
-            {
-                generatedMethod = Context.Declare(method, out bool created);
-                if (!created & isExternalRequest)
-                    return;
-                location = generatedMethod;
-
-                SequencePointEnumerator sequencePoints =
-                    DebugInformationManager?.LoadSequencePoints(method)
-                    ?? SequencePointEnumerator.Empty;
-                var disassembler = new Disassembler(
-                    method,
-                    sequencePoints,
-                    compilationStackLocation);
-                var disassembledMethod = disassembler.Disassemble();
-
-                using (var builder = generatedMethod.CreateBuilder())
-                {
-                    var codeGenerator = new CodeGenerator(
-                        Frontend,
-                        Context,
-                        builder,
-                        disassembledMethod,
-                        compilationStackLocation,
-                        detectedMethods);
-                    codeGenerator.GenerateCode();
-                    builder.Complete();
-                }
-                Verifier.Verify(generatedMethod);
-
-                // Evaluate inlining heuristic to adjust method declaration
-                Inliner.SetupInliningAttributes(
-                    Context,
-                    generatedMethod,
-                    disassembledMethod);
-            }
-            catch (InternalCompilerException)
-            {
-                // If we already have an internal compiler exception, re-throw it.
-                throw;
-            }
-            catch (Exception e)
-            {
-                // Wrap generic exceptions with location information.
-                location ??= new Method.MethodLocation(method);
-                throw location.GetException(e);
-            }
-        }
-
-        /// <summary>
-        /// Generates code for the given method.
-        /// </summary>
-        /// <param name="method">The method.</param>
-        /// <returns>A completion future.</returns>
-        public CodeGenerationResult GenerateCode(MethodBase method)
-        {
-            if (method == null)
-                throw new ArgumentNullException(nameof(method));
-            hadWorkToDo = true;
-            return Frontend.GenerateCode(method);
-        }
-
-        /// <summary>
-        /// Records an exception during code-generation.
-        /// </summary>
-        /// <param name="exception">The exception to record.</param>
-        internal void RecordException(Exception exception)
-        {
-            Debug.Assert(exception != null);
-            Interlocked.CompareExchange(ref firstException, exception, null);
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                isFinished = true;
-                Frontend.FinishCodeGeneration(this);
-            }
-            base.Dispose(disposing);
-        }
-
-        #endregion
+            // Assemble all instructions
+            foreach (var instruction in method.Value)
+                instruction.UpdateLocation(sequencePoints);
+        });
     }
+
+    /// <summary>
+    /// Disassembles all methods and tracks nested/referenced methods to be disassembled.
+    /// </summary>
+    /// <param name="methods">All methods to be disassembled in full.</param>
+    private void DisassembleMethods(IReadOnlyCollection<MethodBase> methods)
+    {
+        var queue = new ConcurrentQueue<MethodBase>();
+        var remapping = new Dictionary<MethodBase, MethodBase>();
+
+        // Process all kernels in parallel
+        Parallel.ForEach(methods, method =>
+            ProcessMethod(method, queue, remapping));
+
+        // Process all remaining methods in parallel
+        Parallel.For(0, queue.Count, _ =>
+        {
+            while (queue.TryDequeue(out var method))
+                ProcessMethod(method, queue, remapping);
+        });
+
+        // Map all intrinsic implementations to original methods
+        foreach (var (source, target) in remapping)
+        {
+            while (_methods[source] is null)
+                _methods[source] = _methods[target];
+        }
+    }
+
+    /// <summary>
+    /// Processes the given method and registers all calls with the given queue.
+    /// </summary>
+    /// <param name="method">The method to process.</param>
+    /// <param name="queue">The queue to process all methods.</param>
+    /// <param name="remapping">Internal method remapping.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private void ProcessMethod(
+        MethodBase method,
+        ConcurrentQueue<MethodBase> queue,
+        Dictionary<MethodBase, MethodBase> remapping)
+    {
+        // Register method
+        lock (_methods)
+        {
+            if (_methodsStack.TryPeek(out var set)) set.Add(method);
+            if (!_methods.TryAdd(method, null)) return;
+        }
+
+        // Try to remap intrinsic methods
+        var sourceLocation = new Method.MethodLocation(method);
+
+        // Try to remap an intrinsic function
+        var intrinsicKind = Intrinsics.TryImplement(
+            sourceLocation,
+            method,
+            BackendType,
+            out var impl);
+        if (intrinsicKind == IntrinsicImplementationKind.Remapped ||
+            intrinsicKind == IntrinsicImplementationKind.Implemented)
+        {
+            // Specialize method if necessary
+            if (impl is MethodInfo methodInfo && impl.IsGenericMethod)
+            {
+                var genericArguments = method.GetGenericArguments();
+                impl = methodInfo.MakeGenericMethod(genericArguments);
+            }
+
+            // Complete mapping of our current method
+            lock (remapping) remapping[method] = impl.AsNotNull();
+
+            // Process our intrinsic instead
+            ProcessMethod(impl.AsNotNull(), queue, remapping);
+        }
+        else if (intrinsicKind == IntrinsicImplementationKind.Generated)
+        {
+            // This method will be completely generated as does not need to be analyzed
+            // in further detail. Moreover, we do not need to disassemble the method at
+            // all.
+        }
+        else
+        {
+            // Disassemble our new method
+            var disassembled = Disassembler.TryDisassemble(method);
+
+            // Ignore empty assignments
+            if (disassembled is null) return;
+
+            // Add method to internal methods
+            lock (_methods) _methods[method] = disassembled;
+
+            // Determine all called methods to disassemble
+            foreach (var instruction in disassembled.Instructions)
+            {
+                if (instruction.Argument is MethodBase calledMethod)
+                    queue.Enqueue(calledMethod);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Loads all debug symbols of all referenced assemblies.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private void LoadDebugSymbols(Assembly assembly)
+    {
+        lock (_referencedAssemblies)
+            if (!_referencedAssemblies.TryAdd(assembly, null)) return;
+
+        // Load debug symbols for the given assembly
+        if (assembly.IsDynamic ||
+            string.IsNullOrEmpty(assembly.Location) ||
+            !TryFindPdbFile(assembly, out var pdbFilePath))
+        {
+            // Skip this entry and avoid loading further symbols in the future
+            return;
+        }
+
+        // Try find pdb source file
+        using var stream = new FileStream(
+            pdbFilePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read);
+
+        // Load assembly debug information
+        var debugInformation = AssemblyDebugInformation.Load(assembly, stream);
+
+        // Register result
+        lock (_referencedAssemblies)
+            _referencedAssemblies[assembly] = debugInformation;
+    }
+
+    /// <summary>
+    /// Generates code for all methods given.
+    /// </summary>
+    /// <param name="context">The target context.</param>
+    /// <param name="methods">Methods to generate code for.</param>
+    /// <returns>True if code was generated.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public bool GenerateCode(
+        IRContext context,
+        params IReadOnlyCollection<MethodBase> methods)
+    {
+        if (methods.Count < 1) return false;
+
+        var queue = new ConcurrentQueue<MethodBase>();
+        var processed = new HashSet<MethodBase>();
+
+        // Generates code for the given method
+        void GenerateCodeFor(MethodBase method)
+        {
+            lock (processed)
+            {
+                if (!processed.Add(method)) return;
+            }
+
+            // Get IR method and check for external declaration flags
+            var irMethod = context.Declare(method, out _);
+            if (irMethod.HasFlags(MethodFlags.External))
+                return;
+
+            // Retrieve disassembled method
+            var disassembled = GetDisassembledMethod(method);
+            if (disassembled is null)
+                return;
+
+            using var builder = irMethod.CreateBuilder();
+            var codeGenerator = new CodeGenerator(
+                context,
+                builder,
+                disassembled);
+            codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
+
+            codeGenerator.GenerateCode();
+            builder.Complete();
+        }
+
+        // Generate code for all entry point methods
+        Parallel.ForEach(methods, GenerateCodeFor);
+
+        // Process all remaining methods in parallel
+        Parallel.For(0, queue.Count, _ =>
+        {
+            while (queue.TryDequeue(out var method))
+                GenerateCodeFor(method);
+        });
+
+        return processed.Count > 0;
+    }
+
+    /// <summary>
+    /// Generates code for all methods in the current scope.
+    /// </summary>
+    /// <param name="context">The target context.</param>
+    /// <returns>True if code was generated.</returns>
+    public bool GenerateCode(IRContext context)
+    {
+        // Declare all methods and register them
+        var methods = PopScope();
+        return GenerateCode(context, methods);
+    }
+
+    #endregion
 }
