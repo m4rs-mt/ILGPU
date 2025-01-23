@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
-using System;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Text;
