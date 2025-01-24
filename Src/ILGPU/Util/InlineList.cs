@@ -290,7 +290,9 @@ public struct InlineList<T>
     /// Returns the index of the given item.
     /// </summary>
     /// <param name="predicate">The item predicate for the first item to look for.</param>
-    /// <returns>The index of the item or -1.</returns>
+    /// <param name="offset">The start index to begin the search with.</param>
+    /// <param name="defaultValue">The default value for not found elements.</param>
+    /// <returns>The index of the item or <paramref name="defaultValue"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly int IndexOf(
         Predicate<T> predicate,
