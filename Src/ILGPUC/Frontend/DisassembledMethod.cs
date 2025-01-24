@@ -15,10 +15,19 @@ using System.Reflection;
 
 namespace ILGPUC.Frontend;
 
-record CatchClause(
+/// <summary>
+/// Represents an exception catch clause.
+/// </summary>
+/// <param name="TryStart">The start index of the try block.</param>
+/// <param name="TryLength">The length of the try block in instructions.</param>
+/// <param name="HandlerStart">The start index of the handler block.</param>
+/// <param name="HandlerLength">The length of the handler block in instructions.</param>
+/// <param name="FilterBlock">The optional filter block clause index.</param>
+/// <param name="CatchType">The optional exception catch type.</param>
+sealed record CatchClause(
     int TryStart,
     int TryLength,
-    int HandlerOffset,
+    int HandlerStart,
     int HandlerLength,
     int? FilterBlock = null,
     Type? CatchType = null)
@@ -26,12 +35,22 @@ record CatchClause(
     public bool IsFilter => FilterBlock.HasValue;
 }
 
-record FinallyClause(
+/// <summary>
+/// Represents a finally clause.
+/// </summary>
+/// <param name="TryStart">The start index of the try block.</param>
+/// <param name="TryLength">The length of the try block in instructions.</param>
+/// <param name="FinallyStart">The start index of the finally block.</param>
+/// <param name="FinallyLength">The length of the finally block.</param>
+sealed record FinallyClause(
     int TryStart,
     int TryLength,
-    int FinallyOffset,
+    int FinallyStart,
     int FinallyLength);
 
+/// <summary>
+/// The disassembled method flags.
+/// </summary>
 [Flags]
 enum DisassembledMethodFlags
 {
@@ -54,6 +73,11 @@ enum DisassembledMethodFlags
     /// Marks methods acting as real launchers.
     /// </summary>
     IsLauncher = 1 << 2,
+
+    /// <summary>
+    /// Marks methods as intrinsics.
+    /// </summary>
+    InIntrinsic = 1 << 3,
 }
 
 /// <summary>
@@ -127,6 +151,17 @@ sealed class DisassembledMethod(
     /// </summary>
     public bool IsLauncher =>
         (Flags & DisassembledMethodFlags.IsLauncher) != DisassembledMethodFlags.None;
+
+    /// <summary>
+    /// Returns true if this is a compiler internal intrinsic.
+    /// </summary>
+    public bool IsIntrinsic =>
+        (Flags & DisassembledMethodFlags.InIntrinsic) != DisassembledMethodFlags.None;
+
+    /// <summary>
+    /// Returns true if this is a function that is known by the compiler in general.
+    /// </summary>
+    public bool IsBuiltIn => IsLauncher || IsIntrinsic;
 
     /// <summary>
     /// Returns an instruction enumerator.
