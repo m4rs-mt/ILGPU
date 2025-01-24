@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR;
+using System;
 
 namespace ILGPUC.Frontend.DebugInformation;
 
