@@ -23,7 +23,7 @@ var binaryOps = GetBinaryMathOps(rootPath);
 var ternaryOps = GetTernaryMathOps(rootPath);
 #>
 
-namespace ILGPU.IR;
+namespace ILGPUC.IR;
 
 /// <summary>
 /// Represents the kind of an unary operation.
