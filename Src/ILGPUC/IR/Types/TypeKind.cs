@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2024 ILGPU Project
+//                        Copyright (c) 2025-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeKind.cs
@@ -9,61 +9,60 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-namespace ILGPU.IR.Types
+namespace ILGPUC.IR.Types;
+
+/// <summary>
+/// Enumeration of tHhe various special kinds of <see cref="TypeNode"/>.
+/// </summary>
+enum TypeKind
 {
     /// <summary>
-    /// Enumeration of tHhe various special kinds of <see cref="TypeNode"/>.
+    /// Fallback value for when the classification is unknown or doesn't apply
     /// </summary>
-    public enum TypeKind
-    {
-        /// <summary>
-        /// Fallback value for when the classification is unknown or doesn't apply
-        /// </summary>
-        Unknown,
+    Unknown,
 
-        /// <summary>
-        /// See <see cref="VoidType"/>
-        /// </summary>
-        Void,
+    /// <summary>
+    /// See <see cref="VoidType"/>
+    /// </summary>
+    Void,
 
-        /// <summary>
-        /// See <see cref="StringType"/>
-        /// </summary>
-        String,
+    /// <summary>
+    /// See <see cref="StringType"/>
+    /// </summary>
+    String,
 
-        /// <summary>
-        /// See <see cref="PrimitiveType"/>
-        /// </summary>
-        Primitive,
+    /// <summary>
+    /// See <see cref="PrimitiveType"/>
+    /// </summary>
+    Primitive,
 
-        /// <summary>
-        /// See <see cref="PaddingType"/>
-        /// </summary>
-        Padding,
+    /// <summary>
+    /// See <see cref="PaddingType"/>
+    /// </summary>
+    Padding,
 
-        /// <summary>
-        /// See <see cref="PointerType"/>
-        /// </summary>
-        Pointer,
+    /// <summary>
+    /// See <see cref="PointerType"/>
+    /// </summary>
+    Pointer,
 
-        /// <summary>
-        /// See <see cref="ViewType"/>
-        /// </summary>
-        View,
+    /// <summary>
+    /// See <see cref="ViewType"/>
+    /// </summary>
+    View,
 
-        /// <summary>
-        /// See <see cref="ArrayType"/>
-        /// </summary>
-        Array,
+    /// <summary>
+    /// See <see cref="ArrayType"/>
+    /// </summary>
+    Array,
 
-        /// <summary>
-        /// See <see cref="StructureType"/>
-        /// </summary>
-        Structure,
+    /// <summary>
+    /// See <see cref="StructureType"/>
+    /// </summary>
+    Structure,
 
-        /// <summary>
-        /// See <see cref="HandleType"/>
-        /// </summary>
-        Handle,
-    }
+    /// <summary>
+    /// See <see cref="HandleType"/>
+    /// </summary>
+    Handle,
 }
