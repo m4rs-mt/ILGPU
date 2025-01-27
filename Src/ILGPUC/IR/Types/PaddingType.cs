@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2024 ILGPU Project
+//                        Copyright (c) 2020-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PaddingType.cs
@@ -11,80 +11,64 @@
 
 using System;
 
-namespace ILGPU.IR.Types
+namespace ILGPUC.IR.Types;
+
+/// <summary>
+/// Represents a padding type.
+/// </summary>
+sealed class PaddingType : TypeNode
 {
+    #region Instance
+
     /// <summary>
-    /// Represents a padding type.
+    /// Constructs a new padding type.
     /// </summary>
-    public sealed class PaddingType : TypeNode
+    /// <param name="typeContext">The parent type context.</param>
+    /// <param name="primitiveType">The primitive type to use for padding.</param>
+    internal PaddingType(IRTypeContext typeContext, PrimitiveType primitiveType)
+        : base(typeContext)
     {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new padding type.
-        /// </summary>
-        /// <param name="typeContext">The parent type context.</param>
-        /// <param name="primitiveType">The primitive type to use for padding.</param>
-        internal PaddingType(IRTypeContext typeContext, PrimitiveType primitiveType)
-            : base(typeContext)
-        {
-            PrimitiveType = primitiveType;
-            Size = PrimitiveType.Size;
-            Alignment = PrimitiveType.Alignment;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <inheritdoc/>
-        public override bool IsPaddingType => true;
-
-        /// <inheritdoc/>
-        public override TypeKind TypeKind => TypeKind.Padding;
-
-        /// <summary>
-        /// Returns the associated basic value type.
-        /// </summary>
-        public override BasicValueType BasicValueType => PrimitiveType.BasicValueType;
-
-        /// <summary>
-        /// Returns the associated basic value type.
-        /// </summary>
-        public PrimitiveType PrimitiveType { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns the corresponding managed basic value type.
-        /// </summary>
-        protected override Type GetManagedType<TTypeProvider>(
-            TTypeProvider typeProvider) =>
-            typeProvider.GetPrimitiveType(PrimitiveType);
-
-        /// <summary cref="TypeNode.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) =>
-            writer.Write(nameof(PrimitiveType), PrimitiveType.Id);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() =>
-            BasicValueType.ToString();
-
-        /// <summary cref="TypeNode.GetHashCode"/>
-        public override int GetHashCode() =>
-            base.GetHashCode() ^ 0x2AB11613 ^ (int)BasicValueType;
-
-        /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object? obj) =>
-            obj is PaddingType paddingType &&
-            paddingType.BasicValueType == BasicValueType;
-
-        #endregion
+        PrimitiveType = primitiveType;
+        Size = PrimitiveType.Size;
+        Alignment = PrimitiveType.Alignment;
     }
+
+    #endregion
+
+    #region Properties
+
+    /// <inheritdoc/>
+    public override bool IsPaddingType => true;
+
+    /// <inheritdoc/>
+    public override TypeKind TypeKind => TypeKind.Padding;
+
+    /// <summary>
+    /// Returns the associated basic value type.
+    /// </summary>
+    public override BasicValueType BasicValueType => PrimitiveType.BasicValueType;
+
+    /// <summary>
+    /// Returns the associated basic value type.
+    /// </summary>
+    public PrimitiveType PrimitiveType { get; }
+
+    #endregion
+
+    #region Object
+
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() =>
+        BasicValueType.ToString();
+
+    /// <summary cref="TypeNode.GetHashCode"/>
+    public override int GetHashCode() =>
+        base.GetHashCode() ^ 0x2AB11613 ^ (int)BasicValueType;
+
+    /// <summary cref="TypeNode.Equals(object)"/>
+    public override bool Equals(object? obj) =>
+        obj is PaddingType paddingType &&
+        paddingType.BasicValueType == BasicValueType;
+
+    #endregion
 }
