@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2022 ILGPU Project
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ObjectType.cs
@@ -9,30 +9,14 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-namespace ILGPU.IR.Types
+namespace ILGPUC.IR.Types;
+
+/// <summary>
+/// Represents an abstract object value.
+/// </summary>
+/// <param name="typeContext">The parent type context.</param>
+abstract class ObjectType(IRTypeContext typeContext) : TypeNode(typeContext)
 {
-    /// <summary>
-    /// Represents an abstract object value.
-    /// </summary>
-    public abstract class ObjectType : TypeNode
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new object type.
-        /// </summary>
-        /// <param name="typeContext">The parent type context.</param>
-        protected ObjectType(IRTypeContext typeContext)
-            : base(typeContext)
-        { }
-
-        #endregion
-
-        #region Properties
-
-        /// <inheritdoc/>
-        public override bool IsObjectType => true;
-
-        #endregion
-    }
+    /// <inheritdoc/>
+    public override bool IsObjectType => true;
 }
