@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2024 ILGPU Project
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: HandleType.cs
@@ -11,59 +11,44 @@
 
 using System;
 
-namespace ILGPU.IR.Types
+namespace ILGPUC.IR.Types;
+
+/// <summary>
+/// Represents a .Net runtime-specific handle type.
+/// </summary>
+sealed class HandleType : TypeNode
 {
+    #region Instance
+
     /// <summary>
-    /// Represents a .Net runtime-specific handle type.
+    /// Constructs a new .Net runtime-specific handle type.
     /// </summary>
-    public sealed class HandleType : TypeNode
-    {
-        #region Instance
+    /// <param name="typeContext">The parent type context.</param>
+    internal HandleType(IRTypeContext typeContext)
+        : base(typeContext)
+    { }
 
-        /// <summary>
-        /// Constructs a new .Net runtime-specific handle type.
-        /// </summary>
-        /// <param name="typeContext">The parent type context.</param>
-        internal HandleType(IRTypeContext typeContext)
-            : base(typeContext)
-        { }
+    #endregion
 
-        #endregion
+    #region Properties
 
-        #region Properties
+    /// <inheritdoc/>
+    public override TypeKind TypeKind => TypeKind.Handle;
 
-        /// <inheritdoc/>
-        public override TypeKind TypeKind => TypeKind.Handle;
+    #endregion
 
-        #endregion
+    #region Object
 
-        #region Methods
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "handle";
 
-        /// <summary>
-        /// Creates an object type.
-        /// </summary>
-        protected override Type GetManagedType<TTypeProvider>(
-            TTypeProvider typeProvider) =>
-            typeof(object);
+    /// <summary cref="TypeNode.GetHashCode"/>
+    public override int GetHashCode() =>
+        base.GetHashCode() ^ 0xAA713C3;
 
-        /// <summary cref="TypeNode.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) { }
+    /// <summary cref="TypeNode.Equals(object?)"/>
+    public override bool Equals(object? obj) =>
+        obj is HandleType && base.Equals(obj);
 
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "handle";
-
-        /// <summary cref="TypeNode.GetHashCode"/>
-        public override int GetHashCode() =>
-            base.GetHashCode() ^ 0xAA713C3;
-
-        /// <summary cref="TypeNode.Equals(object?)"/>
-        public override bool Equals(object? obj) =>
-            obj is HandleType && base.Equals(obj);
-
-        #endregion
-    }
+    #endregion
 }
