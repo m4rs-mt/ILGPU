@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ValueTuples.tt/ValueTuples.cs
@@ -28,66 +28,65 @@ using System.Reflection;
         };
 #>
 
-namespace ILGPU.IR.Types
+namespace ILGPUC.IR.Types;
+
+/// <summary>
+/// Contains helper functions for supporting System.ValueTuple.
+/// </summary>
+static class ValueTuples
 {
+    #region Static
+
     /// <summary>
-    /// Contains helper functions for supporting System.ValueTuple.
+    /// Retrieves the offsets for the fields in a value tuple that use the supplied
+    /// generic type arguments.
     /// </summary>
-    internal static class ValueTuples
+    /// <param name="types">The generic type arguments of the value tuple.</param>
+    /// <returns>Offsets for the fields of the value tuple.</returns>
+    public static int[] GetOffsets(Type[] types)
     {
-        #region Static
-
-        /// <summary>
-        /// Retrieves the offsets for the fields in a value tuple that use the supplied
-        /// generic type arguments.
-        /// </summary>
-        /// <param name="types">The generic type arguments of the value tuple.</param>
-        /// <returns>Offsets for the fields of the value tuple.</returns>
-        public static int[] GetOffsets(Type[] types)
+        var methodInfo = types.Length switch
         {
-            var methodInfo = types.Length switch
-            {
 <#  foreach (var type in types) { #>
-                <#= type.NumParams #> => GetOffsetsMethod<#= type.NumParams #>,
+            <#= type.NumParams #> => GetOffsetsMethod<#= type.NumParams #>,
 <#  } #>
-                _ => throw new NotImplementedException()
-            };
-            var method = methodInfo.MakeGenericMethod(types);
-            return method.Invoke(null, null).AsNotNullCast<int[]>();
-        }
-
-        private static unsafe int CalculateOffset(byte* current, byte* baseline) =>
-            (int)(current - baseline);
-
-<#  foreach (var type in types) { #>
-        /// <summary>
-        /// Retrieves the offsets for the fields in the given value tuple.
-        /// </summary>
-        private static unsafe int[] GetOffsets<#= type.NumParams #><
-            <#= type.TypeParams #>>()
-<#      for (var i = 0; i < type.NumParams; i++) { #>
-            where T<#= i + 1 #> : unmanaged
-<#      } #>
-        {
-            ValueTuple<<#= type.TypeParams #>> input;
-            var offsets = new int[<#= type.NumParams #>];
-            byte* baseline = (byte*)&input;
-<#
-        for (var i = 0; i < type.NumParams; i++) {
-            var itemName = i + 1 == MaxParams ? "Rest" : $"Item{i + 1}";
-#>
-            offsets[<#= i #>] = CalculateOffset((byte*)&input.<#= itemName #>, baseline);
-<#      } #>
-            return offsets;
-        }
-
-        private static readonly MethodInfo GetOffsetsMethod<#= type.NumParams #> =
-            typeof(ValueTuples).GetMethod(
-                nameof(GetOffsets<#= type.NumParams #>),
-                BindingFlags.NonPublic | BindingFlags.Static)
-            .ThrowIfNull();
-
-<#  } #>
-        #endregion
+            _ => throw new NotImplementedException()
+        };
+        var method = methodInfo.MakeGenericMethod(types);
+        return method.Invoke(null, null).AsNotNullCast<int[]>();
     }
+
+    private static unsafe int CalculateOffset(byte* current, byte* baseline) =>
+        (int)(current - baseline);
+
+<#  foreach (var type in types) { #>
+    /// <summary>
+    /// Retrieves the offsets for the fields in the given value tuple.
+    /// </summary>
+    private static unsafe int[] GetOffsets<#= type.NumParams #><
+        <#= type.TypeParams #>>()
+<#      for (var i = 0; i < type.NumParams; i++) { #>
+        where T<#= i + 1 #> : unmanaged
+<#      } #>
+    {
+        ValueTuple<<#= type.TypeParams #>> input;
+        var offsets = new int[<#= type.NumParams #>];
+        byte* baseline = (byte*)&input;
+<#
+    for (var i = 0; i < type.NumParams; i++) {
+        var itemName = i + 1 == MaxParams ? "Rest" : $"Item{i + 1}";
+#>
+        offsets[<#= i #>] = CalculateOffset((byte*)&input.<#= itemName #>, baseline);
+<#      } #>
+        return offsets;
+    }
+
+    private static readonly MethodInfo GetOffsetsMethod<#= type.NumParams #> =
+        typeof(ValueTuples).GetMethod(
+            nameof(GetOffsets<#= type.NumParams #>),
+            BindingFlags.NonPublic | BindingFlags.Static)
+        .ThrowIfNull();
+
+<#  } #>
+    #endregion
 }
