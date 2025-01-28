@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2024 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VoidType.cs
@@ -11,62 +11,47 @@
 
 using System;
 
-namespace ILGPU.IR.Types
+namespace ILGPUC.IR.Types;
+
+/// <summary>
+/// Represents a void type.
+/// </summary>
+sealed class VoidType : TypeNode
 {
+    #region Instance
+
     /// <summary>
-    /// Represents a void type.
+    /// Constructs a new void type.
     /// </summary>
-    public sealed class VoidType : TypeNode
-    {
-        #region Instance
+    /// <param name="typeContext">The parent type context.</param>
+    internal VoidType(IRTypeContext typeContext)
+        : base(typeContext)
+    { }
 
-        /// <summary>
-        /// Constructs a new void type.
-        /// </summary>
-        /// <param name="typeContext">The parent type context.</param>
-        internal VoidType(IRTypeContext typeContext)
-            : base(typeContext)
-        { }
+    #endregion
 
-        #endregion
+    #region Properties
 
-        #region Properties
+    /// <inheritdoc/>
+    public override bool IsVoidType => true;
 
-        /// <inheritdoc/>
-        public override bool IsVoidType => true;
+    /// <inheritdoc/>
+    public override TypeKind TypeKind => TypeKind.Void;
 
-        /// <inheritdoc/>
-        public override TypeKind TypeKind => TypeKind.Void;
+    #endregion
 
-        #endregion
+    #region Object
 
-        #region Methods
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "void";
 
-        /// <summary>
-        /// Returns the void type.
-        /// </summary>
-        protected override Type GetManagedType<TTypeProvider>(
-            TTypeProvider typeProvider) =>
-            typeof(void);
+    /// <summary cref="TypeNode.GetHashCode"/>
+    public override int GetHashCode() =>
+        base.GetHashCode() ^ 0x3F671AC4;
 
-        /// <summary cref="TypeNode.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) { }
+    /// <summary cref="TypeNode.Equals(object?)"/>
+    public override bool Equals(object? obj) =>
+        obj is VoidType && base.Equals(obj);
 
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "void";
-
-        /// <summary cref="TypeNode.GetHashCode"/>
-        public override int GetHashCode() =>
-            base.GetHashCode() ^ 0x3F671AC4;
-
-        /// <summary cref="TypeNode.Equals(object?)"/>
-        public override bool Equals(object? obj) =>
-            obj is VoidType && base.Equals(obj);
-
-        #endregion
-    }
+    #endregion
 }
