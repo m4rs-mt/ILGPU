@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2024 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Atomic.cs
@@ -9,295 +9,220 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-using ILGPU.IR.Types;
 using ILGPU.Util;
+using ILGPUC.IR.Construction;
+using ILGPUC.IR.Types;
+using ILGPUC.Util;
 using System;
 using System.Diagnostics;
 
-namespace ILGPU.IR.Values
+namespace ILGPUC.IR.Values;
+
+/// <summary>
+/// Represents flags of an atomic operation.
+/// </summary>
+[Flags]
+enum AtomicFlags
 {
     /// <summary>
-    /// Represents flags of an atomic operation.
+    /// No special flags (default).
     /// </summary>
-    [Flags]
-    public enum AtomicFlags
-    {
-        /// <summary>
-        /// No special flags (default).
-        /// </summary>
-        None = 0,
-
-        /// <summary>
-        /// The operation has unsigned semantics.
-        /// </summary>
-        Unsigned = 1,
-    }
+    None = 0,
 
     /// <summary>
-    /// Represents a general atomic value.
+    /// The operation has unsigned semantics.
     /// </summary>
-    public abstract class AtomicValue : MemoryValue
-    {
-        #region Instance
+    Unsigned = 1,
+}
 
-        /// <summary>
-        /// Constructs a new abstract atomic value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="flags">The operation flags.</param>
-        internal AtomicValue(in ValueInitializer initializer, AtomicFlags flags)
-            : base(initializer)
-
-        {
-            Flags = flags;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the target view.
-        /// </summary>
-        public ValueReference Target => this[0];
-
-        /// <summary>
-        /// Returns the target address space this atomic operates on.
-        /// </summary>
-        public MemoryAddressSpace TargetAddressSpace =>
-            Target.Type.As<AddressSpaceType>(this).AddressSpace;
-
-        /// <summary>
-        /// Returns the target value.
-        /// </summary>
-        public ValueReference Value => this[1];
-
-        /// <summary>
-        /// Returns the operation flags.
-        /// </summary>
-        public AtomicFlags Flags { get; }
-
-        /// <summary>
-        /// Returns the associated arithmetic basic value type.
-        /// </summary>
-        public ArithmeticBasicValueType ArithmeticBasicValueType =>
-            BasicValueType.GetArithmeticBasicValueType(IsUnsigned);
-
-        /// <summary>
-        /// Returns true if the operation has enabled unsigned semantics.
-        /// </summary>
-        public bool IsUnsigned => (Flags & AtomicFlags.Unsigned) ==
-            AtomicFlags.Unsigned;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
-        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
-            Value.Type;
-
-        #endregion
-    }
+/// <summary>
+/// Represents a general atomic value.
+/// </summary>
+abstract class AtomicValue : MemoryValue
+{
+    #region Instance
 
     /// <summary>
-    /// Represents the kind of an atomic operation.
+    /// Constructs a new abstract atomic value.
     /// </summary>
-    public enum AtomicKind
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="flags">The operation flags.</param>
+    internal AtomicValue(in ValueInitializer initializer, AtomicFlags flags)
+        : base(initializer)
+
     {
-        /// <summary>
-        /// An XCHG operation.
-        /// </summary>
-        Exchange,
-
-        /// <summary>
-        /// An add operation.
-        /// </summary>
-        Add,
-
-        /// <summary>
-        /// An and operation.
-        /// </summary>
-        And,
-
-        /// <summary>
-        /// An or operation.
-        /// </summary>
-        Or,
-
-        /// <summary>
-        /// An xor operation.
-        /// </summary>
-        Xor,
-
-        /// <summary>
-        /// A max operation.
-        /// </summary>
-        Max,
-
-        /// <summary>
-        /// A min operation.
-        /// </summary>
-        Min,
+        Flags = flags;
     }
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
-    /// Represents a generic atomic operation.
+    /// Returns the target view.
     /// </summary>
-    [ValueKind(ValueKind.GenericAtomic)]
-    public sealed class GenericAtomic : AtomicValue
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new generic atomic operation.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="target">The target.</param>
-        /// <param name="value">The value to store.</param>
-        /// <param name="kind">The operation kind.</param>
-        /// <param name="flags">The operation flags.</param>
-        internal GenericAtomic(
-            in ValueInitializer initializer,
-            ValueReference target,
-            ValueReference value,
-            AtomicKind kind,
-            AtomicFlags flags)
-            : base(initializer, flags)
-        {
-            Debug.Assert(value.Type ==
-                target.Type.AsNotNullCast<PointerType>().ElementType);
-
-            Kind = kind;
-            Seal(target, value);
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.GenericAtomic;
-
-        /// <summary>
-        /// The operation kind.
-        /// </summary>
-        public AtomicKind Kind { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateAtomic(
-                Location,
-                rebuilder.Rebuild(Target),
-                rebuilder.Rebuild(Value),
-                Kind,
-                Flags);
-
-        /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer)
-        {
-            writer.Write(nameof(Kind), Kind);
-            writer.Write(nameof(Flags), Flags);
-        }
-
-        /// <summary cref="Value.Accept"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "atomic" + Kind.ToString();
-
-        /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => $"{Target}, {Value} [{Flags}]";
-
-        #endregion
-    }
+    public ValueReference Target => this[0];
 
     /// <summary>
-    /// Represents an atomic compare-and-swap operation.
+    /// Returns the target address space this atomic operates on.
     /// </summary>
-    [ValueKind(ValueKind.AtomicCAS)]
-    public sealed class AtomicCAS : AtomicValue
+    public MemoryAddressSpace TargetAddressSpace =>
+        Target.Type.As<AddressSpaceType>(this).AddressSpace;
+
+    /// <summary>
+    /// Returns the target value.
+    /// </summary>
+    public ValueReference Value => this[1];
+
+    /// <summary>
+    /// Returns the operation flags.
+    /// </summary>
+    public AtomicFlags Flags { get; }
+
+    /// <summary>
+    /// Returns the associated arithmetic basic value type.
+    /// </summary>
+    public ArithmeticBasicValueType ArithmeticBasicValueType =>
+        BasicValueType.GetArithmeticBasicValueType(IsUnsigned);
+
+    /// <summary>
+    /// Returns true if the operation has enabled unsigned semantics.
+    /// </summary>
+    public bool IsUnsigned => (Flags & AtomicFlags.Unsigned) ==
+        AtomicFlags.Unsigned;
+
+    #endregion
+
+    #region Methods
+
+    /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+    protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+        Value.Type;
+
+    #endregion
+}
+
+/// <summary>
+/// Represents a generic atomic operation.
+/// </summary>
+sealed partial class GenericAtomic : AtomicValue
+{
+    #region Instance
+
+    /// <summary>
+    /// Constructs a new generic atomic operation.
+    /// </summary>
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="target">The target.</param>
+    /// <param name="value">The value to store.</param>
+    /// <param name="kind">The operation kind.</param>
+    /// <param name="flags">The operation flags.</param>
+    internal GenericAtomic(
+        in ValueInitializer initializer,
+        ValueReference target,
+        ValueReference value,
+        GenericAtomicKind kind,
+        AtomicFlags flags)
+        : base(initializer, flags)
     {
-        #region Instance
+        Debug.Assert(value.Type ==
+            target.Type.AsNotNullCast<PointerType>().ElementType);
 
-        /// <summary>
-        /// Constructs a new atomic compare-and-swap operation.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="target">The target.</param>
-        /// <param name="value">The value to store.</param>
-        /// <param name="compareValue">The comparison value.</param>
-        /// <param name="flags">The operation flags.</param>
-        internal AtomicCAS(
-            in ValueInitializer initializer,
-            ValueReference target,
-            ValueReference value,
-            ValueReference compareValue,
-            AtomicFlags flags)
-            : base(initializer, flags)
-        {
-            Debug.Assert(value.Type ==
-                target.Type.AsNotNullCast<PointerType>().ElementType);
-            Debug.Assert(value.Type == compareValue.Type);
-
-            Seal(target, value, compareValue);
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.AtomicCAS;
-
-        /// <summary>
-        /// Returns the comparison value.
-        /// </summary>
-        public ValueReference CompareValue => this[2];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateAtomicCAS(
-                Location,
-                rebuilder.Rebuild(Target),
-                rebuilder.Rebuild(Value),
-                rebuilder.Rebuild(CompareValue),
-                Flags);
-
-        /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) =>
-            writer.Write(nameof(Flags), Flags);
-
-        /// <summary cref="Value.Accept"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "atomicCAS";
-
-        /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => $"{Target}, {Value}, {CompareValue}";
-
-        #endregion
+        Kind = kind;
+        Seal(target, value);
     }
+
+    #endregion
+
+    #region Methods
+
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateAtomic(
+            Location,
+            rebuilder.Rebuild(Target),
+            rebuilder.Rebuild(Value),
+            Kind,
+            Flags);
+
+    #endregion
+
+    #region Object
+
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "atomic" + Kind.ToString();
+
+    /// <summary cref="Value.ToArgString"/>
+    protected override string ToArgString() => $"{Target}, {Value} [{Flags}]";
+
+    #endregion
+}
+
+/// <summary>
+/// Represents an atomic compare-and-swap operation.
+/// </summary>
+sealed partial class AtomicCAS : AtomicValue
+{
+    #region Instance
+
+    /// <summary>
+    /// Constructs a new atomic compare-and-swap operation.
+    /// </summary>
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="target">The target.</param>
+    /// <param name="value">The value to store.</param>
+    /// <param name="compareValue">The comparison value.</param>
+    /// <param name="flags">The operation flags.</param>
+    internal AtomicCAS(
+        in ValueInitializer initializer,
+        ValueReference target,
+        ValueReference value,
+        ValueReference compareValue,
+        AtomicFlags flags)
+        : base(initializer, flags)
+    {
+        Debug.Assert(value.Type ==
+            target.Type.AsNotNullCast<PointerType>().ElementType);
+        Debug.Assert(value.Type == compareValue.Type);
+
+        Seal(target, value, compareValue);
+    }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Returns the comparison value.
+    /// </summary>
+    public ValueReference CompareValue => this[2];
+
+    #endregion
+
+    #region Methods
+
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateAtomicCAS(
+            Location,
+            rebuilder.Rebuild(Target),
+            rebuilder.Rebuild(Value),
+            rebuilder.Rebuild(CompareValue),
+            Flags);
+
+    #endregion
+
+    #region Object
+
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "atomicCAS";
+
+    /// <summary cref="Value.ToArgString"/>
+    protected override string ToArgString() => $"{Target}, {Value}, {CompareValue}";
+
+    #endregion
 }
