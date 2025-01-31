@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2024 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Convert.cs
@@ -9,154 +9,139 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-using ILGPU.IR.Types;
-using ILGPU.Util;
+using ILGPUC.IR.Construction;
+using ILGPUC.IR.Types;
+using ILGPUC.Util;
 using System;
 
-namespace ILGPU.IR.Values
+namespace ILGPUC.IR.Values;
+
+/// <summary>
+/// Flags of a convert operation.
+/// </summary>
+[Flags]
+enum ConvertFlags
 {
     /// <summary>
-    /// Flags of a convert operation.
+    /// No flags (default).
     /// </summary>
-    [Flags]
-    public enum ConvertFlags
-    {
-        /// <summary>
-        /// No flags (default).
-        /// </summary>
-        None,
-
-        /// <summary>
-        /// The convert operation treats the input value as unsigned.
-        /// </summary>
-        SourceUnsigned = 1,
-
-        /// <summary>
-        /// The convert operation results in an unsigned value.
-        /// </summary>
-        TargetUnsigned = 2,
-    }
+    None,
 
     /// <summary>
-    /// Internal conversion flags extensions.
+    /// The convert operation treats the input value as unsigned.
     /// </summary>
-    internal static class ConvertFlagsExtensions
-    {
-        /// <summary>
-        /// Converts the given flags into source unsigned flags.
-        /// </summary>
-        /// <param name="flags">The flags to convert.</param>
-        /// <returns>The converted flags.</returns>
-        internal static ConvertFlags ToSourceUnsignedFlags(this ConvertFlags flags) =>
-            (flags & ConvertFlags.TargetUnsigned) != ConvertFlags.TargetUnsigned
-            ? flags
-            : (flags & ~ConvertFlags.TargetUnsigned) | ConvertFlags.SourceUnsigned;
-    }
+    SourceUnsigned = 1,
 
     /// <summary>
-    /// Converts a node into a target type.
+    /// The convert operation results in an unsigned value.
     /// </summary>
-    [ValueKind(ValueKind.Convert)]
-    public sealed class ConvertValue : Value
+    TargetUnsigned = 2,
+}
+
+/// <summary>
+/// Internal conversion flags extensions.
+/// </summary>
+static class ConvertFlagsExtensions
+{
+    /// <summary>
+    /// Converts the given flags into source unsigned flags.
+    /// </summary>
+    /// <param name="flags">The flags to convert.</param>
+    /// <returns>The converted flags.</returns>
+    internal static ConvertFlags ToSourceUnsignedFlags(this ConvertFlags flags) =>
+        (flags & ConvertFlags.TargetUnsigned) != ConvertFlags.TargetUnsigned
+        ? flags
+        : (flags & ~ConvertFlags.TargetUnsigned) | ConvertFlags.SourceUnsigned;
+}
+
+/// <summary>
+/// Converts a node into a target type.
+/// </summary>
+sealed partial class ConvertValue : Value
+{
+    #region Instance
+
+    /// <summary>
+    /// Constructs a new convert value.
+    /// </summary>
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="value">The value to convert.</param>
+    /// <param name="targetType">The target type to convert the value to.</param>
+    /// <param name="flags">The operation flags.</param>
+    internal ConvertValue(
+        in ValueInitializer initializer,
+        ValueReference value,
+        TypeNode targetType,
+        ConvertFlags flags)
+        : base(initializer, targetType)
     {
-        #region Instance
+        Flags = flags;
 
-        /// <summary>
-        /// Constructs a new convert value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="value">The value to convert.</param>
-        /// <param name="targetType">The target type to convert the value to.</param>
-        /// <param name="flags">The operation flags.</param>
-        internal ConvertValue(
-            in ValueInitializer initializer,
-            ValueReference value,
-            TypeNode targetType,
-            ConvertFlags flags)
-            : base(initializer, targetType)
-        {
-            Flags = flags;
-
-            Seal(value);
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.Convert;
-
-        /// <summary>
-        /// Returns the operand.
-        /// </summary>
-        public ValueReference Value => this[0];
-
-        /// <summary>
-        /// Returns the associated flags.
-        /// </summary>
-        public ConvertFlags Flags { get; }
-
-        /// <summary>
-        /// Returns the source type to convert the value from.
-        /// </summary>
-        public ArithmeticBasicValueType SourceType =>
-            Value.BasicValueType.GetArithmeticBasicValueType(IsSourceUnsigned);
-
-        /// <summary>
-        /// Returns the target type to convert the value to.
-        /// </summary>
-        public ArithmeticBasicValueType TargetType =>
-            BasicValueType.GetArithmeticBasicValueType(IsResultUnsigned);
-
-        /// <summary>
-        /// Returns true if the operation has enabled unsigned semantics.
-        /// </summary>
-        public bool IsSourceUnsigned => (Flags & ConvertFlags.SourceUnsigned) ==
-            ConvertFlags.SourceUnsigned;
-
-        /// <summary>
-        /// Returns true if the operation has enabled unsigned semantics.
-        /// </summary>
-        public bool IsResultUnsigned => (Flags & ConvertFlags.TargetUnsigned) ==
-            ConvertFlags.TargetUnsigned;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateConvert(
-                Location,
-                rebuilder.Rebuild(Value),
-                Type,
-                Flags);
-
-        /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer)
-        {
-            writer.Write(nameof(TargetType), TargetType);
-            writer.Write(nameof(Flags), Flags);
-        }
-
-        /// <summary cref="Value.Accept"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "conv";
-
-        /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() =>
-            $"{Value} -> {TargetType} [{Flags}]";
-
-        #endregion
+        Seal(value);
     }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Returns the operand.
+    /// </summary>
+    public ValueReference Value => this[0];
+
+    /// <summary>
+    /// Returns the associated flags.
+    /// </summary>
+    public ConvertFlags Flags { get; }
+
+    /// <summary>
+    /// Returns the source type to convert the value from.
+    /// </summary>
+    public ArithmeticBasicValueType SourceType =>
+        Value.BasicValueType.GetArithmeticBasicValueType(IsSourceUnsigned);
+
+    /// <summary>
+    /// Returns the target type to convert the value to.
+    /// </summary>
+    public ArithmeticBasicValueType TargetType =>
+        BasicValueType.GetArithmeticBasicValueType(IsResultUnsigned);
+
+    /// <summary>
+    /// Returns true if the operation has enabled unsigned semantics.
+    /// </summary>
+    public bool IsSourceUnsigned => (Flags & ConvertFlags.SourceUnsigned) ==
+        ConvertFlags.SourceUnsigned;
+
+    /// <summary>
+    /// Returns true if the operation has enabled unsigned semantics.
+    /// </summary>
+    public bool IsResultUnsigned => (Flags & ConvertFlags.TargetUnsigned) ==
+        ConvertFlags.TargetUnsigned;
+
+    #endregion
+
+    #region Methods
+
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateConvert(
+            Location,
+            rebuilder.Rebuild(Value),
+            Type,
+            Flags);
+
+    #endregion
+
+    #region Object
+
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "conv";
+
+    /// <summary cref="Value.ToArgString"/>
+    protected override string ToArgString() =>
+        $"{Value} -> {TargetType} [{Flags}]";
+
+    #endregion
 }
