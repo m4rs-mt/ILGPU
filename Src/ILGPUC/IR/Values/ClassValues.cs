@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ClassValues.cs
@@ -9,58 +9,57 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Types;
 using ILGPU.Util;
+using ILGPUC.IR.Types;
 
-namespace ILGPU.IR.Values
+namespace ILGPUC.IR.Values;
+
+/// <summary>
+/// An abstract class value.
+/// </summary>
+abstract class ClassValue : Value
 {
-    /// <summary>
-    /// An abstract class value.
-    /// </summary>
-    public abstract class ClassValue : Value
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new abstract class value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        internal ClassValue(in ValueInitializer initializer)
-            : base(initializer)
-        { }
-
-        #endregion
-    }
+    #region Instance
 
     /// <summary>
-    /// Represents an operation on object values.
+    /// Constructs a new abstract class value.
     /// </summary>
-    public abstract class ClassOperationValue : MemoryValue
-    {
-        #region Instance
+    /// <param name="initializer">The value initializer.</param>
+    internal ClassValue(in ValueInitializer initializer)
+        : base(initializer)
+    { }
 
-        /// <summary>
-        /// Constructs a new abstract object operation.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        internal ClassOperationValue(in ValueInitializer initializer)
-            : base(initializer)
-        { }
+    #endregion
+}
 
-        #endregion
+/// <summary>
+/// Represents an operation on object values.
+/// </summary>
+abstract class ClassOperationValue : MemoryValue
+{
+    #region Instance
 
-        #region Properties
+    /// <summary>
+    /// Constructs a new abstract object operation.
+    /// </summary>
+    /// <param name="initializer">The value initializer.</param>
+    internal ClassOperationValue(in ValueInitializer initializer)
+        : base(initializer)
+    { }
 
-        /// <summary>
-        /// Returns the object value to load from.
-        /// </summary>
-        public ValueReference ObjectValue => this[0];
+    #endregion
 
-        /// <summary>
-        /// Returns the object type.
-        /// </summary>
-        public ObjectType ObjectType => ObjectValue.Type.AsNotNullCast<ObjectType>();
+    #region Properties
 
-        #endregion
-    }
+    /// <summary>
+    /// Returns the object value to load from.
+    /// </summary>
+    public ValueReference ObjectValue => this[0];
+
+    /// <summary>
+    /// Returns the object type.
+    /// </summary>
+    public ObjectType ObjectType => ObjectValue.Type.AsNotNullCast<ObjectType>();
+
+    #endregion
 }
