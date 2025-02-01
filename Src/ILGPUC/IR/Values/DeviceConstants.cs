@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2024 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DeviceConstants.cs
@@ -9,520 +9,415 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-using ILGPU.IR.Types;
+using ILGPU;
 using ILGPU.Runtime;
+using ILGPUC.IR.Construction;
+using ILGPUC.IR.Types;
 
-namespace ILGPU.IR.Values
+namespace ILGPUC.IR.Values;
+
+/// <summary>
+/// Represents a device constant inside a kernel.
+/// </summary>
+abstract class DeviceConstantValue : ConstantNode
+{
+    #region Instance
+
+    /// <summary>
+    /// Constructs a new value.
+    /// </summary>
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="constantType">The constant type node.</param>
+    internal DeviceConstantValue(
+        in ValueInitializer initializer,
+        TypeNode constantType)
+        : base(initializer, constantType)
+    { }
+
+    #endregion
+}
+
+/// <summary>
+/// Represents the <see cref="Accelerator.AcceleratorType"/> property.
+/// </summary>
+sealed partial class AcceleratorTypeValue : DeviceConstantValue
+{
+    #region Instance
+
+    /// <summary>
+    /// Constructs a new value.
+    /// </summary>
+    /// <param name="initializer">The value initializer.</param>
+    internal AcceleratorTypeValue(in ValueInitializer initializer)
+        : base(
+              initializer,
+              initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+    { }
+
+    #endregion
+
+    #region Methods
+
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateAcceleratorTypeValue(Location);
+
+    #endregion
+
+    #region Object
+
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "typeof(accelerator)";
+
+    #endregion
+}
+
+/// <summary>
+/// Represents a dimension of a 3D device constant.
+/// </summary>
+enum DeviceConstantDimension3D
 {
     /// <summary>
-    /// Represents a device constant inside a kernel.
+    /// The X dimension.
     /// </summary>
-    public abstract class DeviceConstantValue : ConstantNode
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="constantType">The constant type node.</param>
-        internal DeviceConstantValue(
-            in ValueInitializer initializer,
-            TypeNode constantType)
-            : base(initializer, constantType)
-        { }
-
-        #endregion
-    }
+    X,
 
     /// <summary>
-    /// Represents the <see cref="Accelerator.AcceleratorType"/> property.
+    /// The Y dimension.
     /// </summary>
-    [ValueKind(ValueKind.AcceleratorType)]
-    public sealed class AcceleratorTypeValue : DeviceConstantValue
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        internal AcceleratorTypeValue(in ValueInitializer initializer)
-            : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
-        { }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.AcceleratorType;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateAcceleratorTypeValue(Location);
-
-        /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) { }
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "acclType";
-
-        #endregion
-    }
+    Y,
 
     /// <summary>
-    /// Represents a dimension of a 3D device constant.
+    /// The Z dimension.
     /// </summary>
-    public enum DeviceConstantDimension3D
-    {
-        /// <summary>
-        /// The X dimension.
-        /// </summary>
-        X,
+    Z,
+}
 
-        /// <summary>
-        /// The Y dimension.
-        /// </summary>
-        Y,
-
-        /// <summary>
-        /// The Z dimension.
-        /// </summary>
-        Z,
-    }
+/// <summary>
+/// Represents a device constant inside a kernel.
+/// </summary>
+abstract class DeviceConstantDimensionValue : DeviceConstantValue
+{
+    #region Instance
 
     /// <summary>
-    /// Represents a device constant inside a kernel.
+    /// Constructs a new value.
     /// </summary>
-    public abstract class DeviceConstantDimensionValue : DeviceConstantValue
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="dimension">The device constant dimension.</param>
+    internal DeviceConstantDimensionValue(
+        in ValueInitializer initializer,
+        DeviceConstantDimension3D dimension)
+        : base(
+              initializer,
+              initializer.Context.GetPrimitiveType(BasicValueType.Int32))
     {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="dimension">The device constant dimension.</param>
-        internal DeviceConstantDimensionValue(
-            in ValueInitializer initializer,
-            DeviceConstantDimension3D dimension)
-            : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
-        {
-            Dimension = dimension;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the constant dimension.
-        /// </summary>
-        public DeviceConstantDimension3D Dimension { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) =>
-            writer.Write(nameof(Dimension), Dimension);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToArgString() => Dimension.ToString();
-
-        #endregion
+        Dimension = dimension;
     }
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
-    /// Represents the <see cref="Grid.Index"/> property.
+    /// Returns the constant dimension.
     /// </summary>
-    [ValueKind(ValueKind.GridIndex)]
-    public sealed class GridIndexValue : DeviceConstantDimensionValue
-    {
-        #region Instance
+    public DeviceConstantDimension3D Dimension { get; }
 
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="dimension">The constant dimension.</param>
-        internal GridIndexValue(
-            in ValueInitializer initializer,
-            DeviceConstantDimension3D dimension)
-            : base(initializer, dimension)
-        { }
+    #endregion
 
-        #endregion
+    #region Object
 
-        #region Properties
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToArgString() => Dimension.ToString();
 
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.GridIndex;
+    #endregion
+}
 
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateGridIndexValue(Location, Dimension);
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "gridIdx";
-
-        #endregion
-    }
+/// <summary>
+/// Represents the <see cref="Grid.Index"/> property.
+/// </summary>
+sealed partial class GridIndexValue : DeviceConstantDimensionValue
+{
+    #region Instance
 
     /// <summary>
-    /// Represents the <see cref="Group.Index"/> property.
+    /// Constructs a new value.
     /// </summary>
-    [ValueKind(ValueKind.GroupIndex)]
-    public sealed class GroupIndexValue : DeviceConstantDimensionValue
-    {
-        #region Instance
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="dimension">The constant dimension.</param>
+    internal GridIndexValue(
+        in ValueInitializer initializer,
+        DeviceConstantDimension3D dimension)
+        : base(initializer, dimension)
+    { }
 
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="dimension">The constant dimension.</param>
-        internal GroupIndexValue(
-            in ValueInitializer initializer,
-            DeviceConstantDimension3D dimension)
-            : base(initializer, dimension)
-        { }
+    #endregion
 
-        #endregion
+    #region Methods
 
-        #region Properties
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateGridIndexValue(Location, Dimension);
 
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.GroupIndex;
+    #endregion
 
-        #endregion
+    #region Object
 
-        #region Methods
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "gridIdx";
 
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateGroupIndexValue(Location, Dimension);
+    #endregion
+}
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "groupIdx";
-
-        #endregion
-    }
+/// <summary>
+/// Represents the <see cref="Group.Index"/> property.
+/// </summary>
+sealed partial class GroupIndexValue : DeviceConstantDimensionValue
+{
+    #region Instance
 
     /// <summary>
-    /// Represents the <see cref="Grid.Dimension"/> property.
+    /// Constructs a new value.
     /// </summary>
-    [ValueKind(ValueKind.GridDimension)]
-    public sealed class GridDimensionValue : DeviceConstantDimensionValue
-    {
-        #region Instance
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="dimension">The constant dimension.</param>
+    internal GroupIndexValue(
+        in ValueInitializer initializer,
+        DeviceConstantDimension3D dimension)
+        : base(initializer, dimension)
+    { }
 
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="dimension">The constant dimension.</param>
-        internal GridDimensionValue(
-            in ValueInitializer initializer,
-            DeviceConstantDimension3D dimension)
-            : base(initializer, dimension)
-        { }
+    #endregion
 
-        #endregion
+    #region Methods
 
-        #region Properties
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateGroupIndexValue(Location, Dimension);
 
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.GridDimension;
+    #endregion
 
-        #endregion
+    #region Object
 
-        #region Methods
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "groupIdx";
 
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateGridDimensionValue(Location, Dimension);
+    #endregion
+}
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "gridDim";
-
-        #endregion
-    }
+/// <summary>
+/// Represents the <see cref="Grid.Dimension"/> property.
+/// </summary>
+sealed partial class GridDimensionValue : DeviceConstantDimensionValue
+{
+    #region Instance
 
     /// <summary>
-    /// Represents the <see cref="Group.Dimension"/> property.
+    /// Constructs a new value.
     /// </summary>
-    [ValueKind(ValueKind.GroupDimension)]
-    public sealed class GroupDimensionValue : DeviceConstantDimensionValue
-    {
-        #region Instance
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="dimension">The constant dimension.</param>
+    internal GridDimensionValue(
+        in ValueInitializer initializer,
+        DeviceConstantDimension3D dimension)
+        : base(initializer, dimension)
+    { }
 
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="dimension">The constant dimension.</param>
-        internal GroupDimensionValue(
-            in ValueInitializer initializer,
-            DeviceConstantDimension3D dimension)
-            : base(initializer, dimension)
-        { }
+    #endregion
 
-        #endregion
+    #region Methods
 
-        #region Properties
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateGridDimensionValue(Location, Dimension);
 
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.GroupDimension;
+    #endregion
 
-        #endregion
+    #region Object
 
-        #region Methods
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "gridDim";
 
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateGroupDimensionValue(Location, Dimension);
+    #endregion
+}
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "groupDim";
-
-        #endregion
-    }
+/// <summary>
+/// Represents the <see cref="Group.Dimension"/> property.
+/// </summary>
+sealed partial class GroupDimensionValue : DeviceConstantDimensionValue
+{
+    #region Instance
 
     /// <summary>
-    /// Represents the <see cref="Warp.WarpSize"/> property.
+    /// Constructs a new value.
     /// </summary>
-    [ValueKind(ValueKind.WarpSize)]
-    public sealed class WarpSizeValue : DeviceConstantValue
-    {
-        #region Instance
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="dimension">The constant dimension.</param>
+    internal GroupDimensionValue(
+        in ValueInitializer initializer,
+        DeviceConstantDimension3D dimension)
+        : base(initializer, dimension)
+    { }
 
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        internal WarpSizeValue(in ValueInitializer initializer)
-            : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
-        { }
+    #endregion
 
-        #endregion
+    #region Methods
 
-        #region Properties
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateGroupDimensionValue(Location, Dimension);
 
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.WarpSize;
+    #endregion
 
-        #endregion
+    #region Object
 
-        #region Methods
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "groupDim";
 
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateWarpSizeValue(Location);
+    #endregion
+}
 
-        /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) { }
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "warpSize";
-
-        #endregion
-    }
+/// <summary>
+/// Represents the <see cref="Warp.Dimension"/> property.
+/// </summary>
+sealed partial class WarpSizeValue : DeviceConstantValue
+{
+    #region Instance
 
     /// <summary>
-    /// Represents the <see cref="Warp.LaneIdx"/> property.
+    /// Constructs a new value.
     /// </summary>
-    [ValueKind(ValueKind.LaneIdx)]
-    public sealed class LaneIdxValue : DeviceConstantValue
-    {
-        #region Instance
+    /// <param name="initializer">The value initializer.</param>
+    internal WarpSizeValue(in ValueInitializer initializer)
+        : base(
+              initializer,
+              initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+    { }
 
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        internal LaneIdxValue(in ValueInitializer initializer)
-            : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
-        { }
+    #endregion
 
-        #endregion
+    #region Methods
 
-        #region Properties
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateWarpSizeValue(Location);
 
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.LaneIdx;
+    #endregion
 
-        #endregion
+    #region Object
 
-        #region Methods
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "warpSize";
 
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateLaneIdxValue(Location);
+    #endregion
+}
 
-        /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) { }
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "laneIdx";
-
-        #endregion
-    }
+/// <summary>
+/// Represents the <see cref="Warp.LaneIndex"/> property.
+/// </summary>
+sealed partial class LaneIdxValue : DeviceConstantValue
+{
+    #region Instance
 
     /// <summary>
-    /// Represents the value returned by calling the <see cref="ArrayView{T}.Length"/>
-    /// property on a dynamic memory view.
+    /// Constructs a new value.
     /// </summary>
-    [ValueKind(ValueKind.DynamicMemoryLength)]
-    public sealed class DynamicMemoryLengthValue : DeviceConstantValue
+    /// <param name="initializer">The value initializer.</param>
+    internal LaneIdxValue(in ValueInitializer initializer)
+        : base(
+              initializer,
+              initializer.Context.GetPrimitiveType(BasicValueType.Int32))
+    { }
+
+    #endregion
+
+    #region Methods
+
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateLaneIdxValue(Location);
+
+    #endregion
+
+    #region Object
+
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "laneIdx";
+
+    #endregion
+}
+
+/// <summary>
+/// Represents the value returned by calling the <see cref="ArrayView{T}.Length"/>
+/// property on a dynamic memory view.
+/// </summary>
+sealed partial class DynamicMemoryLengthValue : DeviceConstantValue
+{
+    #region Instance
+
+    /// <summary>
+    /// Constructs a new value.
+    /// </summary>
+    /// <param name="initializer">The value initializer.</param>
+    /// <param name="elementType">The element type node.</param>
+    /// <param name="addressSpace">The target address space.</param>
+    internal DynamicMemoryLengthValue(
+        in ValueInitializer initializer,
+        TypeNode elementType,
+        MemoryAddressSpace addressSpace)
+        : base(
+              initializer,
+              initializer.Context.GetPrimitiveType(BasicValueType.Int32))
     {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        /// <param name="elementType">The element type node.</param>
-        /// <param name="addressSpace">The target address space.</param>
-        internal DynamicMemoryLengthValue(
-            in ValueInitializer initializer,
-            TypeNode elementType,
-            MemoryAddressSpace addressSpace)
-            : base(
-                  initializer,
-                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
-        {
-            ElementType = elementType;
-            AddressSpace = addressSpace;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.DynamicMemoryLength;
-
-        /// <summary>
-        /// Returns the element type node.
-        /// </summary>
-        public TypeNode ElementType { get; }
-
-        /// <summary>
-        /// Returns the address space of this allocation.
-        /// </summary>
-        public MemoryAddressSpace AddressSpace { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
-
-        /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) =>
-            writer.Write(nameof(AddressSpace), AddressSpace);
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "dynamicMemLength";
-
-        #endregion
+        ElementType = elementType;
+        AddressSpace = addressSpace;
     }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Returns the element type node.
+    /// </summary>
+    public TypeNode ElementType { get; }
+
+    /// <summary>
+    /// Returns the address space of this allocation.
+    /// </summary>
+    public MemoryAddressSpace AddressSpace { get; }
+
+    #endregion
+
+    #region Methods
+
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateDynamicMemoryLengthValue(Location, ElementType, AddressSpace);
+
+    #endregion
+
+    #region Object
+
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "dynamicMemLength";
+
+    #endregion
 }
