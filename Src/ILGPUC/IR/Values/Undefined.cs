@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2024 ILGPU Project
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Undefined.cs
@@ -9,62 +9,47 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
+using ILGPUC.IR.Construction;
 
-namespace ILGPU.IR.Values
+namespace ILGPUC.IR.Values;
+
+/// <summary>
+/// Represents an undefined value.
+/// </summary>
+sealed partial class UndefinedValue : Value
 {
+    #region Instance
+
     /// <summary>
-    /// Represents an undefined value.
+    /// Constructs a undefined value.
     /// </summary>
-    [ValueKind(ValueKind.Undefined)]
-    public sealed class UndefinedValue : Value
-    {
-        #region Instance
+    /// <param name="initializer">The value initializer.</param>
+    internal UndefinedValue(in ValueInitializer initializer)
+        : base(
+              initializer,
+              ValueFlags.NotReplaceable | ValueFlags.NoUses,
+              initializer.Context.VoidType)
+    { }
 
-        /// <summary>
-        /// Constructs a undefined value.
-        /// </summary>
-        /// <param name="initializer">The value initializer.</param>
-        internal UndefinedValue(in ValueInitializer initializer)
-            : base(
-                  initializer,
-                  ValueFlags.NotReplacable | ValueFlags.NoUses,
-                  initializer.Context.VoidType)
-        { }
+    #endregion
 
-        #endregion
+    #region Methods
 
-        #region Properties
+    /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+    protected internal override Value Rebuild(
+        IRBuilder builder,
+        IRRebuilder rebuilder) =>
+        builder.CreateUndefined();
 
-        /// <summary cref="Value.ValueKind"/>
-        public override ValueKind ValueKind => ValueKind.Undefined;
+    #endregion
 
-        #endregion
+    #region Object
 
-        #region Methods
+    /// <summary cref="Node.ToPrefixString"/>
+    protected override string ToPrefixString() => "undef";
 
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(
-            IRBuilder builder,
-            IRRebuilder rebuilder) =>
-            builder.CreateUndefined();
+    /// <summary cref="Value.ToArgString"/>
+    protected override string ToArgString() => string.Empty;
 
-        /// <summary cref="Value.Write{T}(T)"/>
-        protected internal override void Write<T>(T writer) { }
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "undef";
-
-        /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => string.Empty;
-
-        #endregion
-    }
+    #endregion
 }
