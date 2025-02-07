@@ -9,17 +9,17 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Intrinsics;
-using ILGPU.IR.Values;
+using ILGPUC.IR.Intrinsics;
+using ILGPUC.IR.Values;
 using System;
 
-namespace ILGPU.IR.Transformations
+namespace ILGPUC.IR.Transformations
 {
     /// <summary>
     /// Resolved required intrinsic IR implementations.
     /// </summary>
     /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
-    public sealed class IntrinsicResolver<TDelegate> :
+    sealed class IntrinsicResolver<TDelegate> :
         UnorderedTransformation<
             IntrinsicImplementationProvider<TDelegate>.IRSpecializationPhase>
         where TDelegate : Delegate
