@@ -9,11 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Intrinsics;
+using ILGPUC.IR.Intrinsics;
 using System;
 using System.Collections.Generic;
 
-namespace ILGPU.IR.Transformations
+namespace ILGPUC.IR.Transformations
 {
     /// <summary>
     /// Represents an intrinsic implementation specializer.
@@ -22,7 +22,7 @@ namespace ILGPU.IR.Transformations
     /// Note that this class does not perform recursive specialization operations.
     /// </remarks>
     /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
-    public sealed class IntrinsicSpecializer<TDelegate> :
+    sealed class IntrinsicSpecializer<TDelegate> :
         SequentialUnorderedTransformation
         where TDelegate : Delegate
     {
