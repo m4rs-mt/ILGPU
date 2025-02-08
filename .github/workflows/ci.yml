@@ -99,7 +99,7 @@ jobs:
       - name: Setup OS matrix
         id: setup-os-matrix
         run: |
-          os=("ubuntu-latest" "windows-latest")
+          os=("ubuntu-22.04" "windows-latest")
 
           # runs on macOS only if there is a push to master, or a tag is
           # pushed, we do this since macOS builds last too long and ILGPU
@@ -267,7 +267,7 @@ jobs:
         run: .github/workflows/Scripts/FixNugetSymbolPackages.ps1 -version "${{ needs.check-version.outputs.version }}"
 
       - name: Upload NuGet package artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
           path: ./Bin/Release/ILGPU*.${{ needs.check-version.outputs.version }}.*nupkg
@@ -300,7 +300,7 @@ jobs:
 
       # Verify that the sample projects can compile after switching to NuGet references
       - name: Download NuGet package artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: nuget-packages
           path: local-nuget-packages
@@ -326,7 +326,7 @@ jobs:
 
       # Upload samples artifact (for version tags and master branch only)
       - name: Upload Samples artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: github.event_name == 'push' && !github.event.repository.fork && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
         with:
           name: samples
@@ -356,7 +356,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: nuget-packages
       - name: Publish to FeedzIO
@@ -374,11 +374,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: nuget-packages
       - name: Download Samples artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: samples
 
