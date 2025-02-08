@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerViews.cs
@@ -9,101 +9,92 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-using ILGPU.IR.Rewriting;
-using ILGPU.IR.Types;
-using ILGPU.IR.Values;
+using ILGPUC.IR.Construction;
+using ILGPUC.IR.Rewriting;
+using ILGPUC.IR.Types;
+using ILGPUC.IR.Values;
 
-namespace ILGPU.IR.Transformations
+namespace ILGPUC.IR.Transformations;
+
+/// <summary>
+/// Lowers views (values and types) into platform specific instances.
+/// </summary>
+abstract class LowerViews : LowerTypes<ViewType>
 {
     /// <summary>
-    /// Lowers views (values and types) into platform specific instances.
+    /// An abstract view type converter.
     /// </summary>
-    public abstract class LowerViews : LowerTypes<ViewType>
+    /// <remarks>
+    /// Constructs a new type lowering.
+    /// </remarks>
+    /// <param name="typeContext">The parent type context.</param>
+    protected abstract class ViewTypeLowering(IRTypeContext typeContext) :
+        TypeLowering<ViewType>(typeContext)
     {
         /// <summary>
-        /// An abstract view type converter.
+        /// Constructs a new type lowering.
         /// </summary>
-        protected abstract class ViewTypeLowering : TypeLowering<ViewType>
-        {
-            /// <summary>
-            /// Constructs a new type lowering.
-            /// </summary>
-            /// <param name="builder">The parent builder.</param>
-            protected ViewTypeLowering(Method.Builder builder)
-                : this(builder.TypeContext)
-            { }
-
-            /// <summary>
-            /// Constructs a new type lowering.
-            /// </summary>
-            /// <param name="builder">The parent builder.</param>
-            protected ViewTypeLowering(IRBuilder builder)
-                : this(builder.TypeContext)
-            { }
-
-            /// <summary>
-            /// Constructs a new type lowering.
-            /// </summary>
-            /// <param name="typeContext">The parent type context.</param>
-            protected ViewTypeLowering(IRTypeContext typeContext)
-                    : base(typeContext)
-            { }
-
-            /// <summary cref="TypeLowering{TType}.IsTypeDependent(TypeNode)"/>
-            public override bool IsTypeDependent(TypeNode type) =>
-                type.HasFlags(TypeFlags.ViewDependent);
-        }
+        /// <param name="builder">The parent builder.</param>
+        protected ViewTypeLowering(Method.Builder builder)
+            : this(builder.TypeContext)
+        { }
 
         /// <summary>
-        /// Adds a set of rewriters specialized for a general view-type lowering.
+        /// Constructs a new type lowering.
         /// </summary>
-        protected static void AddRewriters(
-            Rewriter<TypeLowering<ViewType>> rewriter,
-            RewriteConverter<
-                TypeLowering<ViewType>, NewView> newViewConverter,
-            RewriteConverter<
-                TypeLowering<ViewType>, GetViewLength> getViewLengthConverter,
-            RewriteConverter<
-                TypeLowering<ViewType>, SubViewValue> subViewConverter,
-            RewriteConverter<
-                TypeLowering<ViewType>, AddressSpaceCast> addressSpaceCastConverter,
-            RewriteConverter<
-                TypeLowering<ViewType>, ViewCast> viewCastConverter,
-            RewriteConverter<
-                TypeLowering<ViewType>, LoadElementAddress> leaConverter,
-            RewriteConverter<
-                TypeLowering<ViewType>, AlignTo> alignToConverter,
-            RewriteConverter<
-                TypeLowering<ViewType>, AsAligned> asAlignedConverter)
-        {
-            AddRewriters(rewriter);
+        /// <param name="builder">The parent builder.</param>
+        protected ViewTypeLowering(IRBuilder builder)
+            : this(builder.TypeContext)
+        { }
 
-            rewriter.Add(Register, newViewConverter);
-            rewriter.Add(Register, getViewLengthConverter);
-            rewriter.Add(Register, subViewConverter);
-            rewriter.Add(
-                (converter, value) => value.IsViewCast && Register(converter, value),
-                addressSpaceCastConverter);
-            rewriter.Add(
-                (converter, value) => Register(converter, value, value.SourceType),
-                viewCastConverter);
-            rewriter.Add(
-                (converter, value) => value.IsViewAccess && Register(converter, value),
-                leaConverter);
-            rewriter.Add(
-                (converter, value) => value.IsViewOperation &&
-                    Register(converter, value, value.Source.Type),
-                alignToConverter);
-            rewriter.Add(
-                (converter, value) => value.IsViewOperation &&
-                    Register(converter, value, value.Source.Type),
-                asAlignedConverter);
-        }
+        /// <summary cref="TypeLowering{TType}.IsTypeDependent(TypeNode)"/>
+        public override bool IsTypeDependent(TypeNode type) =>
+            type.HasFlags(TypeFlags.ViewDependent);
+    }
 
-        /// <summary>
-        /// Constructs a new view conversion pass.
-        /// </summary>
-        protected LowerViews() { }
+    /// <summary>
+    /// Adds a set of rewriters specialized for a general view-type lowering.
+    /// </summary>
+    protected static void AddRewriters(
+        Rewriter<TypeLowering<ViewType>> rewriter,
+        RewriteConverter<
+            TypeLowering<ViewType>, NewView> newViewConverter,
+        RewriteConverter<
+            TypeLowering<ViewType>, GetViewLength> getViewLengthConverter,
+        RewriteConverter<
+            TypeLowering<ViewType>, SubViewValue> subViewConverter,
+        RewriteConverter<
+            TypeLowering<ViewType>, AddressSpaceCast> addressSpaceCastConverter,
+        RewriteConverter<
+            TypeLowering<ViewType>, ViewCast> viewCastConverter,
+        RewriteConverter<
+            TypeLowering<ViewType>, LoadElementAddress> leaConverter,
+        RewriteConverter<
+            TypeLowering<ViewType>, AlignTo> alignToConverter,
+        RewriteConverter<
+            TypeLowering<ViewType>, AsAligned> asAlignedConverter)
+    {
+        AddRewriters(rewriter);
+
+        rewriter.Add(Register, newViewConverter);
+        rewriter.Add(Register, getViewLengthConverter);
+        rewriter.Add(Register, subViewConverter);
+        rewriter.Add(
+            (converter, value) => value.IsViewCast && Register(converter, value),
+            addressSpaceCastConverter);
+        rewriter.Add(
+            (converter, value) => Register(converter, value, value.SourceType),
+            viewCastConverter);
+        rewriter.Add(
+            (converter, value) => value.IsViewAccess && Register(converter, value),
+            leaConverter);
+        rewriter.Add(
+            (converter, value) => value.IsViewOperation &&
+                Register(converter, value, value.Source.Type),
+            alignToConverter);
+        rewriter.Add(
+            (converter, value) => value.IsViewOperation &&
+                Register(converter, value, value.Source.Type),
+            asAlignedConverter);
     }
 }
