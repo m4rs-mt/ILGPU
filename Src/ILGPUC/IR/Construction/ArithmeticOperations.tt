@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArithmeticOperations.tt/ArithmeticOperations.cs
@@ -47,7 +47,9 @@ var binaryOpNestedRewriterSettings = new[]
 };
 #>
 
-using ILGPU.IR.Values;
+using ILGPUC.IR.Values;
+using ILGPUC.Util;
+using ILGPU;
 using ILGPU.Util;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -57,340 +59,339 @@ using System.Runtime.CompilerServices;
 #pragma warning disable IDE0047 // Remove unnecessary parentheses
 #pragma warning disable IDE0066 // Convert switch statement to expression
 
-namespace ILGPU.IR.Construction
+namespace ILGPUC.IR.Construction;
+
+partial class IRBuilder
 {
-    partial class IRBuilder
+    private ValueReference UnaryArithmeticFoldConstants(
+        Location location,
+        PrimitiveValue value,
+        UnaryArithmeticKind kind)
     {
-        private ValueReference UnaryArithmeticFoldConstants(
-            Location location,
-            PrimitiveValue value,
-            UnaryArithmeticKind kind)
+        switch (kind)
         {
-            switch (kind)
-            {
 <#    foreach (var op in unaryOps) { #>
-                case UnaryArithmeticKind.<#= op.Name #>:
-                    return UnaryArithmeticFoldConstants_<#= op.Name #>(location, value);
+            case UnaryArithmeticKind.<#= op.Name #>:
+                return UnaryArithmeticFoldConstants_<#= op.Name #>(location, value);
 <#    } #>
-                default:
-                    throw location.GetArgumentException(nameof(kind));
-            }
+            default:
+                throw location.GetArgumentException(nameof(kind));
         }
+    }
 
 <#    foreach (var op in unaryOps) { #>
-        private ValueReference UnaryArithmeticFoldConstants_<#= op.Name #>(
-            Location location,
-            PrimitiveValue value)
+    private ValueReference UnaryArithmeticFoldConstants_<#= op.Name #>(
+        Location location,
+        PrimitiveValue value)
+    {
+        switch (value.BasicValueType)
         {
-            switch (value.BasicValueType)
-            {
 <#          if (op.HasFloats) { #>
-                case BasicValueType.Float16:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(false, "value.Float16Value") #>);
-                case BasicValueType.Float32:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(false, "value.Float32Value") #>);
-                case BasicValueType.Float64:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(false, "value.Float64Value") #>);
+            case BasicValueType.Float16:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(false, "value.Float16Value") #>);
+            case BasicValueType.Float32:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(false, "value.Float32Value") #>);
+            case BasicValueType.Float64:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(false, "value.Float64Value") #>);
 <#          } if (op.HasBools) { #>
-                case BasicValueType.Int1:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(true, "value.Int1Value") #>);
+            case BasicValueType.Int1:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(true, "value.Int1Value") #>);
 <#          } if (op.HasInts) { #>
-                case BasicValueType.Int8:
-                    return CreatePrimitiveValue(
-                        location,
-                        (sbyte)<#= op.GetOpOrCall(false, "value.Int8Value") #>);
-                case BasicValueType.Int16:
-                    return CreatePrimitiveValue(
-                        location,
-                        (short)<#= op.GetOpOrCall(false, "value.Int16Value") #>);
-                case BasicValueType.Int32:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(false, "value.Int32Value") #>);
-                case BasicValueType.Int64:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(false, "value.Int64Value") #>);
+            case BasicValueType.Int8:
+                return CreatePrimitiveValue(
+                    location,
+                    (sbyte)<#= op.GetOpOrCall(false, "value.Int8Value") #>);
+            case BasicValueType.Int16:
+                return CreatePrimitiveValue(
+                    location,
+                    (short)<#= op.GetOpOrCall(false, "value.Int16Value") #>);
+            case BasicValueType.Int32:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(false, "value.Int32Value") #>);
+            case BasicValueType.Int64:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(false, "value.Int64Value") #>);
 <#          } #>
-            }
-            throw location.GetInvalidOperationException();
         }
+        throw location.GetInvalidOperationException();
+    }
 
 <#    } #>
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Value? UnaryArithmeticSimplify(
-            Location location,
-            Value value,
-            UnaryArithmeticKind kind,
-            ArithmeticFlags flags)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Value? UnaryArithmeticSimplify(
+        Location location,
+        Value value,
+        UnaryArithmeticKind kind,
+        ArithmeticFlags flags)
+    {
+        switch (kind)
         {
-            switch (kind)
-            {
 <#    foreach (var op in unaryOps.Where(t => t.HasRewriters)) { #>
-                case UnaryArithmeticKind.<#= op.Name #>:
+            case UnaryArithmeticKind.<#= op.Name #>:
 <#          foreach (var rewriter in op.Rewriters) { #>
 <#              if (rewriter.Mode == MathOpRewriterMode.CombineOperation) { #>
+                {
+                    if (value is <#= rewriter.Type #> nested
+                        <#
+                            var sourceExpr =
+                                rewriter.MakeSourceExpr("value", "nested");
+                            if (!sourceExpr.Equals(
+                                "true",
+                                StringComparison.OrdinalIgnoreCase))
+                            {
+                                Write(" && ");
+                                Write(sourceExpr);
+                            }
+                        #>)
                     {
-                        if (value is <#= rewriter.Type #> nested
-                            <#
-                                var sourceExpr =
-                                    rewriter.MakeSourceExpr("value", "nested");
-                                if (!sourceExpr.Equals(
-                                    "true",
-                                    StringComparison.OrdinalIgnoreCase))
-                                {
-                                    Write(" && ");
-                                    Write(sourceExpr);
-                                }
-                            #>)
-                        {
-                            return <#= rewriter.MakeTargetExpr("value", "nested") #>;
-                        }
-                    }
-<#              } else { #>
-                    if (<#= rewriter.MakeSourceExpr("value", "nested") #>)
                         return <#= rewriter.MakeTargetExpr("value", "nested") #>;
+                    }
+                }
+<#              } else { #>
+                if (<#= rewriter.MakeSourceExpr("value", "nested") #>)
+                    return <#= rewriter.MakeTargetExpr("value", "nested") #>;
 <#              } #>
 <#          } #>
-                    break;
+                break;
 <#    } #>
-            }
-            return null;
         }
+        return null;
+    }
 
-        private ValueReference BinaryArithmeticFoldConstants(
-            Location location,
-            PrimitiveValue left,
-            PrimitiveValue right,
-            BinaryArithmeticKind kind,
-            ArithmeticFlags flags)
+    private ValueReference BinaryArithmeticFoldConstants(
+        Location location,
+        PrimitiveValue left,
+        PrimitiveValue right,
+        BinaryArithmeticKind kind,
+        ArithmeticFlags flags)
+    {
+        switch (kind)
         {
-            switch (kind)
-            {
 <#    foreach (var op in binaryOps) { #>
-                case BinaryArithmeticKind.<#= op.Name #>:
-                    return BinaryArithmeticFoldConstants_<#= op.Name #>(
-                        location,
-                        left,
-                        right,
-                        kind,
-                        flags);
+            case BinaryArithmeticKind.<#= op.Name #>:
+                return BinaryArithmeticFoldConstants_<#= op.Name #>(
+                    location,
+                    left,
+                    right,
+                    kind,
+                    flags);
 <#    } #>
-                default:
-                    throw location.GetArgumentException(nameof(kind));
-            }
+            default:
+                throw location.GetArgumentException(nameof(kind));
         }
+    }
 
 <#    foreach (var settings in binaryOpRewriterSettings) { #>
 <#          var entries = binaryOps.
-                SelectMany(t => t.GetRewriters(settings.Value).
-                    Select(t2 => (t, t2))).
-                ToLookup(t => t.Item2.Mode); #>
-        /// <summary>
-        /// Simplifies the <#= settings.Name #> of a binary expression.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Value? BinaryArithmeticSimplify_<#= settings.Name #>(
-            Location location,
-            <#= settings.Left #> left,
-            <#= settings.Right #> right,
-            BinaryArithmeticKind kind,
-            ArithmeticFlags flags)
+            SelectMany(t => t.GetRewriters(settings.Value).
+                Select(t2 => (t, t2))).
+            ToLookup(t => t.Item2.Mode); #>
+    /// <summary>
+    /// Simplifies the <#= settings.Name #> of a binary expression.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Value? BinaryArithmeticSimplify_<#= settings.Name #>(
+        Location location,
+        <#= settings.Left #> left,
+        <#= settings.Right #> right,
+        BinaryArithmeticKind kind,
+        ArithmeticFlags flags)
+    {
+        switch (kind)
         {
-            switch (kind)
-            {
 <#          foreach (var entry in entries[MathOpRewriterMode.Default].
-                GroupBy(t => t.Item1, t => t.Item2)) { #>
-                case BinaryArithmeticKind.<#= entry.Key.Name #>:
+            GroupBy(t => t.Item1, t => t.Item2)) { #>
+            case BinaryArithmeticKind.<#= entry.Key.Name #>:
 <#              foreach (var rewriter in entry) { #>
-                    if (<#= rewriter.MakeSourceExpr("left", "right") #>)
-                        return <#= rewriter.MakeTargetExpr("left", "right") #>;
+                if (<#= rewriter.MakeSourceExpr("left", "right") #>)
+                    return <#= rewriter.MakeTargetExpr("left", "right") #>;
 <#              } #>
-                    break;
+                break;
 <#          } #>
-            }
-            return null;
         }
+        return null;
+    }
 
 <#    } #>
 <#    foreach (var settings in binaryOpNestedRewriterSettings) { #>
 <#          var entries = binaryOps.
-                Select(t => (t, t.GetRewriters(settings.Mode).FirstOrDefault())).
-                Where(t => t.Item2 != null); #>
-        /// <summary>
-        /// Simplifies the <#= settings.Name #> of a binary expression.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Value? BinaryArithmeticSimplify_<#= settings.Name #>(
-            Location location,
-            BinaryArithmeticValue arithmeticValue,
-            PrimitiveValue firstValue,
-            PrimitiveValue secondValue,
-            BinaryArithmeticKind kind,
-            ArithmeticFlags flags)
+            Select(t => (t, t.GetRewriters(settings.Mode).FirstOrDefault())).
+            Where(t => t.Item2 != null); #>
+    /// <summary>
+    /// Simplifies the <#= settings.Name #> of a binary expression.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Value? BinaryArithmeticSimplify_<#= settings.Name #>(
+        Location location,
+        BinaryArithmeticValue arithmeticValue,
+        PrimitiveValue firstValue,
+        PrimitiveValue secondValue,
+        BinaryArithmeticKind kind,
+        ArithmeticFlags flags)
+    {
+        switch (kind)
         {
-            switch (kind)
-            {
 <#          foreach (var (op, rewriter) in entries) { #>
-                case BinaryArithmeticKind.<#= op.Name #>:
-                    return CreateArithmetic(
-                        location,
+            case BinaryArithmeticKind.<#= op.Name #>:
+                return CreateArithmetic(
+                    location,
 <#              if (settings.Mode == MathOpRewriterMode.CombineNestedLeftConstant) { #>
-                        BinaryArithmeticFoldConstants(
-                            location,
-                            secondValue,
-                            firstValue,
-                            BinaryArithmeticKind.<#= rewriter.Target #>,
-                            flags),
-                        arithmeticValue.Right,
+                    BinaryArithmeticFoldConstants(
+                        location,
+                        secondValue,
+                        firstValue,
+                        BinaryArithmeticKind.<#= rewriter.Target #>,
+                        flags),
+                    arithmeticValue.Right,
 <#              } else { #>
-                        arithmeticValue.Left,
-                        BinaryArithmeticFoldConstants(
-                            location,
-                            firstValue,
-                            secondValue,
-                            BinaryArithmeticKind.<#= rewriter.Target #>,
-                            flags),
+                    arithmeticValue.Left,
+                    BinaryArithmeticFoldConstants(
+                        location,
+                        firstValue,
+                        secondValue,
+                        BinaryArithmeticKind.<#= rewriter.Target #>,
+                        flags),
 <#              } #>
-                        <#= rewriter.Source != null
-                        ? "BinaryArithmeticKind." + rewriter.Source
-                        : "kind" #>,
-                        flags);
+                    <#= rewriter.Source != null
+                    ? "BinaryArithmeticKind." + rewriter.Source
+                    : "kind" #>,
+                    flags);
 <#          } #>
-            }
-            return null;
         }
-
-<#    } #>
-        [Conditional("DEBUG")]
-        private static void VerifyBinaryArithmeticOperands(
-            Location location,
-            Value left,
-            Value right,
-            BinaryArithmeticKind kind)
-        {
-            switch (kind)
-            {
-<#    foreach (var op in binaryOps) { #>
-                case BinaryArithmeticKind.<#= op.Name #>:
-                    location.Assert(
-                        <#= string.Join(" || ", op.EnumerateFlags(f =>
-                            f switch
-                            {
-                                MathOpFlags.Bools => "left.BasicValueType == BasicValueType.Int1",
-                                MathOpFlags.Ints => "left.BasicValueType.IsInt()",
-                                MathOpFlags.Floats => "left.BasicValueType.IsFloat()",
-                                MathOpFlags.Pointers => "left.Type.IsPointerType",
-                                _ => throw new NotSupportedException()
-                            })) #>
-                    );
-                    break;
-<#    } #>
-            }
-        }
-
-<#    foreach (var op in binaryOps) { #>
-        private ValueReference BinaryArithmeticFoldConstants_<#= op.Name #>(
-            Location location,
-            PrimitiveValue left,
-            PrimitiveValue right,
-            BinaryArithmeticKind kind,
-            ArithmeticFlags flags)
-        {
-<#          if (op.HasInts) { #>
-            var isUnsigned = (flags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
-<#          } #>
-            switch (left.BasicValueType)
-            {
-<#          if (op.HasFloats) { #>
-                case BasicValueType.Float16:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(false, "left.Float16Value", "right.Float16Value") #>);
-                case BasicValueType.Float32:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(false, "left.Float32Value", "right.Float32Value") #>);
-                case BasicValueType.Float64:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(false, "left.Float64Value", "right.Float64Value") #>);
-<#          } if (op.HasBools) { #>
-                case BasicValueType.Int1:
-                    return CreatePrimitiveValue(
-                        location,
-                        <#= op.GetOpOrCall(true, "left.Int1Value", "right.Int1Value") #>);
-<#          } if (op.HasInts) { #>
-                case BasicValueType.Int8:
-                    if (isUnsigned)
-                    {
-                        return CreatePrimitiveValue(
-                            location,
-                            (byte)(<#= op.GetOpOrCall(false, "left.UInt8Value", "right.UInt8Value") #>));
-                    }
-                    else
-                    {
-                        return CreatePrimitiveValue(
-                            location,
-                            (sbyte)(<#= op.GetOpOrCall(false, "left.Int8Value", "right.Int8Value") #>));
-                    }
-                case BasicValueType.Int16:
-                    if (isUnsigned)
-                    {
-                        return CreatePrimitiveValue(
-                            location,
-                            (ushort)(<#= op.GetOpOrCall(false, "left.UInt16Value", "right.UInt16Value") #>));
-                    }
-                    else
-                    {
-                        return CreatePrimitiveValue(
-                            location,
-                            (short)(<#= op.GetOpOrCall(false, "left.Int16Value", "right.Int16Value") #>));
-                    }
-                case BasicValueType.Int32:
-                    if (isUnsigned)
-                    {
-                        return CreatePrimitiveValue(
-                            location,
-                            <#= op.GetOpOrCall(false, "left.UInt32Value", "right.UInt32Value") #>);
-                    }
-                    else
-                    {
-                        return CreatePrimitiveValue(
-                            location,
-                            <#= op.GetOpOrCall(false, "left.Int32Value", "right.Int32Value") #>);
-                    }
-                case BasicValueType.Int64:
-                    if (isUnsigned)
-                    {
-                        return CreatePrimitiveValue(
-                            location,
-                            <#= op.GetOpOrCall(false, "left.UInt64Value", "right.UInt64Value") #>);
-                    }
-                    else
-                    {
-                        return CreatePrimitiveValue(
-                            location,
-                            <#= op.GetOpOrCall(false, "left.Int64Value", "right.Int64Value") #>);
-                    }
-<#          } #>
-            }
-            throw location.GetInvalidOperationException();
-        }
-
-<#    } #>
-
-
+        return null;
     }
+
+<#    } #>
+    [Conditional("DEBUG")]
+    private static void VerifyBinaryArithmeticOperands(
+        Location location,
+        Value left,
+        Value right,
+        BinaryArithmeticKind kind)
+    {
+        switch (kind)
+        {
+<#    foreach (var op in binaryOps) { #>
+            case BinaryArithmeticKind.<#= op.Name #>:
+                location.Assert(
+                    <#= string.Join(" || ", op.EnumerateFlags(f =>
+                        f switch
+                        {
+                            MathOpFlags.Bools => "left.BasicValueType == BasicValueType.Int1",
+                            MathOpFlags.Ints => "left.BasicValueType.IsInt()",
+                            MathOpFlags.Floats => "left.BasicValueType.IsFloat()",
+                            MathOpFlags.Pointers => "left.Type.IsPointerType",
+                            _ => throw new NotSupportedException()
+                        })) #>
+                );
+                break;
+<#    } #>
+        }
+    }
+
+<#    foreach (var op in binaryOps) { #>
+    private ValueReference BinaryArithmeticFoldConstants_<#= op.Name #>(
+        Location location,
+        PrimitiveValue left,
+        PrimitiveValue right,
+        BinaryArithmeticKind kind,
+        ArithmeticFlags flags)
+    {
+<#          if (op.HasInts) { #>
+        var isUnsigned = (flags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
+<#          } #>
+        switch (left.BasicValueType)
+        {
+<#          if (op.HasFloats) { #>
+            case BasicValueType.Float16:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(false, "left.Float16Value", "right.Float16Value") #>);
+            case BasicValueType.Float32:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(false, "left.Float32Value", "right.Float32Value") #>);
+            case BasicValueType.Float64:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(false, "left.Float64Value", "right.Float64Value") #>);
+<#          } if (op.HasBools) { #>
+            case BasicValueType.Int1:
+                return CreatePrimitiveValue(
+                    location,
+                    <#= op.GetOpOrCall(true, "left.Int1Value", "right.Int1Value") #>);
+<#          } if (op.HasInts) { #>
+            case BasicValueType.Int8:
+                if (isUnsigned)
+                {
+                    return CreatePrimitiveValue(
+                        location,
+                        (byte)(<#= op.GetOpOrCall(false, "left.UInt8Value", "right.UInt8Value") #>));
+                }
+                else
+                {
+                    return CreatePrimitiveValue(
+                        location,
+                        (sbyte)(<#= op.GetOpOrCall(false, "left.Int8Value", "right.Int8Value") #>));
+                }
+            case BasicValueType.Int16:
+                if (isUnsigned)
+                {
+                    return CreatePrimitiveValue(
+                        location,
+                        (ushort)(<#= op.GetOpOrCall(false, "left.UInt16Value", "right.UInt16Value") #>));
+                }
+                else
+                {
+                    return CreatePrimitiveValue(
+                        location,
+                        (short)(<#= op.GetOpOrCall(false, "left.Int16Value", "right.Int16Value") #>));
+                }
+            case BasicValueType.Int32:
+                if (isUnsigned)
+                {
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "left.UInt32Value", "right.UInt32Value") #>);
+                }
+                else
+                {
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "left.Int32Value", "right.Int32Value") #>);
+                }
+            case BasicValueType.Int64:
+                if (isUnsigned)
+                {
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "left.UInt64Value", "right.UInt64Value") #>);
+                }
+                else
+                {
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "left.Int64Value", "right.Int64Value") #>);
+                }
+<#          } #>
+        }
+        throw location.GetInvalidOperationException();
+    }
+
+<#    } #>
+
+
 }
 
 #pragma warning restore IDE0066 // Convert switch statement to expression
