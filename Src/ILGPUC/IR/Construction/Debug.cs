@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Debug.cs
@@ -9,42 +9,41 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Values;
+using ILGPUC.IR.Values;
 using System.Diagnostics.CodeAnalysis;
 
-namespace ILGPU.IR.Construction
+namespace ILGPUC.IR.Construction;
+
+partial class IRBuilder
 {
-    partial class IRBuilder
+    /// <summary>
+    /// Creates a new failed debug assertion.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="condition">The debug assert condition.</param>
+    /// <param name="message">The assertion message.</param>
+    /// <returns>A node that represents the debug assertion.</returns>
+    [SuppressMessage(
+        "Maintainability",
+        "CA1508:Avoid dead conditional code",
+        Justification = "Check is required")]
+    public ValueReference CreateDebugAssert(
+        Location location,
+        Value condition,
+        Value message)
     {
-        /// <summary>
-        /// Creates a new failed debug assertion.
-        /// </summary>
-        /// <param name="location">The current location.</param>
-        /// <param name="condition">The debug assert condition.</param>
-        /// <param name="message">The assertion message.</param>
-        /// <returns>A node that represents the debug assertion.</returns>
-        [SuppressMessage(
-            "Maintainability",
-            "CA1508:Avoid dead conditional code",
-            Justification = "Check is required")]
-        public ValueReference CreateDebugAssert(
-            Location location,
-            Value condition,
-            Value message)
+        location.Assert(message is StringValue);
+
+        // Try to simplify debug assertions
+        if (condition is PrimitiveValue primitiveValue &&
+            primitiveValue.RawValue != 0L)
         {
-            location.Assert(message is StringValue);
-
-            // Try to simplify debug assertions
-            if (condition is PrimitiveValue primitiveValue &&
-                primitiveValue.RawValue != 0L)
-            {
-                return CreateUndefined();
-            }
-
-            return Append(new DebugAssertOperation(
-                GetInitializer(location),
-                condition,
-                message));
+            return CreateUndefined();
         }
+
+        return Append(new DebugAssertOperation(
+            GetInitializer(location),
+            condition,
+            message));
     }
 }
