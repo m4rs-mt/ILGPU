@@ -52,14 +52,14 @@ sealed partial class WriteToOutput : IOValue
     /// <summary>
     /// Represents an write argument collection.
     /// </summary>
-    public readonly ref struct ArgumentCollection
+    internal readonly ref struct ArgumentCollection
     {
         #region Nested Types
 
         /// <summary>
         /// Returns an enumerator to enumerate all values in argument collection.
         /// </summary>
-        public ref struct Enumerator
+        internal ref struct Enumerator
         {
             private FormatArray.Enumerator enumerator;
 
