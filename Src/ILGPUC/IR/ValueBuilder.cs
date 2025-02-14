@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ValueBuilder.cs
@@ -9,135 +9,125 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-using ILGPU.IR.Values;
 using ILGPU.Util;
+using ILGPUC.IR.Construction;
+using ILGPUC.IR.Values;
 
-namespace ILGPU.IR
+namespace ILGPUC.IR;
+
+/// <summary>
+/// An abstract value builder.
+/// </summary>
+interface IValueBuilder
 {
     /// <summary>
-    /// An abstract value builder.
+    /// Returns the parent IR builder.
     /// </summary>
-    public interface IValueBuilder
-    {
-        /// <summary>
-        /// Returns the parent IR builder.
-        /// </summary>
-        IRBuilder IRBuilder { get; }
-
-        /// <summary>
-        /// Returns the current location.
-        /// </summary>
-        Location Location { get; }
-
-        /// <summary>
-        /// The number of field values.
-        /// </summary>
-        int Count { get; }
-
-        /// <summary>
-        /// Returns the value that corresponds to the given field access.
-        /// </summary>
-        /// <param name="access">The field access.</param>
-        /// <returns>The resolved field type.</returns>
-        ValueReference this[FieldAccess access] { get; }
-
-        /// <summary>
-        /// Adds the given value to the instance builder.
-        /// </summary>
-        /// <param name="value">The value to add.</param>
-        void Add(Value value);
-
-        /// <summary>
-        /// Constructs a new value that represents the current value builder.
-        /// </summary>
-        /// <returns>The resulting value reference.</returns>
-        ValueReference Seal();
-    }
+    IRBuilder IRBuilder { get; }
 
     /// <summary>
-    /// Extensions for <see cref="IValueBuilder"/> instances.
+    /// Returns the current location.
     /// </summary>
-    public static class ValueBuilder
-    {
-        /// <summary>
-        /// Constructs a new <see cref="ValueBuilder{TBuilder}"/> wrapper.
-        /// </summary>
-        /// <typeparam name="TBuilder">The builder type.</typeparam>
-        /// <param name="valueBuilder">The value builder instance.</param>
-        /// <returns>The created wrapper class.</returns>
-        public static ValueBuilder<TBuilder> ToValueBuilder<TBuilder>(
-            this TBuilder valueBuilder)
-            where TBuilder : IValueBuilder =>
-            new ValueBuilder<TBuilder>(valueBuilder);
-    }
+    Location Location { get; }
 
     /// <summary>
-    /// A wrapped <see cref="IValueBuilder"/> that wraps value-based builder structures.
+    /// The number of field values.
     /// </summary>
-    /// <typeparam name="TBuilder">The structure-based builder type.</typeparam>
-    public class ValueBuilder<TBuilder> : IValueBuilder
-        where TBuilder : IValueBuilder
-    {
-        /// <summary>
-        /// The nested builder.
-        /// </summary>
-        private TBuilder nestedBuilder;
+    int Count { get; }
 
-        /// <summary>
-        /// Constructs a new value builder.
-        /// </summary>
-        /// <param name="builder">The underlying builder structure.</param>
-        public ValueBuilder(TBuilder builder)
-        {
-            nestedBuilder = builder;
-        }
+    /// <summary>
+    /// Returns the value that corresponds to the given field access.
+    /// </summary>
+    /// <param name="access">The field access.</param>
+    /// <returns>The resolved field type.</returns>
+    ValueReference this[FieldAccess access] { get; }
 
-        /// <summary>
-        /// Returns the parent IR builder.
-        /// </summary>
-        public IRBuilder IRBuilder => nestedBuilder.IRBuilder;
+    /// <summary>
+    /// Adds the given value to the instance builder.
+    /// </summary>
+    /// <param name="value">The value to add.</param>
+    void Add(Value value);
 
-        /// <summary>
-        /// Returns the current location.
-        /// </summary>
-        public Location Location => nestedBuilder.Location;
+    /// <summary>
+    /// Constructs a new value that represents the current value builder.
+    /// </summary>
+    /// <returns>The resulting value reference.</returns>
+    ValueReference Seal();
+}
 
-        /// <summary>
-        /// The number of field values.
-        /// </summary>
-        public int Count => nestedBuilder.Count;
+/// <summary>
+/// Extensions for <see cref="IValueBuilder"/> instances.
+/// </summary>
+static class ValueBuilder
+{
+    /// <summary>
+    /// Constructs a new <see cref="ValueBuilder{TBuilder}"/> wrapper.
+    /// </summary>
+    /// <typeparam name="TBuilder">The builder type.</typeparam>
+    /// <param name="valueBuilder">The value builder instance.</param>
+    /// <returns>The created wrapper class.</returns>
+    public static ValueBuilder<TBuilder> ToValueBuilder<TBuilder>(
+        this TBuilder valueBuilder)
+        where TBuilder : IValueBuilder => new(valueBuilder);
+}
 
-        /// <summary>
-        /// Returns the value that corresponds to the given field access.
-        /// </summary>
-        /// <param name="access">The field access.</param>
-        /// <returns>The resolved field type.</returns>
-        public ValueReference this[FieldAccess access] => nestedBuilder[access];
+/// <summary>
+/// A wrapped <see cref="IValueBuilder"/> that wraps value-based builder structures.
+/// </summary>
+/// <typeparam name="TBuilder">The structure-based builder type.</typeparam>
+/// <param name="builder">The underlying builder structure.</param>
+sealed class ValueBuilder<TBuilder>(TBuilder builder) : IValueBuilder
+    where TBuilder : IValueBuilder
+{
+    /// <summary>
+    /// The nested builder.
+    /// </summary>
+    private TBuilder nestedBuilder = builder;
 
-        /// <summary>
-        /// Returns a reference to the nested builder.
-        /// </summary>
-        public ref TBuilder Builder => ref nestedBuilder;
+    /// <summary>
+    /// Returns the parent IR builder.
+    /// </summary>
+    public IRBuilder IRBuilder => nestedBuilder.IRBuilder;
 
-        /// <summary>
-        /// Adds the given value to the instance builder.
-        /// </summary>
-        /// <param name="value">The value to add.</param>
-        public void Add(Value value) => nestedBuilder.Add(value);
+    /// <summary>
+    /// Returns the current location.
+    /// </summary>
+    public Location Location => nestedBuilder.Location;
 
-        /// <summary>
-        /// Constructs a new value that represents the current value builder.
-        /// </summary>
-        /// <returns>The resulting value reference.</returns>
-        public ValueReference Seal() => nestedBuilder.Seal();
+    /// <summary>
+    /// The number of field values.
+    /// </summary>
+    public int Count => nestedBuilder.Count;
 
-        /// <summary>
-        /// Constructs a new value that represents the current value builder and returns
-        /// 
-        /// </summary>
-        /// <returns>The resulting value reference.</returns>
-        public T SealAs<T>()
-            where T : Value => Seal().ResolveAs<T>().AsNotNull();
-    }
+    /// <summary>
+    /// Returns the value that corresponds to the given field access.
+    /// </summary>
+    /// <param name="access">The field access.</param>
+    /// <returns>The resolved field type.</returns>
+    public ValueReference this[FieldAccess access] => nestedBuilder[access];
+
+    /// <summary>
+    /// Returns a reference to the nested builder.
+    /// </summary>
+    public ref TBuilder Builder => ref nestedBuilder;
+
+    /// <summary>
+    /// Adds the given value to the instance builder.
+    /// </summary>
+    /// <param name="value">The value to add.</param>
+    public void Add(Value value) => nestedBuilder.Add(value);
+
+    /// <summary>
+    /// Constructs a new value that represents the current value builder.
+    /// </summary>
+    /// <returns>The resulting value reference.</returns>
+    public ValueReference Seal() => nestedBuilder.Seal();
+
+    /// <summary>
+    /// Constructs a new value that represents the current value builder and returns
+    ///
+    /// </summary>
+    /// <returns>The resulting value reference.</returns>
+    public T SealAs<T>()
+        where T : Value => Seal().ResolveAs<T>().AsNotNull();
 }
