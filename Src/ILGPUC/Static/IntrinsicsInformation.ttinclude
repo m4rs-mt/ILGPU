@@ -1,0 +1,288 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: IntrinsicInformation.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ include file="TypeInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Xml.Serialization" #>
+<#+
+[XmlRoot("Intrinsics")]
+public class IntrinsicsInformation
+{
+    public static List<IntrinsicsInformation> LoadAll(string path)
+    {
+        var result = new List<IntrinsicsInformation>();
+        path = Path.Combine(path, "Intrinsics");
+        var files = Directory.GetFiles(path, "*.xml")
+            .Select(Path.GetFileName)
+            .OrderBy(t => t);
+        foreach (var file in files)
+            result.Add(Load(path, file));
+        return result;
+    }
+
+    public static IntrinsicsInformation Load(string rootPath, string fileName)
+    {
+        var info = XmlHelper.Load<IntrinsicsInformation>(rootPath, fileName);
+        info.Name = Path.GetFileNameWithoutExtension(fileName);
+
+        // Prepare specializations
+        foreach (var type in info.Types)
+        {
+            if (!type.HasRemapping) continue;
+            foreach (var remapping in type.Remapping)
+                remapping.PrepareSpecializations(type.Name);
+        }
+
+        return info;
+    }
+
+    [XmlElement("Type")]
+    public IntrinsicTypeDefinition[] Types { get; set; } =
+        Array.Empty<IntrinsicTypeDefinition>();
+
+    [XmlIgnore]
+    public string Name { get; set; } = "Intrinsics";
+}
+
+public class IntrinsicTypeDefinition
+{
+    [XmlAttribute]
+    public string Name { get; set; }
+
+    [XmlElement("Remapping")]
+    public IntrinsicRemapping Remapping { get; set; } = new();
+
+    [XmlElement("Generators")]
+    public IntrinsicGenerators Generation { get; set; } = new();
+
+    [XmlElement("Backends")]
+    public IntrinsicBackends Backends { get; set; } = new();
+
+    [XmlIgnore]
+    public string ManagedTypeName
+    {
+        get
+        {
+            int genericIndex = Name.IndexOf('<');
+            if (genericIndex < 0) return Name;
+
+            // Find all type arguments for this type
+            int endGenericIndex = Name.IndexOf('>');
+
+            int numArgs = 0;
+            for (int commaIndex = Name.IndexOf(',', genericIndex);
+                commaIndex < endGenericIndex && commaIndex >= genericIndex;
+                commaIndex = Name.IndexOf(',', commaIndex + 1))
+                ++numArgs;
+            string genericArgs = string.Join(
+                ",",
+                Enumerable.Repeat(string.Empty, numArgs));
+            return $"{Name.Substring(0, genericIndex)}<{genericArgs}>";
+        }
+    }
+
+    [XmlIgnore]
+    public bool HasRemapping => Remapping.Remaps.Length > 0;
+
+    [XmlIgnore]
+    public bool HasGeneration => Generation.Generators.Length > 0;
+
+    [XmlIgnore]
+    public bool HasImplementations => Backends.Implementations.Length > 0;
+
+    [XmlIgnore]
+    public string FunctionName => Name.Replace(".", "_").Replace("<T>", "");
+
+    [XmlIgnore]
+    public string CommentName => Name.Replace("<T>", "{T}");
+}
+
+public class IntrinsicRemapping
+{
+    [XmlElement("Remap")]
+    public IntrinsicRemap[] Remaps { get; set; } =
+        Array.Empty<IntrinsicRemap>();
+
+    [XmlIgnore]
+    public int Length => Remaps?.Length ?? 0;
+
+    public Span<IntrinsicRemap>.Enumerator GetEnumerator() =>
+        Remaps.AsSpan().GetEnumerator();
+}
+
+public class IntrinsicRemap
+{
+    [XmlAttribute]
+    public string Name { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Target { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Kind { get; set; } = string.Empty;
+
+    [XmlIgnore]
+    public bool IsProperty => Kind == "Property";
+
+    [XmlAttribute]
+    public int ReflectParamType { get; set; } = 0;
+
+    [XmlElement("Specialization")]
+    public IntrinsicSpecialization[] Specializations { get; set; } =
+        Array.Empty<IntrinsicSpecialization>();
+
+    [XmlIgnore]
+    public bool HasSpecializations => (Specializations?.Length ?? 0) > 0;
+
+    public IEnumerable<IntrinsicSpecialization> GetSpecializations() =>
+        Specializations is not null
+        ? Specializations
+        : Enumerable.Repeat(new IntrinsicSpecialization(), 1);
+
+    public (string TypeName, string MethodName) GetTarget()
+    {
+        int lastIndex = Target.LastIndexOf('.');
+        return (Target.Substring(0, lastIndex), Target.Substring(lastIndex + 1));
+    }
+
+    public void PrepareSpecializations(string typeName)
+    {
+        if (ReflectParamType < 1 || HasSpecializations) return;
+
+        var typeMatching = string.Join(
+            ",",
+            Enumerable.Repeat(typeName, ReflectParamType));
+        Specializations = new IntrinsicSpecialization[]
+        {
+            new IntrinsicSpecialization() { Type = typeMatching }
+        };
+    }
+}
+
+public class IntrinsicGenerators
+{
+    [XmlAttribute]
+    public string Target { get; set; }
+
+    [XmlElement("Generator")]
+    public IntrinsicGenerator[] Generators { get; set; } =
+        Array.Empty<IntrinsicGenerator>();
+
+    public Span<IntrinsicGenerator>.Enumerator GetEnumerator() =>
+        Generators.AsSpan().GetEnumerator();
+}
+
+public class IntrinsicGenerator
+{
+    [XmlAttribute]
+    public string Name { get; set; }
+
+    [XmlAttribute]
+    public string Target { get; set; }
+
+    [XmlAttribute("Arguments")]
+    public string CustomArguments { get; set; }
+
+    [XmlAttribute]
+    public int NumArguments { get; set; } = -1;
+
+    [XmlElement("Specialization")]
+    public IntrinsicSpecialization[] Specializations { get; set; } =
+        Array.Empty<IntrinsicSpecialization>();
+
+    [XmlIgnore]
+    public bool HasSpecializations => (Specializations?.Length ?? 0) > 0;
+
+    [XmlIgnore]
+    public bool HasCustomArguments => !string.IsNullOrWhiteSpace(CustomArguments);
+
+    public string[] GetArguments() => CustomArguments
+        .Split(',', StringSplitOptions.RemoveEmptyEntries);
+}
+
+public class IntrinsicBackends
+{
+    [XmlAttribute]
+    public string Target { get; set; }
+
+    [XmlAttribute("PTX")]
+    public string PTXImplementationType { get; set; } = string.Empty;
+
+    [XmlElement("Implementation")]
+    public IntrinsicBackendImplementation[] Implementations { get; set; } =
+        Array.Empty<IntrinsicBackendImplementation>();
+
+    public Span<IntrinsicBackendImplementation>.Enumerator GetEnumerator() =>
+        Implementations.AsSpan().GetEnumerator();
+}
+
+public class IntrinsicBackendImplementation
+{
+    [XmlAttribute]
+    public string Name { get; set; }
+
+    [XmlAttribute]
+    public string Target { get; set; }
+
+    [XmlAttribute]
+    public int NumArguments { get; set; } = -1;
+}
+
+public class IntrinsicSpecialization
+{
+    [XmlAttribute]
+    public string Type { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string SourceType { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string TargetType { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Suffix { get; set; } = string.Empty;
+
+    [XmlIgnore]
+    public bool RequiresSourceTypeMatching =>
+        !string.IsNullOrWhiteSpace(Type) ||
+        !string.IsNullOrWhiteSpace(SourceType);
+
+    [XmlIgnore]
+    public bool RequiresTargetTypeMatching =>
+        !string.IsNullOrWhiteSpace(Type) ||
+        !string.IsNullOrWhiteSpace(TargetType);
+
+    [XmlIgnore]
+    public string SuffixString =>
+        !string.IsNullOrWhiteSpace(Suffix) ? $"_{Suffix}" : string.Empty;
+
+    private string[] ConvertToTypeOfExpression(string input) =>
+        input.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Select(t => !t.EndsWith('*')
+                ? $"typeof({t})"
+                : $"typeof({t.TrimEnd('*')}).MakeByRefType()")
+            .ToArray();
+
+    public string[] GetSourceTypesToMatch() => !string.IsNullOrWhiteSpace(Type)
+        ? ConvertToTypeOfExpression(Type)
+        : ConvertToTypeOfExpression(SourceType);
+    public string[] GetTargetTypesToMatch() => !string.IsNullOrWhiteSpace(Type)
+        ? ConvertToTypeOfExpression(Type)
+        : ConvertToTypeOfExpression(TargetType);
+}
+#>
