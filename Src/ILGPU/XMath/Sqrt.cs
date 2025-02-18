@@ -52,4 +52,20 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Rsqrt(float value) => Rcp(Sqrt(value));
+
+    /// <summary>
+    /// Computes cbrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>cbrt(value).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Cbrt(double value) => Pow(value, 1.0 / 3.0);
+
+    /// <summary>
+    /// Computes cbrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>cbrt(value).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float Cbrt(float value) => Pow(value, 1.0f / 3.0f);
 }
