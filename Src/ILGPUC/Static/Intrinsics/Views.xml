@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="ArrayView&lt;T&gt;">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="AlignToInternal" Target="Views_AlignTo" />
+            <Generator Name="AsAlignedInternal" Target="Views_AsAlignedInternal" />
+            <Generator Name="Cast" Target="Views_Cast" />
+            <Generator Name="get_Extent" Target="Views_Extent" />
+            <Generator Name="get_IntExtent" Target="Views_IntExtent" />
+            <Generator Name="get_IntLength" Target="Views_IntLength" />
+            <Generator Name="get_IsValid" Target="Views_IsValid" />
+            <Generator Name="get_Length" Target="Views_Length" />
+            <Generator Name="get_LengthInBytes" Target="Views_LengthInBytes" />
+            <Generator Name="get_Stride" Target="Views_Stride" />
+            <Generator Name="SubView" Target="Views_SubView" />
+            <Generator Name="get_Item" Target="Views_Item" />
+        </Generators>
+    </Type>
+</Intrinsics>
