@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="Grid">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="get_Dimension" Target="Grid_CurrentDimension" />
+            <Generator Name="get_Index" Target="Grid_CurrentIndex" />
+            <Generator Name="MemoryFence" Target="Grid_MemoryFence" />
+            <Generator Name="SystemMemoryFence" Target="Grid_SystemMemoryFence" />
+        </Generators>
+    </Type>
+    <Type Name="Group">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="Barrier" Target="Group_Barrier" />
+            <Generator Name="BarrierPopCount" Target="Group_BarrierPopCount" />
+            <Generator Name="BarrierAnd" Target="Group_BarrierAnd" />
+            <Generator Name="BarrierOr" Target="Group_BarrierOr" />
+            <Generator Name="Broadcast" Target="Group_Broadcast" NumArguments="1" />
+            <Generator Name="Broadcast" Target="Group_BroadcastFromThread" NumArguments="2" />
+            <Generator Name="get_Dimension" Target="Group_Dimension" />
+            <Generator Name="get_Index" Target="Group_Index" />
+            <Generator Name="MemoryFence" Target="Group_MemoryFence" />
+            <Generator Name="GetLocalMemoryPerThread" Target="Group_GetLocalMemoryBuffer" />
+            <Generator Name="GetSharedMemory" Target="Group_GetSharedMemoryElement" NumArguments="0" />
+            <Generator Name="GetSharedMemory" Target="Group_GetSharedMemoryBuffer" NumArguments="1" />
+            <Generator Name="GetSharedMemoryPerThread"
+                Target="Group_GetSharedMemoryElementPerThread" NumArguments="0" />
+            <Generator Name="GetSharedMemoryPerThreadMultiplier"
+                Target="Group_GetSharedMemoryElementPerThreadMultiplier" />
+            <Generator Name="GetSharedMemoryPerWarp" Target="Group_GetSharedMemoryElementPerWarp" />
+        </Generators>
+        <Backends PTX="Backends.PTX.Intrinsics.PTXIntrinsics">
+            <!-- Scan/Reduce -->
+            <Implementation Name="ExclusiveScan" Target="Group_ScanExclusive" NumArguments="1" />
+            <Implementation Name="ExclusiveScan" Target="Group_ScanExclusiveWithBoundaries"
+                NumArguments="2" />
+            <Implementation Name="InclusiveScan" Target="Group_ScanInclusive" NumArguments="1" />
+            <Implementation Name="InclusiveScan" Target="Group_ScanInclusiveWithBoundaries"
+                NumArguments="2" />
+            <Implementation Name="Reduce" Target="Group_ReduceFirstLane" />
+            <Implementation Name="AllReduce" Target="Group_ReduceAllLanes" />
+            <!-- RadixSort -->
+            <Implementation Name="RadixSort" Target="Group_RadixSort" />
+        </Backends>
+    </Type>
+    <Type Name="Warp">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="Barrier" Target="Warp_Barrier" />
+            <Generator Name="BarrierAnd" Target="Warp_BarrierAnd" />
+            <Generator Name="BarrierOr" Target="Warp_BarrierOr" />
+            <Generator Name="BarrierPopCount" Target="Warp_BarrierPopCount" />
+            <Generator Name="Broadcast" Target="Warp_Broadcast" />
+            <Generator Name="get_Dimension" Target="Warp_Dimension" />
+            <Generator Name="get_Index" Target="Warp_WarpIndex" />
+            <Generator Name="get_LaneIndex" Target="Warp_LaneIndex" />
+            <Generator Name="Shuffle" Target="Warp_Shuffle" Arguments="ShuffleKind.Generic" />
+            <Generator Name="ShuffleDown" Target="Warp_Shuffle" Arguments="ShuffleKind.Down" />
+            <Generator Name="ShuffleUp" Target="Warp_Shuffle" Arguments="ShuffleKind.Up" />
+            <Generator Name="ShuffleXor" Target="Warp_Shuffle" Arguments="ShuffleKind.Xor" />
+        </Generators>
+        <Backends PTX="Backends.PTX.Intrinsics.PTXIntrinsics">
+            <!-- Scan/Reduce -->
+            <Implementation Name="ExclusiveScan" Target="Warp_ScanExclusive" NumArguments="1" />
+            <Implementation Name="InclusiveScan" Target="Warp_ScanInclusive" NumArguments="1" />
+            <Implementation Name="Reduce" Target="Warp_ReduceFirstLane" />
+            <Implementation Name="AllReduce" Target="Warp_ReduceAllLanes" />
+            <!-- RadixSort -->
+            <Implementation Name="RadixSort" Target="Warp_RadixSort" />
+        </Backends>
+    </Type>
+    <Type Name="ILGPU.Intrinsic.IntrinsicProvider">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="Provide" Target="IntrinsicProvider_Provide" />
+        </Generators>
+    </Type>
+</Intrinsics>
