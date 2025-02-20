@@ -1,0 +1,470 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="int">
+        <Remapping>
+            <!-- Unary -->
+            <Remap Name="Abs" Target="XMath.Abs" ReflectParamType="1" />
+            <Remap Name="LeadingZeroCount" Target="XMath.LeadingZeroCount" ReflectParamType="1" />
+            <Remap Name="TrailingZeroCount" Target="XMath.TrailingZeroCount" ReflectParamType="1" />
+            <Remap Name="PopCount" Target="XMath.PopCount" ReflectParamType="1" />
+
+            <!-- Binary -->
+            <Remap Name="CopySign" Target="XMath.CopySign" ReflectParamType="2" />
+            <Remap Name="Max" Target="XMath.Max" ReflectParamType="2" />
+            <Remap Name="Min" Target="XMath.Min" ReflectParamType="2" />
+        </Remapping>
+    </Type>
+    <Type Name="long">
+        <Remapping>
+            <!-- Unary -->
+            <Remap Name="Abs" Target="XMath.Abs" ReflectParamType="1" />
+            <Remap Name="LeadingZeroCount" Target="XMath.LeadingZeroCount" ReflectParamType="1" />
+            <Remap Name="TrailingZeroCount" Target="XMath.TrailingZeroCount" ReflectParamType="1" />
+            <Remap Name="PopCount" Target="XMath.PopCount" ReflectParamType="1" />
+
+            <!-- Binary -->
+            <Remap Name="CopySign" Target="XMath.CopySign" ReflectParamType="2" />
+            <Remap Name="Max" Target="XMath.Max" ReflectParamType="2" />
+            <Remap Name="Min" Target="XMath.Min" ReflectParamType="2" />
+        </Remapping>
+    </Type>
+    <Type Name="float">
+        <Remapping>
+            <!-- Unary -->
+            <Remap Name="Abs" Target="XMath.Abs" ReflectParamType="1" />
+            <Remap Name="Acos" Target="XMath.Acos" ReflectParamType="1" />
+            <Remap Name="Asin" Target="XMath.Asin" ReflectParamType="1" />
+            <Remap Name="Atan" Target="XMath.Atan" ReflectParamType="1" />
+            <Remap Name="Cos" Target="XMath.Cos" ReflectParamType="1" />
+            <Remap Name="Exp" Target="XMath.Exp" ReflectParamType="1" />
+            <Remap Name="Exp2" Target="XMath.Exp2" ReflectParamType="1" />
+            <Remap Name="Floor" Target="XMath.Floor" ReflectParamType="1" />
+            <Remap Name="IsInfinity" Target="XMath.IsInfinity" ReflectParamType="1" />
+            <Remap Name="IsFinite" Target="XMath.IsFinite" ReflectParamType="1" />
+            <Remap Name="IsNaN" Target="XMath.IsNaN" ReflectParamType="1" />
+            <Remap Name="IsInteger" Target="XMath.IsInteger" ReflectParamType="1" />
+            <Remap Name="Sin" Target="XMath.Sin" ReflectParamType="1" />
+            <Remap Name="Tan" Target="XMath.Tan" ReflectParamType="1" />
+
+            <!-- Binary -->
+            <Remap Name="Atan2" Target="XMath.Atan2" ReflectParamType="2" />
+            <Remap Name="CopySign" Target="XMath.CopySign" ReflectParamType="2" />
+            <Remap Name="Max" Target="XMath.Max" ReflectParamType="2" />
+            <Remap Name="Min" Target="XMath.Min" ReflectParamType="2" />
+            <Remap Name="Pow" Target="XMath.Pow" ReflectParamType="2" />
+
+            <!-- Ternary -->
+            <Remap Name="FusedMultiplyAdd" Target="XMath.FMA" ReflectParamType="3" />
+        </Remapping>
+    </Type>
+    <Type Name="double">
+        <Remapping>
+            <!-- Unary -->
+            <Remap Name="Abs" Target="XMath.Abs" ReflectParamType="1" />
+            <Remap Name="Acos" Target="XMath.Acos" ReflectParamType="1" />
+            <Remap Name="Asin" Target="XMath.Asin" ReflectParamType="1" />
+            <Remap Name="Atan" Target="XMath.Atan" ReflectParamType="1" />
+            <Remap Name="Cos" Target="XMath.Cos" ReflectParamType="1" />
+            <Remap Name="Exp" Target="XMath.Exp" ReflectParamType="1" />
+            <Remap Name="Exp2" Target="XMath.Exp2" ReflectParamType="1" />
+            <Remap Name="Floor" Target="XMath.Floor" ReflectParamType="1" />
+            <Remap Name="IsInfinity" Target="XMath.IsInfinity" ReflectParamType="1" />
+            <Remap Name="IsFinite" Target="XMath.IsFinite" ReflectParamType="1" />
+            <Remap Name="IsNaN" Target="XMath.IsNaN" ReflectParamType="1" />
+            <Remap Name="IsInteger" Target="XMath.IsInteger" ReflectParamType="1" />
+            <Remap Name="Sin" Target="XMath.Sin" ReflectParamType="1" />
+            <Remap Name="Tan" Target="XMath.Tan" ReflectParamType="1" />
+
+            <!-- Binary -->
+            <Remap Name="Atan2" Target="XMath.Atan2" ReflectParamType="2" />
+            <Remap Name="CopySign" Target="XMath.CopySign" ReflectParamType="2" />
+            <Remap Name="Max" Target="XMath.Max" ReflectParamType="2" />
+            <Remap Name="Min" Target="XMath.Min" ReflectParamType="2" />
+            <Remap Name="Pow" Target="XMath.Pow" ReflectParamType="2" />
+
+            <!-- Ternary -->
+            <Remap Name="FusedMultiplyAdd" Target="XMath.FMA" ReflectParamType="3" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Numerics.BitOperations">
+        <Remapping>
+            <Remap Name="IsPow2" Target="XMath.IsPowerOf2">
+                <Specialization Type="int" />
+                <Specialization Type="long" />
+                <Specialization Type="uint" />
+                <Specialization Type="ulong" />
+                <Specialization SourceType="IntPtr" TargetType="long" />
+                <Specialization SourceType="UIntPtr" TargetType="ulong" />
+            </Remap>
+            <Remap Name="PopCount" Target="XMath.PopCount">
+                <Specialization Type="uint" />
+                <Specialization Type="ulong" />
+                <Specialization SourceType="UIntPtr" TargetType="ulong" />
+            </Remap>
+            <Remap Name="LeadingZeroCount" Target="XMath.LeadingZeroCount">
+                <Specialization Type="uint" />
+                <Specialization Type="ulong" />
+                <Specialization SourceType="UIntPtr" TargetType="ulong" />
+            </Remap>
+            <Remap Name="TrailingZeroCount" Target="XMath.TrailingZeroCount">
+                <Specialization Type="int" />
+                <Specialization Type="long" />
+                <Specialization Type="uint" />
+                <Specialization Type="ulong" />
+                <Specialization SourceType="IntPtr" TargetType="long" />
+                <Specialization SourceType="UIntPtr" TargetType="ulong" />
+            </Remap>
+        </Remapping>
+    </Type>
+    <Type Name="Math">
+        <Remapping>
+            <!-- Unary -->
+            <Remap Name="Abs" Target="XMath.Abs">
+                <Specialization Type="sbyte" />
+                <Specialization Type="short" />
+                <Specialization Type="int" />
+                <Specialization Type="long" />
+                <Specialization Type="float" />
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Acos" Target="XMath.Acos">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Acosh" Target="XMath.Acosh">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Asin" Target="XMath.Asin">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Asinh" Target="XMath.Asinh">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Atan" Target="XMath.Atan">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Atanh" Target="XMath.Atanh">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Cbrt" Target="XMath.Cbrt">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Ceiling" Target="XMath.Ceiling">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Cos" Target="XMath.Cos">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Cosh" Target="XMath.Cosh">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Exp" Target="XMath.Exp">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Floor" Target="XMath.Floor">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Log" Target="XMath.Log">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Log2" Target="XMath.Log2">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Log10" Target="XMath.Log10">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Sin" Target="XMath.Sin">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="SinCos" Target="XMath.SinCos">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Sinh" Target="XMath.Sinh">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Sqrt" Target="XMath.Sqrt">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Tan" Target="XMath.Tan">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Tanh" Target="XMath.Tanh">
+                <Specialization Type="double" />
+            </Remap>
+
+            <!-- Binary -->
+            <Remap Name="Atan2" Target="XMath.Atan2">
+                <Specialization Type="double,double" />
+            </Remap>
+            <Remap Name="CopySign" Target="XMath.CopySign">
+                <Specialization Type="double,double" />
+            </Remap>
+            <Remap Name="Clamp" Target="XMath.Clamp">
+                <Specialization Type="sbyte,sbyte,sbyte" />
+                <Specialization Type="short,short,short" />
+                <Specialization Type="int,int,int" />
+                <Specialization Type="long,long,long" />
+                <Specialization Type="byte,byte,byte" />
+                <Specialization Type="ushort,ushort,ushort" />
+                <Specialization Type="uint,uint,uint" />
+                <Specialization Type="ulong,ulong,ulong" />
+                <Specialization Type="float,float,float" />
+                <Specialization Type="double,double,double" />
+                <Specialization SourceType="IntPtr,IntPtr,IntPtr" TargetType="long,long,long" />
+                <Specialization SourceType="UIntPtr,UIntPtr,UIntPtr" TargetType="ulong,ulong,ulong" />
+            </Remap>
+            <Remap Name="IEEERemainder" Target="XMath.IEEERemainder">
+                <Specialization Type="double,double" />
+            </Remap>
+            <Remap Name="Pow" Target="XMath.Pow">
+                <Specialization Type="double,double" />
+            </Remap>
+            <Remap Name="Max" Target="XMath.Max">
+                <Specialization Type="sbyte,sbyte" />
+                <Specialization Type="short,short" />
+                <Specialization Type="int,int" />
+                <Specialization Type="long,long" />
+                <Specialization Type="byte,byte" />
+                <Specialization Type="ushort,ushort" />
+                <Specialization Type="uint,uint" />
+                <Specialization Type="ulong,ulong" />
+                <Specialization Type="float,float" />
+                <Specialization Type="double,double" />
+                <Specialization SourceType="IntPtr,IntPtr" TargetType="long,long" />
+                <Specialization SourceType="UIntPtr,UIntPtr" TargetType="ulong,ulong" />
+            </Remap>
+            <Remap Name="Min" Target="XMath.Min">
+                <Specialization Type="sbyte,sbyte" />
+                <Specialization Type="short,short" />
+                <Specialization Type="int,int" />
+                <Specialization Type="long,long" />
+                <Specialization Type="byte,byte" />
+                <Specialization Type="ushort,ushort" />
+                <Specialization Type="uint,uint" />
+                <Specialization Type="ulong,ulong" />
+                <Specialization Type="float,float" />
+                <Specialization Type="double,double" />
+                <Specialization SourceType="IntPtr,IntPtr" TargetType="long,long" />
+                <Specialization SourceType="UIntPtr,UIntPtr" TargetType="ulong,ulong" />
+            </Remap>
+            <Remap Name="ReciprocalEstimate" Target="XMath.Rcp">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="ReciprocalSqrtEstimate" Target="XMath.Rsqrt">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Round" Target="XMath.Round">
+                <Specialization Type="double" />
+                <Specialization Type="double,int" />
+                <Specialization Type="double,MidpointRounding" />
+                <Specialization Type="double,int, MidpointRounding" />
+            </Remap>
+            <Remap Name="Sign" Target="XMath.Sign">
+                <Specialization Type="sbyte" />
+                <Specialization Type="short" />
+                <Specialization Type="int" />
+                <Specialization Type="long" />
+                <Specialization Type="float" />
+                <Specialization Type="double" />
+                <Specialization SourceType="IntPtr" TargetType="long" />
+            </Remap>
+            <Remap Name="Truncate" Target="XMath.Truncate">
+                <Specialization Type="double" />
+            </Remap>
+
+            <!-- Ternary -->
+            <Remap Name="FusedMultiplyAdd" Target="XMath.FMA">
+                <Specialization Type="double,double,double" />
+            </Remap>
+        </Remapping>
+    </Type>
+    <Type Name="MathF">
+        <Remapping>
+            <!-- Unary -->
+            <Remap Name="Acos" Target="XMath.Acos">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Acosh" Target="XMath.Acosh">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Asin" Target="XMath.Asin">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Asinh" Target="XMath.Asinh">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Atan" Target="XMath.Atan">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Atanh" Target="XMath.Atanh">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Cbrt" Target="XMath.Cbrt">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Ceiling" Target="XMath.Ceiling">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Cos" Target="XMath.Cos">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Cosh" Target="XMath.Cosh">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="CopySign" Target="XMath.CopySign">
+                <Specialization Type="float,float" />
+            </Remap>
+            <Remap Name="Exp" Target="XMath.Exp">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Floor" Target="XMath.Floor">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Log" Target="XMath.Log">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Log2" Target="XMath.Log2">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Log10" Target="XMath.Log10">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Sin" Target="XMath.Sin">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="SinCos" Target="XMath.SinCos">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Sinh" Target="XMath.Sinh">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Sqrt" Target="XMath.Sqrt">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Tan" Target="XMath.Tan">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Tanh" Target="XMath.Tanh">
+                <Specialization Type="float" />
+            </Remap>
+
+            <!-- Binary -->
+            <Remap Name="Atan2" Target="XMath.Atan2">
+                <Specialization Type="float,float" />
+            </Remap>
+
+            <!-- Ternary -->
+            <Remap Name="FusedMultiplyAdd" Target="XMath.FMA">
+                <Specialization Type="float,float,float" />
+            </Remap>
+        </Remapping>
+    </Type>
+    <Type Name="ILGPU.Half">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="op_UnaryNegation" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Neg" />
+
+            <Generator Name="op_Addition" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Add" />
+            <Generator Name="op_Subtraction" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Sub" />
+            <Generator Name="op_Multiply" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Mul" />
+            <Generator Name="op_Division" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Div" />
+
+            <Generator Name="op_Equality" Target="Compare_Operation"
+                Arguments="CompareKind.Equal,CompareFlags.None" />
+            <Generator Name="op_Inequality" Target="Compare_Operation"
+                Arguments="CompareKind.NotEqual,CompareFlags.UnsignedOrUnordered" />
+
+            <Generator Name="op_LessThan" Target="Compare_OperationDynamic"
+                Arguments="CompareKind.LessThan" />
+            <Generator Name="op_LessThanOrEqual" Target="Compare_OperationDynamic"
+                Arguments="CompareKind.LessEqual" />
+
+            <Generator Name="op_GreaterThan" Target="Compare_OperationDynamic"
+                Arguments="CompareKind.GreaterThan" />
+            <Generator Name="op_GreaterThanOrEqual" Target="Compare_OperationDynamic"
+                Arguments="CompareKind.GreaterEqual" />
+
+            <Generator Name="op_Implicit" Target="Convert_ImplicitOperation" />
+            <Generator Name="op_Explicit" Target="Convert_ExplicitOperation" />
+        </Generators>
+    </Type>
+    <Type Name="XMath">
+        <Generators Target="Frontend.Intrinsic.Intrinsics" UnsignedMatcher="true"
+            Default="ArithmeticFlags.None" Unsigned="ArithmeticFlags.Unsigned">
+            <!-- Unary -->
+            <Generator Name="Abs" Target="Math_UnaryOperation" Arguments="UnaryArithmeticKind.Abs" />
+            <Generator Name="Acos" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Acos" />
+            <Generator Name="Acosh" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Acosh" />
+            <Generator Name="Asin" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Asin" />
+            <Generator Name="Asinh" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Asinh" />
+            <Generator Name="Atan" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Atan" />
+            <Generator Name="Atanh" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Atanh" />
+            <Generator Name="Ceiling" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Ceiling" />
+            <Generator Name="Cos" Target="Math_UnaryOperation" Arguments="UnaryArithmeticKind.Cos" />
+            <Generator Name="Cosh" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Cosh" />
+            <Generator Name="Exp" Target="Math_UnaryOperation" Arguments="UnaryArithmeticKind.Exp" />
+            <Generator Name="Exp2" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Exp2" />
+            <Generator Name="Floor" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Floor" />
+            <Generator Name="IsNaN" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.IsNaN" />
+            <Generator Name="IsInfinity" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.IsInf" />
+            <Generator Name="IsFinite" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.IsFin" />
+            <Generator Name="LeadingZeroCount" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.CLZ" />
+            <Generator Name="Log" Target="Math_UnaryOperation" NumArguments="1"
+                Arguments="UnaryArithmeticKind.Log" />
+            <Generator Name="Log2" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Log2" />
+            <Generator Name="Log10" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Log10" />
+            <Generator Name="Sin" Target="Math_UnaryOperation" Arguments="UnaryArithmeticKind.Sin" />
+            <Generator Name="PopCount" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.PopC" />
+            <Generator Name="Rcp" Target="Math_UnaryOperation" Arguments="UnaryArithmeticKind.Rcp" />
+            <Generator Name="Rsqrt" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Rsqrt" />
+            <Generator Name="Sinh" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Sinh" />
+            <Generator Name="Sqrt" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Sqrt" />
+            <Generator Name="Tan" Target="Math_UnaryOperation" Arguments="UnaryArithmeticKind.Tan" />
+            <Generator Name="Tanh" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Tanh" />
+            <Generator Name="TrailingZeroCount" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.CTZ" />
+
+            <!-- Binary -->
+            <Generator Name="Atan2" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Atan2" />
+            <Generator Name="Log" Target="Math_BinaryOperation" NumArguments="2"
+                Arguments="BinaryArithmeticKind.BinaryLog" />
+            <Generator Name="CopySign" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.CopySign" />
+            <Generator Name="IEEERemainder" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.IEEERemainder" />
+            <Generator Name="Max" Target="Math_BinaryOperation" Arguments="BinaryArithmeticKind.Max" />
+            <Generator Name="Min" Target="Math_BinaryOperation" Arguments="BinaryArithmeticKind.Min" />
+            <Generator Name="Pow" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Pow" />
+
+            <!-- Ternary -->
+            <Generator Name="FMA" Target="Math_TernaryOperation"
+                Arguments="TernaryArithmeticKind.MultiplyAdd" />
+        </Generators>
+    </Type>
+</Intrinsics>
