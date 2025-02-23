@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Intrinsics.cs
@@ -9,350 +9,323 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR;
-using ILGPU.IR.Types;
-using ILGPU.IR.Values;
-using ILGPU.Resources;
+using ILGPU.Intrinsic;
 using ILGPU.Util;
+using ILGPUC.Backends;
+using ILGPUC.IR;
+using ILGPUC.IR.Values;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 // disable: max_line_length
 
-namespace ILGPU.Frontend.Intrinsic
+namespace ILGPUC.Frontend.Intrinsic;
+
+/// <summary>
+/// Contains default ILGPU intrinsics.
+/// </summary>
+static unsafe partial class Intrinsics
 {
-    enum IntrinsicType : int
+    #region Constants
+
+    const BindingFlags DefaultBindingFlags =
+        BindingFlags.Instance | BindingFlags.CreateInstance | BindingFlags.Static |
+        BindingFlags.Public | BindingFlags.NonPublic;
+    const BindingFlags RemapBindingFlags = DefaultBindingFlags;
+    const BindingFlags GeneratorBindingFlags =
+        BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+
+    #endregion
+
+    #region Nested Types
+
+    /// <summary>
+    /// Method lookup helper class to retrieve methods by name and number of arguments.
+    /// </summary>
+    readonly struct MethodLookup
     {
-        Accelerator,
-        Atomic,
-        Compare,
-        Convert,
-        Grid,
-        Group,
-        Interop,
-        Math,
-        MemoryFence,
-        SharedMemory,
-        LocalMemory,
-        View,
-        Warp,
-        Utility,
-        Language,
+        private readonly Dictionary<string, List<MethodInfo>> _lookup;
+        private readonly Dictionary<(string, int), List<MethodInfo>> _paramLookup;
+
+        public MethodLookup(Type type, BindingFlags bindingFlags)
+        {
+            var methods = type.GetMethods(bindingFlags);
+            _lookup = new(methods.Length);
+            _paramLookup = new(methods.Length);
+            foreach (var method in methods)
+            {
+                if (_lookup.TryGetValue(method.Name, out var value))
+                    value.Add(method);
+                else
+                    _lookup.Add(method.Name, [method]);
+
+                var paramKey = (method.Name, method.GetParameters().Length);
+                if (_paramLookup.TryGetValue(paramKey, out value))
+                    value.Add(method);
+                else
+                    _paramLookup.Add(paramKey, [method]);
+            }
+        }
+
+        public IReadOnlyList<MethodInfo> this[string name] => _lookup[name];
+        public IReadOnlyList<MethodInfo> this[string name, int numArguments] =>
+            _paramLookup[(name, numArguments)];
     }
 
     /// <summary>
-    /// Marks methods that are built in.
+    /// Implements a backend-mapping allowing for efficient lookups of backend methods.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-    abstract class IntrinsicAttribute : Attribute
+    /// <typeparam name="T">The mapping type.</typeparam>
+    /// <param name="il">The IL backend implementation.</param>
+    /// <param name="ptx">The PTX backend implementation.</param>
+    /// <param name="openCL">The OpenCL backend implementation.</param>
+    readonly struct BackendMap<T>(T il, T ptx, T openCL)
     {
-        /// <summary>
-        /// Returns the type of this intrinsic attribute.
-        /// </summary>
-        public abstract IntrinsicType Type { get; }
+        private readonly T[] _data = [il, default!, ptx, openCL];
+
+        public T this[BackendType backendType] => _data[(int)backendType];
+    }
+
+    #endregion
+
+    #region Intrinsic Generators
+
+    /// <summary>
+    /// Intrinsic generator delegate to implement intrinsic operations on the IR level.
+    /// </summary>
+    /// <param name="context">The current context.</param>
+    /// <returns>The value reference return.</returns>
+    delegate ValueReference IntrinsicGenerator(ref InvocationContext context);
+
+    /// <summary>
+    /// An internal intrinsic generator wrapper to handle generic arguments.
+    /// </summary>
+    delegate ValueReference IntrinsicGenerator<T>(
+        ref InvocationContext context,
+        T argument);
+
+    /// <summary>
+    /// An internal intrinsic generator wrapper to handle generic arguments.
+    /// </summary>
+    delegate ValueReference IntrinsicGenerator<T1, T2>(
+        ref InvocationContext context,
+        T1 argument1,
+        T2 argument2);
+
+    /// <summary>
+    /// An intrinsic wrapper to handle untyped arguments.
+    /// </summary>
+    delegate ValueReference IntrinsicGeneratorWrapperHandler1(
+        ref InvocationContext context,
+        object argument);
+
+    /// <summary>
+    /// An intrinsic wrapper to handle untyped arguments.
+    /// </summary>
+    delegate ValueReference IntrinsicGeneratorWrapperHandler2(
+        ref InvocationContext context,
+        object argument1,
+        object argument2);
+
+    /// <summary>
+    /// An intrinsic wrapper implementation to handle untyped arguments.
+    /// </summary>
+    static ValueReference IntrinsicGeneratorWrapper1<T>(
+        IntrinsicGenerator<T> generator,
+        ref InvocationContext context,
+        object value) =>
+        generator(ref context, (T)value);
+
+    /// <summary>
+    /// An intrinsic wrapper implementation to handle untyped arguments.
+    /// </summary>
+    static ValueReference IntrinsicGeneratorWrapper2<T1, T2>(
+        IntrinsicGenerator<T1, T2> generator,
+        ref InvocationContext context,
+        object value1,
+        object value2) =>
+        generator(ref context, (T1)value2, (T2)value2);
+
+    /// <summary>
+    /// Holds a static reference to a generic intrinsic generator type.
+    /// </summary>
+    static readonly Type GenericIntrinsicGeneratorType1 =
+        typeof(IntrinsicGenerator<>);
+
+    /// <summary>
+    /// Holds a reference to an intrinsic wrapper handler implementation.
+    /// </summary>
+    static readonly MethodInfo GenericIntrinsicGeneratorWrapperMethod1 =
+        typeof(Intrinsics)
+        .GetMethod("IntrinsicGeneratorWrapper1`1", GeneratorBindingFlags)
+        .ThrowIfNull();
+
+    /// <summary>
+    /// Holds a static reference to a generic intrinsic generator type.
+    /// </summary>
+    static readonly Type GenericIntrinsicGeneratorType2 =
+        typeof(IntrinsicGenerator<,>);
+
+    /// <summary>
+    /// Holds a reference to an intrinsic wrapper handle implementation..
+    /// </summary>
+    static readonly MethodInfo GenericIntrinsicGeneratorWrapperMethod2 =
+        typeof(Intrinsics)
+        .GetMethod("IntrinsicGeneratorWrapper2`2", GeneratorBindingFlags)
+        .ThrowIfNull();
+
+    /// <summary>
+    /// Gets an intrinsic generator for the given implementation type and name.
+    /// </summary>
+    static IntrinsicGenerator GetIntrinsicGenerator(Type type, string name)
+    {
+        var methodInfo = type.GetMethod(name, GeneratorBindingFlags).ThrowIfNull();
+        return methodInfo.CreateDelegate<IntrinsicGenerator>();
     }
 
     /// <summary>
-    /// Contains default ILGPU intrinsics.
+    /// Gets an intrinsic generator for the given implementation type and name accepting
+    /// an additional argument.
     /// </summary>
-    static partial class Intrinsics
+    static IntrinsicGenerator GetIntrinsicGenerator(
+        Type type,
+        string name,
+        object argument)
     {
-        #region Static Handler
+        var argumentType = argument.GetType();
+        var wrapperMethod = GenericIntrinsicGeneratorWrapperMethod1
+            .MakeGenericMethod(argumentType);
+        var wrapperDelegateType = typeof(IntrinsicGeneratorWrapperHandler1);
+        var targetDelegateType = GenericIntrinsicGeneratorType1
+            .MakeGenericType(argumentType);
 
-        /// <summary>
-        /// Represents a basic handler for compiler-specific device functions.
-        /// </summary>
-        private delegate Value DeviceFunctionHandler(ref InvocationContext context);
+        // Prepare target generator
+        var methodInfo = type.GetMethod(name, GeneratorBindingFlags).ThrowIfNull();
+        var generatorMethod = methodInfo.CreateDelegate(targetDelegateType);
 
-        /// <summary>
-        /// Represents a basic handler for compiler-specific device functions.
-        /// </summary>
-        private delegate Value DeviceFunctionHandler<TIntrinsicAttribute>(
-            ref InvocationContext context,
-            TIntrinsicAttribute attribute)
-            where TIntrinsicAttribute : IntrinsicAttribute;
+        // Prepare generator wrapper
+        var wrapperHandler = wrapperMethod
+            .CreateDelegate<IntrinsicGeneratorWrapperHandler1>();
 
-        /// <summary>
-        /// Stores function handlers.
-        /// </summary>
-        private static readonly Dictionary<Type, DeviceFunctionHandler> FunctionHandlers =
-            new Dictionary<Type, DeviceFunctionHandler>()
-            {
-                { typeof(Activator), HandleActivator },
-                { typeof(Debug), HandleDebugAndTrace },
-                { typeof(Trace), HandleDebugAndTrace },
-                { typeof(RuntimeHelpers), HandleRuntimeHelper },
-                { typeof(Unsafe), HandleUnsafe }
-            };
+        return (ref InvocationContext context) =>
+            wrapperHandler(ref context, argument);
+    }
 
-        private static readonly DeviceFunctionHandler<IntrinsicAttribute>[]
-            IntrinsicHandlers =
+    /// <summary>
+    /// Gets an intrinsic generator for the given implementation type and name accepting
+    /// two additional arguments.
+    /// </summary>
+    static IntrinsicGenerator GetIntrinsicGenerator(
+        Type type,
+        string name,
+        object argument1,
+        object argument2)
+    {
+        var argumentType1 = argument1.GetType();
+        var argumentType2 = argument2.GetType();
+        var wrapperMethod = GenericIntrinsicGeneratorWrapperMethod2
+            .MakeGenericMethod(argumentType1, argumentType2);
+        var wrapperDelegateType = typeof(IntrinsicGeneratorWrapperHandler2);
+        var targetDelegateType = GenericIntrinsicGeneratorType2
+            .MakeGenericType(argumentType1, argumentType2);
+
+        // Prepare target generator
+        var methodInfo = type.GetMethod(name, GeneratorBindingFlags).ThrowIfNull();
+        var generatorMethod = methodInfo.CreateDelegate(targetDelegateType);
+
+        // Prepare generator wrapper
+        var wrapperHandler = wrapperMethod
+            .CreateDelegate<IntrinsicGeneratorWrapperHandler2>();
+        return (ref InvocationContext context) =>
+            wrapperHandler(ref context, argument1, argument2);
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Intrinsics initialization.
+    /// </summary>
+    static Intrinsics()
+    {
+        InitializeRemapping();
+        InitializeGeneration();
+        InitializeBackendImplementations();
+    }
+
+    /// <summary>
+    /// Returns true if the given method is an ILGPU intrinsic function.
+    /// </summary>
+    /// <param name="method">The method to test.</param>
+    /// <returns>True if the given method is an ILGPU intrinsic function.</returns>
+    public static bool IsILGPUIntrinsic(this MethodBase method) =>
+        method.GetCustomAttribute<IntrinsicAttribute>() is not null;
+
+    /// <summary>
+    /// Tries to remap the given method to an intrinsic implementation.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="method">The method to be (potentially) remapped.</param>
+    /// <param name="backendType">Current backend type.</param>
+    /// <param name="remapped">The remapped method (if any).</param>
+    /// <returns>True if the given method could be remapped.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static bool TryImplement(
+        Location location,
+        MethodBase method,
+        BackendType backendType,
+       [NotNullWhen(true)] out MethodBase? remapped)
+    {
+        // Determine whether the given method has an intrinsic remapping
+        if (_remappings.TryGetValue(method, out remapped))
+            return true;
+
+        // Try to get a backend implementation for this method
+        if (_backendImplementations.TryGetValue(method, out var map))
         {
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleAcceleratorOperation(
-                    ref context,
-                    attribute.AsNotNullCast<AcceleratorIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleAtomicOperation(
-                    ref context,
-                    attribute.AsNotNullCast<AtomicIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleCompareOperation(
-                    ref context,
-                    attribute.AsNotNullCast<CompareIntriniscAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleConvertOperation(
-                    ref context,
-                    attribute.AsNotNullCast<ConvertIntriniscAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleGridOperation(
-                    ref context,
-                    attribute.AsNotNullCast<GridIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleGroupOperation(
-                    ref context,
-                    attribute.AsNotNullCast<GroupIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleInterop(
-                    ref context,
-                    attribute.AsNotNullCast<InteropIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleMathOperation(
-                    ref context,
-                    attribute.AsNotNullCast<MathIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleMemoryBarrierOperation(
-                    ref context,
-                    attribute.AsNotNullCast<MemoryBarrierIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleSharedMemoryOperation(
-                    ref context,
-                    attribute.AsNotNullCast<SharedMemoryIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleLocalMemoryOperation(
-                    ref context,
-                    attribute.AsNotNullCast<LocalMemoryIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleViewOperation(
-                    ref context,
-                    attribute.AsNotNullCast<ViewIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleWarpOperation(
-                    ref context,
-                    attribute.AsNotNullCast<WarpIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleUtilityOperation(
-                    ref context,
-                    attribute.AsNotNullCast<UtilityIntrinsicAttribute>()),
-            (ref InvocationContext context, IntrinsicAttribute attribute) =>
-                HandleLanguageOperation(
-                    ref context,
-                    attribute.AsNotNullCast<LanguageIntrinsicAttribute>()),
-        };
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Tries to handle a specific invocation context. This method
-        /// can generate custom code instead of the default method-invocation
-        /// functionality.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <param name="result">The resulting value of the intrinsic call.</param>
-        /// <returns>True, if this class could handle the call.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool HandleIntrinsic(
-            ref InvocationContext context,
-            out ValueReference result)
-        {
-            result = default;
-            var method = context.Method;
-
-            var intrinsic = method.GetCustomAttribute<IntrinsicAttribute>();
-            if (intrinsic != null)
-                result = IntrinsicHandlers[(int)intrinsic.Type](ref context, intrinsic);
-
-            if (IsIntrinsicArrayType(method.DeclaringType.AsNotNull()))
-            {
-                result = HandleArrays(ref context);
-                // All array operations will be handled by the ILGPU intrinsic handlers
-                return true;
-            }
-            else if (FunctionHandlers.TryGetValue(
-                method.DeclaringType.AsNotNull(),
-                out DeviceFunctionHandler? handler))
-            {
-                result = handler(ref context);
-            }
-
-            return result.IsValid;
+            remapped = map[backendType];
+            return true;
         }
 
-        #endregion
+        // Ignore methods that are not known intrinsics
+        if (!method.IsILGPUIntrinsic())
+            return false;
 
-        #region External
+        // Sanity check existence of intrinsic handlers
+        if (!_generators.ContainsKey(method))
+            throw location.GetInvalidOperationException();
 
-        /// <summary>
-        /// Handles activator operations.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value HandleActivator(ref InvocationContext context)
+        return false;
+    }
+
+    /// <summary>
+    /// Tries to generate code for a specific invocation context. This method
+    /// can generate custom code instead of default method-invocation flow.
+    /// </summary>
+    /// <param name="context">The current invocation context.</param>
+    /// <param name="result">The resulting value of the intrinsic call.</param>
+    /// <returns>True if this call could handle the call.</returns>
+    public static bool TryGenerateCode(
+        ref InvocationContext context,
+        out ValueReference result)
+    {
+        result = default;
+        var method = context.Method;
+
+        // Remappings are not supported by this method and need to be handled upfront
+        if (_remappings.TryGetValue(method, out var _))
+            throw context.Location.GetInvalidOperationException();
+
+        // Check for immediate code generators and backend implementations
+        if (_generators.TryGetValue(method, out var handler))
         {
-            var location = context.Location;
-
-            var genericArgs = context.GetMethodGenericArguments();
-            if (context.Method.Name != nameof(Activator.CreateInstance) ||
-                context.NumArguments != 0 ||
-                genericArgs.Length != 1 ||
-                !genericArgs[0].IsValueType)
-            {
-                throw context.Location.GetNotSupportedException(
-                    ErrorMessages.NotSupportedActivatorOperation,
-                    context.Method.Name);
-            }
-
-            return context.Builder.CreateNull(
-                location,
-                context.Builder.CreateType(genericArgs[0]));
+            // Implement the intrinsic
+            result = handler(ref context);
+            return true;
         }
 
-        /// <summary>
-        /// Handles debugging operations.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value HandleDebugAndTrace(ref InvocationContext context)
-        {
-            var builder = context.Builder;
-            var location = context.Location;
-
-            return context.Method.Name switch
-            {
-                nameof(Debug.Assert) when context.NumArguments == 1 =>
-                    builder.CreateDebugAssert(
-                        location,
-                        context[0],
-                        builder.CreatePrimitiveValue(location, "Assert failed")),
-                nameof(Debug.Assert) when context.NumArguments == 2 =>
-                    builder.CreateDebugAssert(location, context[0], context[1]),
-                nameof(Debug.Fail) when context.NumArguments == 1 =>
-                    builder.CreateDebugAssert(
-                        location,
-                        builder.CreatePrimitiveValue(location, false),
-                        context[0]),
-                _ => throw location.GetNotSupportedException(
-                    ErrorMessages.NotSupportedIntrinsic,
-                    context.Method.Name),
-            };
-        }
-
-        /// <summary>
-        /// Handles runtime operations.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value HandleRuntimeHelper(ref InvocationContext context)
-        {
-            switch (context.Method.Name)
-            {
-                case nameof(RuntimeHelpers.InitializeArray):
-                    InitializeArray(ref context);
-                    return context.Builder.CreateUndefined();
-            }
-            throw context.Location.GetNotSupportedException(
-                ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
-        }
-
-        /// <summary>
-        /// Initializes arrays.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        private static unsafe void InitializeArray(ref InvocationContext context)
-        {
-            var builder = context.Builder;
-            var location = context.Location;
-
-            // Resolve the array data
-            var handle = context[1].ResolveAs<HandleValue>().AsNotNull();
-            var value = handle.GetHandle<FieldInfo>().GetValue(null).AsNotNull();
-            int valueSize = Marshal.SizeOf(value);
-
-            // Load the associated array data
-            byte* data = stackalloc byte[valueSize];
-            Marshal.StructureToPtr(value, new IntPtr(data), true);
-
-            // Convert unsafe data into target chunks and emit
-            // appropriate store instructions
-            Value target = builder.CreateArrayToViewCast(location, context[0]);
-            var arrayType = target.Type.As<ViewType>(location);
-            var elementType = arrayType.ElementType.LoadManagedType();
-
-            // Convert values to IR values
-            int elementSize = Interop.SizeOf(elementType);
-            for (int i = 0, e = valueSize / elementSize; i < e; ++i)
-            {
-                byte* address = data + elementSize * i;
-                var instance =
-                    Marshal.PtrToStructure(new IntPtr(address), elementType).AsNotNull();
-
-                // Convert element to IR value
-                var irValue = builder.CreateValue(location, instance, elementType);
-                var targetIndex = builder.CreatePrimitiveValue(location, i);
-
-                // Store element
-                builder.CreateStore(
-                    location,
-                    builder.CreateLoadElementAddress(
-                        location,
-                        target,
-                        targetIndex),
-                    irValue);
-            }
-        }
-
-        /// <summary>
-        /// Handles unsafe runtime operations.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        /// <returns>The resulting value.</returns>
-        private static Value HandleUnsafe(ref InvocationContext context)
-        {
-            switch (context.Method.Name)
-            {
-                case nameof(Unsafe.As):
-                    return ConvertUnsafeAs(ref context);
-            }
-            throw context.Location.GetNotSupportedException(
-                ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
-        }
-
-        /// <summary>
-        /// Converts basic reinterpret casts.
-        /// </summary>
-        /// <param name="context">The current invocation context.</param>
-        private static Value ConvertUnsafeAs(ref InvocationContext context)
-        {
-            var codeGenerator = context.CodeGenerator;
-            var location = context.Location;
-            var sourceValue = context[0];
-            var methodReturnType = context.TypeContext.CreateType(
-                context.Method.GetReturnType()).As<PointerType>(location);
-
-            return sourceValue.Type == methodReturnType || methodReturnType.IsRootType
-                ? sourceValue.Resolve()
-                : codeGenerator.CreateConversion(
-                    sourceValue,
-                    methodReturnType,
-                    ConvertFlags.None);
-        }
-
-        #endregion
+        return false;
     }
 }
