@@ -12,7 +12,7 @@
 using System;
 using System.Diagnostics;
 
-namespace ILGPU.Frontend
+namespace ILGPUC.Frontend
 {
     /// <summary>
     /// The type of a single variable reference.
@@ -58,7 +58,7 @@ namespace ILGPU.Frontend
         #region Instance
 
         /// <summary>
-        /// Constructs a new variable entry. 
+        /// Constructs a new variable entry.
         /// </summary>
         /// <param name="index">Index of the variable.</param>
         /// <param name="refType">Type of this variable reference.</param>
