@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
 using ILGPUC.IR.Construction;
 using ILGPUC.IR.Types;
 using ILGPUC.Util;
@@ -17,42 +16,6 @@ using System;
 using System.Collections.Immutable;
 
 namespace ILGPUC.IR.Values;
-
-/// <summary>
-/// Represents the kind of a compare node.
-/// </summary>
-enum CompareKind
-{
-    /// <summary>
-    /// An equal comparison.
-    /// </summary>
-    Equal,
-
-    /// <summary>
-    /// A not-equal comparison.
-    /// </summary>
-    NotEqual,
-
-    /// <summary>
-    /// A less-than comparison.
-    /// </summary>
-    LessThan,
-
-    /// <summary>
-    /// A less-equal comparison.
-    /// </summary>
-    LessEqual,
-
-    /// <summary>
-    /// A greater-than comparison.
-    /// </summary>
-    GreaterThan,
-
-    /// <summary>
-    /// A greater-equal comparison.
-    /// </summary>
-    GreaterEqual,
-}
 
 /// <summary>
 /// Represents special flags of a comparison.
@@ -75,8 +38,7 @@ enum CompareFlags
 /// <summary>
 /// Represents a comparison.
 /// </summary>
-[ValueKind(ValueKind.Compare)]
-sealed class CompareValue : Value
+sealed partial class CompareValue : Value
 {
     #region Static
 
@@ -219,9 +181,6 @@ sealed class CompareValue : Value
 
     #region Properties
 
-    /// <summary cref="Value.ValueKind"/>
-    public override ValueKind ValueKind => ValueKind.Compare;
-
     /// <summary>
     /// Returns the left operand.
     /// </summary>
@@ -231,11 +190,6 @@ sealed class CompareValue : Value
     /// Returns the right operand.
     /// </summary>
     public ValueReference Right => this[1];
-
-    /// <summary>
-    /// Returns the kind of this compare node.
-    /// </summary>
-    public CompareKind Kind { get; }
 
     /// <summary>
     /// Returns the associated flags.
@@ -273,9 +227,6 @@ sealed class CompareValue : Value
             rebuilder.Rebuild(Right),
             Kind,
             Flags);
-
-    /// <summary cref="Value.Accept"/>
-    public override void Accept<T>(T visitor) => visitor.Visit(this);
 
     #endregion
 
