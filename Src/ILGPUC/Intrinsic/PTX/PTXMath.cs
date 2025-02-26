@@ -9,10 +9,10 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Backends.PTX;
-using ILGPU.IR;
-using ILGPU.IR.Values;
 using ILGPU.Util;
+using ILGPUC.Backends.PTX;
+using ILGPUC.IR;
+using ILGPUC.IR.Values;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -25,68 +25,6 @@ namespace ILGPU.Algorithms.PTX
     /// </summary>
     static partial class PTXMath
     {
-        #region Code Generator
-
-        /// <summary>
-        /// Generates intrinsic math instructions for the following kinds:
-        /// Rcp, Sqrt, Sin, Cos, Exp2, Log2, IsInf, IsNaN
-        /// </summary>
-        /// <param name="backend">The current backend.</param>
-        /// <param name="codeGenerator">The code generator.</param>
-        /// <param name="value">The value to generate code for.</param>
-        public static void GenerateMathIntrinsic(
-            PTXBackend backend,
-            PTXCodeGenerator codeGenerator,
-            Value value)
-        {
-            var arithmeticValue = value.AsNotNullCast<UnaryArithmeticValue>();
-            var instruction = PTXInstructions.GetArithmeticOperation(
-                arithmeticValue.Kind,
-                arithmeticValue.ArithmeticBasicValueType,
-                backend.Capabilities,
-                codeGenerator.FastMath);
-
-            var argument = codeGenerator.LoadPrimitive(arithmeticValue.Value);
-            var targetRegister = codeGenerator.AllocateHardware(arithmeticValue);
-            using var command = codeGenerator.BeginCommand(instruction);
-            command.AppendArgument(targetRegister);
-            command.AppendArgument(argument);
-        }
-
-        #endregion
-
-        #region IsNaN & IsInfinity
-
-        /// <summary cref="XMath.IsNaN(double)"/>
-        public static bool IsNaN(double value) =>
-            throw new NotImplementedException();
-
-        /// <summary cref="XMath.IsNaN(float)"/>
-        public static bool IsNaN(float value) =>
-            throw new NotImplementedException();
-
-        /// <summary cref="XMath.IsInfinity(double)"/>
-        public static bool IsInfinity(double value) =>
-            throw new NotImplementedException();
-
-        /// <summary cref="XMath.IsInfinity(float)"/>
-        public static bool IsInfinity(float value) =>
-            throw new NotImplementedException();
-
-        #endregion
-
-        #region Rcp
-
-        /// <summary cref="XMath.Rcp(double)" />
-        public static double Rcp(double value) =>
-            throw new NotImplementedException();
-
-        /// <summary cref="XMath.Rcp(float)" />
-        public static float Rcp(float value) =>
-            throw new NotImplementedException();
-
-        #endregion
-
         #region Rem
 
         /// <summary cref="XMath.Rem(double, double)"/>
@@ -160,15 +98,6 @@ namespace ILGPU.Algorithms.PTX
 
         #region Sqrt
 
-        /// <summary cref="XMath.Sqrt(double)" />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Sqrt(double value) =>
-            throw new NotImplementedException();
-
-        /// <summary cref="XMath.Sqrt(float)" />
-        public static float Sqrt(float value) =>
-            throw new NotImplementedException();
-
         /// <summary cref="XMath.Rsqrt(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Rsqrt(double value) =>
@@ -211,10 +140,6 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Sin(double value) =>
             XMath.Cordic.Sin(value);
-
-        /// <summary cref="XMath.Sin(float)" />
-        public static float Sin(float value) =>
-            throw new NotImplementedException();
 
         /// <summary cref="XMath.Sinh(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -270,10 +195,6 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Cos(double value) =>
             XMath.Cordic.Cos(value);
-
-        /// <summary cref="XMath.Cos(float)" />
-        public static float Cos(float value) =>
-            throw new NotImplementedException();
 
         /// <summary cref="XMath.Cosh(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -693,24 +614,20 @@ namespace ILGPU.Algorithms.PTX
         public static double Exp2(double value) =>
             Exp(value * XMath.OneOverLog2ED);
 
-        /// <summary cref="XMath.Exp2(float)" />
-        public static float Exp2(float value) =>
-            throw new NotImplementedException();
-
         #endregion
 
         #region Log
 
         /// <summary cref="XMath.Log(double, double)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Log(double value, double newBase)
+        public static double LogBinary(double value, double newBase)
         {
-            if (value < 0.0 ||
-                newBase < 0.0 ||
-                (value != 1.0 && newBase == 0.0) ||
-                (value != 1.0 && newBase == double.PositiveInfinity) ||
-                XMath.IsNaN(value) ||
-                XMath.IsNaN(newBase) ||
+            if (value < 0.0 |
+                newBase < 0.0 |
+                (value != 1.0 && newBase == 0.0) |
+                (value != 1.0 && newBase == double.PositiveInfinity) |
+                XMath.IsNaN(value) |
+                XMath.IsNaN(newBase) |
                 newBase == 1.0)
             {
                 return double.NaN;
@@ -740,14 +657,14 @@ namespace ILGPU.Algorithms.PTX
 
         /// <summary cref="XMath.Log(float, float)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Log(float value, float newBase)
+        public static float LogBinary(float value, float newBase)
         {
-            if (value < 0.0f ||
-                newBase < 0.0f ||
-                (value != 1.0f && newBase == 0.0f) ||
-                (value != 1.0f && newBase == float.PositiveInfinity) ||
-                XMath.IsNaN(value) ||
-                XMath.IsNaN(newBase) ||
+            if (value < 0.0f |
+                newBase < 0.0f |
+                (value != 1.0f && newBase == 0.0f) |
+                (value != 1.0f && newBase == float.PositiveInfinity) |
+                XMath.IsNaN(value) |
+                XMath.IsNaN(newBase) |
                 newBase == 1.0f)
             {
                 return float.NaN;
@@ -799,35 +716,6 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Log2(double value) =>
             Log(value) * XMath.OneOverLn2D;
-
-        /// <summary cref="XMath.Log2(float)" />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Log2(float value) =>
-            throw new NotImplementedException();
-
-        #endregion
-
-        #region Round
-
-        /// <summary cref="XMath.RoundToEven(double)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double RoundToEven(double value) =>
-            XMath.RoundingModes.RoundToEven(value);
-
-        /// <summary cref="XMath.RoundToEven(float)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float RoundToEven(float value) =>
-            XMath.RoundingModes.RoundToEven(value);
-
-        /// <summary cref="XMath.RoundAwayFromZero(double)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double RoundAwayFromZero(double value) =>
-            XMath.RoundingModes.RoundAwayFromZero(value);
-
-        /// <summary cref="XMath.RoundAwayFromZero(float)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float RoundAwayFromZero(float value) =>
-            XMath.RoundingModes.RoundAwayFromZero(value);
 
         #endregion
     }
