@@ -72,8 +72,9 @@
 #>
 using ILGPU.Util;
 using System.Runtime.CompilerServices;
+using static ILGPU.XMath;
 
-namespace ILGPU.Intrinsic.Math;
+namespace ILGPUC.Intrinsic;
 
 /// <summary>
 /// Implementation of trigonometric/hyperbolic rotation and vector mode functions using CORDIC approximation.
