@@ -15,8 +15,9 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
+using static ILGPU.XMath;
 
-namespace ILGPU.Intrinsic.Math;
+namespace ILGPUC.Intrinsic;
 
 /// <summary>
 /// Implementation of logarithmic functions using CORDIC approximation.
