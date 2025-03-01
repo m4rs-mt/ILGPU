@@ -15,12 +15,13 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
+using static ILGPU.XMath;
 
 // disable: max_line_length
 
 using System.Runtime.CompilerServices;
 
-namespace ILGPU.Intrinsic.Math;
+namespace ILGPUC.Intrinsic;
 
 /// <summary>
 /// Implementation of exponential functions using CORDIC approximation.
