@@ -3,19 +3,90 @@
 //                        Copyright (c) 2024-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: BinaryLog.cs
+// File: GenericMath.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-namespace ILGPU.Intrinsic.Math;
+using ILGPU;
+using ILGPU.Util;
+using System.Runtime.CompilerServices;
+
+namespace ILGPUC.Intrinsic;
 
 /// <summary>
 /// Contains software implementation for Log with two parameters.
 /// </summary>
-static class BinaryLog
+static class GenericMath
 {
+    /// <summary cref="XMath.Rem(double, double)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Rem(double x, double y)
+    {
+        if (y == 0.0 ||
+            XMath.IsInfinity(x) ||
+            XMath.IsNaN(x) ||
+            XMath.IsNaN(y))
+            return double.NaN;
+
+        if (XMath.IsInfinity(y))
+            return x;
+
+        var xDivY = XMath.Abs(x * XMath.Rcp(y));
+        var result = (xDivY - XMath.Floor(xDivY)) * XMath.Abs(y);
+        return Utilities.Select(x < 0.0, -result, result);
+    }
+
+    /// <summary cref="XMath.Rem(float, float)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float Rem(float x, float y)
+    {
+        if (y == 0.0f ||
+            XMath.IsInfinity(x) ||
+            XMath.IsNaN(x) ||
+            XMath.IsNaN(y))
+            return float.NaN;
+
+        if (XMath.IsInfinity(y))
+            return x;
+
+        var xDivY = XMath.Abs(x * XMath.Rcp(y));
+        var result = (xDivY - XMath.Floor(xDivY)) * XMath.Abs(y);
+        return Utilities.Select(x < 0.0f, -result, result);
+    }
+
+    /// <summary cref="XMath.IEEERemainder(double, double)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double IEEERemainder(double x, double y)
+    {
+        if (y == 0.0 ||
+            XMath.IsInfinity(x) ||
+            XMath.IsNaN(x) ||
+            XMath.IsNaN(y))
+            return double.NaN;
+
+        if (XMath.IsInfinity(y))
+            return x;
+
+        return x - (y * XMath.RoundToEven(x * XMath.Rcp(y)));
+    }
+
+    /// <summary cref="XMath.IEEERemainder(float, float)"/>
+    public static float IEEERemainder(float x, float y)
+    {
+        if (y == 0.0f ||
+            XMath.IsInfinity(x) ||
+            XMath.IsNaN(x) ||
+            XMath.IsNaN(y))
+            return float.NaN;
+
+        if (XMath.IsInfinity(y))
+            return x;
+
+        return x - (y * XMath.RoundToEven(x * XMath.Rcp(y)));
+    }
+
     /// <summary>
     /// Implements Log with two parameters.
     /// </summary>
