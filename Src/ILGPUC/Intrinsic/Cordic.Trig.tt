@@ -15,10 +15,11 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
+using static ILGPU.XMath;
 
 // disable: max_line_length
 
-namespace ILGPU.Intrinsic.Math;
+namespace ILGPUC.Intrinsic;
 
 /// <summary>
 /// Implementation of trigonometric transcendental functions using CORDIC approximation.
