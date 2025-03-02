@@ -1,16 +1,15 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: LibDevice.tt/LibDevice.cs
+// File: CudaLibDevice.tt/CudaLibDevice.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="true" language="C#" #>
-<#@ include file="../../Static/TextTransformHelpers.ttinclude" #>
 <#@ include file="../../Static/TypeInformation.ttinclude" #>
 <#@ include file="../../Static/CudaLibDevice.ttinclude" #>
 <#@ assembly name="System.Core" #>
@@ -22,33 +21,43 @@
 string rootPath = Host.ResolvePath(".");
 var functions = LibDeviceFunctions.Load(rootPath, "../../Static/CudaLibDevice.xml");
 #>
-using ILGPU.Backends.PTX;
+using ILGPU.Intrinsic;
+using ILGPU.Runtime.Cuda.Libraries;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 #pragma warning disable IDE0018 // Inline variable declaration
 #pragma warning disable IDE1006 // Naming Styles
 
-namespace ILGPU.Runtime.Cuda
+namespace ILGPU.Runtime.Cuda;
+
+/// <summary>
+/// Provides bindings for Cuda LibDevice functions.
+/// </summary>
+/// <remarks>
+/// Deals with thunking the Cuda LibDevice functions, because the compiled PTX uses:
+/// - b32 registers rather than f16 registers (Half type).
+/// - b32 registers rather than f32 registers (float type).
+/// - b64 registers rather than f64 registers (double type).
+/// </remarks>
+public static class CudaLibDevice
 {
     /// <summary>
-    /// Provides bindings for Cuda LibDevice functions.
+    /// Returns true if the current accelerator and compilation environment support
+    /// Cuda's native LibDevice method for fast and efficient math functions.
     /// </summary>
-    /// <remarks>
-    /// Deals with thunking the Cuda LibDevice functions, because the compiled PTX uses:
-    /// - b32 registers rather than f16 registers (Half type).
-    /// - b32 registers rather than f32 registers (float type).
-    /// - b64 registers rather than f64 registers (double type).
-    /// </remarks>
-    public static class LibDevice
+    public static bool IsSupported
     {
+        [BackendIntrinsic]
+        get => throw new InvalidKernelOperationException();
+    }
+
 <#
     foreach (var func in functions) {
         WriteLibDeviceFunction(func);
     }
 
 #>
-    }
 }
 
 #pragma warning restore IDE1006 // Naming Styles
@@ -59,7 +68,7 @@ namespace ILGPU.Runtime.Cuda
 
 void WriteLibDeviceFunction(LibDeviceFunction func)
 {
-    PushIndent(2);
+    PushIndent(1);
     WriteLibDeviceInterop(func);
     PopIndent();
 }
@@ -118,7 +127,7 @@ void WriteLibDeviceInterop(LibDeviceFunction func)
     WriteLine();
     if (func.ReturnType != "void")
         Write("var result = ");
-    WriteLine($"PTXLibDeviceMethods.{func.Name}(");
+    WriteLine($"NvvmLibDeviceMethods.{func.Name}(");
     PushIndent();
     for (int i = 0; i < func.Parameters.Length; i++)
     {
