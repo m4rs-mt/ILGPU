@@ -327,12 +327,6 @@ interface IValueVisitor
     /// <summary>
     /// Visits the node.
     /// </summary>
-    /// <param name="shuffle">The node.</param>
-    void Visit(SubWarpShuffle shuffle);
-
-    /// <summary>
-    /// Visits the node.
-    /// </summary>
     /// <param name="undefined">The node.</param>
     void Visit(UndefinedValue undefined);
 
