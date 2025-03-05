@@ -21,6 +21,12 @@ sealed class AcceleratorIntrinsicAttribute() :
     IntrinsicAttribute(IntrinsicType.Accelerator);
 
 /// <summary>
+/// Marks backend methods that are built in.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+sealed class BackendIntrinsicAttribute() : IntrinsicAttribute(IntrinsicType.Backend);
+
+/// <summary>
 /// Marks math methods that are built in.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
