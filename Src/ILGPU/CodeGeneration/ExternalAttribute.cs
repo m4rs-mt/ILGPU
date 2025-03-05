@@ -10,27 +10,18 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Reflection;
 
-namespace ILGPUC.Frontend;
+namespace ILGPU.CodeGeneration;
 
 /// <summary>
-/// Marks external methods that are opaque in the scope of the ILGPU IR.
+/// Marks external methods that are opaque in the scope of the ILGPU compiler internals.
 /// </summary>
 /// <param name="name">The external name.</param>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-sealed class ExternalAttribute(string name) : Attribute
+public sealed class ExternalAttribute(string name) : Attribute
 {
     /// <summary>
     /// Returns the associated internal function name.
     /// </summary>
     public string Name { get; } = name;
-
-    /// <summary>
-    /// Resolves the actual IR name.
-    /// </summary>
-    /// <param name="method">The source method.</param>
-    /// <returns>The IR name.</returns>
-    public string GetName(MethodInfo method) =>
-        string.IsNullOrEmpty(Name) ? method.Name : Name;
 }
