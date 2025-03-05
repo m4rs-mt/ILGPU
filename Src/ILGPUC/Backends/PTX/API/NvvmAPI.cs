@@ -17,12 +17,12 @@ using System.Text;
 
 #pragma warning disable CA2216 // Disposable types should declare finalizer
 
-namespace ILGPU.Runtime.Cuda.Libraries;
+namespace ILGPUC.Backends.PTX.API;
 
 /// <summary>
 /// Wrapper for the NVVM API.
 /// </summary>
-public sealed class NvvmAPI : DisposeBase
+sealed class NvvmAPI : DisposeBase
 {
     #region Delegates
 
@@ -151,7 +151,7 @@ public sealed class NvvmAPI : DisposeBase
         libNvvmModule = NativeLibrary.Load(libNvvmPath);
         libDeviceBytes = !string.IsNullOrEmpty(libDevicePath)
             ? File.ReadAllBytes(libDevicePath)
-            : Array.Empty<byte>();
+            : [];
 
         nvvmGetErrorString =
             Marshal.GetDelegateForFunctionPointer<NvvmGetErrorString>(

@@ -9,30 +9,32 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
+using ILGPU.Runtime.Cuda.Libraries;
+using ILGPUC.IR;
 using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace ILGPU.Intrinsic.PTX;
+namespace ILGPUC.Backends.PTX.API;
 
-class LibDevice
+sealed class LibDevice
 {
     /// <summary>
-    /// Turns on LibDevice support.
-    /// Automatically detects the CUDA SDK location.
+    /// Returns true if the given method is a lib device method.
     /// </summary>
-    /// <returns>The current builder instance.</returns>
-    public void Find() =>
-        LibDevice(throwIfNotFound: true);
+    /// <param name="method">The method to be tested.</param>
+    /// <returns>True if the given method is a lib device method.</returns>
+    public static bool IsLibDeviceMethod(Method method) =>
+        method.HasSource &&
+        method.Source.DeclaringType == typeof(NvvmLibDeviceMethods);
 
     /// <summary>
     /// Turns on LibDevice support.
     /// Automatically detects the CUDA SDK location.
     /// </summary>
-    /// <param name="throwIfNotFound">Determines error handling.</param>
-    /// <returns>The current builder instance.</returns>
-    internal void Find(bool throwIfNotFound)
+    public LibDevice()
     {
         // Find the CUDA installation path.
         var cudaEnvName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -41,11 +43,9 @@ class LibDevice
         var cudaPath = Environment.GetEnvironmentVariable(cudaEnvName);
         if (string.IsNullOrEmpty(cudaPath))
         {
-            return throwIfNotFound
-            ? throw new NotSupportedException(string.Format(
+            throw new NotSupportedException(string.Format(
                 RuntimeErrorMessages.NotSupportedLibDeviceEnvironmentVariable,
-                cudaEnvName))
-            : this;
+                cudaEnvName));
         }
         var nvvmRoot = Path.Combine(cudaPath, "nvvm");
 
@@ -59,46 +59,31 @@ class LibDevice
             ? "nvvm64*.dll"
             : "libnvvm*.so";
         var nvvmFiles = Directory.EnumerateFiles(nvvmBinDir, nvvmSearchPattern);
-        var libNvvmPath = nvvmFiles.FirstOrDefault();
-        if (libNvvmPath is null)
-        {
-            return throwIfNotFound
-            ? throw new NotSupportedException(string.Format(
+        var libNvvmPath = nvvmFiles.FirstOrDefault() ??
+            throw new NotSupportedException(string.Format(
                 RuntimeErrorMessages.NotSupportedLibDeviceNotFoundNvvmDll,
-                nvvmBinDir))
-            : this;
-        }
+                nvvmBinDir));
 
         // Find the LibDevice Bitcode.
         var libDeviceDir = Path.Combine(nvvmRoot, "libdevice");
         var libDeviceFiles = Directory.EnumerateFiles(
             libDeviceDir,
             "libdevice.*.bc");
-        var libDevicePath = libDeviceFiles.FirstOrDefault();
-        if (libDevicePath is null)
-        {
-            return throwIfNotFound
-            ? throw new NotSupportedException(string.Format(
+        var libDevicePath = libDeviceFiles.FirstOrDefault() ??
+            throw new NotSupportedException(string.Format(
                 RuntimeErrorMessages.NotSupportedLibDeviceNotFoundBitCode,
-                libDeviceDir))
-            : this;
-        }
-
+                libDeviceDir));
         LibNvvmPath = libNvvmPath;
         LibDevicePath = libDevicePath;
     }
 
     /// <summary>
-    /// Turns on LibDevice support.
-    /// Explicitly specifies the LibDevice location.
+    /// Returns the current LibNvvmPath.
     /// </summary>
-    /// <param name="libNvvmPath">Path to LibNvvm DLL.</param>
-    /// <param name="libDevicePath">Path to LibDevice bitcode.</param>
-    /// <returns>The current builder instance.</returns>
-    public Builder LibDevice(string libNvvmPath, string libDevicePath)
-    {
-        LibNvvmPath = libNvvmPath;
-        LibDevicePath = libDevicePath;
-        return this;
-    }
+    public string LibNvvmPath { get; }
+
+    /// <summary>
+    /// Returns the current LibDevicePath.
+    /// </summary>
+    public string LibDevicePath { get; }
 }
