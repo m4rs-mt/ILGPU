@@ -9,11 +9,9 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+namespace ILGPUC.Backends.PTX.API;
 
-namespace ILGPU.Runtime.Cuda.Libraries;
-
-public enum NvvmResult
+enum NvvmResult
 {
     NVVM_SUCCESS = 0,
     NVVM_ERROR_OUT_OF_MEMORY = 1,
@@ -26,5 +24,3 @@ public enum NvvmResult
     NVVM_ERROR_NO_MODULE_IN_PROGRAM = 8,
     NVVM_ERROR_COMPILATION = 9
 }
-
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
