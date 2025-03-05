@@ -114,7 +114,7 @@ jobs:
                 [[ "${{ github.ref }}" =~ "refs/tags/v" ]]
               )
             )
-          ) && os+=("macos-latest")
+          ) && os+=("macos-13")
 
           # Temporarily disabled cuda
           # [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda")
