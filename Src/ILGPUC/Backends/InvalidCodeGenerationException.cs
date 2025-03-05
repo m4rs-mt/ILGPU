@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InvalidCodeGenerationException.cs
@@ -11,53 +11,39 @@
 
 using ILGPU.Resources;
 using System;
-using System.Runtime.Serialization;
 
-namespace ILGPU.Backends
+namespace ILGPUC.Backends;
+
+/// <summary>
+/// An exception that is thrown in case of a fatal error in a backend.
+/// </summary>
+[Serializable]
+sealed class InvalidCodeGenerationException : Exception
 {
     /// <summary>
-    /// An exception that is thrown in case of a fatal error in a backend.
+    /// Constructs a new code generation exception.
     /// </summary>
-    [Serializable]
-    public sealed class InvalidCodeGenerationException : Exception
-    {
-        /// <summary>
-        /// Constructs a new code generation exception.
-        /// </summary>
-        public InvalidCodeGenerationException()
-            : base(RuntimeErrorMessages.InvalidCodeGenerationOperation0)
-        { }
+    public InvalidCodeGenerationException()
+        : base(RuntimeErrorMessages.InvalidCodeGenerationOperation0)
+    { }
 
-        /// <summary>
-        /// Constructs a new code generation exception.
-        /// </summary>
-        /// <param name="message">The detailed error message.</param>
-        public InvalidCodeGenerationException(string message)
-            : base(
-                  string.Format(
-                      RuntimeErrorMessages.InvalidCodeGenerationOperation1,
-                      message))
-        { }
+    /// <summary>
+    /// Constructs a new code generation exception.
+    /// </summary>
+    /// <param name="message">The detailed error message.</param>
+    public InvalidCodeGenerationException(string message)
+        : base(
+              string.Format(
+                  RuntimeErrorMessages.InvalidCodeGenerationOperation1,
+                  message))
+    { }
 
-        /// <summary>
-        /// Constructs a new code generation exception.
-        /// </summary>
-        /// <param name="message">The detailed error message.</param>
-        /// <param name="innerException">The inner exception.</param>
-        public InvalidCodeGenerationException(string message, Exception innerException)
-            : base(message, innerException)
-        { }
-
-        /// <summary>
-        /// Constructs a new code generation exception.
-        /// </summary>
-#if NET8_0_OR_GREATER
-        [Obsolete("SYSLIB0050: Formatter-based serialization is obsolete")]
-#endif
-        private InvalidCodeGenerationException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        { }
-    }
+    /// <summary>
+    /// Constructs a new code generation exception.
+    /// </summary>
+    /// <param name="message">The detailed error message.</param>
+    /// <param name="innerException">The inner exception.</param>
+    public InvalidCodeGenerationException(string message, Exception innerException)
+        : base(message, innerException)
+    { }
 }
