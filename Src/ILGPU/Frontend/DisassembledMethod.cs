@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
+using ILGPU.IR.Construction;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
@@ -27,7 +28,7 @@ namespace ILGPU.Frontend
         #region Instance
 
         internal DisassembledMethod(
-            MethodBase method,
+            SpecializedMethod method,
             ImmutableArray<ILInstruction> instructions,
             int maxStackSize)
         {
@@ -47,7 +48,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the method that was disassembled.
         /// </summary>
-        public MethodBase Method { get; }
+        public SpecializedMethod Method { get; }
 
         /// <summary>
         /// Returns the first disassembled instruction.
@@ -97,7 +98,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="method">The method to disassemble.</param>
         /// <returns>The disassembled method.</returns>
-        public static Task<DisassembledMethod> DisassembleAsync(MethodBase method) =>
+        public static Task<DisassembledMethod> DisassembleAsync(SpecializedMethod method) =>
             DisassembleAsync(method, SequencePointEnumerator.Empty);
 
         /// <summary>
@@ -109,7 +110,7 @@ namespace ILGPU.Frontend
         /// </param>
         /// <returns>The disassembled method.</returns>
         public static Task<DisassembledMethod> DisassembleAsync(
-            MethodBase method,
+            SpecializedMethod method,
             SequencePointEnumerator sequencePointEnumerator) =>
             Task.Run(() =>
             {
