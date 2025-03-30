@@ -39,7 +39,7 @@ namespace ILGPU.Backends.PTX
     {
         internal static bool IsLibDeviceMethod(Method method) =>
             method.HasSource &&
-            method.Source.DeclaringType == typeof(PTXLibDeviceMethods);
+            method.Source.Underlying.DeclaringType == typeof(PTXLibDeviceMethods);
 
 <#
     foreach (var func in functions)

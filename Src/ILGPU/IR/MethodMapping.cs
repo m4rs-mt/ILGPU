@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Construction;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -33,7 +34,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the original source method (may be null).
         /// </summary>
-        MethodBase Source { get; }
+        SpecializedMethod? Source { get; }
     }
 
     /// <summary>
@@ -135,7 +136,7 @@ namespace ILGPU.IR
             /// <param name="handle">The resolved function handle (if any).</param>
             /// <returns>True, if the requested function could be resolved.</returns>
             public bool TryGetHandle(
-                MethodBase method,
+                SpecializedMethod method,
                 [NotNullWhen(true)] out MethodHandle? handle) =>
                 Parent.TryGetHandle(method, out handle);
 
@@ -173,8 +174,8 @@ namespace ILGPU.IR
 
         #region Instance
 
-        private readonly Dictionary<MethodBase, MethodHandle> managedMethods =
-            new Dictionary<MethodBase, MethodHandle>();
+        private readonly Dictionary<SpecializedMethod, MethodHandle> managedMethods =
+            new Dictionary<SpecializedMethod, MethodHandle>();
         private readonly Dictionary<MethodHandle, int> methods =
             new Dictionary<MethodHandle, int>();
         private readonly List<T> dataList = new List<T>();
@@ -221,7 +222,7 @@ namespace ILGPU.IR
         /// <param name="handle">The resolved function handle (if any).</param>
         /// <returns>True, if the requested function could be resolved.</returns>
         public bool TryGetHandle(
-            MethodBase method,
+            SpecializedMethod method,
             [NotNullWhen(true)] out MethodHandle? handle)
         {
             if (managedMethods.TryGetValue(method, out var result))
@@ -278,7 +279,7 @@ namespace ILGPU.IR
             }
             var source = data.Source;
             if (source != null)
-                managedMethods[source] = handle;
+                managedMethods[source.Value] = handle;
         }
 
         /// <summary>

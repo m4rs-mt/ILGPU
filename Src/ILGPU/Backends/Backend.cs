@@ -272,13 +272,13 @@ namespace ILGPU.Backends
                     CompiledKernel.FunctionInfo>(Count);
                 functionInfo.Add(new CompiledKernel.FunctionInfo(
                     KernelMethod.Name,
-                    KernelMethod.Source,
+                    KernelMethod.Source.Value.Underlying,
                     KernelAllocas.LocalMemorySize));
                 foreach (var (method, allocas) in this)
                 {
                     functionInfo.Add(new CompiledKernel.FunctionInfo(
                         method.Name,
-                        method.Source,
+                        method.Source.Value.Underlying,
                         allocas.LocalMemorySize));
                 }
                 return new CompiledKernel.KernelInfo(
@@ -597,10 +597,8 @@ namespace ILGPU.Backends
                 var mainContext = codeGenerationPhase.IRContext;
 
                 Frontend.CodeGenerationResult generationResult;
-                using (var frontendPhase = codeGenerationPhase.
-                    BeginFrontendCodeGeneration())
-                {
-                    generationResult = frontendPhase.GenerateCode(entry.MethodSource);
+                using (var frontendPhase = codeGenerationPhase.BeginFrontendCodeGeneration()) {
+                    generationResult = frontendPhase.GenerateCode(new(null, entry.MethodSource));
                 }
 
                 if (codeGenerationPhase.IsFaulted)

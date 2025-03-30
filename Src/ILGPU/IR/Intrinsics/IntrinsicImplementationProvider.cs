@@ -214,12 +214,9 @@ namespace ILGPU.IR.Intrinsics
 
                 lock (mappings)
                 {
-                    var redirect = mapping.ResolveRedirect(
-                        resolver,
-                        out var genericMapping);
-                    if (!mappings.ContainsKey(redirect))
-                    {
-                        var result = codeGenerationPhase.GenerateCode(redirect);
+                    var redirect = mapping.ResolveRedirect(resolver, out var genericMapping);
+                    if (!mappings.ContainsKey(redirect)) {
+                        var result = codeGenerationPhase.GenerateCode(new(null, redirect));
                         mappings.Add(
                             redirect,
                             new MappingEntry(mapping, genericMapping, result));
@@ -425,7 +422,7 @@ namespace ILGPU.IR.Intrinsics
             [NotNullWhen(true)] out IntrinsicMapping<TDelegate>? mapping)
         {
             mapping = default;
-            return (methodInfo = method.Source as MethodInfo) != null &&
+            return (methodInfo = method.Source?.Underlying as MethodInfo) != null &&
                 method.HasFlags(MethodFlags.Intrinsic) &&
                 TryGetMapping(methodInfo, out mapping);
         }

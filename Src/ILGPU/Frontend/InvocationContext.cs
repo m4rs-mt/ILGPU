@@ -48,8 +48,8 @@ namespace ILGPU.Frontend
             CodeGenerator codeGenerator,
             Location location,
             Block block,
-            MethodBase callerMethod,
-            MethodBase method,
+            SpecializedMethod callerMethod,
+            SpecializedMethod method,
             ref ValueList arguments)
         {
             CodeGenerator = codeGenerator;
@@ -103,17 +103,17 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Represents the caller method.
         /// </summary>
-        public MethodBase CallerMethod { get; }
+        public SpecializedMethod CallerMethod { get; }
 
         /// <summary>
         /// Represents the targeted method.
         /// </summary>
-        public MethodBase Method { get; set; }
+        public SpecializedMethod Method { get; set; }
 
         /// <summary>
         /// Returns the associated module.
         /// </summary>
-        public Module Module => Method.Module;
+        public Module Module => Method.Underlying.Module;
 
         /// <summary>
         /// Returns the call arguments.
@@ -147,24 +147,24 @@ namespace ILGPU.Frontend
         /// Returns the generic arguments of the used method.
         /// </summary>
         /// <returns>The generic arguments of the used method.</returns>
-        public Type[] GetMethodGenericArguments() => Method.GetGenericArguments();
+        public Type[] GetMethodGenericArguments() => Method.Underlying.GetGenericArguments();
 
         /// <summary>
         /// Returns the generic arguments of the used method.
         /// </summary>
         /// <returns>The generic arguments of the used method.</returns>
         public Type[] GetTypeGenericArguments() =>
-            Method.DeclaringType.AsNotNull().GetGenericArguments();
+            Method.Underlying.DeclaringType.AsNotNull().GetGenericArguments();
 
         /// <summary>
         /// Declares a (potentially new) method.
         /// </summary>
         /// <param name="methodBase">The method to declare.</param>
         /// <returns>The declared method reference.</returns>
-        public Method DeclareMethod(MethodBase methodBase) =>
-            methodBase != null
-            ? CodeGenerator.DeclareMethod(methodBase)
-            : throw Location.GetArgumentNullException(nameof(methodBase));
+        public Method DeclareMethod(SpecializedMethod method) =>
+            method.Underlying != null
+            ? CodeGenerator.DeclareMethod(method)
+            : throw Location.GetArgumentNullException(nameof(method));
 
         #endregion
 
@@ -177,7 +177,7 @@ namespace ILGPU.Frontend
         public override string ToString()
         {
             var builder = new StringBuilder();
-            builder.Append(Method.Name);
+            builder.Append(Method.Underlying.Name);
             builder.Append('(');
             if (Arguments.Count > 0)
             {
