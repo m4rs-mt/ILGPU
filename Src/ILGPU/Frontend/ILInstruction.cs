@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILInstruction.cs
@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.Util;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -633,10 +634,72 @@ namespace ILGPU.Frontend
     }
 
     /// <summary>
+    /// Represents dependent type information derived from the element type at the top
+    /// of the evaluation stack.
+    /// </summary>
+    public abstract class DependentTypeArguments
+    {
+        /// <summary>
+        /// Determines the target type using the element type from the evaluation stack.
+        /// </summary>
+        /// <param name="topOfStack">The element type on the evaluation stack.</param>
+        /// <returns>The target type.</returns>
+        public abstract Type DetermineType(BasicValueType topOfStack);
+    }
+
+    /// <summary>
     /// Represents a single IL instruction.
     /// </summary>
     public sealed class ILInstruction : IEquatable<ILInstruction>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents an implement automatic dependent type conversion argument
+        /// remapping using a dictionary.
+        /// </summary>
+        public sealed class ConvertTypeArguments : DependentTypeArguments
+        {
+            private readonly Dictionary<BasicValueType, Type> mapping;
+
+            /// <summary>
+            /// Creates a new instance of type conversion arguments.
+            /// </summary>
+            /// <param name="typeMapping">All type mappings.</param>
+            public ConvertTypeArguments(
+                params ValueTuple<BasicValueType, Type>[] typeMapping)
+            {
+                mapping = new Dictionary<BasicValueType, Type>(typeMapping.Length);
+                foreach (var (source, target) in typeMapping)
+                    mapping.Add(source, target);
+            }
+
+            /// <summary>
+            /// Determines the target type using an internal dictionary mapping.
+            /// </summary>
+            /// <param name="topOfStack">The element type on the evaluation stack.</param>
+            /// <returns>The target type.</returns>
+            public override Type DetermineType(BasicValueType topOfStack) =>
+                mapping[topOfStack];
+        }
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Represents unsigned dependent type conversion arguments.
+        /// </summary>
+        public static readonly ConvertTypeArguments ConvRUnArguments =
+            new ConvertTypeArguments(
+                (BasicValueType.Int1, typeof(float)),
+                (BasicValueType.Int8, typeof(float)),
+                (BasicValueType.Int16, typeof(float)),
+                (BasicValueType.Int32, typeof(float)),
+                (BasicValueType.Int64, typeof(double)));
+
+        #endregion
+
         #region Instance
 
         /// <summary>
