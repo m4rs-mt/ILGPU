@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Convert.cs
@@ -22,16 +22,21 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes a convert instruction.
         /// </summary>
-        /// <param name="targetType">The target type.</param>
+        /// <param name="targetTypeDefinition">The target type definition.</param>
         /// <param name="instructionFlags">The instruction flags.</param>
         private void MakeConvert(
-            Type targetType,
+            object targetTypeDefinition,
             ILInstructionFlags instructionFlags)
         {
             var value = Block.Pop();
             var convertFlags = ConvertFlags.None;
             if (instructionFlags.HasFlags(ILInstructionFlags.Unsigned))
                 convertFlags |= ConvertFlags.SourceUnsigned;
+            if (targetTypeDefinition is not Type targetType)
+            {
+                var dependentType = (DependentTypeArguments)targetTypeDefinition;
+                targetType = dependentType.DetermineType(value.BasicValueType);
+            }
             if (targetType.IsUnsignedInt())
             {
                 convertFlags |= ConvertFlags.SourceUnsigned;
