@@ -119,8 +119,8 @@ namespace ILGPU.Frontend.Intrinsic
             var arguments = InlineList<ValueReference>.Create(capacity);
             var directions = ImmutableArray.CreateBuilder<CudaEmitParameterDirection>(
                 capacity);
-            var methodParams = context.Method.GetParameters();
-            var genericArgs = context.Method.GetGenericArguments();
+            var methodParams = context.Method.Underlying.GetParameters();
+            var genericArgs = context.Method.Underlying.GetGenericArguments();
 
             for (int i = 1; i < context.Arguments.Count; i++)
             {

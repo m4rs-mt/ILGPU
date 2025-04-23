@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR;
+using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -256,11 +257,11 @@ namespace ILGPU.Frontend
         /// <param name="instanceValue">The instance value (if available).</param>
         public ValueList PopMethodArgs(
             Location location,
-            MethodBase methodBase,
+            SpecializedMethod method,
             Value? instanceValue)
         {
-            var parameters = methodBase.GetParameters();
-            var parameterOffset = methodBase.GetParameterOffset();
+            var parameters = method.Underlying.GetParameters();
+            var parameterOffset = method.Underlying.GetParameterOffset();
             var result = ValueList.Create(parameters.Length + parameterOffset);
 
             // Handle main params
@@ -277,9 +278,9 @@ namespace ILGPU.Frontend
             // Check instance value
             if (parameterOffset > 0)
             {
-                if (instanceValue == null)
-                {
-                    var baseDeclaringType = methodBase.DeclaringType.AsNotNull();
+                if (instanceValue == null) {
+                    var baseDeclaringType = method.InstanceType.AsNotNull();
+
                     var declaringType = Builder.CreateType(baseDeclaringType);
                     if (!Intrinsics.IsIntrinsicArrayType(baseDeclaringType))
                     {

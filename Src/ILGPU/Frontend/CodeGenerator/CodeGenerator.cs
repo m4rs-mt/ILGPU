@@ -34,8 +34,7 @@ namespace ILGPU.Frontend
         private readonly Block.CFGBuilder cfgBuilder;
         private readonly HashSet<VariableRef> variables = new HashSet<VariableRef>();
         private readonly Dictionary<VariableRef, (TypeNode, ConvertFlags)>
-            variableTypes =
-            new Dictionary<VariableRef, (TypeNode, ConvertFlags)>();
+            variableTypes = new Dictionary<VariableRef, (TypeNode, ConvertFlags)>();
 
         /// <summary>
         /// Constructs a new code generator.
@@ -54,7 +53,7 @@ namespace ILGPU.Frontend
             Method.Builder methodBuilder,
             DisassembledMethod disassembledMethod,
             CompilationStackLocation compilationStackLocation,
-            Dictionary<MethodBase, CompilationStackLocation> detectedMethods)
+            Dictionary<SpecializedMethod, CompilationStackLocation> detectedMethods)
         {
             Frontend = frontend;
             Context = context;
@@ -69,7 +68,6 @@ namespace ILGPU.Frontend
             SSABuilder = SSABuilder<VariableRef>.Create(
                 methodBuilder,
                 cfgBuilder.Blocks);
-
             SetupVariables();
 
             // NB: Initialized during GenerateCode.
@@ -82,7 +80,7 @@ namespace ILGPU.Frontend
         private void SetupVariables()
         {
             var builder = EntryBlock.Builder;
-            LambdaArgumentOffset = Method.IsNotCapturingLambda() ? 1 : 0;
+            LambdaArgumentOffset = Method.Underlying.IsNotCapturingLambda() ? 1 : 0;
 
             // Check for SSA variables
             for (int i = 0, e = DisassembledMethod.Count; i < e; ++i)
@@ -104,21 +102,20 @@ namespace ILGPU.Frontend
             }
 
             // Initialize params
-            if (!Method.IsStatic && !Method.IsNotCapturingLambda())
-            {
-                var declaringType = builder.CreateType(Method.DeclaringType.AsNotNull());
-                declaringType = builder.CreatePointerType(
-                    declaringType,
+            if (!Method.Underlying.IsStatic && !Method.Underlying.IsNotCapturingLambda()) {
+                var instanceType = builder.CreateType(Method.InstanceType.AsNotNull());
+                instanceType = builder.CreatePointerType(
+                    instanceType,
                     MemoryAddressSpace.Generic);
                 var paramRef = new VariableRef(0, VariableRefType.Argument);
                 EntryBlock.SetValue(
                     paramRef,
-                    MethodBuilder.InsertParameter(declaringType, "this"));
-                variableTypes[paramRef] = (declaringType, ConvertFlags.None);
+                    MethodBuilder.InsertParameter(instanceType, "this"));
+                variableTypes[paramRef] = (instanceType, ConvertFlags.None);
             }
 
-            var methodParameters = Method.GetParameters();
-            var parameterOffset = Method.GetParameterOffset();
+            var methodParameters = Method.Underlying.GetParameters();
+            var parameterOffset = Method.Underlying.GetParameterOffset();
             for (int i = 0, e = methodParameters.Length; i < e; ++i)
             {
                 var parameter = methodParameters[i];
@@ -145,7 +142,7 @@ namespace ILGPU.Frontend
             }
 
             // Initialize locals
-            var localVariables = Method.GetMethodBody().AsNotNull().LocalVariables;
+            var localVariables = Method.Underlying.GetMethodBody().AsNotNull().LocalVariables;
             for (int i = 0, e = localVariables.Count; i < e; ++i)
             {
                 var variable = localVariables[i];
@@ -180,7 +177,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the set of detected methods.
         /// </summary>
-        private Dictionary<MethodBase, CompilationStackLocation> DetectedMethods { get; }
+        private Dictionary<SpecializedMethod, CompilationStackLocation> DetectedMethods { get; }
 
         /// <summary>
         /// Returns the associated frontend.
@@ -210,7 +207,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the current managed method.
         /// </summary>
-        public MethodBase Method => DisassembledMethod.Method;
+        public SpecializedMethod Method => DisassembledMethod.Method;
 
         /// <summary>
         /// Returns the current SSA builder.
@@ -261,22 +258,21 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="methodBase">The method to declare.</param>
         /// <returns>The declared method.</returns>
-        public Method DeclareMethod(MethodBase methodBase)
-        {
-            Debug.Assert(methodBase != null, "Invalid function to declare");
+        public Method DeclareMethod(SpecializedMethod method) {
+            Debug.Assert(method != null, "Invalid function to declare");
 
             // CAUTION: we are calling a thread-safe method on the context. This does
             // not cause any deadlock or synchronization issues since the code-generation
             // engine runs in parallel and does not acquire any other locks on the
             // current IR context.
-            var result = Context.Declare(methodBase, out bool created);
+            var result = Context.Declare(method, out bool created);
 
             if (created &&
                 result.HasImplementation &&
-                !DetectedMethods.ContainsKey(methodBase))
+                !DetectedMethods.ContainsKey(method))
             {
                 DetectedMethods.Add(
-                    methodBase,
+                    method,
                     CompilationStackLocation.Append(Location));
             }
             return result;
@@ -355,7 +351,7 @@ namespace ILGPU.Frontend
                         .GetNotSupportedException(
                             ErrorMessages.NotSupportedInstruction,
                             instruction,
-                            Method.Name);
+                            Method.Underlying.Name);
                 }
             }
 

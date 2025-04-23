@@ -68,8 +68,8 @@ namespace ILGPU.Frontend
             CreateStore(alloca, value);
 
             // Invoke constructor for type
-            var values = Block.PopMethodArgs(Location, method, alloca);
-            CreateCall(constructor, ref values);
+            var values = Block.PopMethodArgs(Location, new(null, method), alloca);
+            CreateCall(new(null, constructor), ref values);
 
             // Push created instance on the stack
             Block.Push(CreateLoad(
