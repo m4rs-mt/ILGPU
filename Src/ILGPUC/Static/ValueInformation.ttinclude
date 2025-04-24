@@ -1,0 +1,128 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: ValueInformation.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Xml.Serialization" #>
+<#+
+[XmlRoot("Values")]
+public class ValueInformation
+{
+    public static ValueGroup[] Load(string rootPath)
+    {
+        var groups = XmlHelper.Load<ValueInformation>(rootPath, "Values.xml").Groups;
+        // Assign group references for improved processing capabilities.
+        foreach (var group in groups)
+        {
+            foreach (var valueType in group.Values)
+            {
+                valueType.Group = group;
+                foreach (var property in valueType.Properties)
+                    property.Value = valueType;
+            }
+        }
+        return groups;
+    }
+
+    public static ValueDefinition[] LoadValueInformation(string rootPath) =>
+        Load(rootPath).SelectMany(t => t.Values).ToArray();
+
+    [XmlElement("Group")]
+    public ValueGroup[] Groups { get; set; } = Array.Empty<ValueGroup>();
+}
+
+[XmlType("Group")]
+public class ValueGroup
+{
+    [XmlAttribute]
+    public string Name { get; set; } = string.Empty;
+
+    [XmlElement("Value")]
+    public ValueDefinition[] Values { get; set; } = Array.Empty<ValueDefinition>();
+}
+
+[XmlType("Value")]
+public class ValueDefinition
+{
+    [XmlAttribute]
+    public string Type { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Implementation { get; set; } = string.Empty;
+
+    [XmlElement("Property")]
+    public ValueProperty[] InternalProperties { get; set; } =
+        Array.Empty<ValueProperty>();
+
+    [XmlIgnore]
+    public ValueProperty[] Properties =>
+        InternalProperties is null ? Array.Empty<ValueProperty>() : InternalProperties;
+
+    [XmlIgnore]
+    public ValueGroup Group { get; set; } = null!;
+
+    public bool HasValues(string propertyName, params string[] values)
+    {
+        var property = Properties.FirstOrDefault(t => t.Name == propertyName);
+        if (property is null) return false;
+        foreach (var value in values)
+            if (!property.HasValue(value))
+                return false;
+        return true;
+    }
+}
+
+[XmlType("Property")]
+public class ValueProperty
+{
+    [XmlAttribute]
+    public string Name { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Implementation { get; set; } = string.Empty;
+
+    [XmlElement("PropertyValue")]
+    public ValuePropertyValue[] Values { get; set; } = Array.Empty<ValuePropertyValue>();
+
+    [XmlIgnore]
+    public string PropertyName =>
+        string.IsNullOrWhiteSpace(Implementation) ? Name : Implementation;
+
+    [XmlIgnore]
+    public string TypeName => $"{Value.Type}{Name}";
+
+    [XmlIgnore]
+    public ValueDefinition Value { get; set; } = null!;
+
+    public bool HasValue(string value) => Values.Any(t => t.Name == value);
+}
+
+[XmlType("PropertyValue")]
+public class ValuePropertyValue
+{
+    [XmlAttribute]
+    public string Name { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Description { get; set; } = string.Empty;
+
+    [XmlIgnore]
+    public string DescriptionString =>
+        string.IsNullOrWhiteSpace(Description)
+        ? $"Represents the value {Name}."
+        : Description;
+}
+#>
