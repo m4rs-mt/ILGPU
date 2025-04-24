@@ -1,0 +1,127 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: PTXThreads.Generated.tt/PTXThreads.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../../Static/TypeInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ILGPU;
+using ILGPU.Runtime.Cuda;
+using ILGPUC.Intrinsic;
+
+// disable: max_line_length
+
+namespace ILGPUC.Backends.PTX.Intrinsics;
+
+static partial class PTXThreads
+{
+<# foreach (var type in UnsignedIntTypes) { #>
+    /// <summary>
+    /// Wraps a single broadcast operation.
+    /// </summary>
+    public static <#= type.Type #> BroadcastWarpLevelInt<#= type.Bits #>(<#= type.Type #> value, int idx)
+    {
+<#      if (type.Size < 4) { #>
+        var result = BroadcastWarpLevelInt32(value, idx);
+<#      } else { #>
+        var result = WarpShuffleInt<#= type.Bits #>(value, idx);
+<#      } #>
+<#      if (type.Size < 4) { #>
+        return (<#= type.Type #>)result;
+<#      } else { #>
+        return result;
+<#      } #>
+    }
+
+<# } #>
+<# foreach (var type in FloatTypes) { #>
+    /// <summary>
+    /// Wraps a single broadcast operation.
+    /// </summary>
+    public static <#= type.Type #> BroadcastWarpLevel<#= type.Name #>(<#= type.Type #> value, int idx) =>
+        WarpShuffle<#= type.Name #>(value, idx);
+
+<# } #>
+<# foreach (var type in UnsignedIntTypes) { #>
+    /// <summary>
+    /// Wraps a single broadcast operation.
+    /// </summary>
+    public static <#= type.Type #> BroadcastGroupLevelInt<#= type.Bits #>(<#= type.Type #> value, int idx)
+    {
+<#      if (type.Size < 4) { #>
+        var result = BroadcastGroupLevelInt32(value, idx);
+<#      } else { #>
+        var result = GenericGroup.Broadcast<#= type.Bits #>(value, idx);
+<#      } #>
+<#      if (type.Size < 4) { #>
+        return (<#= type.Type #>)result;
+<#      } else { #>
+        return result;
+<#      } #>
+    }
+
+<# } #>
+<# foreach (var type in FloatTypes) { #>
+    /// <summary>
+    /// Wraps a single broadcast operation.
+    /// </summary>
+    public static <#= type.Type #> BroadcastGroupLevel<#= type.Name #>(<#= type.Type #> value, int idx)
+    {
+        var data = Interop.FloatAsInt(value);
+        var result = BroadcastGroupLevelInt<#= type.Bits #>(data, idx);
+        return Interop.IntAsFloat(result);
+    }
+
+<# } #>
+<# foreach (var (operation, _) in ShuffleOperations) { #>
+    /// <summary>
+    /// Wraps a single warp-shuffle operation.
+    /// </summary>
+    public static byte Warp<#= operation #>Int8(byte value, int idx) =>
+        (byte)Warp<#= operation #>Int32(value, idx);
+
+    /// <summary>
+    /// Wraps a single warp-shuffle operation.
+    /// </summary>
+    public static ushort Warp<#= operation #>Int16(ushort value, int idx) =>
+        (ushort)Warp<#= operation #>Int32(value, idx);
+
+    /// <summary>
+    /// Wraps a single warp-shuffle operation.
+    /// </summary>
+    public static ulong Warp<#= operation #>Int64(ulong value, int idx)
+    {
+        var parts = XMath.Decompose(value);
+        var result = parts with
+        {
+            Lower = Warp<#= operation #>Int32(parts.Lower, idx),
+            Upper = Warp<#= operation #>Int32(parts.Upper, idx),
+        };
+        return result.ToULong();
+    }
+
+<#      foreach (var type in FloatTypes) { #>
+    /// <summary>
+    /// Wraps a single warp-shuffle operation.
+    /// </summary>
+    public static <#= type.Type #> Warp<#= operation #><#= type.Name #>(<#= type.Type #> value, int idx)
+    {
+        var shuffled = Warp<#= operation #>Int<#= type.Bits #>(Interop.FloatAsInt(value), idx);
+        return Interop.IntAsFloat(shuffled);
+    }
+
+<#      } #>
+
+<# } #>
+}
