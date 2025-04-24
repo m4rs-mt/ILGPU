@@ -23,17 +23,6 @@ using ValueList = ILGPU.Util.InlineList<ILGPUC.IR.Values.ValueReference>;
 namespace ILGPUC.IR.Values;
 
 /// <summary>
-/// Represents the kind of inline language.
-/// </summary>
-enum LanguageKind
-{
-    /// <summary>
-    /// Inline PTX assembly.
-    /// </summary>
-    PTX,
-}
-
-/// <summary>
 /// Indicates the direction of the emit parameter.
 /// </summary>
 [Flags]
@@ -79,7 +68,7 @@ sealed partial class LanguageEmitValue : MemoryValue
     /// <param name="voidType">The void type.</param>
     internal LanguageEmitValue(
         in ValueInitializer initializer,
-        LanguageKind languageKind,
+        LanguageEmitKind languageKind,
         bool usingRefParams,
         FormatArray expressions,
         DirectionList directions,
@@ -98,7 +87,7 @@ sealed partial class LanguageEmitValue : MemoryValue
         }
 #endif
 
-        LanguageKind = languageKind;
+        Kind = languageKind;
         UsingRefParams = usingRefParams;
         Directions = directions;
         Expressions = expressions;
@@ -108,11 +97,6 @@ sealed partial class LanguageEmitValue : MemoryValue
     #endregion
 
     #region Properties
-
-    /// <summary>
-    /// Returns the language kind.
-    /// </summary>
-    public LanguageKind LanguageKind { get; }
 
     /// <summary>
     /// Returns true if the first argument is an output argument.
