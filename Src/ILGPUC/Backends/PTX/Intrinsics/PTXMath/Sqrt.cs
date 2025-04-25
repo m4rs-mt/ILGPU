@@ -18,7 +18,7 @@ namespace ILGPUC.Backends.PTX.Intrinsics;
 partial class PTXMath
 {
     /// <inheritdoc cref="XMath.Sqrt(double)" />
-    public static double SqrtDouble(double value)
+    public static double SqrtFloat64(double value)
     {
         if (LD.IsSupported)
             return LD.SqrtRoundZero(value);
@@ -28,7 +28,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Sqrt(float)" />
-    public static float SqrtFloat(float value)
+    public static float SqrtFloat32(float value)
     {
         if (LD.IsSupported)
             return LD.SqrtRoundZero(value);
@@ -43,13 +43,13 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Rsqrt(double)" />
-    public static double RsqrtDouble(double value)
+    public static double RsqrtFloat64(double value)
     {
         if (LD.IsSupported)
             return LD.Rsqrt(value);
 
         if (!XMath.OptimizePerformance)
-            return RcpDouble(SqrtDouble(value));
+            return RcpFloat64(SqrtFloat64(value));
 
         CudaAsm.Emit(
             XMath.FlushToZero
@@ -61,13 +61,13 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Rsqrt(float)" />
-    public static float RsqrtFloat(float value)
+    public static float RsqrtFloat32(float value)
     {
         if (LD.IsSupported)
             return LD.Rsqrt(value);
 
         if (!XMath.OptimizePerformance)
-            return RcpFloat(SqrtFloat(value));
+            return RcpFloat32(SqrtFloat32(value));
 
         CudaAsm.Emit(
             XMath.FlushToZero
@@ -79,18 +79,18 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Cbrt(double)" />
-    public static double Cbrt(double value)
+    public static double CbrtFloat64(double value)
     {
         if (LD.IsSupported)
             return LD.Cbrt(value);
-        return PowDouble(value, 1.0 / 3.0);
+        return PowFloat64(value, 1.0 / 3.0);
     }
 
     /// <inheritdoc cref="XMath.Cbrt(float)" />
-    public static float Cbrt(float value)
+    public static float CbrtFloat32(float value)
     {
         if (LD.IsSupported)
             return LD.Cbrt(value);
-        return PowFloat(value, 1.0f / 3.0f);
+        return PowFloat32(value, 1.0f / 3.0f);
     }
 }
