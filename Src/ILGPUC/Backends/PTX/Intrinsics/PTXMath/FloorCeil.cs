@@ -18,7 +18,7 @@ namespace ILGPUC.Backends.PTX.Intrinsics;
 partial class PTXMath
 {
     /// <inheritdoc cref="XMath.Floor(double)"/>
-    public static double FloorDouble(double value)
+    public static double FloorFloat64(double value)
     {
         if (LD.IsSupported)
             return LD.Floor(value);
@@ -28,7 +28,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Floor(float)"/>
-    public static float FloorFloat(float value)
+    public static float FloorFloat32(float value)
     {
         if (LD.IsSupported)
             return LD.Floor(value);
@@ -38,7 +38,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Ceiling(double)"/>
-    public static double CeilingDouble(double value)
+    public static double CeilingFloat64(double value)
     {
         if (LD.IsSupported)
             return LD.Ceil(value);
@@ -48,7 +48,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Ceiling(float)"/>
-    public static float CeilingFloat(float value)
+    public static float CeilingFloat32(float value)
     {
         if (LD.IsSupported)
             return LD.Ceil(value);
