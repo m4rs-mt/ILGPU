@@ -19,7 +19,7 @@ namespace ILGPUC.Backends.PTX.Intrinsics;
 partial class PTXMath
 {
     /// <inheritdoc cref="XMath.Pow(double, double)"/>
-    public static double PowDouble(double @base, double exp)
+    public static double PowFloat64(double @base, double exp)
     {
         if (LD.IsSupported)
             return LD.Pow(@base, exp);
@@ -27,7 +27,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Pow(float, float)"/>
-    public static float PowFloat(float @base, float exp)
+    public static float PowFloat32(float @base, float exp)
     {
         if (LD.IsSupported)
         {
@@ -39,7 +39,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Exp(double)" />
-    public static double ExpDouble(double value)
+    public static double ExpFloat64(double value)
     {
         if (LD.IsSupported)
             return LD.Exp(value);
@@ -47,7 +47,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Exp(float)" />
-    public static float ExpFloat(float value)
+    public static float ExpFloat32(float value)
     {
         if (LD.IsSupported)
         {
@@ -56,20 +56,20 @@ partial class PTXMath
             return LD.Exp(value);
         }
         if (XMath.OptimizePerformance)
-            return Exp2Float(value * XMath.OneOverLn2);
+            return Exp2Float32(value * XMath.OneOverLn2);
         return Cordic.Exp(value);
     }
 
     /// <inheritdoc cref="XMath.Exp2(double)" />
-    public static double Exp2Double(double value)
+    public static double Exp2Float64(double value)
     {
         if (LD.IsSupported)
             return LD.Exp2(value);
-        return ExpDouble(value * XMath.OneOverLog2ED);
+        return ExpFloat64(value * XMath.OneOverLog2ED);
     }
 
     /// <inheritdoc cref="XMath.Exp2(float)" />
-    public static float Exp2Float(float value)
+    public static float Exp2Float32(float value)
     {
         float result;
         if (XMath.OptimizePerformance)
@@ -81,13 +81,13 @@ partial class PTXMath
         return result;
     }
 
-    /// <inheritdoc cref="XMath.Exp2(Half)" />
-    public static Half Exp2Half(Half value)
+    /// <inheritdoc cref="XMath.Exp2(Float16)" />
+    public static Float16 Exp2Float16(Float16 value)
     {
         if (CudaArchitecture.Current < CudaArchitecture.SM_75)
-            return (Half)Exp2Float(value);
+            return (Float16)Exp2Float32(value);
 
-        CudaAsm.Emit("ex2.approx.f16 {0}, {1}", out Half result, value);
+        CudaAsm.Emit("ex2.approx.f16 {0}, {1}", out Float16 result, value);
         return result;
     }
 }
