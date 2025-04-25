@@ -19,7 +19,7 @@ namespace ILGPUC.Backends.PTX.Intrinsics;
 partial class PTXMath
 {
     /// <inheritdoc cref="XMath.Min(double, double)"/>
-    public static double MinDouble(double first, double second)
+    public static double MinFloat64(double first, double second)
     {
         if (LD.IsSupported)
             return LD.Min(first, second);
@@ -29,7 +29,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Min(float, float)"/>
-    public static float MinFloat(float first, float second)
+    public static float MinFloat32(float first, float second)
     {
         if (LD.IsSupported & !XMath.OptimizePerformance)
             return LD.Min(first, second);
@@ -43,7 +43,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Min(Half, Half)"/>
-    public static Half MinHalf(Half first, Half second)
+    public static Half MinFloat16(Half first, Half second)
     {
         if (CudaArchitecture.Current < CudaArchitecture.SM_80)
             return HalfExtensions.MinFP32(first, second);
@@ -119,7 +119,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Max(double, double)"/>
-    public static double MaxDouble(double first, double second)
+    public static double MaxFloat64(double first, double second)
     {
         if (LD.IsSupported)
             return LD.Max(first, second);
@@ -129,7 +129,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Max(float, float)"/>
-    public static float MaxFloat(float first, float second)
+    public static float MaxFloat32(float first, float second)
     {
         if (LD.IsSupported & !XMath.OptimizePerformance)
             return LD.Max(first, second);
@@ -143,7 +143,7 @@ partial class PTXMath
     }
 
     /// <inheritdoc cref="XMath.Max(Half, Half)"/>
-    public static Half MaxHalf(Half first, Half second)
+    public static Half MaxFloat16(Half first, Half second)
     {
         if (CudaArchitecture.Current < CudaArchitecture.SM_80)
             return HalfExtensions.MaxFP32(first, second);
