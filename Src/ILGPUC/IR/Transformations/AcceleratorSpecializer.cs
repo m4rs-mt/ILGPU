@@ -14,7 +14,6 @@ using ILGPUC.Backends;
 using ILGPUC.IR.Rewriting;
 using ILGPUC.IR.Types;
 using ILGPUC.IR.Values;
-using System.Collections.Generic;
 
 namespace ILGPUC.IR.Transformations;
 
@@ -30,12 +29,12 @@ namespace ILGPUC.IR.Transformations;
 /// <param name="intPointerType">The native integer pointer type.</param>
 /// <param name="enableAssertions">True, if the assertions are enabled.</param>
 /// <param name="enableIOOperations">True, if the IO is enabled.</param>
-class AcceleratorSpecializer(
+sealed class AcceleratorSpecializer(
     AcceleratorType acceleratorType,
     int? warpSize,
     PrimitiveType intPointerType,
     bool enableAssertions,
-    bool enableIOOperations) : SequentialUnorderedTransformation
+    bool enableIOOperations) : UnorderedTransformation
 {
     #region Nested Types and Static Methods
 
@@ -55,14 +54,8 @@ class AcceleratorSpecializer(
     /// </summary>
     private readonly struct SpecializerData(
         AcceleratorSpecializer specializer,
-        IRContext context,
-        List<Value> toImplement)
+        IRContext context)
     {
-        /// <summary>
-        /// A list of values to be implemented in the next step.
-        /// </summary>
-        public List<Value> ToImplement { get; } = toImplement;
-
         /// <summary>
         /// Returns the parent specializer instance.
         /// </summary>
@@ -216,9 +209,7 @@ class AcceleratorSpecializer(
         SpecializerData data,
         DebugAssertOperation value)
     {
-        if (data.EnableAssertions)
-            data.ToImplement.Add(value);
-        else
+        if (!data.EnableAssertions)
             context.Remove(value);
     }
 
@@ -230,20 +221,9 @@ class AcceleratorSpecializer(
         SpecializerData data,
         WriteToOutput value)
     {
-        if (data.EnableIOOperations)
-            data.ToImplement.Add(value);
-        else
+        if (!data.EnableIOOperations)
             context.Remove(value);
     }
-
-    /// <summary>
-    /// Collects alignment operations (for debugging purposes).
-    /// </summary>
-    private static void Specialize(
-        RewriterContext context,
-        SpecializerData data,
-        AsAligned value) =>
-        data.ToImplement.Add(value);
 
     #endregion
 
@@ -252,8 +232,7 @@ class AcceleratorSpecializer(
     /// <summary>
     /// The internal rewriter.
     /// </summary>
-    private static readonly Rewriter<SpecializerData> Rewriter =
-        new Rewriter<SpecializerData>();
+    private static readonly Rewriter<SpecializerData> Rewriter = new();
 
     /// <summary>
     /// Registers all rewriting patterns.
@@ -265,10 +244,6 @@ class AcceleratorSpecializer(
 
         Rewriter.Add<DebugAssertOperation>(Specialize);
         Rewriter.Add<WriteToOutput>(Specialize);
-
-        Rewriter.Add<AsAligned>(
-            (data, _) => data.Specializer.EnableAssertions,
-            Specialize);
 
         Rewriter.Add<IntAsPointerCast>(CanSpecialize, Specialize);
         Rewriter.Add<PointerAsIntCast>(CanSpecialize, Specialize);
@@ -310,80 +285,13 @@ class AcceleratorSpecializer(
     /// <summary>
     /// Applies an accelerator-specialization transformation.
     /// </summary>
-    protected override bool PerformTransformation(
+    protected override void PerformTransformation(
         IRContext context,
         Method.Builder builder)
     {
-        var toImplement = new List<Value>(16);
-        var data = new SpecializerData(this, context, toImplement);
-        if (!Rewriter.Rewrite(builder.SourceBlocks, builder, data))
-            return false;
-
-        foreach (var value in toImplement)
-        {
-            switch (value)
-            {
-                case DebugAssertOperation assert:
-                    Implement(context, builder, builder[assert.BasicBlock], assert);
-                    break;
-                case WriteToOutput write:
-                    Implement(context, builder, builder[write.BasicBlock], write);
-                    break;
-                case AsAligned aligned:
-                    Implement(context, builder, builder[aligned.BasicBlock], aligned);
-                    break;
-                default:
-                    throw builder.GetInvalidOperationException();
-            }
-        }
-        return true;
+        var data = new SpecializerData(this, context);
+        Rewriter.Rewrite(builder.SourceBlocks, builder, data);
     }
-
-    /// <summary>
-    /// Specializes debug output operations (if any). Note that this default
-    /// implementation removes the output operations from the current program.
-    /// </summary>
-    /// <param name="context">The parent IR context.</param>
-    /// <param name="methodBuilder">The parent method builder.</param>
-    /// <param name="builder">The current block builder.</param>
-    /// <param name="debugAssert">The debug assert operation.</param>
-    protected virtual void Implement(
-        IRContext context,
-        Method.Builder methodBuilder,
-        BasicBlock.Builder builder,
-        DebugAssertOperation debugAssert) =>
-        builder.Remove(debugAssert);
-
-    /// <summary>
-    /// Specializes IO output operations (if any). Note that this default
-    /// implementation removes the output operations from the current program.
-    /// </summary>
-    /// <param name="context">The parent IR context.</param>
-    /// <param name="methodBuilder">The parent method builder.</param>
-    /// <param name="builder">The current block builder.</param>
-    /// <param name="writeToOutput">The IO output operation.</param>
-    protected virtual void Implement(
-        IRContext context,
-        Method.Builder methodBuilder,
-        BasicBlock.Builder builder,
-        WriteToOutput writeToOutput) =>
-        builder.Remove(writeToOutput);
-
-    /// <summary>
-    /// Specializes as-aligned operations (if any) for debugging purposes (if
-    /// enabled). Note that this default implementation does not perform any
-    /// operation.
-    /// </summary>
-    /// <param name="context">The parent IR context.</param>
-    /// <param name="methodBuilder">The parent method builder.</param>
-    /// <param name="builder">The current block builder.</param>
-    /// <param name="asAligned">The current alignment operation.</param>
-    protected virtual void Implement(
-        IRContext context,
-        Method.Builder methodBuilder,
-        BasicBlock.Builder builder,
-        AsAligned asAligned)
-    { }
 
     #endregion
 }
