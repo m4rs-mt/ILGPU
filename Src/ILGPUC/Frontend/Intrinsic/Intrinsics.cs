@@ -9,16 +9,17 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using ILGPU.Intrinsic;
 using ILGPU.Util;
 using ILGPUC.Backends;
 using ILGPUC.IR;
 using ILGPUC.IR.Values;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 
 // disable: max_line_length
 
@@ -34,9 +35,8 @@ static unsafe partial class Intrinsics
     const BindingFlags DefaultBindingFlags =
         BindingFlags.Instance | BindingFlags.CreateInstance | BindingFlags.Static |
         BindingFlags.Public | BindingFlags.NonPublic;
-    const BindingFlags RemapBindingFlags = DefaultBindingFlags;
-    const BindingFlags GeneratorBindingFlags =
-        BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+    public const BindingFlags RemapBindingFlags = DefaultBindingFlags;
+    public const BindingFlags GeneratorBindingFlags = DefaultBindingFlags;
 
     #endregion
 
@@ -47,15 +47,25 @@ static unsafe partial class Intrinsics
     /// </summary>
     readonly struct MethodLookup
     {
-        private readonly Dictionary<string, List<MethodInfo>> _lookup;
-        private readonly Dictionary<(string, int), List<MethodInfo>> _paramLookup;
+        private readonly Dictionary<string, List<MethodBase>> _lookup;
+        private readonly Dictionary<(string, int), List<MethodBase>> _paramLookup;
 
+        /// <summary>
+        /// Creates a new method lookup for the given type.
+        /// </summary>
+        /// <param name="type">The type to create the lookup for.</param>
+        /// <param name="bindingFlags">Binding flags to use.</param>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public MethodLookup(Type type, BindingFlags bindingFlags)
         {
             var methods = type.GetMethods(bindingFlags);
-            _lookup = new(methods.Length);
-            _paramLookup = new(methods.Length);
-            foreach (var method in methods)
+            var constructors = type.GetConstructors(bindingFlags);
+            var combined = methods.Cast<MethodBase>()
+                .Concat(constructors.Cast<MethodBase>())
+                .ToArray();
+            _lookup = new(combined.Length);
+            _paramLookup = new(combined.Length);
+            foreach (var method in combined)
             {
                 if (_lookup.TryGetValue(method.Name, out var value))
                     value.Add(method);
@@ -70,8 +80,8 @@ static unsafe partial class Intrinsics
             }
         }
 
-        public IReadOnlyList<MethodInfo> this[string name] => _lookup[name];
-        public IReadOnlyList<MethodInfo> this[string name, int numArguments] =>
+        public IReadOnlyList<MethodBase> this[string name] => _lookup[name];
+        public IReadOnlyList<MethodBase> this[string name, int numArguments] =>
             _paramLookup[(name, numArguments)];
     }
 
@@ -79,12 +89,10 @@ static unsafe partial class Intrinsics
     /// Implements a backend-mapping allowing for efficient lookups of backend methods.
     /// </summary>
     /// <typeparam name="T">The mapping type.</typeparam>
-    /// <param name="il">The IL backend implementation.</param>
     /// <param name="ptx">The PTX backend implementation.</param>
-    /// <param name="openCL">The OpenCL backend implementation.</param>
-    readonly struct BackendMap<T>(T il, T ptx, T openCL)
+    readonly struct BackendMap<T>(T ptx)
     {
-        private readonly T[] _data = [il, default!, ptx, openCL];
+        private readonly T[] _data = [ptx];
 
         public T this[BackendType backendType] => _data[(int)backendType];
     }
@@ -100,149 +108,6 @@ static unsafe partial class Intrinsics
     /// <returns>The value reference return.</returns>
     delegate ValueReference IntrinsicGenerator(ref InvocationContext context);
 
-    /// <summary>
-    /// An internal intrinsic generator wrapper to handle generic arguments.
-    /// </summary>
-    delegate ValueReference IntrinsicGenerator<T>(
-        ref InvocationContext context,
-        T argument);
-
-    /// <summary>
-    /// An internal intrinsic generator wrapper to handle generic arguments.
-    /// </summary>
-    delegate ValueReference IntrinsicGenerator<T1, T2>(
-        ref InvocationContext context,
-        T1 argument1,
-        T2 argument2);
-
-    /// <summary>
-    /// An intrinsic wrapper to handle untyped arguments.
-    /// </summary>
-    delegate ValueReference IntrinsicGeneratorWrapperHandler1(
-        ref InvocationContext context,
-        object argument);
-
-    /// <summary>
-    /// An intrinsic wrapper to handle untyped arguments.
-    /// </summary>
-    delegate ValueReference IntrinsicGeneratorWrapperHandler2(
-        ref InvocationContext context,
-        object argument1,
-        object argument2);
-
-    /// <summary>
-    /// An intrinsic wrapper implementation to handle untyped arguments.
-    /// </summary>
-    static ValueReference IntrinsicGeneratorWrapper1<T>(
-        IntrinsicGenerator<T> generator,
-        ref InvocationContext context,
-        object value) =>
-        generator(ref context, (T)value);
-
-    /// <summary>
-    /// An intrinsic wrapper implementation to handle untyped arguments.
-    /// </summary>
-    static ValueReference IntrinsicGeneratorWrapper2<T1, T2>(
-        IntrinsicGenerator<T1, T2> generator,
-        ref InvocationContext context,
-        object value1,
-        object value2) =>
-        generator(ref context, (T1)value2, (T2)value2);
-
-    /// <summary>
-    /// Holds a static reference to a generic intrinsic generator type.
-    /// </summary>
-    static readonly Type GenericIntrinsicGeneratorType1 =
-        typeof(IntrinsicGenerator<>);
-
-    /// <summary>
-    /// Holds a reference to an intrinsic wrapper handler implementation.
-    /// </summary>
-    static readonly MethodInfo GenericIntrinsicGeneratorWrapperMethod1 =
-        typeof(Intrinsics)
-        .GetMethod("IntrinsicGeneratorWrapper1`1", GeneratorBindingFlags)
-        .ThrowIfNull();
-
-    /// <summary>
-    /// Holds a static reference to a generic intrinsic generator type.
-    /// </summary>
-    static readonly Type GenericIntrinsicGeneratorType2 =
-        typeof(IntrinsicGenerator<,>);
-
-    /// <summary>
-    /// Holds a reference to an intrinsic wrapper handle implementation..
-    /// </summary>
-    static readonly MethodInfo GenericIntrinsicGeneratorWrapperMethod2 =
-        typeof(Intrinsics)
-        .GetMethod("IntrinsicGeneratorWrapper2`2", GeneratorBindingFlags)
-        .ThrowIfNull();
-
-    /// <summary>
-    /// Gets an intrinsic generator for the given implementation type and name.
-    /// </summary>
-    static IntrinsicGenerator GetIntrinsicGenerator(Type type, string name)
-    {
-        var methodInfo = type.GetMethod(name, GeneratorBindingFlags).ThrowIfNull();
-        return methodInfo.CreateDelegate<IntrinsicGenerator>();
-    }
-
-    /// <summary>
-    /// Gets an intrinsic generator for the given implementation type and name accepting
-    /// an additional argument.
-    /// </summary>
-    static IntrinsicGenerator GetIntrinsicGenerator(
-        Type type,
-        string name,
-        object argument)
-    {
-        var argumentType = argument.GetType();
-        var wrapperMethod = GenericIntrinsicGeneratorWrapperMethod1
-            .MakeGenericMethod(argumentType);
-        var wrapperDelegateType = typeof(IntrinsicGeneratorWrapperHandler1);
-        var targetDelegateType = GenericIntrinsicGeneratorType1
-            .MakeGenericType(argumentType);
-
-        // Prepare target generator
-        var methodInfo = type.GetMethod(name, GeneratorBindingFlags).ThrowIfNull();
-        var generatorMethod = methodInfo.CreateDelegate(targetDelegateType);
-
-        // Prepare generator wrapper
-        var wrapperHandler = wrapperMethod
-            .CreateDelegate<IntrinsicGeneratorWrapperHandler1>();
-
-        return (ref InvocationContext context) =>
-            wrapperHandler(ref context, argument);
-    }
-
-    /// <summary>
-    /// Gets an intrinsic generator for the given implementation type and name accepting
-    /// two additional arguments.
-    /// </summary>
-    static IntrinsicGenerator GetIntrinsicGenerator(
-        Type type,
-        string name,
-        object argument1,
-        object argument2)
-    {
-        var argumentType1 = argument1.GetType();
-        var argumentType2 = argument2.GetType();
-        var wrapperMethod = GenericIntrinsicGeneratorWrapperMethod2
-            .MakeGenericMethod(argumentType1, argumentType2);
-        var wrapperDelegateType = typeof(IntrinsicGeneratorWrapperHandler2);
-        var targetDelegateType = GenericIntrinsicGeneratorType2
-            .MakeGenericType(argumentType1, argumentType2);
-
-        // Prepare target generator
-        var methodInfo = type.GetMethod(name, GeneratorBindingFlags).ThrowIfNull();
-        var generatorMethod = methodInfo.CreateDelegate(targetDelegateType);
-
-        // Prepare generator wrapper
-        var wrapperHandler = wrapperMethod
-            .CreateDelegate<IntrinsicGeneratorWrapperHandler2>();
-        return (ref InvocationContext context) =>
-            wrapperHandler(ref context, argument1, argument2);
-    }
-
     #endregion
 
     /// <summary>
@@ -254,6 +119,11 @@ static unsafe partial class Intrinsics
         InitializeGeneration();
         InitializeBackendImplementations();
     }
+
+    /// <summary>
+    /// Triggers implicit initialization.
+    /// </summary>
+    public static void Init() { }
 
     /// <summary>
     /// Returns true if the given method is an ILGPU intrinsic function.
