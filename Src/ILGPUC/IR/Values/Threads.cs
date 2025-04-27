@@ -55,9 +55,9 @@ sealed partial class PredicateBarrier : BarrierOperation
     /// <param name="predicateKind">The predicate operation kind.</param>
     internal PredicateBarrier(
         in ValueInitializer initializer,
-        BarrierKind kind,
+        PredicateBarrierKind kind,
         ValueReference predicate,
-        PredicateBarrierKind predicateKind)
+        PredicateBarrierPredicateKind predicateKind)
         : base(initializer)
     {
         Location.Assert(predicate.BasicValueType == BasicValueType.Int1);
@@ -75,18 +75,13 @@ sealed partial class PredicateBarrier : BarrierOperation
     /// </summary>
     public ValueReference Predicate => this[0];
 
-    /// <summary>
-    /// Returns the kind of the barrier operation.
-    /// </summary>
-    public BarrierKind Kind { get; }
-
     #endregion
 
     #region Methods
 
     /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
     protected override TypeNode ComputeType(in ValueInitializer initializer) =>
-        PredicateKind == PredicateBarrierKind.PopCount
+        PredicateKind == PredicateBarrierPredicateKind.PopCount
         ? initializer.Context.GetPrimitiveType(BasicValueType.Int32)
         : initializer.Context.GetPrimitiveType(BasicValueType.Int1);
 
