@@ -27,28 +27,16 @@ sealed class UnreachableCodeElimination : UnorderedTransformation
     /// <summary>
     /// An argument remapper for Phi values.
     /// </summary>
-    private readonly struct PhiArgumentRemapper : PhiValue.IArgumentRemapper
+    private readonly struct PhiArgumentRemapper(HashSet<BasicBlock> blocks) :
+        PhiValue.IArgumentRemapper
     {
-        /// <summary>
-        /// Initializes a new scope.
-        /// </summary>
-        public PhiArgumentRemapper(in HashSet<BasicBlock> blocks)
-        {
-            Blocks = blocks;
-        }
-
-        /// <summary>
-        /// Returns the associated scope.
-        /// </summary>
-        private HashSet<BasicBlock> Blocks { get; }
-
         /// <summary>
         /// Returns true if the given block is reachable.
         /// </summary>
         /// <param name="block">The block to test.</param>
         /// <returns>True, if the given block is reachable.</returns>
-        public readonly bool IsReachable(BasicBlock block) =>
-            Blocks.Contains(block);
+        public bool IsReachable(BasicBlock block) =>
+            blocks.Contains(block);
 
         /// <summary>
         /// Returns true if the given block is reachable and the block is one of the
@@ -62,7 +50,7 @@ sealed class UnreachableCodeElimination : UnorderedTransformation
         /// True, if the given block is reachable and the block is one the
         /// predecessors of the source block.
         /// </returns>
-        private readonly bool IsReachableAndPredecessor(
+        private bool IsReachableAndPredecessor(
             BasicBlock sourceBlock,
             BasicBlock block) =>
                 IsReachable(block) &&
@@ -74,7 +62,7 @@ sealed class UnreachableCodeElimination : UnorderedTransformation
         /// Returns true if any of the given blocks is no longer in the current
         /// scope.
         /// </summary>
-        public readonly bool CanRemap(PhiValue phiValue)
+        public bool CanRemap(PhiValue phiValue)
         {
             var sourceBlock = phiValue.BasicBlock;
             foreach (var block in phiValue.Sources)
@@ -89,10 +77,7 @@ sealed class UnreachableCodeElimination : UnorderedTransformation
         /// Keeps the block mapping but returns false if this block has become
         /// unreachable.
         /// </summary>
-        public readonly bool TryRemap(
-            PhiValue phiValue,
-            BasicBlock block,
-            out BasicBlock newBlock)
+        public bool TryRemap(PhiValue phiValue, BasicBlock block, out BasicBlock newBlock)
         {
             newBlock = block;
             return IsReachableAndPredecessor(phiValue.BasicBlock, block);
@@ -101,7 +86,7 @@ sealed class UnreachableCodeElimination : UnorderedTransformation
         /// <summary>
         /// Returns the value of <paramref name="value"/>.
         /// </summary>
-        public readonly Value RemapValue(
+        public Value RemapValue(
             PhiValue phiValue,
             BasicBlock updatedBlock,
             Value value) =>
@@ -139,8 +124,7 @@ sealed class UnreachableCodeElimination : UnorderedTransformation
     /// <summary>
     /// The internal rewriter.
     /// </summary>
-    private static readonly Rewriter<PhiArgumentRemapper> Rewriter =
-        new Rewriter<PhiArgumentRemapper>();
+    private static readonly Rewriter<PhiArgumentRemapper> Rewriter = new();
 
     /// <summary>
     /// Registers all rewriting patterns.
@@ -152,21 +136,14 @@ sealed class UnreachableCodeElimination : UnorderedTransformation
 
     #endregion
 
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new UCE transformation.
-    /// </summary>
-    public UnreachableCodeElimination() { }
-
-    #endregion
-
     #region Methods
 
     /// <summary>
     /// Applies the UCE transformation.
     /// </summary>
-    protected override bool PerformTransformation(Method.Builder builder)
+    protected override void PerformTransformation(
+        IRContext context,
+        Method.Builder builder)
     {
         // Fold branch targets (if possible)
         var blocks = builder.SourceBlocks;
@@ -186,7 +163,7 @@ sealed class UnreachableCodeElimination : UnorderedTransformation
 
         // Check for changes and update blocks (if required)
         if (!updated)
-            return false;
+            return;
 
         // Update the internal control-flow structure and compute the set of all
         // remaining reachable basic blocks
@@ -208,8 +185,6 @@ sealed class UnreachableCodeElimination : UnorderedTransformation
                 blockBuilder.Clear();
             }
         }
-
-        return true;
     }
 
     #endregion
