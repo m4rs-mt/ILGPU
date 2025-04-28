@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR.Analyses;
-using System;
 using System.Threading.Tasks;
 
 namespace ILGPUC.IR.Transformations;
@@ -20,61 +19,41 @@ namespace ILGPUC.IR.Transformations;
 /// </summary>
 abstract class Transformation
 {
-    #region Nested Types
+    protected static Method.Builder GetMethodBuilder(Value value) =>
+        value.BasicBlock.Method.MethodBuilder;
 
-    /// <summary>
-    /// Represents an abstract transform execution driver closure.
-    /// </summary>
-    protected internal interface ITransformExecutor
-    {
-        /// <summary>
-        /// Executes the current transformation.
-        /// </summary>
-        /// <param name="builder">The current method builder.</param>
-        /// <returns>True, if the transformation could be applied.</returns>
-        bool Execute(Method.Builder builder);
-    }
-
-    #endregion
-
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new transformation.
-    /// </summary>
-    protected Transformation() { }
-
-    #endregion
-
-    #region Methods
+    protected static BasicBlock.Builder GetBuilder(Value value) =>
+        GetMethodBuilder(value)[value.BasicBlock];
 
     /// <summary>
     /// Transforms all method in the given context.
     /// </summary>
     /// <param name="methods">The methods to transform.</param>
-    public abstract void Transform(in MethodCollection methods);
-
-    /// <summary>
-    /// Transforms the given method using the provided builder.
-    /// </summary>
-    /// <param name="builder">The current method builder.</param>
-    /// <param name="executor">The desired transform executor.</param>
-    protected internal static bool ExecuteTransform<TExecutor>(
-        Method.Builder builder,
-        in TExecutor executor)
-        where TExecutor : struct, ITransformExecutor
+    public void Transform(in MethodCollection methods)
     {
-        var result = executor.Execute(builder);
-        if (result)
+        foreach (var method in methods)
+            method.CreateBuilder();
+
+        PerformTransformation(methods);
+
+        // Finish builders
+        foreach (var method in methods)
         {
-            builder.Method.AddTransformationFlags(
-                MethodTransformationFlags.Dirty);
+            var builder = method.MethodBuilder;
+
+            builder.Complete();
+            builder.Dispose();
         }
 
-        return result;
+        // Perform GC runs
+        Parallel.ForEach(methods, method => method.GC());
     }
 
-    #endregion
+    /// <summary>
+    /// Transforms all given methods using the provided builder.
+    /// </summary>
+    /// <param name="methods">The methods to transform.</param>
+    protected abstract void PerformTransformation(in MethodCollection methods);
 }
 
 /// <summary>
@@ -85,165 +64,22 @@ abstract class Transformation
 /// </remarks>
 abstract class UnorderedTransformation : Transformation
 {
-    #region Nested Types
-
-    /// <summary>
-    /// Represents an unordered executor.
-    /// </summary>
-    private readonly struct Executor : ITransformExecutor
+    /// <inheritdoc cref="Transformation.PerformTransformation(in MethodCollection)"/>
+    protected override void PerformTransformation(in MethodCollection methods)
     {
-        /// <summary>
-        /// Constructs a new executor.
-        /// </summary>
-        /// <param name="parent">The parent transformation.</param>
-        public Executor(UnorderedTransformation parent)
-        {
-            Parent = parent;
-        }
-
-        /// <summary>
-        /// The associated parent transformation.
-        /// </summary>
-        public UnorderedTransformation Parent { get; }
-
-        /// <summary>
-        /// Applies the parent transformation.
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        /// <returns>True, if the transformation could be applied.</returns>
-        public bool Execute(Method.Builder builder) =>
-            Parent.PerformTransformation(builder);
-    }
-
-    #endregion
-
-    #region Instance
-
-    private readonly Action<Method> transformerDelegate;
-
-    /// <summary>
-    /// Constructs a new transformation.
-    /// </summary>
-    protected UnorderedTransformation()
-    {
-        transformerDelegate = (Method method) =>
-        {
-            var executor = new Executor(this);
-            {
-                using var builder = method.CreateBuilder();
-                ExecuteTransform(builder, executor);
-                builder.Complete();
-            }
-        };
-    }
-
-    #endregion
-
-    #region Methods
-
-    /// <summary>
-    /// Transforms all methods in the given context.
-    /// </summary>
-    /// <param name="methods">The methods to transform.</param>
-    public override void Transform(in MethodCollection methods) =>
-        Parallel.ForEach(methods, transformerDelegate);
-
-    /// <summary>
-    /// Transforms the given method using the provided builder.
-    /// </summary>
-    /// <param name="builder">The current method builder.</param>
-    protected abstract bool PerformTransformation(Method.Builder builder);
-
-    #endregion
-}
-
-/// <summary>
-/// Represents a generic transformation that can be applied in an unordered manner.
-/// </summary>
-/// <remarks>
-/// Note that this transformation is applied in parallel to all methods.
-/// </remarks>
-abstract class UnorderedTransformationWithPrePass : UnorderedTransformation
-{
-    #region Nested Types
-
-    /// <summary>
-    /// Represents an unordered executor.
-    /// </summary>
-    private readonly struct Executor : ITransformExecutor
-    {
-        /// <summary>
-        /// Constructs a new executor.
-        /// </summary>
-        /// <param name="parent">The parent transformation.</param>
-        public Executor(UnorderedTransformationWithPrePass parent)
-        {
-            Parent = parent;
-        }
-
-        /// <summary>
-        /// The associated parent transformation.
-        /// </summary>
-        public UnorderedTransformationWithPrePass Parent { get; }
-
-        /// <summary>
-        /// Applies the parent transformation.
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        public bool Execute(Method.Builder builder)
-        {
-            Parent.PrePerformTransformation(builder);
-            return false;
-        }
-    }
-
-    #endregion
-
-    #region Instance
-
-    private readonly Action<Method> transformerDelegate;
-
-    /// <summary>
-    /// Constructs a new transformation.
-    /// </summary>
-    protected UnorderedTransformationWithPrePass()
-    {
-        transformerDelegate = method =>
-        {
-            var executor = new Executor(this);
-            {
-                using var builder = method.CreateBuilder();
-                ExecuteTransform(builder, executor);
-                builder.Complete();
-            }
-        };
-    }
-
-    #endregion
-
-    #region Methods
-
-    /// <summary>
-    /// Transforms all methods in the given context.
-    /// </summary>
-    /// <param name="methods">The methods to transform.</param>
-    public override void Transform(in MethodCollection methods)
-    {
-        Parallel.ForEach(methods, transformerDelegate);
-        base.Transform(methods);
+        var context = methods.Context;
+        Parallel.ForEach(methods, method =>
+            PerformTransformation(context, method.MethodBuilder));
     }
 
     /// <summary>
     /// Transforms the given method using the provided builder.
     /// </summary>
+    /// <param name="context">The current context.</param>
     /// <param name="builder">The current method builder.</param>
-    /// <remarks>
-    /// Note that this method is executed on all methods prior to executing the
-    /// <see cref="PrePerformTransformation(Method.Builder)"/> method.
-    /// </remarks>
-    protected abstract void PrePerformTransformation(Method.Builder builder);
-
-    #endregion
+    protected abstract void PerformTransformation(
+        IRContext context,
+        Method.Builder builder);
 }
 
 /// <summary>
@@ -254,76 +90,21 @@ abstract class UnorderedTransformationWithPrePass : UnorderedTransformation
 /// </remarks>
 abstract class SequentialUnorderedTransformation : Transformation
 {
-    #region Nested Types
-
-    /// <summary>
-    /// Represents an unordered executor.
-    /// </summary>
-    private readonly struct Executor : ITransformExecutor
-    {
-        /// <summary>
-        /// Constructs a new executor.
-        /// </summary>
-        /// <param name="parent">The parent transformation.</param>
-        /// <param name="context">The context IR context.</param>
-        public Executor(
-            SequentialUnorderedTransformation parent,
-            IRContext context)
-        {
-            Parent = parent;
-            Context = context;
-        }
-
-        /// <summary>
-        /// The associated parent transformation.
-        /// </summary>
-        public SequentialUnorderedTransformation Parent { get; }
-
-        /// <summary>
-        /// Returns the current IR context in the scope of this transformation.
-        /// </summary>
-        public IRContext Context { get; }
-
-        /// <summary>
-        /// Applies the parent transformation.
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        /// <returns>True, if the transformation could be applied.</returns>
-        public bool Execute(Method.Builder builder) =>
-            Parent.PerformTransformation(Context, builder);
-    }
-
-    #endregion
-
-    #region Methods
-
-    /// <summary>
-    /// Transforms all methods in the given context.
-    /// </summary>
-    /// <param name="methods">The methods to transform.</param>
-    public override void Transform(in MethodCollection methods)
+    /// <inheritdoc cref="Transformation.PerformTransformation(in MethodCollection)"/>
+    protected override void PerformTransformation(in MethodCollection methods)
     {
         foreach (var method in methods)
-        {
-            var executor = new Executor(this, methods.Context);
-            {
-                using var builder = method.CreateBuilder();
-                ExecuteTransform(builder, executor);
-                builder.Complete();
-            }
-        }
+            PerformTransformation(methods.Context, method.MethodBuilder);
     }
 
     /// <summary>
     /// Transforms the given method using the provided builder.
     /// </summary>
-    /// <param name="context">The parent IR context to operate on.</param>
+    /// <param name="context">The current context.</param>
     /// <param name="builder">The current method builder.</param>
-    protected abstract bool PerformTransformation(
+    protected abstract void PerformTransformation(
         IRContext context,
         Method.Builder builder);
-
-    #endregion
 }
 
 /// <summary>
@@ -332,58 +113,6 @@ abstract class SequentialUnorderedTransformation : Transformation
 /// <typeparam name="TIntermediate">The type of the intermediate values.</typeparam>
 abstract class UnorderedTransformation<TIntermediate> : Transformation
 {
-    #region Nested Types
-
-    /// <summary>
-    /// Represents an unordered executor.
-    /// </summary>
-    private readonly struct Executor : ITransformExecutor
-    {
-        /// <summary>
-        /// Constructs a new executor.
-        /// </summary>
-        /// <param name="parent">The parent transformation.</param>
-        /// <param name="intermediate">The intermediate value.</param>
-        public Executor(
-            UnorderedTransformation<TIntermediate> parent,
-            TIntermediate intermediate)
-        {
-            Parent = parent;
-            Intermediate = intermediate;
-        }
-
-        /// <summary>
-        /// The associated parent transformation.
-        /// </summary>
-        public UnorderedTransformation<TIntermediate> Parent { get; }
-
-        /// <summary>
-        /// Returns the associated intermediate value.
-        /// </summary>
-        public TIntermediate Intermediate { get; }
-
-        /// <summary>
-        /// Applies the parent transformation.
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        /// <returns>True, if the transformation could be applied.</returns>
-        public bool Execute(Method.Builder builder) =>
-            Parent.PerformTransformation(builder, Intermediate);
-    }
-
-    #endregion
-
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new transformation.
-    /// </summary>
-    protected UnorderedTransformation() { }
-
-    #endregion
-
-    #region Methods
-
     /// <summary>
     /// Creates a new intermediate value.
     /// </summary>
@@ -400,20 +129,13 @@ abstract class UnorderedTransformation<TIntermediate> : Transformation
     /// Transforms all methods in the given context.
     /// </summary>
     /// <param name="methods">The methods to transform.</param>
-    public override void Transform(in MethodCollection methods)
+    protected override void PerformTransformation(in MethodCollection methods)
     {
         var intermediate = CreateIntermediate(methods);
 
         // Apply transformation to all methods
         foreach (var method in methods)
-        {
-            var executor = new Executor(this, intermediate);
-            {
-                using var builder = method.CreateBuilder();
-                ExecuteTransform(builder, executor);
-                builder.Complete();
-            }
-        }
+            PerformTransformation(method.MethodBuilder, intermediate);
 
         FinishProcessing(intermediate);
     }
@@ -426,8 +148,6 @@ abstract class UnorderedTransformation<TIntermediate> : Transformation
     protected abstract bool PerformTransformation(
         Method.Builder builder,
         TIntermediate intermediate);
-
-    #endregion
 }
 
 /// <summary>
@@ -437,75 +157,6 @@ abstract class UnorderedTransformation<TIntermediate> : Transformation
 /// <typeparam name="TIntermediate">The type of the intermediate values.</typeparam>
 abstract class OrderedTransformation<TIntermediate> : Transformation
 {
-    #region Nested Types
-
-    /// <summary>
-    /// Represents an ordered executor.
-    /// </summary>
-    /// <param name="parent">The parent transformation.</param>
-    /// <param name="context">The context IR context.</param>
-    /// <param name="intermediate">The intermediate value.</param>
-    /// <param name="landscape">The current landscape.</param>
-    /// <param name="entry">The current landscape entry.</param>
-    private readonly struct Executor(
-        OrderedTransformation<TIntermediate> parent,
-        IRContext context,
-        TIntermediate? intermediate,
-        Landscape landscape,
-        Landscape.Entry entry) : ITransformExecutor
-    {
-        /// <summary>
-        /// The associated parent transformation.
-        /// </summary>
-        public OrderedTransformation<TIntermediate> Parent { get; } = parent;
-
-        /// <summary>
-        /// Returns the current IR context in the scope of this transformation.
-        /// </summary>
-        public IRContext Context { get; } = context;
-
-        /// <summary>
-        /// Returns the associated intermediate value.
-        /// </summary>
-        public TIntermediate? Intermediate { get; } = intermediate;
-
-        /// <summary>
-        /// Returns the current landscape.
-        /// </summary>
-        public Landscape Landscape { get; } = landscape;
-
-        /// <summary>
-        /// Returns the current entry.
-        /// </summary>
-        public Landscape.Entry Entry { get; } = entry;
-
-        /// <summary>
-        /// Applies the parent transformation.
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        /// <returns>True, if the transformation could be applied.</returns>
-        public readonly bool Execute(Method.Builder builder) =>
-            Parent.PerformTransformation(
-                Context,
-                builder,
-                Intermediate,
-                Landscape,
-                Entry);
-    }
-
-    #endregion
-
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new transformation.
-    /// </summary>
-    protected OrderedTransformation() { }
-
-    #endregion
-
-    #region Methods
-
     /// <summary>
     /// Creates a new intermediate value.
     /// </summary>
@@ -522,7 +173,7 @@ abstract class OrderedTransformation<TIntermediate> : Transformation
     /// Transforms all methods in the given context.
     /// </summary>
     /// <param name="methods">The methods to transform.</param>
-    public sealed override void Transform(in MethodCollection methods)
+    protected sealed override void PerformTransformation(in MethodCollection methods)
     {
         var landscape = Landscape.Create(methods);
         if (landscape.Count < 1)
@@ -531,17 +182,12 @@ abstract class OrderedTransformation<TIntermediate> : Transformation
         var intermediate = CreateIntermediate(methods);
         foreach (var entry in landscape)
         {
-            var executor = new Executor(
-                this,
+            PerformTransformation(
                 methods.Context,
+                entry.Method.MethodBuilder,
                 intermediate,
                 landscape,
                 entry);
-            {
-                using var builder = entry.Method.CreateBuilder();
-                ExecuteTransform(builder, executor);
-                builder.Complete();
-            }
         }
         FinishProcessing(intermediate);
     }
@@ -554,14 +200,12 @@ abstract class OrderedTransformation<TIntermediate> : Transformation
     /// <param name="intermediate">The intermediate value.</param>
     /// <param name="landscape">The global processing landscape.</param>
     /// <param name="current">The current landscape entry.</param>
-    protected abstract bool PerformTransformation(
+    protected abstract void PerformTransformation(
         IRContext context,
         Method.Builder builder,
         in TIntermediate? intermediate,
         Landscape landscape,
         Landscape.Entry current);
-
-    #endregion
 }
 
 /// <summary>
@@ -570,17 +214,6 @@ abstract class OrderedTransformation<TIntermediate> : Transformation
 /// </summary>
 abstract class OrderedTransformation : OrderedTransformation<object>
 {
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new transformation.
-    /// </summary>
-    protected OrderedTransformation() { }
-
-    #endregion
-
-    #region Methods
-
     /// <summary>
     /// Creates a new intermediate value.
     /// </summary>
@@ -602,7 +235,7 @@ abstract class OrderedTransformation : OrderedTransformation<object>
     /// <param name="intermediate">The intermediate value.</param>
     /// <param name="landscape">The global processing landscape.</param>
     /// <param name="current">The current landscape entry.</param>
-    protected sealed override bool PerformTransformation(
+    protected sealed override void PerformTransformation(
         IRContext context,
         Method.Builder builder,
         in object? intermediate,
@@ -617,11 +250,9 @@ abstract class OrderedTransformation : OrderedTransformation<object>
     /// <param name="builder">The current method builder.</param>
     /// <param name="landscape">The global processing landscape.</param>
     /// <param name="current">The current landscape entry.</param>
-    protected abstract bool PerformTransformation(
+    protected abstract void PerformTransformation(
         IRContext context,
         Method.Builder builder,
         Landscape landscape,
         Landscape.Entry current);
-
-    #endregion
 }
