@@ -15,212 +15,64 @@ using System.Collections.Immutable;
 namespace ILGPUC.IR.Transformations;
 
 /// <summary>
-/// Represents a transformer configuration.
-/// </summary>
-readonly struct TransformerConfiguration
-{
-    /// <summary>
-    /// Represents an empty configuration that works on all functions without
-    /// adding additional flags to them.
-    /// </summary>
-    public static readonly TransformerConfiguration Empty =
-        new TransformerConfiguration(MethodTransformationFlags.None);
-
-    /// <summary>
-    /// Represents a default configuration that works on all non-transformed
-    /// functions and marks them as transformed.
-    /// </summary>
-    public static readonly TransformerConfiguration Transformed =
-        new TransformerConfiguration(MethodTransformationFlags.Transformed);
-
-    /// <summary>
-    /// Constructs a new transformer configuration.
-    /// </summary>
-    /// <param name="flags">The transformation flags.</param>
-    public TransformerConfiguration(MethodTransformationFlags flags)
-        : this(flags, flags)
-    { }
-
-    /// <summary>
-    /// Constructs a new transformer configuration.
-    /// </summary>
-    /// <param name="requiredFlags">
-    /// The transformation flags that should not be set.
-    /// </param>
-    /// <param name="flags">The transformation flags that will be set.</param>
-    public TransformerConfiguration(
-        MethodTransformationFlags requiredFlags,
-        MethodTransformationFlags flags)
-    {
-        RequiredFlags = requiredFlags;
-        TransformationFlags = flags;
-    }
-
-    /// <summary>
-    /// Returns the transformation flags that will be checked
-    /// on the functions to transform.
-    /// </summary>
-    public MethodTransformationFlags RequiredFlags { get; }
-
-    /// <summary>
-    /// Returns the transformation flags that will be stored on
-    /// on the transformed functions.
-    /// </summary>
-    public MethodTransformationFlags TransformationFlags { get; }
-
-    /// <summary>
-    /// Returns true if the current configuration manipulates transformation flags.
-    /// </summary>
-    public readonly bool AddsFlags =>
-        TransformationFlags != MethodTransformationFlags.None;
-
-    /// <summary>
-    /// Returns a compatible collection predicate.
-    /// </summary>
-    public readonly MethodCollections.ToTransform Predicate =>
-        new MethodCollections.ToTransform(RequiredFlags);
-}
-
-/// <summary>
 /// Applies transformations to contexts.
 /// </summary>
-readonly struct Transformer
+readonly record struct Transformer(ImmutableArray<Transformation> Transformations)
 {
-    #region Nested Types
-
     /// <summary>
     /// A transformer builder.
     /// </summary>
-    internal struct Builder
+    internal readonly struct Builder()
     {
-        #region Instance
-
-        private readonly ImmutableArray<Transformation>.Builder builder;
-
-        /// <summary>
-        /// Constructs a new builder.
-        /// </summary>
-        /// <param name="configuration">The transformer configuration.</param>
-        /// <param name="targetBuilder">The target builder.</param>
-        internal Builder(
-            TransformerConfiguration configuration,
-            ImmutableArray<Transformation>.Builder targetBuilder)
-        {
-            Configuration = configuration;
-            builder = targetBuilder;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the current transformer configuration.
-        /// </summary>
-        public TransformerConfiguration Configuration { get; }
-
-        #endregion
-
-        #region Methods
+        private readonly ImmutableArray<Transformation>.Builder _builder =
+            ImmutableArray.CreateBuilder<Transformation>();
 
         /// <summary>
         /// Adds the given transformation to the manager.
         /// </summary>
         /// <param name="transformation">The transformation to add.</param>
-        public void Add(Transformation transformation) =>
-            builder.Add(transformation
+        public readonly void Add(Transformation transformation) =>
+            _builder.Add(transformation
                 ?? throw new ArgumentNullException(nameof(transformation)));
 
         /// <summary>
         /// Converts this builder to an immutable array.
         /// </summary>
         /// <returns>The immutable transformation array.</returns>
-        public Transformer ToTransformer()
-        {
-            var transformations = builder.ToImmutable();
-            return new Transformer(Configuration, transformations);
-        }
-
-        #endregion
+        public readonly Transformer ToTransformer() =>
+            new(_builder.ToImmutable());
     }
-
-    #endregion
-
-    #region Static
 
     /// <summary>
     /// Creates a new transformer builder.
     /// </summary>
-    /// <param name="configuration">The transformer configuration.</param>
     /// <returns>A new builder.</returns>
-    public static Builder CreateBuilder(TransformerConfiguration configuration) =>
-        new(configuration, ImmutableArray.CreateBuilder<Transformation>());
+    public static Builder CreateBuilder() => new();
 
     /// <summary>
     /// Creates a transformer.
     /// </summary>
-    /// <param name="configuration">The transformer configuration.</param>
     /// <param name="transform">The specification to use.</param>
     /// <returns>The created transformer.</returns>
-    public static Transformer Create(
-        TransformerConfiguration configuration,
-        Transformation transform) =>
-        Create(configuration, [transform]);
+    public static Transformer Create(Transformation transform) =>
+        Create([transform]);
 
     /// <summary>
     /// Creates a transformer.
     /// </summary>
-    /// <param name="configuration">The transformer configuration.</param>
     /// <param name="transform">The first transformation.</param>
     /// <param name="transformations">The other transformations.</param>
     /// <returns>The created transformer.</returns>
     public static Transformer Create(
-        TransformerConfiguration configuration,
         Transformation transform,
         params Transformation[] transformations) =>
-        Create(configuration, [transform, .. transformations]);
+        Create([transform, .. transformations]);
 
     /// <summary>
     /// Creates a transformer.
     /// </summary>
-    /// <param name="configuration">The transformer configuration.</param>
     /// <param name="transforms">The transformations.</param>
     /// <returns>The created transformer.</returns>
-    public static Transformer Create(
-        TransformerConfiguration configuration,
-        ImmutableArray<Transformation> transforms) =>
-        new(configuration, transforms);
-
-    #endregion
-
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new transformer.
-    /// </summary>
-    /// <param name="configuration">The transformer configuration.</param>
-    /// <param name="transformations">The transformations.</param>
-    private Transformer(
-        TransformerConfiguration configuration,
-        ImmutableArray<Transformation> transformations)
-    {
-        Configuration = configuration;
-        Transformations = transformations;
-    }
-
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// Returns the associated configuration.
-    /// </summary>
-    public TransformerConfiguration Configuration { get; }
-
-    /// <summary>
-    /// Returns the stored transformations.
-    /// </summary>
-    public ImmutableArray<Transformation> Transformations { get; }
-
-    #endregion
+    public static Transformer Create(ImmutableArray<Transformation> transforms) =>
+        new(transforms);
 }
