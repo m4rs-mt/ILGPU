@@ -224,7 +224,9 @@ sealed class LoopInvariantCodeMotion : UnorderedTransformation
     /// <summary>
     /// Applies the LICM transformation.
     /// </summary>
-    protected override bool PerformTransformation(Method.Builder builder)
+    protected override void PerformTransformation(
+        IRContext context,
+        Method.Builder builder)
     {
         var cfg = builder.SourceBlocks.CreateCFG();
         var loops = cfg.CreateLoops();
@@ -233,14 +235,12 @@ sealed class LoopInvariantCodeMotion : UnorderedTransformation
         // need to get information about previous predecessors and successors
         builder.AcceptControlFlowUpdates(accept: true);
 
-        bool applied = false;
         loops.ProcessLoops(loop =>
         {
             if (loop.Entries.Length > 1)
                 return;
-            applied |= ApplyLICM(builder, loop);
+            ApplyLICM(builder, loop);
         });
-        return applied;
     }
 
     #endregion
