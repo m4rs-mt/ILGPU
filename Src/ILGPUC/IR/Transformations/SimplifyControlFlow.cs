@@ -19,8 +19,6 @@ namespace ILGPUC.IR.Transformations;
 /// </summary>
 sealed class SimplifyControlFlow : UnorderedTransformation
 {
-    #region Static
-
     /// <summary>
     /// Tries to merge a sequence of jumps.
     /// </summary>
@@ -28,13 +26,13 @@ sealed class SimplifyControlFlow : UnorderedTransformation
     /// <param name="root">The block where to start merging.</param>
     /// <param name="visited">The collection of visited nodes.</param>
     /// <returns>True, if something could be merged.</returns>
-    private static bool MergeChain(
+    private static void MergeChain(
         Method.Builder builder,
         BasicBlock root,
         ref BasicBlockSet visited)
     {
         if (root.Successors.Length != 1 || visited.Contains(root))
-            return false;
+            return;
 
         // Mark node as seen
         visited.Add(root);
@@ -42,7 +40,6 @@ sealed class SimplifyControlFlow : UnorderedTransformation
         // Init initial builder and successors list
         var rootBlockBuilder = builder[root];
         var successors = root.Successors;
-        bool result = false;
 
         do
         {
@@ -61,31 +58,16 @@ sealed class SimplifyControlFlow : UnorderedTransformation
             rootBlockBuilder.MergeBlock(nextBlock);
 
             // Return true as we have changed the IR
-            result = true;
         }
         while (successors.Length == 1);
-
-        // Return the success status
-        return result;
     }
-
-    #endregion
-
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new transformation to merge sequential jump chains.
-    /// </summary>
-    public SimplifyControlFlow() { }
-
-    #endregion
-
-    #region Methods
 
     /// <summary>
     /// Applies the control-flow simplification transformation.
     /// </summary>
-    protected override bool PerformTransformation(Method.Builder builder)
+    protected override void PerformTransformation(
+        IRContext context,
+        Method.Builder builder)
     {
         // We change the control-flow structure during the transformation but
         // need to get information about previous predecessors and successors
@@ -95,11 +77,7 @@ sealed class SimplifyControlFlow : UnorderedTransformation
             builder.SourceBlocks;
 
         var visited = blocks.CreateSet();
-        bool result = false;
         foreach (var block in blocks)
-            result |= MergeChain(builder, block, ref visited);
-        return result;
+            MergeChain(builder, block, ref visited);
     }
-
-    #endregion
 }
