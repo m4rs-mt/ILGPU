@@ -91,7 +91,9 @@ sealed class CleanupBlocks : UnorderedTransformation
     /// <summary>
     /// Applies the cleanup transformation.
     /// </summary>
-    protected override bool PerformTransformation(Method.Builder builder)
+    protected override void PerformTransformation(
+        IRContext context,
+        Method.Builder builder)
     {
         // We change the control-flow structure during the transformation but
         // need to get information about previous predecessors and successors
@@ -125,12 +127,12 @@ sealed class CleanupBlocks : UnorderedTransformation
         }
 
         if (!updated)
-            return false;
+            return;
 
         // Update all conditional branches that might have become obsolete
         foreach (var block in blocks)
         {
-            if (!(block.Terminator is ConditionalBranch conditionalBranch) ||
+            if (block.Terminator is not ConditionalBranch conditionalBranch ||
                 !HasSameTargets(conditionalBranch, out var target))
             {
                 continue;
@@ -139,8 +141,6 @@ sealed class CleanupBlocks : UnorderedTransformation
             // Simplify to an unconditional branch
             builder[block].CreateBranch(conditionalBranch.Location, target);
         }
-
-        return true;
     }
 
     #endregion
