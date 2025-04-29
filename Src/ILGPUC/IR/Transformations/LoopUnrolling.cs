@@ -605,7 +605,9 @@ sealed class LoopUnrolling : UnorderedTransformation
     /// <summary>
     /// Applies the loop unrolling transformation.
     /// </summary>
-    protected override bool PerformTransformation(Method.Builder builder)
+    protected override void PerformTransformation(
+        IRContext context,
+        Method.Builder builder)
     {
         var cfg = builder.SourceBlocks.CreateCFG();
         var loops = cfg.CreateLoops();
@@ -615,16 +617,14 @@ sealed class LoopUnrolling : UnorderedTransformation
         // need to get information about previous predecessors and successors
         builder.AcceptControlFlowUpdates(accept: true);
 
-        bool applied = false;
         loops.ProcessLoops(loop =>
         {
-            applied |= TryUnroll(
+            TryUnroll(
                 builder,
                 loop,
                 loopInfos,
                 MaxUnrollFactor);
         });
-        return applied;
     }
 
     #endregion
