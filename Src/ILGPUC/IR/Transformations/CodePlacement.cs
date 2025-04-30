@@ -289,7 +289,7 @@ abstract class CodePlacement : SequentialUnorderedTransformation
 /// <see cref="LoopInvariantCodeMotion"/> transformation to use values out of loops.
 /// </remarks>
 /// <param name="mode">The mode to use.</param>
-class CodePlacement<TStrategy>(CodePlacementMode mode) : CodePlacement(mode)
+sealed class CodePlacement<TStrategy>(CodePlacementMode mode) : CodePlacement(mode)
     where TStrategy : struct, CodePlacement.IPlacementStrategy
 {
     #region Placer Modes
@@ -646,7 +646,7 @@ class CodePlacement<TStrategy>(CodePlacementMode mode) : CodePlacement(mode)
     /// <summary>
     /// Applies an accelerator-specialization transformation.
     /// </summary>
-    protected override bool PerformTransformation(
+    protected override void PerformTransformation(
         IRContext context,
         Method.Builder builder)
     {
@@ -718,8 +718,6 @@ class CodePlacement<TStrategy>(CodePlacementMode mode) : CodePlacement(mode)
                 value.Assert(placer.IsPlaced(value));
         }
 #endif
-
-        return true;
     }
 
     #endregion
