@@ -35,7 +35,9 @@ sealed class DeadCodeElimination : UnorderedTransformation
     /// <summary>
     /// Applies a DCE transformation.
     /// </summary>
-    protected override bool PerformTransformation(Method.Builder builder)
+    protected override void PerformTransformation(
+        IRContext context,
+        Method.Builder builder)
     {
         var blocks = builder.SourceBlocks;
         var toProcess = InlineList<Value>.Create(blocks.Count << 2);
@@ -71,7 +73,6 @@ sealed class DeadCodeElimination : UnorderedTransformation
         }
 
         // Remove all dead values
-        bool updated = false;
         blocks.ForEachValue<Value>(value =>
         {
             if (liveValues.Contains(value))
@@ -82,11 +83,7 @@ sealed class DeadCodeElimination : UnorderedTransformation
                 "Invalid memory value");
             var blockBuilder = builder[value.BasicBlock];
             blockBuilder.Remove(value);
-
-            updated = true;
         });
-
-        return updated;
     }
 
     #endregion
