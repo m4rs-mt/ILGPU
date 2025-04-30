@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPUC.Backends;
 using ILGPUC.Backends.PointerViews;
 using System;
 
@@ -28,41 +29,37 @@ static class Optimizer
     /// <summary>
     /// Internal mapping from optimization levels to handlers.
     /// </summary>
-    private static readonly Action<Transformer.Builder, InliningMode>[]
+    private static readonly Action<Transformer.Builder>[]
         OptimizationHandlers =
         {
-                AddO0Optimizations,
-                AddO1Optimizations,
-                AddO2Optimizations,
-            };
+            AddO0Optimizations,
+            AddO1Optimizations,
+            AddO2Optimizations,
+        };
 
     /// <summary>
     /// Populates the given transformation manager with the required
     /// optimization transformations.
     /// </summary>
     /// <param name="builder">The transformation manager to populate.</param>
-    /// <param name="inliningMode">The inlining mode to use.</param>
     /// <param name="level">The desired optimization level.</param>
     /// <returns>The maximum number of iterations.</returns>
     public static void AddOptimizations(
         this Transformer.Builder builder,
-        InliningMode inliningMode,
         OptimizationLevel level)
     {
         if (level < OptimizationLevel.O0 || level > OptimizationLevel.O2)
             throw new ArgumentOutOfRangeException(nameof(level));
-        OptimizationHandlers[(int)level](builder, inliningMode);
+        OptimizationHandlers[(int)level](builder);
     }
 
     /// <summary>
     /// Adds basic optimization transformations.
     /// </summary>
     /// <param name="builder">The transformation manager to populate.</param>
-    /// <param name="inliningMode">The inlining mode to use.</param>
-    public static void AddBasicOptimizations(
-        this Transformer.Builder builder,
-        InliningMode inliningMode)
+    public static void AddBasicOptimizations(this Transformer.Builder builder)
     {
+        builder.Add(new SSAConstruction());
         builder.Add(new Inliner());
         builder.Add(new SimplifyControlFlow());
         builder.Add(new SSAConstruction());
@@ -129,32 +126,47 @@ static class Optimizer
     /// Adds general backend optimizations.
     /// </summary>
     /// <param name="builder">The transformation manager to populate.</param>
-    /// <param name="acceleratorSpecializer">
-    /// An instance of an <see cref="AcceleratorSpecializer"/> class.
-    /// </param>
-    /// <param name="inliningMode">The inlining mode to use.</param>
-    /// <param name="level">The desired optimization level.</param>
-    public static void AddBackendOptimizations<TPlacementStrategy>(
+    /// <param name="backend">The current backend instance.</param>
+    /// <param name="context">The kernel backend context to compile.</param>
+    public static void AddAcceleratorSpecializer(
         this Transformer.Builder builder,
-        AcceleratorSpecializer acceleratorSpecializer,
-        InliningMode inliningMode,
-        OptimizationLevel level)
-        where TPlacementStrategy : struct, CodePlacement.IPlacementStrategy
+        Backend backend,
+        IRContext context)
     {
+        // Perform an additional inlining pass to specialize small device-specific
+        // functions that could have been introduced
+        builder.Add(new Inliner());
+
         // Specialize accelerator properties, arrays and views
         builder.Add(new LowerArrays(MemoryAddressSpace.Local));
         builder.Add(new LowerPointerViews());
-        builder.Add(acceleratorSpecializer);
+        builder.Add(
+            new AcceleratorSpecializer(
+                backend.AcceleratorType,
+                backend.CurrentWarpSize,
+                context.PointerType,
+                context.Properties.EnableAssertions,
+                context.Properties.EnableIOOperations));
 
-        // Perform an additional inlining pass to specialize small device-specific
-        // functions that could have been introduced
+        // Perform an second inlining pass to specialize specialized functions
         builder.Add(new Inliner());
 
         // Apply UCE and DCE passes to avoid dead branches and fold conditionals that
         // do not affect the actual code being executed
         builder.Add(new UnreachableCodeElimination());
         builder.Add(new DeadCodeElimination());
+    }
 
+    /// <summary>
+    /// Adds general backend optimizations.
+    /// </summary>
+    /// <param name="builder">The transformation manager to populate.</param>
+    /// <param name="level">The desired optimization level.</param>
+    public static void AddBackendOptimizations<TPlacementStrategy>(
+        this Transformer.Builder builder,
+        OptimizationLevel level)
+        where TPlacementStrategy : struct, CodePlacement.IPlacementStrategy
+    {
         // Skip further optimizations in debug mode
         if (level < OptimizationLevel.O1)
             return;
@@ -206,12 +218,9 @@ static class Optimizer
     /// Populates the given transformation manager with O0 optimizations.
     /// </summary>
     /// <param name="builder">The transformation manager to populate.</param>
-    /// <param name="inliningMode">The inlining mode to use.</param>
-    public static void AddO0Optimizations(
-        this Transformer.Builder builder,
-        InliningMode inliningMode)
+    public static void AddO0Optimizations(this Transformer.Builder builder)
     {
-        builder.AddBasicOptimizations(inliningMode);
+        builder.AddBasicOptimizations();
         builder.AddAddressSpaceOptimizations();
     }
 
@@ -219,12 +228,9 @@ static class Optimizer
     /// Populates the given transformation manager with O1 optimizations.
     /// </summary>
     /// <param name="builder">The transformation manager to populate.</param>
-    /// <param name="inliningMode">The inlining mode to use.</param>
-    public static void AddO1Optimizations(
-        this Transformer.Builder builder,
-        InliningMode inliningMode)
+    public static void AddO1Optimizations(this Transformer.Builder builder)
     {
-        builder.AddBasicOptimizations(inliningMode);
+        builder.AddBasicOptimizations();
         builder.AddStructureOptimizations();
         builder.AddLoopOptimizations();
         builder.AddConditionalOptimizations();
@@ -235,12 +241,9 @@ static class Optimizer
     /// Populates the given transformation manager with O2 optimizations.
     /// </summary>
     /// <param name="builder">The transformation manager to populate.</param>
-    /// <param name="inliningMode">The inlining mode to use.</param>
-    public static void AddO2Optimizations(
-        this Transformer.Builder builder,
-        InliningMode inliningMode)
+    public static void AddO2Optimizations(this Transformer.Builder builder)
     {
-        builder.AddBasicOptimizations(inliningMode);
+        builder.AddBasicOptimizations();
         builder.AddStructureOptimizations();
         builder.AddLoopOptimizations();
 
@@ -257,16 +260,11 @@ static class Optimizer
     /// Creates a transformer for the given optimization level.
     /// </summary>
     /// <param name="level">The level.</param>
-    /// <param name="configuration">The transformer configuration.</param>
-    /// <param name="inliningMode">The inlining mode to use.</param>
     /// <returns>The created transformer.</returns>
-    public static Transformer CreateTransformer(
-        this OptimizationLevel level,
-        TransformerConfiguration configuration,
-        InliningMode inliningMode)
+    public static Transformer CreateTransformer(this OptimizationLevel level)
     {
-        var builder = Transformer.CreateBuilder(configuration);
-        builder.AddOptimizations(inliningMode, level);
+        var builder = Transformer.CreateBuilder();
+        builder.AddOptimizations(level);
         return builder.ToTransformer();
     }
 }
