@@ -22,19 +22,19 @@ namespace ILGPUC.IR.Transformations;
 /// </summary>
 sealed class Inliner : OrderedTransformation
 {
-    #region Constants
-
     /// <summary>
     /// The maximum number of IL instructions to inline.
     /// </summary>
     private const int MaxNumILInstructionsToInline = 32;
 
-    #endregion
-
-    #region Static
-
-    internal static void SetupInliningAttributes(
-        IRContext context,
+    /// <summary>
+    /// Setups inlining attributes.
+    /// </summary>
+    /// <param name="properties">Current compilation properties.</param>
+    /// <param name="method">The current method.</param>
+    /// <param name="disassembledMethod">The disassembled source method.</param>
+    public static void SetupInliningAttributes(
+        CompilationProperties properties,
         Method method,
         DisassembledMethod disassembledMethod)
     {
@@ -62,7 +62,7 @@ sealed class Inliner : OrderedTransformation
         }
 
         // Evaluate a simple inlining heuristic
-        if (context.Properties.InliningMode != InliningMode.Conservative ||
+        if (properties.InliningMode != InliningMode.Conservative ||
             disassembledMethod.Instructions.Length <= MaxNumILInstructionsToInline)
         {
             method.AddFlags(MethodFlags.Inline);
@@ -97,20 +97,6 @@ sealed class Inliner : OrderedTransformation
 
         return false;
     }
-
-    #endregion
-
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new inliner that inlines all methods marked with
-    /// <see cref="MethodFlags.Inline"/> flags.
-    /// </summary>
-    public Inliner() { }
-
-    #endregion
-
-    #region Methods
 
     /// <summary>
     /// Applies the inlining transformation.
@@ -148,6 +134,4 @@ sealed class Inliner : OrderedTransformation
             currentBlock = toProcess.Pop();
         }
     }
-
-    #endregion
 }
