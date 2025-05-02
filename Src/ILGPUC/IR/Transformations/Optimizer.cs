@@ -136,10 +136,13 @@ static class Optimizer
         // Perform an additional inlining pass to specialize small device-specific
         // functions that could have been introduced
         builder.Add(new Inliner());
+        builder.Add(new UnreachableCodeElimination());
+        builder.Add(new DeadCodeElimination());
 
         // Specialize accelerator properties, arrays and views
         builder.Add(new LowerArrays(MemoryAddressSpace.Local));
         builder.Add(new LowerPointerViews());
+        builder.Add(new LowerThreadIntrinsics());
         builder.Add(
             new AcceleratorSpecializer(
                 backend.AcceleratorType,
