@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: EntryPoint.cs
@@ -9,234 +9,141 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Runtime;
-using ILGPU.Util;
+using ILGPUC.IR;
+using ILGPUC.Util;
 using System;
+using System.Collections.Immutable;
 using System.Reflection;
 
-namespace ILGPU.Backends.EntryPoints
+namespace ILGPUC.Backends.EntryPoints;
+
+/// <summary>
+/// Represents a kernel entry point.
+/// </summary>
+class EntryPoint
 {
     /// <summary>
-    /// Represents a kernel entry point.
+    /// Constructs a new entry point targeting the given method.
     /// </summary>
-    public partial class EntryPoint
+    /// <param name="method">The entry point method.</param>
+    /// <param name="isGrouped">
+    /// True if the kernel method is an explicitly grouped kernel.
+    /// </param>
+    public EntryPoint(MethodInfo method, bool isGrouped)
     {
-        #region Instance
+        Method = method;
+        IsExplicitlyGrouped = isGrouped;
+        Specialization =
+            method.GetCustomAttribute<KernelSpecializationAttribute>()?.Specialization
+            ?? new();
 
-        /// <summary>
-        /// Constructs a new entry point targeting the given method.
-        /// </summary>
-        /// <param name="description">The entry point description.</param>
-        /// <param name="sharedMemory">The shared memory specification.</param>
-        /// <param name="specialization">The kernel specialization.</param>
-        public EntryPoint(
-            in EntryPointDescription description,
-            in SharedMemorySpecification sharedMemory,
-            in KernelSpecialization specialization)
+        var parameters = method.GetParameters();
+        if (!isGrouped && parameters.Length < 1)
         {
-            description.Validate();
-
-            Description = description;
-            Specialization = specialization;
-            SharedMemory = sharedMemory;
-            KernelIndexType = IndexType.GetManagedIndexType();
-            for (int i = 0, e = Parameters.Count; i < e; ++i)
-                HasByRefParameters |= Parameters.IsByRef(i);
+            throw new NotSupportedException(
+                ErrorMessages.InvalidEntryPointIndexParameter);
         }
 
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated description instance.
-        /// </summary>
-        public EntryPointDescription Description { get; }
-
-        /// <summary>
-        /// Returns the associated kernel function name.
-        /// </summary>
-        public string Name => Description.Name;
-
-        /// <summary>
-        /// Returns the associated method info.
-        /// </summary>
-        public MethodInfo MethodInfo => Description.MethodSource;
-
-        /// <summary>
-        /// Returns the index type of the index parameter.
-        /// </summary>
-        public IndexType IndexType => Description.IndexType;
-
-        /// <summary>
-        /// Returns the offset for the actual parameter values while taking an implicit
-        /// index argument into account.
-        /// </summary>
-        public int KernelIndexParameterOffset => Description.KernelIndexParameterOffset;
-
-        /// <summary>
-        /// Returns true if the entry point represents an explicitly grouped kernel.
-        /// </summary>
-        public bool IsExplicitlyGrouped => IndexType == IndexType.KernelConfig;
-
-        /// <summary>
-        /// Returns true if the entry point represents an implicitly grouped kernel.
-        /// </summary>
-        public bool IsImplicitlyGrouped => !IsExplicitlyGrouped;
-
-        /// <summary>
-        /// Returns the index type of the index parameter.
-        /// This can also return the <see cref="KernelConfig"/> type in the case of
-        /// an explicitly grouped kernel.
-        /// </summary>
-        public Type KernelIndexType { get; }
-
-        /// <summary>
-        /// Returns the parameter specification of arguments that are passed to the
-        /// kernel.
-        /// </summary>
-        public ParameterCollection Parameters => Description.Parameters;
-
-        /// <summary>
-        /// Returns true if this entry point uses specialized parameters.
-        /// </summary>
-        public bool HasSpecializedParameters => Parameters.HasSpecializedParameters;
-
-        /// <summary>
-        /// Returns true if the parameter specification contains by reference parameters.
-        /// </summary>
-        public bool HasByRefParameters { get; }
-
-        /// <summary>
-        /// Returns the associated launch specification.
-        /// </summary>
-        public KernelSpecialization Specialization { get; }
-
-        /// <summary>
-        /// Returns the number of index parameters when all structures
-        /// are flattened into scalar parameters.
-        /// </summary>
-        public int NumFlattendedIndexParameters
+        int maxNumParameters = parameters.Length - KernelIndexParameterOffset;
+        var parameterTypes = ImmutableArray.CreateBuilder<Type>(maxNumParameters);
+        for (int i = KernelIndexParameterOffset, e = parameters.Length; i < e; ++i)
         {
-            get
+            var type = parameters[i].ParameterType;
+            if (type.IsPointer || type.IsPassedViaPtr())
             {
-                switch (IndexType)
-                {
-                    case IndexType.Index1D:
-                    case IndexType.KernelConfig:
-                        return 1;
-                    case IndexType.Index2D:
-                        return 2;
-                    case IndexType.Index3D:
-                        return 3;
-                    default:
-                        throw new InvalidOperationException();
-                }
+                throw new NotSupportedException(string.Format(
+                    ErrorMessages.NotSupportedKernelParameterType,
+                    type));
             }
+            parameterTypes.Add(type);
         }
+        Parameters = new ParameterCollection(parameterTypes.MoveToImmutable());
+        for (int i = 0, e = Parameters.Count; i < e; ++i)
+            HasByRefParameters |= Parameters.IsByRef(i);
 
-        /// <summary>
-        /// Returns the associated shared memory specification.
-        /// </summary>
-        public SharedMemorySpecification SharedMemory { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Creates a new launcher method.
-        /// </summary>
-        /// <param name="runtimeSystem">The current runtime system.</param>
-        /// <param name="methodEmitter">The method emitter.</param>
-        /// <returns>The acquired scoped lock.</returns>
-        internal RuntimeSystem.ScopedLock CreateLauncherMethod(
-            RuntimeSystem runtimeSystem,
-            out RuntimeSystem.MethodEmitter methodEmitter) =>
-            CreateLauncherMethod(runtimeSystem, null, out methodEmitter);
-
-        /// <summary>
-        /// Creates a new launcher method.
-        /// </summary>
-        /// <param name="runtimeSystem">The current runtime system.</param>
-        /// <param name="instanceType">The instance type (if any).</param>
-        /// <param name="methodEmitter">The method emitter.</param>
-        /// <returns>The acquired scoped lock.</returns>
-        internal RuntimeSystem.ScopedLock CreateLauncherMethod(
-            RuntimeSystem runtimeSystem,
-            Type? instanceType,
-            out RuntimeSystem.MethodEmitter methodEmitter) =>
-            Description.CreateLauncherMethod(
-                runtimeSystem,
-                instanceType,
-                out methodEmitter);
-
-        #endregion
+        KernelIndexParameterOffset = isGrouped ? 0 : 1;
     }
 
     /// <summary>
-    /// Represents a shared memory specification of a specific kernel.
+    /// Represents the unique id of this kernel.
     /// </summary>
-    [Serializable]
-    public readonly struct SharedMemorySpecification
+    public Guid Id { get; } = Guid.NewGuid();
+
+    /// <summary>
+    /// Returns the associated kernel function name.
+    /// </summary>
+    public string Name => CompiledKernelData.GetKernelName(Id);
+
+    /// <summary>
+    /// Returns the associated method info.
+    /// </summary>
+    public MethodInfo Method { get; }
+
+    /// <summary>
+    /// Returns the offset for the actual parameter values while taking an implicit
+    /// index argument into account.
+    /// </summary>
+    public int KernelIndexParameterOffset { get; }
+
+    /// <summary>
+    /// Returns true if the entry point represents an explicitly grouped kernel.
+    /// </summary>
+    public bool IsExplicitlyGrouped { get; }
+
+    /// <summary>
+    /// Returns true if the entry point represents an implicitly grouped kernel.
+    /// </summary>
+    public bool IsImplicitlyGrouped => !IsExplicitlyGrouped;
+
+    /// <summary>
+    /// Returns the compiled kernel type of this instance.
+    /// </summary>
+    public CompiledKernelType KernelType =>
+        IsExplicitlyGrouped ? CompiledKernelType.Grouped : CompiledKernelType.Auto;
+
+    /// <summary>
+    /// Returns the parameter specification of arguments that are passed to the
+    /// kernel.
+    /// </summary>
+    public ParameterCollection Parameters { get; }
+
+    /// <summary>
+    /// Returns true if the parameter specification contains by reference parameters.
+    /// </summary>
+    public bool HasByRefParameters { get; }
+
+    /// <summary>
+    /// Returns the associated launch specification.
+    /// </summary>
+    public KernelSpecialization Specialization { get; }
+
+    /// <summary>
+    /// Creates new compiled kernel data.
+    /// </summary>
+    /// <param name="sharedMemoryMode">The shared memory mode.</param>
+    /// <param name="sharedMemorySize">The required shared memory size in bytes.</param>
+    /// <param name="localMemorySize">The required local memory size in bytes.</param>
+    /// <param name="data">The binary kernel data.</param>
+    /// <param name="customAttributes">Custom attributes stored.</param>
+    public CompiledKernelData CreateCompiledKernelData(
+        CompiledKernelSharedMemoryMode sharedMemoryMode,
+        int sharedMemorySize,
+        int localMemorySize,
+        ReadOnlyMemory<byte> data,
+        ReadOnlyMemory<byte>? customAttributes = null)
     {
-        #region Static
-
-        /// <summary>
-        /// Represents the associated constructor taking two integer parameters.
-        /// </summary>
-        internal static ConstructorInfo Constructor = typeof(SharedMemorySpecification).
-            GetConstructor(new Type[]
-            {
-                typeof(int),
-                typeof(bool)
-            })
-            .ThrowIfNull();
-
-        #endregion
-
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new shared memory specification.
-        /// </summary>
-        /// <param name="staticSize">The static shared memory size.</param>
-        /// <param name="hasDynamicMemory">
-        /// True, if this specification requires dynamic shared memory.
-        /// </param>
-        public SharedMemorySpecification(int staticSize, bool hasDynamicMemory)
-        {
-            if (staticSize < 0)
-                throw new ArgumentOutOfRangeException(nameof(staticSize));
-
-            StaticSize = staticSize;
-            HasDynamicMemory = hasDynamicMemory;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns true if the current specification.
-        /// </summary>
-        public bool HasSharedMemory => HasStaticMemory | HasDynamicMemory;
-
-        /// <summary>
-        /// Returns the amount of shared memory.
-        /// </summary>
-        public int StaticSize { get; }
-
-        /// <summary>
-        /// Returns true if the current specification required static shared memory.
-        /// </summary>
-        public bool HasStaticMemory => StaticSize > 0;
-
-        /// <summary>
-        /// Returns true if the current specification requires dynamic shared memory.
-        /// </summary>
-        public bool HasDynamicMemory { get; }
-
-        #endregion
+        customAttributes ??= ReadOnlyMemory<byte>.Empty;
+        return new(
+            IRContext.IRVersion,
+            Id,
+            KernelType,
+            sharedMemoryMode,
+            Specialization,
+            sharedMemorySize,
+            localMemorySize,
+            data,
+            customAttributes.Value);
     }
 }
