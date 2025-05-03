@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VariableAllocator.cs
@@ -9,318 +9,312 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR;
-using ILGPU.IR.Types;
-using ILGPU.IR.Values;
 using ILGPU.Util;
+using ILGPUC.IR;
+using ILGPUC.IR.Types;
+using ILGPUC.IR.Values;
+using ILGPUC.Util;
 using System;
 using System.Collections.Generic;
 
-namespace ILGPU.Backends
+namespace ILGPUC.Backends;
+
+/// <summary>
+/// Represents a generic high-level variable allocator.
+/// </summary>
+/// <remarks>The members of this class are not thread safe.</remarks>
+abstract class VariableAllocator
 {
+    #region Nested Types
+
     /// <summary>
-    /// Represents a generic high-level variable allocator.
+    /// A variable that can be accessed and allocated.
     /// </summary>
-    /// <remarks>The members of this class are not thread safe.</remarks>
-    public abstract class VariableAllocator
+    internal abstract class Variable
     {
-        #region Nested Types
-
         /// <summary>
-        /// A variable that can be accessed and allocated.
+        /// Constructs a new variable.
         /// </summary>
-        public abstract class Variable
+        /// <param name="id">The current variable id.</param>
+        internal Variable(int id)
         {
-            /// <summary>
-            /// Constructs a new variable.
-            /// </summary>
-            /// <param name="id">The current variable id.</param>
-            internal Variable(int id)
-            {
-                Id = id;
-                VariableName = "var" + id.ToString();
-            }
-
-            /// <summary>
-            /// Returns the unique variable id.
-            /// </summary>
-            public int Id { get; }
-
-            /// <summary>
-            /// Returns the associated variable name.
-            /// </summary>
-            public string VariableName { get; }
-
-            /// <summary>
-            /// Returns the string representation of this variable.
-            /// </summary>
-            /// <returns>The string representation of this variable.</returns>
-            public override string ToString() => VariableName;
+            Id = id;
+            VariableName = "var" + id.ToString();
         }
 
         /// <summary>
-        /// A primitive variable.
+        /// Returns the unique variable id.
         /// </summary>
-        public class PrimitiveVariable : Variable
-        {
-            /// <summary>
-            /// Constructs a new primitive variable.
-            /// </summary>
-            /// <param name="id">The current variable id.</param>
-            /// <param name="basicValueType">The basic value type.</param>
-            internal PrimitiveVariable(int id, ArithmeticBasicValueType basicValueType)
-                : base(id)
-            {
-                BasicValueType = basicValueType;
-            }
-
-            /// <summary>
-            /// Returns the associated basic value type.
-            /// </summary>
-            public ArithmeticBasicValueType BasicValueType { get; }
-        }
+        public int Id { get; }
 
         /// <summary>
-        /// A constant "variable".
+        /// Returns the associated variable name.
         /// </summary>
-        public sealed class ConstantVariable : PrimitiveVariable
-        {
-            /// <summary>
-            /// Constructs a new constant register.
-            /// </summary>
-            /// <param name="id">The current variable id.</param>
-            /// <param name="value">The primitive value.</param>
-            public ConstantVariable(int id, PrimitiveValue value)
-                : base(
-                      id,
-                      value.BasicValueType.GetArithmeticBasicValueType(
-                          isUnsigned: false))
-            {
-                Value = value;
-            }
-
-            /// <summary>
-            /// Returns the associated value.
-            /// </summary>
-            public PrimitiveValue Value { get; }
-        }
+        public string VariableName { get; }
 
         /// <summary>
-        /// A typed variable.
+        /// Returns the string representation of this variable.
         /// </summary>
-        public abstract class TypedVariable : Variable
-        {
-            /// <summary>
-            /// Constructs a new typed variable.
-            /// </summary>
-            /// <param name="id">The current variable id.</param>
-            /// <param name="type">The type.</param>
-            protected TypedVariable(int id, TypeNode type)
-                : base(id)
-            {
-                Type = type;
-            }
-
-            /// <summary>
-            /// Returns the underlying type.
-            /// </summary>
-            public TypeNode Type { get; }
-        }
-
-        /// <summary>
-        /// A pointer variable.
-        /// </summary>
-        public sealed class PointerVariable : TypedVariable
-        {
-            /// <summary>
-            /// Constructs a new pointer variable.
-            /// </summary>
-            /// <param name="id">The current variable id.</param>
-            /// <param name="pointerType">The pointer type.</param>
-            internal PointerVariable(
-                int id,
-                PointerType pointerType)
-                : base(id, pointerType)
-            { }
-
-            /// <summary>
-            /// Returns the represented IR type.
-            /// </summary>
-            public new PointerType Type => base.Type.AsNotNullCast<PointerType>();
-        }
-
-        /// <summary>
-        /// A string variable.
-        /// </summary>
-        public sealed class StringVariable : TypedVariable
-        {
-            /// <summary>
-            /// Constructs a new object variable.
-            /// </summary>
-            /// <param name="id">The current variable id.</param>
-            /// <param name="type">The object type.</param>
-            internal StringVariable(int id, StringType type)
-                : base(id, type)
-            { }
-
-            /// <summary>
-            /// Returns the represented IR string type.
-            /// </summary>
-            public new StringType Type => base.Type.AsNotNullCast<StringType>();
-        }
-
-        /// <summary>
-        /// An object variable.
-        /// </summary>
-        public sealed class ObjectVariable : TypedVariable
-        {
-            /// <summary>
-            /// Constructs a new object variable.
-            /// </summary>
-            /// <param name="id">The current variable id.</param>
-            /// <param name="type">The object type.</param>
-            internal ObjectVariable(int id, ObjectType type)
-                : base(id, type)
-            { }
-
-            /// <summary>
-            /// Returns the represented IR type.
-            /// </summary>
-            public new ObjectType Type => base.Type.AsNotNullCast<ObjectType>();
-        }
-
-        #endregion
-
-        #region Instance
-
-        private readonly Dictionary<Value, Variable> variableLookup =
-            new Dictionary<Value, Variable>();
-        private int idCounter;
-
-        /// <summary>
-        /// Constructs a new variable allocator.
-        /// </summary>
-        protected VariableAllocator() { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Allocates a new variable.
-        /// </summary>
-        /// <param name="value">The value to allocate.</param>
-        /// <returns>The allocated variable.</returns>
-        public Variable Allocate(Value value)
-        {
-            if (variableLookup.TryGetValue(value, out Variable? variable))
-                return variable;
-            variable = value is PrimitiveValue primitiveValue
-                ? new ConstantVariable(idCounter++, primitiveValue)
-                : AllocateType(value.Type);
-            variableLookup.Add(value, variable);
-            return variable;
-        }
-
-        /// <summary>
-        /// Allocates a new variable.
-        /// </summary>
-        /// <param name="value">The value to allocate.</param>
-        /// <param name="basicValueType">The actual type to allocate.</param>
-        /// <returns>The allocated variable.</returns>
-        public Variable Allocate(Value value, ArithmeticBasicValueType basicValueType)
-        {
-            if (variableLookup.TryGetValue(value, out Variable? variable))
-                return variable;
-            variable = AllocateType(basicValueType);
-            variableLookup.Add(value, variable);
-            return variable;
-        }
-
-        /// <summary>
-        /// Allocates a new variable as type <typeparamref name="T"/>.
-        /// </summary>
-        /// <param name="value">The value to allocate.</param>
-        /// <returns>The allocated variable.</returns>
-        public T AllocateAs<T>(Value value)
-            where T : Variable =>
-            Allocate(value).AsNotNullCast<T>();
-
-        /// <summary>
-        /// Allocates the given type.
-        /// </summary>
-        /// <param name="basicValueType">The type to allocate.</param>
-        /// <returns>The allocated variable.</returns>
-        public Variable AllocateType(ArithmeticBasicValueType basicValueType) =>
-            new PrimitiveVariable(idCounter++, basicValueType);
-
-        /// <summary>
-        /// Allocates the given type.
-        /// </summary>
-        /// <param name="basicValueType">The type to allocate.</param>
-        /// <returns>The allocated variable.</returns>
-        public Variable AllocateType(BasicValueType basicValueType) =>
-            new PrimitiveVariable(
-                idCounter++,
-                basicValueType.GetArithmeticBasicValueType(false));
-
-        /// <summary>
-        /// Allocates a pointer type.
-        /// </summary>
-        /// <param name="pointerType">The pointer type to allocate.</param>
-        /// <returns>The allocated variable.</returns>
-        public PointerVariable AllocatePointerType(PointerType pointerType) =>
-            new PointerVariable(idCounter++, pointerType);
-
-        /// <summary>
-        /// Allocates the given type.
-        /// </summary>
-        /// <param name="typeNode">The type to allocate.</param>
-        /// <returns>The allocated variable.</returns>
-        public Variable AllocateType(TypeNode typeNode) =>
-            typeNode switch
-            {
-                PrimitiveType primitiveType => AllocateType(
-                    primitiveType.BasicValueType),
-                PointerType pointerType => AllocatePointerType(pointerType),
-                ObjectType objectType => new ObjectVariable(idCounter++, objectType),
-                StringType stringType => new StringVariable(idCounter++, stringType),
-                PaddingType paddingType => AllocateType(
-                    paddingType.PrimitiveType.BasicValueType),
-                _ => throw new NotSupportedException(),
-            };
-
-        /// <summary>
-        /// Loads the given value.
-        /// </summary>
-        /// <param name="value">The value to load.</param>
-        /// <returns>The loaded variable.</returns>
-        public Variable Load(Value value) =>
-            variableLookup[value];
-
-        /// <summary>
-        /// Loads the given value as variable type <typeparamref name="T"/>.
-        /// </summary>
-        /// <typeparam name="T">The target type to load.</typeparam>
-        /// <param name="value">The value to load.</param>
-        /// <returns>The loaded variable.</returns>
-        public T LoadAs<T>(Value value)
-            where T : Variable
-        {
-            var variable = Load(value);
-            return variable is T result
-                ? result
-                : throw new InvalidCodeGenerationException();
-        }
-
-        /// <summary>
-        /// Binds the given value to the target variable.
-        /// </summary>
-        /// <param name="node">The node to bind.</param>
-        /// <param name="targetVariable">The target variable to bind to.</param>
-        public void Bind(Value node, Variable targetVariable) =>
-            variableLookup[node] = targetVariable;
-
-        #endregion
+        /// <returns>The string representation of this variable.</returns>
+        public override string ToString() => VariableName;
     }
+
+    /// <summary>
+    /// A primitive variable.
+    /// </summary>
+    internal class PrimitiveVariable : Variable
+    {
+        /// <summary>
+        /// Constructs a new primitive variable.
+        /// </summary>
+        /// <param name="id">The current variable id.</param>
+        /// <param name="basicValueType">The basic value type.</param>
+        internal PrimitiveVariable(int id, ArithmeticBasicValueType basicValueType)
+            : base(id)
+        {
+            BasicValueType = basicValueType;
+        }
+
+        /// <summary>
+        /// Returns the associated basic value type.
+        /// </summary>
+        public ArithmeticBasicValueType BasicValueType { get; }
+    }
+
+    /// <summary>
+    /// A constant "variable".
+    /// </summary>
+    internal sealed class ConstantVariable : PrimitiveVariable
+    {
+        /// <summary>
+        /// Constructs a new constant register.
+        /// </summary>
+        /// <param name="id">The current variable id.</param>
+        /// <param name="value">The primitive value.</param>
+        public ConstantVariable(int id, PrimitiveValue value)
+            : base(
+                  id,
+                  value.BasicValueType.GetArithmeticBasicValueType(
+                      isUnsigned: false))
+        {
+            Value = value;
+        }
+
+        /// <summary>
+        /// Returns the associated value.
+        /// </summary>
+        public PrimitiveValue Value { get; }
+    }
+
+    /// <summary>
+    /// A typed variable.
+    /// </summary>
+    internal abstract class TypedVariable : Variable
+    {
+        /// <summary>
+        /// Constructs a new typed variable.
+        /// </summary>
+        /// <param name="id">The current variable id.</param>
+        /// <param name="type">The type.</param>
+        protected TypedVariable(int id, TypeNode type)
+            : base(id)
+        {
+            Type = type;
+        }
+
+        /// <summary>
+        /// Returns the underlying type.
+        /// </summary>
+        public TypeNode Type { get; }
+    }
+
+    /// <summary>
+    /// A pointer variable.
+    /// </summary>
+    internal sealed class PointerVariable : TypedVariable
+    {
+        /// <summary>
+        /// Constructs a new pointer variable.
+        /// </summary>
+        /// <param name="id">The current variable id.</param>
+        /// <param name="pointerType">The pointer type.</param>
+        internal PointerVariable(
+            int id,
+            PointerType pointerType)
+            : base(id, pointerType)
+        { }
+
+        /// <summary>
+        /// Returns the represented IR type.
+        /// </summary>
+        public new PointerType Type => base.Type.AsNotNullCast<PointerType>();
+    }
+
+    /// <summary>
+    /// A string variable.
+    /// </summary>
+    internal sealed class StringVariable : TypedVariable
+    {
+        /// <summary>
+        /// Constructs a new object variable.
+        /// </summary>
+        /// <param name="id">The current variable id.</param>
+        /// <param name="type">The object type.</param>
+        internal StringVariable(int id, StringType type)
+            : base(id, type)
+        { }
+
+        /// <summary>
+        /// Returns the represented IR string type.
+        /// </summary>
+        public new StringType Type => base.Type.AsNotNullCast<StringType>();
+    }
+
+    /// <summary>
+    /// An object variable.
+    /// </summary>
+    internal sealed class ObjectVariable : TypedVariable
+    {
+        /// <summary>
+        /// Constructs a new object variable.
+        /// </summary>
+        /// <param name="id">The current variable id.</param>
+        /// <param name="type">The object type.</param>
+        internal ObjectVariable(int id, ObjectType type)
+            : base(id, type)
+        { }
+
+        /// <summary>
+        /// Returns the represented IR type.
+        /// </summary>
+        public new ObjectType Type => base.Type.AsNotNullCast<ObjectType>();
+    }
+
+    #endregion
+
+    #region Instance
+
+    private readonly Dictionary<Value, Variable> _variableLookup = [];
+    private int _idCounter;
+
+    #endregion
+
+    #region Methods
+
+    /// <summary>
+    /// Allocates a new variable.
+    /// </summary>
+    /// <param name="value">The value to allocate.</param>
+    /// <returns>The allocated variable.</returns>
+    public Variable Allocate(Value value)
+    {
+        if (_variableLookup.TryGetValue(value, out Variable? variable))
+            return variable;
+        variable = value is PrimitiveValue primitiveValue
+            ? new ConstantVariable(_idCounter++, primitiveValue)
+            : AllocateType(value.Type);
+        _variableLookup.Add(value, variable);
+        return variable;
+    }
+
+    /// <summary>
+    /// Allocates a new variable.
+    /// </summary>
+    /// <param name="value">The value to allocate.</param>
+    /// <param name="basicValueType">The actual type to allocate.</param>
+    /// <returns>The allocated variable.</returns>
+    public Variable Allocate(Value value, ArithmeticBasicValueType basicValueType)
+    {
+        if (_variableLookup.TryGetValue(value, out Variable? variable))
+            return variable;
+        variable = AllocateType(basicValueType);
+        _variableLookup.Add(value, variable);
+        return variable;
+    }
+
+    /// <summary>
+    /// Allocates a new variable as type <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="value">The value to allocate.</param>
+    /// <returns>The allocated variable.</returns>
+    public T AllocateAs<T>(Value value)
+        where T : Variable =>
+        Allocate(value).AsNotNullCast<T>();
+
+    /// <summary>
+    /// Allocates the given type.
+    /// </summary>
+    /// <param name="basicValueType">The type to allocate.</param>
+    /// <returns>The allocated variable.</returns>
+    public Variable AllocateType(ArithmeticBasicValueType basicValueType) =>
+        new PrimitiveVariable(_idCounter++, basicValueType);
+
+    /// <summary>
+    /// Allocates the given type.
+    /// </summary>
+    /// <param name="basicValueType">The type to allocate.</param>
+    /// <returns>The allocated variable.</returns>
+    public Variable AllocateType(BasicValueType basicValueType) =>
+        new PrimitiveVariable(
+            _idCounter++,
+            basicValueType.GetArithmeticBasicValueType(false));
+
+    /// <summary>
+    /// Allocates a pointer type.
+    /// </summary>
+    /// <param name="pointerType">The pointer type to allocate.</param>
+    /// <returns>The allocated variable.</returns>
+    public PointerVariable AllocatePointerType(PointerType pointerType) =>
+        new PointerVariable(_idCounter++, pointerType);
+
+    /// <summary>
+    /// Allocates the given type.
+    /// </summary>
+    /// <param name="typeNode">The type to allocate.</param>
+    /// <returns>The allocated variable.</returns>
+    public Variable AllocateType(TypeNode typeNode) =>
+        typeNode switch
+        {
+            PrimitiveType primitiveType => AllocateType(
+                primitiveType.BasicValueType),
+            PointerType pointerType => AllocatePointerType(pointerType),
+            ObjectType objectType => new ObjectVariable(_idCounter++, objectType),
+            StringType stringType => new StringVariable(_idCounter++, stringType),
+            PaddingType paddingType => AllocateType(
+                paddingType.PrimitiveType.BasicValueType),
+            _ => throw new NotSupportedException(),
+        };
+
+    /// <summary>
+    /// Loads the given value.
+    /// </summary>
+    /// <param name="value">The value to load.</param>
+    /// <returns>The loaded variable.</returns>
+    public Variable Load(Value value) =>
+        _variableLookup[value];
+
+    /// <summary>
+    /// Loads the given value as variable type <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The target type to load.</typeparam>
+    /// <param name="value">The value to load.</param>
+    /// <returns>The loaded variable.</returns>
+    public T LoadAs<T>(Value value)
+        where T : Variable
+    {
+        var variable = Load(value);
+        return variable is T result
+            ? result
+            : throw new InvalidCodeGenerationException();
+    }
+
+    /// <summary>
+    /// Binds the given value to the target variable.
+    /// </summary>
+    /// <param name="node">The node to bind.</param>
+    /// <param name="targetVariable">The target variable to bind to.</param>
+    public void Bind(Value node, Variable targetVariable) =>
+        _variableLookup[node] = targetVariable;
+
+    #endregion
 }
