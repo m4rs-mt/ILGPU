@@ -71,7 +71,7 @@ abstract partial class IRBuilder : DisposeBase, ILocation
     /// </summary>
     /// <returns>The created value initializer.</returns>
     private ValueInitializer GetInitializer(Location location) =>
-        new ValueInitializer(BaseContext, BasicBlock, location);
+        new(BaseContext, BasicBlock, location);
 
     /// <summary>
     /// Creates a node that represents an <see cref="Accelerator.CurrentType"/>
@@ -79,7 +79,7 @@ abstract partial class IRBuilder : DisposeBase, ILocation
     /// </summary>
     /// <param name="location">The current location.</param>
     /// <returns>A reference to the requested value.</returns>
-    public ValueReference CreateAcceleratorTypeValue(Location location) =>
+    public AcceleratorTypeValue CreateAcceleratorTypeValue(Location location) =>
         Append(new AcceleratorTypeValue(GetInitializer(location)));
 
     /// <summary>
@@ -87,7 +87,7 @@ abstract partial class IRBuilder : DisposeBase, ILocation
     /// </summary>
     /// <param name="location">The current location.</param>
     /// <returns>A reference to the requested value.</returns>
-    public ValueReference CreateWarpSizeValue(Location location) =>
+    public WarpSizeValue CreateWarpSizeValue(Location location) =>
         Append(new WarpSizeValue(GetInitializer(location)));
 
     /// <summary>
@@ -95,7 +95,7 @@ abstract partial class IRBuilder : DisposeBase, ILocation
     /// </summary>
     /// <param name="location">The current location.</param>
     /// <returns>A reference to the requested value.</returns>
-    public ValueReference CreateLaneIdxValue(Location location) =>
+    public LaneIdxValue CreateLaneIdxValue(Location location) =>
         Append(new LaneIdxValue(GetInitializer(location)));
 
     /// <summary>
@@ -120,7 +120,7 @@ abstract partial class IRBuilder : DisposeBase, ILocation
     /// <param name="location">The current location.</param>
     /// <param name="dimension">The constant dimension.</param>
     /// <returns>A reference to the requested value.</returns>
-    public ValueReference CreateGridIndexValue(
+    public GridIndexValue CreateGridIndexValue(
         Location location,
         DeviceConstantDimension3D dimension)
     {
@@ -160,7 +160,7 @@ abstract partial class IRBuilder : DisposeBase, ILocation
     /// <param name="location">The current location.</param>
     /// <param name="dimension">The constant dimension.</param>
     /// <returns>A reference to the requested value.</returns>
-    public ValueReference CreateGridDimensionValue(
+    public GridDimensionValue CreateGridDimensionValue(
         Location location,
         DeviceConstantDimension3D dimension)
     {
