@@ -31,10 +31,7 @@ namespace ILGPU.Util
         public static unsafe Vector<T> LoadAlignedVectorUnsafe<T>(
             this ReadOnlySpan<T> source)
             where T : struct
-        {
-            void* sourcePtr = Unsafe.AsPointer(ref MemoryMarshal.GetReference(source));
-            return Unsafe.Read<Vector<T>>(sourcePtr);
-        }
+            => Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(source));
 
         /// <summary>
         /// Loads a vector (unsafe) from the given span while assuming proper alignment.
@@ -58,9 +55,6 @@ namespace ILGPU.Util
             this Vector<T> value,
             Span<T> target)
             where T : struct
-        {
-            void* targetPtr = Unsafe.AsPointer(ref MemoryMarshal.GetReference(target));
-            Unsafe.Write(targetPtr, value);
-        }
+            => Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(target)) = value;
     }
 }
