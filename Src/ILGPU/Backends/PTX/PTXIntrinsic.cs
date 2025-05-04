@@ -267,7 +267,7 @@ namespace ILGPU.Backends.PTX
             && (!MaxArchitecture.HasValue ||
                 ptxBackend.Architecture < MaxArchitecture.Value)
             && (!LibDeviceRequired.HasValue ||
-                ptxBackend.NvvmAPI != null == LibDeviceRequired.Value);
+                ptxBackend.IsLibDeviceAvailable == LibDeviceRequired.Value);
 
         #endregion
     }
