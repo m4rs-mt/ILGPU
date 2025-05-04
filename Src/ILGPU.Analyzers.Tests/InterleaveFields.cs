@@ -10,10 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using System.Threading.Tasks;
-using VerifyXunit;
 using Xunit;
 using VerifyCS =
-    ILGPU.Analyzers.Tests.IncrementalGeneratorVerifier<
+    ILGPU.Analyzers.Tests.Generic.IncrementalGeneratorVerifier<
         ILGPU.Analyzers.InterleaveFieldsGenerator>;
 
 namespace ILGPU.Analyzers.Tests
