@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ConvertFloatOperations.tt/ConvertFloatOperations.cs
@@ -34,7 +34,10 @@ namespace ILGPU.Tests
 
 <# foreach (var type in FloatTypes) { #>
 <#      foreach (var targetType in types) { #>
-<#         bool isFP16 = type == FloatTypes[0] || targetType == FloatTypes[0]; #>
+<#         bool isFP843 = type == FloatTypes[0] || targetType == FloatTypes[0]; #>
+<#         bool isFP852 = type == FloatTypes[1] || targetType == FloatTypes[1]; #>
+<#         bool isBFP16 = type == FloatTypes[2] || targetType == FloatTypes[2]; #>
+<#         bool isFP16 = type == FloatTypes[3] || targetType == FloatTypes[3]; #>
 <#         var baseName = "_" + type.Name + "_" + targetType.Name; #>
 <#         var testName = "ConvertOperation" + baseName; #>
 <#         var kernelName = "ConvertOperationKernel" + baseName; #>
@@ -46,7 +49,7 @@ namespace ILGPU.Tests
             b[index] = (<#= targetType.Type #>)a[index];
         }
 
-<#      if (isFP16) { #>
+<#      if (isFP16||isBFP16||isFP843||isFP852) { #>
         [SkippableTheory]
 <#      } else { #>
         [Theory]
@@ -60,6 +63,15 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>(float value)
         {
+<#      if (isFP843) { #>
+            Skip.If(!Accelerator.Capabilities.Float8E4M3);
+<#      } #>
+<#      if (isFP852) { #>
+            Skip.If(!Accelerator.Capabilities.Float8E5M2);
+<#      } #>
+<#      if (isBFP16) { #>
+            Skip.If(!Accelerator.Capabilities.BFloat16);
+<#      } #>
 <#      if (isFP16) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
