@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR;
 using ILGPUC.IR.Values;
 using System.Collections.Generic;
 
@@ -533,71 +532,71 @@ partial class PTXInstructions
         { (TernaryArithmeticKind.MultiplyAdd, ArithmeticBasicValueType.Float64), "fma.rn.f64" },
     };
 
-    private static readonly Dictionary<(AtomicKind, bool), string> AtomicOperations = new()
+    private static readonly Dictionary<(GenericAtomicKind, bool), string> AtomicOperations = new()
     {
-        { (AtomicKind.Add, false), "red.add" },
-        { (AtomicKind.And, false), "red.and" },
-        { (AtomicKind.Or, false), "red.or" },
-        { (AtomicKind.Xor, false), "red.xor" },
-        { (AtomicKind.Max, false), "red.max" },
-        { (AtomicKind.Min, false), "red.min" },
+        { (GenericAtomicKind.Add, false), "red.add" },
+        { (GenericAtomicKind.And, false), "red.and" },
+        { (GenericAtomicKind.Or, false), "red.or" },
+        { (GenericAtomicKind.Xor, false), "red.xor" },
+        { (GenericAtomicKind.Max, false), "red.max" },
+        { (GenericAtomicKind.Min, false), "red.min" },
 
-        { (AtomicKind.Exchange, true), "atom.exch" },
-        { (AtomicKind.Add, true), "atom.add" },
-        { (AtomicKind.And, true), "atom.and" },
-        { (AtomicKind.Or, true), "atom.or" },
-        { (AtomicKind.Xor, true), "atom.xor" },
-        { (AtomicKind.Max, true), "atom.max" },
-        { (AtomicKind.Min, true), "atom.min" },
+        { (GenericAtomicKind.Exchange, true), "atom.exch" },
+        { (GenericAtomicKind.Add, true), "atom.add" },
+        { (GenericAtomicKind.And, true), "atom.and" },
+        { (GenericAtomicKind.Or, true), "atom.or" },
+        { (GenericAtomicKind.Xor, true), "atom.xor" },
+        { (GenericAtomicKind.Max, true), "atom.max" },
+        { (GenericAtomicKind.Min, true), "atom.min" },
     };
 
-    private static readonly Dictionary<(AtomicKind, ArithmeticBasicValueType), string> AtomicOperationsTypes = new()
+    private static readonly Dictionary<(GenericAtomicKind, ArithmeticBasicValueType), string> AtomicOperationsTypes = new()
     {
-        { (AtomicKind.Exchange, ArithmeticBasicValueType.Int32), "b32" },
-        { (AtomicKind.Exchange, ArithmeticBasicValueType.Int64), "b64" },
-        { (AtomicKind.Exchange, ArithmeticBasicValueType.UInt32), "b32" },
-        { (AtomicKind.Exchange, ArithmeticBasicValueType.UInt64), "b64" },
-        { (AtomicKind.Exchange, ArithmeticBasicValueType.Float32), "b32" },
-        { (AtomicKind.Exchange, ArithmeticBasicValueType.Float64), "b64" },
+        { (GenericAtomicKind.Exchange, ArithmeticBasicValueType.Int32), "b32" },
+        { (GenericAtomicKind.Exchange, ArithmeticBasicValueType.Int64), "b64" },
+        { (GenericAtomicKind.Exchange, ArithmeticBasicValueType.UInt32), "b32" },
+        { (GenericAtomicKind.Exchange, ArithmeticBasicValueType.UInt64), "b64" },
+        { (GenericAtomicKind.Exchange, ArithmeticBasicValueType.Float32), "b32" },
+        { (GenericAtomicKind.Exchange, ArithmeticBasicValueType.Float64), "b64" },
 
-        { (AtomicKind.Add, ArithmeticBasicValueType.Int32), "u32" },
-        { (AtomicKind.Add, ArithmeticBasicValueType.Int64), "u64" },
-        { (AtomicKind.Add, ArithmeticBasicValueType.UInt32), "u32" },
-        { (AtomicKind.Add, ArithmeticBasicValueType.UInt64), "u64" },
-        { (AtomicKind.Add, ArithmeticBasicValueType.Float16), "f16" },
-        { (AtomicKind.Add, ArithmeticBasicValueType.Float32), "f32" },
-        { (AtomicKind.Add, ArithmeticBasicValueType.Float64), "f64" },
+        { (GenericAtomicKind.Add, ArithmeticBasicValueType.Int32), "u32" },
+        { (GenericAtomicKind.Add, ArithmeticBasicValueType.Int64), "u64" },
+        { (GenericAtomicKind.Add, ArithmeticBasicValueType.UInt32), "u32" },
+        { (GenericAtomicKind.Add, ArithmeticBasicValueType.UInt64), "u64" },
+        { (GenericAtomicKind.Add, ArithmeticBasicValueType.Float16), "f16" },
+        { (GenericAtomicKind.Add, ArithmeticBasicValueType.Float32), "f32" },
+        { (GenericAtomicKind.Add, ArithmeticBasicValueType.Float64), "f64" },
 
-        { (AtomicKind.And, ArithmeticBasicValueType.Int32), "b32" },
-        { (AtomicKind.And, ArithmeticBasicValueType.Int64), "b64" },
-        { (AtomicKind.And, ArithmeticBasicValueType.UInt32), "b32" },
-        { (AtomicKind.And, ArithmeticBasicValueType.UInt64), "b64" },
-        { (AtomicKind.And, ArithmeticBasicValueType.Float32), "b32" },
-        { (AtomicKind.And, ArithmeticBasicValueType.Float64), "b64" },
+        { (GenericAtomicKind.And, ArithmeticBasicValueType.Int32), "b32" },
+        { (GenericAtomicKind.And, ArithmeticBasicValueType.Int64), "b64" },
+        { (GenericAtomicKind.And, ArithmeticBasicValueType.UInt32), "b32" },
+        { (GenericAtomicKind.And, ArithmeticBasicValueType.UInt64), "b64" },
+        { (GenericAtomicKind.And, ArithmeticBasicValueType.Float32), "b32" },
+        { (GenericAtomicKind.And, ArithmeticBasicValueType.Float64), "b64" },
 
-        { (AtomicKind.Or, ArithmeticBasicValueType.Int32), "b32" },
-        { (AtomicKind.Or, ArithmeticBasicValueType.Int64), "b64" },
-        { (AtomicKind.Or, ArithmeticBasicValueType.UInt32), "b32" },
-        { (AtomicKind.Or, ArithmeticBasicValueType.UInt64), "b64" },
-        { (AtomicKind.Or, ArithmeticBasicValueType.Float32), "b32" },
-        { (AtomicKind.Or, ArithmeticBasicValueType.Float64), "b64" },
+        { (GenericAtomicKind.Or, ArithmeticBasicValueType.Int32), "b32" },
+        { (GenericAtomicKind.Or, ArithmeticBasicValueType.Int64), "b64" },
+        { (GenericAtomicKind.Or, ArithmeticBasicValueType.UInt32), "b32" },
+        { (GenericAtomicKind.Or, ArithmeticBasicValueType.UInt64), "b64" },
+        { (GenericAtomicKind.Or, ArithmeticBasicValueType.Float32), "b32" },
+        { (GenericAtomicKind.Or, ArithmeticBasicValueType.Float64), "b64" },
 
-        { (AtomicKind.Xor, ArithmeticBasicValueType.Int32), "b32" },
-        { (AtomicKind.Xor, ArithmeticBasicValueType.Int64), "b64" },
-        { (AtomicKind.Xor, ArithmeticBasicValueType.UInt32), "b32" },
-        { (AtomicKind.Xor, ArithmeticBasicValueType.UInt64), "b64" },
-        { (AtomicKind.Xor, ArithmeticBasicValueType.Float32), "b32" },
-        { (AtomicKind.Xor, ArithmeticBasicValueType.Float64), "b64" },
+        { (GenericAtomicKind.Xor, ArithmeticBasicValueType.Int32), "b32" },
+        { (GenericAtomicKind.Xor, ArithmeticBasicValueType.Int64), "b64" },
+        { (GenericAtomicKind.Xor, ArithmeticBasicValueType.UInt32), "b32" },
+        { (GenericAtomicKind.Xor, ArithmeticBasicValueType.UInt64), "b64" },
+        { (GenericAtomicKind.Xor, ArithmeticBasicValueType.Float32), "b32" },
+        { (GenericAtomicKind.Xor, ArithmeticBasicValueType.Float64), "b64" },
 
-        { (AtomicKind.Min, ArithmeticBasicValueType.Int32), "s32" },
-        { (AtomicKind.Min, ArithmeticBasicValueType.Int64), "s64" },
-        { (AtomicKind.Min, ArithmeticBasicValueType.UInt32), "u32" },
-        { (AtomicKind.Min, ArithmeticBasicValueType.UInt64), "u64" },
+        { (GenericAtomicKind.Min, ArithmeticBasicValueType.Int32), "s32" },
+        { (GenericAtomicKind.Min, ArithmeticBasicValueType.Int64), "s64" },
+        { (GenericAtomicKind.Min, ArithmeticBasicValueType.UInt32), "u32" },
+        { (GenericAtomicKind.Min, ArithmeticBasicValueType.UInt64), "u64" },
 
-        { (AtomicKind.Max, ArithmeticBasicValueType.Int32), "s32" },
-        { (AtomicKind.Max, ArithmeticBasicValueType.Int64), "s64" },
-        { (AtomicKind.Max, ArithmeticBasicValueType.UInt32), "u32" },
-        { (AtomicKind.Max, ArithmeticBasicValueType.UInt64), "u64" },
+        { (GenericAtomicKind.Max, ArithmeticBasicValueType.Int32), "s32" },
+        { (GenericAtomicKind.Max, ArithmeticBasicValueType.Int64), "s64" },
+        { (GenericAtomicKind.Max, ArithmeticBasicValueType.UInt32), "u32" },
+        { (GenericAtomicKind.Max, ArithmeticBasicValueType.UInt64), "u64" },
     };
 
     private static readonly Dictionary<int, string> VectorSuffixes = new()
