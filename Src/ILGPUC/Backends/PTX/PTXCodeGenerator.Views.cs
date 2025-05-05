@@ -9,106 +9,109 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR;
-using ILGPU.IR.Types;
-using ILGPU.IR.Values;
 using ILGPU.Util;
+using ILGPUC.IR;
+using ILGPUC.IR.Types;
+using ILGPUC.IR.Values;
 using System.Diagnostics;
 
-namespace ILGPU.Backends.PTX
+namespace ILGPUC.Backends.PTX;
+
+partial class PTXCodeGenerator
 {
-    partial class PTXCodeGenerator
+    /// <summary>
+    /// Generates code for <see cref="LoadElementAddress"/> values.
+    /// </summary>
+    public void GenerateCode(LoadElementAddress value)
     {
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(LoadElementAddress)"/>
-        public void GenerateCode(LoadElementAddress value)
+        var elementIndex = LoadPrimitive(value.Offset);
+        var targetAddressRegister = AllocateHardware(value);
+        Debug.Assert(value.IsPointerAccess, "Invalid pointer access");
+
+        var address = LoadPrimitive(value.Source);
+        var sourceType = value.Source.Type.AsNotNullCast<AddressSpaceType>();
+        var elementSize = sourceType.ElementType.Size;
+
+        if (value.Is32BitAccess)
         {
-            var elementIndex = LoadPrimitive(value.Offset);
-            var targetAddressRegister = AllocateHardware(value);
-            Debug.Assert(value.IsPointerAccess, "Invalid pointer access");
-
-            var address = LoadPrimitive(value.Source);
-            var sourceType = value.Source.Type.AsNotNullCast<AddressSpaceType>();
-            var elementSize = sourceType.ElementType.Size;
-
-            if (value.Is32BitAccess)
+            // Perform two efficient operations TODO
+            var offsetRegister = AllocatePlatformRegister(out RegisterDescription _);
+            using (var command = BeginCommand(
+                PTXInstructions.GetLEAMulOperation(PointerArithmeticType)))
             {
-                // Perform two efficient operations TODO
-                var offsetRegister = AllocatePlatformRegister(out RegisterDescription _);
-                using (var command = BeginCommand(
-                    PTXInstructions.GetLEAMulOperation(Backend.PointerArithmeticType)))
-                {
-                    command.AppendArgument(offsetRegister);
-                    command.AppendArgument(elementIndex);
-                    command.AppendConstant(elementSize);
-                }
-
-                using (var command = BeginCommand(
-                    PTXInstructions.GetArithmeticOperation(
-                        BinaryArithmeticKind.Add,
-                        Backend.PointerArithmeticType,
-                        Backend.Capabilities,
-                        false)))
-                {
-                    command.AppendArgument(targetAddressRegister);
-                    command.AppendArgument(address);
-                    command.AppendArgument(offsetRegister);
-                }
-
-                FreeRegister(offsetRegister);
-            }
-            else
-            {
-                // Use an efficient MAD instruction to compute the effective address
-                using var command = BeginCommand(
-                    PTXInstructions.GetArithmeticOperation(
-                        TernaryArithmeticKind.MultiplyAdd,
-                        Backend.PointerArithmeticType));
-                command.AppendArgument(targetAddressRegister);
+                command.AppendArgument(offsetRegister);
                 command.AppendArgument(elementIndex);
                 command.AppendConstant(elementSize);
-                command.AppendArgument(address);
             }
-        }
 
-        /// <summary>
-        /// Creates an address-space cast conversion.
-        /// </summary>
-        /// <param name="sourceRegister">The source register.</param>
-        /// <param name="targetRegister">The target register.</param>
-        /// <param name="sourceAddressSpace">The source address space.</param>
-        /// <param name="targetAddressSpace">The target address space.</param>
-        private void CreateAddressSpaceCast(
-            PrimitiveRegister sourceRegister,
-            HardwareRegister targetRegister,
-            MemoryAddressSpace sourceAddressSpace,
-            MemoryAddressSpace targetAddressSpace)
+            using (var command = BeginCommand(
+                PTXInstructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.Add,
+                    PointerArithmeticType,
+                    Capabilities,
+                    false)))
+            {
+                command.AppendArgument(targetAddressRegister);
+                command.AppendArgument(address);
+                command.AppendArgument(offsetRegister);
+            }
+
+            FreeRegister(offsetRegister);
+        }
+        else
         {
-            var toGeneric = targetAddressSpace == MemoryAddressSpace.Generic;
-            var addressSpaceOperation = PTXInstructions.GetAddressSpaceCast(toGeneric);
-            var addressSpaceOperationSuffix =
-                PTXInstructions.GetAddressSpaceCastSuffix(Backend);
-
-            using var command = BeginCommand(addressSpaceOperation);
-            command.AppendAddressSpace(
-                toGeneric ? sourceAddressSpace : targetAddressSpace);
-            command.AppendSuffix(addressSpaceOperationSuffix);
-            command.AppendArgument(targetRegister);
-            command.AppendArgument(sourceRegister);
+            // Use an efficient MAD instruction to compute the effective address
+            using var command = BeginCommand(
+                PTXInstructions.GetArithmeticOperation(
+                    TernaryArithmeticKind.MultiplyAdd,
+                    PointerArithmeticType));
+            command.AppendArgument(targetAddressRegister);
+            command.AppendArgument(elementIndex);
+            command.AppendConstant(elementSize);
+            command.AppendArgument(address);
         }
+    }
 
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(AddressSpaceCast)"/>
-        public void GenerateCode(AddressSpaceCast value)
-        {
-            var sourceType = value.SourceType.As<AddressSpaceType>(value);
-            var targetAdressRegister = AllocateHardware(value);
-            value.Assert(value.IsPointerCast);
+    /// <summary>
+    /// Creates an address-space cast conversion.
+    /// </summary>
+    /// <param name="sourceRegister">The source register.</param>
+    /// <param name="targetRegister">The target register.</param>
+    /// <param name="sourceAddressSpace">The source address space.</param>
+    /// <param name="targetAddressSpace">The target address space.</param>
+    private void CreateAddressSpaceCast(
+        PrimitiveRegister sourceRegister,
+        HardwareRegister targetRegister,
+        MemoryAddressSpace sourceAddressSpace,
+        MemoryAddressSpace targetAddressSpace)
+    {
+        var toGeneric = targetAddressSpace == MemoryAddressSpace.Generic;
+        var addressSpaceOperation = PTXInstructions.GetAddressSpaceCast(toGeneric);
+        var addressSpaceOperationSuffix =
+            PTXInstructions.GetAddressSpaceCastSuffix(PointerBasicValueType);
 
-            var address = LoadPrimitive(value.Value);
-            CreateAddressSpaceCast(
-                address,
-                targetAdressRegister,
-                sourceType.AddressSpace,
-                value.TargetAddressSpace);
-        }
+        using var command = BeginCommand(addressSpaceOperation);
+        command.AppendAddressSpace(
+            toGeneric ? sourceAddressSpace : targetAddressSpace);
+        command.AppendSuffix(addressSpaceOperationSuffix);
+        command.AppendArgument(targetRegister);
+        command.AppendArgument(sourceRegister);
+    }
+
+    /// <summary>
+    /// Generates code for <see cref="AddressSpaceCast"/> values.
+    /// </summary>
+    public void GenerateCode(AddressSpaceCast value)
+    {
+        var sourceType = value.SourceType.As<AddressSpaceType>(value);
+        var targetAddressRegister = AllocateHardware(value);
+        value.Assert(value.IsPointerCast);
+
+        var address = LoadPrimitive(value.Value);
+        CreateAddressSpaceCast(
+            address,
+            targetAddressRegister,
+            sourceType.AddressSpace,
+            value.TargetAddressSpace);
     }
 }
