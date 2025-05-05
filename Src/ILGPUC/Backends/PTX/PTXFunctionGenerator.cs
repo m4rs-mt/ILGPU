@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXFunctionGenerator.cs
@@ -9,106 +9,92 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR;
-using ILGPU.IR.Analyses;
+using ILGPUC.Backends.PTX.API;
+using ILGPUC.IR;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ILGPU.Backends.PTX
+namespace ILGPUC.Backends.PTX;
+
+/// <summary>
+/// Represents a function generator for helper device functions.
+/// </summary>
+/// <param name="args">The generation arguments.</param>
+/// <param name="method">The current method.</param>
+sealed partial class PTXFunctionGenerator(
+    PTXCodeGenerator.GeneratorArgs args,
+    Method method) : PTXCodeGenerator(args, method)
 {
+    #region Methods
+
     /// <summary>
-    /// Represents a function generator for helper device functions.
+    /// Generates a PTX compatible list of mapped parameters.
     /// </summary>
-    sealed class PTXFunctionGenerator : PTXCodeGenerator
+    /// <param name="targetBuilder">
+    /// The target builder to append the information to.
+    /// </param>
+    private List<MappedParameter> GenerateHeaderDeclaration(
+        StringBuilder targetBuilder)
     {
-        #region Instance
+        var isExternal = Method.HasFlags(MethodFlags.External);
 
-        /// <summary>
-        /// Creates a new PTX function generator.
-        /// </summary>
-        /// <param name="args">The generation arguments.</param>
-        /// <param name="method">The current method.</param>
-        /// <param name="allocas">All local allocas.</param>
-        public PTXFunctionGenerator(
-            in GeneratorArgs args,
-            Method method,
-            Allocas allocas)
-            : base(args, method, allocas)
-        { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Generates a PTX compatible list of mapped parameters.
-        /// </summary>
-        /// <param name="targetBuilder">
-        /// The target builder to append the information to.
-        /// </param>
-        private List<MappedParameter> GenerateHeaderDeclaration(
-            StringBuilder targetBuilder)
+        targetBuilder.AppendLine();
+        if (isExternal)
+            targetBuilder.Append(".extern ");
+        else
+            targetBuilder.Append(".visible ");
+        targetBuilder.Append(".func ");
+        var returnType = Method.ReturnType;
+        if (!returnType.IsVoidType)
         {
-            var isExternal = Method.HasFlags(MethodFlags.External);
-
-            targetBuilder.AppendLine();
-            if (isExternal)
-                targetBuilder.Append(".extern ");
-            else
-                targetBuilder.Append(".visible ");
-            targetBuilder.Append(".func ");
-            var returnType = Method.ReturnType;
-            if (!returnType.IsVoidType)
-            {
-                targetBuilder.Append('(');
-                AppendParamDeclaration(targetBuilder, returnType, ReturnParamName);
-                targetBuilder.Append(") ");
-            }
-            targetBuilder.Append(GetMethodName(Method));
-            targetBuilder.AppendLine("(");
-
-            var setupLogic = new EmptyParameterSetupLogic();
-            var parameters = SetupParameters(targetBuilder, ref setupLogic, 0);
-            targetBuilder.AppendLine();
-            targetBuilder.AppendLine(")");
-
-            return parameters;
+            targetBuilder.Append('(');
+            AppendParamDeclaration(targetBuilder, returnType, ReturnParamName);
+            targetBuilder.Append(") ");
         }
+        targetBuilder.Append(GetMethodName(Method));
+        targetBuilder.AppendLine("(");
 
-        /// <summary>
-        /// Generates a function declaration in PTX code.
-        /// </summary>
-        public override void GenerateHeader(StringBuilder builder)
-        {
-            if (PTXLibDeviceMethods.IsLibDeviceMethod(Method))
-                return;
+        var setupLogic = new EmptyParameterSetupLogic();
+        var parameters = SetupParameters(targetBuilder, ref setupLogic, 0);
+        targetBuilder.AppendLine();
+        targetBuilder.AppendLine(")");
 
-            GenerateHeaderDeclaration(builder);
-            builder.AppendLine(";");
-        }
-
-        /// <summary>
-        /// Generates PTX code.
-        /// </summary>
-        public override void GenerateCode()
-        {
-            if (Method.HasFlags(MethodFlags.External))
-                return;
-
-            var parameters = GenerateHeaderDeclaration(Builder);
-            Builder.AppendLine("{");
-
-            var allocations = SetupAllocations();
-            var registerOffset = Builder.Length;
-
-            // Build param bindings and local memory variables
-            PrepareCodeGeneration();
-            BindAllocations(allocations);
-            BindParameters(parameters);
-
-            GenerateCodeInternal(registerOffset);
-        }
-
-        #endregion
+        return parameters;
     }
+
+    /// <summary>
+    /// Generates a function declaration in PTX code.
+    /// </summary>
+    public override void GenerateHeader(StringBuilder builder)
+    {
+        if (LibDevice.IsLibDeviceMethod(Method))
+            return;
+
+        GenerateHeaderDeclaration(builder);
+        builder.AppendLine(";");
+    }
+
+    /// <summary>
+    /// Generates PTX code.
+    /// </summary>
+    public override void GenerateCode()
+    {
+        if (Method.HasFlags(MethodFlags.External))
+            return;
+
+        var parameters = GenerateHeaderDeclaration(Builder);
+        Builder.AppendLine("{");
+
+        var allocations = SetupAllocations();
+        var registerOffset = Builder.Length;
+
+        // Build param bindings and local memory variables
+        PrepareCodeGeneration();
+        BindAllocations(allocations);
+        BindParameters(parameters);
+
+        GenerateCodeInternal(registerOffset);
+    }
+
+    #endregion
 }
