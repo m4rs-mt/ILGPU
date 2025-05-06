@@ -12,6 +12,7 @@
 using ILGPUC.IR;
 using ILGPUC.IR.Analyses.ControlFlowDirection;
 using ILGPUC.IR.Analyses.TraversalOrders;
+using System.Collections.Generic;
 
 namespace ILGPUC.Frontend;
 
