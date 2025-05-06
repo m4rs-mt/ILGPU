@@ -81,13 +81,13 @@ partial class PTXMath
         return result;
     }
 
-    /// <inheritdoc cref="XMath.Exp2(Float16)" />
-    public static Float16 Exp2Float16(Float16 value)
+    /// <inheritdoc cref="XMath.Exp2(Half)" />
+    public static Half Exp2Float16(Half value)
     {
         if (CudaArchitecture.Current < CudaArchitecture.SM_75)
-            return (Float16)Exp2Float32(value);
+            return (Half)Exp2Float32(value);
 
-        CudaAsm.Emit("ex2.approx.f16 {0}, {1}", out Float16 result, value);
+        CudaAsm.Emit("ex2.approx.f16 {0}, {1}", out Half result, value);
         return result;
     }
 }
