@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR;
 using ILGPUC.IR.Values;
 
 namespace ILGPUC.Frontend.Intrinsic;
@@ -21,7 +20,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static MemoryValue Warp_Barrier(ref InvocationContext context) =>
+    private static ValueReference Warp_Barrier(ref InvocationContext context) =>
         context.Builder.CreateBarrier(context.Location, BarrierKind.WarpLevel);
 
     /// <summary>
@@ -29,36 +28,36 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static MemoryValue Warp_BarrierPopCount(ref InvocationContext context) =>
+    private static ValueReference Warp_BarrierPopCount(ref InvocationContext context) =>
         context.Builder.CreateBarrier(
             context.Location,
-            BarrierKind.WarpLevel,
+            PredicateBarrierKind.WarpLevel,
             context.Pull(),
-            PredicateBarrierKind.PopCount);
+            PredicateBarrierPredicateKind.PopCount);
 
     /// <summary>
     /// Handles warp barrier and operations.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static MemoryValue Warp_BarrierAnd(ref InvocationContext context) =>
+    private static ValueReference Warp_BarrierAnd(ref InvocationContext context) =>
         context.Builder.CreateBarrier(
             context.Location,
-            BarrierKind.WarpLevel,
+            PredicateBarrierKind.WarpLevel,
             context.Pull(),
-            PredicateBarrierKind.And);
+            PredicateBarrierPredicateKind.And);
 
     /// <summary>
     /// Handles warp barrier or operations.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static MemoryValue Warp_BarrierOr(ref InvocationContext context) =>
+    private static ValueReference Warp_BarrierOr(ref InvocationContext context) =>
         context.Builder.CreateBarrier(
             context.Location,
-            BarrierKind.WarpLevel,
+            PredicateBarrierKind.WarpLevel,
             context.Pull(),
-            PredicateBarrierKind.Or);
+            PredicateBarrierPredicateKind.Or);
 
     /// <summary>
     /// Handles warp broadcast operations.
@@ -77,7 +76,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static WarpSizeValue Warp_Dimension(ref InvocationContext context) =>
+    private static ValueReference Warp_Dimension(ref InvocationContext context) =>
         context.Builder.CreateWarpSizeValue(context.Location);
 
     /// <summary>
@@ -85,7 +84,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Warp_Index(ref InvocationContext context)
+    private static ValueReference Warp_WarpIndex(ref InvocationContext context)
     {
         var builder = context.Builder;
         // Get the current group index
@@ -108,7 +107,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static LaneIdxValue Warp_LaneIndex(ref InvocationContext context) =>
+    private static ValueReference Warp_LaneIndex(ref InvocationContext context) =>
         context.Builder.CreateLaneIdxValue(context.Location);
 
     /// <summary>
