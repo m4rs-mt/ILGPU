@@ -37,6 +37,7 @@ private readonly struct FixedIntConfig
     public TypeInformation ToBasicTypeInformation(int variant) => new TypeInformation(
         GetName(variant),
         GetName(variant),
+        Bits * 8,
         TypeInformationKind.SignedInt,
         prefix: "(int)");
 
