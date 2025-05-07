@@ -278,7 +278,7 @@ sealed partial class Block
             {
                 var baseDeclaringType = methodBase.DeclaringType.AsNotNull();
                 var declaringType = Builder.CreateType(baseDeclaringType);
-                if (!Intrinsics.IsIntrinsicArrayType(baseDeclaringType))
+                if (!baseDeclaringType.IsIntrinsicArrayType())
                 {
                     declaringType = Builder.CreatePointerType(
                         declaringType,
