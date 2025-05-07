@@ -38,7 +38,7 @@ partial class IRBuilder
         ref ValueList arguments) =>
         Append(new LanguageEmitValue(
             GetInitializer(location),
-            LanguageKind.PTX,
+            LanguageEmitKind.PTX,
             usingRefParams,
             expressions,
             directions,
