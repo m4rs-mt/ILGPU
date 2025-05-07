@@ -154,9 +154,9 @@ sealed partial class UnaryArithmeticValue : ArithmeticValue
         var type = Value.Type;
         switch (Kind)
         {
-            case UnaryArithmeticKind.IsNaNF:
-            case UnaryArithmeticKind.IsInfF:
-            case UnaryArithmeticKind.IsFinF:
+            case UnaryArithmeticKind.IsNaN:
+            case UnaryArithmeticKind.IsInf:
+            case UnaryArithmeticKind.IsFin:
                 type = initializer.Context.GetPrimitiveType(
                     BasicValueType.Int1);
                 break;
