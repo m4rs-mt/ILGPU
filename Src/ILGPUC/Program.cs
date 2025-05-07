@@ -11,12 +11,12 @@
 
 using System;
 
-namespace ILGPU;
+namespace ILGPUC;
 
 /// <summary>
 /// Main ILGPUC program class.
 /// </summary>
-class ILGPUC
+class Program
 {
     /// <summary>
     /// Main entry point of the ILGPUC command line compiler.
