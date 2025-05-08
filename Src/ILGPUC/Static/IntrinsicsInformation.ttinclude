@@ -200,13 +200,6 @@ public class IntrinsicGenerator
     [XmlAttribute]
     public int NumArguments { get; set; } = -1;
 
-    [XmlElement("Specialization")]
-    public IntrinsicSpecialization[] Specializations { get; set; } =
-        Array.Empty<IntrinsicSpecialization>();
-
-    [XmlIgnore]
-    public bool HasSpecializations => (Specializations?.Length ?? 0) > 0;
-
     [XmlIgnore]
     public bool HasCustomArguments => !string.IsNullOrWhiteSpace(CustomArguments);
 
