@@ -86,4 +86,9 @@ sealed class LibDevice
     /// Returns the current LibDevicePath.
     /// </summary>
     public string LibDevicePath { get; }
+
+    /// <summary>
+    /// Creates a new Nvvm API instance.
+    /// </summary>
+    public NvvmAPI CreateNvvmAPI() => NvvmAPI.Create(LibNvvmPath, LibDevicePath);
 }
