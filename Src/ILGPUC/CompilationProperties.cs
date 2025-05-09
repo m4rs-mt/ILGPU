@@ -145,83 +145,30 @@ enum ArrayMode
 /// <summary>
 /// Defines global context specific properties.
 /// </summary>
-class CompilationProperties
+/// <param name="DebugSymbolsMode">Debug symbols mode to use.</param>
+/// <param name="EnableAssertions">True if assertions are enabled.</param>
+/// <param name="EnableIOOperations">True if IO operations are enabled.</param>
+/// <param name="EnableMathFlushToZero">
+/// True if denorm floats should be flushed to zero.
+/// </param>
+/// <param name="OptimizationLevel">Optimization level to use.</param>
+/// <param name="InliningMode">Inlining mode to use.</param>
+/// <param name="MathMode">Math mode to use.</param>
+/// <param name="StaticFieldMode">Static field mode to use.</param>
+/// <param name="ArrayMode">Array mode to use.</param>
+sealed record class CompilationProperties(
+    DebugSymbolsMode DebugSymbolsMode = DebugSymbolsMode.Default,
+    bool EnableAssertions = true,
+    bool EnableIOOperations = true,
+    bool EnableMathFlushToZero = false,
+    OptimizationLevel OptimizationLevel = OptimizationLevel.O1,
+    InliningMode InliningMode = InliningMode.Aggressive,
+    MathMode MathMode = MathMode.Default,
+    StaticFieldMode StaticFieldMode = StaticFieldMode.Default,
+    ArrayMode ArrayMode = ArrayMode.Default)
 {
-    #region Properties
-
     /// <summary>
     /// Represents the target platform to use.
     /// </summary>
     public TargetPlatform TargetPlatform { get; } = TargetPlatform.Platform64Bit;
-
-    /// <summary>
-    /// Returns the current debug symbols mode.
-    /// </summary>
-    /// <remarks><see cref="DebugSymbolsMode.Default"/> by default.</remarks>
-    public DebugSymbolsMode DebugSymbolsMode { get; protected set; } =
-        DebugSymbolsMode.Default;
-
-    /// <summary>
-    /// Returns true if the internal IR verifier is enabled.
-    /// </summary>
-    /// <remarks>Disabled by default.</remarks>
-    public bool EnableVerifier { get; protected set; }
-
-    /// <summary>
-    /// Returns true if assertions are enabled.
-    /// </summary>
-    /// <remarks>Disabled by default.</remarks>
-    public bool EnableAssertions { get; protected set; }
-
-    /// <summary>
-    /// Returns true if IO is enabled.
-    /// </summary>
-    /// <remarks>Disabled by default.</remarks>
-    public bool EnableIOOperations { get; protected set; }
-
-    /// <summary>
-    /// Returns true if denorm floats should be flushed to zero.
-    /// </summary>
-    /// <remarks>Disabled by default.</remarks>
-    public bool EnableMathFlushToZero { get; protected set; }
-
-    /// <summary>
-    /// The current optimization level to use.
-    /// </summary>
-    /// <remarks><see cref="OptimizationLevel.O1"/> by default.</remarks>
-    public OptimizationLevel OptimizationLevel { get; protected set; } =
-        OptimizationLevel.O2;
-
-    /// <summary>
-    /// The current inlining mode to use.
-    /// </summary>
-    /// <remarks><see cref="InliningMode.Aggressive"/> by default.</remarks>
-    public InliningMode InliningMode { get; protected set; } = InliningMode.Aggressive;
-
-    /// <summary>
-    /// The current math mode.
-    /// </summary>
-    /// <remarks><see cref="MathMode.Default"/> by default.</remarks>
-    public MathMode MathMode { get; protected set; } = MathMode.Default;
-
-    /// <summary>
-    /// Defines how to deal with static fields.
-    /// </summary>
-    /// <remarks><see cref="MathMode.Default"/> by default.</remarks>
-    public StaticFieldMode StaticFieldMode { get; protected set; } =
-        StaticFieldMode.Default;
-
-    /// <summary>
-    /// Defines how to deal with arrays.
-    /// </summary>
-    /// <remarks><see cref="ArrayMode.Default"/> by default.</remarks>
-    public ArrayMode ArrayMode { get; protected set; } =
-        ArrayMode.Default;
-
-    /// <summary>
-    /// Returns the path to LibNVVM DLL.
-    /// </summary>
-    public bool PTXUseLibDevice { get; protected set; }
-
-    #endregion
 }
