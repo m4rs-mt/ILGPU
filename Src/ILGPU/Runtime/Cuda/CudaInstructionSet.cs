@@ -11,6 +11,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace ILGPU.Runtime.Cuda;
 
@@ -24,6 +25,36 @@ public readonly partial struct CudaInstructionSet(int major, int minor) :
     IEquatable<CudaInstructionSet>,
     IComparable<CudaInstructionSet>
 {
+    #region Static
+
+    private static readonly Regex _parsingRegex = ISARegex();
+
+    [GeneratedRegex(@"^(\d+)\.(\d+)$")]
+    private static partial Regex ISARegex();
+
+    /// <summary>
+    /// Tries to parse a Cuda ISA from the given string expression.
+    /// </summary>
+    /// <param name="expression">The string expression.</param>
+    /// <param name="isa">The Cuda ISA (if any).</param>
+    /// <returns>True if an architecture could be parsed from the expression.</returns>
+    public static bool TryParse(string expression, out CudaInstructionSet isa)
+    {
+        var match = _parsingRegex.Match(expression);
+        if (!match.Success)
+        {
+            isa = default;
+            return false;
+        }
+
+        int firstDigit = int.Parse(match.Groups[1].Value);
+        int secondDigit = int.Parse(match.Groups[2].Value);
+        isa = new(firstDigit, secondDigit);
+        return true;
+    }
+
+    #endregion
+
     #region IEquatable
 
     /// <summary>
