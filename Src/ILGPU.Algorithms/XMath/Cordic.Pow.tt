@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Cordic.Pow.tt/Cordic.Pow.cs
@@ -49,8 +49,18 @@ namespace ILGPU.Algorithms
                 // Deal with negative exponents
                 if (value < 0)
                     return 1.0<#= operation.ValueSuffix #> /
-                        Exp(-1.0<#= operation.ValueSuffix #> * value);
+                        ExpImpl(-1.0<#= operation.ValueSuffix #> * value);
 
+                // Deal with positive exponents.
+                return ExpImpl(value);
+            }
+
+            /// <summary>
+            /// NB: Separated implementation to prevent recursive call from handling
+            /// negative values.
+            /// </summary>
+            private static <#= operation.DataType #> ExpImpl(<#= operation.DataType #> value)
+            {
                 // The exponential function is related to hyperbolic functions with the
                 // identity:
                 //  exp(x) = cosh(x) + sinh(x)
