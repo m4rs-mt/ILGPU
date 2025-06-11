@@ -2,20 +2,20 @@ name: CI
 
 on:
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
-  push:
-    paths-ignore:
-      - '.github/workflows/deploy-site.yml'
-      - 'Docs/**'
-      - 'Site/**'
-  pull_request:
-    paths-ignore:
-      - '.github/workflows/deploy-site.yml'
-      - 'Docs/**'
-      - 'Site/**'
-  schedule:
-    # Run daily at 00:00 so we get notified if CI is broken before a pull request
-    # is submitted.
-    - cron:  '0 0 * * *'
+#  push:
+#    paths-ignore:
+#      - '.github/workflows/deploy-site.yml'
+#      - 'Docs/**'
+#      - 'Site/**'
+#  pull_request:
+#    paths-ignore:
+#      - '.github/workflows/deploy-site.yml'
+#      - 'Docs/**'
+#      - 'Site/**'
+#  schedule:
+#    # Run daily at 00:00 so we get notified if CI is broken before a pull request
+#    # is submitted.
+#    - cron:  '0 0 * * *'
 
 env:
   DOTNET_NOLOGO: true
