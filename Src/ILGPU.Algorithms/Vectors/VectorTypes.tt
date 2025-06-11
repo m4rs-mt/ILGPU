@@ -465,9 +465,9 @@ namespace ILGPU.Algorithms.Vectors
         /// <returns>The readonly span instance.</returns>
         public unsafe ReadOnlySpan<<#= type.Type #>> AsSpan() =>
 #if NET8_0_OR_GREATER
-            new(Unsafe.AsPointer(ref Unsafe.AsRef(in this)), <#= vectorLength #>);
+            MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in this), <#= vectorLength #>);
 #else
-            new(Unsafe.AsPointer(ref Unsafe.AsRef(this)), <#= vectorLength #>);
+            MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(this), <#= vectorLength #>);
 #endif
 
         /// <summary>

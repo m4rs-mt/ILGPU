@@ -16,7 +16,6 @@ using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
@@ -33,7 +32,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// The internal arguments pointer.
         /// </summary>
-        private readonly void* argumentsRef;
+        private readonly ref ValueList argumentsRef;
 
         /// <summary>
         /// Constructs a new invocation context.
@@ -58,7 +57,7 @@ namespace ILGPU.Frontend
             CallerMethod = callerMethod;
             Method = method;
 
-            argumentsRef = Unsafe.AsPointer(ref arguments);
+            argumentsRef = ref arguments;
         }
 
         #endregion
@@ -119,7 +118,7 @@ namespace ILGPU.Frontend
         /// Returns the call arguments.
         /// </summary>
         public readonly ref ValueList Arguments =>
-            ref Unsafe.AsRef<ValueList>(argumentsRef);
+            ref argumentsRef;
 
         /// <summary>
         /// Returns the number of arguments.
