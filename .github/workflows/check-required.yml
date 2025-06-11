@@ -4,11 +4,14 @@ name: Check required jobs
 # It checks if the "All required checks done" job was actually successful
 # (and not just skipped) and creates a check run if that is the case. The
 # check run can be used to protect the main branch from being merged if the
-# CI is not passing.
+# CI is not passing. We need to use a GitHub app token to create the check
+# run because otherwise the check suite will be assigned to the first workflow
+# run for the CI, which might not be the latest one. See
+# https://github.com/orgs/community/discussions/24616#discussioncomment-6088422
+# for more details.
 
 on:
   workflow_run:
-    types: [completed]
     workflows:
       - CI
       - Deploy Site with Jekyll, GitHub Pages
@@ -20,41 +23,77 @@ permissions:
 jobs:
   required-jobs:
     name: Check required jobs
+    if: ${{ !github.event.repository.fork }}
+    environment: create-check
     runs-on: ubuntu-latest
     steps:
+      - name: Generate an app token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: actions/github-script@v7
         with:
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
-            // list jobs for worklow run attempt
-            const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRunAttempt({
-              owner: context.payload.repository.owner.login,
-              repo: context.payload.repository.name,
-              run_id: context.payload.workflow_run.id,
-              attempt_number: context.payload.workflow_run.run_attempt,
+            const ghaAppId = 15368;
+            const ghaName = 'All required checks done';
+            const myAppId = ${{ secrets.APP_ID }};
+            const myName = 'All required checks succeeded';
+            const owner = context.payload.repository.owner.login;
+            const repo = context.payload.repository.name;
+            const sha = context.payload.workflow_run.head_sha;
+
+            core.info(`List GitHub Actions check runs for ${sha}.`)
+            const { data: { check_runs: ghaChecks } } = await github.rest.checks.listForRef({
+              owner: owner,
+              repo: repo,
+              ref: sha,
+              app_id: ghaAppId,
+              check_name: ghaName,
             });
-            // check if required job was successful
-            var success = false;
-            core.info(`Checking jobs for workflow run ${context.payload.workflow_run.html_url}`);
-            jobs.forEach(job => {
-              var mark = '-'
-              if (job.name === 'All required checks done' && job.conclusion === 'success') {
-                success = true;
-                mark = '✅';
+
+            var newCheck = {
+              owner: owner,
+              repo: repo,
+              name: myName,
+              head_sha: sha,
+              status: 'in_progress',
+              started_at: context.payload.workflow_run.created_at,
+              output: {
+                title: 'Not all required checks succeeded',
+              },
+            };
+
+            core.summary.addHeading('The following required checks have been considered:', 3);
+            ghaChecks.forEach(check => {
+              core.summary
+                .addLink(check.name, check.html_url)
+                .addCodeBlock(JSON.stringify(check, ['status', 'conclusion', 'started_at', 'completed_at'], 2), 'json');
+
+              if (check.status === 'completed' && check.conclusion === 'success') {
+                newCheck.status = 'completed';
+                newCheck.conclusion = 'success';
+                newCheck.started_at = check.started_at;
+                newCheck.completed_at = check.completed_at;
+                newCheck.output.title = 'All required checks succeeded';
+              } else if (check.started_at > newCheck.started_at) {
+                newCheck.started_at = check.started_at;
               }
-              core.info(`${mark} ${job.name}: ${job.conclusion}`);
             });
-            // create check run if job was successful
-            if (success) {
-              await github.rest.checks.create({
-                owner: context.payload.repository.owner.login,
-                repo: context.payload.repository.name,
-                name: 'All required checks succeeded',
-                head_sha: context.payload.workflow_run.head_sha,
-                status: 'completed',
-                conclusion: 'success',
-                output: {
-                  title: 'All required checks succeeded',
-                  summary: `See [workflow run](${context.payload.workflow_run.html_url}) for details.`,
-                },
-              });
+            if (ghaChecks.length === 0) {
+              core.summary.addRaw(`No check runs for ${sha} found.`);
             }
+            newCheck.output.summary = core.summary.stringify();
+            await core.summary.write();
+
+            core.info(`Create own check run for ${sha}: ${JSON.stringify(newCheck, null, 2)}.`)
+            const { data: { html_url } } = await github.rest.checks.create(newCheck);
+
+            await core.summary
+              .addHeading('Check run created:', 3)
+              .addLink(myName, html_url)
+              .addCodeBlock(JSON.stringify(newCheck, null, 2), 'json')
+              .write();
