@@ -11,11 +11,17 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
-namespace ILGPU.IR.Construction
-{
+namespace ILGPU.IR.Construction {
+
+    public record struct SpecializedMethod(Type? SpecializedInstanceType, MethodBase Underlying) {
+        public Type InstanceType => SpecializedInstanceType ?? Underlying.DeclaringType;
+    }
+
     partial class IRBuilder
     {
         /// <summary>
@@ -77,3 +83,4 @@ namespace ILGPU.IR.Construction
         }
     }
 }
+

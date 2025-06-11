@@ -38,8 +38,7 @@ namespace ILGPU.Frontend.Intrinsic
         {
             var builder = context.Builder;
             var location = context.Location;
-            return context.Method.Name switch
-            {
+            return context.Method.Underlying.Name switch {
                 ".ctor" => CreateNewArray(ref context),
                 "Get" => CreateGetArrayElement(ref context),
                 "Set" => CreateSetArrayElement(ref context),
@@ -56,7 +55,7 @@ namespace ILGPU.Frontend.Intrinsic
                 nameof(Array.Empty) => CreateEmptyArray(ref context),
                 _ => throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedIntrinsic,
-                    context.Method.Name),
+                    context.Method.Underlying.Name),
             };
         }
 
@@ -79,8 +78,7 @@ namespace ILGPU.Frontend.Intrinsic
             }
 
             // Create an array view type of the appropriate dimension
-            var managedElementType =
-                context.Method.DeclaringType.AsNotNull().GetElementType().AsNotNull();
+            var managedElementType = context.Method.InstanceType.AsNotNull().GetElementType().AsNotNull();
             var elementType = builder.CreateType(managedElementType);
             var arrayType = builder.CreateArrayType(elementType, dimension);
 
