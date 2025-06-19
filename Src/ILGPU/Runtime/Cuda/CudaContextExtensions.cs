@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2024 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaContextExtensions.cs
@@ -78,7 +78,7 @@ namespace ILGPU.Runtime.Cuda
         /// The predicate to include a given device.
         /// </param>
         /// <returns>The updated builder instance.</returns>
-        public static Context.Builder CudaInternal(
+        internal static Context.Builder CudaInternal(
             this Context.Builder builder,
             Action<CudaDeviceOverride> configure,
             Predicate<CudaDevice> predicate)

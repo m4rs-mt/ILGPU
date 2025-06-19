@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaDevice.cs
@@ -165,9 +165,6 @@ namespace ILGPU.Runtime.Cuda
             InitMemoryInfo();
             InitMiscInfo();
             InitPCIInfo();
-
-            Capabilities = new CudaCapabilityContext(
-                Architecture ?? CudaArchitecture.SM_30);
         }
 
         /// <summary>
@@ -221,8 +218,11 @@ namespace ILGPU.Runtime.Cuda
                 DeviceId));
             Architecture = GetArchitecture(major, minor);
 
-            if (Architecture.HasValue && CudaAccelerator.TryGetInstructionSet(
-                Architecture.Value,
+            var cudaCapabilities = new CudaCapabilityContext(Architecture.Value);
+            Capabilities = cudaCapabilities;
+
+            if (CudaAccelerator.TryGetInstructionSet(
+                cudaCapabilities.TargetArchitecture,
                 driverVersion,
                 out var _,
                 out var instructionSet))

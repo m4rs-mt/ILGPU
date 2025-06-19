@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2022 ILGPU Project
+//                        Copyright (c) 2016-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CapabilityContext.tt/CapabilityContext.cs
@@ -25,9 +25,15 @@ var commonCapabilities =
     capabilities.Where(x => !x.IsCudaOnly && !x.IsOpenCLOnly).ToArray();
 var cudaCapabilities = capabilities.Where(x => x.IsCudaOnly).ToArray();
 var clCapabilities = capabilities.Where(x => x.IsOpenCLOnly).ToArray();
+
+var cudaPtxVersions =
+    commonCapabilities.Concat(cudaCapabilities)
+    .Select(c => c.Cuda.MinPTX)
+    .Distinct();
 #>
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using ILGPU.Resources;
 
 namespace ILGPU.Runtime
@@ -100,11 +106,27 @@ namespace ILGPU.Runtime.Cuda
 <# foreach (var c in commonCapabilities.Concat(cudaCapabilities)) { #>
             <#= c.Name #> = arch >= CudaArchitecture.<#= c.Cuda.MinPTX #>;
 <# } #>
+
+            // Use the lowest architecture that supports the capabilities of the device.
+            TargetArchitecture =
+                new[] {
+                    (new[] {
+<# foreach (var cudaPtxVersion in cudaPtxVersions) { #>
+                        CudaArchitecture.<#= cudaPtxVersion #>,
+<# } #>
+                    }).Max(),
+                    arch
+                }.Min();
         }
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// The architecture required to support the capabilities.
+        /// </summary>
+        public CudaArchitecture TargetArchitecture { get; internal set; }
 
 <# foreach (var c in cudaCapabilities) { #>
         /// <summary>
