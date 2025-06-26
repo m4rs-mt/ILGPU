@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXBackend.cs
@@ -228,7 +228,7 @@ namespace ILGPU.Backends.PTX
             builder.Append(".version ");
             builder.AppendLine(InstructionSet.ToString());
             builder.Append(".target ");
-            builder.Append(Architecture.ToString().ToLowerInvariant());
+            builder.Append(Capabilities.TargetArchitecture.ToString().ToLowerInvariant());
             if (useDebugInfo)
                 builder.AppendLine(", debug");
             else
