@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2024 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StructureType.cs
@@ -832,7 +832,7 @@ namespace ILGPU.IR.Types
                 builder.Add(convertedType);
                 changed |= convertedType != type;
             }
-            builder.Alignment = Alignment;
+            builder.Alignment = Math.Max(Alignment, builder.Alignment);
 
             // Ensure that we did not lose any fields
             this.Assert(builder.Count >= NumFields);
