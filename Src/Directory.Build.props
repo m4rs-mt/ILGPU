@@ -10,10 +10,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <LibraryVersionPrefix>1.5.2</LibraryVersionPrefix>
-    <LibraryAssemblyVersion>1.5.2.0</LibraryAssemblyVersion>
-    <LibraryFileVersion>1.5.2.0</LibraryFileVersion>
-    <LibraryPackageValidationBaselineVersion>1.5.1</LibraryPackageValidationBaselineVersion>
+    <LibraryVersionPrefix>1.5.3</LibraryVersionPrefix>
+    <LibraryAssemblyVersion>1.5.3.0</LibraryAssemblyVersion>
+    <LibraryFileVersion>1.5.3.0</LibraryFileVersion>
+    <LibraryPackageValidationBaselineVersion>1.5.2</LibraryPackageValidationBaselineVersion>
   </PropertyGroup>
 
   <!-- Unit Test Project Configuration -->
