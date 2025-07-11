@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Optimizer.cs
@@ -97,7 +97,7 @@ namespace ILGPU.IR.Transformations
             this Transformer.Builder builder)
         {
             builder.Add(new LoopInvariantCodeMotion());
-            builder.Add(new LoopUnrolling());
+            // builder.Add(new LoopUnrolling());
             builder.Add(new UnreachableCodeElimination());
             builder.Add(new DeadCodeElimination());
             builder.Add(new SimplifyControlFlow());
