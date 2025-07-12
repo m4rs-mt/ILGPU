@@ -42,15 +42,10 @@ abstract partial class IRBaseContext : DisposeBase
     /// Constructs a new IR context.
     /// </summary>
     /// <param name="properties">The associated properties.</param>
-    /// <param name="verifier">The verifier.</param>
     /// <param name="typeContext">The type context.</param>
-    protected IRBaseContext(
-        CompilationProperties properties,
-        Verifier verifier,
-        IRTypeContext typeContext)
+    protected IRBaseContext(CompilationProperties properties, IRTypeContext typeContext)
     {
         Properties = properties;
-        Verifier = verifier;
         TypeContext = typeContext;
 
         UndefinedValue = new UndefinedValue(
@@ -68,11 +63,6 @@ abstract partial class IRBaseContext : DisposeBase
     /// Returns the main context properties.
     /// </summary>
     public CompilationProperties Properties { get; }
-
-    /// <summary>
-    /// Returns the current verifier instance.
-    /// </summary>
-    public Verifier Verifier { get; }
 
     /// <summary>
     /// Returns the associated type context.
@@ -94,13 +84,9 @@ abstract partial class IRBaseContext : DisposeBase
 /// Constructs a new IR context.
 /// </remarks>
 /// <param name="properties">The associated properties.</param>
-/// <param name="verifier">The verifier.</param>
 /// <param name="typeContext">The type context.</param>
-sealed class IRContext(
-    CompilationProperties properties,
-    Verifier verifier,
-    IRTypeContext typeContext) :
-    IRBaseContext(properties, verifier, typeContext), IDumpable
+sealed class IRContext(CompilationProperties properties, IRTypeContext typeContext) :
+    IRBaseContext(properties, typeContext), IDumpable
 {
     #region Static
 
@@ -495,7 +481,6 @@ sealed class IRContext(
                 exitBlock.CreateReturn(exitValue.Location, exitValue);
                 builder.Complete();
             }
-            Verifier.Verify(targetMethod);
         }
 
         return targetMapping[source];
@@ -516,10 +501,7 @@ sealed class IRContext(
 
         // Apply all transformations
         foreach (var transform in transformer.Transformations)
-        {
             transform.Transform(toTransform);
-            Verifier.Verify(toTransform);
-        }
     }
 
     /// <summary>

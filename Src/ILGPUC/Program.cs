@@ -158,10 +158,7 @@ sealed partial class Program
             foreach (var method in methods)
             {
                 // Get new IR context
-                using var context = new IRContext(
-                    properties,
-                    Verifier.Empty,
-                    typeContext);
+                using var context = new IRContext(properties, typeContext);
 
                 // Generate code
                 frontend.GenerateCode(context, method);
