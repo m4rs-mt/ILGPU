@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaInstructionSet.Generated.tt/CudaInstructionSet.Generated.cs
@@ -29,20 +29,19 @@ var instructionSets =
     .ToArray();
 #>
 
-namespace ILGPU.Runtime.Cuda
+namespace ILGPU.Runtime.Cuda;
+
+partial struct CudaInstructionSet
 {
-    partial struct CudaInstructionSet
-    {
-        #region Constants
+    #region Constants
 
 <# foreach (var isa in instructionSets) { #>
-        /// <summary>
-        /// The <#= isa.Major #>.<#= isa.Minor #> ISA.
-        /// </summary>
-        public static readonly CudaInstructionSet ISA_<#= isa.Major #><#= isa.Minor #> =
-            new CudaInstructionSet(<#= isa.Major #>, <#= isa.Minor #>);
+    /// <summary>
+    /// The <#= isa.Major #>.<#= isa.Minor #> ISA.
+    /// </summary>
+    public static readonly CudaInstructionSet ISA_<#= isa.Major #><#= isa.Minor #> =
+        new CudaInstructionSet(<#= isa.Major #>, <#= isa.Minor #>);
 
 <# } #>
-        #endregion
-    }
+    #endregion
 }

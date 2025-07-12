@@ -147,3 +147,9 @@ dotnet_diagnostic.CA1512.severity = none
 
 # CA1513: Use ObjectDisposedException throw helper
 dotnet_diagnostic.CA1513.severity = none
+
+# CA1305: Specify IFormatProvider
+dotnet_diagnostic.CA1305.severity = none
+
+# CA1308: Normalize strings to uppercase
+dotnet_diagnostic.CA1308.severity = none

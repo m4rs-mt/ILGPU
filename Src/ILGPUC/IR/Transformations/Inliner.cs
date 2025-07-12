@@ -1,0 +1,137 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2018-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Inliner.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPUC.Frontend;
+using ILGPUC.IR.Analyses;
+using ILGPUC.IR.Values;
+using System.Collections.Generic;
+using System.Reflection;
+
+namespace ILGPUC.IR.Transformations;
+
+/// <summary>
+/// Represents a function inliner.
+/// </summary>
+sealed class Inliner : OrderedTransformation
+{
+    /// <summary>
+    /// The maximum number of IL instructions to inline.
+    /// </summary>
+    private const int MaxNumILInstructionsToInline = 32;
+
+    /// <summary>
+    /// Setups inlining attributes.
+    /// </summary>
+    /// <param name="properties">Current compilation properties.</param>
+    /// <param name="method">The current method.</param>
+    /// <param name="disassembledMethod">The disassembled source method.</param>
+    public static void SetupInliningAttributes(
+        CompilationProperties properties,
+        Method method,
+        DisassembledMethod disassembledMethod)
+    {
+        // Check whether we can inline this method
+        if (!method.HasImplementation)
+            return;
+
+        if (method.HasSource)
+        {
+            var source = method.Source;
+            if ((source.MethodImplementationFlags &
+                MethodImplAttributes.NoInlining) ==
+                MethodImplAttributes.NoInlining)
+            {
+                return;
+            }
+
+            if ((source.MethodImplementationFlags &
+                MethodImplAttributes.AggressiveInlining) ==
+                MethodImplAttributes.AggressiveInlining ||
+                source.Module.Name == nameof(ILGPU))
+            {
+                method.AddFlags(MethodFlags.Inline);
+            }
+        }
+
+        // Evaluate a simple inlining heuristic
+        if (properties.InliningMode != InliningMode.Conservative ||
+            disassembledMethod.Instructions.Length <= MaxNumILInstructionsToInline)
+        {
+            method.AddFlags(MethodFlags.Inline);
+        }
+    }
+
+    /// <summary>
+    /// Tries to inline method calls.
+    /// </summary>
+    /// <param name="builder">The current method builder.</param>
+    /// <param name="currentBlock">The current block (may be modified).</param>
+    /// <returns>True, in case of an inlined call.</returns>
+    private static bool InlineCalls(
+        Method.Builder builder,
+        ref BasicBlock currentBlock)
+    {
+        foreach (var valueEntry in currentBlock)
+        {
+            if (valueEntry.Value is not MethodCall call)
+                continue;
+
+            if (call.Target.HasFlags(MethodFlags.Inline))
+            {
+                var blockBuilder = builder[currentBlock];
+                var tempBlock = blockBuilder.SpecializeCall(call);
+
+                // We can continue our search in the temp block
+                currentBlock = tempBlock.BasicBlock;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Applies the inlining transformation.
+    /// </summary>
+    protected override void PerformTransformation(
+        IRContext context,
+        Method.Builder builder,
+        Landscape landscape,
+        Landscape.Entry current)
+    {
+        var processed = builder.SourceBlocks.CreateSet();
+        var toProcess = new Stack<BasicBlock>();
+
+        var currentBlock = builder.EntryBlock;
+
+        while (true)
+        {
+            if (processed.Add(currentBlock))
+            {
+                if (InlineCalls(builder, ref currentBlock))
+                    continue;
+
+                var successors = currentBlock.CurrentSuccessors;
+                if (successors.Length > 0)
+                {
+                    currentBlock = successors[0];
+                    for (int i = 1, e = successors.Length; i < e; ++i)
+                        toProcess.Push(successors[i]);
+                    continue;
+                }
+            }
+
+            if (toProcess.Count < 1)
+                break;
+            currentBlock = toProcess.Pop();
+        }
+    }
+}

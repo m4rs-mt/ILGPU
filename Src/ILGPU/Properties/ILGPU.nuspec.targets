@@ -7,10 +7,12 @@
         <Copyright>Copyright (c) 2016-2025 ILGPU Project. All rights reserved.</Copyright>
         <Company />
         <Authors>Marcel Koester</Authors>
-        <Description>ILGPU Just-In-Time Compiler</Description>
+        <Description>ILGPU Compiler Framework</Description>
         <PackageDescription>
-            ILGPU compiler and runtime library for convenient and high-performance GPU programming in .Net.
-            Samples can be found in the GitHub repository: https://github.com/m4rs-mt/ILGPU/tree/master/Samples
+            ILGPU compiler and runtime library for convenient and high-performance GPU programming
+            in .Net.
+            Samples can be found in the GitHub repository:
+            https://github.com/m4rs-mt/ILGPU/tree/master/Samples
         </PackageDescription>
         <PackageProjectUrl>http://www.ilgpu.net</PackageProjectUrl>
         <PackageReleaseNotes>http://www.ilgpu.net/releases</PackageReleaseNotes>
@@ -24,8 +26,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\LICENSE.txt" Link="Properties\LICENSE.txt" Pack="true" PackagePath="$(PackageLicenseFile)" />
-        <None Include="..\..\LICENSE-3RD-PARTY.txt" Link="Properties\LICENSE-3RD-PARTY.txt" Pack="true" PackagePath="%(Filename)%(Extension)" />
+        <None Include="..\..\LICENSE.txt" Link="Properties\LICENSE.txt" Pack="true"
+            PackagePath="$(PackageLicenseFile)" />
+        <None Include="..\..\LICENSE-3RD-PARTY.txt" Link="Properties\LICENSE-3RD-PARTY.txt"
+            Pack="true" PackagePath="%(Filename)%(Extension)" />
     </ItemGroup>
 
     <!-- Source Link -->
@@ -42,26 +46,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     </ItemGroup>
-
-    <!--
-        Analyzers
-        https://learn.microsoft.com/en-us/nuget/guides/analyzers-conventions
-    -->
-    <ItemGroup>
-        <None Include="..\ILGPU.Analyzers\bin\$(Configuration)\netstandard2.0\ILGPU.Analyzers.dll"
-              Pack="true"
-              PackagePath="analyzers/dotnet/cs"
-              Visible="false" />
-        <None Include="..\ILGPU.Analyzers\Tools\install.ps1"
-              Pack="true"
-              PackagePath="tools"
-              Visible="false" />
-        <None Include="..\ILGPU.Analyzers\Tools\uninstall.ps1"
-              Pack="true"
-              PackagePath="tools"
-              Visible="false" />
-    </ItemGroup>
-
 </Project>

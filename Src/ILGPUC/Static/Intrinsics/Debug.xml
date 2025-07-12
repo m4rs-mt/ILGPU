@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="Debug">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="Assert" Target="Debug_Assert" />
+            <Generator Name="Fail" Target="Debug_Fail" />
+        </Generators>
+    </Type>
+</Intrinsics>

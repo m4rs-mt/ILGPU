@@ -66,10 +66,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
+      - name: Setup the latest .NET 9 SDK
+        uses: actions/setup-dotnet@v4.0.1
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
 
       - name: Check Copyright Headers
         run: |
@@ -133,80 +133,19 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        path: [Src, Samples, Tools]
+        path: [Src, Tools]
       fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
+      - name: Setup the latest .NET 9 SDK
+        uses: actions/setup-dotnet@v4.0.1
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
 
       - name: Build
         run: dotnet build ${{ matrix.path }} --configuration=Release -p:TreatWarningsAsErrors=true
-
-  # Run tests for all supported combinations of OS/library/framework.
-  test-library:
-    needs: setup-os-matrix
-    strategy:
-      matrix:
-        os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
-        library: [ILGPU, ILGPU.Algorithms, ILGPU.Analyzers]
-        framework: [net6.0, net7.0, net8.0]
-        flavor: [CPU, Velocity, Velocity128]
-        exclude:
-          - library: ILGPU.Algorithms
-            flavor: Velocity
-          - library: ILGPU.Algorithms
-            flavor: Velocity128
-          - library: ILGPU.Analyzers
-            flavor: Velocity
-          - library: ILGPU.Analyzers
-            flavor: Velocity128
-          - os: cuda
-            flavor: Velocity
-          - os: cuda
-            flavor: Velocity128
-          - os: cuda
-            library: ILGPU.Analyzers
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup the latest .NET 6 SDK
-        if: matrix.framework == 'net6.0'
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 6.0.x
-
-      - name: Setup the latest .NET 7 SDK
-        if: matrix.framework == 'net7.0'
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 7.0.x
-
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Set test flavor
-        id: test-flavor
-        shell: bash
-        run: |
-          flavor="Tests.${{ matrix.flavor }}"
-          [[ "${{ matrix.os }}" == cuda ]] && flavor="Tests.Cuda"
-          [[ "${{ matrix.library }}" == "ILGPU.Analyzers" ]] && flavor="Tests"
-          echo "flavor=$flavor" >> $GITHUB_OUTPUT
-
-      - name: Build and test
-        run: dotnet test Src/${{ matrix.library }}.${{ steps.test-flavor.outputs.flavor }} --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true
-        env:
-          ILGPU_CLEAN_TESTS: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }}
 
   # Ensure that ILGPU libraries are built using the same version tag.
   check-version:
@@ -255,10 +194,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
+      - name: Setup the latest .NET 9 SDK
+        uses: actions/setup-dotnet@v4.0.1
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
 
       - name: Create NuGet packages
         run: |
@@ -276,66 +215,6 @@ jobs:
           name: nuget-packages
           path: ./Bin/Release/ILGPU*.${{ needs.check-version.outputs.version }}.*nupkg
 
-  # Create the Samples zip file, replacing ILGPU project references with equivalent NuGet package references.
-  package-samples:
-    needs:
-      - check-version
-      - package-library
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 8.0.x
-
-      # Change the ILGPU project references to NuGet package references
-      - name: Update sample references
-        id: package
-        run: .github/workflows/Scripts/UpdateSampleReferences.ps1 -version "${{ needs.check-version.outputs.version }}" -suffix "${{ needs.check-version.outputs.suffix }}"
-
-      # Compress the Samples folder
-      - name: Compress samples
-        run: |
-          $artifactPath = "Samples-${{ needs.check-version.outputs.version }}.zip"
-          Compress-Archive .\Samples\* -DestinationPath $artifactPath
-
-      # Verify that the sample projects can compile after switching to NuGet references
-      - name: Download NuGet package artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages
-          path: local-nuget-packages
-
-      - name: Compile sample projects
-        run: |
-          # Decompress sample projects into temp folder
-          $tempFolder = Join-Path $env:RUNNER_TEMP "TempSamples"
-          Expand-Archive "Samples-*.zip" -DestinationPath $tempFolder
-
-          # Add local nuget packages
-          # NB: We use a fully qualified path because relative paths are relative to the
-          # NuGet.Config file. This could either be the NuGet.Config file in the samples,
-          # or the global NuGet.Config file (if we did not create one in the samples)
-          pushd $tempFolder
-          $repoPath = Resolve-Path (Join-Path $env:GITHUB_WORKSPACE "local-nuget-packages")
-          dotnet nuget add source $repoPath --name "ILGPU Local NuGet Packages"
-
-          # Ensure sample projects can compile
-          dotnet build --configuration=Release -p:TreatWarningsAsErrors=true
-
-          popd
-
-      # Upload samples artifact (for version tags and master branch only)
-      - name: Upload Samples artifact
-        uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && !github.event.repository.fork && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
-        with:
-          name: samples
-          path: ./Samples-*.zip
-
   # Virtual job that can be configured as a required check before a PR can be
   # merged.
   # As GitHub considers a check as successful if it is skipped, we need to
@@ -345,9 +224,7 @@ jobs:
     needs:
       - check-style
       - build
-      - test-library
       - package-library
-      - package-samples
     runs-on: ubuntu-latest
     steps:
       - run: echo "All required checks done"

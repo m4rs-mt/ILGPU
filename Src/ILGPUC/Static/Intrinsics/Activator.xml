@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="Activator">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="CreateInstance" Target="Activator_CreateInstance" NumArguments="0" />
+        </Generators>
+    </Type>
+</Intrinsics>

@@ -1,0 +1,83 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2018-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: SimplifyControlFlow.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPUC.IR.Analyses.ControlFlowDirection;
+using ILGPUC.IR.Analyses.TraversalOrders;
+
+namespace ILGPUC.IR.Transformations;
+
+/// <summary>
+/// Merges multiple sequential branches (a call/branch chain) into a single block.
+/// </summary>
+sealed class SimplifyControlFlow : UnorderedTransformation
+{
+    /// <summary>
+    /// Tries to merge a sequence of jumps.
+    /// </summary>
+    /// <param name="builder">The current method builder.</param>
+    /// <param name="root">The block where to start merging.</param>
+    /// <param name="visited">The collection of visited nodes.</param>
+    /// <returns>True, if something could be merged.</returns>
+    private static void MergeChain(
+        Method.Builder builder,
+        BasicBlock root,
+        ref BasicBlockSet visited)
+    {
+        if (root.Successors.Length != 1 || visited.Contains(root))
+            return;
+
+        // Mark node as seen
+        visited.Add(root);
+
+        // Init initial builder and successors list
+        var rootBlockBuilder = builder[root];
+        var successors = root.Successors;
+
+        do
+        {
+            var nextBlock = successors[0];
+
+            // We cannot merge jump targets in div. control-flow or in the case
+            // of a block that we have already seen
+            if (nextBlock.Predecessors.Length > 1 || visited.Contains(nextBlock))
+                break;
+
+            // Mark next block as seen
+            visited.Add(nextBlock);
+
+            // Merge block
+            successors = nextBlock.Successors;
+            rootBlockBuilder.MergeBlock(nextBlock);
+
+            // Return true as we have changed the IR
+        }
+        while (successors.Length == 1);
+    }
+
+    /// <summary>
+    /// Applies the control-flow simplification transformation.
+    /// </summary>
+    protected override void PerformTransformation(
+        IRContext context,
+        Method.Builder builder)
+    {
+        // We change the control-flow structure during the transformation but
+        // need to get information about previous predecessors and successors
+        builder.AcceptControlFlowUpdates(accept: true);
+
+        BasicBlockCollection<ReversePostOrder, Forwards> blocks =
+            builder.SourceBlocks;
+
+        var visited = blocks.CreateSet();
+        foreach (var block in blocks)
+            MergeChain(builder, block, ref visited);
+    }
+}

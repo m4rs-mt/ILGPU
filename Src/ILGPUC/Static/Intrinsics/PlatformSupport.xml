@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="System.Runtime.Intrinsics.X86.X86Base">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.X86Base.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Lzcnt">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Lzcnt.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse2">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse2.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse3">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse3.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Ssse3">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Ssse3.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse41">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse41.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse42">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Sse42.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Avx">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Avx.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Avx2">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Avx2.X64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Avx10v1" Frameworks="NET9_0_OR_GREATER">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.X86.Avx10v1.X64" Frameworks="NET9_0_OR_GREATER">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.Wasm.PackedSimd">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.Wasm" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.Arm.ArmBase">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.Arm32" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.Arm.ArmBase.Arm64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.Arm64" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.Arm.AdvSimd">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.Arm32" />
+        </Remapping>
+    </Type>
+    <Type Name="System.Runtime.Intrinsics.Arm.AdvSimd.Arm64">
+        <Remapping>
+            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.Arm64" />
+        </Remapping>
+    </Type>
+    <Type Name="ILGPU.Runtime.Accelerator">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="get_CurrentType" Target="Accelerator_CurrentType" />
+        </Generators>
+    </Type>
+</Intrinsics>

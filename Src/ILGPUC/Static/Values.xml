@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Values>
+    <Group Name="Addresses">
+        <Value Type="LoadElementAddress" Implementation="LoadElementAddress" />
+        <Value Type="LoadFieldAddress" Implementation="LoadFieldAddress" />
+    </Group>
+    <Group Name="Arithmetic">
+        <Value Type="UnaryArithmetic" Implementation="UnaryArithmeticValue">
+            <Property Name="Kind">
+                <PropertyValue Name="Abs" />
+                <PropertyValue Name="Acos" />
+                <PropertyValue Name="Acosh" />
+                <PropertyValue Name="Asin" />
+                <PropertyValue Name="Asinh" />
+                <PropertyValue Name="Atan" />
+                <PropertyValue Name="Atanh" />
+                <PropertyValue Name="CLZ" />
+                <PropertyValue Name="CTZ" />
+                <PropertyValue Name="Ceiling" />
+                <PropertyValue Name="Cos" />
+                <PropertyValue Name="Cosh" />
+                <PropertyValue Name="Exp2" />
+                <PropertyValue Name="Exp" />
+                <PropertyValue Name="Floor" />
+                <PropertyValue Name="IsFin" />
+                <PropertyValue Name="IsInf" />
+                <PropertyValue Name="IsNaN" />
+                <PropertyValue Name="Log10" />
+                <PropertyValue Name="Log2" />
+                <PropertyValue Name="Log" />
+                <PropertyValue Name="Neg" />
+                <PropertyValue Name="Not" />
+                <PropertyValue Name="PopC" />
+                <PropertyValue Name="Rcp" />
+                <PropertyValue Name="Rsqrt" />
+                <PropertyValue Name="Sin" />
+                <PropertyValue Name="Sinh" />
+                <PropertyValue Name="Sqrt" />
+                <PropertyValue Name="Tan" />
+                <PropertyValue Name="Tanh" />
+            </Property>
+        </Value>
+        <Value Type="BinaryArithmetic" Implementation="BinaryArithmeticValue">
+            <Property Name="Kind">
+                <PropertyValue Name="Add" />
+                <PropertyValue Name="And" />
+                <PropertyValue Name="Atan2" />
+                <PropertyValue Name="BinaryLog" />
+                <PropertyValue Name="CopySign" />
+                <PropertyValue Name="Div" />
+                <PropertyValue Name="IEEERemainder" />
+                <PropertyValue Name="Max" />
+                <PropertyValue Name="Min" />
+                <PropertyValue Name="Mul" />
+                <PropertyValue Name="Or" />
+                <PropertyValue Name="Pow" />
+                <PropertyValue Name="Rem" />
+                <PropertyValue Name="Shl" />
+                <PropertyValue Name="Shr" />
+                <PropertyValue Name="Sub" />
+                <PropertyValue Name="Xor" />
+            </Property>
+        </Value>
+        <Value Type="TernaryArithmetic" Implementation="TernaryArithmeticValue">
+            <Property Name="Kind">
+                <PropertyValue Name="MultiplyAdd" />
+            </Property>
+        </Value>
+        <Value Type="Compare" Implementation="CompareValue">
+            <Property Name="Kind">
+                <PropertyValue Name="Equal" />
+                <PropertyValue Name="NotEqual" />
+                <PropertyValue Name="LessThan" />
+                <PropertyValue Name="LessEqual" />
+                <PropertyValue Name="GreaterThan" />
+                <PropertyValue Name="GreaterEqual" />
+            </Property>
+        </Value>
+        <Value Type="Convert" Implementation="ConvertValue" />
+        <Value Type="Predicate" Implementation="Predicate" />
+    </Group>
+    <Group Name="Arrays">
+        <Value Type="Array" Implementation="NewArray" />
+        <Value Type="GetArrayLength" Implementation="GetArrayLength" />
+        <Value Type="LoadArrayElementAddress" Implementation="LoadArrayElementAddress" />
+        <Value Type="ArrayToViewCast" Implementation="ArrayToViewCast" />
+    </Group>
+    <Group Name="Atomic">
+        <Value Type="GenericAtomic" Implementation="GenericAtomic">
+            <Property Name="Kind">
+                <PropertyValue Name="Exchange" />
+                <PropertyValue Name="Add" />
+                <PropertyValue Name="And" />
+                <PropertyValue Name="Or" />
+                <PropertyValue Name="Xor" />
+                <PropertyValue Name="Max" />
+                <PropertyValue Name="Min" />
+            </Property>
+        </Value>
+        <Value Type="AtomicCAS" Implementation="AtomicCAS" />
+    </Group>
+    <Group Name="Casts">
+        <Value Type="PointerCast" Implementation="PointerCast" />
+        <Value Type="AddressSpaceCast" Implementation="AddressSpaceCast" />
+        <Value Type="IntAsPointerCast" Implementation="IntAsPointerCast" />
+        <Value Type="PointerAsIntCast" Implementation="PointerAsIntCast" />
+        <Value Type="FloatAsIntCast" Implementation="FloatAsIntCast" />
+        <Value Type="IntAsFloatCast" Implementation="IntAsFloatCast" />
+    </Group>
+    <Group Name="Constants">
+        <Value Type="Null" Implementation="NullValue" />
+        <Value Type="Primitive" Implementation="PrimitiveValue" />
+        <Value Type="String" Implementation="StringValue" />
+        <Value Type="AcceleratorType" Implementation="AcceleratorTypeValue" />
+        <Value Type="GridIndex" Implementation="GridIndexValue" />
+        <Value Type="GroupIndex" Implementation="GroupIndexValue" />
+        <Value Type="GridDimension" Implementation="GridDimensionValue" />
+        <Value Type="GroupDimension" Implementation="GroupDimensionValue" />
+        <Value Type="WarpSize" Implementation="WarpSizeValue" />
+        <Value Type="LaneIdx" Implementation="LaneIdxValue" />
+        <Value Type="DynamicMemoryLength" Implementation="DynamicMemoryLengthValue" />
+    </Group>
+    <Group Name="Debugging">
+        <Value Type="DebugAssert" Implementation="DebugAssertOperation" />
+    </Group>
+    <Group Name="Internal">
+        <Value Type="Undefined" Implementation="UndefinedValue" />
+        <Value Type="BuilderTerminator" Implementation="BuilderTerminator" />
+        <Value Type="Handle" Implementation="HandleValue" />
+    </Group>
+    <Group Name="IO">
+        <Value Type="WriteToOutput" Implementation="WriteToOutput" />
+    </Group>
+    <Group Name="Language">
+        <Value Type="LanguageEmit" Implementation="LanguageEmitValue">
+            <Property Name="Kind">
+                <PropertyValue Name="PTX" />
+            </Property>
+        </Value>
+    </Group>
+    <Group Name="Memory">
+        <Value Type="Alloca" Implementation="Alloca" />
+        <Value Type="MemoryBarrier" Implementation="MemoryBarrier">
+            <Property Name="Kind">
+                <PropertyValue Name="GroupLevel" />
+                <PropertyValue Name="DeviceLevel" />
+                <PropertyValue Name="SystemLevel" />
+            </Property>
+        </Value>
+        <Value Type="Load" Implementation="Load" />
+        <Value Type="Store" Implementation="Store" />
+        <Value Type="Phi" Implementation="PhiValue" />
+    </Group>
+    <Group Name="Methods">
+        <Value Type="Call" Implementation="MethodCall" />
+        <Value Type="Parameter" Implementation="Parameter" />
+    </Group>
+    <Group Name="Structures">
+        <Value Type="Structure" Implementation="StructureValue" />
+        <Value Type="GetField" Implementation="GetField" />
+        <Value Type="SetField" Implementation="SetField" />
+    </Group>
+    <Group Name="Terminators">
+        <Value Type="Return" Implementation="ReturnTerminator" />
+        <Value Type="UnconditionalBranch" Implementation="UnconditionalBranch" />
+        <Value Type="IfBranch" Implementation="IfBranch" />
+        <Value Type="SwitchBranch" Implementation="SwitchBranch" />
+    </Group>
+    <Group Name="Threads">
+        <Value Type="Barrier" Implementation="Barrier">
+            <Property Name="Kind">
+                <PropertyValue Name="WarpLevel"
+                    Description="A barrier that operates on warp level." />
+                <PropertyValue Name="GroupLevel"
+                    Description="A barrier that operates on group level." />
+            </Property>
+        </Value>
+        <Value Type="Broadcast" Implementation="Broadcast">
+            <Property Name="Kind">
+                <PropertyValue Name="WarpLevel"
+                    Description="A broadcast operation that operates on warp level." />
+                <PropertyValue Name="GroupLevel"
+                    Description="A broadcast operation that operates on group level." />
+            </Property>
+        </Value>
+        <Value Type="PredicateBarrier" Implementation="PredicateBarrier">
+            <Property Name="Kind">
+                <PropertyValue Name="WarpLevel"
+                    Description="A predicate barrier that operates on warp level." />
+                <PropertyValue Name="GroupLevel"
+                    Description="A predicate barrier that operates on group level." />
+            </Property>
+            <Property Name="PredicateKind">
+                <PropertyValue Name="PopCount"
+                    Description="Returns the number of threads in the group for which the predicate evaluates to true." />
+                <PropertyValue Name="And"
+                    Description="Returns the logical and result of the predicate of all threads in the group." />
+                <PropertyValue Name="Or"
+                    Description="Returns the logical or result of the predicate of all threads in the group." />
+            </Property>
+        </Value>
+        <Value Type="Shuffle" Implementation="WarpShuffle">
+            <Property Name="Kind">
+                <PropertyValue Name="Generic"
+                    Description="A generic shuffle operation." />
+                <PropertyValue Name="Down"
+                    Description="A down-shuffle operation." />
+                <PropertyValue Name="Up"
+                    Description="An up-shuffle operation." />
+                <PropertyValue Name="Xor"
+                    Description="An xor-shuffle operation." />
+            </Property>
+        </Value>
+    </Group>
+    <Group Name="Views">
+        <Value Type="NewView" Implementation="NewView" />
+        <Value Type="GetViewLength" Implementation="GetViewLength" />
+        <Value Type="AlignTo" Implementation="AlignTo" />
+        <Value Type="AsAligned" Implementation="AsAligned" />
+        <Value Type="SubView" Implementation="SubViewValue" />
+        <Value Type="ViewCast" Implementation="ViewCast" />
+    </Group>
+</Values>

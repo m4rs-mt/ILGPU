@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CapabilityContext.tt/CapabilityContext.cs
@@ -82,51 +82,6 @@ namespace ILGPU.Runtime.CPU
 <# } #>
         }
 
-        #endregion
-    }
-}
-
-namespace ILGPU.Runtime.Velocity
-{
-    /// <summary>
-    /// Represents capabilities available to the Velocity accelerator.
-    /// </summary>
-    public sealed class VelocityCapabilityContext : CapabilityContext
-    {
-        #region Instance
-
-        internal VelocityCapabilityContext()
-        {
-<# foreach (var c in velocityCapabilities.Concat(commonCapabilities)) { #>
-            <#= c.Name #> = <#= c.Velocity.Supported ? "true" : "false" #>;
-<# } #>
-        }
-
-        #endregion
-
-        #region Properties
-
-<# foreach (var c in velocityCapabilities) { #>
-        /// <summary>
-        /// <#= c.Summary #>
-        /// </summary>
-        public bool <#= c.Name #> { get; internal set; }
-
-<# } #>
-        #endregion
-
-        #region Methods
-
-<# foreach (var c in velocityCapabilities) { #>
-        /// <summary>
-        /// Creates exception for '<#= c.Name #>'.
-        /// </summary>
-        public static Exception GetNotSupported<#= c.Name #>Exception() =>
-            new CapabilityNotSupportedException(
-                string.Format(ErrorMessages.CapabilityNotSupported,
-                    "<#= c.FeatureName #>"));
-
-<# } #>
         #endregion
     }
 }

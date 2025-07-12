@@ -1,0 +1,581 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2018-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BasicBlock.Builder.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU;
+using ILGPU.Util;
+using ILGPUC.IR.Construction;
+using ILGPUC.IR.Types;
+using ILGPUC.IR.Values;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using ValueList = ILGPU.Util.InlineList<ILGPUC.IR.Values.ValueReference>;
+
+namespace ILGPUC.IR;
+
+[SuppressMessage(
+    "Design",
+    "CA1001:Types that own disposable fields should be disposable",
+    Justification = "Handled in Method.Builder.Dispose(bool)")]
+partial class BasicBlock
+{
+    /// <summary>
+    /// Represents a basic block builder.
+    /// </summary>
+    internal sealed class Builder :
+        IRBuilder,
+        IEnumerable<ValueEntry>,
+        IDumpable
+    {
+        #region Instance
+
+        /// <summary>
+        /// A local cache of the value list.
+        /// </summary>
+        private List<ValueReference> _values;
+
+        /// <summary>
+        /// A collection of values to remove
+        /// </summary>
+        private readonly HashSet<Value> _toRemove = [];
+
+        /// <summary>
+        /// The current insert position for new instructions.
+        /// </summary>
+        private int _insertPosition;
+
+        /// <summary>
+        /// Constructs a new builder.
+        /// </summary>
+        /// <param name="methodBuilder">The parent method builder.</param>
+        /// <param name="block">The parent block.</param>
+        internal Builder(Method.Builder methodBuilder, BasicBlock block)
+            : base(block)
+        {
+            MethodBuilder = methodBuilder;
+
+            _values = block._values;
+            _insertPosition = Count;
+            block.CompactTerminator();
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the parent function builder.
+        /// </summary>
+        public Method.Builder MethodBuilder { get; }
+
+        /// <summary>
+        /// Gets or sets the current terminator.
+        /// </summary>
+        public TerminatorValue? Terminator
+        {
+            get => BasicBlock.Terminator;
+            set
+            {
+                if (value != null)
+                    value.BasicBlock = BasicBlock;
+                MethodBuilder.ScheduleControlFlowUpdate(Terminator, value);
+                BasicBlock.Terminator = value;
+            }
+        }
+
+        /// <summary>
+        /// Returns the number of attached values.
+        /// </summary>
+        public int Count => Values.Count;
+
+        /// <summary>
+        /// Gets or sets the current value list.
+        /// </summary>
+        private List<ValueReference> Values
+        {
+            get => _values;
+            set => BasicBlock._values = _values = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the current insert position for new instructions.
+        /// </summary>
+        public int InsertPosition
+        {
+            get => _insertPosition;
+            set
+            {
+                this.Assert(value >= 0 && value <= Count);
+                _insertPosition = value;
+            }
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Sets the insert position to the index stored in the given value entry.
+        /// </summary>
+        /// <param name="valueEntry">The value entry.</param>
+        public void SetupInsertPosition(ValueEntry valueEntry) =>
+            InsertPosition = valueEntry.Index + 1;
+
+        /// <summary>
+        /// Sets the insert position to the start of the current value list.
+        /// </summary>
+        public void SetupInsertPositionToStart() =>
+            InsertPosition = 0;
+
+        /// <summary>
+        /// Sets the insert position to the end of the current value list.
+        /// </summary>
+        public void SetupInsertPositionToEnd() =>
+            InsertPosition = Values.Count;
+
+        /// <summary>
+        /// Sets the insert position to the index stored in the given value entry.
+        /// </summary>
+        /// <param name="value">The value entry.</param>
+        public void SetupInsertPosition(Value value)
+        {
+            this.Assert(value.BasicBlock == BasicBlock);
+            InsertPosition = Values.IndexOf(value);
+        }
+
+        /// <summary>
+        /// Inserts the given value at the beginning of this block.
+        /// </summary>
+        /// <param name="value">The value to add.</param>
+        public void InsertAtBeginning(Value value)
+        {
+            this.AssertNotNull(value);
+            this.Assert(value.BasicBlock == BasicBlock);
+
+            Values.Insert(0, value);
+            ++InsertPosition;
+        }
+
+        /// <summary>
+        /// Adds the given value to this block.
+        /// </summary>
+        /// <param name="value">The value to add.</param>
+        public void Add(Value value)
+        {
+            this.AssertNotNull(value);
+            this.Assert(value.BasicBlock == BasicBlock);
+
+            if (_insertPosition < Count)
+                Values.Insert(_insertPosition, value);
+            else
+                Values.Add(value);
+            ++_insertPosition;
+        }
+
+        /// <summary>
+        /// Adds the given value from another block to this block.
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        public void AddFromOtherBlock(Value value)
+        {
+            this.AssertNotNull(value);
+            this.AssertNotNull(value.BasicBlock);
+            this.Assert(value.BasicBlock.Method == Method);
+            this.Assert(value.BasicBlock != BasicBlock);
+
+            var otherBuilder = MethodBuilder[value.BasicBlock];
+            otherBuilder.PerformRemoval();
+            otherBuilder._values.Remove(value);
+
+            value.BasicBlock = this;
+            Add(value);
+        }
+
+        /// <summary>
+        /// Removes all operations of this block (including the terminator).
+        /// </summary>
+        public void Clear()
+        {
+            foreach (var reference in Values)
+                _toRemove.Add(reference.DirectTarget);
+            if (Terminator != null)
+                _toRemove.Add(Terminator);
+        }
+
+        /// <summary>
+        /// Clears all attached values (except the terminator).
+        /// </summary>
+        internal void ClearLists()
+        {
+            Values.Clear();
+            _toRemove.Clear();
+        }
+
+        /// <summary>
+        /// Schedules the given value for removal.
+        /// </summary>
+        /// <param name="value">The value to remove.</param>
+        public void Remove(Value value)
+        {
+            this.AssertNotNull(value);
+            this.Assert(value.BasicBlock == BasicBlock);
+
+            _toRemove.Add(value);
+        }
+
+        /// <summary>
+        /// Applies all scheduled removal operations.
+        /// </summary>
+        private void PerformRemoval()
+        {
+            if (_toRemove.Count < 1)
+                return;
+            var newValues = new List<ValueReference>(
+                XMath.Max(Count - _toRemove.Count, 0));
+            PerformRemoval(newValues);
+            Values = newValues;
+        }
+
+        /// <summary>
+        /// Applies all scheduled removal operations by adding them to
+        /// the given <paramref name="targetCollection"/>.
+        /// </summary>
+        /// <param name="targetCollection">
+        /// The target collection to which all elements will be appended.
+        /// </param>
+        private void PerformRemoval<TCollection>(TCollection targetCollection)
+            where TCollection : ICollection<ValueReference>
+        {
+            for (int i = 0, e = Count; i < e; ++i)
+            {
+                var valueRef = _values[i];
+                var directTarget = valueRef.DirectTarget;
+                if (_toRemove.Contains(directTarget) ||
+                    directTarget.IsReplaced &&
+                    _toRemove.Contains(valueRef.Resolve()))
+                {
+                    // Replace if possible
+                    if (!directTarget.IsReplaced)
+                        directTarget.Replace(CreateUndefined());
+                    continue;
+                }
+                targetCollection.Add(valueRef);
+            }
+
+            // Check whether we can replace this terminator
+            if (Terminator != null &&
+                !Terminator.IsReplaced &&
+                _toRemove.Contains(Terminator))
+            {
+                Terminator.Replace(CreateUndefined());
+            }
+
+            _toRemove.Clear();
+        }
+
+        /// <summary>
+        /// Updates phi values in the current block to point to the new blocks
+        /// instead.
+        /// </summary>
+        /// <typeparam name="TArgumentRemapper">The argument mapper type.</typeparam>
+        /// <param name="remapper">The remapper to use.</param>
+        public void RemapPhiArguments<TArgumentRemapper>(TArgumentRemapper remapper)
+            where TArgumentRemapper : struct, PhiValue.IArgumentRemapper
+        {
+            foreach (ValueEntry value in this)
+            {
+                if (!(value.Value is PhiValue phiValue))
+                    continue;
+                SetupInsertPosition(value);
+                phiValue.RemapArguments(MethodBuilder, remapper);
+            }
+        }
+
+        /// <summary>
+        /// Updates phi values in the supplied blocks to point to the new blocks
+        /// instead.
+        /// </summary>
+        /// <typeparam name="TArgumentRemapper">The argument mapper type.</typeparam>
+        /// <param name="blocks">
+        /// The blocks containing phi values to be updated.
+        /// </param>
+        /// <param name="remapper">The remapper to use.</param>
+        public void RemapPhiArguments<TArgumentRemapper>(
+            ReadOnlySpan<BasicBlock> blocks,
+            TArgumentRemapper remapper)
+            where TArgumentRemapper : struct, PhiValue.IArgumentRemapper
+        {
+            foreach (var block in blocks)
+            {
+                var blockBuilder = MethodBuilder[block];
+                blockBuilder.RemapPhiArguments(remapper);
+            }
+        }
+
+        /// <summary>
+        /// Updates the type of the given phi value.
+        /// </summary>
+        /// <typeparam name="TTypeConverter">The type converter.</typeparam>
+        /// <param name="phiValue">The phi value.</param>
+        /// <param name="typeConverter">The type converter instance.</param>
+        public void UpdatePhiType<TTypeConverter>(
+            PhiValue phiValue,
+            TTypeConverter typeConverter)
+            where TTypeConverter : ITypeConverter<TypeNode> =>
+            phiValue.UpdateType(TypeContext, typeConverter);
+
+        /// <summary>
+        /// Specializes a function call.
+        /// </summary>
+        /// <param name="call">The call to specialize.</param>
+        /// <returns>The created target block.</returns>
+        public Builder SpecializeCall(MethodCall call)
+        {
+            // Perform local rebuilding step
+            var callTarget = call.Target;
+            var tempBlock = SplitBlock(call);
+            var mapping = callTarget.CreateParameterMapping(call.Nodes);
+            var rebuilder = MethodBuilder.CreateRebuilder<IRRebuilder.InlineMode>(
+                mapping,
+                callTarget.Blocks);
+            var (exitBlock, exitValue) = rebuilder.Rebuild();
+
+            // Wire current block with new entry block
+            CreateBranch(
+                call.Location,
+                rebuilder.EntryBlock.BasicBlock);
+
+            // Replace call with the appropriate return value
+            call.Replace(exitValue);
+
+            // Unlink call node from the current block
+            Remove(call);
+
+            // Wire exit block with temp block
+            exitBlock.CreateBranch(call.Location, tempBlock.BasicBlock);
+
+            return tempBlock;
+        }
+
+        /// <summary>
+        /// Splits the current block at the given value.
+        /// </summary>
+        /// <param name="splitPoint">The split point.</param>
+        /// <returns>The created temporary block.</returns>
+        public Builder SplitBlock(Value splitPoint)
+        {
+            PerformRemoval();
+            this.AssertNotNull(splitPoint);
+
+            // Create a new basic block to jump to
+            var valueIndex = Values.IndexOf(splitPoint);
+            this.Assert(valueIndex >= 0);
+
+            // Create temp block and move instructions
+            var tempBlock = MethodBuilder.CreateBasicBlock(
+                splitPoint.Location,
+                BasicBlock.Name + "'");
+            for (int i = valueIndex + 1, e = Count; i < e; ++i)
+            {
+                Value valueToMove = Values[i];
+                valueToMove.BasicBlock = tempBlock.BasicBlock;
+                tempBlock.Add(valueToMove);
+            }
+            while (Count > valueIndex)
+                Values.RemoveAt(Count - 1);
+
+            // Adjust terminators
+            tempBlock.Terminator = Terminator;
+            Terminator = null;
+            CreateBranch(
+                splitPoint.Location,
+                tempBlock.BasicBlock);
+
+            // Update phi blocks
+            RemapPhiArguments(
+                tempBlock.BasicBlock.CurrentSuccessors,
+                new PhiValue.BlockRemapper(BasicBlock, tempBlock.BasicBlock));
+
+            return tempBlock;
+        }
+
+        /// <summary>
+        /// Merges the given block into the current one.
+        /// </summary>
+        /// <param name="other">The other block to merge.</param>
+        public void MergeBlock(BasicBlock other)
+        {
+            this.AssertNotNull(other);
+            this.Assert(other != BasicBlock);
+
+            var otherBuilder = MethodBuilder[other];
+
+            int offset = Count;
+            otherBuilder.PerformRemoval(_values);
+
+            // Attach values to another block
+            for (; offset < Count; ++offset)
+            {
+                Value movedValue = _values[offset];
+                movedValue.BasicBlock = BasicBlock;
+            }
+            otherBuilder.ClearLists();
+
+            // Wire terminators
+            Terminator = other.Terminator;
+
+            // Update phi blocks
+            RemapPhiArguments(
+                other.CurrentSuccessors,
+                new PhiValue.BlockRemapper(other, BasicBlock));
+        }
+
+        /// <summary>
+        /// Replaces the given value with a call to the provided function.
+        /// </summary>
+        /// <param name="value">The value to replace.</param>
+        /// <param name="implementationMethod">
+        /// The target implementation method.
+        /// </param>
+        public void ReplaceWithCall(Value value, Method implementationMethod)
+        {
+            this.AssertNotNull(value);
+            this.Assert(value.BasicBlock == BasicBlock);
+            this.AssertNotNull(implementationMethod);
+            this.Assert(BasicBlock.Method != implementationMethod);
+
+            int oldPosition = InsertPosition;
+            SetupInsertPosition(value);
+
+            var arguments = ValueList.Empty;
+            value.Nodes.CopyTo(ref arguments);
+            var call = CreateCall(
+                value.Location,
+                implementationMethod,
+                ref arguments);
+            value.Replace(call);
+            Remove(value);
+
+            InsertPosition = oldPosition;
+        }
+
+        /// <summary>
+        /// Tries to find the first value of the given type that fulfills the given
+        /// predicate in this block.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <param name="predicate">The predicate.</param>
+        /// <param name="entry">
+        /// The result pair consisting of a value index and the matched value itself.
+        /// </param>
+        /// <returns>True, if a value could be matched.</returns>
+        public bool TryFindFirstValueOf<T>(
+            Predicate<T> predicate,
+            out (int Index, T Value) entry)
+            where T : Value
+        {
+            entry = default;
+            for (int i = 0, e = Values.Count; i < e; ++i)
+            {
+                if (Values[i].Resolve() is T tValue && predicate(tValue))
+                {
+                    entry = (i, tValue);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary cref="IRBuilder.CreateTerminator{T}(T)"/>
+        protected override T CreateTerminator<T>(T node)
+        {
+            Terminator?.Replace(node);
+            return (Terminator = node).AsNotNullCast<T>();
+        }
+
+        /// <summary cref="IRBuilder.CreatePhiValue(PhiValue)"/>
+        protected override PhiValue CreatePhiValue(PhiValue phiValue)
+        {
+            InsertAtBeginning(phiValue);
+            return phiValue;
+        }
+
+        /// <summary cref="IRBuilder.Append{T}(T)"/>
+        protected override T Append<T>(T node)
+        {
+            // Insert node into current basic block builder
+            Add(node);
+            return node;
+        }
+
+        /// <summary>
+        /// Implicitly converts the current builder into its associated basic block.
+        /// </summary>
+        public BasicBlock ToBasicBlock() => BasicBlock;
+
+        /// <summary>
+        /// Dumps the underlying method to the given text writer.
+        /// </summary>
+        /// <param name="textWriter">The text writer.</param>
+        public void Dump(TextWriter textWriter) => BasicBlock.Dump(textWriter);
+
+        #endregion
+
+        #region Operators
+
+        /// <summary>
+        /// Implicitly converts the given builder into its associated basic block.
+        /// </summary>
+        /// <param name="builder">The builder to convert.</param>
+        public static implicit operator BasicBlock(Builder builder)
+        {
+            Debug.Assert(builder != null, "Invalid block builder");
+            return builder.BasicBlock;
+        }
+
+        #endregion
+
+        #region IEnumerable
+
+        /// <summary>
+        /// Returns a value enumerator.
+        /// </summary>
+        /// <returns>The resolved enumerator.</returns>
+        public Enumerator GetEnumerator() => new(BasicBlock);
+
+        /// <summary cref="IEnumerable{T}.GetEnumerator"/>
+        IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() =>
+            GetEnumerator();
+
+        /// <summary cref="IEnumerable.GetEnumerator"/>
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary cref="DisposeBase.Dispose(bool)"/>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                PerformRemoval();
+                BasicBlock.ReleaseBuilder(this);
+            }
+            base.Dispose(disposing);
+        }
+
+        #endregion
+    }
+}

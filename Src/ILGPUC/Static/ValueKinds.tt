@@ -1,0 +1,186 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: ValueKinds.tt/ValueKinds.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="TypeInformation.ttinclude" #>
+<#@ include file="ValueInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath(".");
+var valueGroups = ValueInformation.Load(rootPath);
+
+var unaryOps = GetUnaryMathOps(rootPath);
+var binaryOps = GetBinaryMathOps(rootPath);
+var ternaryOps = GetTernaryMathOps(rootPath);
+var values = valueGroups.SelectMany(t => t.Values).ToDictionary(t => t.Type);
+
+// Verify all arithmetic values have been defined
+if (!unaryOps.Any(t => values["UnaryArithmetic"].HasValues("Kind", t.Name)))
+    throw new NotSupportedException("Unary operation has no declared kind");
+if (!values["UnaryArithmetic"].HasValues("Kind", unaryOps.Select(t => t.Name).ToArray()))
+    throw new NotSupportedException("Unary operation has no implementation");
+
+if (!binaryOps.Any(t => values["BinaryArithmetic"].HasValues("Kind", t.Name)))
+    throw new NotSupportedException("Binary operation has no declared kind");
+if (!values["BinaryArithmetic"].HasValues("Kind", binaryOps.Select(t => t.Name).ToArray()))
+    throw new NotSupportedException("Binary operation has no implementation");
+
+if (!ternaryOps.Any(t => values["TernaryArithmetic"].HasValues("Kind", t.Name)))
+    throw new NotSupportedException("Ternary operation has no declared kind");
+if (!values["TernaryArithmetic"].HasValues("Kind", ternaryOps.Select(t => t.Name).ToArray()))
+    throw new NotSupportedException("Ternary operation has no implementation");
+#>
+// disable: max_line_length
+
+namespace ILGPUC.IR
+{
+    /// <summary>
+    /// Represents the kind of a single IR value.
+    /// </summary>
+    enum ValueKind : int
+    {
+<# foreach (var group in valueGroups) { #>
+        // <#= group.Name #>
+
+<#      foreach (var valueType in group.Values) { #>
+        /// <summary>
+        /// A <see cref="Values.<#= valueType.Implementation #>" /> value.
+        /// </summary>
+        <#= valueType.Type #>,
+
+<#      } #>
+<# } #>
+    }
+
+    /// <summary>
+    /// Represents groups of value kinds.
+    /// </summary>
+    enum ValueGroup : int
+    {
+<# foreach (var group in valueGroups) { #>
+        <#= group.Name #>,
+<# } #>
+    }
+
+    partial class ValueKinds
+    {
+        /// <summary>
+        /// The number of different value kinds.
+        /// </summary>
+        public const int NumValueKinds = <#= valueGroups.Select(t => t.Values.Length).Sum() #>;
+
+        /// <summary>
+        /// The number of different value groups.
+        /// </summary>
+        public const int NumValueGroup = <#= valueGroups.Length #>;
+    }
+}
+
+namespace ILGPUC.IR.Values
+{
+    interface IValueVisitor
+    {
+<# foreach (var group in valueGroups) { #>
+        // <#= group.Name #>
+
+<#      foreach (var valueType in group.Values) { #>
+        /// <summary>
+        /// Visits a value of type <see cref="<#= valueType.Implementation #>"/>.
+        /// </summary>
+        void Visit(<#= valueType.Implementation #> value);
+
+<#      } #>
+<# } #>
+    }
+
+<# foreach (var valueType in valueGroups.SelectMany(t => t.Values).OrderBy(t => t.Type)) { #>
+    [ValueKind(ValueKind.<#= valueType.Type #>)]
+    partial class <#= valueType.Implementation #>
+    {
+        /// <inheritdoc cref="Value.Accept{TVisitor}(TVisitor)"/>
+        public override void Accept<TVisitor>(TVisitor visitor) => visitor.Visit(this);
+
+        /// <inheritdoc cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.<#= valueType.Type #>;
+
+        /// <inheritdoc cref="Value.ValueGroup"/>
+        public override ValueGroup ValueGroup => ValueGroup.<#= valueType.Group.Name #>;
+
+<#      foreach (var property in valueType.Properties) { #>
+        /// <summary>
+        /// Returns the operation property <#= property.Name #>.
+        /// </summary>
+        public <#= property.TypeName #> <#= property.PropertyName #> { get; }
+
+<#      } #>
+    }
+<#      foreach (var property in valueType.Properties) { #>
+    /// <summary>
+    /// Represents possible values for the <#= property.Name #> property of
+    /// <#= valueType.Implementation #> classes.
+    /// </summary>
+    enum <#= property.TypeName #>
+    {
+<#          foreach (var propertyValue in property.Values) { #>
+        /// <summary>
+        /// <#= propertyValue.DescriptionString #>.
+        /// </summary>
+        <#= propertyValue.Name #>,
+
+<#          } #>
+    }
+
+<#      } #>
+
+<# } #>
+
+    /// <summary>
+    /// Contains several extensions for arithmetic kinds.
+    /// </summary>
+    static class ArithmeticKindExtensions
+    {
+        /// <summary>
+        /// Returns true if the given kind is commutative.
+        /// </summary>
+        /// <param name="kind">The kind to test.</param>
+        /// <returns>True, if the given kind is commutative.</returns>
+        public static bool IsCommutative(this BinaryArithmeticKind kind) =>
+            kind switch
+            {
+<# foreach (var op in binaryOps.Where(t => t.IsCommutative)) { #>
+                BinaryArithmeticKind.<#= op.Name #> => true,
+<# } #>
+                _ => false
+            };
+
+        /// <summary>
+        /// Returns true if the given kind is commutative.
+        /// </summary>
+        /// <param name="kind">The kind to test.</param>
+        /// <returns>True, if the given kind is commutative.</returns>
+        public static bool IsCommutative(this TernaryArithmeticKind kind) =>
+<# if (ternaryOps.Where(t => t.IsCommutative).Any()) { #>
+            kind switch
+            {
+<#      foreach (var op in ternaryOps.Where(t => t.IsCommutative)) { #>
+                TernaryArithmeticKind.<#= op.Name #> => true,
+<#      } #>
+                _ => false
+            };
+<# } else { #>
+            false;
+<# } #>
+    }
+}

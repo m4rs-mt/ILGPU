@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2022 ILGPU Project
+//                        Copyright (c) 2017-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Grid.cs
@@ -9,224 +9,122 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.Intrinsic;
-using ILGPU.IR.Values;
-using ILGPU.Runtime.CPU;
-using static ILGPU.IndexTypeExtensions;
+using ILGPU.Intrinsic;
+using System;
+using System.Runtime.CompilerServices;
 
-namespace ILGPU
+namespace ILGPU;
+
+/// <summary>
+/// Contains general grid functions.
+/// </summary>
+public static partial class Grid
 {
+    #region Properties
+
     /// <summary>
-    /// Contains general grid functions.
+    /// Returns the linear index withing the scheduled thread grid.
     /// </summary>
-    public static class Grid
+    /// <returns>The linear grid dimension.</returns>
+    public static long Index
     {
-        #region Properties
-
-        /// <summary>
-        /// Returns the X index withing the scheduled thread grid.
-        /// </summary>
-        /// <returns>The X grid dimension.</returns>
-        public static int IdxX
-        {
-            [GridIntrinsic(GridIntrinsicKind.GetGridIndex, DeviceConstantDimension3D.X)]
-            get => CPURuntimeThreadContext.Current.GridIndex.X;
-        }
-
-        /// <summary>
-        /// Returns the Y index withing the scheduled thread grid.
-        /// </summary>
-        /// <returns>The Y grid dimension.</returns>
-        public static int IdxY
-        {
-            [GridIntrinsic(GridIntrinsicKind.GetGridIndex, DeviceConstantDimension3D.Y)]
-            get => CPURuntimeThreadContext.Current.GridIndex.Y;
-        }
-
-        /// <summary>
-        /// Returns the Z index withing the scheduled thread grid.
-        /// </summary>
-        /// <returns>The Z grid dimension.</returns>
-        public static int IdxZ
-        {
-            [GridIntrinsic(GridIntrinsicKind.GetGridIndex, DeviceConstantDimension3D.Z)]
-            get => CPURuntimeThreadContext.Current.GridIndex.Z;
-        }
-
-        /// <summary>
-        /// Returns the index within the scheduled thread grid.
-        /// </summary>
-        /// <returns>The grid index.</returns>
-        public static Index3D Index => new Index3D(IdxX, IdxY, IdxZ);
-
-        /// <summary>
-        /// Returns the X dimension of the scheduled thread grid.
-        /// </summary>
-        /// <returns>The X grid dimension.</returns>
-        public static int DimX
-        {
-            [GridIntrinsic(
-                GridIntrinsicKind.GetGridDimension,
-                DeviceConstantDimension3D.X)]
-            get => CPURuntimeGroupContext.Current.GridDimension.X;
-        }
-
-        /// <summary>
-        /// Returns the Y dimension of the scheduled thread grid.
-        /// </summary>
-        /// <returns>The Y grid dimension.</returns>
-        public static int DimY
-        {
-            [GridIntrinsic(
-                GridIntrinsicKind.GetGridDimension,
-                DeviceConstantDimension3D.Y)]
-            get => CPURuntimeGroupContext.Current.GridDimension.Y;
-        }
-
-        /// <summary>
-        /// Returns the Z dimension of the scheduled thread grid.
-        /// </summary>
-        /// <returns>The Z grid dimension.</returns>
-        public static int DimZ
-        {
-            [GridIntrinsic(
-                GridIntrinsicKind.GetGridDimension,
-                DeviceConstantDimension3D.Z)]
-            get => CPURuntimeGroupContext.Current.GridDimension.Z;
-        }
-
-        /// <summary>
-        /// Returns the dimension of the scheduled thread grid.
-        /// </summary>
-        /// <returns>The grid dimension.</returns>
-        public static Index3D Dimension => new Index3D(DimX, DimY, DimZ);
-
-        /// <summary>
-        /// Returns the linear grid index of the current group within the current
-        /// thread grid.
-        /// </summary>
-        public static int LinearIndex =>
-            Stride3D.DenseXY.ComputeElementIndex(Index, Dimension);
-
-        /// <summary>
-        /// Returns the global index.
-        /// </summary>
-        public static Index3D GlobalIndex => ComputeGlobalIndex(
-            Index,
-            Group.Index);
-
-        /// <summary>
-        /// Returns the global index using 64-bit integers.
-        /// </summary>
-        public static LongIndex3D LongGlobalIndex => ComputeLongGlobalIndex(
-            Index,
-            Group.Index);
-
-        /// <summary>
-        /// Returns the linear thread index of the current thread within the current
-        /// thread grid.
-        /// </summary>
-        public static int GlobalLinearIndex =>
-            LinearIndex * Group.Dimension.Size + Group.LinearIndex;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Computes the global index of a given gridIdx and a groupIdx.
-        /// </summary>
-        /// <param name="gridIdx">The grid index.</param>
-        /// <param name="groupIdx">The group index.</param>
-        /// <returns>The computes global index.</returns>
-        public static Index1D ComputeGlobalIndex(Index1D gridIdx, Index1D groupIdx)
-        {
-            var groupDim = Group.Dimension;
-            AssertIntIndexRange(groupIdx.X + gridIdx.X * (long)groupDim.X);
-            return new Index1D(groupIdx + gridIdx * groupDim.X);
-        }
-
-        /// <summary>
-        /// Computes the global index of a given gridIdx and a groupIdx.
-        /// </summary>
-        /// <param name="gridIdx">The grid index.</param>
-        /// <param name="groupIdx">The group index.</param>
-        /// <returns>The computes global index.</returns>
-        public static Index2D ComputeGlobalIndex(Index2D gridIdx, Index2D groupIdx)
-        {
-            var groupDim = Group.Dimension;
-            AssertIntIndexRange(groupIdx.X + gridIdx.X * (long)groupDim.X);
-            AssertIntIndexRange(groupIdx.Y + gridIdx.Y * (long)groupDim.Y);
-            return new Index2D(
-                groupIdx.X + gridIdx.X * groupDim.X,
-                groupIdx.Y + gridIdx.Y * groupDim.Y);
-        }
-
-        /// <summary>
-        /// Computes the global index of a given gridIdx and a groupIdx.
-        /// </summary>
-        /// <param name="gridIdx">The grid index.</param>
-        /// <param name="groupIdx">The group index.</param>
-        /// <returns>The computes global index.</returns>
-        public static Index3D ComputeGlobalIndex(Index3D gridIdx, Index3D groupIdx)
-        {
-            var groupDim = Group.Dimension;
-            AssertIntIndexRange(groupIdx.X + gridIdx.X * (long)groupDim.X);
-            AssertIntIndexRange(groupIdx.Y + gridIdx.Y * (long)groupDim.Y);
-            AssertIntIndexRange(groupIdx.Z + gridIdx.Z * (long)groupDim.Z);
-            return new Index3D(
-                groupIdx.X + gridIdx.X * groupDim.X,
-                groupIdx.Y + gridIdx.Y * groupDim.Y,
-                groupIdx.Z + gridIdx.Z * groupDim.Z);
-        }
-
-        /// <summary>
-        /// Computes the global index of a given gridIdx and a groupIdx.
-        /// </summary>
-        /// <param name="gridIdx">The grid index.</param>
-        /// <param name="groupIdx">The group index.</param>
-        /// <returns>The computes global index.</returns>
-        public static LongIndex1D ComputeLongGlobalIndex(
-            Index1D gridIdx,
-            Index1D groupIdx)
-        {
-            var groupDim = Group.Dimension;
-            return new LongIndex1D(groupIdx + gridIdx * (long)groupDim.X);
-        }
-
-        /// <summary>
-        /// Computes the global index of a given gridIdx and a groupIdx.
-        /// </summary>
-        /// <param name="gridIdx">The grid index.</param>
-        /// <param name="groupIdx">The group index.</param>
-        /// <returns>The computes global index.</returns>
-        public static LongIndex2D ComputeLongGlobalIndex(
-            Index2D gridIdx,
-            Index2D groupIdx)
-        {
-            var groupDim = Group.Dimension;
-            return new LongIndex2D(
-                groupIdx.X + gridIdx.X * (long)groupDim.X,
-                groupIdx.Y + gridIdx.Y * (long)groupDim.Y);
-        }
-
-        /// <summary>
-        /// Computes the global index of a given gridIdx and a groupIdx.
-        /// </summary>
-        /// <param name="gridIdx">The grid index.</param>
-        /// <param name="groupIdx">The group index.</param>
-        /// <returns>The computes global index.</returns>
-        public static LongIndex3D ComputeLongGlobalIndex(
-            Index3D gridIdx,
-            Index3D groupIdx)
-        {
-            var groupDim = Group.Dimension;
-            return new LongIndex3D(
-                groupIdx.X + gridIdx.X * (long)groupDim.X,
-                groupIdx.Y + gridIdx.Y * (long)groupDim.Y,
-                groupIdx.Z + gridIdx.Z * (long)groupDim.Z);
-        }
-
-        #endregion
+        [GridIntrinsic]
+        get => throw new InvalidKernelOperationException();
     }
+
+    /// <summary>
+    /// Returns the dimension of the scheduled thread grid.
+    /// </summary>
+    /// <returns>The grid dimension.</returns>
+    public static long Dimension
+    {
+        [GridIntrinsic]
+        get => throw new InvalidKernelOperationException();
+    }
+
+    /// <summary>
+    /// Returns the linear thread index of the current thread within the current
+    /// thread grid.
+    /// </summary>
+    public static long GlobalThreadIndex => Index * Group.Dimension + Group.Index;
+
+    /// <summary>
+    /// Returns the loop stride for a grid-stride loop.
+    /// </summary>
+    public static long GridStrideLoopStride => Dimension * Group.Dimension;
+
+    /// <summary>
+    /// Returns true if this is the first group in the thread grid.
+    /// </summary>
+    public static bool IsFirstGroup => Index == 0;
+
+    #endregion
+
+    #region Methods
+
+    /// <summary>
+    /// Performs a grid-stride loop.
+    /// </summary>
+    /// <param name="numIterationsPerGroup">Number of iterations per group.</param>
+    /// <param name="loopBody">The loop body.</param>
+    public static void GridStrideLoop(int numIterationsPerGroup, Action<long> loopBody)
+    {
+        for (int i = 0; i < numIterationsPerGroup; ++i)
+        {
+            long index = GlobalThreadIndex + i * GridStrideLoopStride;
+            loopBody(index);
+        }
+    }
+
+    /// <summary>
+    /// Returns a kernel extent (a grouped index) with the maximum number of groups
+    /// using the maximum number of threads per group to launch common grid-stride
+    /// loop kernels.
+    /// </summary>
+    /// <param name="kernelSize">The maximum kernel dimension.</param>
+    /// <param name="numDataElements">
+    /// The number of parallel data elements to process.
+    /// </param>
+    /// <param name="numIterationsPerGroup">
+    /// The number of loop iterations per group.
+    /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [NotInsideKernel]
+    public static KernelConfig ComputeGridStrideKernelConfig(
+        this KernelSize kernelSize,
+        long numDataElements,
+        out int numIterationsPerGroup)
+    {
+        if (numDataElements < 1)
+            throw new ArgumentOutOfRangeException(nameof(numDataElements));
+
+        var numParallelGroups = XMath.DivRoundUp(
+            numDataElements,
+            kernelSize.GroupSize);
+        long dimension = XMath.Min(kernelSize.GridSize, numParallelGroups);
+
+        numIterationsPerGroup = (int)XMath.DivRoundUp(
+            numDataElements,
+            dimension * kernelSize.GroupSize);
+
+        return (dimension, kernelSize.GroupSize);
+    }
+
+    #endregion
+
+    #region Memory Fence
+
+    /// <summary>
+    /// A memory fence at the device level.
+    /// </summary>
+    [GridIntrinsic]
+    public static void MemoryFence() => throw new InvalidKernelOperationException();
+
+    /// <summary>
+    /// A memory fence at the system level.
+    /// </summary>
+    [GridIntrinsic]
+    public static void SystemMemoryFence() => throw new InvalidKernelOperationException();
+
+    #endregion
 }

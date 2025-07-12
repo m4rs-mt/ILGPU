@@ -1,0 +1,501 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BackendCodeGenerators.tt/BackendCodeGenerators.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="TypeInformation.ttinclude" #>
+<#@ include file="ValueInformation.ttinclude" #>
+<#@ include file="BasicEnums.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Immutable" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+const string MappingsPath = "BackendMappings";
+string rootPath = Host.ResolvePath(".");
+
+var unaryOps = GetUnaryMathOps(rootPath);
+var binaryOps = GetBinaryMathOps(rootPath);
+var ternaryOps = GetTernaryMathOps(rootPath);
+
+var basicEnums = EnumInformation.LoadEnums(rootPath);
+var values = ValueInformation.LoadValueInformation(rootPath);
+var valuesLookup = values.ToDictionary(t => t.Type);
+var backendMappings = BackendMapping.Load(Path.Combine(rootPath, MappingsPath));
+
+ValueDefinition GetValue(ValueMapping mapping) => valuesLookup[mapping.Source];
+#>
+using ILGPU.Util;
+using ILGPUC.IR;
+using ILGPUC.IR.Transformations;
+using ILGPUC.IR.Values;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Threading.Tasks;
+
+// disable: max_line_length
+
+<# foreach (var mapping in backendMappings) { #>
+<#      var orderedMappings = mapping.Mappings.OrderBy(t => t.Source); #>
+<#      var mappingLookup = orderedMappings.ToDictionary(t => t.Source); #>
+<#      var orderedGenerators = mapping.Generators.OrderBy(t => t.Source); #>
+<#      var generatorLookup = orderedGenerators.ToDictionary(t => t.Source); #>
+<#      var valueBackendMappings = mapping.BackendMappings.ToDictionary(t => t.Source); #>
+namespace ILGPUC.Backends.<#= mapping.Type #>;
+
+sealed class <#= mapping.Type #>IntrinsicMapper : IIntrinsicMapper
+{
+    const BindingFlags RemapBindingFlags =
+        Frontend.Intrinsic.Intrinsics.RemapBindingFlags;
+
+    public <#= mapping.Type #>IntrinsicMapper()
+    {
+<#      var loadMethods = orderedMappings.Select(t => $"Load{GetValue(t).Type}"); #>
+        Parallel.Invoke(
+<#      foreach (var loadMethod in loadMethods) { #>
+            <#= loadMethod #>,
+<#      } #>
+            () => {});
+    }
+
+<#      foreach (var map in orderedMappings) { #>
+<#          var value = GetValue(map); #>
+<#          var propertyTypes = value.Properties.Select(t => t.TypeName).ToArray(); #>
+<#          var types = map.GetKeyTypes(propertyTypes).ToArray(); #>
+<#          var range = Enumerable.Range(0, types.Length); #>
+<#          if (types.Length > 0) { #>
+    private readonly record struct <#= value.Type #>Key(
+        <#= string.Join(", ", Enumerable.Zip(types, range).Select(t => $"{t.Item1} property{t.Item2}")) #>
+    );
+
+    private void Load<#= value.Type #>()
+    {
+        var targetType = typeof(<#= map.Target #>);
+<#          var possibilities = map.GetPossibilities(value, basicEnums); #>
+<#          foreach (var (keys, nameValues) in possibilities) { #>
+        {
+            var method = targetType.GetMethod(
+                "<#= string.Join(string.Empty, nameValues) #>",
+                RemapBindingFlags);
+            if (method is not null)
+            {
+                _<#= value.Type #>.Add(
+                    new <#= value.Type #>Key(<#= string.Join(", ", keys) #>),
+                    method);
+            }
+        }
+<#          } #>
+    }
+
+    private readonly Dictionary<
+        <#= value.Type #>Key, MethodInfo> _<#= value.Type #> = new(<#= possibilities.Count #>);
+
+    /// <summary>
+    /// Tries to map <#= map.Source #> nodes to intrinsic backend implementations.
+    /// </summary>
+    /// <param name="value">The value to map.</param>
+    /// <param name="methodInfo">The determined method implementation.</param>
+    /// <returns>True if the given value could be mapped successfully.</returns>
+    private bool TryMapTo(
+        <#= GetValue(map).Implementation #> value,
+        [NotNullWhen(true)] out MethodInfo? methodInfo)
+    {
+        var key = new <#= value.Type #>Key(
+            <#= string.Join(", ", value.Properties.Select(t => $"value.{t.Name}")) #>
+<#              if (map.ArithmeticBasicValueType) { #>
+            , value.ArithmeticBasicValueType
+<#              } else if (map.BasicValueType) { #>
+            , value.BasicValueType
+<#              } #>
+            );
+        return _<#= value.Type #>.TryGetValue(key, out methodInfo);
+    }
+<#          } else { #>
+    private readonly MethodInfo? _<#= value.Type #> =
+        typeof(<#= map.Target #>).GetMethod(
+            "<#= value.Type #>",
+            RemapBindingFlags);
+
+    /// <summary>
+    /// Empty wrapper because singleton values are loaded at constructor time.
+    /// </summary>
+    private void Load<#= value.Type #>() { }
+
+    /// <summary>
+    /// Tries to map <#= map.Source #> nodes to intrinsic backend implementations.
+    /// </summary>
+    /// <param name="value">The value to map.</param>
+    /// <param name="methodInfo">The determined method implementation.</param>
+    /// <returns>True if the given value could be mapped successfully.</returns>
+    private bool TryMapTo(
+        <#= GetValue(map).Implementation #> value,
+        [NotNullWhen(true)] out MethodInfo? methodInfo)
+    {
+        methodInfo = _<#= value.Type#>;
+        return methodInfo is not null;
+    }
+<#          } #>
+
+<#      } #>
+
+    /// <inheritdoc  cref="IIntrinsicMapper.CanMapTo(Value, out MethodInfo?)"/>
+    public bool CanMapTo(
+        Value value,
+        [NotNullWhen(true)] out MethodInfo? methodInfo) =>
+        value.ValueKind switch
+        {
+<#      foreach (var map in orderedMappings) { #>
+            ValueKind.<#= map.Source #> =>
+                TryMapTo(
+                    value.AsNotNullCast<<#= GetValue(map).Implementation #>>(),
+                    out methodInfo),
+<#      } #>
+            _ => (methodInfo = null) is not null
+        };
+}
+
+sealed class <#= mapping.Type #>IntrinsicCodeGenerator : IIntrinsicCodeGenerator
+{
+    private readonly Dictionary<ValueKind, IntrinsicCodeGenerator> _codeGenerators = [];
+
+    public <#= mapping.Type #>IntrinsicCodeGenerator()
+    {
+<#      foreach (var generator in orderedGenerators) { #>
+<#          var value = valuesLookup[generator.Source]; #>
+
+        static void Generate<#= generator.Source #>(
+            IRContext context,
+            Method.Builder methodBuilder,
+            BasicBlock.Builder builder,
+            Value value) =>
+            <#= generator.Target #>.Implement<#= generator.Source #>(
+                context,
+                methodBuilder,
+                builder,
+                value.AsNotNullCast<<#= value.Implementation #>>());
+
+        _codeGenerators.Add(
+            ValueKind.<#= generator.Source #>,
+            Generate<#= generator.Source #>);
+<#      } #>
+    }
+
+    /// <inheritdoc  cref="IIntrinsicCodeGenerator.Generate(IRContext,
+    /// Method.Builder, BasicBlock.Builder, Value)"/>
+    public bool Generate(
+        IRContext context,
+        Method.Builder methodBuilder,
+        BasicBlock.Builder builder,
+        Value value)
+    {
+        if (!_codeGenerators.TryGetValue(value.ValueKind, out var codeGenerator))
+            return false;
+
+        codeGenerator(context, methodBuilder, builder, value);
+        return true;
+    }
+}
+
+interface I<#= mapping.Type #>CodeGenerator
+{
+<#      foreach (var value in values) { #>
+<#          if ((!mappingLookup.TryGetValue(value.Type, out var map) || map.Partial) &&
+            !mapping.IsIncompatibleWith(value) &&
+            !generatorLookup.ContainsKey(value.Type) &&
+            !valueBackendMappings.ContainsKey(value.Type)) { #>
+    /// <summary>
+    /// Generates code for the values of type <#= value.Implementation #>.
+    /// </summary>
+    void GenerateCode(<#= value.Implementation #> value);
+<#          } #>
+<#      } #>
+
+    /// <summary>
+    /// Generates code for the given generic value.
+    /// </summary>
+    void GenerateCodeFor(Value value);
+}
+
+partial class <#= mapping.Type #>CodeGenerator : I<#= mapping.Type #>CodeGenerator
+{
+    readonly struct Visitor(<#= mapping.Type #>CodeGenerator codeGenerator) :
+        IValueVisitor
+    {
+<#      foreach (var value in values) { #>
+        public void Visit(<#= value.Implementation #> value) =>
+<#          if (mappingLookup.TryGetValue(value.Type, out var map) && !map.Partial ||
+            mapping.IsIncompatibleWith(value) ||
+            generatorLookup.ContainsKey(value.Type)) { #>
+            throw value.GetInvalidOperationException();
+<#          } else if (valueBackendMappings.TryGetValue(value.Type, out var bMap)) { #>
+            codeGenerator.Alias(value, <#= bMap.Target #>);
+<#          } else { #>
+            codeGenerator.GenerateCode(value);
+<#          } #>
+<#      } #>
+    }
+
+    /// <summary>
+    /// Returns true if the given value is supported by this backend.
+    /// </summary>
+    /// <param name="value">The value to test.</param>
+    public static bool Accepts(Value value) => Accepts(value.ValueKind);
+
+    /// <summary>
+    /// Returns true if the given value kind is supported by this backend.
+    /// </summary>
+    /// <param name="valueKind">The value kind to test.</param>
+    public static bool Accepts(ValueKind valueKind) => valueKind switch
+    {
+<#      foreach (var value in values) { #>
+<#          if (mapping.IsIncompatibleWith(value) ||
+            generatorLookup.ContainsKey(value.Type)) { #>
+        ValueKind.<#= value.Type #> => false,
+<#          } #>
+<#      } #>
+        _ => true
+    };
+
+    /// <summary>
+    /// Generates code for the given generic value.
+    /// </summary>
+    public void GenerateCodeFor(Value value)
+    {
+        var visitor = new Visitor(this);
+        value.Accept(visitor);
+    }
+}
+
+partial class <#= mapping.Type #>FunctionGenerator : <#= mapping.Type #>CodeGenerator
+{
+
+}
+
+partial class <#= mapping.Type #>KernelFunctionGenerator : <#= mapping.Type #>CodeGenerator
+{
+
+}
+<# } #>
+<#+
+[XmlRoot("Backend")]
+public class BackendMapping
+{
+    public static List<BackendMapping> Load(string rootPath)
+    {
+        var files = Directory.GetFiles(rootPath, "*.xml")
+            .Select(Path.GetFileName)
+            .OrderBy(t => t);
+        var result = new List<BackendMapping>(files.Count());
+        foreach (var file in files)
+            result.Add(XmlHelper.Load<BackendMapping>(rootPath, file));
+        return result;
+    }
+
+    [XmlAttribute]
+    public string Type { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string CodeGenerator { get; set; } = string.Empty;
+
+    [XmlElement("Mappings")]
+    public ValueMappings InternalMappings { get; set; }
+
+    [XmlElement("Generators")]
+    public ValueGenerators InternalGenerators { get; set; }
+
+    [XmlElement("Incompatibilities")]
+    public ValueIncompatibilities InternalIncompatibilities { get; set; }
+
+    [XmlElement("BackendMappings")]
+    public ValueBackendMappings InternalValueBackendMappings { get; set; }
+
+    [XmlIgnore]
+    public ValueMapping[] Mappings => InternalMappings.Mappings;
+
+    [XmlIgnore]
+    public ValueGenerator[] Generators => InternalGenerators.Generators;
+
+    [XmlIgnore]
+    public ValueBackendMap[] BackendMappings =>
+        InternalValueBackendMappings.Mappings;
+
+    [XmlIgnore]
+    public ValueIncompatibility[] Incompatibilities =>
+        InternalIncompatibilities.Incompatibilities;
+
+    public bool IsIncompatibleWith(ValueDefinition value) =>
+        Incompatibilities.Any(t => t.Filters(value));
+}
+
+[XmlType("Mappings")]
+public class ValueMappings
+{
+    [XmlElement("Map")]
+    public ValueMapping[] Mappings { get; set; } = Array.Empty<ValueMapping>();
+}
+
+[XmlType("Map")]
+public class ValueMapping
+{
+    [XmlAttribute]
+    public string Source { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Target { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public bool Partial { get; set; } = false;
+
+    [XmlAttribute]
+    public bool BasicValueType { get; set; } = false;
+
+    [XmlAttribute]
+    public bool ArithmeticBasicValueType { get; set; } = false;
+
+    public List<(ImmutableArray<string>, ImmutableArray<string>)> GetPossibilities(
+        ValueDefinition value,
+        Dictionary<string, EnumValue[]> enums)
+    {
+        var result = new List<(ImmutableArray<string>, ImmutableArray<string>)>();
+        void FinishBasicValueType(
+            ImmutableArray<string> keys,
+            ImmutableArray<string> values)
+        {
+            const string Type = "BasicValueType";
+            foreach (var type in enums[Type])
+            {
+                if (type.Name == "None") continue;
+                Finish(keys.Add($"{Type}.{type.Name}"), values.Add(type.Name));
+            }
+        }
+
+        void FinishArithmeticBasicValueType(
+            ImmutableArray<string> keys,
+            ImmutableArray<string> values)
+        {
+            const string Type = "ArithmeticBasicValueType";
+            foreach (var type in enums[Type])
+            {
+                if (type.Name == "None") continue;
+                Finish(keys.Add($"{Type}.{type.Name}"), values.Add(type.Name));
+            }
+        }
+
+        void Finish(ImmutableArray<string> keys, ImmutableArray<string> values) =>
+            result.Add((keys, values));
+
+        void Traverse(
+            ImmutableArray<string> keys,
+            ImmutableArray<string> values,
+            IEnumerable<ValueProperty> properties)
+        {
+            var property = properties.FirstOrDefault();
+            if (property is null)
+            {
+                if (BasicValueType)
+                    FinishBasicValueType(keys, values);
+                else if (ArithmeticBasicValueType)
+                    FinishArithmeticBasicValueType(keys, values);
+                else
+                    Finish(keys, values);
+                return;
+            }
+
+            var nextProperties = properties.Skip(1);
+            foreach (var value in property.Values)
+            {
+                var nextKeys = keys.Add($"{property.TypeName}.{value.Name}");
+                Traverse(nextKeys, values.Add(value.Name), nextProperties);
+            }
+        }
+
+        var inputKeys = ImmutableArray<string>.Empty;
+        var inputValues = !BasicValueType && !ArithmeticBasicValueType
+            ? ImmutableArray.Create(value.Type)
+            : ImmutableArray<string>.Empty;
+
+        Traverse(inputKeys, inputValues, value.Properties);
+        return result;
+    }
+
+    public IEnumerable<string> GetKeyTypes(IEnumerable<String> types)
+    {
+        var postfix = BasicValueType ? Enumerable.Repeat("BasicValueType", 1) :
+            ArithmeticBasicValueType ? Enumerable.Repeat("ArithmeticBasicValueType", 1) :
+            Enumerable.Empty<string>();
+        return types.Concat(postfix);
+    }
+}
+
+[XmlType("Generators")]
+public class ValueGenerators
+{
+    [XmlElement("Generator")]
+    public ValueGenerator[] Generators { get; set; } = Array.Empty<ValueGenerator>();
+}
+
+[XmlType("Generator")]
+public class ValueGenerator
+{
+    [XmlAttribute]
+    public string Source { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Target { get; set; } = string.Empty;
+}
+
+[XmlType("BackendMappings")]
+public class ValueBackendMappings
+{
+    [XmlElement("BackendMap")]
+    public ValueBackendMap[] Mappings { get; set; } = Array.Empty<ValueBackendMap>();
+}
+
+[XmlType("BackendMap")]
+public class ValueBackendMap
+{
+    [XmlAttribute]
+    public string Source { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Target { get; set; } = string.Empty;
+}
+
+[XmlType("Incompatibilities")]
+public class ValueIncompatibilities
+{
+    [XmlElement("Incompatibility")]
+    public ValueIncompatibility[] Incompatibilities { get; set; } =
+        Array.Empty<ValueIncompatibility>();
+}
+
+[XmlType("Incompatibility")]
+public class ValueIncompatibility
+{
+    [XmlAttribute]
+    public string Group { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string Type { get; set; } = string.Empty;
+
+    [XmlIgnore]
+    public bool FiltersGroup => !string.IsNullOrWhiteSpace(Group);
+
+    [XmlIgnore]
+    public bool FiltersType => !string.IsNullOrWhiteSpace(Type);
+
+    public bool Filters(ValueDefinition value) =>
+        FiltersGroup && value.Group.Name == Group ||
+        FiltersType && value.Type == Type;
+}
+#>
