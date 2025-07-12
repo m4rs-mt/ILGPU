@@ -69,7 +69,7 @@ jobs:
       - name: Setup the latest .NET 8 SDK
         uses: actions/setup-dotnet@v4.3.1
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
 
       - name: Check Copyright Headers
         run: |
@@ -139,10 +139,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
+      - name: Setup the latest .NET 9 SDK
+        uses: actions/setup-dotnet@v4.0.1
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
 
       - name: Build
         run: dotnet build ${{ matrix.path }} --configuration=Release -p:TreatWarningsAsErrors=true
@@ -177,22 +177,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup the latest .NET 6 SDK
-        if: matrix.framework == 'net6.0'
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 6.0.x
-
-      - name: Setup the latest .NET 7 SDK
-        if: matrix.framework == 'net7.0'
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 7.0.x
-
       - name: Setup the latest .NET 8 SDK
         uses: actions/setup-dotnet@v4.3.1
         with:
           dotnet-version: 8.0.x
+
+      - name: Setup the latest .NET 9 SDK
+        uses: actions/setup-dotnet@v4.0.1
+        with:
+          dotnet-version: 9.0.x
 
       - name: Set test flavor
         id: test-flavor
