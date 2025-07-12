@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayView.cs
