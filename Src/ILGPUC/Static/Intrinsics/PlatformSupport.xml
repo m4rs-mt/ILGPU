@@ -100,22 +100,12 @@
             <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
         </Remapping>
     </Type>
-    <Type Name="System.Runtime.Intrinsics.X86.Avx10v1">
+    <Type Name="System.Runtime.Intrinsics.X86.Avx10v1" Frameworks="NET9_0_OR_GREATER">
         <Remapping>
             <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
         </Remapping>
     </Type>
-    <Type Name="System.Runtime.Intrinsics.X86.Avx10v1.X64">
-        <Remapping>
-            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
-        </Remapping>
-    </Type>
-    <Type Name="System.Runtime.Intrinsics.X86.AvxVnni">
-        <Remapping>
-            <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X86" />
-        </Remapping>
-    </Type>
-    <Type Name="System.Runtime.Intrinsics.X86.AvxVnni.X64">
+    <Type Name="System.Runtime.Intrinsics.X86.Avx10v1.X64" Frameworks="NET9_0_OR_GREATER">
         <Remapping>
             <Remap Kind="Property" Name="IsSupported" Target="PlatformSupport.X64" />
         </Remapping>

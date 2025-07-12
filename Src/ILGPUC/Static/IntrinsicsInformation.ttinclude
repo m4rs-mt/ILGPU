@@ -63,6 +63,9 @@ public class IntrinsicTypeDefinition
     [XmlAttribute]
     public string Name { get; set; }
 
+    [XmlAttribute]
+    public string Frameworks { get; set; } = string.Empty;
+
     [XmlElement("Remapping")]
     public IntrinsicRemapping Remapping { get; set; } = new();
 
@@ -109,6 +112,12 @@ public class IntrinsicTypeDefinition
 
     [XmlIgnore]
     public string CommentName => Name.Replace("<T>", "{T}");
+
+    [XmlIgnore]
+    public string[] OnlyOnFrameworks => Frameworks?.Split(",") ?? [];
+
+    [XmlIgnore]
+    public bool HasFrameworkRestrictions => !string.IsNullOrWhiteSpace(Frameworks);
 }
 
 public class IntrinsicRemapping
