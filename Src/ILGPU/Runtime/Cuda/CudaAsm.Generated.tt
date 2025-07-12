@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2025 ILGPU Project
+//                           Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAsm.Generated.tt/CudaAsm.Generated.cs
@@ -8,6 +8,9 @@
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>

@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2025 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTPlan.Generated.tt/CuFFTPlan.Generated.cs
@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
+// disable: max_line_length
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="./API/CuFFT.ttinclude"#>
 <#@ assembly name="System.Core" #>
