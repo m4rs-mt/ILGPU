@@ -26,7 +26,9 @@ var functionMapping = new Dictionary<string, string>()
         { "Int16", "(short)randomProvider.Next(0, short.MaxValue)" },
         { "Int32", "randomProvider.Next()" },
         { "Int64", "randomProvider.NextLong()" },
-
+        { "FP843", "(FP843)randomProvider.NextFloat()" },
+        { "FP852", "(FP852)randomProvider.NextFloat()" },
+        { "BF16", "(BF16)randomProvider.NextFloat()" },
         { "Half", "(Half)randomProvider.NextFloat()" },
         { "Float", "randomProvider.NextFloat()" },
         { "Double", "randomProvider.NextDouble()" },

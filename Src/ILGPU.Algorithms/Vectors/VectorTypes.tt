@@ -23,7 +23,7 @@
 var fixedPrecisionTypes = FixedPrecisionIntTypes
     .SelectMany(t => t.ToBasicTypeInformation()).ToHashSet();
 var allTypes = IntTypes
-    .Concat(FloatTypes.Skip(1))
+    .Concat(FloatTypes.Skip(4))
     .Concat(fixedPrecisionTypes);
 var typesByRawName = allTypes.ToDictionary(t => t.Type);
 var accumulationTypes = new Dictionary<string, string[]>()
