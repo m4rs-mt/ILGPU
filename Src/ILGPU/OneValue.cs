@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2024 ILGPU Project
+//                        Copyright (c) 2024-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: OneValue.cs
