@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaNativeMethods.cs
@@ -14,6 +14,7 @@
 #pragma warning disable CA1069 // Enums values should not be duplicated
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -148,7 +149,8 @@ namespace ILGPU.Runtime.Cuda
         CU_DEVICE_ATTRIBUTE_CONCURRENT_MANAGED_ACCESS = 89,
         CU_DEVICE_ATTRIBUTE_COMPUTE_PREEMPTION_SUPPORTED = 90,
         CU_DEVICE_ATTRIBUTE_CAN_USE_HOST_POINTER_FOR_REGISTERED_MEM = 91,
-        CU_DEVICE_ATTRIBUTE_MAX = 92
+        CU_DEVICE_ATTRIBUTE_MAX = 92,
+        CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORT = 125
     }
 
     public enum CudaError
@@ -284,7 +286,108 @@ namespace ILGPU.Runtime.Cuda
         CU_MEMHOSTREGISTER_READ_ONLY = 8,
     }
 
+    /// <summary>
+    /// Controls the behaviour of <see cref="CudaAPI.OpenIpcMemoryHandle">OpenIpcMemoryHandle</see>
+    /// </summary>
+    [Flags]
+    public enum CudaIpcMemFlags
+    {
+        /// <summary>
+        /// No flags.
+        /// </summary>
+        None,
+        /// <summary>
+        /// Enables peer access if the memory is not on the same device as the current context uses.
+        /// </summary>
+        LazyEnablePeerAccess = 1 << 0
+    }
     #endregion
+
+    public static class CudaConstants
+    {
+        /// <summary>
+        /// The size of a IPC handle in bytes.
+        /// </summary>
+        public const int CUDA_IPC_HANDLE_SIZE = 64;
+    }
+
+    /// <summary>
+    /// This represents a CUDA IPC event handle.
+    /// </summary>
+    public struct CudaIpcEventHandle
+    {
+        private readonly byte[] _Data;
+
+        /// <summary>
+        /// This contains the actual handle data;
+        /// </summary>
+        public Span<byte> Data => _Data.AsSpan();
+
+        /// <summary>
+        /// Constructs an empty IPC event handle
+        /// </summary>
+        public CudaIpcEventHandle()
+        {
+            _Data = new byte[CudaConstants.CUDA_IPC_HANDLE_SIZE];
+        }
+
+        /// <summary>
+        /// Constructs an IPC event handle from a byte array.
+        /// </summary>
+        /// <param name="data">The 64-Byte array containing the handle data.</param>
+        public CudaIpcEventHandle(byte[] data)
+        {
+            ArgumentOutOfRangeException.ThrowIfNotEqual(
+                data.Length, CudaConstants.CUDA_IPC_HANDLE_SIZE,
+                $"{nameof(data)}.{nameof(data.Length)}");
+            _Data = data;
+        }
+
+        /// <summary>
+        /// Returns the byte array of an IPC memory handle.
+        /// </summary>
+        /// <param name="ipcEventHandle">The IPC memory handle.</param>
+        public static implicit operator byte[](CudaIpcEventHandle ipcEventHandle) => ipcEventHandle._Data;
+    }
+
+    /// <summary>
+    /// This represents a CUDA IPC memory handle.
+    /// </summary>
+    public struct CudaIpcMemHandle
+    {
+        private readonly byte[] _Data;
+
+        /// <summary>
+        /// This contains the actual handle data;
+        /// </summary>
+        public Span<byte> Data => _Data.AsSpan();
+
+        /// <summary>
+        /// Constructs an empty IPC memory handle
+        /// </summary>
+        public CudaIpcMemHandle()
+        {
+            _Data = new byte[CudaConstants.CUDA_IPC_HANDLE_SIZE];
+        }
+
+        /// <summary>
+        /// Constructs an IPC memory handle from a byte array.
+        /// </summary>
+        /// <param name="data">The 64-Byte array containing the handle data.</param>
+        public CudaIpcMemHandle(byte[] data)
+        {
+            ArgumentOutOfRangeException.ThrowIfNotEqual(
+                data.Length, CudaConstants.CUDA_IPC_HANDLE_SIZE,
+                $"{nameof(data)}.{nameof(data.Length)}");
+            _Data = data;
+        }
+
+        /// <summary>
+        /// Returns the byte array of an IPC memory handle.
+        /// </summary>
+        /// <param name="ipcMemHandle">The IPC memory handle.</param>
+        public static implicit operator byte[](CudaIpcMemHandle ipcMemHandle) => ipcMemHandle._Data;
+    }
 }
 
 #pragma warning restore CA1069 // Enums values should not be duplicated

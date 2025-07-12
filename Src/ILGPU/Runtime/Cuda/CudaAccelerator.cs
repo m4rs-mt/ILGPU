@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
 //                        Copyright (c) 2016-2025 ILGPU Project
 //                                    www.ilgpu.net
@@ -481,6 +481,81 @@ namespace ILGPU.Runtime.Cuda
             LongIndex2D extent)
             where T : unmanaged =>
             Allocate2DPitchedY<T>(extent, PitchedAllocationAlignmentInBytes);
+
+        /// <summary>
+        /// Maps a buffer allocated by another process of the specified size in bytes on this accelerator.
+        /// </summary>
+        /// <param name="ipcMemHandle">A IPC memory handle from another process.</param>
+        /// <param name="length">The number of elements to allocate.</param>
+        /// <param name="elementSize">The size of a single element in bytes.</param>
+        /// <param name="flags">The flags to use</param>
+        /// <returns>A mapped buffer of shared memory on this accelerator.</returns>
+        /// <remarks>
+        /// In case of multi GPU setups like SLI it may require <see cref="CudaIpcMemFlags.LazyEnablePeerAccess"/>
+        /// even when using the same device.
+        /// </remarks>
+        public MemoryBuffer MapFromIpcMemHandle(CudaIpcMemHandle ipcMemHandle, long length, int elementSize, CudaIpcMemFlags flags)
+        {
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length));
+            if (elementSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(elementSize));
+
+            Bind();
+            return new CudaIpcMemoryBuffer(this, ipcMemHandle, length, elementSize, flags);
+        }
+
+        /// <summary>
+        /// Exports memory for use in another process
+        /// </summary>
+        /// <param name="memoryBuffer">The <see cref="CudaMemoryBuffer"/> to export.</param>
+        /// <returns>The IPC memory handle for other processes.</returns>
+        /// <remarks>This will zero the memory in the buffer and
+        /// in case of small allocations under 1 MB even neighboring memory will be zeroed.<br />
+        /// A buffer can only have one IPC memory handle, but multiple processes can use the same handle.
+        /// </remarks>
+        /// <exception cref="NotSupportedException">Only <see cref="CudaMemoryBuffer"/> supports CUDA IPC.</exception>
+        public CudaIpcMemHandle GetIpcMemoryHandle(MemoryBuffer memoryBuffer)
+        {
+            if (memoryBuffer is not CudaMemoryBuffer)
+            {
+                throw new NotSupportedException(
+                    string.Format(ErrorMessages.NotSupportedType,
+                        memoryBuffer.GetType()));
+            }
+            Bind();
+            CudaException.ThrowIfFailed(
+            CurrentAPI.GetIpcMemoryHandle(out var ipcMemHandle, memoryBuffer.NativePtr)
+            );
+            return ipcMemHandle;
+        }
+
+        /// <summary>
+        /// Exports memory for use in another process
+        /// </summary>
+        /// <param name="memoryBuffer">The memory buffer with an underlying <see cref="CudaMemoryBuffer"/> to export.</param>
+        /// <returns>The IPC memory handle for other processes.</returns>
+        /// <remarks>This will zero the memory in the buffer and
+        /// in case of small allocations under 1 MB even neighboring memory will be zeroed.<br />
+        /// A buffer can only have one IPC memory handle, but multiple processes can use the same handle.
+        /// </remarks>
+        /// <exception cref="NotSupportedException">Only <see cref="CudaMemoryBuffer"/> supports CUDA IPC.</exception>
+        public CudaIpcMemHandle GetIpcMemoryHandle<TView>(MemoryBuffer<TView> memoryBuffer)
+            where TView : struct, IArrayView
+        {
+            MemoryBuffer underlyingBuffer = memoryBuffer.View.Buffer;
+            if (underlyingBuffer is not CudaMemoryBuffer cudaMemoryBuffer)
+            {
+                throw new NotSupportedException(
+                    string.Format(ErrorMessages.NotSupportedType,
+                        underlyingBuffer.GetType()));
+            }
+            Bind();
+            CudaException.ThrowIfFailed(
+                CurrentAPI.GetIpcMemoryHandle(out var ipcMemHandle, cudaMemoryBuffer.NativePtr)
+            );
+            return ipcMemHandle;
+        }
 
         #endregion
 
