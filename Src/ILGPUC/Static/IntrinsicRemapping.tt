@@ -38,6 +38,9 @@ partial class Intrinsics
 <# int totalEntries = 0; #>
 <# foreach (var info in infos) { #>
 <#      foreach (var type in info.Types.Where(t => t.HasRemapping)) { #>
+<#          if (type.HasFrameworkRestrictions) { #>
+#if <#= string.Join(" or ", type.OnlyOnFrameworks) #>
+<#          } #>
     /// <summary>
     /// Initializes remappings for type <see cref="<#= type.CommentName #>" />.
     /// </summary>
@@ -91,6 +94,9 @@ partial class Intrinsics
 <#              } #>
 <#          } #>
     }
+<#          if (type.HasFrameworkRestrictions) { #>
+#endif
+<#          } #>
 
 <#      } #>
 <# } #>
@@ -101,7 +107,13 @@ partial class Intrinsics
     {
 <# foreach (var info in infos) { #>
 <#      foreach (var type in info.Types.Where(t => t.HasRemapping)) { #>
+<#          if (type.HasFrameworkRestrictions) { #>
+#if <#= string.Join(" or ", type.OnlyOnFrameworks) #>
+<#          } #>
         InitializeRemapping_<#= type.FunctionName #>();
+<#          if (type.HasFrameworkRestrictions) { #>
+#endif
+<#          } #>
 <#      } #>
 <# } #>
     }
