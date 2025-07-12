@@ -241,9 +241,15 @@
     <value>Unknown parent accelerator</value>
   </data>
   <data name="VelocityPlatform64" xml:space="preserve">
-      <value>Velocity accelerator requires 64-bit application ({0} not supported). Ensure Prefer32Bit is set to 'false'</value>
+    <value>Velocity accelerator requires 64-bit application ({0} not supported). Ensure Prefer32Bit is set to 'false'</value>
   </data>
   <data name="VelocityLittleEndian" xml:space="preserve">
-      <value>The Velocity accelerator supports little-endian machines only</value>
+    <value>The Velocity accelerator supports little-endian machines only</value>
+  </data>
+  <data name="NotSupportedLibDeviceNotInitialized" xml:space="preserve">
+    <value>Cannot find LibDevice implementation. Ensure that LibDevice is enabled from the ContextBuilder.</value>
+  </data>
+  <data name="NotSupportedLibDevicePreGeneratedNewer" xml:space="preserve">
+    <value>Cannot find LibDevice implementation. Upgrade to Cuda driver &gt;= v{0}.{1} or override LibDevice from the ContextBuilder.</value>
   </data>
 </root>

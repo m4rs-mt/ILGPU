@@ -23,7 +23,6 @@ string rootPath = Host.ResolvePath(".");
 var functions = LibDeviceFunctions.Load(rootPath, "../../Static/CudaLibDevice.xml");
 #>
 
-using ILGPU.IR;
 using System.Collections.Generic;
 using System.Text;
 
@@ -70,15 +69,14 @@ namespace ILGPU.Backends.PTX
         /// <param name="majorIR">The NVVM IR major version.</param>
         /// <param name="methods">The methods to check.</param>
         /// <returns>The NVVM module, or an empty string.</returns>
-        public static string GenerateNvvm(int majorIR, IEnumerable<Method> methods)
+        public static string GenerateNvvm(int majorIR, IEnumerable<string> methods)
         {
             var builder = new StringBuilder();
             bool addPrefix = true;
 
-            foreach (var method in methods)
+            foreach (var methodName in methods)
             {
-                if (method.HasSource &&
-                    fragments.TryGetValue(method.Source.Name, out var methodNvvm))
+                if (fragments.TryGetValue(methodName, out var methodNvvm))
                 {
                     if (addPrefix)
                     {

@@ -328,6 +328,24 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cannot find LibDevice implementation. Ensure that LibDevice is enabled from the ContextBuilder..
+        /// </summary>
+        internal static string NotSupportedLibDeviceNotInitialized {
+            get {
+                return ResourceManager.GetString("NotSupportedLibDeviceNotInitialized", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot find LibDevice implementation. Upgrade to Cuda driver &gt;= v{0}.{1} or override LibDevice from the ContextBuilder..
+        /// </summary>
+        internal static string NotSupportedLibDevicePreGeneratedNewer {
+            get {
+                return ResourceManager.GetString("NotSupportedLibDevicePreGeneratedNewer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Type &apos;{0}&apos; is not blittable.
         /// </summary>
         internal static string NotSupportedNonBlittableType {

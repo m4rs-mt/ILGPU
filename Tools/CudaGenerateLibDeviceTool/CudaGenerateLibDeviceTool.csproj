@@ -1,0 +1,80 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Src\ILGPU\Backends\PTX\PTXLibDevice.cs" Link="Linked Files\PTXLibDevice.cs" />
+    <Compile Include="..\..\Src\ILGPU\Backends\PTX\PTXLibDeviceNvvm.cs" Link="Linked Files\PTXLibDeviceNvvm.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PTXLibDeviceNvvm.tt</DependentUpon>
+    </Compile>
+    <Compile Include="..\..\Src\ILGPU\Frontend\ExternalAttribute.cs" Link="Linked Files\ExternalAttribute.cs" />
+    <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\CudaArchitecture.cs" Link="Linked Files\CudaArchitecture.cs" />
+    <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\CudaArchitecture.Generated.cs" Link="Linked Files\CudaArchitecture.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaArchitecture.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\CudaInstructionSet.cs" Link="Linked Files\CudaInstructionSet.cs" />
+    <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\CudaInstructionSet.Generated.cs" Link="Linked Files\CudaInstructionSet.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaInstructionSet.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\NvvmAPI.cs" Link="Linked Files\NvvmAPI.cs" />
+    <Compile Include="..\..\Src\ILGPU\Runtime\Cuda\NvvmEnums.cs" Link="Linked Files\NvvmEnums.cs" />
+    <Compile Include="..\..\Src\ILGPU\Util\DisposeBase.cs" Link="Linked Files\DisposeBase.cs" />
+    <Compile Include="..\..\Src\ILGPU\Util\InlineList.cs" Link="Linked Files\InlineList.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\Src\ILGPU\Backends\PTX\PTXLibDeviceNvvm.tt" Link="Linked Files\PTXLibDeviceNvvm.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PTXLibDeviceNvvm.cs</LastGenOutput>
+    </None>
+    <None Include="..\..\Src\ILGPU\Runtime\Cuda\CudaArchitecture.Generated.tt" Link="Linked Files\CudaArchitecture.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaArchitecture.Generated.cs</LastGenOutput>
+    </None>
+    <None Include="..\..\Src\ILGPU\Runtime\Cuda\CudaInstructionSet.Generated.tt" Link="Linked Files\CudaInstructionSet.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaInstructionSet.Generated.cs</LastGenOutput>
+    </None>
+    <None Include="CudaDriverVersionUtils.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaDriverVersionUtils.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="T4.Build" Version="0.2.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="CudaDriverVersionUtils.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CudaDriverVersionUtils.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="CudaDriverVersionUtils.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CudaDriverVersionUtils.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+</Project>

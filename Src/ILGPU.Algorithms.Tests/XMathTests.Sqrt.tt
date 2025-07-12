@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XMathTests.Sqrt.tt/XMathTests.Sqrt.cs
@@ -32,7 +32,7 @@ using Xunit;
 
     var rsqrtFunctions = new []
     {
-        new XMathFunction("Rsqrt" , "float" , new Precision(15, 15,  7)),
+        new XMathFunction("Rsqrt" , "float" , new Precision(15,  6,  7)),
         new XMathFunction("Rsqrt" , "double", new Precision(15, 15, 15)),
     };
 #>

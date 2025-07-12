@@ -90,10 +90,6 @@ namespace ILGPU.Runtime.Cuda
                     Backend.RuntimePlatform));
             }
 
-            // Silently enable automatic LibDevice detection, if not already configured.
-            if (builder.LibDevicePath is null && builder.LibNvvmPath is null)
-                builder.LibDevice(throwIfNotFound: false);
-
             if (IsRunningOnWSL())
             {
                 NativeLibrary.SetDllImportResolver(

@@ -31,7 +31,7 @@ namespace ILGPU.Backends.PTX
     /// <remarks>The code needs to be prepared for this code generator.</remarks>
     public abstract partial class PTXCodeGenerator :
         PTXRegisterAllocator,
-        IBackendCodeGenerator<StringBuilder>
+        IBackendCodeGenerator<PTXAssembly.Builder>
     {
         #region Constants
 
@@ -404,7 +404,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Generates a function declaration in PTX code.
         /// </summary>
-        public abstract void GenerateHeader(StringBuilder builder);
+        public abstract void GenerateHeader(PTXAssembly.Builder builder);
 
         /// <summary>
         /// Generates PTX code.
@@ -415,11 +415,12 @@ namespace ILGPU.Backends.PTX
         /// Generates PTX constant declarations.
         /// </summary>
         /// <param name="builder">The target builder.</param>
-        public void GenerateConstants(StringBuilder builder) =>
-            builder.Append(GenerateConstantDeclarations());
+        public void GenerateConstants(PTXAssembly.Builder builder) =>
+            builder.KernelBuilder.Append(GenerateConstantDeclarations());
 
         /// <summary cref="IBackendCodeGenerator{TKernelBuilder}.Merge(TKernelBuilder)"/>
-        public void Merge(StringBuilder builder) => builder.Append(Builder);
+        public void Merge(PTXAssembly.Builder builder) =>
+            builder.KernelBuilder.Append(Builder);
 
         #endregion
 

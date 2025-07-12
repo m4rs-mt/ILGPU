@@ -1,0 +1,55 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2024 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: CudaDriverVersionUtils.tt/CudaDriverVersionUtils.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="../../Src/ILGPU/Static/TypeInformation.ttinclude" #>
+<#@ include file="../../Src/ILGPU/Static/CudaVersions.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath("../../Src/ILGPU/Static");
+var versions = CudaVersions.Load(rootPath, "CudaVersions.xml");
+
+var instructionSets =
+    versions
+    .GroupBy(x => x.DriverVersion)
+    .OrderBy(x => x.Key)
+    .Select(g => (g.Key, g.Min(x => x.InstructionSetVersion)))
+    .ToArray();
+
+#>
+
+namespace ILGPU.Runtime.Cuda
+{
+    internal class CudaDriverVersionUtils
+    {
+        /// <summary>
+        /// Maps Cuda driver version to the corresponding PTX ISA.
+        /// </summary>
+        internal static readonly Dictionary<
+            int,
+            CudaInstructionSet> DriverVersionLookup =
+            new Dictionary<int, CudaInstructionSet>
+        {
+<# foreach (var instructionSet in instructionSets) { #>
+<#      var drv = instructionSet.Item1; #>
+<#      var isa = instructionSet.Item2; #>
+            {
+                <#= drv.Major * 1000 + drv.Minor * 10 #>,
+                CudaInstructionSet.ISA_<#= isa.Major #><#= isa.Minor #>
+            },
+<# } #>
+        };
+    }
+}

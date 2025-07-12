@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXLibDeviceMethods.tt/PTXLibDeviceMethods.cs
@@ -24,7 +24,6 @@ var functions = LibDeviceFunctions.Load(rootPath, "../../Static/CudaLibDevice.xm
 #>
 
 using ILGPU.Frontend;
-using ILGPU.IR;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable IDE1006 // Naming Styles
@@ -37,10 +36,6 @@ namespace ILGPU.Backends.PTX
     /// </summary>
     internal static class PTXLibDeviceMethods
     {
-        internal static bool IsLibDeviceMethod(Method method) =>
-            method.HasSource &&
-            method.Source.DeclaringType == typeof(PTXLibDeviceMethods);
-
 <#
     foreach (var func in functions)
     {
