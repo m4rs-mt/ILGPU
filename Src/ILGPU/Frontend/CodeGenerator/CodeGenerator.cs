@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CodeGenerator.cs
@@ -36,6 +36,7 @@ namespace ILGPU.Frontend
         private readonly Dictionary<VariableRef, (TypeNode, ConvertFlags)>
             variableTypes =
             new Dictionary<VariableRef, (TypeNode, ConvertFlags)>();
+        private ILInstruction? nextInstruction;
 
         /// <summary>
         /// Constructs a new code generator.
@@ -329,6 +330,7 @@ namespace ILGPU.Frontend
             for (int i = Block.InstructionOffset; i < endOffset; ++i)
             {
                 var instruction = DisassembledMethod[i];
+                nextInstruction = i + 1 < endOffset ? DisassembledMethod[i + 1] : null;
 
                 // Setup debug information
                 Location = instruction.Location;

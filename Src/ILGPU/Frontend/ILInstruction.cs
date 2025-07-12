@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILInstruction.cs
@@ -633,10 +633,64 @@ namespace ILGPU.Frontend
     }
 
     /// <summary>
+    /// Represents dependent type information derived from the element type at the top
+    /// of the evaluation stack.
+    /// </summary>
+    public abstract class DependentTypeArguments
+    {
+        /// <summary>
+        /// Determines the target type using the element type from the evaluation stack.
+        /// </summary>
+        /// <param name="topOfStack">The element type on the evaluation stack.</param>
+        /// <param name="nextInstruction">The next instruction (if any).</param>
+        /// <returns>The target type.</returns>
+        public abstract Type DetermineType(
+            BasicValueType topOfStack,
+            ILInstruction? nextInstruction);
+    }
+
+    /// <summary>
     /// Represents a single IL instruction.
     /// </summary>
     public sealed class ILInstruction : IEquatable<ILInstruction>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents an implement automatic dependent type conversion argument
+        /// remapping using a dictionary.
+        /// </summary>
+        public sealed class ConvertTypeArguments : DependentTypeArguments
+        {
+            /// <summary>
+            /// Determines the target type using an internal dictionary mapping.
+            /// </summary>
+            /// <param name="topOfStack">The element type on the evaluation stack.</param>
+            /// <param name="nextInstruction">The next instruction (if any).</param>
+            /// <returns>The target type.</returns>
+            public override Type DetermineType(
+                BasicValueType topOfStack,
+                ILInstruction? nextInstruction)
+            {
+                var targetType = nextInstruction?.Argument as Type ?? null;
+
+                // Fall back to double for full precision in case of an unknown conversion
+                return targetType ?? typeof(double);
+            }
+        }
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Represents unsigned dependent type conversion arguments.
+        /// </summary>
+        public static readonly ConvertTypeArguments ConvRUnArguments =
+            new ConvertTypeArguments();
+
+        #endregion
+
         #region Instance
 
         /// <summary>
