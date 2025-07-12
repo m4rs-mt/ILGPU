@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Constants.cs
@@ -12,7 +12,6 @@
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -76,6 +75,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateNull(Location, Type);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -276,6 +278,13 @@ namespace ILGPU.IR.Values
                 BasicValueType,
                 rawValue);
 
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(BasicValueType), BasicValueType);
+            writer.Write(nameof(RawValue), RawValue);
+        }
+
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -368,6 +377,13 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreatePrimitiveValue(Location, String);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(Encoding), Encoding.CodePage);
+            writer.Write(nameof(String), String);
+        }
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Convert.cs
@@ -135,6 +135,13 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value),
                 Type,
                 Flags);
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer)
+        {
+            writer.Write(nameof(TargetType), TargetType);
+            writer.Write(nameof(Flags), Flags);
+        }
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);

@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2024 ILGPU Project
+//                        Copyright (c) 2016-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAccelerator.cs
@@ -61,7 +61,7 @@ namespace ILGPU.Runtime.Cuda
             .ThrowIfNull();
 
         /// <summary>
-        /// Represents the <see cref="CudaException.ThrowIfFailed(CudaError)" /> method.
+        /// Represents <see cref="CudaException.ThrowIfFailed(CudaError, string)" />.
         /// </summary>
         private static readonly MethodInfo ThrowIfFailedMethod =
             typeof(CudaException).GetMethod(
@@ -662,7 +662,8 @@ namespace ILGPU.Runtime.Cuda
                 argumentBuffer.VariableType);
             emitter.EmitCall(launchMethod);
 
-            // Emit ThrowIfFailed
+            // Emit ThrowIfFailed(CudaError,string)
+            emitter.EmitConstant(string.Empty);
             emitter.EmitCall(ThrowIfFailedMethod);
 
             emitter.Emit(OpCodes.Ret);

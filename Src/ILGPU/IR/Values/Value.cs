@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Value.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Serialization;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -545,6 +546,19 @@ namespace ILGPU.IR
             IRRebuilder rebuilder);
 
         /// <summary>
+        /// Serializes this instance's specific internals
+        /// to the given <see cref="IIRWriter"/>.
+        /// </summary>
+        /// <typeparam name="T">
+        /// The specific type of <see cref="IIRWriter"/>.
+        /// </typeparam>
+        /// <param name="writer">
+        /// The given serializer instance. 
+        /// </param>
+        protected internal abstract void Write<T>(T writer)
+            where T : IIRWriter;
+
+        /// <summary>
         /// Verifies that the this value is not sealed.
         /// </summary>
         protected void VerifyNotSealed() =>
@@ -777,5 +791,36 @@ namespace ILGPU.IR
         public virtual bool IsMethod => false;
 
         #endregion
+    }
+}
+
+namespace ILGPU.IR.Serialization
+{
+    public partial interface IIRWriter
+    {
+        /// <summary>
+        /// Serializes an IR <see cref="Value"/> instance to the stream.
+        /// </summary>
+        /// <param name="tag">
+        /// A tag that describes the purpose of this value.
+        /// </param>
+        /// <param name="value">
+        /// The value to serialize.
+        /// </param>
+        public void Write(string tag, Value value)
+        {
+            Write(nameof(value.Id), value.Id);
+            Write(nameof(value.ValueKind), value.ValueKind);
+
+            Write(nameof(value.Method), value.Method.Id);
+            Write(nameof(value.BasicBlock), value.BasicBlock.Id);
+
+            int index = 0;
+            Write(nameof(value.Count), value.Count);
+            foreach (var node in value.Nodes)
+                Write($"{nameof(value.Nodes)}[{index++}]", node.Id);
+
+            value.Write(this);
+        }
     }
 }

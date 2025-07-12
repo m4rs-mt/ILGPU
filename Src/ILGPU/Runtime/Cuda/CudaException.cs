@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaException.cs
@@ -37,6 +37,12 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="error">The Cuda runtime error.</param>
         public CudaException(CudaError error)
             : base(CurrentAPI.GetErrorString(error))
+        {
+            Error = error.ToString();
+        }
+
+        CudaException(CudaError error, string expression)
+            : base(CurrentAPI.GetErrorString(error) + expression)
         {
             Error = error.ToString();
         }
@@ -125,11 +131,15 @@ namespace ILGPU.Runtime.Cuda
         /// Checks the given status and throws an exception in case of an error.
         /// </summary>
         /// <param name="cudaStatus">The Cuda status to check.</param>
+        /// <param name="expression">The expression that caused the error.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ThrowIfFailed(CudaError cudaStatus)
+        public static void ThrowIfFailed(
+            CudaError cudaStatus,
+            [CallerArgumentExpression(nameof(cudaStatus))] string? expression = null)
         {
+            expression = string.IsNullOrEmpty(expression) ? "" : " at " + expression;
             if (cudaStatus != CudaError.CUDA_SUCCESS)
-                throw new CudaException(cudaStatus);
+                throw new CudaException(cudaStatus, expression);
         }
 
         #endregion

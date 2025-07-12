@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AlignValues.cs
@@ -59,6 +59,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Methods
+
+        /// <summary cref="Value.Write{T}(T)"/>
+        protected internal override void Write<T>(T writer) { }
 
         /// <summary>
         /// Tries to determine an explicit alignment compile-time constant (primarily
