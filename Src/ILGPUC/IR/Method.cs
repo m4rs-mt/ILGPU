@@ -577,10 +577,7 @@ sealed partial class Method :
     /// <returns>The created context instance.</returns>
     public IRContext ExtractToContext(out Method method)
     {
-        var context = new IRContext(
-            BaseContext.Properties,
-            BaseContext.Verifier,
-            BaseContext.TypeContext);
+        var context = new IRContext(BaseContext.Properties, BaseContext.TypeContext);
 
         // Note that it is safe to call Import here, since we are currently the
         // only owner of the context instance (since it has just been created)
