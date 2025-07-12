@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2025-2025 ILGPU Project
+//                           Copyright (c) 2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeKind.cs
