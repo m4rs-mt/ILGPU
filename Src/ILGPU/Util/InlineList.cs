@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace ILGPU.Util;
@@ -126,7 +127,7 @@ public struct InlineList<T>
         get
         {
             Debug.Assert(index >= 0 && index < Count, "Index out of range");
-            return ref _items[index];
+            return ref _items.AsSpan().GetItemRef(index);
         }
     }
 
@@ -257,13 +258,13 @@ public struct InlineList<T>
     /// <summary>
     /// Inserts the given item at the specified index.
     /// </summary>
-    /// <param name="item">The item to insert.</param>
     /// <param name="index">The target index.</param>
+    /// <param name="item">The item to insert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Insert(T item, int index)
+    public void Insert(int index, T item)
     {
         EnsureCapacity();
-        for (int i = Count; i >= index; --i)
+        for (int i = Count; i > index; --i)
             _items[i] = _items[i - 1];
         _items[index] = item;
         ++Count;
@@ -371,6 +372,11 @@ public struct InlineList<T>
     }
 
     /// <summary>
+    /// Peeks an element from the back of this list.
+    /// </summary>
+    public readonly T Peek() => _items[Count - 1];
+
+    /// <summary>
     /// Pops an element from the back of this list.
     /// </summary>
     public T Pop()
@@ -383,7 +389,7 @@ public struct InlineList<T>
     /// <summary>
     /// Reverses all items in this list.
     /// </summary>
-    public readonly void Reverse() => Array.Reverse(_items);
+    public readonly void Reverse() => Array.Reverse(_items, 0, Count);
 
     /// <summary>
     /// Sorts all elements in this list.
@@ -410,12 +416,14 @@ public struct InlineList<T>
     /// Copies all items to the given target list.
     /// </summary>
     /// <param name="list">The target list.</param>
+    /// <param name="offset">The source offset.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void CopyTo(ref InlineList<T> list)
+    public readonly void CopyTo(ref InlineList<T> list, int offset = 0)
     {
-        Array.Resize(ref list._items, Count);
-        list.Count = Count;
-        CopyTo(list._items, 0);
+        int count = Count - offset;
+        Array.Resize(ref list._items, count);
+        list.Count = count;
+        Array.Copy(_items, offset, list._items, 0, count);
     }
 
     /// <summary>
@@ -459,6 +467,12 @@ public struct InlineList<T>
         Array.Copy(_items, startIndex, list._items, 0, count);
         list.Count = Math.Max(list.Count, count);
     }
+
+    /// <summary>
+    /// Converts this list into a hash set.
+    /// </summary>
+    /// <returns>The created hash set containing all items.</returns>
+    public readonly HashSet<T> ToHashSet() => AsReadOnlySpan().ToSet();
 
     /// <summary>
     /// Returns true if the given list is equal to the current list.
@@ -535,14 +549,14 @@ public struct InlineList<T>
     /// </summary>
     /// <param name="list">The list to convert.</param>
     public static explicit operator Span<T>(InlineList<T> list) =>
-        new Span<T>(list._items, 0, list.Count);
+        new(list._items, 0, list.Count);
 
     /// <summary>
     /// Converts the given list into a read-only span.
     /// </summary>
     /// <param name="list">The list to convert.</param>
     public static implicit operator ReadOnlySpan<T>(InlineList<T> list) =>
-        new ReadOnlySpan<T>(list._items, 0, list.Count);
+        new(list._items, 0, list.Count);
 
     #endregion
 }
@@ -624,6 +638,33 @@ static class InlineList
     {
         var result = InlineList<T>.Empty;
         span.CopyTo(ref result);
+        return result;
+    }
+
+    /// <summary>
+    /// Converts the given span into a <see cref="HashSet{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="span">The span instance.</param>
+    public static HashSet<T> ToSet<T>(this ReadOnlySpan<T> span) =>
+        span.ToSet(static _ => true);
+
+    /// <summary>
+    /// Converts the given span into a <see cref="HashSet{T}"/> that contains all
+    /// all elements for which the given predicate evaluates to true.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="span">The span instance.</param>
+    /// <param name="predicate">The predicate instance.</param>
+    /// <returns>The created set.</returns>
+    public static HashSet<T> ToSet<T>(this ReadOnlySpan<T> span, Predicate<T> predicate)
+    {
+        var result = new HashSet<T>();
+        foreach (var item in span)
+        {
+            if (predicate(item))
+                result.Add(item);
+        }
         return result;
     }
 
