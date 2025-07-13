@@ -11,6 +11,7 @@
 
 using ILGPU.Intrinsic;
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Util;
@@ -68,13 +69,17 @@ public static class Utilities
     /// Initializes a non-nullable instance with null.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T InitNotNullable<T>() => default(T).AsNotNull();
+    public static T InitNotNullable<T>() => default!;
 
     /// <summary>
     /// Applies the null-forgiving operator.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T AsNotNull<T>(this T? value) => value!;
+    public static T AsNotNull<T>(this T? value)
+    {
+        Debug.Assert(value is not null);
+        return value!;
+    }
 
     /// <summary>
     /// Applies the null-forgiving operator.
