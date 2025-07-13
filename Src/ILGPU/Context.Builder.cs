@@ -10,9 +10,11 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
-using ILGPU.Runtime.Debugging;
+using ILGPU.Runtime.Metal;
 using ILGPU.Runtime.OpenCL;
+using ILGPU.Runtime.ROCm;
 using System;
 
 namespace ILGPU;
@@ -26,7 +28,7 @@ partial class Context
     /// </summary>
     /// <remarks>
     /// If no accelerators will be added to this builder, the resulting context
-    /// will use the default debug accelerator <see cref="DebugDevice.Default"/>.
+    /// will use the default debug accelerator <see cref="CPUDevice.Default"/>.
     /// </remarks>
     public sealed class Builder : ContextProperties
     {
@@ -57,7 +59,7 @@ partial class Context
         /// Enables all supported accelerators.
         /// </summary>
         /// <returns>The current builder instance.</returns>
-        public Builder AllAccelerators() => this.OpenCL().Cuda();
+        public Builder AllAccelerators() => this.CPU().OpenCL().Cuda().ROCm().Metal();
 
         /// <summary>
         /// Enables all accelerators that fulfill the given predicate.
@@ -68,7 +70,7 @@ partial class Context
         /// <returns>The current builder instance.</returns>
         public Builder AllAccelerators(
             Predicate<Device> predicate) =>
-            this.OpenCL(predicate).Cuda(predicate);
+            this.CPU().OpenCL(predicate).Cuda(predicate).ROCm(predicate).Metal(predicate);
 
         /// <summary>
         /// Specifies the page locking mode.
