@@ -77,7 +77,7 @@ public interface IDevice
     /// <summary>
     /// Returns the supported capabilities of this accelerator.
     /// </summary>
-    CapabilityContext Capabilities { get; }
+    AcceleratorCapabilities Capabilities { get; }
 
     /// <summary>
     /// Returns a kernel extent (a grouped index) with the maximum number of groups
@@ -171,8 +171,17 @@ public abstract class Device(AcceleratorType type) : IDevice, IAcceleratorBuilde
     /// <summary>
     /// Returns the supported capabilities of this device.
     /// </summary>
-    public CapabilityContext Capabilities { get; protected set; } =
-        Utilities.InitNotNullable<CapabilityContext>();
+    public AcceleratorCapabilities Capabilities { get; protected set; } =
+        Utilities.InitNotNullable<AcceleratorCapabilities>();
+
+    /// <summary>
+    /// Updates the capabilities of this device. Used by accelerator types that
+    /// detect additional capabilities after initial device construction
+    /// (e.g., OpenCL sub-group detection).
+    /// </summary>
+    /// <param name="capabilities">The updated capabilities.</param>
+    internal void SetCapabilities(AcceleratorCapabilities capabilities) =>
+        Capabilities = capabilities;
 
     /// <summary>
     /// Returns a kernel extent (a grouped index) with the maximum number of groups
