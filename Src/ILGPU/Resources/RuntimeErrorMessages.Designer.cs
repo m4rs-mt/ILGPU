@@ -100,6 +100,17 @@ namespace ILGPU.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to ROCm is not supported on this platform.
+        /// </summary>
+        internal static string ROCmNotSupported
+        {
+            get
+            {
+                return ResourceManager.GetString("ROCmNotSupported", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Cuda is not supported on this platform.
         /// </summary>
         internal static string CudaNotSupported
