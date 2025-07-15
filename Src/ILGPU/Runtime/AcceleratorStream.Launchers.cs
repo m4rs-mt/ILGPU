@@ -92,6 +92,22 @@ partial class AcceleratorStream
 
     #endregion
 
+    /// <summary>
+    /// Triggers a 2D kernel launch. Delegates to <see cref="Launch2D"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [NotInsideKernel, DelayCodeGeneration, ReplaceWithLauncher]
+    public void Launch(Index2D extent, Action<Index2D> kernel) =>
+        Launch2D(extent, kernel);
+
+    /// <summary>
+    /// Triggers a 3D kernel launch.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [NotInsideKernel, DelayCodeGeneration, ReplaceWithLauncher]
+    public void Launch(Index3D extent, Action<Index3D> kernel) =>
+        throw new NotSupportedException(ErrorMessages.NotSupportedPlatform);
+
     #region Multidimensional
 
     /// <summary>
@@ -356,15 +372,16 @@ partial class AcceleratorStream
         throw new NotSupportedException(ErrorMessages.NotSupportedPlatform);
 
     /// <summary>
-    /// Launches a kernel at runtime using the provided kernel id. This id was determined
-    /// by ILGPUC during compile time.
+    /// Prepares a kernel launch at runtime.
     /// </summary>
-    /// <param name="kernelId">The id of the compiled kernel to launch.</param>
+    /// <param name="kernel">The kernel to launch.</param>
     /// <param name="kernelConfig">The thread grid configuration to launch.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [NotInsideKernel, MustNotBeCalledByClient]
-    public Kernel PrepareKernelLaunch(Guid kernelId, KernelConfig kernelConfig) =>
-        Accelerator.AsNotNull().PrepareKernelLaunch(kernelId, kernelConfig);
+    public KernelConfig PrepareKernelLaunch(
+        Kernel kernel,
+        in KernelConfig kernelConfig) =>
+        Accelerator.AsNotNull().PrepareKernelLaunch(kernel, kernelConfig);
 
     #endregion
 }
