@@ -1756,7 +1756,7 @@ public static partial class ArrayViewExtensions
     /// <remarks>This method is not supported on accelerators.</remarks>
     [NotInsideKernel]
     public static MemoryBuffer1D<T, Stride1D.Dense> Allocate1D<T>(
-        AcceleratorStream stream,
+        this AcceleratorStream stream,
         T[] data)
         where T : unmanaged
     {
@@ -1772,8 +1772,21 @@ public static partial class ArrayViewExtensions
         // Allocate the raw buffer
         var buffer = stream.Allocate1D<T>(data.Length);
 
-        // Copy the data
-        buffer.View.CopyFromCPU(stream, data);
+        // Copy the data directly to the buffer's native memory.
+        // ArrayView1D<T, Stride1D.Dense> doesn't implement IContiguousArrayView
+        // so the typed CopyFromCPU extensions don't resolve on it.
+        unsafe
+        {
+            long byteCount = (long)data.Length * Unsafe.SizeOf<T>();
+            fixed (T* src = data)
+            {
+                System.Buffer.MemoryCopy(
+                    src,
+                    buffer.NativePtr.ToPointer(),
+                    byteCount,
+                    byteCount);
+            }
+        }
 
         return buffer;
     }

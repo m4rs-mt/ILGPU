@@ -148,7 +148,7 @@ public class AllocationManager : AcceleratorObject
                 var remainder = new BufferEntry(
                     matchedEntry.Offset + totalSize,
                     matchedEntry.Size - totalSize);
-                _entries.Insert(remainder, index);
+                _entries.Insert(index, remainder);
             }
 
             var entry = new BufferEntry(matchedEntry.Offset, totalSize);
@@ -176,7 +176,7 @@ public class AllocationManager : AcceleratorObject
                 entry,
                 OffsetComparer.Instance);
             if (insertIndex < 0) insertIndex = ~insertIndex;
-            _entries.Insert(entry, insertIndex);
+            _entries.Insert(insertIndex, entry);
 
             // Merge all entries greedily
             for (int i = 0; i < _entries.Count - 1; ++i)
