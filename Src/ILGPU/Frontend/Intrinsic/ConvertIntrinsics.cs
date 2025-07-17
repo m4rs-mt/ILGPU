@@ -50,7 +50,7 @@ namespace ILGPU.Frontend.Intrinsic
             ref InvocationContext context,
             ConvertIntriniscAttribute attribute)
         {
-            var returnType = context.Method.GetReturnType();
+            var returnType = context.Method.Underlying.GetReturnType();
             var typeNode = context.Builder.CreateType(returnType);
             return context.Builder.CreateConvert(
                 context.Location,

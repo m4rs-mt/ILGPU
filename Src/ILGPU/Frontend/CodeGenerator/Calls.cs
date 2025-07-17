@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR;
+using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
@@ -28,7 +29,7 @@ namespace ILGPU.Frontend
         /// <param name="method">The target method to invoke.</param>
         /// <param name="arguments">The call arguments.</param>
         private void CreateCall(
-            MethodBase method,
+            SpecializedMethod method,
             ref ValueList arguments)
         {
             var intrinsicContext = new InvocationContext(
@@ -43,7 +44,7 @@ namespace ILGPU.Frontend
             RemappedIntrinsics.RemapIntrinsic(ref intrinsicContext);
 
             // Early rejection for runtime-dependent methods
-            VerifyNotRuntimeMethod(intrinsicContext.Method);
+            VerifyNotRuntimeMethod(intrinsicContext.Method.Underlying);
 
             // Handle device functions
             if (!Intrinsics.HandleIntrinsic(ref intrinsicContext, out var result))
@@ -59,7 +60,7 @@ namespace ILGPU.Frontend
             // Setup result
             if (result.IsValid && !result.Type.IsVoidType)
             {
-                var flags = method.GetReturnType().IsUnsignedInt()
+                var flags = method.Underlying.GetReturnType().IsUnsignedInt()
                     ? ConvertFlags.SourceUnsigned
                     : ConvertFlags.None;
                 Block.Push(LoadOntoEvaluationStack(result, flags));
@@ -70,25 +71,21 @@ namespace ILGPU.Frontend
         /// Realizes a call instruction.
         /// </summary>
         /// <param name="instruction">The instruction to realize.</param>
-        private void MakeCall(ILInstruction instruction)
-        {
+        private void MakeCall(ILInstruction instruction) {
             var method = instruction.GetArgumentAs<MethodBase>();
-            if (instruction.HasFlags(ILInstructionFlags.Constrained)
-                && method is MethodInfo methodInfo)
-            {
+            if (instruction.HasFlags(ILInstructionFlags.Constrained) && method is MethodInfo methodInfo) {
                 var constrainedType = instruction.FlagsContext.Argument as Type;
-                method = ResolveVirtualCallTarget(methodInfo, constrainedType);
-            }
-            MakeCall(method);
+                MakeCall(ResolveVirtualCallTarget(methodInfo, constrainedType));
+            }else
+                MakeCall(new SpecializedMethod(null, method));
         }
 
         /// <summary>
         /// Realizes a call instruction.
         /// </summary>
         /// <param name="target">The target method to invoke.</param>
-        private void MakeCall(MethodBase target)
-        {
-            if (target == null)
+        private void MakeCall(SpecializedMethod target) {
+            if (target.Underlying == null)
                 throw Location.GetInvalidOperationException();
             var values = Block.PopMethodArgs(Location, target, null);
             CreateCall(target, ref values);
@@ -102,7 +99,7 @@ namespace ILGPU.Frontend
         /// The constrained type of the virtual call.
         /// </param>
         /// <returns>The resolved call target.</returns>
-        private MethodInfo ResolveVirtualCallTarget(
+        private SpecializedMethod ResolveVirtualCallTarget(
             MethodInfo target,
             Type? constrainedType)
         {
@@ -110,9 +107,11 @@ namespace ILGPU.Frontend
                 BindingFlags.Public | BindingFlags.NonPublic;
 
             if (!target.IsVirtual)
-                return target;
-            if (constrainedType == null)
-            {
+                return new(constrainedType, target);
+
+            constrainedType ??= Method.InstanceType;
+
+            if (!target.DeclaringType.IsAssignableFrom(constrainedType)) {
                 throw Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedVirtualMethodCallToUnconstrainedInstance,
                     target.Name);
@@ -176,9 +175,9 @@ namespace ILGPU.Frontend
             }
             if (sourceGenerics.Length > 0 && !actualTarget.IsGenericMethodDefinition)
                 actualTarget = actualTarget.GetGenericMethodDefinition();
-            return sourceGenerics.Length > 0
+            return new(constrainedType, sourceGenerics.Length > 0
                 ? actualTarget.MakeGenericMethod(sourceGenerics)
-                : actualTarget;
+                : actualTarget);
         }
 
         /// <summary>
@@ -207,11 +206,7 @@ namespace ILGPU.Frontend
         /// <param name="constrainedType">
         /// The target type on which to invoke the method.
         /// </param>
-        private void MakeVirtualCall(MethodInfo target, Type? constrainedType)
-        {
-            target = ResolveVirtualCallTarget(target, constrainedType);
-            MakeCall(target);
-        }
+        private void MakeVirtualCall(MethodInfo target, Type? constrainedType) => MakeCall(ResolveVirtualCallTarget(target, constrainedType));
 
         /// <summary>
         /// Realizes an indirect call instruction.
