@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMath.cs
@@ -52,6 +52,33 @@ namespace ILGPU
         [MathIntrinsic(MathIntrinsicKind.Abs)]
         public static Half Abs(Half value) =>
             Half.Abs(value);
+
+        /// <summary>
+        /// Computes |value|.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>|value|.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Abs)]
+        public static BF16 Abs(BF16 value) =>
+            BF16.Abs(value);
+
+        /// <summary>
+        /// Computes |value|.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>|value|.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Abs)]
+        public static FP8E5M2 Abs(FP8E5M2 value) =>
+            FP8E5M2.Abs(value);
+
+        /// <summary>
+        /// Computes |value|.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>|value|.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Abs)]
+        public static FP8E4M3 Abs(FP8E4M3 value) =>
+            FP8E4M3.Abs(value);
 
         /// <summary>
         /// Computes |value|.

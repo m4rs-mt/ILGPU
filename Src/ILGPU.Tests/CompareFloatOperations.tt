@@ -45,7 +45,7 @@ var floatLimits = new (string, string)[]
     };
 #>
 
-#pragma warning disable IDE0047 // Remove unnecessary parentheses
+//#pragma warning disable IDE0047 // Remove unnecessary parentheses
 
 namespace ILGPU.Tests
 {
@@ -59,8 +59,12 @@ namespace ILGPU.Tests
 
 <# foreach (var (operationName, infix) in operationConfigurations) { #>
 <#      foreach (var type in FloatTypes) { #>
-<#         bool isFP16 = type == FloatTypes[0]; #>
-<#         var floatRanges = GetFloatRanges(type, true, true, true, false); #>
+<#         bool isFP843 = type == FloatTypes[0];
+           bool isFP852 = type == FloatTypes[1];
+           bool isBFP16 = type == FloatTypes[2];
+           bool isFP16 = type == FloatTypes[3]; #>
+<#         var floatRanges
+            = GetFloatRanges(type, true, true, type!=FloatTypes[0], false); #>
 <#         var baseName = "_" + operationName + "_" + type.Name; #>
 <#         var testName = "CompareOperation" + baseName; #>
 <#         var kernelName = "CompareOperationKernel" + testName; #>
@@ -85,7 +89,7 @@ namespace ILGPU.Tests
 <#          } #>
             };
 
-<#      if (isFP16) { #>
+<#      if (isFP16 || isBFP16 || isFP843 || isFP852) { #>
         [SkippableTheory]
 <#      } else { #>
         [Theory]
@@ -96,6 +100,15 @@ namespace ILGPU.Tests
             <#= type.Type #> left,
             <#= type.Type #> right)
         {
+<#      if (isFP843) { #>
+            Skip.If(!Accelerator.Capabilities.Float8E4M3);
+<#      } #>
+<#      if (isFP852) { #>
+            Skip.If(!Accelerator.Capabilities.Float8E5M2);
+<#      } #>
+<#      if (isBFP16) { #>
+            Skip.If(!Accelerator.Capabilities.BFloat16);
+<#      } #>
 <#      if (isFP16) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
@@ -116,8 +129,12 @@ namespace ILGPU.Tests
 <# } #>
 
 <# foreach (var type in FloatTypes) { #>
-<#      bool isFP16 = type == FloatTypes[0]; #>
+<#      bool isFP843 = type == FloatTypes[0]; #>
+<#      bool isFP852 = type == FloatTypes[1]; #>
+<#      bool isBFP16 = type == FloatTypes[2]; #>
+<#      bool isFP16 = type == FloatTypes[3]; #>
 <#      foreach (var (limitName, limitFormat) in floatLimits) { #>
+<#          if (limitName.Contains("Infinity") && type == FloatTypes[0]) continue; #>
 <#          var baseName = "_" + limitName + "_" + type.Name; #>
 <#          var testName = "Constant" + baseName; #>
 <#          var kernelName = "ConstantKernel" + testName; #>
@@ -134,7 +151,7 @@ namespace ILGPU.Tests
             output[index] = input[index] == <#= testValue #> ? 1 : 0;
         }
 
-<#      if (isFP16) { #>
+<#      if (isFP16||isFP843||isFP852||isBFP16) { #>
         [SkippableFact]
 <#      } else { #>
         [Fact]
@@ -142,6 +159,15 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>()
         {
+<#      if (isFP843) { #>
+            Skip.If(!Accelerator.Capabilities.Float8E4M3);
+<#      } #>
+<#      if (isFP852) { #>
+            Skip.If(!Accelerator.Capabilities.Float8E5M2);
+<#      } #>
+<#      if (isBFP16) { #>
+            Skip.If(!Accelerator.Capabilities.BFloat16);
+<#      } #>
 <#      if (isFP16) { #>
             Skip.If(!Accelerator.Capabilities.Float16);
 <#      } #>
@@ -162,4 +188,5 @@ namespace ILGPU.Tests
     }
 }
 
-#pragma warning restore IDE0047 // Remove unnecessary parentheses
+
+//#pragma warning restore IDE0047 // Remove unnecessary parentheses
