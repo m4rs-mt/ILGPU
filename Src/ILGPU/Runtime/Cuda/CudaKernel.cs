@@ -9,67 +9,49 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.Cuda;
 
 /// <summary>
-/// Creates a new CudaCompiledKernel instance.
+/// Represents a compiled CUDA kernel with architecture and ISA metadata.
 /// </summary>
-/// <param name="data">Source data to create the kernel from.</param>
-public sealed class CudaCompiledKernel(CompiledKernelData data) : CompiledKernel(data)
+public class CudaCompiledKernel(
+    Guid guid,
+    string kernelName,
+    CompiledKernelType kernelType,
+    CompiledKernelSharedMemoryMode sharedMemoryMode,
+    AcceleratorArchitecture architecture,
+    CudaInstructionSet instructionSet) :
+    CompiledKernel(guid, kernelName, kernelType, sharedMemoryMode),
+    ICompiledKernelKind
 {
     /// <summary>
-    /// Serializes custom attributes in terms of architecture and isa
+    /// Returns the <see cref="AcceleratorType.Cuda"/> accelerator type.
     /// </summary>
-    /// <param name="architecture">The architecture to serialize.</param>
-    /// <param name="isa">The isa to serialize.</param>
-    /// <returns>Serialized intermediate information.</returns>
-    public static ReadOnlyMemory<byte> SerializeCustomAttributes(
-        CudaArchitecture architecture,
-        CudaInstructionSet isa)
-    {
-        var result = new byte[sizeof(int) * 4];
-        var intSpan = result.AsSpan().CastUnsafe<byte, int>();
-
-        // Store architecture
-        intSpan[0] = architecture.Major;
-        intSpan[1] = architecture.Minor;
-
-        // Store isa
-        intSpan[2] = isa.Major;
-        intSpan[3] = isa.Minor;
-
-        return result;
-    }
+    public static AcceleratorType GeneralAcceleratorType => AcceleratorType.Cuda;
 
     /// <summary>
-    /// Deserializes architecture and ISA from the underlying kernel data.
+    /// Returns the target architecture.
     /// </summary>
-    /// <returns>Deserialized architecture and ISA information.</returns>
-    public (CudaArchitecture Architecture, CudaInstructionSet ISA)
-        DeserializeCustomAttributes() =>
-        DeserializeCustomAttributes(Data.CustomAttributes.Span);
+    public AcceleratorArchitecture Architecture { get; } = architecture;
 
     /// <summary>
-    /// Deserializes architecture and ISA from the given custom attributes in serialized
-    /// kernel form.
+    /// Returns the target instruction set.
     /// </summary>
-    /// <returns>Deserialized architecture and ISA information.</returns>
-    public static (CudaArchitecture Architecture, CudaInstructionSet ISA)
-        DeserializeCustomAttributes(ReadOnlySpan<byte> customAttributes)
-    {
-        var intSpan = customAttributes.CastUnsafe<byte, int>();
+    public CudaInstructionSet InstructionSet { get; } = instructionSet;
 
-        // Load architecture and isa
-        var arch = new CudaArchitecture(intSpan[0], intSpan[1]);
-        var isa = new CudaInstructionSet(intSpan[2], intSpan[3]);
+    /// <inheritdoc/>
+    public override AcceleratorCapabilities RequiredCapabilities =>
+        CudaAcceleratorCapabilities.FromArchitecture(Architecture);
 
-        return (arch, isa);
-    }
+    /// <inheritdoc/>
+    public override string GetSourceAsString() =>
+        throw new InvalidOperationException(
+            "Override GetSourceAsString in derived class.");
 }
 
 /// <summary>
@@ -80,32 +62,22 @@ public sealed class CudaKernel : Kernel
     #region Instance
 
     /// <summary>
-    /// Holds the pointer to the native Cuda module in memory.
-    /// </summary>
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private IntPtr _modulePtr;
-
-    /// <summary>
-    /// Holds the pointer to the native Cuda function in memory.
-    /// </summary>
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private IntPtr _functionPtr;
-
-    /// <summary>
     /// Loads a compiled kernel into the given Cuda context as kernel program.
     /// </summary>
     /// <param name="accelerator">The associated accelerator.</param>
     /// <param name="kernel">The source kernel.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public CudaKernel(CudaAccelerator accelerator, CudaCompiledKernel kernel)
         : base(accelerator, kernel)
     {
+        var binary = kernel.GetCompiledBinary();
         var kernelLoaded = CurrentAPI.LoadModule(
-            out _modulePtr,
-            kernel.GetSourceAsString(),
+            out var modulePtr,
+            binary.Span,
             out string? errorLog);
         if (kernelLoaded != CudaError.CUDA_SUCCESS)
         {
-            Trace.WriteLine("PTX Kernel loading failed:");
+            Trace.WriteLine("Kernel loading failed:");
             if (string.IsNullOrWhiteSpace(errorLog))
                 Trace.WriteLine(">> No error information available");
             else
@@ -115,9 +87,12 @@ public sealed class CudaKernel : Kernel
 
         CudaException.ThrowIfFailed(
             CurrentAPI.GetModuleFunction(
-                out _functionPtr,
-                _modulePtr,
+                out var functionPtr,
+                modulePtr,
                 kernel.KernelName));
+
+        ModulePtr = modulePtr;
+        FunctionPtr = functionPtr;
     }
 
     #endregion
@@ -127,12 +102,12 @@ public sealed class CudaKernel : Kernel
     /// <summary>
     /// Returns the Cuda module pointer.
     /// </summary>
-    public IntPtr ModulePtr => _modulePtr;
+    public IntPtr ModulePtr { get; private set; }
 
     /// <summary>
     /// Returns the Cuda function pointer.
     /// </summary>
-    public IntPtr FunctionPtr => _functionPtr;
+    public IntPtr FunctionPtr { get; private set; }
 
     #endregion
 
@@ -145,9 +120,9 @@ public sealed class CudaKernel : Kernel
     {
         CudaException.VerifyDisposed(
             disposing,
-            CurrentAPI.DestroyModule(_modulePtr));
-        _functionPtr = IntPtr.Zero;
-        _modulePtr = IntPtr.Zero;
+            CurrentAPI.DestroyModule(ModulePtr));
+        FunctionPtr = IntPtr.Zero;
+        ModulePtr = IntPtr.Zero;
     }
 
     #endregion
