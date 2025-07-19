@@ -33,7 +33,10 @@ var architectures =
 
 namespace ILGPU.Runtime.Cuda;
 
-partial struct CudaArchitecture
+/// <summary>
+/// Represents known Cuda architectures.
+/// </summary>
+public static class CudaArchitecture
 {
     #region Constants
 
@@ -41,8 +44,8 @@ partial struct CudaArchitecture
     /// <summary>
     /// The <#= arch.Major #>.<#= arch.Minor #> architecture.
     /// </summary>
-    public static readonly CudaArchitecture SM_<#= arch.Major #><#= arch.Minor #> =
-        new CudaArchitecture(<#= arch.Major #>, <#= arch.Minor #>);
+    public static readonly AcceleratorArchitecture SM_<#= arch.Major #><#= arch.Minor #> =
+        new(<#= arch.Major #>, <#= arch.Minor #>);
 
 <# } #>
     #endregion
