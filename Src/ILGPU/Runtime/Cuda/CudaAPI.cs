@@ -605,6 +605,87 @@ unsafe partial class CudaAPI
     }
 
     /// <summary>
+    /// Loads the given kernel module from binary data into driver memory.
+    /// </summary>
+    /// <param name="kernelModule">The loaded module.</param>
+    /// <param name="moduleData">The binary module data to load.</param>
+    /// <returns>The error status.</returns>
+    public unsafe CudaError LoadModule(
+        out IntPtr kernelModule,
+        ReadOnlySpan<byte> moduleData)
+    {
+        fixed (byte* ptr = moduleData)
+            return cuModuleLoadDataBinary(out kernelModule, (IntPtr)ptr);
+    }
+
+    /// <summary>
+    /// Loads the given kernel module from binary data into driver memory.
+    /// </summary>
+    /// <param name="kernelModule">The loaded module.</param>
+    /// <param name="moduleData">The binary module data to load.</param>
+    /// <param name="numOptions">The number of JIT options.</param>
+    /// <param name="jitOptions">The JIT options.</param>
+    /// <param name="jitOptionValues">The JIT values.</param>
+    /// <returns>The error status.</returns>
+    public unsafe CudaError LoadModule(
+        out IntPtr kernelModule,
+        ReadOnlySpan<byte> moduleData,
+        int numOptions,
+        IntPtr jitOptions,
+        IntPtr jitOptionValues)
+    {
+        fixed (byte* ptr = moduleData)
+        {
+            return cuModuleLoadDataExBinary(
+                out kernelModule,
+                (IntPtr)ptr,
+                numOptions,
+                jitOptions,
+                jitOptionValues);
+        }
+    }
+
+    /// <summary>
+    /// Loads the given kernel module from binary data into driver memory.
+    /// </summary>
+    /// <param name="kernelModule">The loaded module.</param>
+    /// <param name="moduleData">The binary module data to load.</param>
+    /// <param name="errorLog">The error log.</param>
+    /// <returns>The error status.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public CudaError LoadModule(
+        out IntPtr kernelModule,
+        ReadOnlySpan<byte> moduleData,
+        out string? errorLog)
+    {
+        const int BufferSize = 1024;
+        const int NumOptions = 2;
+
+        var options = stackalloc int[NumOptions];
+        options[0] = 5; // CU_JIT_ERROR_LOG_BUFFER
+        options[1] = 6; // CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES
+
+        var errorBuffer = stackalloc byte[BufferSize];
+
+        var optionValues = stackalloc byte[NumOptions * sizeof(void*)];
+        var values = (void**)optionValues;
+        values[0] = errorBuffer;
+        values[1] = (void*)BufferSize;
+
+        var result = LoadModule(
+            out kernelModule,
+            moduleData,
+            NumOptions,
+            new IntPtr(options),
+            new IntPtr(optionValues));
+
+        errorLog = result != CudaError.CUDA_SUCCESS
+            ? Encoding.ASCII.GetString(errorBuffer, BufferSize)
+            : null;
+        return result;
+    }
+
+    /// <summary>
     /// Unloads the given module.
     /// </summary>
     /// <param name="kernelModule">The module to unload.</param>
