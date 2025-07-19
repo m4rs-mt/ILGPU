@@ -28,7 +28,6 @@ public static class CPUPageLock
     [SupportedOSPlatform("windows")]
     private static extern bool VirtualLock(IntPtr lpAddress, nuint dwSize);
 
-
     [DllImport("kernel32.dll", SetLastError = true)]
     [SupportedOSPlatform("windows")]
     private static extern bool VirtualUnlock(IntPtr lpAddress, nuint dwSize);
