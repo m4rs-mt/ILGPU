@@ -17,41 +17,38 @@ using static ILGPU.Runtime.OpenCL.CLAPI;
 namespace ILGPU.Runtime.OpenCL;
 
 /// <summary>
-/// Creates a new CLCompiledKernel instance.
+/// Represents a compiled OpenCL kernel with CLC version metadata.
 /// </summary>
-/// <param name="data">Source data to create the kernel from.</param>
-public sealed class CLCompiledKernel(CompiledKernelData data) : CompiledKernel(data)
+public class CLCompiledKernel(
+    Guid guid,
+    string kernelName,
+    CompiledKernelType kernelType,
+    CompiledKernelSharedMemoryMode sharedMemoryMode,
+    CLCVersion cVersion,
+    string? source = null) :
+    CompiledKernel(guid, kernelName, kernelType, sharedMemoryMode),
+    ICompiledKernelKind
 {
     /// <summary>
-    /// Serializes a CLC version into a read-only chunk of memory to be used as custom
-    /// kernel attributes.
+    /// Returns the <see cref="AcceleratorType.OpenCL"/> accelerator type.
     /// </summary>
-    /// <param name="cVersion">The CLC version to read.</param>
-    public static unsafe ReadOnlyMemory<byte> SerializeCustomAttributes(
-        CLCVersion cVersion)
-    {
-        var result = new byte[Interop.SizeOf<CLCVersion>()];
-        fixed (byte* ptr = result)
-            Unsafe.Write(ptr, cVersion);
-        return result;
-    }
+    public static AcceleratorType GeneralAcceleratorType => AcceleratorType.OpenCL;
 
-    /// <summary>
-    /// Deserializes a CLC version from custom kernel attributes.
-    /// </summary>
-    /// <param name="customAttributes">The kernel attributes to deserialize.</param>
-    public static unsafe CLCVersion DeserializeCustomAttributes(
-        ReadOnlySpan<byte> customAttributes)
-    {
-        fixed (byte* ptr = customAttributes)
-            return Unsafe.Read<CLCVersion>(ptr);
-    }
+    private readonly string? _source = source;
 
     /// <summary>
     /// Returns the necessary CLC version.
     /// </summary>
-    public CLCVersion CVersion { get; } =
-        DeserializeCustomAttributes(data.CustomAttributes.Span);
+    public CLCVersion CVersion { get; } = cVersion;
+
+    /// <inheritdoc/>
+    public override AcceleratorCapabilities RequiredCapabilities =>
+        new CLAcceleratorCapabilities();
+
+    /// <inheritdoc/>
+    public override string GetSourceAsString() =>
+        _source ?? throw new InvalidOperationException(
+            "No source available. Use GetCompiledBinary() for pre-compiled kernels.");
 }
 
 /// <summary>
@@ -120,6 +117,55 @@ public sealed class CLKernel : Kernel
     }
 
     /// <summary>
+    /// Loads an OpenCL kernel from SPIR-V intermediate language.
+    /// </summary>
+    /// <param name="accelerator">The associated accelerator.</param>
+    /// <param name="name">The name of the entry-point function.</param>
+    /// <param name="il">The SPIR-V binary.</param>
+    /// <param name="programPtr">The created program pointer.</param>
+    /// <param name="kernelPtr">The created kernel pointer.</param>
+    /// <param name="errorLog">The error log (if any).</param>
+    /// <returns>The error code.</returns>
+    internal static CLError LoadKernelFromIL(
+        CLAccelerator accelerator,
+        string name,
+        ReadOnlySpan<byte> il,
+        out IntPtr programPtr,
+        out IntPtr kernelPtr,
+        out string? errorLog)
+    {
+        errorLog = null;
+        kernelPtr = IntPtr.Zero;
+        var programError = CurrentAPI.CreateProgramWithIL(
+            accelerator.NativePtr,
+            il,
+            out programPtr);
+        if (programError != CLError.CL_SUCCESS)
+            return programError;
+
+        // SPIR-V programs still need clBuildProgram but no -cl-std flag
+        var buildError = CurrentAPI.BuildProgram(
+            programPtr,
+            accelerator.DeviceId,
+            string.Empty);
+
+        if (buildError != CLError.CL_SUCCESS)
+        {
+            CLException.ThrowIfFailed(
+                CurrentAPI.GetProgramBuildLog(
+                    programPtr,
+                    accelerator.DeviceId,
+                    out errorLog));
+            CLException.ThrowIfFailed(
+                CurrentAPI.ReleaseProgram(programPtr));
+            programPtr = IntPtr.Zero;
+            return buildError;
+        }
+
+        return CurrentAPI.CreateKernel(programPtr, name, out kernelPtr);
+    }
+
+    /// <summary>
     /// Loads the binary representation of the given OpenCL kernel.
     /// </summary>
     /// <param name="program">The program pointer.</param>
@@ -170,17 +216,24 @@ public sealed class CLKernel : Kernel
     /// </summary>
     /// <param name="accelerator">The associated accelerator.</param>
     /// <param name="kernel">The source kernel.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public CLKernel(CLAccelerator accelerator, CLCompiledKernel kernel)
         : base(accelerator, kernel)
     {
-        var errorCode = LoadKernel(
-            accelerator,
-            kernel.KernelName,
-            kernel.GetSourceAsString(),
-            kernel.CVersion,
-            out _programPtr,
-            out _kernelPtr,
-            out var errorLog);
+        // Try SPIR-V binary path first
+        ReadOnlyMemory<byte> binary = default;
+        try { binary = kernel.GetCompiledBinary(); }
+        catch (NotSupportedException) { }
+
+        var errorCode = binary.Length > 0
+            ? LoadKernelFromIL(
+                accelerator, kernel.KernelName, binary.Span,
+                out _programPtr, out _kernelPtr, out string? errorLog)
+            : LoadKernel(
+                accelerator, kernel.KernelName,
+                kernel.GetSourceAsString(), kernel.CVersion,
+                out _programPtr, out _kernelPtr, out errorLog);
+
         if (errorCode != CLError.CL_SUCCESS)
         {
             Trace.WriteLine("Kernel loading failed:");
