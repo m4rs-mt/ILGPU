@@ -95,159 +95,178 @@ public static partial class Scanner
 
     #endregion
 
-    #region Entry Points
+    #region Lambda-Based Entry Points
 
     /// <summary>
     /// Performs an inclusive scan operation.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The operation implementation.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
-    /// <param name="source">The source view to read from and to transform.</param>
-    /// <param name="target">The target view to initialize.</param>
+    /// <param name="source">The source view to read from.</param>
+    /// <param name="target">The target view to write to.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="operation">The binary scan operation.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [NotInsideKernel]
-    public static void InclusiveScan<T, TScan>(
+    public static void InclusiveScan<T>(
         this AcceleratorStream stream,
         ArrayView<T> source,
-        ArrayView<T> target)
-        where T : unmanaged
-        where TScan : struct, IScanReduceOperation<T> =>
-        InclusiveScan<T, TScan, Stride1D.Dense, Stride1D.Dense>(
+        ArrayView<T> target,
+        T identity,
+        Func<T, T, T> operation)
+        where T : unmanaged =>
+        InclusiveScan<T, Stride1D.Dense, Stride1D.Dense>(
             stream,
             source.AsDense(),
-            target.AsDense());
+            target.AsDense(),
+            identity,
+            operation);
 
     /// <summary>
     /// Performs an inclusive scan operation.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The operation implementation.</typeparam>
     /// <typeparam name="TSourceStride">The source view stride.</typeparam>
     /// <typeparam name="TTargetStride">The target view stride.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
-    /// <param name="source">The source view to read from and to transform.</param>
-    /// <param name="target">The target view to initialize.</param>
+    /// <param name="source">The source view to read from.</param>
+    /// <param name="target">The target view to write to.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="operation">The binary scan operation.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [NotInsideKernel]
-    public static void InclusiveScan<T, TScan, TSourceStride, TTargetStride>(
+    public static void InclusiveScan<T, TSourceStride, TTargetStride>(
         this AcceleratorStream stream,
         ArrayView1D<T, TSourceStride> source,
-        ArrayView1D<T, TTargetStride> target)
+        ArrayView1D<T, TTargetStride> target,
+        T identity,
+        Func<T, T, T> operation)
         where T : unmanaged
         where TSourceStride : struct, IStride1D
-        where TTargetStride : struct, IStride1D
-        where TScan : struct, IScanReduceOperation<T> =>
-        GenericScan<T, TScan, TSourceStride, TTargetStride, ScanPredicates.InclusiveScan>(
+        where TTargetStride : struct, IStride1D =>
+        GenericScan<T, TSourceStride, TTargetStride, ScanPredicates.InclusiveScan>(
             stream,
             source,
-            target);
+            target,
+            identity,
+            operation);
 
     /// <summary>
     /// Performs an exclusive scan operation.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The operation implementation.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
-    /// <param name="source">The source view to read from and to transform.</param>
-    /// <param name="target">The target view to initialize.</param>
+    /// <param name="source">The source view to read from.</param>
+    /// <param name="target">The target view to write to.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="operation">The binary scan operation.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [NotInsideKernel]
-    public static void ExclusiveScan<T, TScan>(
+    public static void ExclusiveScan<T>(
         this AcceleratorStream stream,
         ArrayView<T> source,
-        ArrayView<T> target)
-        where T : unmanaged
-        where TScan : struct, IScanReduceOperation<T> =>
-        ExclusiveScan<T, TScan, Stride1D.Dense, Stride1D.Dense>(
+        ArrayView<T> target,
+        T identity,
+        Func<T, T, T> operation)
+        where T : unmanaged =>
+        ExclusiveScan<T, Stride1D.Dense, Stride1D.Dense>(
             stream,
             source.AsDense(),
-            target.AsDense());
+            target.AsDense(),
+            identity,
+            operation);
 
     /// <summary>
     /// Performs an exclusive scan operation.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The operation implementation.</typeparam>
     /// <typeparam name="TSourceStride">The source view stride.</typeparam>
     /// <typeparam name="TTargetStride">The target view stride.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
-    /// <param name="source">The source view to read from and to transform.</param>
-    /// <param name="target">The target view to initialize.</param>
+    /// <param name="source">The source view to read from.</param>
+    /// <param name="target">The target view to write to.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="operation">The binary scan operation.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [NotInsideKernel]
-    public static void ExclusiveScan<T, TScan, TSourceStride, TTargetStride>(
+    public static void ExclusiveScan<T, TSourceStride, TTargetStride>(
         this AcceleratorStream stream,
         ArrayView1D<T, TSourceStride> source,
-        ArrayView1D<T, TTargetStride> target)
+        ArrayView1D<T, TTargetStride> target,
+        T identity,
+        Func<T, T, T> operation)
         where T : unmanaged
         where TSourceStride : struct, IStride1D
-        where TTargetStride : struct, IStride1D
-        where TScan : struct, IScanReduceOperation<T> =>
-        GenericScan<T, TScan, TSourceStride, TTargetStride, ScanPredicates.ExclusiveScan>(
+        where TTargetStride : struct, IStride1D =>
+        GenericScan<T, TSourceStride, TTargetStride, ScanPredicates.ExclusiveScan>(
             stream,
             source,
-            target);
+            target,
+            identity,
+            operation);
+
+    #endregion
+
+    #region Core Implementation
 
     /// <summary>
     /// Performs a generic scan operation.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The operation implementation.</typeparam>
     /// <typeparam name="TSourceStride">The source view stride.</typeparam>
     /// <typeparam name="TTargetStride">The target view stride.</typeparam>
     /// <typeparam name="TPredicate">The scan predicate type.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
-    /// <param name="source">The source view to read from and to transform.</param>
-    /// <param name="target">The target view to initialize.</param>
+    /// <param name="source">The source view to read from.</param>
+    /// <param name="target">The target view to write to.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="apply">The binary scan operation.</param>
     [NotInsideKernel]
-    public static void GenericScan<T, TScan, TSourceStride, TTargetStride, TPredicate>(
+    private static void GenericScan<T, TSourceStride, TTargetStride, TPredicate>(
         this AcceleratorStream stream,
         ArrayView1D<T, TSourceStride> source,
-        ArrayView1D<T, TTargetStride> target)
+        ArrayView1D<T, TTargetStride> target,
+        T identity,
+        Func<T, T, T> apply)
         where T : unmanaged
         where TSourceStride : struct, IStride1D
         where TTargetStride : struct, IStride1D
-        where TScan : struct, IScanReduceOperation<T>
         where TPredicate : struct, IScanPredicate
     {
         if (stream.AcceleratorType == AcceleratorType.Cuda)
         {
-            SinglePass<T, TScan, TSourceStride, TTargetStride, TPredicate>(
+            SinglePass<T, TSourceStride, TTargetStride, TPredicate>(
                 stream,
                 source,
-                target);
+                target,
+                identity,
+                apply);
         }
         else
         {
-            MultiPass<T, TScan, TSourceStride, TTargetStride, TPredicate>(
+            MultiPass<T, TSourceStride, TTargetStride, TPredicate>(
                 stream,
                 source,
-                target);
+                target,
+                identity,
+                apply);
         }
     }
 
     /// <summary>
     /// Performs a single pass scan operation.
     /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The operation implementation.</typeparam>
-    /// <typeparam name="TSourceStride">The source view stride.</typeparam>
-    /// <typeparam name="TTargetStride">The target view stride.</typeparam>
-    /// <typeparam name="TPredicate">The scan predicate type.</typeparam>
-    /// <param name="stream">The accelerator stream.</param>
-    /// <param name="source">The source view to read from and to transform.</param>
-    /// <param name="target">The target view to initialize.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [NotInsideKernel, DelayCodeGeneration]
-    private static void SinglePass<T, TScan, TSourceStride, TTargetStride, TPredicate>(
+    private static void SinglePass<T, TSourceStride, TTargetStride, TPredicate>(
         this AcceleratorStream stream,
         ArrayView1D<T, TSourceStride> source,
-        ArrayView1D<T, TTargetStride> target)
+        ArrayView1D<T, TTargetStride> target,
+        T identity,
+        Func<T, T, T> apply)
         where T : unmanaged
         where TSourceStride : struct, IStride1D
         where TTargetStride : struct, IStride1D
-        where TScan : struct, IScanReduceOperation<T>
         where TPredicate : struct, IScanPredicate
     {
         if (source.Length < target.Length)
@@ -275,10 +294,12 @@ public static partial class Scanner
             var tileInfo = new TileInfo(source.IntLength, numIterationsPerGroup);
 
             // Determine our right boundary and resolve our left boundary
-            T leftBoundary = TScan.Identity;
-            T rightBoundary = ComputeTileRightBoundary<T, TSourceStride, TScan>(
+            T leftBoundary = identity;
+            T rightBoundary = ComputeTileRightBoundary(
                 tileInfo,
-                source);
+                source,
+                identity,
+                apply);
 
             // Sync groups and wait for the current one to become active
             leftBoundary = executor.Wait() ?? leftBoundary;
@@ -288,39 +309,34 @@ public static partial class Scanner
 
             // If we are the first thread in the group, update the boundary value for
             // the next group
-            var boundary = TScan.Apply(leftBoundary, rightBoundary);
+            var boundary = apply(leftBoundary, rightBoundary);
             executor.Release(boundary);
 
             // Perform the final tile scan
-            ComputeTileScan<T, TSourceStride, TTargetStride, TScan, TPredicate>(
+            ComputeTileScan<T, TSourceStride, TTargetStride, TPredicate>(
                 tileInfo,
                 source,
                 target,
-                leftBoundary);
+                leftBoundary,
+                identity,
+                apply);
         });
     }
 
     /// <summary>
     /// Performs a multi pass scan operation.
     /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The operation implementation.</typeparam>
-    /// <typeparam name="TSourceStride">The source view stride.</typeparam>
-    /// <typeparam name="TTargetStride">The target view stride.</typeparam>
-    /// <typeparam name="TPredicate">The scan predicate type.</typeparam>
-    /// <param name="stream">The accelerator stream.</param>
-    /// <param name="source">The source view to read from and to transform.</param>
-    /// <param name="target">The target view to initialize.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [NotInsideKernel, DelayCodeGeneration]
-    private static void MultiPass<T, TScan, TSourceStride, TTargetStride, TPredicate>(
+    private static void MultiPass<T, TSourceStride, TTargetStride, TPredicate>(
         this AcceleratorStream stream,
         ArrayView1D<T, TSourceStride> source,
-        ArrayView1D<T, TTargetStride> target)
+        ArrayView1D<T, TTargetStride> target,
+        T identity,
+        Func<T, T, T> apply)
         where T : unmanaged
         where TSourceStride : struct, IStride1D
         where TTargetStride : struct, IStride1D
-        where TScan : struct, IScanReduceOperation<T>
         where TPredicate : struct, IScanPredicate
     {
         if (source.Length < target.Length)
@@ -343,9 +359,11 @@ public static partial class Scanner
         stream.Launch(config, index =>
         {
             var tileInfo = new TileInfo(source.Length, numIterationsPerGroup);
-            T rightBoundary = ComputeTileRightBoundary<T, TSourceStride, TScan>(
+            T rightBoundary = ComputeTileRightBoundary(
                 tileInfo,
-                source);
+                source,
+                identity,
+                apply);
 
             if (Group.IsFirstThread)
                 rightBoundaries[index.GridIndex] = rightBoundary;
@@ -358,19 +376,21 @@ public static partial class Scanner
 
             var localRightBoundary = index.GroupIndex < rightBoundaries.Length
                 ? rightBoundaries[index.GroupIndex]
-                : TScan.Identity;
+                : identity;
             var scannedLeftBoundaries = TPredicate.ScanKind == ScanKind.Inclusive
-                 ? Group.InclusiveScan<T, TScan>(localRightBoundary)
-                 : Group.ExclusiveScan<T, TScan>(localRightBoundary);
+                 ? Group.InclusiveScan(localRightBoundary, identity, apply)
+                 : Group.ExclusiveScan(localRightBoundary, identity, apply);
 
             Trace.Assert(Grid.Index <= int.MaxValue, "Invalid grid extent");
             T leftBoundary = Group.Broadcast(scannedLeftBoundaries, (int)index.GridIndex);
 
-            ComputeTileScan<T, TSourceStride, TTargetStride, TScan, TPredicate>(
+            ComputeTileScan<T, TSourceStride, TTargetStride, TPredicate>(
                 tileInfo,
                 source,
                 target,
-                leftBoundary);
+                leftBoundary,
+                identity,
+                apply);
         });
     }
 
@@ -383,23 +403,25 @@ public static partial class Scanner
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TStrideIn">The stride of the input view.</typeparam>
-    /// <typeparam name="TScan">The scan-operation type.</typeparam>
     /// <param name="tileInfo">The current tile info.</param>
     /// <param name="input">The input view.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="apply">The binary scan operation.</param>
     /// <returns>The resolved right boundary for all threads in the group.</returns>
-    private static T ComputeTileRightBoundary<T, TStrideIn, TScan>(
+    private static T ComputeTileRightBoundary<T, TStrideIn>(
         TileInfo tileInfo,
-        ArrayView1D<T, TStrideIn> input)
+        ArrayView1D<T, TStrideIn> input,
+        T identity,
+        Func<T, T, T> apply)
         where T : unmanaged
         where TStrideIn : struct, IStride1D
-        where TScan : struct, IScanReduceOperation<T>
     {
         T rightBoundary = tileInfo.StartIndex < tileInfo.MaxLength ?
             input[tileInfo.StartIndex] :
-            TScan.Identity;
+            identity;
 
         // Perform a scan of all items in this group
-        rightBoundary = Group.AllReduce<T, TScan>(rightBoundary);
+        rightBoundary = Group.AllReduce(rightBoundary, identity, apply);
 
         // Perform a linear scan over all elements in the current tile
         for (
@@ -409,10 +431,10 @@ public static partial class Scanner
         {
             var inputValue = i < tileInfo.MaxLength
                 ? input[i]
-                : TScan.Identity;
+                : identity;
 
-            var reduced = Group.AllReduce<T, TScan>(inputValue);
-            rightBoundary = TScan.Apply(rightBoundary, reduced);
+            var reduced = Group.AllReduce(inputValue, identity, apply);
+            rightBoundary = apply(rightBoundary, reduced);
         }
         return rightBoundary;
     }
@@ -422,17 +444,19 @@ public static partial class Scanner
     /// same kernel.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The type of the warp scan logic.</typeparam>
     /// <param name="leftBoundary">The left boundary value.</param>
     /// <param name="rightBoundary">The right boundary value.</param>
+    /// <param name="apply">The binary scan operation.</param>
     /// <returns>The starting value for the next iteration.</returns>
-    private static T ExclusiveScanNextIteration<T, TScan>(T leftBoundary, T rightBoundary)
+    private static T ExclusiveScanNextIteration<T>(
+        T leftBoundary,
+        T rightBoundary,
+        Func<T, T, T> apply)
         where T : unmanaged
-        where TScan : struct, IScanReduceOperation<T>
     {
-        var nextBoundary = TScan.Apply(leftBoundary, rightBoundary);
+        var nextBoundary = apply(leftBoundary, rightBoundary);
         var lastThreadBoundary = Group.Broadcast(new LastThreadValue<T>(nextBoundary));
-        return TScan.Apply(nextBoundary, lastThreadBoundary);
+        return apply(nextBoundary, lastThreadBoundary);
     }
 
     /// <summary>
@@ -440,14 +464,16 @@ public static partial class Scanner
     /// same kernel.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <typeparam name="TScan">The type of the warp scan logic.</typeparam>
     /// <param name="leftBoundary">The left boundary value.</param>
     /// <param name="rightBoundary">The right boundary value.</param>
+    /// <param name="apply">The binary scan operation.</param>
     /// <returns>The starting value for the next iteration.</returns>
-    public static T InclusiveScanNextIteration<T, TScan>(T leftBoundary, T rightBoundary)
-        where T : unmanaged
-        where TScan : struct, IScanReduceOperation<T> =>
-        TScan.Apply(leftBoundary, rightBoundary);
+    private static T InclusiveScanNextIteration<T>(
+        T leftBoundary,
+        T rightBoundary,
+        Func<T, T, T> apply)
+        where T : unmanaged =>
+        apply(leftBoundary, rightBoundary);
 
     /// <summary>
     /// Computes a single scan within a single tile.
@@ -455,7 +481,6 @@ public static partial class Scanner
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TStrideIn">The stride of the input view.</typeparam>
     /// <typeparam name="TStrideOut">The stride of the output view.</typeparam>
-    /// <typeparam name="TScan">The scan-operation type.</typeparam>
     /// <typeparam name="TPredicate">The scan predicate type.</typeparam>
     /// <param name="tileInfo">The current tile info.</param>
     /// <param name="input">The input view.</param>
@@ -463,34 +488,38 @@ public static partial class Scanner
     /// <param name="leftBoundary">
     /// The left boundary (e.g. of the previous tile).
     /// </param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="apply">The binary scan operation.</param>
     private static void ComputeTileScan<
         T,
         TStrideIn,
         TStrideOut,
-        TScan,
         TPredicate>(
         TileInfo tileInfo,
         ArrayView1D<T, TStrideIn> input,
         ArrayView1D<T, TStrideOut> output,
-        T leftBoundary)
+        T leftBoundary,
+        T identity,
+        Func<T, T, T> apply)
         where T : unmanaged
         where TStrideIn : struct, IStride1D
         where TStrideOut : struct, IStride1D
-        where TScan : struct, IScanReduceOperation<T>
         where TPredicate : struct, IScanPredicate
     {
         // Fetch initial current value
         T inputValue = tileInfo.StartIndex < tileInfo.MaxLength ?
             input[tileInfo.StartIndex] :
-            TScan.Identity;
+            identity;
 
         // Perform a scan of all items in this group
         var current = TPredicate.ScanKind == ScanKind.Inclusive
-             ? Group.InclusiveScan<T, TScan>(inputValue, out var localBoundaries)
-             : Group.ExclusiveScan<T, TScan>(inputValue, out localBoundaries);
+             ? Group.InclusiveScan(inputValue, identity, apply)
+             : Group.ExclusiveScan(inputValue, identity, apply);
+        // Compute the right boundary (total reduction across the group)
+        var rightBoundary = Group.AllReduce(inputValue, identity, apply);
 
         if (tileInfo.StartIndex < tileInfo.MaxLength)
-            output[tileInfo.StartIndex] = TScan.Apply(leftBoundary, current);
+            output[tileInfo.StartIndex] = apply(leftBoundary, current);
 
         // Adjust all scan results according to the previously computed result
         for (
@@ -499,20 +528,17 @@ public static partial class Scanner
             i += Group.Dimension)
         {
             leftBoundary = TPredicate.ScanKind == ScanKind.Inclusive
-                ? InclusiveScanNextIteration<T, TScan>(
-                    leftBoundary,
-                    localBoundaries.RightBoundary)
-                : ExclusiveScanNextIteration<T, TScan>(
-                    leftBoundary,
-                    localBoundaries.RightBoundary);
+                ? InclusiveScanNextIteration(leftBoundary, rightBoundary, apply)
+                : ExclusiveScanNextIteration(leftBoundary, rightBoundary, apply);
 
-            inputValue = i < tileInfo.MaxLength ? input[i] : TScan.Identity;
+            inputValue = i < tileInfo.MaxLength ? input[i] : identity;
 
             current = TPredicate.ScanKind == ScanKind.Inclusive
-                 ? Group.InclusiveScan<T, TScan>(inputValue, out localBoundaries)
-                 : Group.ExclusiveScan<T, TScan>(inputValue, out localBoundaries);
+                 ? Group.InclusiveScan(inputValue, identity, apply)
+                 : Group.ExclusiveScan(inputValue, identity, apply);
+            rightBoundary = Group.AllReduce(inputValue, identity, apply);
             if (i < tileInfo.MaxLength)
-                output[i] = TScan.Apply(leftBoundary, current);
+                output[i] = apply(leftBoundary, current);
         }
     }
 
