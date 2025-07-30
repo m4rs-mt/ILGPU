@@ -134,7 +134,7 @@ partial class Warp
         {
             _view = GetRandomProviderView<TRandomProvider>();
 
-            var firstLaneValue = new FirstLaneValue<TRandomProvider>(_view[GlobalIndex]);
+            var firstLaneValue = _view[GlobalIndex];
             var value = Broadcast(firstLaneValue);
             value.ShiftPeriod(LaneIndex);
 
