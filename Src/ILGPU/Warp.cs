@@ -10,6 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Intrinsic;
+using ILGPU.RadixSort;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -218,6 +220,84 @@ public static partial class Warp
 
     #endregion
 
+    #region Reduce
+
+    /// <summary>
+    /// Performs a warp-wide reduction using the given binary operation.
+    /// The result is valid in the first lane only.
+    /// </summary>
+    /// <typeparam name="T">The value type to reduce.</typeparam>
+    /// <param name="value">The value from this lane.</param>
+    /// <param name="operation">
+    /// A binary operation (T, T) -> T. Simple operations like
+    /// <c>(a, b) =&gt; a + b</c> are automatically recognized and may be
+    /// hardware-accelerated on supported backends.
+    /// </param>
+    /// <returns>The reduced value (valid in lane 0).</returns>
+    [WarpIntrinsic]
+    public static T Reduce<T>(T value, Func<T, T, T> operation)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    /// <summary>
+    /// Performs a warp-wide reduction using the given binary operation.
+    /// The result is broadcast to all lanes.
+    /// </summary>
+    /// <typeparam name="T">The value type to reduce.</typeparam>
+    /// <param name="value">The value from this lane.</param>
+    /// <param name="operation">
+    /// A binary operation (T, T) -> T. Simple operations like
+    /// <c>(a, b) =&gt; a + b</c> are automatically recognized and may be
+    /// hardware-accelerated on supported backends.
+    /// </param>
+    /// <returns>The reduced value (available on all lanes).</returns>
+    [WarpIntrinsic]
+    public static T AllReduce<T>(T value, Func<T, T, T> operation)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    #endregion
+
+    #region Scan
+
+    /// <summary>
+    /// Performs a warp-wide inclusive prefix scan using the given binary operation.
+    /// </summary>
+    /// <typeparam name="T">The value type to scan.</typeparam>
+    /// <param name="value">The value from this lane.</param>
+    /// <param name="operation">
+    /// A binary operation (T, T) -> T. Simple operations like
+    /// <c>(a, b) =&gt; a + b</c> are automatically recognized and may be
+    /// hardware-accelerated on supported backends.
+    /// </param>
+    /// <returns>The scanned value for this lane.</returns>
+    [WarpIntrinsic]
+    public static T InclusiveScan<T>(T value, Func<T, T, T> operation)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    /// <summary>
+    /// Performs a warp-wide exclusive prefix scan using the given binary operation.
+    /// The first lane receives the identity value.
+    /// </summary>
+    /// <typeparam name="T">The value type to scan.</typeparam>
+    /// <param name="value">The value from this lane.</param>
+    /// <param name="identity">
+    /// The identity element for the operation (e.g. 0 for addition).
+    /// </param>
+    /// <param name="operation">
+    /// A binary operation (T, T) -> T. Simple operations like
+    /// <c>(a, b) =&gt; a + b</c> are automatically recognized and may be
+    /// hardware-accelerated on supported backends.
+    /// </param>
+    /// <returns>The scanned value for this lane.</returns>
+    [WarpIntrinsic]
+    public static T ExclusiveScan<T>(T value, T identity, Func<T, T, T> operation)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    #endregion
+
     #region Broadcast
 
     /// <summary>
@@ -230,7 +310,26 @@ public static partial class Warp
     /// Note that the source lane must be the same for all threads in the warp.
     /// </remarks>
     [WarpIntrinsic]
-    public static T Broadcast<T>(FirstLaneValue<T> value) where T : unmanaged =>
+    public static T Broadcast<T>(T value) where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    #endregion
+
+    #region RadixSort
+
+    /// <summary>
+    /// Performs a warp-wide radix sort operation.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <typeparam name="TRadixSortOperation">
+    /// The radix sort operation type.
+    /// </typeparam>
+    /// <param name="value">The original value in the current lane.</param>
+    /// <returns>The sorted value for the current lane.</returns>
+    [WarpIntrinsic]
+    public static T RadixSort<T, TRadixSortOperation>(T value)
+        where T : unmanaged
+        where TRadixSortOperation : struct, IRadixSortOperation<T> =>
         throw new InvalidKernelOperationException();
 
     #endregion
