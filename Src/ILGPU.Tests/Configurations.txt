@@ -19,6 +19,7 @@ ValueTuples
 InteropTests
 
 BinaryIntOperations
+BinaryFloatOperations
 UnaryIntOperations
 UnaryFloatOperations
 
