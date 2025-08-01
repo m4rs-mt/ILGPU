@@ -64,6 +64,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>AtomicOperations.tt</DependentUpon>
     </None>
+    <None Include="BinaryFloatOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>BinaryFloatOperations.tt</DependentUpon>
+    </None>
     <None Include="BinaryIntOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -131,6 +136,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>BasicCalls.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="BinaryFloatOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>BinaryFloatOperations.tt</DependentUpon>
     </Compile>
     <Compile Update="BinaryIntOperations.cs">
       <DesignTime>True</DesignTime>
@@ -216,6 +226,10 @@
     <None Update="AtomicOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AtomicOperations.cs</LastGenOutput>
+    </None>
+    <None Update="BinaryFloatOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>BinaryFloatOperations.cs</LastGenOutput>
     </None>
     <None Update="BinaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
