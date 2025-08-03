@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "ILGPU.Analyzers": {
-      "commandName": "DebugRoslynComponent",
-      "targetProject": "..\\..\\Samples\\InterleaveFields\\InterleaveFields.csproj"
-    }
-  }
-}
