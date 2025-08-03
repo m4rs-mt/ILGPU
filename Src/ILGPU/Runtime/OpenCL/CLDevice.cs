@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -17,6 +17,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ILGPU.Util;
 using static ILGPU.Runtime.OpenCL.CLAPI;
 
 namespace ILGPU.Runtime.OpenCL;
@@ -421,12 +422,13 @@ public sealed unsafe class CLDevice : Device, IDeviceAcceleratorTypeInfo
     private CLAcceleratorCapabilities BuildCapabilities() =>
         new()
         {
-            Float16       = HasAllExtensions(CLAcceleratorCapabilities.Float16Extensions),
-            Float64       = HasAllExtensions(CLAcceleratorCapabilities.Float64Extensions),
-            Int64Atomics  = HasAllExtensions(CLAcceleratorCapabilities.Int64AtomicsExtensions),
+            Float16 = HasAllExtensions(CLAcceleratorCapabilities.Float16Extensions),
+            Float64 = HasAllExtensions(CLAcceleratorCapabilities.Float64Extensions),
+            Int64Atomics = HasAllExtensions(
+                CLAcceleratorCapabilities.Int64AtomicsExtensions),
             // GenericAddressSpace and SubGroups are determined in subsequent init steps.
             GenericAddressSpace = false,
-            SubGroups           = false,
+            SubGroups = false,
         };
 
     private void InitGenericAddressSpaceSupport()

@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Scanner.cs
@@ -9,12 +9,12 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.CodeGeneration;
-using ILGPU.Runtime;
-using ILGPU.Synchronization;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using ILGPU.CodeGeneration;
+using ILGPU.Runtime;
+using ILGPU.Synchronization;
 
 namespace ILGPU.ScanReduce;
 

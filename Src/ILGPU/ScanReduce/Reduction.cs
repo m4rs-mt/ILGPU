@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Reduction.cs
@@ -9,11 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
+using System.Runtime.CompilerServices;
 using ILGPU.CodeGeneration;
 using ILGPU.Initialization;
 using ILGPU.Runtime;
-using System;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.ScanReduce;
 
