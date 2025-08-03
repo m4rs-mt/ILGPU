@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RadixSort.cs
@@ -9,15 +9,15 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using ILGPU.CodeGeneration;
 using ILGPU.Initialization;
 using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.ScanReduce;
 using ILGPU.Util;
-using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.RadixSort;
 

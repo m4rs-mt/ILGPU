@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2024-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AllocationManager.cs
@@ -9,11 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Resources;
-using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using ILGPU.Resources;
+using ILGPU.Util;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
 #pragma warning disable CA2201 // Do not raise reserved exception types
