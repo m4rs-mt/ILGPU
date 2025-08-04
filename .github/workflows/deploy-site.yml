@@ -6,27 +6,10 @@
 name: Deploy Site with Jekyll, GitHub Pages
 
 on:
-  workflow_dispatch:   # Allows you to run this workflow manually from the Actions tab
-  push: # Runs on pushes targeting the default branch
-    branches:
-      - main
-      - master
-    paths:
-      - '.github/workflows/deploy-site.yml'
-      - 'Docs/**'
-      - 'Site/**'
-  pull_request:
-    branches:
-      - main
-      - master
-    paths:
-      - '.github/workflows/deploy-site.yml'
-      - 'Docs/**'
-      - 'Site/**'
-  milestone:
-    types: [ created, closed, opened, edited, deleted ]
-  release:
-    types: [ published, unpublished, created, edited, deleted, prereleased, released ]
+  # Workflow is intentionally disabled on this PR branch. It will re-enable once the
+  # branch merges onto master with the redesigned canonical CI pipeline that uses
+  # the new ILGPUC.Tests suite. Use workflow_dispatch to trigger manually if needed.
+  workflow_dispatch:
 
 permissions: # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
   contents: read
