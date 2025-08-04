@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Reduction.cs
@@ -22,92 +22,111 @@ namespace ILGPU.ScanReduce;
 /// </summary>
 public static class Reduction
 {
+    #region Lambda-Based Entry Points
+
     /// <summary>
-    /// Performs a reduction using a reduction logic.
+    /// Performs a reduction using lambda operations.
     /// </summary>
     /// <typeparam name="T">The underlying type of the reduction.</typeparam>
-    /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="input">The input elements to reduce.</param>
-    /// <remarks>
-    /// Uses the internal cache to realize a temporary output buffer.
-    /// </remarks>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="apply">The binary reduction operation.</param>
+    /// <param name="atomicApply">The atomic reduction operation.</param>
     /// <returns>The reduced value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [NotInsideKernel]
-    public static T Reduce<T, TReduction>(
+    public static T Reduce<T>(
         this AcceleratorStream stream,
-        ArrayView<T> input)
-        where T : unmanaged
-        where TReduction : struct, IScanReduceOperation<T> =>
-        stream.Reduce<T, Stride1D.Dense, TReduction>(input.AsDense());
+        ArrayView<T> input,
+        T identity,
+        Func<T, T, T> apply,
+        AtomicApplyAction<T> atomicApply)
+        where T : unmanaged =>
+        stream.Reduce<T, Stride1D.Dense>(
+            input.AsDense(),
+            identity,
+            apply,
+            atomicApply);
 
     /// <summary>
-    /// Performs a reduction using a reduction logic.
+    /// Performs a reduction using lambda operations.
     /// </summary>
     /// <typeparam name="T">The underlying type of the reduction.</typeparam>
     /// <typeparam name="TStride">The 1D stride of the input view.</typeparam>
-    /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="input">The input elements to reduce.</param>
-    /// <remarks>
-    /// Uses the internal cache to realize a temporary output buffer.
-    /// </remarks>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="apply">The binary reduction operation.</param>
+    /// <param name="atomicApply">The atomic reduction operation.</param>
     /// <returns>The reduced value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [NotInsideKernel]
-    public static T Reduce<T, TStride, TReduction>(
+    public static T Reduce<T, TStride>(
         this AcceleratorStream stream,
-        ArrayView1D<T, TStride> input)
+        ArrayView1D<T, TStride> input,
+        T identity,
+        Func<T, T, T> apply,
+        AtomicApplyAction<T> atomicApply)
         where T : unmanaged
         where TStride : struct, IStride1D
-        where TReduction : struct, IScanReduceOperation<T>
     {
-        // Get temp buffer
         using var output = stream.AllocateTemporary<T>(1);
-        stream.Reduce<T, TStride, TReduction>(input, output.View);
+        stream.Reduce(input, output.View, identity, apply, atomicApply);
 
-        // Copy back to CPU memory
         T result = default;
         output.View.CopyToCPU(stream, ref result, 1);
         return result;
     }
 
     /// <summary>
-    /// Performs a reduction using a reduction logic.
+    /// Performs a reduction using lambda operations.
     /// </summary>
     /// <typeparam name="T">The underlying type of the reduction.</typeparam>
-    /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="input">The input elements to reduce.</param>
     /// <param name="output">The output view to store the reduced value.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="apply">The binary reduction operation.</param>
+    /// <param name="atomicApply">The atomic reduction operation.</param>
     [NotInsideKernel]
-    public static void Reduce<T, TReduction>(
+    public static void Reduce<T>(
         this AcceleratorStream stream,
         ArrayView<T> input,
-        ArrayView<T> output)
-        where T : unmanaged
-        where TReduction : struct, IScanReduceOperation<T> =>
-        stream.Reduce<T, Stride1D.Dense, TReduction>(input.AsDense(), output);
+        ArrayView<T> output,
+        T identity,
+        Func<T, T, T> apply,
+        AtomicApplyAction<T> atomicApply)
+        where T : unmanaged =>
+        stream.Reduce<T, Stride1D.Dense>(
+            input.AsDense(),
+            output,
+            identity,
+            apply,
+            atomicApply);
 
     /// <summary>
-    /// Performs a reduction using a reduction logic.
+    /// Performs a reduction using lambda operations.
     /// </summary>
     /// <typeparam name="T">The underlying type of the reduction.</typeparam>
     /// <typeparam name="TStride">The 1D stride of the input view.</typeparam>
-    /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="input">The input elements to reduce.</param>
     /// <param name="output">The output view to store the reduced value.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="apply">The binary reduction operation.</param>
+    /// <param name="atomicApply">The atomic reduction operation.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [NotInsideKernel, DelayCodeGeneration]
-    public static void Reduce<T, TStride, TReduction>(
+    public static void Reduce<T, TStride>(
         this AcceleratorStream stream,
         ArrayView1D<T, TStride> input,
-        ArrayView<T> output)
+        ArrayView<T> output,
+        T identity,
+        Func<T, T, T> apply,
+        AtomicApplyAction<T> atomicApply)
         where T : unmanaged
         where TStride : struct, IStride1D
-        where TReduction : struct, IScanReduceOperation<T>
     {
         if (input.Length < 1)
             throw new ArgumentOutOfRangeException(nameof(input));
@@ -116,7 +135,7 @@ public static class Reduction
 
         // Ensure a single element in the output view
         output = output.SubView(0, 1);
-        stream.Initialize(output, TReduction.Identity);
+        stream.Initialize(output, identity);
 
         // Launch reduction kernel
         var kernelConfig = stream.ComputeGridStrideKernelConfig(
@@ -124,13 +143,15 @@ public static class Reduction
             out int numIterationsPerGroup);
         stream.Launch(kernelConfig, index =>
         {
-            var value = TReduction.Identity;
+            var value = identity;
             Grid.GridStrideLoop(numIterationsPerGroup, globalIndex =>
             {
                 var inputValue = input[globalIndex];
-                value = TReduction.Apply(value, inputValue);
+                value = apply(value, inputValue);
             });
-            TReduction.AtomicApply(ref output[0], value);
+            atomicApply(ref output[0], value);
         });
     }
+
+    #endregion
 }

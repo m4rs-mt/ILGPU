@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RadixSort.cs
@@ -297,8 +297,8 @@ public static class RadixSorter
                 for (int j = 0; j < TSpecialization.UnrollFactor; ++j)
                 {
                     var address = Group.Index + Group.Dimension * j;
-                    scanMemory[address] = Group.ExclusiveScan<uint, AddUInt32>(
-                        scanMemory[address]);
+                    scanMemory[address] = Group.ExclusiveScan(
+                        scanMemory[address], 0u, (a, b) => a + b);
                 }
                 Group.Barrier();
 
@@ -394,7 +394,7 @@ public static class RadixSorter
             // Phase 1: Prepare reordering
             stream.Initialize(counterView, 0U);
             stream.Launch(config, _ => RadixSortPhase1(view, bitIdx));
-            stream.InclusiveScan<uint, AddUInt32>(counterView, counterView2);
+            stream.InclusiveScan(counterView, counterView2, 0u, (a, b) => a + b);
             stream.Launch(config, _ => RadixSortPhase2(view, tempView, bitIdx));
 
             // Go ahead
@@ -404,7 +404,7 @@ public static class RadixSorter
             // Phase2: Write to actual output view
             stream.Initialize(counterView, 0U);
             stream.Launch(config, _ => RadixSortPhase1(tempView, bitIdx));
-            stream.InclusiveScan<uint, AddUInt32>(counterView, counterView2);
+            stream.InclusiveScan(counterView, counterView2, 0u, (a, b) => a + b);
             stream.Launch(config, _ => RadixSortPhase2(tempView, view, bitIdx));
 
             // Go ahead

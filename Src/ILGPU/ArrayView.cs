@@ -270,7 +270,7 @@ public readonly struct ArrayView<T> :
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureCPUBuffer() =>
         Trace.Assert(
-            Buffer.AcceleratorType == AcceleratorType.Debug,
+            Buffer.AcceleratorType == AcceleratorType.CPU,
             "Cannot access a non-CPU buffer directly");
 
     /// <summary>

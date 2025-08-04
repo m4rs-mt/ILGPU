@@ -477,4 +477,16 @@
     <value>The {0} view is larger than the {1} view.</value>
     <comment/>
   </data>
+  <data name="NotSupportedClosureAllocationInLoop" xml:space="preserve">
+    <value>Closure allocation of type '{0}' inside a loop is not supported. Move the closure allocation outside the loop.</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedCannotDevirtualizeDelegate" xml:space="preserve">
+    <value>Cannot statically devirtualize delegate invocation '{0}'. Only direct (non-phi, non-passed-as-argument) delegate variables are supported.</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedRecursiveReferenceType" xml:space="preserve">
+    <value>Recursive reference type '{0}' is not supported in GPU kernels.</value>
+    <comment/>
+  </data>
 </root>

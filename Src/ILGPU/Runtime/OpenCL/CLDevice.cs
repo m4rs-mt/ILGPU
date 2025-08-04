@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
+// disable: max_line_length
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -222,7 +224,7 @@ public sealed unsafe class CLDevice : Device, IDeviceAcceleratorTypeInfo
             platformId);
 
         // Init capabilities
-        Capabilities = new CLCapabilityContext(this);
+        Capabilities = BuildCapabilities();
         InitGenericAddressSpaceSupport();
     }
 
@@ -418,21 +420,33 @@ public sealed unsafe class CLDevice : Device, IDeviceAcceleratorTypeInfo
         Extensions = _extensionSet.ToImmutableArray();
     }
 
+    private CLAcceleratorCapabilities BuildCapabilities() =>
+        new()
+        {
+            Float16       = HasAllExtensions(CLAcceleratorCapabilities.Float16Extensions),
+            Float64       = HasAllExtensions(CLAcceleratorCapabilities.Float64Extensions),
+            Int64Atomics  = HasAllExtensions(CLAcceleratorCapabilities.Int64AtomicsExtensions),
+            // GenericAddressSpace and SubGroups are determined in subsequent init steps.
+            GenericAddressSpace = false,
+            SubGroups           = false,
+        };
+
     private void InitGenericAddressSpaceSupport()
     {
+        bool genericAddressSpace;
         if (DeviceVersion < CLDeviceVersion.CL20)
         {
-            Capabilities.GenericAddressSpace = false;
+            genericAddressSpace = false;
         }
         else if (DeviceVersion < CLDeviceVersion.CL30)
         {
-            Capabilities.GenericAddressSpace = true;
+            genericAddressSpace = true;
         }
         else
         {
             try
             {
-                Capabilities.GenericAddressSpace =
+                genericAddressSpace =
                     CurrentAPI.GetDeviceInfo<int>(
                         DeviceId,
                         CLDeviceInfoType.CL_DEVICE_GENERIC_ADDRESS_SPACE_SUPPORT)
@@ -440,9 +454,11 @@ public sealed unsafe class CLDevice : Device, IDeviceAcceleratorTypeInfo
             }
             catch (CLException)
             {
-                Capabilities.GenericAddressSpace = false;
+                genericAddressSpace = false;
             }
         }
+
+        Capabilities = Capabilities with { GenericAddressSpace = genericAddressSpace };
     }
 
     #endregion
@@ -521,11 +537,11 @@ public sealed unsafe class CLDevice : Device, IDeviceAcceleratorTypeInfo
     public ImmutableArray<string> Extensions { get; private set; }
 
     /// <summary>
-    /// Returns the supported capabilities of this accelerator.
+    /// Returns the supported capabilities of this device.
     /// </summary>
-    public new CLCapabilityContext Capabilities
+    public new CLAcceleratorCapabilities Capabilities
     {
-        get => base.Capabilities.AsNotNullCast<CLCapabilityContext>();
+        get => (CLAcceleratorCapabilities)base.Capabilities;
         private set => base.Capabilities = value;
     }
 
@@ -714,7 +730,7 @@ public sealed unsafe class CLDevice : Device, IDeviceAcceleratorTypeInfo
         writer.WriteLine(Capabilities.Float64);
 
         writer.Write("  Has Int64 atomics support:               ");
-        writer.WriteLine(Capabilities.Int64_Atomics);
+        writer.WriteLine(Capabilities.Int64Atomics);
 
         writer.Write("  Has sub group support:                   ");
         writer.WriteLine(Capabilities.SubGroups);

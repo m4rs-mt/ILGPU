@@ -93,7 +93,8 @@ public abstract partial class CPUMemoryBuffer : MemoryBuffer
     {
         switch (targetView.GetAcceleratorType())
         {
-            case AcceleratorType.Debug:
+            case AcceleratorType.CPU:
+            case AcceleratorType.None:
                 break;
             default:
                 throw new NotSupportedException(
@@ -108,7 +109,8 @@ public abstract partial class CPUMemoryBuffer : MemoryBuffer
 
         switch (sourceView.GetAcceleratorType())
         {
-            case AcceleratorType.Debug:
+            case AcceleratorType.CPU:
+            case AcceleratorType.None:
                 // Copy from CPU to CPU
                 CPUCopyToCPU(
                     ref sourceView.LoadEffectiveAddress(),
@@ -161,7 +163,8 @@ public abstract partial class CPUMemoryBuffer : MemoryBuffer
     {
         switch (sourceView.GetAcceleratorType())
         {
-            case AcceleratorType.Debug:
+            case AcceleratorType.CPU:
+            case AcceleratorType.None:
                 break;
             default:
                 throw new NotSupportedException(
@@ -176,7 +179,8 @@ public abstract partial class CPUMemoryBuffer : MemoryBuffer
 
         switch (targetView.GetAcceleratorType())
         {
-            case AcceleratorType.Debug:
+            case AcceleratorType.CPU:
+            case AcceleratorType.None:
                 // Copy from CPU to CPU
                 CPUCopyToCPU(
                     ref sourceView.LoadEffectiveAddress(),
@@ -228,11 +232,13 @@ public abstract partial class CPUMemoryBuffer : MemoryBuffer
         in ArrayView<T> targetView)
         where T : unmanaged
     {
-        if (sourceView.GetAcceleratorType() == AcceleratorType.Debug)
+        var sourceType = sourceView.GetAcceleratorType();
+        var targetType = targetView.GetAcceleratorType();
+        if (sourceType is AcceleratorType.CPU or AcceleratorType.None)
         {
             CPUCopyTo(stream, sourceView, targetView);
         }
-        else if (targetView.GetAcceleratorType() == AcceleratorType.Debug)
+        else if (targetType is AcceleratorType.CPU or AcceleratorType.None)
         {
             CPUCopyFrom(stream, sourceView, targetView);
         }
@@ -256,6 +262,19 @@ public abstract partial class CPUMemoryBuffer : MemoryBuffer
         long length,
         int elementSize)
         : base(accelerator: null, length, elementSize)
+    { }
+
+    /// <summary>
+    /// Initializes this array view source on the CPU with an associated accelerator.
+    /// </summary>
+    /// <param name="accelerator">The parent accelerator.</param>
+    /// <param name="length">The length of this source.</param>
+    /// <param name="elementSize">The element size.</param>
+    protected internal CPUMemoryBuffer(
+        Accelerator accelerator,
+        long length,
+        int elementSize)
+        : base(accelerator, length, elementSize)
     { }
 
     #endregion
@@ -314,6 +333,20 @@ partial class CPUMemoryBuffer
             NativePtr = ptr;
         }
 
+        /// <summary>
+        /// Creates a new pointer wrapper with an associated accelerator.
+        /// </summary>
+        /// <param name="accelerator">The parent accelerator.</param>
+        /// <param name="ptr">The native value pointer.</param>
+        /// <param name="length">The length of this buffer.</param>
+        /// <param name="elementSize">The element size.</param>
+        internal PointerSourceBuffer(
+            Accelerator accelerator, IntPtr ptr, long length, int elementSize)
+            : base(accelerator, length, elementSize)
+        {
+            NativePtr = ptr;
+        }
+
         #endregion
 
         #region IDisposable
@@ -340,6 +373,22 @@ partial class CPUMemoryBuffer
         /// <param name="elementSize">The element size.</param>
         internal UnmanagedMemoryBuffer(long length, int elementSize)
             : base(
+                  Marshal.AllocHGlobal(new IntPtr(length * elementSize)),
+                  length,
+                  elementSize)
+        { }
+
+        /// <summary>
+        /// Allocates an unmanaged memory buffer on the CPU with an
+        /// associated accelerator.
+        /// </summary>
+        /// <param name="accelerator">The parent accelerator.</param>
+        /// <param name="length">The length of this buffer.</param>
+        /// <param name="elementSize">The element size.</param>
+        internal UnmanagedMemoryBuffer(
+            Accelerator accelerator, long length, int elementSize)
+            : base(
+                  accelerator,
                   Marshal.AllocHGlobal(new IntPtr(length * elementSize)),
                   length,
                   elementSize)
@@ -487,6 +536,17 @@ partial class CPUMemoryBuffer
     /// <returns>An unmanaged memory buffer.</returns>
     public static unsafe CPUMemoryBuffer Create(long length, int elementSize) =>
         new UnmanagedMemoryBuffer(length, elementSize);
+
+    /// <summary>
+    /// Creates a new unmanaged memory buffer associated with an accelerator.
+    /// </summary>
+    /// <param name="accelerator">The parent accelerator.</param>
+    /// <param name="length">The length to allocate.</param>
+    /// <param name="elementSize">The element size.</param>
+    /// <returns>An unmanaged memory buffer.</returns>
+    public static unsafe CPUMemoryBuffer Create(
+        Accelerator accelerator, long length, int elementSize) =>
+        new UnmanagedMemoryBuffer(accelerator, length, elementSize);
 
     /// <summary>
     /// Creates a new page-locked unmanaged memory view source.

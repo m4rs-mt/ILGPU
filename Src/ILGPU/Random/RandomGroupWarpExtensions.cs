@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2024-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RandomGroupWarpExtensions.cs
@@ -134,7 +134,7 @@ partial class Warp
         {
             _view = GetRandomProviderView<TRandomProvider>();
 
-            var firstLaneValue = new FirstLaneValue<TRandomProvider>(_view[GlobalIndex]);
+            var firstLaneValue = _view[GlobalIndex];
             var value = Broadcast(firstLaneValue);
             value.ShiftPeriod(LaneIndex);
 

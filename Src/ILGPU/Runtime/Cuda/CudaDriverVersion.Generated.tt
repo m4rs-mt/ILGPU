@@ -50,9 +50,9 @@ partial class CudaDriverVersionUtils
     /// Maps PTX architecture to their corresponding minimum CUDA driver version.
     /// </summary>
     private static readonly Dictionary<
-        CudaArchitecture,
+        AcceleratorArchitecture,
         CudaDriverVersion> ArchitectureLookup =
-        new Dictionary<CudaArchitecture, CudaDriverVersion>
+        new Dictionary<AcceleratorArchitecture, CudaDriverVersion>
     {
 <# foreach (var architecture in architectures) { #>
 <#      var arch = architecture.Item1; #>

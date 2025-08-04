@@ -129,6 +129,10 @@
     <value>OpenCL is not supported on this platform</value>
     <comment/>
   </data>
+  <data name="ROCmNotSupported" xml:space="preserve">
+    <value>ROCm is not supported on this platform</value>
+    <comment/>
+  </data>
   <data name="CudaNotSupported" xml:space="preserve">
     <value>Cuda is not supported on this platform</value>
     <comment/>
