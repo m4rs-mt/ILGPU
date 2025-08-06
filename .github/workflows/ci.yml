@@ -304,7 +304,7 @@ jobs:
 
       # Verify that the sample projects can compile after switching to NuGet references
       - name: Download NuGet package artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: nuget-packages
           path: local-nuget-packages
@@ -360,7 +360,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: nuget-packages
       - name: Publish to FeedzIO
@@ -378,11 +378,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download NuGet package artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: nuget-packages
       - name: Download Samples artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: samples
 
