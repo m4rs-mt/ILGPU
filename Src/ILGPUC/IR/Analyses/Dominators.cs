@@ -9,12 +9,13 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Analyses.ControlFlowDirection;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.MethodValues;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using DominanceOrder = ILGPUC.IR.Analyses.TraversalOrders.ReversePostOrder;
+using DominanceOrder = ILGPUC.IR.Analyses.ReversePostOrder<
+    ILGPUC.IR.MethodValues.BasicBlock>;
 
 namespace ILGPUC.IR.Analyses;
 
@@ -32,9 +33,8 @@ sealed class Dominators<TDirection>
     /// </summary>
     /// <param name="cfg">The parent graph.</param>
     /// <returns>The created dominator analysis.</returns>
-    public static Dominators<TDirection> Create(
-        CFG<DominanceOrder, TDirection> cfg) =>
-        new Dominators<TDirection>(cfg);
+    public static Dominators<TDirection> Create(CFG<DominanceOrder, TDirection> cfg) =>
+        new(cfg);
 
     #endregion
 
@@ -43,27 +43,28 @@ sealed class Dominators<TDirection>
     /// <summary>
     /// Stores all idoms in RPO.
     /// </summary>
-    private readonly int[] idomsInRPO;
+    private readonly int[] _idomsInRPO;
 
     /// <summary>
     /// Stores all blocks in RPO.
     /// </summary>
-    private readonly BasicBlock[] nodesInRPO;
+    private readonly BasicBlock[] _nodesInRPO;
 
     /// <summary>
     /// Constructs the dominators for the given control-flow graph.
     /// </summary>
     /// <param name="cfg">The parent graph.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Dominators(CFG<DominanceOrder, TDirection> cfg)
     {
-        idomsInRPO = new int[cfg.Count];
-        nodesInRPO = new BasicBlock[cfg.Count];
+        _idomsInRPO = new int[cfg.Count];
+        _nodesInRPO = new BasicBlock[cfg.Count];
         CFG = cfg;
         Root = cfg.Root;
 
-        idomsInRPO[0] = 0;
-        for (int i = 1, e = idomsInRPO.Length; i < e; ++i)
-            idomsInRPO[i] = -1;
+        _idomsInRPO[0] = 0;
+        for (int i = 1, e = _idomsInRPO.Length; i < e; ++i)
+            _idomsInRPO[i] = -1;
 
         bool changed;
         do
@@ -72,17 +73,17 @@ sealed class Dominators<TDirection>
             var enumerator = cfg.GetEnumerator();
             enumerator.MoveNext();
             var node = enumerator.Current;
-            nodesInRPO[node.TraversalIndex] = node;
+            _nodesInRPO[node.TraversalIndex] = node;
 
             while (enumerator.MoveNext())
             {
                 node = enumerator.Current;
-                nodesInRPO[node.TraversalIndex] = node;
+                _nodesInRPO[node.TraversalIndex] = node;
                 int currentIdom = -1;
                 foreach (var pred in node.Predecessors)
                 {
                     var predRPO = pred.TraversalIndex;
-                    if (idomsInRPO[predRPO] != -1)
+                    if (_idomsInRPO[predRPO] != -1)
                     {
                         currentIdom = predRPO;
                         break;
@@ -93,14 +94,14 @@ sealed class Dominators<TDirection>
                 foreach (var pred in node.Predecessors)
                 {
                     var predRPO = pred.TraversalIndex;
-                    if (idomsInRPO[predRPO] != -1)
+                    if (_idomsInRPO[predRPO] != -1)
                         currentIdom = Intersect(currentIdom, predRPO);
                 }
 
                 var rpoNumber = node.TraversalIndex;
-                if (idomsInRPO[rpoNumber] != currentIdom)
+                if (_idomsInRPO[rpoNumber] != currentIdom)
                 {
-                    idomsInRPO[rpoNumber] = currentIdom;
+                    _idomsInRPO[rpoNumber] = currentIdom;
                     changed = true;
                 }
             }
@@ -118,9 +119,9 @@ sealed class Dominators<TDirection>
         while (left != right)
         {
             while (left < right)
-                right = idomsInRPO[right];
+                right = _idomsInRPO[right];
             while (right < left)
-                left = idomsInRPO[left];
+                left = _idomsInRPO[left];
         }
         return left;
     }
@@ -173,10 +174,11 @@ sealed class Dominators<TDirection>
     /// </summary>
     /// <param name="block">The block.</param>
     /// <returns>The first dominator.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BasicBlock GetImmediateDominator(BasicBlock block)
     {
-        var rpoNumber = idomsInRPO[CFG[block].TraversalIndex];
-        return nodesInRPO[rpoNumber];
+        var rpoNumber = _idomsInRPO[CFG[block].TraversalIndex];
+        return _nodesInRPO[rpoNumber];
     }
 
     /// <summary>
@@ -185,6 +187,7 @@ sealed class Dominators<TDirection>
     /// <param name="first">The first block.</param>
     /// <param name="second">The second block.</param>
     /// <returns>The immediate common dominator of both blocks.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BasicBlock GetImmediateCommonDominator(
         BasicBlock first,
         BasicBlock second)
@@ -195,7 +198,7 @@ sealed class Dominators<TDirection>
         var left = CFG[first].TraversalIndex;
         var right = CFG[second].TraversalIndex;
         var idom = Intersect(left, right);
-        return nodesInRPO[idom];
+        return _nodesInRPO[idom];
     }
 
     /// <summary>
@@ -219,13 +222,14 @@ sealed class Dominators<TDirection>
     /// <param name="dominatorBlock">The current dominator block.</param>
     /// <param name="uses">The collection of all uses.</param>
     /// <returns>The dominator block given by all phi-value uses.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private BasicBlock GetPhiParent(BasicBlock dominatorBlock, UseCollection uses)
     {
         // Check for phi-value references
         BasicBlock? phiParent = null;
         foreach (Use use in uses)
         {
-            if (!(use.Resolve() is PhiValue phiValue))
+            if (use.Target is not PhiValue phiValue)
                 continue;
 
             // If we encounter a phi value we have to check whether our value occurs
@@ -248,6 +252,7 @@ sealed class Dominators<TDirection>
     /// <param name="dominatorBlock">The initial dominator block.</param>
     /// <param name="uses">The uses to get the common dominator for.</param>
     /// <returns>The common dominator block of all uses.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public BasicBlock GetImmediateCommonDominatorOfUses(
         BasicBlock dominatorBlock,
         UseCollection uses)
@@ -259,12 +264,12 @@ sealed class Dominators<TDirection>
         foreach (Use use in uses)
         {
             Value value = use;
-            var valueBlock = value.BasicBlock;
-            if (value is PhiValue)
+            if (value is PhiValue || value is not BasicBlockValue bbValue)
                 continue;
 
             // Get the immediate common dominator of the current dominator block and
             // the block of the use reference
+            var valueBlock = bbValue.BasicBlock;
             dominatorBlock = GetImmediateCommonDominator(dominatorBlock, valueBlock);
         }
         return dominatorBlock;
