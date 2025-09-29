@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
 //                        Copyright (c) 2020-2025 ILGPU Project
 //                                    www.ilgpu.net
@@ -11,9 +11,8 @@
 
 using ILGPU;
 using ILGPU.Util;
-using ILGPUC.IR.Analyses.ControlFlowDirection;
-using ILGPUC.IR.Analyses.TraversalOrders;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.MethodValues;
+using ILGPUC.IR.ModuleValues;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -28,12 +27,13 @@ using System.Diagnostics.CodeAnalysis;
 namespace ILGPUC.IR.Analyses;
 
 /// <summary>
-/// An analysis to detect strongly-connected components.
+/// An analysis to detect strongly-connected components (loops) and provide
+/// structured access to the loop tree.
 /// </summary>
 /// <typeparam name="TOrder">The current order.</typeparam>
 /// <typeparam name="TDirection">The control-flow direction.</typeparam>
 sealed class Loops<TOrder, TDirection>
-    where TOrder : struct, ITraversalOrder
+    where TOrder : struct, ITraversalOrder<BasicBlock>
     where TDirection : struct, IControlFlowDirection
 {
     #region Nested Types
@@ -44,11 +44,9 @@ sealed class Loops<TOrder, TDirection>
     /// </summary>
     /// <typeparam name="TOtherDirection">The target direction.</typeparam>
     readonly struct MembersSuccessorProvider<TOtherDirection> :
-        ITraversalSuccessorsProvider<TOtherDirection>
+        ITraversalSuccessorsProvider<BasicBlock, TOtherDirection>
         where TOtherDirection : struct, IControlFlowDirection
     {
-        #region Instance
-
         /// <summary>
         /// Constructs a new successor provider.
         /// </summary>
@@ -58,36 +56,29 @@ sealed class Loops<TOrder, TDirection>
             Node = node;
         }
 
-        #endregion
-
-        #region Properties
-
         /// <summary>
         /// Returns the associated loop node.
         /// </summary>
         public Node Node { get; }
 
-        #endregion
-
-        #region Methods
-
         /// <summary>
         /// Returns the successors of the given basic block that do not contain any
         /// of the associated loop exit blocks.
         /// </summary>
-        public ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock)
+        public static ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock)
         {
-            var successors = basicBlock.CurrentSuccessors;
+            var node = default(MembersSuccessorProvider<TOtherDirection>).Node;
+            var successors = basicBlock.GetSuccessors<TOtherDirection>();
 
             // Check for an entry block
-            if (Node.Entries.Contains(basicBlock))
-                return AdjustEntrySuccessors(successors);
+            if (node.Entries.Contains(basicBlock))
+                return AdjustEntrySuccessors(node, successors);
 
             // Check for exit blocks
-            foreach (var exit in Node.Exits)
+            foreach (var exit in node.Exits)
             {
-                if (successors.Contains(exit, new BasicBlock.Comparer()))
-                    return AdjustExitSuccessors(successors);
+                if (successors.Contains(exit, new BasicBlock.BlockComparer()))
+                    return AdjustExitSuccessors(node, successors);
             }
 
             // Use the original successors
@@ -97,15 +88,14 @@ sealed class Loops<TOrder, TDirection>
         /// <summary>
         /// Helper function to adjust the header span of the current successors.
         /// </summary>
-        /// <param name="currentSuccessors">The current successors.</param>
-        /// <returns>The adjusted span that contains header blocks only.</returns>
-        private ReadOnlySpan<BasicBlock> AdjustEntrySuccessors(
+        private static ReadOnlySpan<BasicBlock> AdjustEntrySuccessors(
+            Node node,
             ReadOnlySpan<BasicBlock> currentSuccessors)
         {
             var successors = InlineList<BasicBlock>.Create(currentSuccessors.Length);
             foreach (var successor in currentSuccessors)
             {
-                if (Node.Headers.Contains(successor, new BasicBlock.Comparer()))
+                if (node.Headers.Contains(successor, new BasicBlock.BlockComparer()))
                     successors.Add(successor);
             }
             return successors;
@@ -114,34 +104,32 @@ sealed class Loops<TOrder, TDirection>
         /// <summary>
         /// Helper function to adjust the exit span of the current successors.
         /// </summary>
-        /// <param name="currentSuccessors">The current successors.</param>
-        /// <returns>The adjusted span without any exit block.</returns>
-        private ReadOnlySpan<BasicBlock> AdjustExitSuccessors(
+        private static ReadOnlySpan<BasicBlock> AdjustExitSuccessors(
+            Node node,
             ReadOnlySpan<BasicBlock> currentSuccessors)
         {
             var successors = currentSuccessors.ToInlineList();
-            foreach (var exit in Node.Exits)
-                successors.RemoveAll(exit, new BasicBlock.Comparer());
+            foreach (var exit in node.Exits)
+                successors.RemoveAll(exit, new BasicBlock.BlockComparer());
             return successors;
         }
-
-        #endregion
     }
 
     /// <summary>
-    /// Represents a single strongly-connected component.
+    /// Represents a single loop in the loop tree (a strongly-connected component).
     /// </summary>
+    /// <remarks>
+    /// Each Node represents one loop in the program, containing information about:
+    /// - Loop structure (headers, entries, exits, breakers, back edges)
+    /// - Loop members (all blocks belonging to this loop)
+    /// - Loop hierarchy (parent, children, nesting level)
+    /// - Query methods for block membership and traversal
+    /// </remarks>
     internal sealed class Node
     {
-        #region Instance
-
         private InlineList<BasicBlock> headers;
         private InlineList<BasicBlock> breakers;
         private InlineList<BasicBlock> backEdges;
-
-        /// <summary>
-        /// All child nodes (if any).
-        /// </summary>
         private InlineList<Node> children;
 
         /// <summary>
@@ -159,7 +147,7 @@ sealed class Loops<TOrder, TDirection>
             ref InlineList<BasicBlock> headerBlocks,
             ref InlineList<BasicBlock> breakerBlocks,
             ref InlineList<BasicBlock> backEdgeBlocks,
-            in BasicBlockSetList members,
+            in ValueSetList<Method, BasicBlock> members,
             HashSet<BasicBlock> entries,
             HashSet<BasicBlock> exits)
         {
@@ -171,49 +159,77 @@ sealed class Loops<TOrder, TDirection>
             breakerBlocks.MoveTo(ref breakers);
             backEdgeBlocks.MoveTo(ref backEdges);
             AllMembers = members;
-            children = InlineList<Node>.Create(1);
-            Entries = entries.ToImmutableArray();
-            Exits = exits.ToImmutableArray();
+            children = InlineList<Node>.Create(8);
+            Entries = [.. entries];
+            Exits = [.. exits];
         }
+
+        #region Structure Properties
+
+        /// <summary>
+        /// Returns all entry blocks that jump into the loop (from outside).
+        /// </summary>
+        /// <remarks>
+        /// Entry blocks are predecessors of loop headers that are not part of the loop.
+        /// </remarks>
+        public ImmutableArray<BasicBlock> Entries { get; }
+
+        /// <summary>
+        /// Returns all loop header blocks.
+        /// </summary>
+        /// <remarks>
+        /// Header blocks are the first blocks of the loop that have predecessors outside
+        /// the loop (entry blocks).
+        /// </remarks>
+        public ReadOnlySpan<BasicBlock> Headers => headers;
+
+        /// <summary>
+        /// Returns all blocks that can break out of the loop.
+        /// </summary>
+        /// <remarks>
+        /// Breaker blocks have successors that are exit blocks (outside the loop).
+        /// </remarks>
+        public ReadOnlySpan<BasicBlock> Breakers => breakers;
+
+        /// <summary>
+        /// Returns all exit blocks that are reachable from the loop.
+        /// </summary>
+        /// <remarks>
+        /// Exit blocks are successors of breaker blocks that are not part of the loop.
+        /// </remarks>
+        public ImmutableArray<BasicBlock> Exits { get; }
+
+        /// <summary>
+        /// Returns all blocks with back edges to the loop header.
+        /// </summary>
+        /// <remarks>
+        /// Back edge blocks are blocks inside the loop that jump back to a header block,
+        /// forming the actual loop cycle.
+        /// </remarks>
+        public ReadOnlySpan<BasicBlock> BackEdges => backEdges;
+
+        /// <summary>
+        /// Returns all blocks that are part of this loop.
+        /// </summary>
+        /// <remarks>
+        /// This includes all blocks in the loop body, headers, breakers, and back edges.
+        /// For nested loops, this includes blocks from child loops.
+        /// </remarks>
+        public ValueSetList<Method, BasicBlock> AllMembers { get; }
 
         #endregion
 
-        #region Properties
+        #region Hierarchy Properties
 
         /// <summary>
-        /// Returns the loop level.
+        /// Returns the nesting level of this loop (0 for top-level loops).
         /// </summary>
         public int Level { get; }
 
         /// <summary>
-        /// Returns the number of members.
+        /// Returns the number of blocks in this loop.
         /// </summary>
         public int Count => AllMembers.Count;
-
-        /// <summary>
-        /// Returns the block containing the associated back edge.
-        /// </summary>
-        public ReadOnlySpan<BasicBlock> BackEdges => backEdges;
-
-        /// <summary>
-        /// Returns all loop headers.
-        /// </summary>
-        public ReadOnlySpan<BasicBlock> Headers => headers;
-
-        /// <summary>
-        /// Returns all loop breakers that contain branches to exit the loop.
-        /// </summary>
-        public ReadOnlySpan<BasicBlock> Breakers => breakers;
-
-        /// <summary>
-        /// All entry blocks that jump into the loop.
-        /// </summary>
-        public ImmutableArray<BasicBlock> Entries { get; }
-
-        /// <summary>
-        /// All exit blocks that are reachable by all breakers from the loop.
-        /// </summary>
-        public ImmutableArray<BasicBlock> Exits { get; }
 
         /// <summary>
         /// Returns the parent loop.
@@ -221,24 +237,19 @@ sealed class Loops<TOrder, TDirection>
         public Node? Parent { get; }
 
         /// <summary>
-        /// Returns all child loops.
+        /// Returns all child loops nested inside this loop.
         /// </summary>
         public ReadOnlySpan<Node> Children => children;
 
         /// <summary>
-        /// Returns true if this is a nested loop
+        /// Returns true if this is a nested loop.
         /// </summary>
-        public bool IsNestedLoop => Parent != null;
+        public bool IsNested => Parent != null;
 
         /// <summary>
-        /// Returns true if this is an innermost loop.
+        /// Returns true if this is an innermost loop (has no child loops).
         /// </summary>
-        public bool IsInnermostLoop => children.Count < 1;
-
-        /// <summary>
-        /// Returns the set list of all members.
-        /// </summary>
-        public BasicBlockSetList AllMembers { get; }
+        public bool IsInnermost => children.Count < 1;
 
         #endregion
 
@@ -247,19 +258,18 @@ sealed class Loops<TOrder, TDirection>
         /// <summary>
         /// Checks whether the given block belongs to this loop.
         /// </summary>
-        /// <param name="block">The block to map to an loop.</param>
-        /// <returns>True, if the node belongs to this loop.</returns>
+        /// <param name="block">The block to check.</param>
+        /// <returns>True if the block is part of this loop.</returns>
         public bool Contains(BasicBlock? block) =>
             block != null && AllMembers.Contains(block);
 
         /// <summary>
-        /// Checks whether the given block belongs to this loop and not to a
-        /// (potentially) nested child loop.
+        /// Checks whether the given block belongs exclusively to this loop
+        /// (not to a nested child loop).
         /// </summary>
-        /// <param name="block">The block to map to an loop.</param>
+        /// <param name="block">The block to check.</param>
         /// <returns>
-        /// True, if the node belongs to this loop and not a potentially nested child
-        /// node.
+        /// True if the block is part of this loop but not part of any child loop.
         /// </returns>
         public bool ContainsExclusively(BasicBlock block)
         {
@@ -268,61 +278,11 @@ sealed class Loops<TOrder, TDirection>
                 return false;
 
             // Exclude nested blocks of nested loops
-            if (IsInnermostLoop)
+            if (IsInnermost)
                 return true;
             foreach (var child in Children)
             {
                 if (child.Contains(block))
-                    return false;
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Resolves all <see cref="PhiValue"/>s that are contained in this loop and
-        /// in no other potentially nested child loop.
-        /// </summary>
-        /// <returns>The list of resolved phi values.</returns>
-        public Phis ComputePhis()
-        {
-            var builder = Phis.CreateBuilder(AllMembers[0].Method);
-            foreach (var block in AllMembers)
-            {
-                if (ContainsExclusively(block))
-                    builder.Add(block);
-            }
-            return builder.Seal();
-        }
-
-        /// <summary>
-        /// Returns true if the given blocks contain at least one back edge block.
-        /// </summary>
-        /// <param name="blocks">The blocks to test.</param>
-        /// <returns>
-        /// True if the given block contain at least one back edge block.
-        /// </returns>
-        public bool ContainsBackEdgeBlock(ReadOnlySpan<BasicBlock> blocks)
-        {
-            foreach (var block in blocks)
-            {
-                if (BackEdges.Contains(block, new BasicBlock.Comparer()))
-                    return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Returns true if the given blocks consists of exclusive body blocks only.
-        /// </summary>
-        /// <param name="blocks">The blocks to test.</param>
-        /// <returns>
-        /// True, if the given blocks consists of exclusive body blocks only.
-        /// </returns>
-        public bool ConsistsOfBodyBlocks(ReadOnlySpan<BasicBlock> blocks)
-        {
-            foreach (var block in blocks)
-            {
-                if (!ContainsExclusively(block))
                     return false;
             }
             return true;
@@ -342,9 +302,12 @@ sealed class Loops<TOrder, TDirection>
         /// Computes a block ordering of all blocks in this loop using the current
         /// order and control-flow direction.
         /// </summary>
+        /// <param name="entryIndex">
+        /// The index of the entry block to use as starting point (default: 0).
+        /// </param>
         /// <returns>The computed block ordering.</returns>
         public BasicBlockCollection<TOrder, TDirection> ComputeOrderedBlocks(
-            int entryIndex) =>
+            int entryIndex = 0) =>
             ComputeOrderedBlocks<TOrder, TDirection>(entryIndex);
 
         /// <summary>
@@ -352,19 +315,19 @@ sealed class Loops<TOrder, TDirection>
         /// </summary>
         /// <typeparam name="TOtherOrder">The other order.</typeparam>
         /// <typeparam name="TOtherDirection">The target direction.</typeparam>
+        /// <param name="entryIndex">
+        /// The index of the entry block to use as starting point.
+        /// </param>
         /// <returns>The computed block ordering.</returns>
         public BasicBlockCollection<TOtherOrder, TOtherDirection>
             ComputeOrderedBlocks<TOtherOrder, TOtherDirection>(
             int entryIndex)
-            where TOtherOrder : struct, ITraversalOrder
+            where TOtherOrder : struct, ITraversalOrder<BasicBlock>
             where TOtherDirection : struct, IControlFlowDirection =>
-            new TOtherOrder().TraverseToCollection<
+            Entries[entryIndex].TraverseToCollection<
                 TOtherOrder,
                 MembersSuccessorProvider<TOtherDirection>,
-                TOtherDirection>(
-                Count,
-                Entries[entryIndex],
-                new MembersSuccessorProvider<TOtherDirection>(this));
+                TOtherDirection>(Count);
 
         #endregion
     }
@@ -493,32 +456,6 @@ sealed class Loops<TOrder, TDirection>
         }
     }
 
-    /// <summary>
-    /// Provides new intermediate <see cref="NodeData"/> instances.
-    /// </summary>
-    readonly struct NodeDataProvider : IBasicBlockMapValueProvider<NodeData>
-    {
-        /// <summary>
-        /// Constructs a new data provider.
-        /// </summary>
-        /// <param name="cfg">The underlying CFG.</param>
-        public NodeDataProvider(CFG<TOrder, TDirection> cfg)
-        {
-            CFG = cfg;
-        }
-
-        /// <summary>
-        /// Returns the underlying CFG.
-        /// </summary>
-        public CFG<TOrder, TDirection> CFG { get; }
-
-        /// <summary>
-        /// Creates a new <see cref="NodeData"/> instance.
-        /// </summary>
-        public NodeData GetValue(BasicBlock block, int traversalIndex) =>
-            new NodeData(CFG[block]);
-    }
-
     #endregion
 
     #region Static
@@ -528,7 +465,7 @@ sealed class Loops<TOrder, TDirection>
     /// </summary>
     private static bool IsLoop(
         List<NodeData> stack,
-        BasicBlockMap<NodeData> nodeMapping,
+        ValueMap<Method, BasicBlock, NodeData> nodeMapping,
         NodeData v,
         out int baseIndex)
     {
@@ -575,7 +512,7 @@ sealed class Loops<TOrder, TDirection>
 
     private InlineList<Node> loops;
     private InlineList<Node> headers;
-    private BasicBlockMap<Node> loopMapping;
+    private readonly ValueMap<Method, BasicBlock, Node> loopMapping;
 
     /// <summary>
     /// Constructs a new collection of loops.
@@ -588,7 +525,8 @@ sealed class Loops<TOrder, TDirection>
 
         CFG = cfg;
 
-        var mapping = cfg.Blocks.CreateMap(new NodeDataProvider(cfg));
+        var mapping = cfg.Blocks.CreateMap((block, _) =>
+            new NodeData(CFG[block]));
         int index = 0;
         var stack = new List<NodeData>(cfg.Count);
 
@@ -614,11 +552,12 @@ sealed class Loops<TOrder, TDirection>
 
             foreach (var header in loops[loopIndex].Headers)
             {
+                var headerData = mapping[header];
                 StrongConnect(
                     stack,
                     loop,
                     ref mapping,
-                    mapping[header],
+                    headerData,
                     ref index);
             }
         }
@@ -627,7 +566,7 @@ sealed class Loops<TOrder, TDirection>
         headers = InlineList<Node>.Create(loops.Count);
         foreach (var loop in loops)
         {
-            if (!loop.IsNestedLoop)
+            if (!loop.IsNested)
                 headers.Add(loop);
         }
     }
@@ -652,6 +591,11 @@ sealed class Loops<TOrder, TDirection>
     public int Count => loops.Count;
 
     /// <summary>
+    /// Returns true if there are no loops in this analysis.
+    /// </summary>
+    public bool IsEmpty => loops.Count == 0;
+
+    /// <summary>
     /// Returns the i-th loop.
     /// </summary>
     /// <param name="index">The index of the i-th loop.</param>
@@ -659,9 +603,9 @@ sealed class Loops<TOrder, TDirection>
     public Node this[int index] => loops[index];
 
     /// <summary>
-    /// Returns all loop headers.
+    /// Returns all top-level loop nodes (non-nested loops).
     /// </summary>
-    public ReadOnlySpan<Node> Headers => headers;
+    public ReadOnlySpan<Node> TopLevelLoops => headers;
 
     #endregion
 
@@ -678,13 +622,12 @@ sealed class Loops<TOrder, TDirection>
     private void StrongConnect(
         List<NodeData> stack,
         Node? parent,
-        ref BasicBlockMap<NodeData> nodeMapping,
+        ref ValueMap<Method, BasicBlock, NodeData> nodeMapping,
         NodeData v,
         ref int index)
     {
         Debug.Assert(!v.HasIndex);
         v.Push(stack, ref index);
-
         foreach (var wNode in v.Node.Successors)
         {
             var w = nodeMapping[wNode];
@@ -728,7 +671,7 @@ sealed class Loops<TOrder, TDirection>
     private void RegisterLoop(
         List<NodeData> stack,
         Node? parent,
-        ref BasicBlockMap<NodeData> nodeMapping,
+        ref ValueMap<Method, BasicBlock, NodeData> nodeMapping,
         NodeData v)
     {
         // Check for a real loop
@@ -736,7 +679,7 @@ sealed class Loops<TOrder, TDirection>
             return;
 
         // Gather all nodes contained in this SCC
-        var members = BasicBlockSetList.Create(CFG.Blocks);
+        var members = CFG.Blocks.Method.CreateSetList<BasicBlock>();
 
         for (int i = baseIndex, e = stack.Count; i < e; ++i)
         {
@@ -747,8 +690,8 @@ sealed class Loops<TOrder, TDirection>
         // Initialize all lists and sets
         var headers = InlineList<BasicBlock>.Create(2);
         var breakers = InlineList<BasicBlock>.Create(2);
-        var entryBlocks = new HashSet<BasicBlock>(new BasicBlock.Comparer());
-        var exitBlocks = new HashSet<BasicBlock>(new BasicBlock.Comparer());
+        var entryBlocks = new HashSet<BasicBlock>(new BasicBlock.BlockComparer());
+        var exitBlocks = new HashSet<BasicBlock>(new BasicBlock.BlockComparer());
 
         // Gather all loop entries and exists
         foreach (var member in members)
@@ -759,7 +702,7 @@ sealed class Loops<TOrder, TDirection>
                     continue;
                 entryBlocks.Add(predecessor);
 
-                if (headers.Contains(member, new BasicBlock.Comparer()))
+                if (headers.Contains(member, new BasicBlock.BlockComparer()))
                     continue;
                 headers.Add(member);
                 nodeMapping[member].IsHeader = true;
@@ -771,7 +714,7 @@ sealed class Loops<TOrder, TDirection>
                     continue;
                 exitBlocks.Add(successor);
 
-                if (breakers.Contains(member, new BasicBlock.Comparer()))
+                if (breakers.Contains(member, new BasicBlock.BlockComparer()))
                     continue;
                 breakers.Add(member);
             }
@@ -789,7 +732,7 @@ sealed class Loops<TOrder, TDirection>
         {
             foreach (var successor in member.GetSuccessors<TDirection>())
             {
-                if (headers.Contains(successor, new BasicBlock.Comparer()))
+                if (headers.Contains(successor, new BasicBlock.BlockComparer()))
                 {
                     backEdges.Add(member);
                     break;
@@ -817,27 +760,34 @@ sealed class Loops<TOrder, TDirection>
     }
 
     /// <summary>
-    /// Tries to resolve the given block to an associated innermost loop.
+    /// Tries to resolve the given block to its associated innermost loop.
     /// </summary>
     /// <param name="block">The block to map to a loop.</param>
     /// <param name="loop">The resulting loop.</param>
     /// <returns>True, if the node could be resolved to a loop.</returns>
-    public bool TryGetLoops(BasicBlock block, [NotNullWhen(true)] out Node? loop) =>
+    public bool TryGetLoop(BasicBlock block, [NotNullWhen(true)] out Node? loop) =>
         loopMapping.TryGetValue(block, out loop);
+
+    /// <summary>
+    /// Gets the loop containing the given block, or null if the block is not in any loop.
+    /// </summary>
+    /// <param name="block">The block to query.</param>
+    /// <returns>The innermost loop containing the block, or null.</returns>
+    public Node? GetLoop(BasicBlock block) =>
+        TryGetLoop(block, out var loop) ? loop : null;
 
     /// <summary>
     /// Processes all loops starting with the innermost loops.
     /// </summary>
     /// <param name="processor">The loop processor action.</param>
-    /// <returns>The resulting processor instance.</returns>
     public void ProcessLoops(Action<Node> processor)
     {
-        foreach (var header in Headers)
+        foreach (var header in TopLevelLoops)
             ProcessLoopsRecursive(header, processor);
     }
 
     /// <summary>
-    /// Unrolls loops in a recursive way by unrolling the innermost loops first.
+    /// Processes loops in a recursive way by processing the innermost loops first.
     /// </summary>
     /// <param name="loop">The current loop node.</param>
     /// <param name="processor">The loop processor action.</param>
@@ -849,6 +799,16 @@ sealed class Loops<TOrder, TDirection>
             ProcessLoopsRecursive(child, processor);
 
         processor(loop);
+    }
+
+    /// <summary>
+    /// Enumerates all loops in this analysis.
+    /// </summary>
+    /// <returns>An enumerable of all loops.</returns>
+    public IEnumerable<Node> GetAllLoops()
+    {
+        for (int i = 0; i < loops.Count; i++)
+            yield return loops[i];
     }
 
     #endregion
@@ -878,7 +838,28 @@ static class Loops
     /// <returns>The created loops analysis.</returns>
     public static Loops<TOrder, TDirection> CreateLoops<TOrder, TDirection>(
         this CFG<TOrder, TDirection> cfg)
-        where TOrder : struct, ITraversalOrder
+        where TOrder : struct, ITraversalOrder<BasicBlock>
         where TDirection : struct, IControlFlowDirection =>
         Loops<TOrder, TDirection>.Create(cfg);
+
+    /// <summary>
+    /// Creates a new loops analysis from a method's basic blocks.
+    /// </summary>
+    /// <param name="blocks">The basic block collection.</param>
+    /// <returns>The created loops analysis.</returns>
+    public static Loops<ReversePostOrder<BasicBlock>, Forwards> CreateLoops(
+        this BasicBlockCollection<ReversePostOrder<BasicBlock>, Forwards> blocks)
+    {
+        var cfg = blocks.CreateCFG();
+        return cfg.CreateLoops();
+    }
+
+    /// <summary>
+    /// Creates a new loops analysis from a method.
+    /// </summary>
+    /// <param name="method">The method to analyze.</param>
+    /// <returns>The created loops analysis.</returns>
+    public static Loops<ReversePostOrder<BasicBlock>, Forwards> CreateLoops(
+        this Method method) =>
+        method.Blocks.CreateLoops();
 }

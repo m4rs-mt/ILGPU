@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-namespace ILGPUC.IR.Analyses.ControlFlowDirection;
+namespace ILGPUC.IR.MethodValues;
 
 /// <summary>
 /// Defines an abstract control flow-analysis source that has an entry block and
@@ -39,7 +39,7 @@ interface IControlFlowDirection
     /// <summary>
     /// Returns true if this is a forwards direction.
     /// </summary>
-    bool IsForwards { get; }
+    static abstract bool IsForwards { get; }
 
     /// <summary>
     /// Returns the entry block for a given source.
@@ -48,7 +48,7 @@ interface IControlFlowDirection
     /// <typeparam name="TDirection">The current direction.</typeparam>
     /// <param name="source">The source.</param>
     /// <returns>The entry block.</returns>
-    BasicBlock GetEntryBlock<TSource, TDirection>(in TSource source)
+    static abstract BasicBlock GetEntryBlock<TSource, TDirection>(in TSource source)
         where TSource : struct, IControlFlowAnalysisSource<TDirection>
         where TDirection : struct, IControlFlowDirection;
 }
@@ -61,19 +61,15 @@ readonly struct Forwards : IControlFlowDirection
     /// <summary>
     /// Returns true.
     /// </summary>
-    public readonly bool IsForwards => true;
+    public static bool IsForwards => true;
 
     /// <summary>
     /// Returns the entry in case of a forwards source, the exit block otherwise.
     /// </summary>
-    public readonly BasicBlock GetEntryBlock<TSource, TDirection>(
-        in TSource source)
+    public static BasicBlock GetEntryBlock<TSource, TDirection>(in TSource source)
         where TSource : struct, IControlFlowAnalysisSource<TDirection>
-        where TDirection : struct, IControlFlowDirection
-    {
-        TDirection direction = default;
-        return direction.IsForwards ? source.EntryBlock : source.FindExitBlock();
-    }
+        where TDirection : struct, IControlFlowDirection =>
+        TDirection.IsForwards ? source.EntryBlock : source.FindExitBlock();
 }
 
 /// <summary>
@@ -85,17 +81,14 @@ readonly struct Backwards : IControlFlowDirection
     /// <summary>
     /// Returns false.
     /// </summary>
-    public readonly bool IsForwards => false;
+    public static bool IsForwards => false;
 
     /// <summary>
     /// Returns the entry in case of a backwards source, the exit block otherwise.
     /// </summary>
-    public readonly BasicBlock GetEntryBlock<TSource, TDirection>(
+    public static BasicBlock GetEntryBlock<TSource, TDirection>(
         in TSource source)
         where TSource : struct, IControlFlowAnalysisSource<TDirection>
-        where TDirection : struct, IControlFlowDirection
-    {
-        TDirection direction = default;
-        return direction.IsForwards ? source.FindExitBlock() : source.EntryBlock;
-    }
+        where TDirection : struct, IControlFlowDirection =>
+        TDirection.IsForwards ? source.FindExitBlock() : source.EntryBlock;
 }
