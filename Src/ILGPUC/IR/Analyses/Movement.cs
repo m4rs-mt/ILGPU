@@ -9,52 +9,22 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Analyses.ControlFlowDirection;
-using ILGPUC.IR.Analyses.TraversalOrders;
-using ILGPUC.IR.Values;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using PostDominators = ILGPUC.IR.Analyses.Dominators<
-    ILGPUC.IR.Analyses.ControlFlowDirection.Backwards>;
-using PreDominators = ILGPUC.IR.Analyses.Dominators<
-    ILGPUC.IR.Analyses.ControlFlowDirection.Forwards>;
+using ILGPU.Util;
+using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.MethodValues;
+using ILGPUC.IR.ModuleValues;
+using System.Runtime.CompilerServices;
+using PostDominators = ILGPUC.IR.Analyses.Dominators<ILGPUC.IR.MethodValues.Backwards>;
+using PreDominators = ILGPUC.IR.Analyses.Dominators<ILGPUC.IR.MethodValues.Forwards>;
 
 namespace ILGPUC.IR.Analyses;
-
-/// <summary>
-/// Represents a scope in which values can be moved around.
-/// </summary>
-interface IMovementScope
-{
-    /// <summary>
-    /// Tries to find the first value of the given type that fulfills the given
-    /// predicate in the given block.
-    /// </summary>
-    /// <typeparam name="T">The value type.</typeparam>
-    /// <param name="basicBlock">The basic block to look into.</param>
-    /// <param name="predicate">The predicate.</param>
-    /// <param name="entry">
-    /// The result pair consisting of a value index and the matched value itself.
-    /// </param>
-    /// <returns>True, if a value could be matched.</returns>
-    bool TryFindFirstValueOf<T>(
-        BasicBlock basicBlock,
-        Predicate<T> predicate,
-        out (int Index, T Value) entry)
-        where T : Value;
-}
 
 /// <summary>
 /// Tracks and validates potential movement of values with side effects to different
 /// blocks. Reasoning about movement of side effect values makes several program
 /// analyses significantly smarter and more aggressive.
 /// </summary>
-/// <typeparam name="TScope">
-/// The movement scope in which values can be moved around.
-/// </typeparam>
-sealed class Movement<TScope>
-    where TScope : IMovementScope
+sealed class Movement
 {
     #region Static
 
@@ -71,6 +41,7 @@ sealed class Movement<TScope>
     /// <returns>
     /// True, if the other value can be skipped based on the address space.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CanSkipAddressSpace(
         MemoryAddressSpace currentAddressSpace,
         MemoryAddressSpace addressSpaceToSkip) =>
@@ -81,7 +52,7 @@ sealed class Movement<TScope>
     /// Returns true if an operation working on the current address space can skip
     /// the given memory value.
     /// </summary>
-    /// <param name="currentAddressSpace">
+    /// <param name="current">
     /// The address space the current value operates on.
     /// </param>
     /// <param name="toSkip">The memory value to skip.</param>
@@ -89,21 +60,14 @@ sealed class Movement<TScope>
     /// True, if the value to skip can be skipped without breaking the semantics of
     /// the program.
     /// </returns>
-    private static bool CanSkip(
-        MemoryAddressSpace currentAddressSpace,
-        MemoryValue toSkip) =>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool CanSkip(MemoryAddressSpace current, MemoryValue toSkip) =>
         toSkip switch
         {
             Alloca _ => true,
-            Load load => CanSkipAddressSpace(
-                currentAddressSpace,
-                load.SourceAddressSpace),
-            Store store => CanSkipAddressSpace(
-                currentAddressSpace,
-                store.TargetAddressSpace),
-            AtomicValue atomic => CanSkipAddressSpace(
-                currentAddressSpace,
-                atomic.TargetAddressSpace),
+            Load load => CanSkipAddressSpace(current, load.SourceAddressSpace),
+            Store store => CanSkipAddressSpace(current, store.TargetAddressSpace),
+            AtomicValue atomic => CanSkipAddressSpace(current, atomic.TargetAddressSpace),
             // Barriers, Calls etc.
             _ => false,
         };
@@ -118,6 +82,7 @@ sealed class Movement<TScope>
     /// True, if the current value can skip the other memory value without breaking
     /// the semantics of the program.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CanSkip(MemoryValue memoryValue, MemoryValue toSkip) =>
         // Check whether one of the values operates on a different address space or
         // whether they are just loads or allocas that do not modify the contents
@@ -140,66 +105,55 @@ sealed class Movement<TScope>
     /// Maps side effect values to their original source blocks in which they
     /// have been defined
     /// </summary>
-    private readonly Dictionary<SideEffectValue, BasicBlock> valueBlocks;
+    private readonly ValueMap<Method, BasicBlockValue, BasicBlock> _valueBlocks;
 
     /// <summary>
     /// Stores all memory values according to the reverse post order.
     /// </summary>
-    private readonly List<MemoryValue> values;
+    private InlineList<MemoryValue> _values;
 
     /// <summary>
-    /// Maps all memory values to their global indices in the <see cref="values"/>
+    /// Maps all memory values to their global indices in the <see cref="_values"/>
     /// list determined by a reverse-post-order search.
     /// </summary>
-    private readonly Dictionary<MemoryValue, int> valueIndices;
+    private readonly ValueMap<Method, MemoryValue, int> _valueIndices;
 
     /// <summary>
     /// Stores all end indices of all blocks pointing to offsets in the
-    /// <see cref="values"/> list.
+    /// <see cref="_values"/> list.
     /// </summary>
-    private readonly BasicBlockMap<int> blockRanges;
+    private readonly ValueMap<Method, BasicBlock, int> _blockRanges;
 
     /// <summary>
     /// Constructs a new movement analysis.
     /// </summary>
     /// <param name="blocks">The source blocks.</param>
-    /// <param name="scope">The parent scope.</param>
-    [SuppressMessage(
-        "Maintainability",
-        "CA1508:Avoid dead conditional code",
-        Justification = "There is no dead code in the method below")]
     public Movement(
-        in BasicBlockCollection<ReversePostOrder, Forwards> blocks,
-        TScope scope)
+        in BasicBlockCollection<ReversePostOrder<BasicBlock>, Forwards> blocks)
     {
         // Setup internal mappings to store value indices and block offsets
-        values = new List<MemoryValue>(blocks.Count << 1);
-        valueBlocks = new Dictionary<SideEffectValue, BasicBlock>(
-            values.Capacity);
-        valueIndices = new Dictionary<MemoryValue, int>(values.Capacity);
-        blockRanges = blocks.CreateMap<int>();
+        _values = InlineList<MemoryValue>.Create(blocks.Count << 1);
+        _valueBlocks = blocks.Method.CreateMap<BasicBlockValue, BasicBlock>();
+        _valueIndices = blocks.Method.CreateMap<MemoryValue, int>();
+        _blockRanges = blocks.CreateMap<int>();
 
         // Gather all side effect values in the order of their appearance
         foreach (var block in blocks)
         {
-            foreach (Value value in block)
+            foreach (BasicBlockValue value in block)
             {
-                if (!(value is SideEffectValue sev))
-                    continue;
-
-                valueBlocks[sev] = value.BasicBlock;
+                _valueBlocks[value] = block;
                 if (value is MemoryValue memoryValue)
                 {
-                    int index = values.Count;
-                    values.Add(memoryValue);
-                    valueIndices.Add(memoryValue, index);
+                    int index = _values.Count;
+                    _values.Add(memoryValue);
+                    _valueIndices.Add(memoryValue, index);
                 }
             }
-            blockRanges[block] = values.Count - 1;
+            _blockRanges[block] = _values.Count - 1;
         }
 
         // Setup all properties and compute dominators and post dominators
-        Scope = scope;
         Dominators = blocks.CreateDominators();
         PostDominators = blocks.CreatePostDominators();
     }
@@ -207,11 +161,6 @@ sealed class Movement<TScope>
     #endregion
 
     #region Properties
-
-    /// <summary>
-    /// Returns the underlying movement scope.
-    /// </summary>
-    public TScope Scope { get; }
 
     /// <summary>
     /// Returns the current method.
@@ -239,10 +188,10 @@ sealed class Movement<TScope>
     /// <returns>
     /// True, if the given value can be moved to a different block.
     /// </returns>
-    private bool CanMoveGenericValue(Value value)
+    private bool CanMoveGenericValue(Value<Method> value)
     {
-        value.Assert(!(value is SideEffectValue));
-        return Method == value.Method;
+        value.Assert(value is not BasicBlockValue);
+        return Method == value.Scope;
     }
 
     /// <summary>
@@ -252,10 +201,11 @@ sealed class Movement<TScope>
     /// <param name="value">The value to move to the target block.</param>
     /// <param name="targetBlock">The target block to move the value to.</param>
     /// <returns>True, if we can move the value to the target block.</returns>
-    private bool CanMoveSideEffectValue(SideEffectValue value, BasicBlock targetBlock)
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private bool CanMoveSideEffectValue(BasicBlockValue value, BasicBlock targetBlock)
     {
         // Check the dominance relation between both blocks
-        var sourceBlock = valueBlocks[value];
+        var sourceBlock = _valueBlocks[value];
         bool lower = Dominators.Dominates(sourceBlock, targetBlock);
         // Do not move side effect values into divergent regions
         if (!lower || !PostDominators.Dominates(sourceBlock, targetBlock))
@@ -263,20 +213,19 @@ sealed class Movement<TScope>
 
         // MemoryValues need specific handling as there might be other operations
         // in between changing the behavior/results of the value
-        if (!(value is MemoryValue memoryValue))
+        if (value is not MemoryValue memoryValue)
             return true;
 
         // Test whether might miss other memory operations in between
-        var valueIndex = valueIndices[memoryValue];
+        var valueIndex = _valueIndices[memoryValue];
 
         // Find the first memory value in the target block (if any) to begin with
-        int startIndex = blockRanges[targetBlock];
-        if (Scope.TryFindFirstValueOf<MemoryValue>(
-            targetBlock,
-            memValue => !(memValue is Load),
+        int startIndex = _blockRanges[targetBlock];
+        if (targetBlock.TryFindFirstValueOf<MemoryValue>(
+            memValue => memValue is not Load,
             out var entry))
         {
-            startIndex = valueIndices[entry.Value];
+            startIndex = _valueIndices[entry.Value];
         }
 
         // Check for trivial cases
@@ -290,7 +239,7 @@ sealed class Movement<TScope>
             i > valueIndex || i < valueIndex;
             i += increment)
         {
-            if (!CanSkip(memoryValue, values[i]))
+            if (!CanSkip(memoryValue, _values[i]))
                 return false;
         }
 
@@ -311,13 +260,12 @@ sealed class Movement<TScope>
     /// True, if the given value can be moved to the target block given by the
     /// placement entry.
     /// </returns>
-    public bool CanMoveTo(Value value, BasicBlock targetBlock) =>
+    public bool CanMoveTo(Value<Method> value, BasicBlock targetBlock) =>
         value switch
         {
             Parameter _ => false,
-            SideEffectValue sev => CanMoveSideEffectValue(sev, targetBlock),
             PhiValue _ => false,
-            TerminatorValue _ => false,
+            BasicBlockValue bbValue => CanMoveSideEffectValue(bbValue, targetBlock),
             _ => CanMoveGenericValue(value),
         };
 
