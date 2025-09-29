@@ -9,132 +9,121 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Analyses.ControlFlowDirection;
+using ILGPUC.IR.MethodValues;
+using ILGPUC.IR.ModuleValues;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
-namespace ILGPUC.IR.Analyses.TraversalOrders;
+namespace ILGPUC.IR.Analyses;
+
+/// <summary>
+/// Describes an abstract traversal set that tracks unique values.
+/// </summary>
+/// <typeparam name="T">The value type</typeparam>
+interface ITraversalSet<T> { bool Add(T value); }
 
 /// <summary>
 /// A enumeration state of a generic traversal.
 /// </summary>
-struct TraversalEnumerationState
-{
-    /// <summary>
-    /// The current enumeration index.
-    /// </summary>
-    public int Index { get; set; }
-}
+/// <param name="Index">The current enumeration index.</param>
+record struct TraversalEnumerationState(int Index);
 
 /// <summary>
 /// Provides successors for a given basic block.
 /// </summary>
+/// <typeparam name="T">The value type.</typeparam>
 /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-interface ITraversalSuccessorsProvider<TDirection>
+interface ITraversalSuccessorsProvider<T, TDirection>
+    where T : Value
     where TDirection : struct, IControlFlowDirection
 {
     /// <summary>
-    /// Returns or computes successors of the given basic block.
+    /// Returns or computes successors of the given value.
     /// </summary>
-    /// <param name="basicBlock">The source basic block.</param>
+    /// <param name="value">The source value.</param>
     /// <returns>The returned successor collection.</returns>
-    ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock);
+    static abstract ReadOnlySpan<T> GetSuccessors(T value);
 }
 
 /// <summary>
 /// A general traversal visitor.
 /// </summary>
-interface ITraversalVisitor
+/// <typeparam name="T">The value type.</typeparam>
+interface ITraversalVisitor<T>
 {
     /// <summary>
     /// Visits the given block.
     /// </summary>
-    /// <param name="block">The block to visit.</param>
-    void Visit(BasicBlock block);
+    /// <param name="value">The value to visit.</param>
+    void Visit(T value);
 }
 
 /// <summary>
 /// A generic collection visitor.
 /// </summary>
+/// <typeparam name="T">The value type.</typeparam>
 /// <typeparam name="TCollection">The collection type.</typeparam>
-readonly struct TraversalCollectionVisitor<TCollection> :
-    ITraversalVisitor
-    where TCollection : ICollection<BasicBlock>
+/// <param name="collection">The target collection.</param>
+readonly struct TraversalCollectionVisitor<T, TCollection>(TCollection collection) :
+    ITraversalVisitor<T>
+    where TCollection : ICollection<T>
 {
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new collection visitor.
-    /// </summary>
-    /// <param name="collection">The target collection.</param>
-    public TraversalCollectionVisitor(TCollection collection)
-    {
-        Collection = collection;
-    }
-
-    #endregion
-
-    #region Properties
-
     /// <summary>
     /// Returns the target collection to add the elements to.
     /// </summary>
-    public TCollection Collection { get; }
-
-    #endregion
-
-    #region Methods
+    public TCollection Collection { get; } = collection;
 
     /// <summary>
     /// Adds the given block to the target collection.
     /// </summary>
-    /// <param name="block">The block to add.</param>
-    public readonly void Visit(BasicBlock block) => Collection.Add(block);
-
-    #endregion
+    /// <param name="value">The value to add.</param>
+    public void Visit(T value) => Collection.Add(value);
 }
 
 /// <summary>
 /// A generic traversal order.
 /// </summary>
-interface ITraversalOrder
+/// <typeparam name="T">The value type.</typeparam>
+interface ITraversalOrder<T> where T : Value
 {
     /// <summary>
     /// Initializes a new enumeration state.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
-    TraversalEnumerationState Init<TCollection>(TCollection blocks)
-        where TCollection : IReadOnlyList<BasicBlock>;
+    /// <param name="values">The list of values to enumerate.</param>
+    static abstract TraversalEnumerationState Init<TCollection>(TCollection values)
+        where TCollection : IReadOnlyList<T>;
 
     /// <summary>
     /// Tries to move the state to the next block.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
+    /// <param name="values">The list of values to enumerate.</param>
     /// <param name="state">The current enumeration state.</param>
     /// <returns>True, if there is a next block.</returns>
-    bool MoveNext<TCollection>(
-        TCollection blocks,
+    static abstract bool MoveNext<TCollection>(
+        TCollection values,
         ref TraversalEnumerationState state)
-        where TCollection : IReadOnlyList<BasicBlock>;
+        where TCollection : IReadOnlyList<T>;
 
     /// <summary>
     /// Computes a traversal using the current order.
     /// </summary>
+    /// <typeparam name="TSet">The current traversal set type.</typeparam>
     /// <typeparam name="TVisitor">The visitor type.</typeparam>
     /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    /// <param name="entryBlock">The entry block.</param>
+    /// <param name="entry">The entry value.</param>
+    /// <param name="set">A set compatible with the current traversal.</param>
     /// <param name="visitor">The visitor instance.</param>
-    /// <param name="successorProvider">The successor provider.</param>
     /// <returns>The created traversal.</returns>
-    void Traverse<TVisitor, TSuccessorProvider, TDirection>(
-        BasicBlock entryBlock,
-        ref TVisitor visitor,
-        in TSuccessorProvider successorProvider)
-        where TVisitor : struct, ITraversalVisitor
-        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
+    static abstract void Traverse<TSet, TVisitor, TSuccessorProvider, TDirection>(
+        T entry,
+        TSet set,
+        ref TVisitor visitor)
+        where TSet : ITraversalSet<T>
+        where TVisitor : struct, ITraversalVisitor<T>, allows ref struct
+        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<T, TDirection>
         where TDirection : struct, IControlFlowDirection;
 }
 
@@ -142,15 +131,17 @@ interface ITraversalOrder
 /// Another view that is compatible with the current type without requiring a new
 /// computation.
 /// </summary>
+/// <typeparam name="T">The value type.</typeparam>
 /// <typeparam name="TOther">The other view.</typeparam>
-interface ICompatibleTraversalOrder<TOther>
-    where TOther : struct, ITraversalOrder
-{ }
+interface ICompatibleTraversalOrder<T, TOther>
+    where T : Value
+    where TOther : struct, ITraversalOrder<T>;
 
 /// <summary>
 /// A helper class for traversal.
 /// </summary>
-static class TraversalOrder
+/// <typeparam name="T">The value type</typeparam>
+static class TraversalOrder<T> where T : Value
 {
     /// <summary>
     /// Specifies the default initial stack size.
@@ -160,157 +151,186 @@ static class TraversalOrder
     /// <summary>
     /// Initializes a forwards enumeration state.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TraversalEnumerationState ForwardsInit() => new() { Index = -1 };
 
     /// <summary>
     /// Tries to move a forwards state to the next block.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
+    /// <param name="values">The list of values to enumerate.</param>
     /// <param name="state">The current enumeration state.</param>
     /// <returns>True, if there is a next block.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ForwardsMoveNext<TCollection>(
-        TCollection blocks,
+        TCollection values,
         ref TraversalEnumerationState state)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        ++state.Index < blocks.Count;
+        where TCollection : IReadOnlyList<T> =>
+        ++state.Index < values.Count;
 
     /// <summary>
     /// Initializes a backwards enumeration state.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <param name="values">The list of values to enumerate.</param>
     public static TraversalEnumerationState BackwardsInit<TCollection>(
-        TCollection blocks)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        new TraversalEnumerationState()
-        {
-            Index = blocks.Count
-        };
+        TCollection values)
+        where TCollection : IReadOnlyList<T> =>
+        new() { Index = values.Count };
 
     /// <summary>
     /// Tries to move a backwards state to the next block.
     /// </summary>
     /// <param name="state">The current enumeration state.</param>
     /// <returns>True, if there is a next block.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool BackwardsMoveNext(ref TraversalEnumerationState state) =>
         --state.Index >= 0;
 
     /// <summary>
     /// Computes a traversal using the current order.
     /// </summary>
+    /// <typeparam name="TSet">The current traversal set type.</typeparam>
     /// <typeparam name="TOrder">The current order type.</typeparam>
     /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    /// <param name="order">The current order instance.</param>
-    /// <param name="entryBlock">The entry block.</param>
+    /// <param name="entry">The entry value.</param>
+    /// <param name="set">A set compatible with the current traversal.</param>
     /// <param name="count">The number of elements.</param>
-    /// <param name="successorProvider">The successor provider.</param>
     /// <returns>The created traversal.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BasicBlockCollection<TOrder, TDirection>
-        TraverseToCollection<TOrder, TSuccessorProvider, TDirection>(
-        this TOrder order,
-        int count,
-        BasicBlock entryBlock,
-        in TSuccessorProvider successorProvider)
-        where TOrder : struct, ITraversalOrder
-        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
+    public static ImmutableArray<T>.Builder
+        TraverseToCollectionBuilder<TSet, TOrder, TSuccessorProvider, TDirection>(
+        T entry,
+        TSet set,
+        int count = 8)
+        where TSet : ITraversalSet<T>
+        where TOrder : struct, ITraversalOrder<T>
+        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<T, TDirection>
         where TDirection : struct, IControlFlowDirection
     {
-        var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(count);
+        var newValues = ImmutableArray.CreateBuilder<T>(count);
         var visitor = new TraversalCollectionVisitor<
-            ImmutableArray<BasicBlock>.Builder>(newBlocks);
+            T,
+            ImmutableArray<T>.Builder>(newValues);
 
-        order.Traverse<
-            TraversalCollectionVisitor<ImmutableArray<BasicBlock>.Builder>,
+        TOrder.Traverse<
+            TSet,
+            TraversalCollectionVisitor<T, ImmutableArray<T>.Builder>,
             TSuccessorProvider,
-            TDirection>(
-            entryBlock,
-            ref visitor,
-            successorProvider);
+            TDirection>(entry, set, ref visitor);
 
-        // Return new block collection
-        return new BasicBlockCollection<TOrder, TDirection>(
-            entryBlock,
-            newBlocks.ToImmutable());
+        return newValues;
     }
 }
 
 /// <summary>
-/// Enumerates all basic blocks in pre order.
+/// A helper class for traversal.
 /// </summary>
-readonly struct PreOrder :
-    ITraversalOrder,
-    ICompatibleTraversalOrder<ReversePreOrder>
+static class TraversalOrder
+{
+    /// <summary>
+    /// Computes a traversal using the current order.
+    /// </summary>
+    /// <typeparam name="TOrder">The current order type.</typeparam>
+    /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
+    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+    /// <param name="entryBlock">The entry block.</param>
+    /// <param name="count">The number of elements.</param>
+    /// <returns>The created traversal.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BasicBlockCollection<TOrder, TDirection>
+        TraverseToCollection<TOrder, TSuccessorProvider, TDirection>(
+        this BasicBlock entryBlock,
+        int count = 8)
+        where TOrder : struct, ITraversalOrder<BasicBlock>
+        where TSuccessorProvider :
+            struct, ITraversalSuccessorsProvider<BasicBlock, TDirection>
+        where TDirection : struct, IControlFlowDirection
+    {
+        var builder = TraversalOrder<BasicBlock>.TraverseToCollectionBuilder<
+            ValueSet<Method, BasicBlock>,
+            TOrder,
+            TSuccessorProvider,
+            TDirection>(
+                entryBlock,
+                entryBlock.Method.CreateSet<BasicBlock>(),
+                count);
+        return new BasicBlockCollection<TOrder, TDirection>(
+            entryBlock,
+            builder.ToImmutable());
+    }
+}
+
+/// <summary>
+/// Enumerates all basic values in pre order.
+/// </summary>
+/// <typeparam name="T">The value type.</typeparam>
+readonly struct PreOrder<T> :
+    ITraversalOrder<T>,
+    ICompatibleTraversalOrder<T, ReversePreOrder<T>>
+    where T : Value
 {
     /// <summary>
     /// Initializes a new enumeration state.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly TraversalEnumerationState Init<TCollection>(TCollection blocks)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        TraversalOrder.ForwardsInit();
+    /// <param name="values">The list of values to enumerate.</param>
+    public static TraversalEnumerationState Init<TCollection>(TCollection values)
+        where TCollection : IReadOnlyList<T> =>
+        TraversalOrder<T>.ForwardsInit();
 
     /// <summary>
     /// Tries to move the state to the next block.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
+    /// <param name="values">The list of values to enumerate.</param>
     /// <param name="state">The current enumeration state.</param>
     /// <returns>True, if there is a next block.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool MoveNext<TCollection>(
-        TCollection blocks,
+    public static bool MoveNext<TCollection>(
+        TCollection values,
         ref TraversalEnumerationState state)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        TraversalOrder.ForwardsMoveNext(blocks, ref state);
+        where TCollection : IReadOnlyList<T> =>
+        TraversalOrder<T>.ForwardsMoveNext(values, ref state);
 
     /// <summary>
     /// Computes a traversal using the current order.
     /// </summary>
+    /// <typeparam name="TSet">The current traversal set type.</typeparam>
     /// <typeparam name="TVisitor">The visitor type.</typeparam>
     /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    /// <param name="entryBlock">The entry block.</param>
+    /// <param name="entry">The entry.</param>
+    /// <param name="set">A set compatible with the current traversal.</param>
     /// <param name="visitor">The visitor instance.</param>
-    /// <param name="successorProvider">The successor provider.</param>
     /// <returns>The created traversal.</returns>
-    public readonly void Traverse<
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static void Traverse<
+        TSet,
         TVisitor,
         TSuccessorProvider,
         TDirection>(
-        BasicBlock entryBlock,
-        ref TVisitor visitor,
-        in TSuccessorProvider successorProvider)
-        where TVisitor : struct, ITraversalVisitor
-        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
+        T entry,
+        TSet set,
+        ref TVisitor visitor)
+        where TSet : ITraversalSet<T>
+        where TVisitor : struct, ITraversalVisitor<T>, allows ref struct
+        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<T, TDirection>
         where TDirection : struct, IControlFlowDirection
     {
-        var visited = BasicBlockSet.Create(entryBlock);
-        var stack = new Stack<BasicBlock>(TraversalOrder.InitStackSize);
-        var currentBlock = entryBlock;
+        var stack = new Stack<T>(TraversalOrder<T>.InitStackSize);
+        var current = entry;
 
         while (true)
         {
-            if (visited.Add(currentBlock))
+            if (set.Add(current))
             {
-                visitor.Visit(currentBlock);
-                var successors = successorProvider.GetSuccessors(currentBlock);
+                visitor.Visit(current);
+                var successors = TSuccessorProvider.GetSuccessors(current);
                 if (successors.Length > 0)
                 {
                     for (int i = successors.Length - 1; i >= 1; --i)
                         stack.Push(successors[i]);
-                    currentBlock = successors[0];
+                    current = successors[0];
                     continue;
                 }
             }
 
             if (stack.Count < 1)
                 break;
-            currentBlock = stack.Pop();
+            current = stack.Pop();
         }
     }
 }
@@ -318,135 +338,137 @@ readonly struct PreOrder :
 /// <summary>
 /// Enumerates all basic blocks in reverse pre order.
 /// </summary>
-readonly struct ReversePreOrder :
-    ITraversalOrder,
-    ICompatibleTraversalOrder<PreOrder>
+/// <typeparam name="T">The value type.</typeparam>
+readonly struct ReversePreOrder<T> :
+    ITraversalOrder<T>,
+    ICompatibleTraversalOrder<T, PreOrder<T>>
+    where T : Value
 {
     /// <summary>
     /// Initializes a new enumeration state.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly TraversalEnumerationState Init<TCollection>(TCollection blocks)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        TraversalOrder.BackwardsInit(blocks);
+    /// <param name="values">The list of values to enumerate.</param>
+    public static TraversalEnumerationState Init<TCollection>(TCollection values)
+        where TCollection : IReadOnlyList<T> =>
+        TraversalOrder<T>.BackwardsInit(values);
 
     /// <summary>
     /// Tries to move the state to the next block.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
+    /// <param name="values">The list of values to enumerate.</param>
     /// <param name="state">The current enumeration state.</param>
     /// <returns>True, if there is a next block.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool MoveNext<TCollection>(
-        TCollection blocks,
+    public static bool MoveNext<TCollection>(
+        TCollection values,
         ref TraversalEnumerationState state)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        TraversalOrder.BackwardsMoveNext(ref state);
+        where TCollection : IReadOnlyList<T> =>
+        TraversalOrder<T>.BackwardsMoveNext(ref state);
 
     /// <summary>
     /// Computes a traversal using the current order.
     /// </summary>
+    /// <typeparam name="TSet">The current traversal set type.</typeparam>
     /// <typeparam name="TVisitor">The visitor type.</typeparam>
     /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    /// <param name="entryBlock">The entry block.</param>
-    /// <param name="successorProvider">The successor provider.</param>
+    /// <param name="entry">The entry.</param>
+    /// <param name="set">A set compatible with the current traversal.</param>
     /// <param name="visitor">The visitor instance.</param>
     /// <returns>The created traversal.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Traverse<
+    public static void Traverse<
+        TSet,
         TVisitor,
         TSuccessorProvider,
         TDirection>(
-        BasicBlock entryBlock,
-        ref TVisitor visitor,
-        in TSuccessorProvider successorProvider)
-        where TVisitor : struct, ITraversalVisitor
-        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
-        where TDirection : struct, IControlFlowDirection
-    {
-        var preOrder = new PreOrder();
-        preOrder.Traverse<TVisitor, TSuccessorProvider, TDirection>(
-            entryBlock,
-            ref visitor,
-            successorProvider);
-    }
+        T entry,
+        TSet set,
+        ref TVisitor visitor)
+        where TSet : ITraversalSet<T>
+        where TVisitor : struct, ITraversalVisitor<T>, allows ref struct
+        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<T, TDirection>
+        where TDirection : struct, IControlFlowDirection =>
+        PreOrder<T>.Traverse<TSet, TVisitor, TSuccessorProvider, TDirection>(
+            entry,
+            set,
+            ref visitor);
 }
 
 /// <summary>
 /// Enumerates all basic blocks in post order.
 /// </summary>
-readonly struct PostOrder :
-    ITraversalOrder,
-    ICompatibleTraversalOrder<ReversePostOrder>
+/// <typeparam name="T">The value type.</typeparam>
+readonly struct PostOrder<T> :
+    ITraversalOrder<T>,
+    ICompatibleTraversalOrder<T, ReversePostOrder<T>>
+    where T : Value
 {
     /// <summary>
     /// Initializes a new enumeration state.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly TraversalEnumerationState Init<TCollection>(TCollection blocks)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        TraversalOrder.ForwardsInit();
+    /// <param name="values">The list of values to enumerate.</param>
+    public static TraversalEnumerationState Init<TCollection>(TCollection values)
+        where TCollection : IReadOnlyList<T> =>
+        TraversalOrder<T>.ForwardsInit();
 
     /// <summary>
     /// Tries to move the state to the next block.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
+    /// <param name="values">The list of values to enumerate.</param>
     /// <param name="state">The current enumeration state.</param>
     /// <returns>True, if there is a next block.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool MoveNext<TCollection>(
-        TCollection blocks,
+    public static bool MoveNext<TCollection>(
+        TCollection values,
         ref TraversalEnumerationState state)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        TraversalOrder.ForwardsMoveNext(blocks, ref state);
+        where TCollection : IReadOnlyList<T> =>
+        TraversalOrder<T>.ForwardsMoveNext(values, ref state);
 
     /// <summary>
     /// Computes a traversal using the current order.
     /// </summary>
+    /// <typeparam name="TSet">The current traversal set type.</typeparam>
     /// <typeparam name="TVisitor">The visitor type.</typeparam>
     /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    /// <param name="entryBlock">The entry block.</param>
+    /// <param name="entry">The entry value.</param>
+    /// <param name="set">A set compatible with the current traversal.</param>
     /// <param name="visitor">The visitor instance.</param>
-    /// <param name="successorProvider">The successor provider.</param>
     /// <returns>The created traversal.</returns>
-    public readonly void Traverse<
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static void Traverse<
+        TSet,
         TVisitor,
         TSuccessorProvider,
         TDirection>(
-        BasicBlock entryBlock,
-        ref TVisitor visitor,
-        in TSuccessorProvider successorProvider)
-        where TVisitor : struct, ITraversalVisitor
-        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
+        T entry,
+        TSet set,
+        ref TVisitor visitor)
+        where TSet : ITraversalSet<T>
+        where TVisitor : struct, ITraversalVisitor<T>, allows ref struct
+        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<T, TDirection>
         where TDirection : struct, IControlFlowDirection
     {
-        var visited = BasicBlockSet.Create(entryBlock);
-        var stack = new Stack<(BasicBlock, int)>(TraversalOrder.InitStackSize);
-        var current = (Block: entryBlock, Child: 0);
+        var stack = new Stack<(T, int)>(TraversalOrder<T>.InitStackSize);
+        var current = (Value: entry, Child: 0);
 
         while (true)
         {
-            var currentBlock = current.Block;
+            var currentValue = current.Value;
 
             if (current.Child == 0)
             {
-                if (!visited.Add(currentBlock))
+                if (!set.Add(currentValue))
                     goto next;
             }
 
-            var successors = successorProvider.GetSuccessors(currentBlock);
+            var successors = TSuccessorProvider.GetSuccessors(currentValue);
             if (current.Child >= successors.Length)
             {
-                visitor.Visit(currentBlock);
+                visitor.Visit(currentValue);
                 goto next;
             }
             else
             {
-                stack.Push((currentBlock, current.Child + 1));
+                stack.Push((currentValue, current.Child + 1));
                 current = (successors[current.Child], 0);
             }
 
@@ -460,60 +482,59 @@ readonly struct PostOrder :
 }
 
 /// <summary>
-/// Enumerates all basic blocks in reverse post order.
+/// Enumerates all basic values in reverse post order.
 /// </summary>
-readonly struct ReversePostOrder :
-    ITraversalOrder,
-    ICompatibleTraversalOrder<PostOrder>
+/// <typeparam name="T">The value type.</typeparam>
+readonly struct ReversePostOrder<T> :
+    ITraversalOrder<T>,
+    ICompatibleTraversalOrder<T, PostOrder<T>>
+    where T : Value
 {
     /// <summary>
     /// Initializes a new enumeration state.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly TraversalEnumerationState Init<TCollection>(TCollection blocks)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        TraversalOrder.BackwardsInit(blocks);
+    /// <param name="values">The list of values to enumerate.</param>
+    public static TraversalEnumerationState Init<TCollection>(TCollection values)
+        where TCollection : IReadOnlyList<T> =>
+        TraversalOrder<T>.BackwardsInit(values);
 
     /// <summary>
     /// Tries to move the state to the next block.
     /// </summary>
-    /// <param name="blocks">The list of blocks to enumerate.</param>
+    /// <param name="values">The list of values to enumerate.</param>
     /// <param name="state">The current enumeration state.</param>
     /// <returns>True, if there is a next block.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool MoveNext<TCollection>(
-        TCollection blocks,
+    public static bool MoveNext<TCollection>(
+        TCollection values,
         ref TraversalEnumerationState state)
-        where TCollection : IReadOnlyList<BasicBlock> =>
-        TraversalOrder.BackwardsMoveNext(ref state);
+        where TCollection : IReadOnlyList<T> =>
+        TraversalOrder<T>.BackwardsMoveNext(ref state);
 
     /// <summary>
     /// Computes a traversal using the current order.
     /// </summary>
+    /// <typeparam name="TSet">The current traversal set type.</typeparam>
     /// <typeparam name="TVisitor">The visitor type.</typeparam>
     /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    /// <param name="entryBlock">The entry block.</param>
+    /// <param name="entry">The entry value.</param>
+    /// <param name="set">A set compatible with the current traversal.</param>
     /// <param name="visitor">The visitor instance.</param>
-    /// <param name="successorProvider">The successor provider.</param>
     /// <returns>The created traversal.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Traverse<
+    public static void Traverse<
+        TSet,
         TVisitor,
         TSuccessorProvider,
         TDirection>(
-        BasicBlock entryBlock,
-        ref TVisitor visitor,
-        in TSuccessorProvider successorProvider)
-        where TVisitor : struct, ITraversalVisitor
-        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<TDirection>
-        where TDirection : struct, IControlFlowDirection
-    {
-        var postOrder = new PostOrder();
-        postOrder.Traverse<TVisitor, TSuccessorProvider, TDirection>(
-            entryBlock,
-            ref visitor,
-            successorProvider);
-    }
+        T entry,
+        TSet set,
+        ref TVisitor visitor)
+        where TSet : ITraversalSet<T>
+        where TVisitor : struct, ITraversalVisitor<T>, allows ref struct
+        where TSuccessorProvider : struct, ITraversalSuccessorsProvider<T, TDirection>
+        where TDirection : struct, IControlFlowDirection =>
+        PostOrder<T>.Traverse<TSet, TVisitor, TSuccessorProvider, TDirection>(
+            entry,
+            set,
+            ref visitor);
 }
