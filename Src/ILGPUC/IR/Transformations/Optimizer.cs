@@ -9,8 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.Backends;
-using ILGPUC.Backends.PointerViews;
+using ILGPU.Runtime;
+using ILGPUC.IR.Transformations.KernelTransform;
 using System;
 
 namespace ILGPUC.IR.Transformations;
@@ -57,57 +57,50 @@ static class Optimizer
     /// Adds basic optimization transformations.
     /// </summary>
     /// <param name="builder">The transformation manager to populate.</param>
-    public static void AddBasicOptimizations(this Transformer.Builder builder)
+    /// <param name="iterativeInlining">
+    /// True if all basic optimizations rely on an iterative inlining strategy that will
+    /// inline all possible functions.
+    /// </param>
+    public static void AddBasicOptimizations(
+        this Transformer.Builder builder,
+        bool iterativeInlining = true)
     {
-        builder.Add(new SSAConstruction());
-        builder.Add(new Inliner());
-        builder.Add(new SimplifyControlFlow());
-        builder.Add(new SSAConstruction());
-        builder.Add(new DeadCodeElimination());
-    }
+        builder.Add(args => new SimplifyControlFlow(args));
+        builder.Add(args => new SSAConstruction(args));
+        builder.Add(args => new SSACleanup(args));
 
-    /// <summary>
-    /// Adds structure optimization passes that lower and remove structure values.
-    /// </summary>
-    /// <param name="builder">The transformation manager to populate.</param>
-    /// <remarks>
-    /// Helps to reduce register pressure and to avoid unnecessary allocations.
-    /// </remarks>
-    public static void AddStructureOptimizations(
-        this Transformer.Builder builder)
-    {
-        builder.Add(new LowerStructures());
-        builder.Add(new DeadCodeElimination());
-    }
+        if (iterativeInlining)
+        {
+            // Iterative inliner — runs Inliner + cleanup in a loop until
+            // no inline-able calls remain, handling arbitrary call chain
+            // depths in a single optimizer slot.
+            builder.Add(static args => new IterativeInliner(args));
 
-    /// <summary>
-    /// Adds loop-specific optimizations.
-    /// </summary>
-    /// <param name="builder">The transformation manager to populate.</param>
-    /// <remarks>
-    /// Loop-invariant code will be moved out of loops, loops with a known trip
-    /// count will be unrolled and (potentially new) unreachable code will be
-    /// removed.
-    /// </remarks>
-    public static void AddLoopOptimizations(
-        this Transformer.Builder builder)
-    {
-        builder.Add(new LoopInvariantCodeMotion());
-        builder.Add(new LoopUnrolling());
-        builder.Add(new UnreachableCodeElimination());
-        builder.Add(new DeadCodeElimination());
-        builder.Add(new SimplifyControlFlow());
+            // Merge blocks split by SpecializeMethodCall during inlining.
+            // The IterativeInliner omits SimplifyControlFlow internally
+            // (see comment there), so consecutive inlined call sites leave
+            // many single-value blocks that must be merged afterward.
+            builder.Add(static args => new SimplifyControlFlow(args));
+        }
+        else
+        {
+            // Single inliner pass — used at O0 for minimal inlining of
+            // only the smallest methods (trivial getters/wrappers).
+            builder.Add(static args => new Inliner(args));
+            builder.Add(static args => new SimplifyControlFlow(args));
+            builder.Add(static args => new SSAConstruction(args));
+            builder.Add(static args => new SSACleanup(args));
+        }
     }
 
     /// <summary>
     /// Adds optimizations passes to convert control-flow ifs into fast predicates.
     /// </summary>
     /// <param name="builder">The transformation manager to populate.</param>
-    public static void AddConditionalOptimizations(
-        this Transformer.Builder builder)
+    public static void AddConditionalOptimizations(this Transformer.Builder builder)
     {
-        builder.Add(new IfConversion());
-        builder.Add(new SimplifyControlFlow());
+        builder.Add(static args => new IfConversion(args));
+        builder.Add(static args => new SimplifyControlFlow(args));
     }
 
     /// <summary>
@@ -118,103 +111,103 @@ static class Optimizer
     /// Converts operations working on the generic address space into operations
     /// working on specific address spaces to improve performance.
     /// </remarks>
-    public static void AddAddressSpaceOptimizations(
-        this Transformer.Builder builder) =>
-        builder.Add(new InferAddressSpaces());
+    public static void AddAddressSpaceOptimizations(this Transformer.Builder builder) =>
+        builder.Add(static args => new InferAddressSpaces(args));
+
+    /// <summary>
+    /// Strips debug assertions and IO operations when disabled in compilation
+    /// properties. Should be the first pass in the global optimization pipeline
+    /// so that subsequent passes operate on clean IR in Release mode.
+    /// </summary>
+    /// <param name="builder">The transformation manager to populate.</param>
+    public static void AddDebugSetter(this Transformer.Builder builder) =>
+        builder.Add(static args => new DebugSetter(args));
 
     /// <summary>
     /// Adds general backend optimizations.
     /// </summary>
     /// <param name="builder">The transformation manager to populate.</param>
-    /// <param name="backend">The current backend instance.</param>
-    /// <param name="context">The kernel backend context to compile.</param>
+    /// <param name="specification">The architecture specification.</param>
     public static void AddAcceleratorSpecializer(
         this Transformer.Builder builder,
-        Backend backend,
-        IRContext context)
+        ArchitectureSpecification specification)
     {
         // Perform an additional inlining pass to specialize small device-specific
         // functions that could have been introduced
-        builder.Add(new Inliner());
-        builder.Add(new UnreachableCodeElimination());
-        builder.Add(new DeadCodeElimination());
+        builder.Add(static args => new Inliner(args));
 
-        // Specialize accelerator properties, arrays and views
-        builder.Add(new LowerArrays(MemoryAddressSpace.Local));
-        builder.Add(new LowerPointerViews());
-        builder.Add(new LowerThreadIntrinsics());
-        builder.Add(
+        // Recognize lambda-based collective operations. At frontend time,
+        // lambda Method bodies may not be compiled yet (lazy compilation).
+        // Now that the Inliner has run and all bodies are available,
+        // convert custom WarpReduce/WarpScan/GroupReduce/GroupScan nodes
+        // to intrinsic variants BEFORE DCE can remove them.
+        builder.Add(static args => new RecognizeCollectiveOps(args));
+
+        builder.Add(static args => new DeadLoadElimination(args));
+        builder.Add(static args => new SimplifyControlFlow(args));
+
+        // Expand Atomic.MakeAtomic<T> call sites (CustomAtomic nodes) into
+        // explicit CAS loops before further lowering. Follow with an Inliner
+        // pass to inline the operation lambda that LowerCustomAtomic inserts
+        // as a MethodCall in the loop body. A later SSAConstruction pass
+        // (after ClosureElimination) promotes the loop's currentVar alloca
+        // into a proper phi.
+        builder.Add(static args => new LowerCustomAtomic(args));
+        builder.Add(static args => new Inliner(args));
+        builder.Add(static args => new SimplifyControlFlow(args));
+
+        // Specialize accelerator properties, arrays, and views
+        builder.Add(static args => new LowerThreadIntrinsics(args));
+        builder.Add(static args => new LowerArrays(args));
+        if (!specification.SupportsViews)
+            builder.Add(static args => new LowerViews(args));
+
+        // Validate and lower GCInit nodes (managed-object markers)
+        builder.Add(static args => new LowerGCInit(args));
+
+        // Lower collectives: warp first (expands primitive WarpReduce/WarpScan
+        // to shuffles for backends without native support), then group
+        // (expands GroupReduce/GroupScan into shared-memory + WarpReduce
+        // patterns), then warp AGAIN to lower the newly-created WarpReduce
+        // nodes produced by the group lowering step.
+        builder.Add(args =>
+            new LowerWarpCollectives(args, specification));
+        builder.Add(args =>
+            new LowerGroupCollectives(args, specification));
+        builder.Add(args =>
+            new LowerWarpCollectives(args, specification));
+
+        // Eliminate closure allocations by decomposing closure struct Globals
+        // into per-field allocas. SSA construction then promotes them to direct
+        // SSA values, ensuring no closures survive to backend code generation.
+        builder.Add(static args => new ClosureElimination(args));
+        builder.Add(static args => new SSAConstruction(args));
+        builder.Add(static args => new SSACleanup(args));
+        builder.Add(static args => new DeadLoadElimination(args));
+
+        // Normalize Metal/OpenCL kernel entry-point parameters. Flatten view struct
+        // params into per-field kernel arguments.
+        builder.Add(args =>
+            SplitViewLowering.TryCreate(specification.AcceleratorType, args));
+
+        // Thread device constants (Group.Index, Grid.Index, etc.) as explicit
+        // parameters through NoInline helper call chains. Required for Metal
+        // (MSL has no implicit thread-index builtins in helpers) and CPU
+        // (helpers create local laneIdx without the correct base offset).
+        if (specification.AcceleratorType is AcceleratorType.Metal
+            or AcceleratorType.CPU)
+        {
+            builder.Add(static args => new MetalKernelLowering(args));
+        }
+
+        builder.Add(args =>
             new AcceleratorSpecializer(
-                backend.AcceleratorType,
-                backend.CurrentWarpSize,
-                context.PointerType,
-                context.Properties.EnableAssertions,
-                context.Properties.EnableIOOperations));
+                args,
+                specification));
 
         // Perform an second inlining pass to specialize specialized functions
-        builder.Add(new Inliner());
-
-        // Apply UCE and DCE passes to avoid dead branches and fold conditionals that
-        // do not affect the actual code being executed
-        builder.Add(new UnreachableCodeElimination());
-        builder.Add(new DeadCodeElimination());
-    }
-
-    /// <summary>
-    /// Adds general backend optimizations.
-    /// </summary>
-    /// <param name="builder">The transformation manager to populate.</param>
-    /// <param name="level">The desired optimization level.</param>
-    public static void AddBackendOptimizations<TPlacementStrategy>(
-        this Transformer.Builder builder,
-        OptimizationLevel level)
-        where TPlacementStrategy : struct, CodePlacement.IPlacementStrategy
-    {
-        // Skip further optimizations in debug mode
-        if (level < OptimizationLevel.O1)
-            return;
-
-        // Use experimental address-space specializer in O2 only
-        if (level > OptimizationLevel.O1)
-        {
-            // Specialize all parameter address spaces
-            builder.Add(new InferKernelAddressSpaces(MemoryAddressSpace.Global));
-        }
-
-        // Lower all value structures that could have been created during the
-        // following passes:
-        // LowerArrays, LowerPointerViews, AcceleratorSpecializer and
-        // AddressSpaceSpecializer
-        builder.Add(new LowerStructures());
-
-        // Apply UCE and DCE phases in release mode to remove all dead values and
-        // branches that could be have been created in prior passes
-        builder.Add(new UnreachableCodeElimination());
-        builder.Add(new DeadCodeElimination());
-
-        // Converts local memory arrays into compile-time known structures
-        builder.Add(new SSAStructureConstruction());
-        builder.Add(new DeadCodeElimination());
-
-        // Infer all specialized address spaces
-        if (level > OptimizationLevel.O1)
-            builder.Add(new InferLocalAddressSpaces());
-        else
-            builder.Add(new InferAddressSpaces());
-
-        // Final cleanup phases to improve performance
-        builder.Add(new CleanupBlocks());
-        builder.Add(new SimplifyControlFlow());
-
-        if (level > OptimizationLevel.O1)
-        {
-            // Add additional code placement optimizations to reduce register
-            // pressure and improve performance
-            builder.AddLoopOptimizations();
-            builder.Add(new DeadCodeElimination());
-            builder.Add(new CodePlacement<TPlacementStrategy>(
-                CodePlacementMode.Aggressive));
-        }
+        builder.Add(static args => new SimplifyControlFlow(args));
+        builder.Add(static args => new DeadLoadElimination(args));
     }
 
     /// <summary>
@@ -223,7 +216,8 @@ static class Optimizer
     /// <param name="builder">The transformation manager to populate.</param>
     public static void AddO0Optimizations(this Transformer.Builder builder)
     {
-        builder.AddBasicOptimizations();
+        builder.AddDebugSetter();
+        builder.AddBasicOptimizations(iterativeInlining: false);
         builder.AddAddressSpaceOptimizations();
     }
 
@@ -233,9 +227,17 @@ static class Optimizer
     /// <param name="builder">The transformation manager to populate.</param>
     public static void AddO1Optimizations(this Transformer.Builder builder)
     {
-        builder.AddBasicOptimizations();
-        builder.AddStructureOptimizations();
-        builder.AddLoopOptimizations();
+        builder.AddDebugSetter();
+        builder.AddO1OptimizationsInternal();
+    }
+
+    /// <summary>
+    /// Populates the given transformation manager with O1 optimizations.
+    /// </summary>
+    /// <param name="builder">The transformation manager to populate.</param>
+    private static void AddO1OptimizationsInternal(this Transformer.Builder builder)
+    {
+        builder.AddBasicOptimizations(iterativeInlining: true);
         builder.AddConditionalOptimizations();
         builder.AddAddressSpaceOptimizations();
     }
@@ -246,17 +248,8 @@ static class Optimizer
     /// <param name="builder">The transformation manager to populate.</param>
     public static void AddO2Optimizations(this Transformer.Builder builder)
     {
-        builder.AddBasicOptimizations();
-        builder.AddStructureOptimizations();
-        builder.AddLoopOptimizations();
-
-        // Append experimental if-condition conversion pass
-        builder.Add(new IfConditionConversion());
-        // Remove all temporarily generated values that are no longer required
-        builder.Add(new DeadCodeElimination());
-
-        builder.AddConditionalOptimizations();
-        builder.AddAddressSpaceOptimizations();
+        builder.AddO1Optimizations();
+        builder.AddO1OptimizationsInternal();
     }
 
     /// <summary>
