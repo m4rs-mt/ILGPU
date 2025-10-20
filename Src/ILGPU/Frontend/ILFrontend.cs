@@ -36,10 +36,12 @@ namespace ILGPU.Frontend
         {
             public ProcessingEntry(
                 MethodBase method,
+                DisassembledMethod? disassembledMethod,
                 CompilationStackLocation compilationStackLocation,
                 CodeGenerationResult? result)
             {
                 Method = method;
+                DisassembledMethod = disassembledMethod;
                 CompilationStackLocation = compilationStackLocation;
                 Result = result;
             }
@@ -48,6 +50,11 @@ namespace ILGPU.Frontend
             /// Returns the method.
             /// </summary>
             public MethodBase Method { get; }
+
+            /// <summary>
+            /// Returns the disassembled method if exists.
+            /// </summary>
+            public DisassembledMethod? DisassembledMethod { get; }
 
             /// <summary>
             /// Returns the source location.
@@ -191,6 +198,7 @@ namespace ILGPU.Frontend
                 {
                     codeGenerationPhase.GenerateCodeInternal(
                         current.Method,
+                        current.DisassembledMethod,
                         current.IsExternalRequest,
                         current.CompilationStackLocation,
                         detectedMethods,
@@ -214,6 +222,7 @@ namespace ILGPU.Frontend
                         {
                             processing.Push(new ProcessingEntry(
                                 detectedMethod.Key,
+                                null,
                                 detectedMethod.Value,
                                 null));
                         }
@@ -243,7 +252,16 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="method">The method.</param>
         /// <returns>The generation future.</returns>
-        internal CodeGenerationResult GenerateCode(MethodBase method)
+        internal CodeGenerationResult GenerateCode(MethodBase method) =>
+            GenerateCode(method, null);
+
+        /// <summary>
+        /// Internal method used for code generation.
+        /// </summary>
+        /// <param name="method">The method.</param>
+        /// <param name="disassembledMethod">The disassembled method if exists.</param>
+        /// <returns>The generation future.</returns>
+        internal CodeGenerationResult GenerateCode(MethodBase method, DisassembledMethod? disassembledMethod)
         {
             var result = new CodeGenerationResult(method);
             lock (processingSyncObject)
@@ -251,6 +269,7 @@ namespace ILGPU.Frontend
                 driverNotifier.Reset();
                 processing.Push(new ProcessingEntry(
                     method,
+                    disassembledMethod,
                     new CompilationStackLocation(new Method.MethodLocation(method)),
                     result));
                 Monitor.Pulse(processingSyncObject);
@@ -436,6 +455,7 @@ namespace ILGPU.Frontend
         /// Performs the actual (asynchronous) code generation.
         /// </summary>
         /// <param name="method">The method.</param>
+        /// <param name="disassembledMethod"></param>
         /// <param name="isExternalRequest">
         /// True, if processing of this method was requested by a user.
         /// </param>
@@ -444,10 +464,10 @@ namespace ILGPU.Frontend
         /// <param name="generatedMethod">The resolved IR method.</param>
         internal void GenerateCodeInternal(
             MethodBase method,
+            DisassembledMethod? disassembledMethod,
             bool isExternalRequest,
             CompilationStackLocation compilationStackLocation,
-            Dictionary<MethodBase, CompilationStackLocation> detectedMethods,
-            out Method generatedMethod)
+            Dictionary<MethodBase, CompilationStackLocation> detectedMethods, out Method generatedMethod)
         {
             ILocation? location = null;
             try
@@ -460,11 +480,14 @@ namespace ILGPU.Frontend
                 SequencePointEnumerator sequencePoints =
                     DebugInformationManager?.LoadSequencePoints(method)
                     ?? SequencePointEnumerator.Empty;
-                var disassembler = new Disassembler(
-                    method,
-                    sequencePoints,
-                    compilationStackLocation);
-                var disassembledMethod = disassembler.Disassemble();
+                if (disassembledMethod is null)
+                {
+                    var disassembler = new Disassembler(
+                        method,
+                        sequencePoints,
+                        compilationStackLocation);
+                    disassembledMethod = disassembler.Disassemble();
+                }
 
                 using (var builder = generatedMethod.CreateBuilder())
                 {
@@ -504,12 +527,21 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="method">The method.</param>
         /// <returns>A completion future.</returns>
-        public CodeGenerationResult GenerateCode(MethodBase method)
+        public CodeGenerationResult GenerateCode(MethodBase method) =>
+            GenerateCode(method, null);
+
+        /// <summary>
+        /// Generates code for the given method.
+        /// </summary>
+        /// <param name="method">The method.</param>
+        /// <param name="disassembledMethod">The disassembled method corresponding to <paramref name="method"/> if exists.</param>
+        /// <returns>A completion future.</returns>
+        public CodeGenerationResult GenerateCode(MethodBase method, DisassembledMethod? disassembledMethod)
         {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
             hadWorkToDo = true;
-            return Frontend.GenerateCode(method);
+            return Frontend.GenerateCode(method, disassembledMethod);
         }
 
         /// <summary>

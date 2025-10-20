@@ -26,7 +26,7 @@ namespace ILGPU.Frontend
     {
         #region Instance
 
-        internal DisassembledMethod(
+        public DisassembledMethod(
             MethodBase method,
             ImmutableArray<ILInstruction> instructions,
             int maxStackSize)
