@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
 //                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
@@ -9,873 +9,469 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
 using ILGPUC.IR.Analyses;
+using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.MethodValues;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.ModuleValues.Construction;
+using ILGPUC.IR.PureValues;
 using ILGPUC.IR.Rewriting;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using static ILGPUC.IR.Analyses.PointerAddressSpaces;
-using static ILGPUC.IR.Transformations.InferAddressSpaces;
-using static ILGPUC.IR.Types.AddressSpaceType;
-using AnalysisResult = ILGPUC.IR.Analyses.GlobalAnalysisValueResult<
-    ILGPUC.IR.Analyses.PointerAddressSpaces.AddressSpaceInfo>;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.IR.Transformations;
 
 /// <summary>
-/// Infers address spaces by removing unnecessary address-space casts.
+/// Infers and optimizes address spaces using the PointerAddressSpaces analysis.
+/// Removes redundant address space casts and specializes phi values and method
+/// calls to use more specific address spaces when possible.
 /// </summary>
-/// <remarks>
-/// This transformation is a light-weight address-space inference pass that uses
-/// trivial conditions to remove unnecessary casts. Use
-/// <see cref="InferLocalAddressSpaces"/> or <see cref="InferKernelAddressSpaces"/>
-/// for better results.
-/// </remarks>
-sealed class InferAddressSpaces : UnorderedTransformation
+/// <param name="args">The transformation args.</param>
+sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
 {
-    #region Nested Types
+    private readonly AddressSpaceResults _results = PointerAddressSpaces.AnalyzeModule(
+        args.Module.EntryPoint,
+        PointerAddressSpaces.AnalysisFlags.IgnoreGenericAddressSpace);
 
     /// <summary>
-    /// Represents a provider for address-space information.
+    /// Specializes a type based on detailed analysis value information.
+    /// For scalars, uses unified address space. For structures, specializes
+    /// each field based on per-field analysis data.
     /// </summary>
-    internal interface IAddressSpaceProvider
-    {
-        /// <summary>
-        /// Returns the determined address space of the given value.
-        /// </summary>
-        /// <param name="value">The value to get the address space for.</param>
-        /// <returns>The determined address space.</returns>
-        MemoryAddressSpace this[Value value] { get; }
-    }
+    private static TypeValue? SpecializeType(
+        ModuleBuilder moduleBuilder,
+        TypeValue type,
+        AnalysisValue<AddressSpaceInfo> analysisValue) =>
+        moduleBuilder.TrySpecializeAddressSpace(
+            type,
+            access => analysisValue.IsScalar
+                ? analysisValue.Data.UnifiedAddressSpace
+                : analysisValue[access.Index].UnifiedAddressSpace);
 
     /// <summary>
-    /// Represents the default implementation of the interface
-    /// <see cref="IAddressSpaceProvider"/>.
+    /// Creates casts for a value to match a specialized type.
+    /// For structures, creates field-by-field casts where needed.
     /// </summary>
-    internal readonly struct DataProvider : IAddressSpaceProvider
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static Value CreateSpecializedValue(
+        BasicBlockTransform transform,
+        Location location,
+        Value sourceValue,
+        TypeValue targetType)
     {
-        /// <summary>
-        /// Returns the target address space of the underling type.
-        /// </summary>
-        public readonly MemoryAddressSpace this[Value value] =>
-            value.Type is AddressSpaceType type
-            ? type.AddressSpace
-            : MemoryAddressSpace.Generic;
-    }
-
-    /// <summary>
-    /// Represents a data wrapper that represents processing data required for the
-    /// internal rewriter implementation.
-    /// </summary>
-    /// <typeparam name="TProvider">The address-space provider type.</typeparam>
-    internal readonly struct ProcessingData<TProvider>(TProvider provider)
-        where TProvider : struct, IAddressSpaceProvider
-    {
-
-        #region Properties
-
-        /// <summary>
-        /// Return the current address-space provider to use.
-        /// </summary>
-        public TProvider Provider { get; } = provider;
-
-        /// <summary>
-        /// Returns the current processing stack reference.
-        /// </summary>
-        private Stack<Value> ToProcess { get; } = new Stack<Value>(10);
-
-        /// <summary>
-        /// Returns the determined address space of the given value.
-        /// </summary>
-        /// <param name="value">The value to check.</param>
-        /// <returns>The determined address space.</returns>
-        public readonly MemoryAddressSpace this[Value value] =>
-            Provider[value];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Pushes the given value onto the processing stack.
-        /// </summary>
-        public readonly void Push(Value value) => ToProcess.Push(value);
-
-        /// <summary>
-        /// Tries to pop a value from the current processing stack.
-        /// </summary>
-        public readonly bool TryPop([NotNullWhen(true)] out Value? value)
+        // Simple case: scalar address space cast
+        if (sourceValue.Type is AddressSpaceType &&
+            targetType is AddressSpaceType targetAddrType)
         {
-            value = default;
-            if (ToProcess.Count < 1)
-                return false;
-            value = ToProcess.Pop();
-            return true;
+            return transform.CreateAddressSpaceCast(
+                location,
+                sourceValue,
+                targetAddrType.AddressSpace);
         }
 
-        /// <summary>
-        /// Clears the current processing stack.
-        /// </summary>
-        public readonly void Clear() => ToProcess.Clear();
+        // Structure case: extract each field and cast if needed
+        if (sourceValue.Type is StructureType sourceStruct &&
+            targetType is StructureType targetStruct)
+        {
+            var builder = transform.CreateStructure(location, targetStruct);
 
-        #endregion
+            for (int i = 0; i < sourceStruct.NumFields; i++)
+            {
+                var fieldAccess = new FieldAccess(i);
+                var fieldValue = transform.CreateGetField(
+                    location,
+                    sourceValue,
+                    new FieldSpan(fieldAccess));
+                var sourceFieldType = sourceStruct[fieldAccess];
+                var targetFieldType = targetStruct[fieldAccess];
+
+                // Cast field if address space types differ
+                if (!sourceFieldType.Equals(targetFieldType) &&
+                    sourceFieldType is AddressSpaceType &&
+                    targetFieldType is AddressSpaceType targetFieldAddrType)
+                {
+                    var castedField = transform.CreateAddressSpaceCast(
+                        location,
+                        fieldValue,
+                        targetFieldAddrType.AddressSpace);
+                    builder.Add(castedField);
+                }
+                else
+                {
+                    builder.Add(fieldValue);
+                }
+            }
+
+            return builder.Seal();
+        }
+
+        return sourceValue;
     }
 
-    #endregion
-
-    #region Static
-
     /// <summary>
-    /// Creates a new <see cref="ProcessingData{TProvider}"/> instance.
+    /// Analyzes the module to determine address space usage patterns.
     /// </summary>
-    /// <typeparam name="TProvider">The provider type.</typeparam>
-    /// <param name="provider">The provider instance.</param>
-    /// <returns>The processing data instance.</returns>
-    public static ProcessingData<TProvider> CreateProcessingData<TProvider>(
-        TProvider provider)
-        where TProvider : struct, IAddressSpaceProvider =>
-        new ProcessingData<TProvider>(provider);
-
-    /// <summary>
-    /// Returns true if the given cast is redundant.
-    /// </summary>
-    /// <param name="data">The current processing data.</param>
-    /// <param name="cast">The cast to check.</param>
-    /// <returns>True, if the given cast is redundant.</returns>
-    private static bool IsRedundantCast<TProvider>(
-        in ProcessingData<TProvider> data,
-        AddressSpaceCast cast)
-        where TProvider : struct, IAddressSpaceProvider
+    protected override void OnMap(ModuleTransform transform)
     {
-        // Check for trivial situations which can occur due to compiler optimizations
-        if (cast.TargetAddressSpace == cast.SourceType.AddressSpace)
-            return true;
+        MapPureValue<AddressSpaceCast>(RewriteAddressSpaceCast);
+        MapPureValue<PointerCast>(RewritePointerCast);
 
-        // Initialize the processing loop
-        data.Clear();
-        data.Push(cast);
+        MapBasicBlockValue<Alloca>(RewriteAlloca);
+        MapBasicBlockValue<PhiValue>(RewritePhiValue);
+        MapBasicBlockValue<MethodCall>(RewriteMethodCall);
 
-        // Check all uses recursively
-        while (data.TryPop(out var value))
+        MapMethodValue<Parameter>(RewriteParameter);
+    }
+
+    /// <summary>
+    /// Rewrites address space casts by removing redundant ones.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private Value? RewriteAddressSpaceCast(
+        IPureValueRewriter rewriter,
+        AddressSpaceCast cast)
+    {
+        // Get the inferred address space for the source value
+        var sourceValue = cast.Source;
+        var inferredSpace = _results.GetUnifiedAddressSpace(sourceValue);
+
+        // If the cast target matches the inferred space and the source already has
+        // the target type, the cast is redundant
+        if (cast.TargetAddressSpace == inferredSpace &&
+            sourceValue.Type is AddressSpaceType sourceType &&
+            sourceType.AddressSpace == cast.TargetAddressSpace)
         {
-            foreach (var use in value.Uses)
+            return sourceValue;
+        }
+
+        // Check for trivially redundant casts (source and target are the same)
+        if (cast.SourceType.AddressSpace == cast.TargetAddressSpace)
+            return sourceValue;
+
+        // If the source is inferred as a specific space (Local, Shared, Global)
+        // and the cast targets Generic, the cast is unnecessary — specific-space
+        // pointers can be used in Generic contexts. This eliminates spurious
+        // Local→Generic casts on alloca-derived pointers.
+        if (cast.TargetAddressSpace == MemoryAddressSpace.Generic
+            && inferredSpace != MemoryAddressSpace.Generic)
+        {
+            return sourceValue;
+        }
+
+        return cast;
+    }
+
+    /// <summary>
+    /// Rewrites pointer casts to propagate the source's address space.
+    /// PointerCast changes element type but should preserve the source's
+    /// actual address space (e.g., Local from alloca). If the result type
+    /// has Generic but the source is Local, rebuild with Local.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private Value? RewritePointerCast(
+        IPureValueRewriter rewriter,
+        PointerCast cast)
+    {
+        var sourceSpace = _results.GetUnifiedAddressSpace(cast.Source);
+        var resultPtr = cast.Type as PointerType;
+        if (resultPtr is null)
+            return cast;
+
+        // If source has a specific space and result uses Generic, rebuild
+        if (sourceSpace != MemoryAddressSpace.Generic
+            && resultPtr.AddressSpace != sourceSpace)
+        {
+            return rewriter.Builder.CreatePointerCast(
+                cast.Location,
+                rewriter.Rewrite(cast.Source),
+                resultPtr.ElementType);
+        }
+
+        return cast;
+    }
+
+    /// <summary>
+    /// Rewrites alloca values to use more specific address spaces when the
+    /// values stored into them have been specialized. Examines Store uses of
+    /// the alloca and merges their analysis results to determine the best
+    /// element type.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private Alloca RewriteAlloca(BasicBlockTransform transform, Alloca alloca)
+    {
+        var allocType = alloca.AllocType;
+
+        // Only specialize types that have address space dependencies
+        if (!allocType.HasFlags(TypeFlags.AddressSpaceDependent))
+            return alloca;
+
+        // Determine address space from values stored into this alloca
+        AnalysisValue<AddressSpaceInfo>? mergedAnalysis = null;
+        foreach (var use in alloca.Uses)
+        {
+            if (use.Target is Store store && store.Target == alloca)
             {
-                // If we cannot remove this cast, return false
-                if (!IsRedundantCastUse(data, use, cast.TargetAddressSpace))
-                    return false;
+                var valueAnalysis = _results.GetAnalysisValue(store.Value);
+                mergedAnalysis = mergedAnalysis == null
+                    ? valueAnalysis
+                    : Merge(mergedAnalysis.Value, valueAnalysis);
             }
         }
 
-        // All uses are compatible
-        return true;
+        if (mergedAnalysis == null)
+            return alloca;
+
+        // Try to specialize the alloca's element type
+        var newAllocType = transform.Rewrite(allocType);
+        var specializedType = SpecializeType(
+            transform.ModuleBuilder,
+            newAllocType,
+            mergedAnalysis.Value);
+
+        if (specializedType == null)
+            return alloca;
+
+        // Create new alloca with specialized type
+        if (alloca.IsStaticAllocation(out var arrayLength))
+            return transform.CreateAlloca(alloca.Location, specializedType, arrayLength)
+                ?? alloca;
+
+        return transform.CreateAlloca(
+            alloca.Location,
+            specializedType,
+            alloca.ArrayLengthValue)
+            ?? alloca;
     }
 
     /// <summary>
-    /// Returns true if the parent cast is redundant.
+    /// Merges two analysis values by combining their address space information.
     /// </summary>
-    /// <param name="data">The current processing data.</param>
-    /// <param name="targetSpace">The target address space.</param>
-    /// <param name="use">The current use to check.</param>
-    /// <returns>True, if the parent cast is redundant.</returns>
-    private static bool IsRedundantCastUse<TProvider>(
-        in ProcessingData<TProvider> data,
-        Use use,
-        MemoryAddressSpace targetSpace)
-        where TProvider : struct, IAddressSpaceProvider
+    private static AnalysisValue<AddressSpaceInfo> Merge(
+        AnalysisValue<AddressSpaceInfo> first,
+        AnalysisValue<AddressSpaceInfo> second)
     {
-        var value = use.Resolve();
-        switch (value)
-        {
-            case MethodCall call:
-                // We cannot remove casts to other address spaces in case of a
-                // method invocation if the address spaces do not match
-                if (!call.Target.HasImplementation)
-                    break;
-                var targetParam = call.Target.Parameters[use.Index];
-                if (targetParam.Type is AddressSpaceType &&
-                    data[targetParam] == targetSpace)
-                {
-                    return false;
-                }
-                break;
-            case PhiValue _:
-            case Predicate _:
-            case ReturnTerminator _:
-                // We are not allowed to remove casts in the case of phi values,
-                // predicates and returns
-                if (value.Type is AddressSpaceType && data[value] == targetSpace)
-                    return false;
-                break;
-            case Store _:
-                // We are not allowed to remove casts in the case of alloca
-                // stores
-                if (use.Index != 0)
-                    return false;
-                break;
-            case StructureValue _:
-            case SetField _:
-                // We are not allowed to remove field or array stores to tuples
-                // with different field types
-                return false;
-            case NewView _:
-            case SubViewValue _:
-            case BaseAddressSpaceCast _:
-            case BaseAlignOperationValue _:
-            case LoadElementAddress _:
-            case LoadFieldAddress _:
-                data.Push(value);
-                break;
-        }
-        return true;
+        if (first.IsScalar)
+            return new AnalysisValue<AddressSpaceInfo>(
+                AddressSpaceInfo.Merge(first.Data, second.Data));
+
+        var fieldData = new AddressSpaceInfo[first.NumFields];
+        for (int i = 0; i < first.NumFields; i++)
+            fieldData[i] = AddressSpaceInfo.Merge(first[i], second[i]);
+
+        return new AnalysisValue<AddressSpaceInfo>(
+            AddressSpaceInfo.Merge(first.Data, second.Data),
+            fieldData);
     }
 
     /// <summary>
-    /// Rewrites address-space casts.
+    /// Rewrites phi values to use more specific address spaces when possible.
+    /// Handles both scalar address space types and structure types with per-field
+    /// address space specialization.
     /// </summary>
-    private static void Rewrite<TProvider>(
-        RewriterContext context,
-        ProcessingData<TProvider> data,
-        AddressSpaceCast cast)
-        where TProvider : struct, IAddressSpaceProvider
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private PhiValue RewritePhiValue(BasicBlockTransform transform, PhiValue phiValue)
     {
-        if (!IsRedundantCast(data, cast))
-            return;
-
-        // We can safely remove this cast without introducing a new one
-        context.ReplaceAndRemove(cast, cast.Value);
-    }
-
-    /// <summary>
-    /// Returns true if the given value has an address-space type and can be updated
-    /// using analysis information.
-    /// </summary>
-    private static bool CanRewrite<TValue, TProvider>(
-        ProcessingData<TProvider> data,
-        TValue value)
-        where TValue : Value
-        where TProvider : struct, IAddressSpaceProvider =>
-        value.Type is AddressSpaceType type &&
-        type.AddressSpace != data[value];
-
-    /// <summary>
-    /// Rewrites phi values.
-    /// </summary>
-    private static void Rewrite<TProvider>(
-        RewriterContext context,
-        ProcessingData<TProvider> data,
-        PhiValue phiValue)
-        where TProvider : struct, IAddressSpaceProvider
-    {
-        var builder = context.Builder;
         var location = phiValue.Location;
-        var targetAddressSpace = data[phiValue];
 
-        // Create a new target type
-        var targetType = builder.SpecializeAddressSpaceType(
-            phiValue.Type.As<AddressSpaceType>(location),
-            targetAddressSpace);
-        var phiBuilder = builder.CreatePhi(location, targetType, phiValue.Count);
+        // Get detailed analysis information for this phi value (including per-field data)
+        var analysisResult = _results.GetAnalysisValue(phiValue);
 
-        // Convert all phi values
-        for (int i = 0, e = phiValue.Count; i < e; ++i)
+        // Try to specialize the type based on analysis results
+        var newPhiType = transform.Rewrite(phiValue.Type);
+        var specializedType = SpecializeType(
+            transform.ModuleBuilder,
+            newPhiType,
+            analysisResult);
+        if (specializedType == null)
+            return phiValue; // No specialization needed
+
+        // Create new phi with specialized type
+        var phiBuilder = transform.CreatePhi(
+            location,
+            specializedType,
+            phiValue.NumArguments);
+
+        // Add all arguments with appropriate casts
+        for (int i = 0; i < phiValue.NumArguments; i++)
         {
-            var argument = builder.CreateAddressSpaceCast(
+            var node = phiValue.Arguments[i];
+            // Resolve source block to current-gen so the converter-created
+            // phi doesn't retain old-gen source references (PhiRewriter.Finish
+            // skips argument wiring for converter-replaced phis).
+            var source = transform.RewriteAs<BasicBlock>(phiValue.Sources[i]);
+
+            // Create specialized value (with casts) to match the new type
+            var castedNode = CreateSpecializedValue(
+                transform,
                 location,
-                phiValue.Nodes[i],
-                targetAddressSpace);
-            phiBuilder.AddArgument(phiValue.Sources[i], argument);
-        }
-        context.ReplaceAndRemove(phiValue, phiBuilder.Seal());
-    }
+                node,
+                specializedType);
 
-    /// <summary>
-    /// Rewrites predicates.
-    /// </summary>
-    private static void Rewrite<TProvider>(
-        RewriterContext context,
-        ProcessingData<TProvider> data,
-        Predicate predicate)
-        where TProvider : struct, IAddressSpaceProvider
-    {
-        var builder = context.Builder;
-        var location = predicate.Location;
-        var targetAddressSpace = data[predicate];
-
-        // Convert the true and false values
-        var trueValue = builder.CreateAddressSpaceCast(
-            location,
-            predicate.TrueValue,
-            targetAddressSpace);
-        var falseValue = builder.CreateAddressSpaceCast(
-            location,
-            predicate.FalseValue,
-            targetAddressSpace);
-
-        // Build the converted predicate and replace the old one
-        var newPredicate = builder.CreatePredicate(
-            location,
-            predicate.Condition,
-            trueValue,
-            falseValue);
-        context.ReplaceAndRemove(predicate, newPredicate);
-    }
-
-    /// <summary>
-    /// Invalidates the type of an affected value.
-    /// </summary>
-    private static void InvalidateType<TValue, TProvider>(
-        RewriterContext context,
-        ProcessingData<TProvider> provider,
-        TValue value)
-        where TValue : Value
-        where TProvider : struct, IAddressSpaceProvider =>
-        value.InvalidateType();
-
-    #endregion
-
-    #region Rewriter
-
-    /// <summary>
-    /// The internal rewriter.
-    /// </summary>
-    private static readonly Rewriter<ProcessingData<DataProvider>> Rewriter =
-        new Rewriter<ProcessingData<DataProvider>>();
-
-    /// <summary>
-    /// Registers all conversion patterns.
-    /// </summary>
-    static InferAddressSpaces()
-    {
-        AddRewriters(Rewriter);
-    }
-
-    /// <summary>
-    /// Adds all internal rewriters to the given rewriter instance.
-    /// </summary>
-    /// <typeparam name="TProvider">The provider type.</typeparam>
-    /// <param name="rewriter">The target rewriter instance.</param>
-    public static void AddRewriters<TProvider>(
-        Rewriter<ProcessingData<TProvider>> rewriter)
-        where TProvider : struct, IAddressSpaceProvider
-    {
-        // Rewrites address space casts that are not required
-        rewriter.Add<AddressSpaceCast>(Rewrite);
-        rewriter.Add<PhiValue>(CanRewrite, Rewrite);
-        rewriter.Add<Predicate>(CanRewrite, Rewrite);
-
-        // Invalidate types of affected values
-        rewriter.Add<PointerCast>(InvalidateType);
-        rewriter.Add<ViewCast>(InvalidateType);
-        rewriter.Add<AlignTo>(InvalidateType);
-        rewriter.Add<AsAligned>(InvalidateType);
-        rewriter.Add<LoadFieldAddress>(InvalidateType);
-        rewriter.Add<LoadElementAddress>(InvalidateType);
-        rewriter.Add<ReturnTerminator>(InvalidateType);
-    }
-
-    #endregion
-
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new address-space inference pass.
-    /// </summary>
-    public InferAddressSpaces() { }
-
-    #endregion
-
-    #region Methods
-
-    /// <summary>
-    /// Applies the address-space inference transformation.
-    /// </summary>
-    protected override void PerformTransformation(
-        IRContext context,
-        Method.Builder builder) =>
-        Rewriter.Rewrite(
-            builder.SourceBlocks,
-            builder,
-            CreateProcessingData(new DataProvider()));
-
-    #endregion
-}
-
-/// <summary>
-/// Infers method-local address spaces by removing unnecessary address-space casts.
-/// </summary>
-/// <remarks>
-/// This transformation uses a method-local program analysis to remove address-space
-/// casts that are no longer required.
-/// </remarks>
-sealed class InferLocalAddressSpaces : UnorderedTransformation
-{
-    #region Nested Types
-
-    /// <summary>
-    /// A data provider based on local program analysis information.
-    /// </summary>
-    private readonly struct LocalDataProvider : IAddressSpaceProvider
-    {
-        internal LocalDataProvider(in AnalysisValueMapping<AddressSpaceInfo> mapping)
-        {
-            Mapping = mapping;
+            phiBuilder.AddArgument(source, castedNode);
         }
 
-        /// <summary>
-        /// Returns the local information of the <see cref="PointerAddressSpaces"/>
-        /// analysis.
-        /// </summary>
-        private AnalysisValueMapping<AddressSpaceInfo> Mapping { get; }
-
-        /// <summary>
-        /// Returns the unified address space of the given value.
-        /// </summary>
-        public readonly MemoryAddressSpace this[Value value] =>
-            Mapping.TryGetValue(value, out var data)
-            ? data.Data.UnifiedAddressSpace
-            : new DataProvider()[value];
-    }
-
-    #endregion
-
-    #region Rewriter
-
-    /// <summary>
-    /// The internal rewriter.
-    /// </summary>
-    private static readonly Rewriter<ProcessingData<LocalDataProvider>> Rewriter = new();
-
-    /// <summary>
-    /// Registers all conversion patterns.
-    /// </summary>
-    static InferLocalAddressSpaces()
-    {
-        AddRewriters(Rewriter);
-    }
-
-    #endregion
-
-    #region Methods
-
-    /// <summary>
-    /// Applies the address-space inference transformation.
-    /// </summary>
-    protected override void PerformTransformation(
-        IRContext context,
-        Method.Builder builder)
-    {
-        var analysis = Create(AnalysisFlags.IgnoreGenericAddressSpace);
-        var (_, result) = analysis.AnalyzeMethod(
-            builder.Method,
-            new AutomaticParameterValueContext());
-        Rewriter.Rewrite(
-            builder.SourceBlocks,
-            builder,
-            CreateProcessingData(new LocalDataProvider(result)));
-    }
-
-    #endregion
-}
-
-/// <summary>
-/// Infers kernel address spaces by specializing the address spaces of all parameters
-/// or keeping them and inserting the appropriate address space casts.
-/// </summary>
-/// <remarks>
-/// CAUTION: This program transformation adds additional address-space casts into
-/// the <see cref="MemoryAddressSpace.Generic"/> address space to have a valid IR
-/// program in the end. The additionally introduced casts are intended to be removed
-/// using <see cref="InferLocalAddressSpaces"/> afterwards.
-/// </remarks>
-/// <param name="kernelAddressSpace">
-/// The root address space of all kernel functions.
-/// </param>
-sealed class InferKernelAddressSpaces(MemoryAddressSpace kernelAddressSpace) :
-    OrderedTransformation<InferKernelAddressSpaces.MethodDataProvider>
-{
-    #region Nested Types
-
-    /// <summary>
-    /// Represents an intermediate value for processing.
-    /// </summary>
-    /// <param name="result">The analysis result.</param>
-    internal sealed class MethodDataProvider(in AnalysisResult result)
-    {
-        #region Static
-
-        /// <summary>
-        /// Creates a new provider instance.
-        /// </summary>
-        /// <param name="methods">The collection of methods.</param>
-        /// <param name="kernelAddressSpace">The target address space.</param>
-        public static MethodDataProvider? CreateProvider(
-            in MethodCollection methods,
-            MemoryAddressSpace kernelAddressSpace)
-        {
-            // Get the main entry point method
-            foreach (var method in methods)
-            {
-                if (method.HasFlags(MethodFlags.EntryPoint))
-                {
-                    var analysis = Create(AnalysisFlags.IgnoreGenericAddressSpace);
-                    var result = analysis.AnalyzeGlobalMethod(
-                        method,
-                        new ConstParameterValueContext(kernelAddressSpace));
-                    return new MethodDataProvider(result);
-                }
-            }
-
-            // We could not find any entry point
-            return default;
-        }
-
-        #endregion
-
-        #region Instance
-
-        private readonly Dictionary<Parameter, Parameter> oldParameters = [];
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated program analysis result.
-        /// </summary>
-        private AnalysisResult Result { get; } = result;
-
-        /// <summary>
-        /// Returns the return type and the original parameters of the given method.
-        /// </summary>
-        public MemoryAddressSpace this[Method method] =>
-            Result.TryGetReturnData(method, out var data)
-            ? data.Data.UnifiedAddressSpace
-            : MemoryAddressSpace.Generic;
-
-        /// <summary>
-        /// Returns the unified address space of the given value.
-        /// </summary>
-        public MemoryAddressSpace this[Value value] =>
-            Result.TryGetData(value, out var data)
-            ? data.Data.UnifiedAddressSpace
-            : new DataProvider()[value];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns the original target address space for the updated parameter.
-        /// </summary>
-        /// <param name="parameter">The updated parameter reference.</param>
-        public MemoryAddressSpace GetTargetAddressSpace(
-            Parameter parameter)
-        {
-            if (oldParameters.TryGetValue(parameter, out var oldParameter))
-                return this[oldParameter];
-
-            // If we have not seen this parameter, it can be a previously unknown
-            // parameter of an external function
-            parameter.Assert(parameter.Method.HasFlags(MethodFlags.External));
-            return MemoryAddressSpace.Generic;
-        }
-
-        /// <summary>
-        /// Maps the <paramref name="targetParam"/> to the
-        /// <paramref name="parameter"/>.
-        /// </summary>
-        /// <param name="parameter">The source parameter.</param>
-        /// <param name="targetParam">The new target parameter.</param>
-        public void Map(Parameter parameter, Parameter targetParam) =>
-            oldParameters.Add(targetParam, parameter);
-
-        #endregion
-    }
-
-    #endregion
-
-    #region Static
-
-    /// <summary>
-    /// Converts the given value into the specified target address space.
-    /// </summary>
-    /// <param name="context">The current rewriter context.</param>
-    /// <param name="value">The current value to convert.</param>
-    /// <param name="targetAddressSpace">
-    /// The target address space to convert into.
-    /// </param>
-    /// <returns>The converted value in the correct address space.</returns>
-    private static Value ConvertToAddressSpace(
-        in RewriterContext context,
-        Value value,
-        MemoryAddressSpace targetAddressSpace)
-    {
-        // Check if the current value is affected by the conversion
-        var type = value.Type;
-        if (!type.HasFlags(TypeFlags.AddressSpaceDependent))
-            return value;
-
-        var location = value.Location;
-        // If this is a simple scalar value, try to convert it
-        if (type is AddressSpaceType)
-        {
-            return context.Builder.CreateAddressSpaceCast(
-                location,
-                value,
-                targetAddressSpace);
-        }
-        else
-        {
-            // We need to create a wrapper structure that has the correct address
-            // space information
-            var typeConverter = GetAddressSpaceConverter(targetAddressSpace);
-            var targetType = typeConverter.ConvertType(context.Builder, value.Type);
-            return type == targetType
-                ? value
-                : context.AssembleStructure(
-                    (targetType as StructureType).AsNotNull(),
-                    value,
-                    (ctx, val, access) =>
-                    {
-                        // Resolve the original source value
-                        var fieldValue = ctx.Builder.CreateGetField(
-                            val.Location,
-                            val,
-                            access);
-
-                        // Convert it into the target address space (if possible)
-                        return ConvertToAddressSpace(
-                            ctx,
-                            fieldValue,
-                            targetAddressSpace);
-                    });
-        }
+        return phiBuilder.Seal();
     }
 
     /// <summary>
-    /// Specializes an address-space dependent parameter.
+    /// Checks whether all types in the type graph of <paramref name="type"/>
+    /// belong to the expected generation. Types from incompatible generations
+    /// cannot be safely rewritten.
     /// </summary>
-    /// <param name="provider">The intermediate value.</param>
-    /// <param name="methodBuilder">The target method builder.</param>
-    /// <param name="builder">The entry block builder.</param>
-    /// <param name="parameter">The source parameter.</param>
-    /// <returns>True, if the given parameter was specialized.</returns>
-    private static bool SpecializeParameterAddressSpace(
-        MethodDataProvider provider,
-        Method.Builder methodBuilder,
-        BasicBlock.Builder builder,
-        Parameter parameter)
+    /// <summary>
+    /// Checks whether all types in the type graph of <paramref name="type"/>
+    /// belong to the expected generation. Types from incompatible generations
+    /// cannot be safely rewritten.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static bool CanRewriteParameterType(TypeValue? type, Generation expected)
     {
-        // Determine the target address space
-        var targetAddressSpace = provider[parameter];
-        var converted = GetAddressSpaceConverter(targetAddressSpace).
-            ConvertType(builder, parameter.Type);
-
-        // Append a new parameter using the converted target type
-        var targetParam = methodBuilder.AddParameter(converted, parameter.Name);
-
-        // Remember the parameter association
-        provider.Map(parameter, targetParam);
-
-        // If the type is the same, skip further address space casts
-        if (converted == parameter.Type)
-        {
-            parameter.Replace(targetParam);
+        if (type is null || type.Count == 0 && type is PointerType or ViewType)
             return false;
-        }
-
-        // We have to convert the updated parameter address spaces into the generic
-        // address space at this point, since the remainder of this program still
-        // assumes operations on the generic address space
-        var convertedValue = ConvertToAddressSpace(
-            RewriterContext.FromBuilder(builder),
-            targetParam,
-            MemoryAddressSpace.Generic);
-
-        // Replace the parameter with the converted value
-        parameter.Replace(convertedValue);
-        return true;
-    }
-
-    #endregion
-
-    #region Rewriter Methods
-
-    /// <summary>
-    /// Checks if the given call has address-space dependencies.
-    /// </summary>
-    private static bool CanRewrite(
-        MethodDataProvider data,
-        MethodCall call)
-    {
-        foreach (Value argument in call)
+        if (type.Generation != expected)
+            return false;
+        return type switch
         {
-            if (argument.Type.HasFlags(TypeFlags.AddressSpaceDependent))
-                return true;
-        }
-        var returnType = call.Target.ReturnType;
-        return returnType.HasFlags(TypeFlags.AddressSpaceDependent);
-    }
+            PointerType pt => CanRewriteParameterType(pt.ElementType, expected),
+            ViewType vt => CanRewriteParameterType(vt.ElementType, expected),
+            ArrayType at => CanRewriteParameterType(at.ElementType, expected),
+            StructureType st => CanRewriteStructure(st, expected),
+            _ => true
+        };
 
-    /// <summary>
-    /// Rewrites method calls that need wrapped address-space casts.
-    /// </summary>
-    private static void Rewrite(
-        RewriterContext context,
-        MethodDataProvider data,
-        MethodCall call)
-    {
-        // Rebuild the call
-        var target = call.Target;
-        var callBuilder = context.Builder.CreateCall(call.Location, call.Target);
-        for (int i = 0, e = call.Count; i < e; ++i)
+        static bool CanRewriteStructure(StructureType st, Generation gen)
         {
-            // Check the target address space of the (potentially) updated parameter
-            var parameter = target.Parameters[i];
-            var parameterTargetAddressSpace = data.GetTargetAddressSpace(parameter);
-
-            // Convert the argument (if possible) into the target address space
-            callBuilder.Add(ConvertToAddressSpace(
-                context,
-                call[i],
-                parameterTargetAddressSpace));
+            foreach (var field in st.DirectFields)
+            {
+                if (!CanRewriteParameterType(field, gen))
+                    return false;
+            }
+            return true;
         }
+    }
 
-        // Create new call node
-        Value newCall = callBuilder.Seal();
-        context.MarkConverted(newCall);
+    /// <summary>
+    /// Rewrites parameter values to use more specific address spaces when possible.
+    /// Handles both scalar address space types and structure types with per-field
+    /// address space specialization.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private Parameter RewriteParameter(MethodTransform transform, Parameter parameter)
+    {
+        // Skip when the transform context is unavailable (should not happen
+        // but guards against null propagation from the framework)
+        if (transform?.ModuleTransform?.OldModule is not { } oldModule)
+            return parameter;
 
-        // Check the return type for a potential conversion
-        if (newCall.Type.HasFlags(TypeFlags.AddressSpaceDependent))
+        // Skip parameters whose type graph cannot be safely rewritten
+        if (!CanRewriteParameterType(parameter.Type, oldModule.Generation))
+            return parameter;
+
+        // Get detailed analysis information for this parameter (including per-field data)
+        var analysisResult = _results.GetAnalysisValue(parameter);
+
+        // Try to specialize the type based on analysis results
+        var paramType = transform.Rewrite(parameter.Type);
+        var specializedType = SpecializeType(
+            transform.ModuleBuilder,
+            paramType,
+            analysisResult);
+        if (specializedType is null)
+            return parameter; // No specialization needed
+
+        // Find the constructor-created parameter for this old parameter
+        // and replace it in-place to preserve parameter ordering. When the
+        // MethodTransform constructor pre-creates parameters, CreateParameter
+        // appends them in order. If we use CreateParameter here, the
+        // replacement parameter would be appended at the END, and the
+        // original (now-replaced) constructor parameter gets filtered at
+        // seal time, causing parameters to be reordered — which breaks
+        // callers whose MethodCall arguments are still in the original order.
+        if (transform.TryGetReplaced(parameter, out var existingValue)
+            && existingValue is Parameter existingParam)
         {
-            // If the return type of the callee changed, we have to emit an address
-            // space cast to ensure a valid IR
-            newCall = ConvertToAddressSpace(
-                context,
-                newCall,
-                MemoryAddressSpace.Generic);
+            var newParameter = transform.ReplaceParameter(
+                existingParam,
+                specializedType,
+                parameter.Name);
+            return newParameter;
         }
 
-        // Replace and remove the current call
-        context.ReplaceAndRemove(call, newCall);
+        // Fallback: create new parameter (e.g. parameter wasn't pre-created)
+        return transform.CreateParameter(specializedType, parameter.Name);
     }
 
     /// <summary>
-    /// Checks if the given return has address-space dependencies.
+    /// Rewrites method calls to add casts when calling methods where all call sites
+    /// consistently use specific address spaces. Handles both scalar address space types
+    /// and structure types with per-field address space specialization.
     /// </summary>
-    private static bool CanRewrite(
-        MethodDataProvider data,
-        ReturnTerminator terminator)
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private MethodCall RewriteMethodCall(BasicBlockTransform transform, MethodCall call)
     {
-        var returnType = terminator.Method.ReturnType;
-        return returnType.HasFlags(TypeFlags.AddressSpaceDependent);
-    }
+        // External methods have no analyzed parameters — skip rewriting
+        if (call.Target.IsExternal)
+            return call;
 
-    /// <summary>
-    /// Rewrites return terminators that need a wrapped address-space cast.
-    /// </summary>
-    private static void Rewrite(
-        RewriterContext context,
-        MethodDataProvider data,
-        ReturnTerminator terminator)
-    {
-        var targetAddressSpace = data[terminator.Method];
-        var newReturnValue = ConvertToAddressSpace(
-            context,
-            terminator.ReturnValue,
-            targetAddressSpace);
+        var location = call.Location;
+        var callBuilder = transform.CreateCall(location, call.Target);
+        bool anyChanges = false;
 
-        var newReturn = context.Builder.CreateReturn(
-            newReturnValue.Location,
-            newReturnValue);
-        context.MarkConverted(newReturn);
-    }
-
-    #endregion
-
-    #region Rewriter
-
-    /// <summary>
-    /// The internal rewriter.
-    /// </summary>
-    private static readonly Rewriter<MethodDataProvider> Rewriter = new();
-
-    /// <summary>
-    /// Registers all conversion patterns.
-    /// </summary>
-    static InferKernelAddressSpaces()
-    {
-        Rewriter.Add<MethodCall>(CanRewrite, Rewrite);
-        Rewriter.Add<ReturnTerminator>(CanRewrite, Rewrite);
-    }
-
-    #endregion
-
-    #region Methods
-
-    /// <summary>
-    /// Creates a new <see cref="MethodDataProvider"/> instance based on the main
-    /// entry-point method.
-    /// </summary>
-    protected override MethodDataProvider? CreateIntermediate(
-        in MethodCollection methods) =>
-        MethodDataProvider.CreateProvider(methods, kernelAddressSpace);
-
-    /// <summary>
-    /// Applies the address-space inference transformation.
-    /// </summary>
-    protected override void PerformTransformation(
-        IRContext context,
-        Method.Builder builder,
-        in MethodDataProvider? intermediate,
-        Landscape landscape,
-        Landscape.Entry current)
-    {
-        if (intermediate is null)
-            return;
-
-        // Initialize the main converted and the entry block builder
-        var entryBuilder = builder.EntryBlockBuilder;
-        entryBuilder.SetupInsertPositionToStart();
-
-        // Specialize all parameters
-        bool applied = false;
-        for (int i = 0, e = builder.NumParams; i < e; ++i)
+        // Add arguments, potentially with casts to match parameter types.
+        // Note: call.Count includes the target method at index 0 (Values[0] = target,
+        // Values[1..] = arguments). Use call.Arguments to iterate only arguments.
+        for (int i = 0; i < call.Arguments.Length; ++i)
         {
-            // Specialize the address space of the current parameter
-            var parameter = builder[i];
-            applied |= SpecializeParameterAddressSpace(
-                intermediate,
-                builder,
-                entryBuilder,
-                parameter);
+            var arg = call.Arguments[i];
+            var param = call.Target.Parameters[i];
+
+            // Get detailed analysis information for the argument
+            var argAnalysis = _results.GetAnalysisValue(arg);
+            var paramAnalysis = _results.GetAnalysisValue(param);
+
+            // Check if we need to cast the argument to match the parameter's inferred
+            // type
+            var argType = transform.Rewrite(arg.Type);
+            var argSpecializedType = SpecializeType(
+                transform.ModuleBuilder,
+                argType,
+                argAnalysis);
+            var paramType = transform.Rewrite(param.Type);
+            var paramSpecializedType = SpecializeType(
+                transform.ModuleBuilder,
+                paramType,
+                paramAnalysis);
+
+            // If both types can be specialized and they differ, we need to cast
+            if (argSpecializedType != null && paramSpecializedType != null &&
+                !argSpecializedType.Equals(paramSpecializedType))
+            {
+                // Cast argument to match the parameter's specialized type
+                var castedArg = CreateSpecializedValue(
+                    transform,
+                    location,
+                    arg,
+                    paramSpecializedType);
+                callBuilder.Add(castedArg);
+                anyChanges = true;
+            }
+            // If only argument can be specialized but parameter type matches
+            else if (argSpecializedType != null && param.Type.Equals(argSpecializedType))
+            {
+                // Cast argument to its specialized form
+                var castedArg = CreateSpecializedValue(
+                    transform,
+                    location,
+                    arg,
+                    argSpecializedType);
+                callBuilder.Add(castedArg);
+                anyChanges = true;
+            }
+            else
+            {
+                callBuilder.Add(arg);
+            }
         }
 
-        // Specialize the return type to use the (potentially) new address space
-        if (!builder.Method.IsVoid)
-        {
-            var targetAddressSpace = intermediate[builder.Method];
-            builder.UpdateReturnType(
-                GetAddressSpaceConverter(targetAddressSpace));
-            applied = true;
-        }
-
-        // Adjust all method calls
-        if (!applied)
-            return;
-
-        Rewriter.Rewrite(
-            builder.SourceBlocks,
-            builder,
-            intermediate);
+        return anyChanges ? callBuilder.Seal() : call;
     }
-
-    /// <summary>
-    /// Performs no operation.
-    /// </summary>
-    protected override void FinishProcessing(in MethodDataProvider? intermediate) { }
-
-    #endregion
 }

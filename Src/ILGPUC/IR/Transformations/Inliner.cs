@@ -10,17 +10,16 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.Frontend;
-using ILGPUC.IR.Analyses;
-using ILGPUC.IR.Values;
-using System.Collections.Generic;
-using System.Reflection;
+using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.ModuleValues;
+using MethodImplAttributes = System.Reflection.MethodImplAttributes;
 
 namespace ILGPUC.IR.Transformations;
 
 /// <summary>
 /// Represents a function inliner.
 /// </summary>
-sealed class Inliner : OrderedTransformation
+sealed class Inliner(TransformationArgs args) : Transformation(args)
 {
     /// <summary>
     /// The maximum number of IL instructions to inline.
@@ -42,20 +41,19 @@ sealed class Inliner : OrderedTransformation
         if (!method.HasImplementation)
             return;
 
-        if (method.HasSource)
+        if (method.Source is not null)
         {
-            var source = method.Source;
-            if ((source.MethodImplementationFlags &
+            if ((method.Source.MethodImplementationFlags &
                 MethodImplAttributes.NoInlining) ==
                 MethodImplAttributes.NoInlining)
             {
                 return;
             }
 
-            if ((source.MethodImplementationFlags &
+            if ((method.Source.MethodImplementationFlags &
                 MethodImplAttributes.AggressiveInlining) ==
                 MethodImplAttributes.AggressiveInlining ||
-                source.Module.Name == nameof(ILGPU))
+                method.Source.Module.Name == nameof(ILGPU))
             {
                 method.AddFlags(MethodFlags.Inline);
             }
@@ -72,66 +70,88 @@ sealed class Inliner : OrderedTransformation
     /// <summary>
     /// Tries to inline method calls.
     /// </summary>
-    /// <param name="builder">The current method builder.</param>
-    /// <param name="currentBlock">The current block (may be modified).</param>
-    /// <returns>True, in case of an inlined call.</returns>
-    private static bool InlineCalls(
-        Method.Builder builder,
-        ref BasicBlock currentBlock)
+    protected override void OnTransform(MethodTransform transform)
     {
-        foreach (var valueEntry in currentBlock)
+        base.OnTransform(transform);
+
+        transform.OldMethod.ForEachValue<MethodCall>(call =>
         {
-            if (valueEntry.Value is not MethodCall call)
-                continue;
+            // Skip methods whose blocks haven't been loaded (e.g.,
+            // external method references that couldn't be resolved).
+            // Check Count > 0 before accessing EntryBlock to avoid
+            // an assertion failure on methods with empty value lists.
+            if (call.Target.IsInline
+                && call.Target.Count > 0
+                && call.Target.EntryBlock is not null)
+                transform.SpecializeMethodCall(call);
+        });
+    }
+}
 
-            if (call.Target.HasFlags(MethodFlags.Inline))
-            {
-                var blockBuilder = builder[currentBlock];
-                var tempBlock = blockBuilder.SpecializeCall(call);
+/// <summary>
+/// Runs the inliner to a fixed point, applying Inliner + SimplifyControlFlow +
+/// SSAConstruction + SSACleanup in a loop until no inline-able method calls remain.
+/// This handles arbitrary call chain depths in a single optimizer slot rather than
+/// requiring one inliner pass per call depth level.
+/// </summary>
+/// <param name="args">The transformation args.</param>
+sealed class IterativeInliner(TransformationArgs args) : Transformation(args)
+{
+    /// <summary>
+    /// Safety cap to prevent infinite iteration in pathological cases
+    /// (e.g., recursive methods that are marked inline).
+    /// </summary>
+    private const int MaxIterations = 32;
 
-                // We can continue our search in the temp block
-                currentBlock = tempBlock.BasicBlock;
-                return true;
-            }
+    /// <summary>
+    /// Applies inliner + cleanup passes in a loop until no inline-able calls remain.
+    /// </summary>
+    protected override Module TransformInternal(Module module)
+    {
+        var current = module;
+
+        for (int i = 0; i < MaxIterations; ++i)
+        {
+            if (!HasInlineableCalls(current))
+                break;
+
+            // SimplifyControlFlow is intentionally omitted from the
+            // inner loop. Running it between Inliner and SSA causes
+            // RebuildAndMemoize to reconstruct alloca→addrspacecast→load
+            // chains with stale operands, leading to SSA promoting
+            // allocas with initial-value (zero) reads instead of the
+            // computed values. The outer pipeline's SimplifyControlFlow
+            // handles block merging after all iterations complete.
+            var subTransformer = Transformer.Create(
+                a => new Inliner(a),
+                a => new DeadLoadElimination(a),
+                a => new SSAConstruction(a),
+                a => new SSACleanup(a));
+
+            current = subTransformer.Apply(
+                Properties,
+                TypeInformationManager,
+                current);
         }
 
-        return false;
+        return current;
     }
 
     /// <summary>
-    /// Applies the inlining transformation.
+    /// Checks whether any method in the module still has calls to inline-able targets
+    /// that are within the size limit.
     /// </summary>
-    protected override void PerformTransformation(
-        IRContext context,
-        Method.Builder builder,
-        Landscape landscape,
-        Landscape.Entry current)
+    private static bool HasInlineableCalls(Module module)
     {
-        var processed = builder.SourceBlocks.CreateSet();
-        var toProcess = new Stack<BasicBlock>();
-
-        var currentBlock = builder.EntryBlock;
-
-        while (true)
+        foreach (var method in module.Methods)
         {
-            if (processed.Add(currentBlock))
+            bool hasCalls = false;
+            method.ForEachValue<MethodCall>(call =>
             {
-                if (InlineCalls(builder, ref currentBlock))
-                    continue;
-
-                var successors = currentBlock.CurrentSuccessors;
-                if (successors.Length > 0)
-                {
-                    currentBlock = successors[0];
-                    for (int i = 1, e = successors.Length; i < e; ++i)
-                        toProcess.Push(successors[i]);
-                    continue;
-                }
-            }
-
-            if (toProcess.Count < 1)
-                break;
-            currentBlock = toProcess.Pop();
+                hasCalls |= call.Target.IsInline;
+            });
+            if (hasCalls) return true;
         }
+        return false;
     }
 }
