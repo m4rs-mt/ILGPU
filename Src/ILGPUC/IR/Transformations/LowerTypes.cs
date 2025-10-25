@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2025 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LowerTypes.cs
@@ -10,146 +10,196 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
-using ILGPUC.IR.Rewriting;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.IR.Transformations;
 
 /// <summary>
-/// Converts structure values into distinct values.
+/// Converts structure values into distinct values by lowering specific type patterns.
 /// </summary>
 /// <remarks>
-/// This transformation does not change function parameters and calls to other
-/// functions.
+/// This transformation does not change function parameters and calls to other functions.
 /// </remarks>
-abstract class LowerTypes<TType> : UnorderedTransformation
-    where TType : TypeNode
+/// <remarks>
+/// Constructs a new type lowering transformation.
+/// </remarks>
+/// <param name="args">The transformation args.</param>
+abstract class LowerTypes<TType>(TransformationArgs args) : Transformation(args)
+    where TType : TypeValue, IValueInformation, IValueClassInformation
 {
-    #region Rewriter Methods
+    /// <summary>
+    /// Maps types to their field counts.
+    /// </summary>
+    private readonly Dictionary<TypeValue, int> _fieldCounts = [];
 
     /// <summary>
-    /// Lowers null values with nested types.
+    /// Maps IR values that need lowering.
     /// </summary>
-    protected static void Lower(
-        RewriterContext context,
-        TypeLowering<TType> typeConverter,
-        NullValue value)
+    protected override void OnMap(ModuleTransform transform)
     {
-        var targetType = typeConverter.ConvertType(value);
-        var newValue = context.Builder.CreateNull(
-            value.Location,
-            targetType);
-        context.ReplaceAndRemove(value, newValue);
+        base.OnMap(transform);
+
+        // Register value mappings for values that need type lowering
+
+        MapPureValue<StructureValue>(LowerStructureValue);
+        MapPureValue<GetField>(LowerGetField);
+        MapPureValue<SetField>(LowerSetField);
+        MapPureValue<LoadFieldAddress>(LowerLoadFieldAddress);
+
+        MapModuleValue<TType>(TransformType);
     }
+
+    /// <summary>
+    /// Returns true if the given type depends on the target type.
+    /// </summary>
+    protected virtual bool IsTypeDependent(TypeValue type) => type is TType;
+
+    /// <summary>
+    /// Gets the number of fields for the given type.
+    /// </summary>
+    protected abstract int GetNumFields(TType type);
+
+    /// <summary>
+    /// Transforms the target type into another type.
+    /// </summary>
+    /// <param name="transform">The parent transform.</param>
+    /// <param name="type">The type value to convert.</param>
+    /// <returns>The transformed type value.</returns>
+    protected abstract TypeValue TransformType(ModuleTransform transform, TType type);
+
+    /// <summary>
+    /// Returns the number of type fields for the given type.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    protected sealed override int GetNumTypeFields(TypeValue type)
+    {
+        if (type is TType targetType)
+        {
+            if (!_fieldCounts.TryGetValue(type, out var count))
+            {
+                count = GetNumFields(targetType);
+                _fieldCounts[type] = count;
+            }
+            return count;
+        }
+        return base.GetNumTypeFields(type);
+    }
+
+    /// <summary>
+    /// Squeezes the given structure value into a scalar if required.
+    /// </summary>
+    /// <param name="transform">The parent transform.</param>
+    /// <param name="value">The value to squeeze.</param>
+    /// <returns>Returns null by default.</returns>
+    protected virtual Value? Squeeze(PureValueTransform transform, Value<Method> value) =>
+        null;
 
     /// <summary>
     /// Lowers structure values with nested types.
     /// </summary>
-    protected static void Lower(
-        RewriterContext context,
-        TypeLowering<TType> typeConverter,
-        StructureValue value)
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private Value? LowerStructureValue(PureValueTransform transform, StructureValue value)
     {
-        var builder = context.Builder;
-        var location = value.Location;
+        var sourceType = value.Type.AsNotNullCast<StructureType>();
+        var targetType = transform.Rewrite(value.Type);
+        if (targetType is not StructureType targetStructureType)
+            return Squeeze(transform, value);
 
-        var sourceType = typeConverter[value].AsNotNullCast<StructureType>();
-        var instance = builder.CreateStructure(
-            location,
-            typeConverter.ConvertType(sourceType).AsNotNullCast<StructureType>());
-
+        var instance = transform.Builder.CreateStructure(
+            value.Location,
+            targetStructureType);
         for (int i = 0, e = sourceType.NumFields; i < e; ++i)
         {
-            if (sourceType[i] is TType otherType)
+            var fieldValue = transform.Rewrite(value.Values[i])!;
+            if (IsTypeDependent(sourceType[i]))
             {
-                var numFields = typeConverter.GetNumFields(otherType);
+                var numFields = GetNumTypeFields(sourceType[i]);
                 for (int j = 0; j < numFields; ++j)
                 {
-                    var viewField = builder.CreateGetField(
-                        location,
-                        value[i],
+                    var viewField = transform.Builder.CreateGetField(
+                        value.Location,
+                        fieldValue,
                         new FieldSpan(j));
                     instance.Add(viewField);
                 }
             }
             else
             {
-                instance.Add(value[i]);
+                instance.Add(fieldValue);
             }
         }
 
-        var newValue = instance.Seal();
-        context.ReplaceAndRemove(value, newValue);
+        return instance.Seal();
     }
 
     /// <summary>
-    /// Lowers set field operations into separate SSA values.
+    /// Lowers get field operations.
     /// </summary>
-    protected static void Lower(
-        RewriterContext context,
-        TypeLowering<TType> typeConverter,
-        GetField getValue)
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private Value? LowerGetField(PureValueTransform transform, GetField getValue)
     {
-        var builder = context.Builder;
-        var location = getValue.Location;
-
-        // Compute the new base index
-        var span = typeConverter.ComputeSpan(getValue, getValue.FieldSpan);
+        var structureType = getValue.StructureType;
+        var objectValue = transform.Rewrite(getValue.Source);
+        if (objectValue is null)
+            return null;
 
         // Check whether we have to extract a nested type implementation
-        Value newValue;
-        if (typeConverter[getValue] is TType)
+        var span = ComputeSpan(structureType, getValue.FieldSpan);
+        if (IsTypeDependent(getValue.Type))
         {
-            // We have to extract multiple elements from this structure
-            var instance = builder.CreateDynamicStructure(location, span.Span);
+            // Extract multiple elements from this structure
+            var instance = transform.Builder.CreateDynamicStructure(
+                getValue.Location,
+                span.Span);
             for (int i = 0; i < span.Span; ++i)
             {
-                var viewField = builder.CreateGetField(
-                    location,
-                    getValue.ObjectValue,
+                var viewField = transform.Builder.CreateGetField(
+                    getValue.Location,
+                    objectValue,
                     new FieldSpan(span.Index + i));
                 instance.Add(viewField);
             }
-            newValue = instance.Seal();
+            return instance.Seal();
         }
         else
         {
             // Simple field access
-            newValue = builder.CreateGetField(
-                location,
-                getValue.ObjectValue,
+            return transform.Builder.CreateGetField(
+                getValue.Location,
+                objectValue,
                 span);
         }
-        context.ReplaceAndRemove(getValue, newValue);
     }
 
     /// <summary>
-    /// Lowers set field operations into separate SSA values.
+    /// Lowers set field operations.
     /// </summary>
-    protected static void Lower(
-        RewriterContext context,
-        TypeLowering<TType> typeConverter,
-        SetField setValue)
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private Value? LowerSetField(PureValueTransform transform, SetField setValue)
     {
-        var builder = context.Builder;
-        var location = setValue.Location;
+        var structureType = setValue.StructureType;
+        var objectValue = transform.Rewrite(setValue.Source);
+        var fieldValue = transform.Rewrite(setValue.Value);
+        var span = ComputeSpan(structureType, setValue.FieldSpan);
 
-        // Compute the new base index
-        var span = typeConverter.ComputeSpan(setValue, setValue.FieldSpan);
+        // Get the field type from the structure type
+        var fieldType = structureType[setValue.FieldSpan.Index];
 
         // Check whether we have to insert multiple elements
-        Value targetValue = setValue.ObjectValue;
-        if (typeConverter[setValue] is TType)
+        Value? targetValue = objectValue;
+        if (IsTypeDependent(fieldType))
         {
             for (int i = 0; i < span.Span; ++i)
             {
-                var viewField = builder.CreateGetField(
-                    location,
-                    setValue.Value,
+                var viewField = transform.Builder.CreateGetField(
+                    setValue.Location,
+                    fieldValue,
                     new FieldSpan(i));
-                targetValue = builder.CreateSetField(
-                    location,
+                targetValue = transform.Builder.CreateSetField(
+                    setValue.Location,
                     targetValue,
                     new FieldSpan(span.Index + i),
                     viewField);
@@ -158,226 +208,44 @@ abstract class LowerTypes<TType> : UnorderedTransformation
         else
         {
             // Simple field access
-            targetValue = builder.CreateSetField(
-                location,
+            targetValue = transform.Builder.CreateSetField(
+                setValue.Location,
                 targetValue,
                 span,
-                setValue.Value);
+                fieldValue);
         }
-        context.ReplaceAndRemove(setValue, targetValue);
-    }
 
-    /// <summary>
-    /// Lowers alloca values into their appropriate counter parts.
-    /// </summary>
-    protected static void Lower(
-        RewriterContext context,
-        TypeLowering<TType> typeConverter,
-        Alloca alloca)
-    {
-        // Compute the alloca type
-        var newType = typeConverter.ConvertType(alloca);
-        var newAlloca = context.Builder.CreateAlloca(
-            alloca.Location,
-            newType,
-            alloca.AddressSpace);
-        context.ReplaceAndRemove(alloca, newAlloca);
-    }
-
-    /// <summary>
-    /// Lowers pointer cast values into their appropriate counter parts.
-    /// </summary>
-    protected static void Lower(
-        RewriterContext context,
-        TypeLowering<TType> typeConverter,
-        PointerCast cast)
-    {
-        // Compute the cast type
-        var newType = typeConverter.ConvertType(cast);
-        var newCast = context.Builder.CreatePointerCast(
-            cast.Location,
-            cast.Value,
-            newType);
-        context.ReplaceAndRemove(cast, newCast);
+        return targetValue;
     }
 
     /// <summary>
     /// Lowers LFA operations into an adapted version.
     /// </summary>
-    protected static void Lower(
-        RewriterContext context,
-        TypeLowering<TType> typeConverter,
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private Value? LowerLoadFieldAddress(
+        PureValueTransform transform,
         LoadFieldAddress lfa)
     {
-        // Compute the new span
-        var span = typeConverter.ComputeSpan(lfa, lfa.FieldSpan);
-        var newValue = context.Builder.CreateLoadFieldAddress(
+        var structureType = lfa.StructureType;
+        if (!IsTypeDependent(structureType))
+            return lfa;
+
+        var source = transform.Rewrite(lfa.Source).AsNotNull();
+
+        // Only adjust the field span if the rewritten source struct type
+        // was actually changed. When the struct has not been lowered yet
+        // ComputeSpan can invalidly compute the field index.
+        var rewrittenStructType = source
+            .GetTypeAs<PointerType>()
+            .ElementType
+            .As<StructureType>();
+        var span = !rewrittenStructType.Equals(structureType)
+            ? ComputeSpan(structureType, lfa.FieldSpan)
+            : lfa.FieldSpan;
+
+        return transform.Builder.CreateLoadFieldAddress(
             lfa.Location,
-            lfa.Source,
+            source,
             span);
-        context.ReplaceAndRemove(lfa, newValue);
     }
-
-    /// <summary>
-    /// Lowers Phi nodes into an adapted version.
-    /// </summary>
-    protected static void Lower(
-        RewriterContext context,
-        TypeLowering<TType> typeConverter,
-        PhiValue phi) =>
-        context.Builder.UpdatePhiType(phi, typeConverter);
-
-    /// <summary>
-    /// Invalidates the type of the given value.
-    /// </summary>
-    protected static void InvalidateType<TValue>(
-        RewriterContext context,
-        TypeLowering<TType> typeConverter,
-        TValue value)
-        where TValue : Value =>
-        value.InvalidateType();
-
-    #endregion
-
-    #region Rewriter
-
-    /// <summary>
-    /// Registers a type-mapping entry and returns always true.
-    /// </summary>
-    protected static bool Register<TValue>(
-        TypeLowering<TType> typeConverter,
-        TValue value)
-        where TValue : Value => Register(typeConverter, value, value.Type);
-
-    /// <summary>
-    /// Registers a type-mapping entry and returns always true.
-    /// </summary>
-    protected static bool Register<TValue>(
-        TypeLowering<TType> typeConverter,
-        TValue value,
-        TypeNode type)
-        where TValue : Value =>
-        typeConverter.Register(value, type);
-
-    /// <summary>
-    /// Returns true if the type is type dependent and registers a type-mapping
-    /// entry.
-    /// </summary>
-    private static bool IsTypeDependent<TValue>(
-        TypeLowering<TType> typeConverter,
-        TValue value)
-        where TValue : Value =>
-        IsTypeDependent(typeConverter, value, value.Type);
-
-    /// <summary>
-    /// Returns true if the type is type dependent and registers a type-mapping
-    /// entry.
-    /// </summary>
-    private static bool IsTypeDependent<TValue>(
-        TypeLowering<TType> typeConverter,
-        TValue value,
-        TypeNode type)
-        where TValue : Value =>
-        typeConverter.TryRegister(value, type);
-
-    /// <summary>
-    /// Adds all internal type rewriters to the given rewriter instance.
-    /// </summary>
-    /// <param name="rewriter">The rewriter to extent.</param>
-    protected static void AddRewriters(Rewriter<TypeLowering<TType>> rewriter)
-    {
-        rewriter.Add<NullValue>(IsTypeDependent, Lower);
-        rewriter.Add<StructureValue>(IsTypeDependent, Lower);
-        rewriter.Add<GetField>(
-            (typeConverter, value) =>
-                IsTypeDependent(typeConverter, value, value.StructureType),
-            Lower);
-        rewriter.Add<SetField>(IsTypeDependent, Lower);
-        rewriter.Add<Alloca>(
-            (typeConverter, value) =>
-                IsTypeDependent(typeConverter, value, value.AllocaType),
-            Lower);
-        rewriter.Add<Load>(IsTypeDependent, InvalidateType);
-        rewriter.Add<AddressSpaceCast>(IsTypeDependent, InvalidateType);
-        rewriter.Add<PointerCast>(
-            (typeConverter, value) =>
-                IsTypeDependent(typeConverter, value, value.TargetType),
-            Lower);
-        rewriter.Add<LoadFieldAddress>(
-            (typeConverter, value) =>
-                IsTypeDependent(typeConverter, value, value.StructureType),
-            Lower);
-        rewriter.Add<PhiValue>(
-            (typeConverter, value) =>
-                IsTypeDependent(typeConverter, value, value.PhiType),
-            Lower);
-
-        rewriter.Add<Broadcast>(IsTypeDependent, InvalidateType);
-        rewriter.Add<WarpShuffle>(IsTypeDependent, InvalidateType);
-
-        rewriter.Add<Predicate>(IsTypeDependent, InvalidateType);
-        rewriter.Add<MethodCall>(IsTypeDependent, InvalidateType);
-        rewriter.Add<ReturnTerminator>(IsTypeDependent, InvalidateType);
-    }
-
-    #endregion
-
-    #region Methods
-
-    /// <summary>
-    /// Creates a new type lowering converter.
-    /// </summary>
-    /// <param name="builder">The current builder.</param>
-    /// <returns>The created rewriter.</returns>
-    protected abstract TypeLowering<TType> CreateLoweringConverter(
-        Method.Builder builder);
-
-    /// <summary>
-    /// Updates all return types of all affected methods.
-    /// </summary>
-    /// <param name="builder">The current builder.</param>
-    protected void PrePerformTransformation(Method.Builder builder)
-    {
-        var typeConverter = CreateLoweringConverter(builder);
-
-        // Update return type
-        if (typeConverter.IsTypeDependent(builder.Method.ReturnType))
-            builder.UpdateReturnType(typeConverter);
-    }
-
-    /// <inheritdoc cref="Transformation.PerformTransformation(in MethodCollection)"/>
-    protected sealed override void PerformTransformation(in MethodCollection methods)
-    {
-        foreach (var method in methods)
-            PrePerformTransformation(method.MethodBuilder);
-
-        base.PerformTransformation(methods);
-    }
-
-    /// <summary>
-    /// Performs a complete type lowering transformation.
-    /// </summary>
-    /// <param name="builder">The current builder.</param>
-    /// <param name="rewriter">The rewriter to use.</param>
-    protected bool PerformTransformation(
-        Method.Builder builder,
-        Rewriter<TypeLowering<TType>> rewriter)
-    {
-        var typeConverter = CreateLoweringConverter(builder);
-
-        // Use a static rewriter phase
-        bool canRewriteBody = rewriter.TryBeginRewrite(
-            builder.Method.Blocks,
-            builder,
-            typeConverter,
-            out var rewriting);
-
-        // Update parameter types
-        builder.UpdateParameterTypes(typeConverter);
-
-        // Apply the lowering logic
-        return canRewriteBody && rewriting.Rewrite();
-    }
-
-    #endregion
 }
