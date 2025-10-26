@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
 //                        Copyright (c) 2018-2023 ILGPU Project
 //                                    www.ilgpu.net
@@ -455,7 +455,9 @@ namespace ILGPU.Frontend
         /// Performs the actual (asynchronous) code generation.
         /// </summary>
         /// <param name="method">The method.</param>
-        /// <param name="disassembledMethod"></param>
+        /// <param name="disassembledMethod">
+        /// The disassembled method corresponding to <paramref name="method"/> if exists.
+        /// </param>
         /// <param name="isExternalRequest">
         /// True, if processing of this method was requested by a user.
         /// </param>
@@ -534,7 +536,9 @@ namespace ILGPU.Frontend
         /// Generates code for the given method.
         /// </summary>
         /// <param name="method">The method.</param>
-        /// <param name="disassembledMethod">The disassembled method corresponding to <paramref name="method"/> if exists.</param>
+        /// <param name="disassembledMethod">
+        /// The disassembled method corresponding to <paramref name="method"/> if exists.
+        /// </param>
         /// <returns>A completion future.</returns>
         public CodeGenerationResult GenerateCode(MethodBase method, DisassembledMethod? disassembledMethod)
         {

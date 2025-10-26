@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
 //                        Copyright (c) 2018-2021 ILGPU Project
 //                                    www.ilgpu.net
@@ -26,6 +26,15 @@ namespace ILGPU.Frontend
     {
         #region Instance
 
+        /// <summary>
+        /// Constructs a new IL instructions stream.
+        /// </summary>
+        /// <param name="method">The method who has been disassembled. Must not be null.</param>
+        /// <param name="instructions">
+        /// The collection of intermediate language (IL) instructions associated with the method.
+        /// Must not be null and must contain at least one instruction.
+        /// </param>
+        /// <param name="maxStackSize">The maximum stack size required by the method during execution.</param>
         public DisassembledMethod(
             MethodBase method,
             ImmutableArray<ILInstruction> instructions,
