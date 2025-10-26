@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
 //                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
@@ -11,1464 +11,929 @@
 
 using ILGPU.Util;
 using ILGPUC.IR.Analyses;
-using ILGPUC.IR.Analyses.ControlFlowDirection;
-using ILGPUC.IR.Analyses.TraversalOrders;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.MethodValues;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using BlockCollection = ILGPUC.IR.BasicBlockCollection<
-    ILGPUC.IR.Analyses.TraversalOrders.ReversePostOrder,
-    ILGPUC.IR.Analyses.ControlFlowDirection.Forwards>;
-using Dominators = ILGPUC.IR.Analyses.Dominators<
-    ILGPUC.IR.Analyses.ControlFlowDirection.Forwards>;
-using ValueList = ILGPU.Util.InlineList<ILGPUC.IR.Values.ValueReference>;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using PostDominators = ILGPUC.IR.Analyses.Dominators<
+    ILGPUC.IR.MethodValues.Backwards>;
 
 namespace ILGPUC.IR.Transformations;
 
 /// <summary>
-/// Converts nested if/switch branches into value conditionals.
+/// Converts nested if/switch branches into value conditionals (predicated execution).
 /// </summary>
-/// <param name="maxBlockSize">The maximum block size.</param>
-/// <param name="maxBlockDifference">The maximum block size difference.</param>
-sealed class IfConversion(int maxBlockSize = 4, int maxBlockDifference = 4) :
-    UnorderedTransformation
+/// <remarks>
+/// This transformation identifies simple if/else branches where both paths have no side
+/// effects and are small enough, then converts them to predicated instructions using
+/// conditional values (select/predicate operations). This enables better instruction
+/// level parallelism and reduces branch mis-prediction costs.
+/// </remarks>
+/// <param name="args">The transformation arguments.</param>
+/// <param name="maxBlockSize">
+/// The maximum total number of instructions in all branches combined.
+/// </param>
+/// <param name="maxBlockDifference">
+/// The maximum difference in instruction count between branches.
+/// </param>
+sealed class IfConversion(
+    TransformationArgs args,
+    int maxBlockSize = 4,
+    int maxBlockDifference = 4) :
+    Transformation<ValueMap<Method, BasicBlock, IfConversion.ConversionInfo>>(args)
 {
-    #region Nested Types
+    /// <summary>
+    /// Information about a convertible branch.
+    /// </summary>
+    /// <param name="BranchBlock">The block containing the conditional branch.</param>
+    /// <param name="PostDominator">The common post-dominator.</param>
+    /// <param name="TrueRegion">Blocks in the true branch.</param>
+    /// <param name="FalseRegion">Blocks in the false branch.</param>
+    /// <param name="PhisToConvert">Phi values that need conversion.</param>
+    internal readonly record struct ConversionInfo(
+        BasicBlock BranchBlock,
+        BasicBlock PostDominator,
+        HashSet<BasicBlock> TrueRegion,
+        HashSet<BasicBlock> FalseRegion,
+        InlineList<PhiValue> PhisToConvert);
 
     /// <summary>
-    /// Remaps if branch targets to new blocks in order to linearize all jump targets.
+    /// Analyzes the given method to find convertible branches.
     /// </summary>
-    /// <param name="postDominator">The common post dominator.</param>
-    /// <param name="newTarget">The new target block.</param>
-    readonly struct IfBranchRemapper(
-        BasicBlock postDominator,
-        BasicBlock newTarget) : TerminatorValue.ITargetRemapper
+    protected override ValueMap<Method, BasicBlock, ConversionInfo> CreateIntermediate(
+        ModuleTransform transform,
+        Method method)
     {
-        /// <summary>
-        /// Returns the common post dominator.
-        /// </summary>
-        public BasicBlock PostDominator { get; } = postDominator;
-
-        /// <summary>
-        /// Returns the new target block.
-        /// </summary>
-        public BasicBlock NewTarget { get; } = newTarget;
-
-        /// <summary>
-        /// Returns true if one of the block is equal to the
-        /// <see cref="PostDominator"/>.
-        /// </summary>
-        public bool CanRemap(in ReadOnlySpan<BasicBlock> blocks)
+        var postDominators = method.Blocks.CreatePostDominators();
+        var result = method.CreateMap<BasicBlock, ConversionInfo>();
+        foreach (var block in method.Blocks)
         {
-            foreach (var block in blocks)
-            {
-                if (block == PostDominator)
-                    return true;
-            }
-            return false;
+            var analyzed = TryAnalyzeBranch(block, postDominators);
+            if (analyzed.HasValue)
+                result.Add(block, analyzed.Value);
         }
-
-        /// <summary>
-        /// Remaps the given block to the block <see cref="NewTarget"/> if the source
-        /// block is equal to the <see cref="PostDominator"/>.
-        /// </summary>
-        public BasicBlock Remap(BasicBlock block) =>
-            block == PostDominator ? NewTarget : block;
+        return result;
     }
 
     /// <summary>
-    /// A wrapper structure to encapsulate several basic block regions.
+    /// Attempts to analyze a branch for conversion.
     /// </summary>
-    /// <param name="root">The root node.</param>
-    /// <param name="numRegions">The number of attached regions.</param>
-    readonly struct Regions(BasicBlock root, int numRegions)
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private ConversionInfo? TryAnalyzeBranch(
+        BasicBlock block,
+        PostDominators postDominators)
     {
-        #region Instance
+        // Only handle two-way conditional branches
+        if (block.TerminationKind != BlockTerminationKind.Conditional &&
+            block.TerminationKind != BlockTerminationKind.Switch)
+            return null;
 
-        private readonly HashSet<BasicBlock>[] regions =
-            new HashSet<BasicBlock>[numRegions];
+        // Must have exactly 2 successors
+        var successors = block.Successors;
+        if (successors.Length != 2)
+            return null;
 
-        #endregion
+        // Find common post-dominator
+        var postDominator = postDominators.GetImmediateCommonDominator(successors);
+        if (postDominator is null)
+            return null;
 
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated root block.
-        /// </summary>
-        public BasicBlock Root { get; } = root;
-
-        /// <summary>
-        /// Returns the number of regions.
-        /// </summary>
-        public readonly int Count => regions.Length;
-
-        /// <summary>
-        /// Returns the i-th region.
-        /// </summary>
-        public readonly HashSet<BasicBlock> this[int regionIndex] =>
-            regions[regionIndex];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Finds a particular case index via linear search.
-        /// </summary>
-        /// <param name="block">The phi-argument block.</param>
-        /// <returns>The region index.</returns>
-        public readonly int? FindRegion(BasicBlock block)
+        // Gather and validate both regions
+        var gathered = new HashSet<BasicBlock> { block };
+        if (!GatherRegion(successors[0], postDominator, gathered,
+                out var trueRegion, out int trueSize) ||
+            !GatherRegion(successors[1], postDominator, gathered,
+                out var falseRegion, out int falseSize))
         {
-            for (int i = 0, e = regions.Length; i < e; ++i)
-            {
-                if (regions[i].Contains(block))
-                    return i;
-            }
             return null;
         }
 
-        /// <summary>
-        /// Adds a new region.
-        /// </summary>
-        /// <param name="index">The region index.</param>
-        /// <param name="region">The region contents.</param>
-        /// <param name="regionSize">The region size to adapt.</param>
-        public readonly void AddRegion(
-            int index,
-            HashSet<BasicBlock> region,
-            ref int regionSize)
+        // Check size constraints
+        int maxRegionSize = Math.Max(trueSize, falseSize);
+        int sizeDifference = Math.Abs(trueSize - falseSize);
+        if (maxRegionSize > maxBlockSize || sizeDifference > maxBlockDifference)
+            return null;
+
+        // Verify predecessors are properly structured
+        if (!VerifyPredecessors(block, trueRegion) ||
+            !VerifyPredecessors(block, falseRegion))
         {
-            // Check for degenerated cases in which we hit a critical edge
-            if (region.Count < 1)
-            {
-                region.Add(Root);
-                regionSize = Root.Count;
-            }
-            regions[index] = region;
+            return null;
         }
 
-        #endregion
+        // Find phi values that need to be converted
+        var phisToConvert = FindPhisToConvert(
+            postDominator,
+            gathered,
+            trueRegion,
+            falseRegion);
+        if (phisToConvert is null)
+            return null;
+
+        return new ConversionInfo(
+            block,
+            postDominator,
+            trueRegion,
+            falseRegion,
+            phisToConvert.Value);
     }
 
     /// <summary>
-    /// An analyzer to detect compatible if/switch branch constructions.
+    /// Gathers all blocks in a region between start and the post-dominator.
     /// </summary>
-    /// <param name="maxBlockSize">The maximum block size.</param>
-    /// <param name="maxBlockDifference">
-    /// The maximum block size difference.
-    /// </param>
-    /// <param name="blocks">The current blocks.</param>
-    struct ConditionalAnalyzer(
-        int maxBlockSize,
-        int maxBlockDifference,
-        in BlockCollection blocks)
-    {
-        #region Static
-
-        /// <summary>
-        /// Verifies predecessors of all blocks.
-        /// </summary>
-        /// <param name="root">The current root node.</param>
-        /// <param name="region">The current region.</param>
-        /// <returns>True, if all predecessors can be safely converted.</returns>
-        private static bool VerifyPredecessors(
-            BasicBlock root,
-            HashSet<BasicBlock> region)
-        {
-            foreach (var block in region)
-            {
-                // Note that we have to query the successors since the current CFG
-                // has been created in backwards mode
-                foreach (var predecessor in block.Predecessors)
-                {
-                    if (predecessor != root && !region.Contains(predecessor))
-                        return false;
-                }
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Returns true if the given set of phi values can be converted.
-        /// </summary>
-        /// <param name="phiValues">The phi values to convert.</param>
-        /// <param name="regions">The current regions.</param>
-        /// <returns>True, if the given set of phi values can be converted.</returns>
-        private static bool CanConvertPhis(
-            HashSet<PhiValue> phiValues,
-            Regions regions)
-        {
-            var foundRegions = new HashSet<int>();
-            foreach (var phiValue in phiValues)
-            {
-                // Reject nodes which cannot be mapped to all predecessor regions
-                if (phiValue.Sources.Length != regions.Count)
-                    return false;
-
-                foreach (var source in phiValue.Sources)
-                {
-                    // Check for references to another part of the program
-                    var regionIndex = regions.FindRegion(source);
-                    if (regionIndex is null || !foundRegions.Add(regionIndex.Value))
-                        return false;
-                }
-
-                foundRegions.Clear();
-            }
-            return true;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the maximum block size.
-        /// </summary>
-        public int MaxBlockSize { get; } = maxBlockSize;
-
-        /// <summary>
-        /// Returns the maximum block difference.
-        /// </summary>
-        public int MaxBlockDifference { get; } = maxBlockDifference;
-
-        /// <summary>
-        /// Returns the parent post dominators.
-        /// </summary>
-        public Dominators<Backwards> PostDominators { get; } =
-            blocks.CreatePostDominators();
-
-        /// <summary>
-        /// Gets or sets the current set of gathered blocks.
-        /// </summary>
-        private HashSet<BasicBlock>? Gathered { get; set; } = null;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns true if the given block forms an if-statement that can be
-        /// converted using the associated <see cref="ConditionalConverter"/>.
-        /// </summary>
-        /// <param name="block">The block to check.</param>
-        /// <param name="converter"></param>
-        /// <returns></returns>
-        public bool CanConvert(BasicBlock block, out ConditionalConverter converter)
-        {
-            converter = default;
-            var successors = block.CurrentSuccessors;
-            if (successors.Length != 2)
-                return false;
-
-            // Compute the common dominator of all successors
-            var postDominator = PostDominators.GetImmediateCommonDominator(
-               successors);
-
-            // Gather region information about nodes from all successors. Furthermore,
-            // we can check whether the regions are distinct or share nodes.
-            Gathered = new HashSet<BasicBlock>()
-                {
-                    // Assume that the current node has already been found to avoid loops
-                    block,
-                };
-            var regions = new Regions(block, successors.Length);
-            int minRegionSize = int.MaxValue;
-            int maxRegionSize = 0;
-            for (int i = 0, e = regions.Count; i < e; ++i)
-            {
-                var region = new HashSet<BasicBlock>();
-                int regionSize = 0;
-                if (!GatherNodes(
-                    successors[i],
-                    postDominator,
-                    region,
-                    ref regionSize))
-                {
-                    return false;
-                }
-
-                // Check for invalid predecessors that are not linked properly
-                if (!VerifyPredecessors(block, region))
-                    return false;
-
-                // Register the current region
-                regions.AddRegion(i, region, ref regionSize);
-                minRegionSize = Math.Min(minRegionSize, regionSize);
-                maxRegionSize = Math.Max(maxRegionSize, regionSize);
-            }
-
-            // Check all instruction constraints
-            if (maxRegionSize > MaxBlockSize ||
-                Math.Abs(maxRegionSize - minRegionSize) > MaxBlockDifference)
-            {
-                return false;
-            }
-
-            // If we arrive here, we can be sure that each successor has its distinct
-            // region that we may safely merge into one chain of nested blocks
-
-            // Gather all phi values in the rest of the program that do not belong to
-            // the gathered part of the program
-            var phiValues = GatherPhis(block.Method);
-
-            // Check for very rare cases in which a phi node is linked to a value
-            // from other parts of the program or has multiple sources in one region
-            if (!CanConvertPhis(phiValues, regions))
-                return false;
-
-            // Create the actual converter that is used to convert all phi values
-            var branch = block.GetTerminatorAs<ConditionalBranch>();
-            converter = new ConditionalConverter(
-                branch,
-                postDominator,
-                phiValues,
-                regions);
-            return true;
-        }
-
-        /// <summary>
-        /// Gathers all nodes recursively that belong to a particular region.
-        /// </summary>
-        /// <param name="current">The current block.</param>
-        /// <param name="postDominator">
-        /// The common post dominator of all regions.
-        /// </param>
-        /// <param name="visited">The target set of visited nodes.</param>
-        /// <param name="regionSize">The current region size.</param>
-        /// <returns>True, if this region can be converted.</returns>
-        private readonly bool GatherNodes(
-            BasicBlock current,
-            BasicBlock postDominator,
-            HashSet<BasicBlock> visited,
-            ref int regionSize)
-        {
-            // Check whether we have found an exit block
-            if (current == postDominator || !visited.Add(current))
-                return true;
-
-            // Reject blocks with side effects and check whether this is a node
-            // that has been referenced by another region
-            if (current.HasSideEffects() || !Gathered.AsNotNull().Add(current))
-                return false;
-
-            // Adjust the current region size
-            regionSize += current.Count;
-
-            // Gather nodes from all successors
-            foreach (var successor in current.Successors)
-            {
-                if (!GatherNodes(
-                    successor,
-                    postDominator,
-                    visited,
-                    ref regionSize))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Gathers all <see cref="PhiValue"/> nodes that reference values from the
-        /// region that we want to convert.
-        /// </summary>
-        /// <param name="method">The parent method.</param>
-        /// <returns>
-        /// The set of all <see cref="PhiValue"/> that could be found.
-        /// </returns>
-        private readonly HashSet<PhiValue> GatherPhis(Method method)
-        {
-            var phiValues = new HashSet<PhiValue>();
-            var gathered = Gathered.AsNotNull();
-            method.Blocks.ForEachValue<PhiValue>(phiValue =>
-            {
-                foreach (var block in phiValue.Sources)
-                {
-                    if (gathered.Contains(block))
-                    {
-                        phiValues.Add(phiValue);
-                        break;
-                    }
-                }
-            });
-            return phiValues;
-        }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// A conditional converter to perform the actual if/switch conversion into
-    /// conditional value predicates.
-    /// </summary>
-    /// <param name="branch">The conditional branch node.</param>
-    /// <param name="postDominator">The common post dominator.</param>
-    /// <param name="phiValues">All phi values to convert.</param>
-    /// <param name="regions"></param>
-    readonly struct ConditionalConverter(
-        ConditionalBranch branch,
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static bool GatherRegion(
+        BasicBlock start,
         BasicBlock postDominator,
-        HashSet<PhiValue> phiValues,
-        Regions regions)
+        HashSet<BasicBlock> gathered,
+        out HashSet<BasicBlock> region,
+        out int size)
     {
-        #region Properties
+        region = [];
+        size = 0;
 
-        /// <summary>
-        /// Returns the source branch.
-        /// </summary>
-        private ConditionalBranch Branch { get; } = branch;
+        var stack = new Stack<BasicBlock>();
+        stack.Push(start);
 
-        /// <summary>
-        /// The post dominator block.
-        /// </summary>
-        private BasicBlock PostDominator { get; } = postDominator;
-
-        /// <summary>
-        /// Returns the set of all phi values that will be converted.
-        /// </summary>
-        private HashSet<PhiValue> PhiValues { get; } = phiValues;
-
-        /// <summary>
-        /// Returns all regions.
-        /// </summary>
-        private Regions Regions { get; } = regions;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Converts all phi nodes to their conditional value counterparts.
-        /// </summary>
-        /// <param name="methodBuilder">The current builder.</param>
-        private readonly void ConvertPhis(Method.Builder methodBuilder)
+        while (stack.Count > 0)
         {
-            foreach (var phiValue in PhiValues)
-            {
-                phiValue.Assert(phiValue.Count == 2);
-                var conditionalValues = ValueList.Empty;
-                conditionalValues.Resize(phiValue.Nodes.Length);
-                for (int i = 0, e = phiValue.Nodes.Length; i < e; ++i)
-                {
-                    // Determine the conditional case to which the associated value
-                    // belongs to
-                    int conditionalCase = Regions.FindRegion(phiValue.Sources[i]) ??
-                        throw PostDominator.GetInvalidOperationException();
+            var current = stack.Pop();
 
-                    // Get the actual condition value based on the associated phi ref
-                    conditionalValues[conditionalCase] = phiValue[i].Resolve();
-                }
+            // Reached the exit
+            if (current == postDominator)
+                continue;
 
-                // Create the final condition
-                var builder = methodBuilder[phiValue.BasicBlock];
-                builder.SetupInsertPosition(phiValue);
-                var conditional = builder.CreatePredicate(
-                    phiValue.Location,
-                    Branch.Condition,
-                    conditionalValues[0],
-                    conditionalValues[1]);
+            // Already visited in this region
+            if (!region.Add(current))
+                continue;
 
-                // Replace the phi node
-                phiValue.Replace(conditional);
-                builder.Remove(phiValue);
-            }
+            // Block shared between regions (invalid)
+            if (!gathered.Add(current))
+                return false;
+
+            // Reject blocks with side effects
+            if (HasSideEffects(current))
+                return false;
+
+            size += current.Count;
+
+            // Continue with successors
+            foreach (var successor in current.Successors)
+                stack.Push(successor);
         }
 
-        /// <summary>
-        /// Converts all branches to a linear branch chain.
-        /// </summary>
-        /// <param name="methodBuilder">The current builder.</param>
-        private readonly void ConvertBranches(Method.Builder methodBuilder)
+        // Handle degenerate case where region is empty (critical edge)
+        if (region.Count == 0)
         {
-            // Wire initial branch to the first region
-            var blockBuilder = methodBuilder[Branch.BasicBlock];
-            blockBuilder.CreateBranch(Branch.Location, Branch.Targets[0]);
-
-            // Linearize all regions
-            for (int i = 0, e = Regions.Count - 1; i < e; ++i)
-                ConvertRegionBranches(methodBuilder, i, Branch.Targets[i + 1]);
-
-            // Wire the last region with the last branch
-            ConvertRegionBranches(methodBuilder, Regions.Count - 1, PostDominator);
+            region.Add(start);
+            size = start.Count;
         }
 
-        /// <summary>
-        /// Converts all branches inside the specified region.
-        /// </summary>
-        /// <param name="methodBuilder">The current builder.</param>
-        /// <param name="regionIndex">The region index.</param>
-        /// <param name="jumpTarget">The jump target.</param>
-        private readonly void ConvertRegionBranches(
-            Method.Builder methodBuilder,
-            int regionIndex,
-            BasicBlock jumpTarget)
-        {
-            foreach (var block in Regions[regionIndex])
-            {
-                var terminator = block.GetTerminatorAs<Branch>();
-                if (terminator is null)
-                    continue;
-                terminator.RemapTargets(
-                    methodBuilder,
-                    new IfBranchRemapper(PostDominator, jumpTarget));
-            }
-        }
-
-        /// <summary>
-        /// Converts all phi nodes and branches.
-        /// </summary>
-        /// <param name="methodBuilder">The current builder.</param>
-        public readonly void Convert(Method.Builder methodBuilder)
-        {
-            ConvertPhis(methodBuilder);
-            ConvertBranches(methodBuilder);
-        }
-
-        #endregion
+        return true;
     }
-
-    #endregion
-
-    #region Methods
 
     /// <summary>
-    /// Folds conditionals into uniform control flow using selects.
+    /// Checks if a block has side effects.
     /// </summary>
-    protected override void PerformTransformation(
-        IRContext context,
-        Method.Builder builder)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool HasSideEffects(BasicBlock block)
     {
-        var blocks = builder.SourceBlocks;
-        var conditionalAnalyzer = new ConditionalAnalyzer(
-            maxBlockSize,
-            maxBlockDifference,
-            blocks);
-
-        var converters = InlineList<ConditionalConverter>.Create(
-            Math.Max(blocks.Count >> 4, 4));
-        foreach (var block in blocks)
+        foreach (var value in block.Values)
         {
-            // Check whether we can convert the associated branch
-            if (conditionalAnalyzer.CanConvert(block, out var converter))
-                converters.Add(converter);
+            if (value is MemoryValue or MethodCall)
+                return true;
         }
-
-        // Convert all nodes and branches
-        foreach (var converter in converters)
-            converter.Convert(builder);
+        return false;
     }
 
-    #endregion
+    /// <summary>
+    /// Verifies that all predecessors of blocks in the region are valid.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool VerifyPredecessors(BasicBlock root, HashSet<BasicBlock> region)
+    {
+        foreach (var block in region)
+        {
+            foreach (var predecessor in block.Predecessors)
+            {
+                if (predecessor != root && !region.Contains(predecessor))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Finds phi values in the post-dominator that need to be converted.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static InlineList<PhiValue>? FindPhisToConvert(
+        BasicBlock postDominator,
+        HashSet<BasicBlock> allGathered,
+        HashSet<BasicBlock> trueRegion,
+        HashSet<BasicBlock> falseRegion)
+    {
+        var result = InlineList<PhiValue>.Create(2);
+
+        // Find all phi values in the post-dominator that reference our regions.
+        // Note: block.Values excludes phi values (ValueCollectionEnumerator starts at
+        // FirstValue, not FirstPhiValue). Use PhiValues instead.
+        foreach (PhiValue phi in postDominator.PhiValues)
+        {
+            // Check if this phi references blocks from our regions
+            bool referencesRegions = false;
+            foreach (var source in phi.Sources)
+            {
+                if (allGathered.Contains(source))
+                {
+                    referencesRegions = true;
+                    break;
+                }
+            }
+
+            if (!referencesRegions)
+                continue;
+
+            // Phi must have exactly 2 sources (one from each region)
+            if (phi.NumArguments != 2)
+                return null;
+
+            // Find which source belongs to which region
+            Value? trueValue = null;
+            Value? falseValue = null;
+
+            for (int i = 0; i < phi.NumArguments; i++)
+            {
+                var sourceBlock = phi.Sources[i];
+
+                if (trueRegion.Contains(sourceBlock))
+                {
+                    if (trueValue is not null)
+                        return null; // Multiple sources from true region
+                    trueValue = phi.GetValue<Value>(i);
+                }
+                else if (falseRegion.Contains(sourceBlock))
+                {
+                    if (falseValue is not null)
+                        return null; // Multiple sources from false region
+                    falseValue = phi.GetValue<Value>(i);
+                }
+                else
+                {
+                    return null; // Source from outside our regions
+                }
+            }
+
+            if (trueValue is null || falseValue is null)
+                return null;
+
+            result.Add(phi);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Converts a phi value to a predicate if it's in a convertible branch.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private Value? ConvertPhi(BasicBlockTransform blockTransform, PhiValue phi)
+    {
+        // Check if this phi is in a post-dominator of a convertible branch
+        foreach (var entry in GetIntermediate(blockTransform))
+        {
+            var info = entry.Value;
+            if (phi.BasicBlock != info.PostDominator)
+                continue;
+
+            if (!info.PhisToConvert.AsReadOnlySpan().Contains(phi))
+                continue;
+
+            // Find true and false values
+            Value? trueValue = null;
+            Value? falseValue = null;
+
+            for (int i = 0; i < phi.NumArguments; i++)
+            {
+                var source = phi.Sources[i];
+                var value = phi.GetValue<Value>(i);
+
+                if (info.TrueRegion.Contains(source))
+                    trueValue = value;
+                else if (info.FalseRegion.Contains(source))
+                    falseValue = value;
+            }
+
+            if (trueValue is null || falseValue is null)
+                return phi;
+
+            // Create predicate operation
+            var branchCondition = info.BranchBlock.TerminationCondition;
+            if (branchCondition is null)
+                return phi;
+
+            var condition = blockTransform.Rewrite(branchCondition);
+            var mappedTrue = blockTransform.Rewrite(trueValue);
+            var mappedFalse = blockTransform.Rewrite(falseValue);
+
+            if (condition is null || mappedTrue is null || mappedFalse is null)
+                return phi;
+
+            return blockTransform.CreatePredicate(
+                phi.Location,
+                condition,
+                mappedTrue,
+                mappedFalse);
+        }
+
+        return phi;
+    }
+
+    /// <summary>
+    /// Performs the transformation on the method.
+    /// </summary>
+    protected override void OnTransform(MethodTransform transform)
+    {
+        base.OnTransform(transform);
+
+        // Invoke ConvertPhi for phi values in each block.
+        // base.OnTransform iterates block.Values (ValueCollectionEnumerator), which
+        // starts at FirstValue (non-phi) and therefore excludes phi values entirely.
+        // We must iterate phi values explicitly here.
+        foreach (var block in transform.OldMethod.Blocks)
+        {
+            if (transform.TryGetReplaced(block, out var newBlock) &&
+                transform.GetBasicBlockTransform(block).BasicBlock != newBlock)
+            {
+                continue;
+            }
+
+            var blockTransform = transform.GetBasicBlockTransform(block);
+            foreach (PhiValue phi in block.PhiValues)
+            {
+                var result = ConvertPhi(blockTransform, phi);
+                if (result is not null && result != phi)
+                    transform.Replace(phi, result);
+            }
+        }
+
+        // Convert conditional/switch branches to unconditional in convertible patterns
+        var intermediate = GetIntermediate(transform);
+        foreach (var (branchBlock, info) in intermediate)
+        {
+            // Get the transform for the branch block
+            var blockTransform = transform.GetBasicBlockTransform(branchBlock);
+
+            // Convert to unconditional branch to the post-dominator
+            blockTransform.CreateUnconditionalTermination(
+                blockTransform.RewriteAs<BasicBlock>(info.PostDominator));
+        }
+    }
 }
 
 /// <summary>
 /// Transforms and-also and or-else branch chains into efficient logical operations.
 /// </summary>
-/// <param name="maxBlockSize">The maximum block size in instructions.</param>
-sealed class IfConditionConversion(int maxBlockSize = 4) : UnorderedTransformation
+/// <remarks>
+/// This transformation identifies chains of conditional branches connected by simple
+/// boolean logic (e.g., "if (a) if (b) if (c) then X else Y") and converts them into
+/// compound boolean expressions. This reduces the number of basic blocks and enables
+/// better optimization opportunities.
+/// </remarks>
+/// <param name="args">The transformation arguments.</param>
+/// <param name="maxBlockSize">
+/// The maximum number of instructions in an inner block.
+/// </param>
+sealed class IfConditionConversion(TransformationArgs args, int maxBlockSize = 4) :
+    Transformation<ValueMap<Method, BasicBlock, IfConditionConversion.ChainInfo>>(args)
 {
-    #region Static
+    /// <summary>
+    /// Information about a convertible if-chain.
+    /// </summary>
+    /// <param name="EntryBlock">The entry block of the chain.</param>
+    /// <param name="InnerBlocks">All inner blocks in the chain.</param>
+    /// <param name="TrueExit">The true exit block.</param>
+    /// <param name="FalseExit">The false exit block.</param>
+    /// <param name="PhisToRemap">Phi values that need remapping.</param>
+    internal readonly record struct ChainInfo(
+        BasicBlock EntryBlock,
+        HashSet<BasicBlock> InnerBlocks,
+        BasicBlock TrueExit,
+        BasicBlock FalseExit,
+        InlineList<PhiValue> PhisToRemap);
 
     /// <summary>
-    /// Helper function to return <see cref="IfBranch"/> terminator of the given
-    /// block.
+    /// Analyzes the given method to find convertible branches.
     /// </summary>
-    private static IfBranch GetIfBranch(BasicBlock block) =>
-        block.GetTerminatorAs<IfBranch>();
-
-    /// <summary>
-    /// Merges two phi case values.
-    /// </summary>
-    /// <param name="currentValue">The current value.</param>
-    /// <param name="caseValue">The case value to merge.</param>
-    /// <returns>True, if both case values are compatible.</returns>
-    private static bool MergePhiCaseValue(ref Value? currentValue, Value caseValue)
+    protected override ValueMap<Method, BasicBlock, ChainInfo> CreateIntermediate(
+        ModuleTransform transform,
+        Method method)
     {
-        var oldCaseValue = currentValue;
-        currentValue = caseValue;
-        return oldCaseValue is null || oldCaseValue == caseValue;
-    }
+        var blocks = method.Blocks;
+        var dominators = blocks.CreateDominators();
+        var phiSources = blocks.ComputePhiSources();
 
-    #endregion
-
-    #region Nested Types
-
-    /// <summary>
-    /// The kind of a single block in the scope of this transformation.
-    /// </summary>
-    enum BlockKind
-    {
-        /// <summary>
-        /// An inner block that can be merged.
-        /// </summary>
-        Inner,
-
-        /// <summary>
-        /// An exit block that has to be preserved.
-        /// </summary>
-        Exit
-    }
-
-    /// <summary>
-    /// Wraps a pair consisting of a true-case and a false-case block.
-    /// </summary>
-    readonly struct CaseBlocks
-    {
-        #region Static
-
-        /// <summary>
-        /// Gets the primary true leaf that is used to created the merged branch.
-        /// </summary>
-        /// <param name="kinds">The set of all block kinds.</param>
-        /// <param name="current">The current block.</param>
-        /// <returns>The determined true block.</returns>
-        private static BasicBlock? TryGetTrueExit(
-            in BasicBlockMap<BlockKind> kinds,
-            BasicBlock current)
+        // Process in post order to find chains from leaves upward
+        var result = method.CreateMap<BasicBlock, ChainInfo>();
+        foreach (var block in blocks.AsOrder<PostOrder<BasicBlock>>())
         {
-            var next = current;
-            do
-            {
-                if (kinds[next] == BlockKind.Exit)
-                    return next;
-                next = GetIfBranch(next).TrueTarget;
-            }
-            while (next != current);
+            var info = TryAnalyzeChain(block, dominators, phiSources, blocks.Count);
+            if (info.HasValue)
+                result.Add(block, info.Value);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Attempts to analyze a block as the start of an if-chain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private ChainInfo? TryAnalyzeChain(
+        BasicBlock entryBlock,
+        in Dominators<Forwards> dominators,
+        ValueSet<Method, BasicBlock> phiSources,
+        int maxBlocks)
+    {
+        // Must start with an if-branch
+        if (entryBlock.TerminationKind != BlockTerminationKind.Conditional)
+            return null;
+
+        // Traverse to find all blocks in the chain
+        var innerBlocks = new HashSet<BasicBlock>();
+        var exitBlocks = new HashSet<BasicBlock>();
+        if (!TraverseChain(
+            entryBlock,
+            dominators,
+            phiSources,
+            innerBlocks,
+            exitBlocks,
+            maxBlocks))
+        {
             return null;
         }
 
-        /// <summary>
-        /// Gets the primary false leaf that is used to created the merged branch.
-        /// </summary>
-        /// <param name="kinds">The set of all block kinds.</param>
-        /// <param name="trueBlock">The true block.</param>
-        /// <returns>The determined false block.</returns>
-        private static BasicBlock GetFalseExit(
-            in BasicBlockMap<BlockKind> kinds,
-            BasicBlock trueBlock)
-        {
-            foreach (var (block, kind) in kinds)
-            {
-                if (block != trueBlock && kind == BlockKind.Exit)
-                    return block;
-            }
+        // Need at least 4 blocks and exactly 2 exits
+        if (innerBlocks.Count < 3 || exitBlocks.Count != 2)
+            return null;
 
-            // This cannot happen since there must be two leaf nodes
-            throw trueBlock.GetInvalidOperationException();
-        }
+        // Find the true and false exit blocks
+        var trueExit = FindTrueExit(entryBlock, innerBlocks, exitBlocks);
+        if (trueExit is null)
+            return null;
 
-        #endregion
+        var falseExit = exitBlocks.First(b => b != trueExit);
 
-        #region Instance
+        // Check for local phis in inner blocks (not allowed)
+        if (HasLocalPhis(innerBlocks))
+            return null;
 
-        /// <summary>
-        /// Constructs a new case blocks instance.
-        /// </summary>
-        /// <param name="kinds">The current block kinds.</param>
-        /// <param name="current">The current root block to start the search.</param>
-        public CaseBlocks(in BasicBlockMap<BlockKind> kinds, BasicBlock current)
-        {
-            TrueBlock = TryGetTrueExit(kinds, current);
-            if (TrueBlock is not null)
-                FalseBlock = GetFalseExit(kinds, TrueBlock);
-        }
+        // Find phis that need remapping
+        var phisToRemap = FindPhisToRemap(innerBlocks, exitBlocks, trueExit);
+        if (phisToRemap is null)
+            return null;
 
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the true block.
-        /// </summary>
-        public BasicBlock? TrueBlock { get; }
-
-        /// <summary>
-        /// Returns the false block.
-        /// </summary>
-        public BasicBlock? FalseBlock { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns true if this conversion phase is able to convert the pair.
-        /// </summary>
-        public bool IsValid => TrueBlock is not null && FalseBlock is not null;
-
-        /// <summary>
-        /// Returns true if the given block is the <see cref="TrueBlock"/>.
-        /// </summary>
-        /// <param name="block">The block to test.</param>
-        /// <returns>
-        /// True, if the given block is the <see cref="TrueBlock"/>.
-        /// </returns>
-        public bool IsTrueBlock(BasicBlock block)
-        {
-            bool result = block == TrueBlock;
-            block.Assert(result || block == FalseBlock);
-            return result;
-        }
-
-        /// <summary>
-        /// Returns true if the given block is either the <see cref="TrueBlock"/>
-        /// or the <see cref="FalseBlock"/>.
-        /// </summary>
-        /// <param name="block">The block to test.</param>
-        /// <returns>
-        /// True, if the given block is either the <see cref="TrueBlock"/> or the
-        /// <see cref="FalseBlock"/>.
-        /// </returns>
-        public bool Contains(BasicBlock block) =>
-            block == TrueBlock || block == FalseBlock;
-
-        /// <summary>
-        /// Asserts that the given value is contained in either the
-        /// <see cref="TrueBlock"/> or the <see cref="FalseBlock"/>.
-        /// </summary>
-        /// <param name="value">The value to test.</param>
-        public void AssertInBlocks(Value value) =>
-            value.Assert(Contains(value.BasicBlock));
-
-        #endregion
+        return new ChainInfo(
+            entryBlock,
+            innerBlocks,
+            trueExit,
+            falseExit,
+            phisToRemap.Value);
     }
 
     /// <summary>
-    /// A custom successors provider that stops processing as soon as it hits an
-    /// block with kind <see cref="BlockKind.Exit"/>.
+    /// Traverses the control flow to find all blocks in the chain.
     /// </summary>
-    /// <param name="dominators">The dominators.</param>
-    /// <param name="entryPoint">The current entry point.</param>
-    /// <param name="maxNumInstructions">
-    /// The maximum number of instructions in an inner block.
-    /// </param>
-    readonly struct SuccessorsProvider(
-        Dominators dominators,
-        BasicBlock entryPoint,
-        int maxNumInstructions) :
-        ITraversalSuccessorsProvider<Forwards>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private bool TraverseChain(
+        BasicBlock entryBlock,
+        in Dominators<Forwards> dominators,
+        ValueSet<Method, BasicBlock> phiSources,
+        HashSet<BasicBlock> innerBlocks,
+        HashSet<BasicBlock> exitBlocks,
+        int maxBlocks)
     {
-        #region Properties
+        var queue = new Queue<BasicBlock>(4);
+        queue.Enqueue(entryBlock);
+        innerBlocks.Add(entryBlock);
 
-        /// <summary>
-        /// Returns all dominators.
-        /// </summary>
-        public Dominators Dominators { get; } = dominators;
+        int exitCount = 0;
 
-        /// <summary>
-        /// Returns the current entry point.
-        /// </summary>
-        public BasicBlock EntryPoint { get; } = entryPoint;
-
-        /// <summary>
-        /// Returns the maximum number of instructions in an inner block.
-        /// </summary>
-        public int MaxNumInstructions { get; } = maxNumInstructions;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns true if the given block can be converted (an inner block).
-        /// </summary>
-        /// <param name="basicBlock">The block to test.</param>
-        /// <param name="terminator">The resolved terminator (if any).</param>
-        /// <returns>
-        /// True, if the block can be considered to be an inner block.
-        /// </returns>
-        public readonly bool IsCompatibleBlock(
-            BasicBlock basicBlock,
-            [NotNullWhen(true)] out IfBranch? terminator) =>
-            // The current block must have an IfBranch terminator
-            (terminator = basicBlock.Terminator as IfBranch) != null &&
-            // It must be dominated by the entry block in order to avoid rare cases
-            // in which the current block is also reachable by other parts of the
-            // program
-            Dominators.Dominates(EntryPoint, basicBlock) &&
-            // It must not exceed the max #instructions per block and must not have
-            // any side effects
-            basicBlock.Count <= MaxNumInstructions &&
-            !basicBlock.HasSideEffects();
-
-        /// <summary>
-        /// Determines the block kind of the given block.
-        /// </summary>
-        /// <param name="basicBlock">The current block.</param>
-        /// <param name="exitCounter">The current number of exit blocks.</param>
-        /// <returns>The block kind.</returns>
-        public readonly BlockKind GetBlockKind(
-            BasicBlock basicBlock,
-            ref int exitCounter)
+        while (queue.Count > 0)
         {
-            if (IsCompatibleBlock(basicBlock, out var _))
-                return BlockKind.Inner;
-            ++exitCounter;
-            return BlockKind.Exit;
-        }
-
-        /// <summary>
-        /// Returns all successors in the case of an inner block.
-        /// </summary>
-        /// <param name="basicBlock">The current basic block.</param>
-        public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
-            BasicBlock basicBlock) =>
-            IsCompatibleBlock(basicBlock, out var terminator)
-            ? terminator.Targets
-            : new ReadOnlySpan<BasicBlock>();
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Skips duplicate entries pointing to the entry block.
-    /// </summary>
-    struct PhiRemapper(BasicBlock entryBlock) : PhiValue.IArgumentRemapper
-    {
-        /// <summary>
-        /// Returns the entry block to remap to.
-        /// </summary>
-        public BasicBlock EntryBlock { get; } = entryBlock;
-
-        /// <summary>
-        /// Returns true if the <see cref="EntryBlock"/> has been already wired
-        /// with the current block.
-        /// </summary>
-        public bool Added { get; private set; } = false;
-
-        /// <summary>
-        /// Returns true and sets the value of <see cref="Added"/> to false.
-        /// </summary>
-        public bool CanRemap(PhiValue phiValue)
-        {
-            Added = false;
-            return true;
-        }
-
-        /// <summary>
-        /// Performs an identity mapping by filtering duplicate sources pointing to
-        /// the <see cref="EntryBlock"/>.
-        /// </summary>
-        public bool TryRemap(PhiValue phiValue, BasicBlock block, out BasicBlock newBlock)
-        {
-            newBlock = block;
-            if (block != EntryBlock)
-                return true;
-
-            bool add = !Added;
-            Added = true;
-            return add;
-        }
-
-        /// <summary>
-        /// Returns the input <paramref name="value"/>.
-        /// </summary>
-        public readonly Value RemapValue(
-            PhiValue phiValue,
-            BasicBlock updatedBlock,
-            Value value) => value;
-    }
-
-    /// <summary>
-    /// An analyzer to detect compatible (nested) if-branch conditions.
-    /// </summary>
-    ref struct ConditionalAnalyzer
-    {
-        #region Instance
-
-        private BasicBlockMap<BlockKind> kinds;
-
-        /// <summary>
-        /// Constructs a new conditional analyzer.
-        /// </summary>
-        /// <param name="blocks">The current block collection.</param>
-        /// <param name="maxBlockSize">The maximum block size.</param>
-        public ConditionalAnalyzer(BlockCollection blocks, int maxBlockSize)
-        {
-            kinds = blocks.CreateMap<BlockKind>();
-
-            MaxNumBlocks = blocks.Count;
-            MaxBlockSize = maxBlockSize;
-
-            Dominators = blocks.CreateDominators();
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the maximum number of all blocks.
-        /// </summary>
-        public int MaxNumBlocks { get; }
-
-        /// <summary>
-        /// Returns the maximum block size
-        /// </summary>
-        public int MaxBlockSize { get; }
-
-        /// <summary>
-        /// Returns the dominator analysis.
-        /// </summary>
-        public Dominators Dominators { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns true if the given block forms an if-statement that can be
-        /// converted using the associated <see cref="ConditionalConverter"/>.
-        /// </summary>
-        /// <param name="methodBuilder">The current builder.</param>
-        /// <param name="current">The block to check.</param>
-        /// <param name="converter">The created converter (if any).</param>
-        /// <returns>True, if the given block can be converted.</returns>
-        public bool CanConvert(
-            Method.Builder methodBuilder,
-            BasicBlock current,
-            out ConditionalConverter converter)
-        {
-            // Early exit for trivially not-supported block constructions
-            converter = default;
-            if (!(current.Terminator is IfBranch))
+            if (innerBlocks.Count + exitBlocks.Count > maxBlocks)
                 return false;
 
-            // Try to determine an intermediate condition graph
-            kinds.Clear();
-            if (!Traverse(current, out var blocks))
-                return false;
+            var current = queue.Dequeue();
 
-            // Get the true and false-branch leaf nodes that are used to build the
-            // conditional branch in the end
-            var caseBlocks = new CaseBlocks(kinds, current);
-            if (!caseBlocks.IsValid)
-                return false;
-
-            // Check all phi-value references and determine all phis that need
-            // to be adjusted after folding all blocks
-            if (GetLocalPhis(blocks, BlockKind.Inner).Count > 0)
-                return false;
-
-            // Initialize the list of phi entries and find all phis to adapt
-            var phis = ValueList.Create(2);
-            if (!GatherPhiValues(blocks, caseBlocks, ref phis))
-                return false;
-
-            // Create the converter to transform all compatible blocks
-            converter = new ConditionalConverter(
-                methodBuilder,
-                kinds,
-                blocks,
-                phis,
-                caseBlocks);
-            return true;
-        }
-
-        /// <summary>
-        /// Traverses the control flow starting with the current block and tries to
-        /// determine a set of blocks that can be merged.
-        /// </summary>
-        /// <param name="current">The current block.</param>
-        /// <param name="blocks">The collection of convertible blocks.</param>
-        /// <returns>
-        /// True, if a set of blocks that can be merged could be found.
-        /// </returns>
-        private bool Traverse(BasicBlock current, out BlockCollection blocks)
-        {
-            // Resolve all blocks that can be merged
-            var successorsProvider = new SuccessorsProvider(
-                Dominators,
-                current,
-                MaxBlockSize);
-            blocks = new ReversePostOrder().TraverseToCollection<
-                ReversePostOrder,
-                SuccessorsProvider,
-                Forwards>(MaxNumBlocks, current, successorsProvider);
-
-            // Early exit for incompatible block setups
-            if (blocks.Count < 4)
-                return false;
-
-            // Register all blocks while using their different kinds
-            int numExitBlocks = 0;
-            foreach (var block in blocks)
+            if (IsConvertibleBlock(current, entryBlock, dominators, phiSources))
             {
-                kinds[block] = successorsProvider.GetBlockKind(
-                    block,
-                    ref numExitBlocks);
-            }
-
-            return numExitBlocks == 2;
-        }
-
-        /// <summary>
-        /// Returns all local phi values that are stored in blocks with the
-        /// specified <paramref name="blockKind"/>.
-        /// </summary>
-        /// <param name="blocks">The blocks to be converted.</param>
-        /// <param name="blockKind">The target block kind.</param>
-        /// <returns>The list of all phi values.</returns>
-        private readonly Phis GetLocalPhis(
-            in BlockCollection blocks,
-            BlockKind blockKind)
-        {
-            var builder = Phis.CreateBuilder(blocks.Method);
-            foreach (var block in blocks)
-            {
-                if (kinds[block] == blockKind)
-                    builder.Add(block);
-            }
-            return builder.Seal();
-        }
-
-        /// <summary>
-        /// Gathers and checks all local phi values that need to be adapted.
-        /// </summary>
-        /// <param name="blocks">The blocks to be converted.</param>
-        /// <param name="caseBlocks">Both case blocks.</param>
-        /// <param name="phis">The list of phi values to adapt.</param>
-        /// <returns>True, if all phi values are compatible.</returns>
-        private readonly bool GatherPhiValues(
-            in BlockCollection blocks,
-            in CaseBlocks caseBlocks,
-            ref ValueList phis)
-        {
-            // Get all phis in the exit block
-            var exitPhis = GetLocalPhis(blocks, BlockKind.Exit);
-
-            // Convert to a set of blocks including all inner blocks
-            var localKinds = kinds;
-            var innerBlocksSet = blocks.ToSet(
-                block => localKinds[block] == BlockKind.Inner);
-
-            Value? trueValue = null;
-            Value? falseValue = null;
-            foreach (var phi in exitPhis)
-            {
-                // The phi must be located in one of our exit blocks
-                caseBlocks.AssertInBlocks(phi);
-
-                // Check whether this phi value has source that is not linked to our
-                // block set
-                if (!phi.Sources.Any(t => innerBlocksSet.Contains(t)))
-                    continue;
-
-                // Check whether all sources are linked to our internal blocks
-                bool isTrueBlock = caseBlocks.IsTrueBlock(phi.BasicBlock);
-                for (int i = 0, e = phi.Count; i < e; ++i)
+                // This is an inner block - process successors
+                foreach (var successor in current.Successors)
                 {
-                    if (!innerBlocksSet.Contains(phi.Sources[i]))
-                        continue;
-
-                    // Get the value for this predecessor
-                    Value phiValue = phi[i];
-
-                    // Check the case for this predecessor
-                    bool merged = isTrueBlock
-                        ? MergePhiCaseValue(ref trueValue, phiValue)
-                        : MergePhiCaseValue(ref falseValue, phiValue);
-
-                    // If we could not merge these case values, we have to skip the
-                    // whole block list, since it contains unknown control flow
-                    if (!merged)
-                        return false;
+                    if (!innerBlocks.Contains(successor) &&
+                        !exitBlocks.Contains(successor))
+                    {
+                        innerBlocks.Add(successor);
+                        queue.Enqueue(successor);
+                    }
                 }
-
-                // If we reach this point, the current phi value has to be adapted
-                phis.Add(phi);
-            }
-            return true;
-        }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// A conditional converter to perform the actual if/switch conversion into
-    /// conditional value predicates.
-    /// </summary>
-    readonly ref struct ConditionalConverter
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new conditional converter.
-        /// </summary>
-        /// <param name="builder">The parent builder.</param>
-        /// <param name="kinds">The mapping of block kinds.</param>
-        /// <param name="blocks">The block collection to be used.</param>
-        /// <param name="phis">All phis to be adapted.</param>
-        /// <param name="caseBlocks">Both case blocks.</param>
-        internal ConditionalConverter(
-            Method.Builder builder,
-            BasicBlockMap<BlockKind> kinds,
-            BlockCollection blocks,
-            ReadOnlySpan<ValueReference> phis,
-            CaseBlocks caseBlocks)
-        {
-            Blocks = blocks;
-            Kinds = kinds;
-
-            Builder = builder;
-            BlockBuilder = builder[blocks.EntryBlock];
-
-            Phis = phis;
-            CaseBlocks = caseBlocks;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the parent builder.
-        /// </summary>
-        public Method.Builder Builder { get; }
-
-        /// <summary>
-        /// Returns the main target builder used to emit all conditionals.
-        /// </summary>
-        public BasicBlock.Builder BlockBuilder { get; }
-
-        /// <summary>
-        /// Returns all blocks in this conditional graph.
-        /// </summary>
-        public BlockCollection Blocks { get; }
-
-        /// <summary>
-        /// Returns all block kinds.
-        /// </summary>
-        public BasicBlockMap<BlockKind> Kinds { get; }
-
-        /// <summary>
-        /// Returns the entry block of the current collections of blocks.
-        /// </summary>
-        public readonly BasicBlock EntryBlock => Blocks.EntryBlock;
-
-        /// <summary>
-        /// Returns all phi values that need to be adapted.
-        /// </summary>
-        public ReadOnlySpan<ValueReference> Phis { get; }
-
-        /// <summary>
-        /// Returns both case blocks.
-        /// </summary>
-        public CaseBlocks CaseBlocks { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns true if the given block should be maintained.
-        /// </summary>
-        private bool IsBlockToKeep(BasicBlock block) =>
-            Bitwise.Or(block == EntryBlock, CaseBlocks.Contains(block));
-
-        /// <summary>
-        /// Returns true if the given block is an exit block.
-        /// </summary>
-        private bool IsExit(BasicBlock block) =>
-            Kinds[block] == BlockKind.Exit;
-
-        /// <summary>
-        /// Converts the underlying conditional tree into a folded set of wired
-        /// conditionals.
-        /// </summary>
-        public void Convert()
-        {
-            // Remember the original target location
-            var terminator = GetIfBranch(EntryBlock);
-
-            // Merge all blocks into one
-            MergeBlocks();
-            BlockBuilder.SetupInsertPositionToEnd();
-
-            // Emit the actual condition
-            CreateInnerCondition(terminator, null, null, out Value? condition);
-            EntryBlock.AssertNotNull(condition.AsNotNull());
-
-            // Create the actual branch condition
-            BlockBuilder.CreateIfBranch(
-                terminator.Location,
-                condition.AsNotNull(),
-                CaseBlocks.TrueBlock.AsNotNull(),
-                CaseBlocks.FalseBlock.AsNotNull());
-
-            // Adapt all phis
-            AdaptPhis();
-
-            // Clear all other blocks to remove all obsolete uses
-            ClearBlocks();
-
-            // Replace the original terminator
-            terminator.Replace(BlockBuilder.CreateUndefined());
-        }
-
-        /// <summary>
-        /// Merges the given inner node into the given block builder.
-        /// </summary>
-        private void MergeBlocks()
-        {
-            foreach (var block in Blocks)
-            {
-                // Skip the root block
-                if (IsBlockToKeep(block))
-                    continue;
-
-                BlockBuilder.MergeBlock(block);
-            }
-        }
-
-        /// <summary>
-        /// Merges both conditions using the <paramref name="kind"/>.
-        /// </summary>
-        /// <param name="condition">The source condition (may be null).</param>
-        /// <param name="newCondition">The new condition to merge.</param>
-        /// <param name="kind">The arithmetic kind used to combine them.</param>
-        /// <returns>
-        /// The merged condition or <paramref name="newCondition"/>.
-        /// </returns>
-        private Value MergeCondition(
-            Value? condition,
-            Value newCondition,
-            BinaryArithmeticKind kind) =>
-            condition is null
-            ? newCondition
-            : (Value)BlockBuilder.CreateArithmetic(
-                condition.Location,
-                condition,
-                newCondition,
-                kind);
-
-        /// <summary>
-        /// Creates a merge intermediate condition that will be passed to the
-        /// <see cref="CreateCondition(BasicBlock, Value, Value, out Value)"/> method.
-        /// </summary>
-        /// <param name="current">The current block.</param>
-        /// <param name="condition">The source condition (may be null).</param>
-        /// <param name="newCondition">The new condition to merge.</param>
-        /// <param name="initialExitCondition">The current exit condition.</param>
-        /// <param name="exitCondition">The exit condition to be updated.</param>
-        private void CreateMergedCondition(
-            BasicBlock current,
-            Value? condition,
-            Value newCondition,
-            Value? initialExitCondition,
-            out Value? exitCondition)
-        {
-            var merged = MergeCondition(
-                condition,
-                newCondition,
-                BinaryArithmeticKind.And);
-
-            // Continue the traversal using the merged condition
-            CreateCondition(
-                current,
-                merged,
-                initialExitCondition,
-                out exitCondition);
-        }
-
-        /// <summary>
-        /// Creates and updates the exit condition in the case of a
-        /// <see cref="CaseBlocks.TrueBlock" />
-        /// </summary>
-        /// <param name="current">The current block.</param>
-        /// <param name="condition">The source condition (may be null).</param>
-        /// <param name="initialExitCondition">The current exit condition.</param>
-        /// <param name="exitCondition">The exit condition to be updated.</param>
-        private void CreateExitCondition(
-            BasicBlock current,
-            Value condition,
-            Value? initialExitCondition,
-            out Value? exitCondition)
-        {
-            current.Assert(IsExit(current));
-
-            // Skip non-true blocks since they will not contribute to the conditional
-            // branch that will be emitted in the end
-            if (!CaseBlocks.IsTrueBlock(current))
-            {
-                exitCondition = initialExitCondition;
-                return;
-            }
-
-            // Append the current condition using a logical or to form clauses of
-            // the form: (a & b & c) | (d & e & f) | ...
-            exitCondition = MergeCondition(
-                initialExitCondition,
-                condition,
-                BinaryArithmeticKind.Or);
-        }
-
-        /// <summary>
-        /// Creates conditions for inner blocks using recursion.
-        /// </summary>
-        /// <param name="terminator">The current terminator.</param>
-        /// <param name="condition">The source condition (may be null).</param>
-        /// <param name="initialExitCondition">The current exit condition.</param>
-        /// <param name="exitCondition">The exit condition to be updated.</param>
-        private void CreateInnerCondition(
-            IfBranch terminator,
-            Value? condition,
-            Value? initialExitCondition,
-            out Value? exitCondition)
-        {
-            // Determine the true and false conditions, as well as the different
-            // branch targets
-            var trueCondition = terminator.Condition;
-            var falseCondition = trueCondition;
-            var (trueTarget, falseTarget) = terminator.NotInvertedBranchTargets;
-
-            // Simple optimization to avoid the generation on unnecessary operations
-            bool emitFalseTarget = terminator.FalseTarget != CaseBlocks.FalseBlock;
-
-            // Check whether we need to add another not here
-            if (terminator.FalseTarget == CaseBlocks.TrueBlock)
-            {
-                // Invert the true condition since the true branch target is on the
-                // RHS of the branch
-                trueCondition = BlockBuilder.CreateArithmetic(
-                    trueCondition.Location,
-                    trueCondition,
-                    UnaryArithmeticKind.Not);
-                Utilities.Swap(ref trueTarget, ref falseTarget);
-            }
-            else if (emitFalseTarget)
-            {
-                // Negate the false condition otherwise
-                falseCondition = BlockBuilder.CreateArithmetic(
-                    falseCondition.Location,
-                    falseCondition,
-                    UnaryArithmeticKind.Not);
-            }
-
-            // Merge the true condition and continue with the true target
-            CreateMergedCondition(
-                trueTarget,
-                condition,
-                trueCondition,
-                initialExitCondition,
-                out exitCondition);
-
-            // If we have to emit a false target, continue with a recursive emission
-            if (emitFalseTarget)
-            {
-                // Merge the false condition and continue with the false target
-                initialExitCondition = exitCondition;
-
-                CreateMergedCondition(
-                    falseTarget,
-                    condition,
-                    falseCondition,
-                    initialExitCondition,
-                    out exitCondition);
-            }
-        }
-
-        /// <summary>
-        /// Creates a condition for an exit or an inner block.
-        /// </summary>
-        /// <param name="current">The current block.</param>
-        /// <param name="condition">The source condition (may be null).</param>
-        /// <param name="initialExitCondition">The current exit condition.</param>
-        /// <param name="exitCondition">The exit condition to be updated.</param>
-        private void CreateCondition(
-            BasicBlock current,
-            Value condition,
-            Value? initialExitCondition,
-            out Value? exitCondition)
-        {
-            if (IsExit(current))
-            {
-                // Create an exit-block condition
-                CreateExitCondition(
-                    current,
-                    condition,
-                    initialExitCondition,
-                    out exitCondition);
             }
             else
             {
-                // Create an inner-block condition
-                var terminator = GetIfBranch(current);
-                CreateInnerCondition(
-                    terminator,
-                    condition,
-                    initialExitCondition,
-                    out exitCondition);
+                // This is an exit block
+                exitBlocks.Add(current);
+                exitCount++;
             }
         }
 
-        /// <summary>
-        /// Clears all blocks that have been merged in order to release the uses.
-        /// </summary>
-        private void ClearBlocks()
-        {
-            foreach (var block in Blocks)
-            {
-                if (IsBlockToKeep(block))
-                    continue;
-
-                Builder[block].Clear();
-            }
-        }
-
-        /// <summary>
-        /// Adapts all phi sources to match the new control-flow structure.
-        /// </summary>
-        private void AdaptPhis()
-        {
-            // Initialize the remapper that maps inner blocks to the entry block
-            var phiRemapper = new PhiRemapper(EntryBlock);
-            foreach (PhiValue phi in Phis)
-            {
-                // The phi must be located in one of our exit blocks
-                CaseBlocks.AssertInBlocks(phi);
-
-                // Remap the current phi
-                phi.RemapArguments(Builder, phiRemapper);
-            }
-        }
-
-        #endregion
+        return exitCount == 2;
     }
-
-    #endregion
-
-    #region Methods
 
     /// <summary>
-    /// Applies to if-conditional conversion transformation.
+    /// Checks if a block can be converted as part of the chain.
     /// </summary>
-    protected override void PerformTransformation(
-        IRContext context,
-        Method.Builder builder)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool IsConvertibleBlock(
+        BasicBlock block,
+        BasicBlock entryBlock,
+        in Dominators<Forwards> dominators,
+        ValueSet<Method, BasicBlock> phiSources)
     {
-        // We change the control-flow structure during the transformation but
-        // need to get information about previous successors
-        builder.AcceptControlFlowUpdates(accept: true);
+        return block.TerminationKind == BlockTerminationKind.Conditional &&
+               dominators.Dominates(entryBlock, block) &&
+               block.Count <= maxBlockSize &&
+               !HasSideEffects(block) &&
+               !phiSources.Contains(block);
+    }
 
-        // Create the conditional analyzer to detect compatible block setups
-        var blocks = builder.SourceBlocks;
-        var analyzer = new ConditionalAnalyzer(blocks, maxBlockSize);
-
-        // Convert all ifs in post order
-        foreach (var block in blocks.AsOrder<PostOrder>())
+    /// <summary>
+    /// Checks if a block has side effects.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool HasSideEffects(BasicBlock block)
+    {
+        foreach (var value in block.Values)
         {
-            // Skip blocks that have been converted or cannot be converted
-            if (analyzer.CanConvert(builder, block, out var converter))
+            if (value is MemoryValue or MethodCall)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Finds the true exit block by following true branches.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static BasicBlock? FindTrueExit(
+        BasicBlock entryBlock,
+        HashSet<BasicBlock> innerBlocks,
+        HashSet<BasicBlock> exitBlocks)
+    {
+        var current = entryBlock;
+        var visited = new HashSet<BasicBlock>();
+
+        while (innerBlocks.Contains(current) && visited.Add(current))
+        {
+            if (!current.TryGetConditionalView(out var conditionalValue))
+                break;
+
+            current = conditionalValue.TrueTarget;
+            if (exitBlocks.Contains(current))
+                return current;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Checks if there are any local phi values in inner blocks.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool HasLocalPhis(HashSet<BasicBlock> innerBlocks)
+    {
+        // block.Values excludes phi values (see ValueCollectionEnumerator);
+        // check NumPhiValues directly instead.
+        foreach (var block in innerBlocks)
+        {
+            if (block.NumPhiValues > 0)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Finds phi values in exit blocks that reference the chain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static InlineList<PhiValue>? FindPhisToRemap(
+        HashSet<BasicBlock> innerBlocks,
+        HashSet<BasicBlock> exitBlocks,
+        BasicBlock trueExit)
+    {
+        var result = InlineList<PhiValue>.Create(2);
+
+        foreach (var exitBlock in exitBlocks)
+        {
+            // exitBlock.Values excludes phi values; use PhiValues instead.
+            foreach (PhiValue phi in exitBlock.PhiValues)
             {
-                // Apply the instantiated converter
-                converter.Convert();
+                // Check if this phi references blocks from the chain
+                bool hasChainSource = false;
+                foreach (var source in phi.Sources)
+                {
+                    if (innerBlocks.Contains(source))
+                    {
+                        hasChainSource = true;
+                        break;
+                    }
+                }
+
+                if (!hasChainSource)
+                    continue;
+
+                // Verify all inner sources have the same value
+                Value? trueValue = null;
+                Value? falseValue = null;
+                bool isTrueExit = exitBlock == trueExit;
+
+                for (int i = 0; i < phi.NumArguments; i++)
+                {
+                    var source = phi.Sources[i];
+                    if (!innerBlocks.Contains(source))
+                        continue;
+
+                    var phiValue = phi.GetValue<Value>(i);
+                    if (isTrueExit)
+                    {
+                        if (trueValue is not null && trueValue != phiValue)
+                            return null;
+                        trueValue = phiValue;
+                    }
+                    else
+                    {
+                        if (falseValue is not null && falseValue != phiValue)
+                            return null;
+                        falseValue = phiValue;
+                    }
+                }
+
+                result.Add(phi);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Performs the transformation by merging chains and creating compound conditions.
+    /// </summary>
+    protected override void OnTransform(MethodTransform transform)
+    {
+        base.OnTransform(transform);
+
+        // Transform all identified chains
+        foreach (var (entryBlock, chainInfo) in GetIntermediate(transform))
+            TransformChain(transform, entryBlock, chainInfo);
+    }
+
+    /// <summary>
+    /// Transforms a single if-chain into a compound boolean expression.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static void TransformChain(
+        MethodTransform transform,
+        BasicBlock entryBlock,
+        ChainInfo chainInfo)
+    {
+        // Get the entry block transform
+        var entryTransform = transform.GetBasicBlockTransform(entryBlock);
+
+        // Move all values from inner blocks to the entry block
+        var last = entryBlock.LastValue;
+        foreach (var block in chainInfo.InnerBlocks)
+        {
+            if (block == entryBlock)
+                continue;
+
+            if (block.FirstValue is not null)
+            {
+                transform.AppendTo(last, block.FirstValue);
+                last = block.LastValue;
+            }
+        }
+
+        // Build the compound condition recursively
+        if (!entryBlock.TryGetConditionalView(out var conditionalView))
+            return;
+
+        var condition = BuildCompoundCondition(
+            entryTransform,
+            entryBlock,
+            conditionalView,
+            chainInfo.InnerBlocks,
+            chainInfo.TrueExit,
+            chainInfo.FalseExit);
+
+        if (condition is null)
+            return;
+
+        // Set new conditional termination with compound condition
+        entryTransform.CreateConditionalTermination(
+            condition,
+            entryTransform.RewriteAs<BasicBlock>(chainInfo.TrueExit),
+            entryTransform.RewriteAs<BasicBlock>(chainInfo.FalseExit));
+
+        // Remap phi values - consolidate all inner block sources to entry block
+        // Since we verified in FindPhisToRemap that all inner sources have the same value,
+        // we can replace the phi with a simpler version that only has the entry block as source
+        RemapPhiValues(transform, chainInfo);
+    }
+
+    /// <summary>
+    /// Remaps phi values to consolidate inner block sources into the entry block.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static void RemapPhiValues(
+        MethodTransform transform,
+        ChainInfo chainInfo)
+    {
+        foreach (var phi in chainInfo.PhisToRemap)
+        {
+            // Find the value from inner blocks and external sources
+            Value? innerValue = null;
+            var externalSources = InlineList<(BasicBlock, Value)>.Create(phi.NumArguments);
+
+            for (int i = 0; i < phi.NumArguments; i++)
+            {
+                var source = phi.Sources[i];
+                var value = phi.GetValue<Value>(i);
+
+                if (chainInfo.InnerBlocks.Contains(source))
+                {
+                    // All inner sources have the same value (verified in FindPhisToRemap)
+                    innerValue ??= value;
+                }
+                else
+                {
+                    // Keep external sources as-is
+                    externalSources.Add((source, value));
+                }
+            }
+
+            // If we have inner sources, we need to create a new phi or replace it
+            if (innerValue is not null)
+            {
+                var exitTransform = transform.GetBasicBlockTransform(phi.BasicBlock);
+
+                // Create new phi with consolidated sources:
+                // - One source from the entry block (for all inner blocks)
+                // - Keep all external sources
+                var phiBuilder = exitTransform.CreatePhi(phi.Location, phi.Type);
+
+                // Add the consolidated inner source
+                var newEntryBlock = transform.GetBasicBlockTransform(chainInfo.EntryBlock).BasicBlock;
+                phiBuilder.AddArgument(
+                    newEntryBlock,
+                    transform.Rewrite(innerValue).AsNotNull());
+
+                // Add all external sources
+                foreach (var (source, value) in externalSources)
+                {
+                    var newSourceBlock = transform.GetBasicBlockTransform(source).BasicBlock;
+                    phiBuilder.AddArgument(
+                        newSourceBlock,
+                        transform.Rewrite(value).AsNotNull());
+                }
+
+                // Seal and replace the old phi
+                var newPhi = phiBuilder.Seal();
+                transform.Replace(phi, newPhi);
             }
         }
     }
 
-    #endregion
+    /// <summary>
+    /// Recursively builds a compound boolean condition from an if-chain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static Value? BuildCompoundCondition(
+        BasicBlockTransform blockTransform,
+        BasicBlock entryBlock,
+        ConditionalView conditionalView,
+        HashSet<BasicBlock> innerBlocks,
+        BasicBlock trueExit,
+        BasicBlock falseExit)
+    {
+        // Build condition recursively following the if-chain structure
+        // The old implementation built: (a & b & c) | (d & e & f)
+        return BuildConditionRecursive(
+            blockTransform,
+            conditionalView.TrueTarget,
+            conditionalView.FalseTarget,
+            blockTransform.Rewrite(entryBlock.TerminationCondition!),
+            null,
+            innerBlocks,
+            trueExit,
+            falseExit,
+            out _);
+    }
+
+    /// <summary>
+    /// Recursively builds conditions for the if-chain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static Value? BuildConditionRecursive(
+        BasicBlockTransform blockTransform,
+        BasicBlock trueTarget,
+        BasicBlock falseTarget,
+        Value? currentCondition,
+        Value? accumulatedExitCondition,
+        HashSet<BasicBlock> innerBlocks,
+        BasicBlock trueExit,
+        BasicBlock falseExit,
+        out Value? exitCondition)
+    {
+        exitCondition = accumulatedExitCondition;
+
+        // Check if we've reached an exit block
+        if (trueTarget == trueExit || trueTarget == falseExit)
+        {
+            // Update exit condition if we reached the true exit
+            if (trueTarget == trueExit && currentCondition is not null)
+            {
+                exitCondition = accumulatedExitCondition is null
+                    ? currentCondition
+                    : blockTransform.CreateArithmetic(
+                        currentCondition.Location,
+                        accumulatedExitCondition,
+                        currentCondition,
+                        BinaryArithmeticKind.Or);
+            }
+            return exitCondition;
+        }
+
+        // Continue traversing if this is an inner block
+        if (innerBlocks.Contains(trueTarget) &&
+            trueTarget.TryGetConditionalView(out var trueConditionalView))
+        {
+            var trueCondition = blockTransform.Rewrite(trueConditionalView.Condition);
+            var mergedTrue = currentCondition is not null && trueCondition is not null
+                ? blockTransform.CreateArithmetic(
+                    currentCondition.Location,
+                    currentCondition,
+                    trueCondition,
+                    BinaryArithmeticKind.And)
+                : trueCondition;
+
+            BuildConditionRecursive(
+                blockTransform,
+                trueConditionalView.TrueTarget,
+                trueConditionalView.FalseTarget,
+                mergedTrue,
+                exitCondition,
+                innerBlocks,
+                trueExit,
+                falseExit,
+                out exitCondition);
+        }
+
+        // Handle false target if needed
+        if (falseTarget != falseExit &&
+            innerBlocks.Contains(falseTarget) &&
+            falseTarget.TryGetConditionalView(out var falseConditionalView))
+        {
+            var falseCondition = blockTransform.Rewrite(falseConditionalView.Condition);
+            var notCondition = currentCondition is not null
+                ? blockTransform.CreateArithmetic(
+                    currentCondition.Location,
+                    currentCondition,
+                    UnaryArithmeticKind.Not)
+                : null;
+
+            var mergedFalse = notCondition is not null && falseCondition is not null
+                ? blockTransform.CreateArithmetic(
+                    notCondition.Location,
+                    notCondition,
+                    falseCondition,
+                    BinaryArithmeticKind.And)
+                : falseCondition;
+
+            BuildConditionRecursive(
+                blockTransform,
+                falseConditionalView.TrueTarget,
+                falseConditionalView.FalseTarget,
+                mergedFalse,
+                exitCondition,
+                innerBlocks,
+                trueExit,
+                falseExit,
+                out exitCondition);
+        }
+
+        return exitCondition;
+    }
 }

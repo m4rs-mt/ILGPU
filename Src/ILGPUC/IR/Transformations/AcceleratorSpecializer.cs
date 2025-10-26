@@ -10,12 +10,26 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
-using ILGPUC.Backends;
-using ILGPUC.IR.Rewriting;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 
 namespace ILGPUC.IR.Transformations;
+
+/// <summary>
+/// Specifies an architecture.
+/// </summary>
+/// <param name="Capabilities">The accelerator capabilities.</param>
+/// <param name="WarpSize">The warp size (if known).</param>
+/// <param name="Architecture">The accelerator architecture (or (0, 0)).</param>
+/// <param name="SupportsViews">True if this accelerator supports views.</param>
+sealed record class ArchitectureSpecification(
+    AcceleratorCapabilities Capabilities,
+    int? WarpSize,
+    AcceleratorArchitecture Architecture,
+    bool SupportsViews)
+{
+    public AcceleratorType AcceleratorType => Capabilities.AcceleratorType;
+}
 
 /// <summary>
 /// Represents a device specializer that instantiates device-specific constants
@@ -23,174 +37,96 @@ namespace ILGPUC.IR.Transformations;
 /// </summary>
 /// <remarks>
 /// Note that this class does not perform recursive specialization operations.
+/// Debug assertion and IO stripping is handled earlier by <see cref="DebugSetter"/>.
 /// </remarks>
-/// <param name="acceleratorType">The accelerator type.</param>
-/// <param name="warpSize">The warp size (if any).</param>
-/// <param name="intPointerType">The native integer pointer type.</param>
-/// <param name="enableAssertions">True, if the assertions are enabled.</param>
-/// <param name="enableIOOperations">True, if the IO is enabled.</param>
+/// <param name="args">The transformation args.</param>
+/// <param name="specification">The architecture specification.</param>
 sealed class AcceleratorSpecializer(
-    AcceleratorType acceleratorType,
-    int? warpSize,
-    PrimitiveType intPointerType,
-    bool enableAssertions,
-    bool enableIOOperations) : UnorderedTransformation
+    TransformationArgs args,
+    ArchitectureSpecification specification) :
+    Transformation(args)
 {
-    #region Nested Types and Static Methods
-
-    public static AcceleratorSpecializer Create(
-        Backend backend,
-        int? warpSize,
-        IRContext context) =>
-        new(
-            backend.AcceleratorType,
-            warpSize,
-            context.PointerType,
-            context.Properties.EnableAssertions,
-            context.Properties.EnableIOOperations);
+    private readonly bool _flushToZero = args.Properties.EnableMathFlushToZero;
+    private readonly bool _fastMath = args.Properties.MathMode != MathMode.Default;
+    private readonly TypeValue _intPointerType = args.Module.IntPointerType;
 
     /// <summary>
-    /// Temporary specializer data.
+    /// Maps accelerator-specific values.
     /// </summary>
-    private readonly struct SpecializerData(
-        AcceleratorSpecializer specializer,
-        IRContext context)
+    protected override void OnMap(ModuleTransform transform)
     {
-        /// <summary>
-        /// Returns the parent specializer instance.
-        /// </summary>
-        public AcceleratorSpecializer Specializer { get; } = specializer;
+        base.OnMap(transform);
 
-        /// <summary>
-        /// Returns the current IR context.
-        /// </summary>
-        public IRContext Context { get; } = context;
+        MapPureValue<AcceleratorTypeValue>(
+            (rewriter, value) => rewriter.Builder.CreatePrimitiveValue(
+                value.Location,
+                (int)specification.AcceleratorType));
+        MapPureValue<FastMathValue>(
+            (rewriter, value) => rewriter.Builder.CreatePrimitiveValue(
+                value.Location,
+                _fastMath));
+        MapPureValue<FlushToZeroValue>(
+            (rewriter, value) => rewriter.Builder.CreatePrimitiveValue(
+                value.Location,
+                _flushToZero));
+        MapPureValue<AcceleratorArchitectureValue>(
+            (rewriter, value) => rewriter.Builder.CreatePrimitiveValue(
+                value.Location,
+                (specification.Architecture.Major, specification.Architecture.Minor)));
 
-        /// <summary>
-        /// Returns the current accelerator type.
-        /// </summary>
-        public readonly AcceleratorType AcceleratorType =>
-            Specializer.AcceleratorType;
+        if (specification.WarpSize.HasValue)
+        {
+            MapPureValue<SubGroupDimensionValue>(
+                (rewriter, value) => rewriter.Builder.CreatePrimitiveValue(
+                    value.Location,
+                    specification.WarpSize.Value));
+        }
 
-        /// <summary>
-        /// Returns the current warp size (if any).
-        /// </summary>
-        public readonly int? WarpSize => Specializer.WarpSize;
-
-        /// <summary>
-        /// Returns the target-platform specific integer pointer type.
-        /// </summary>
-        public readonly PrimitiveType IntPointerType => Specializer.IntPointerType;
-
-        /// <summary>
-        /// Returns true if assertions are enabled.
-        /// </summary>
-        public readonly bool EnableAssertions => Specializer.EnableAssertions;
-
-        /// <summary>
-        /// Returns true if IO is enabled.
-        /// </summary>
-        public readonly bool EnableIOOperations => Specializer.EnableIOOperations;
+        MapPureValue<IntAsPointerCast>(Map);
+        MapPureValue<PointerAsIntCast>(Map);
     }
-
-    #endregion
-
-    #region Rewriter Methods
-
-    /// <summary>
-    /// Specializes accelerator-specific values.
-    /// </summary>
-    private static void Specialize(
-        RewriterContext context,
-        Value value,
-        int constant)
-    {
-        var newValue = context.Builder.CreatePrimitiveValue(
-            value.Location,
-            constant);
-        context.ReplaceAndRemove(value, newValue);
-    }
-
-    /// <summary>
-    /// Specializes accelerator-type values.
-    /// </summary>
-    private static void Specialize(
-        RewriterContext context,
-        SpecializerData data,
-        AcceleratorTypeValue value) =>
-        Specialize(context, value, (int)data.AcceleratorType);
-
-    /// <summary>
-    /// Specializes warp size values.
-    /// </summary>
-    private static void Specialize(
-        RewriterContext context,
-        SpecializerData data,
-        WarpSizeValue value)
-    {
-        var warpSizeValue = data.WarpSize;
-        if (!warpSizeValue.HasValue)
-            return;
-        Specialize(context, value, warpSizeValue.Value);
-    }
-
-    /// <summary>
-    /// Returns true if we have to adjust the source cast operation.
-    /// </summary>
-    private static bool CanSpecialize(
-        SpecializerData data,
-        IntAsPointerCast value) =>
-        value.SourceType != data.IntPointerType;
 
     /// <summary>
     /// Specializes int to native pointer casts.
     /// </summary>
-    private static void Specialize(
-        RewriterContext context,
-        SpecializerData data,
-        IntAsPointerCast value)
+    private Value? Map(PureValueTransform transform, IntAsPointerCast value)
     {
+        if (value.TargetType.Equals(_intPointerType))
+            return value;
+
         // Convert from int -> native int type -> pointer
-        var builder = context.Builder;
+        var builder = transform.Builder;
 
         // int -> native int type
         var convertToNativeInt = builder.CreateConvert(
             value.Location,
-            value.Value,
-            data.IntPointerType);
+            transform.Rewrite(value.Source),
+            transform.Rewrite(_intPointerType));
 
         // native int type -> pointer
         var convert = builder.CreateIntAsPointerCast(
             value.Location,
             convertToNativeInt);
 
-        context.ReplaceAndRemove(value, convert);
+        return convert;
     }
-
-    /// <summary>
-    /// Returns true if we have to adjust the source cast operation.
-    /// </summary>
-    private static bool CanSpecialize(
-        SpecializerData data,
-        PointerAsIntCast value) =>
-        value.TargetType != data.IntPointerType;
 
     /// <summary>
     /// Specializes native pointer to int casts.
     /// </summary>
-    private static void Specialize(
-        RewriterContext context,
-        SpecializerData data,
-        PointerAsIntCast value)
+    private Value? Map(PureValueTransform transform, PointerAsIntCast value)
     {
+        if (value.TargetType.Equals(_intPointerType))
+            return value;
+
         // Convert from ptr -> native int type -> desired int type
-        var builder = context.Builder;
+        var builder = transform.Builder;
 
         // ptr -> native int type
         var convertToNativeType = builder.CreatePointerAsIntCast(
             value.Location,
-            value.Value,
-            data.IntPointerType.BasicValueType);
+            transform.Rewrite(value.Source),
+            _intPointerType.BasicValueType);
 
         // native int type -> desired int type
         var convert = builder.CreateConvert(
@@ -198,100 +134,6 @@ sealed class AcceleratorSpecializer(
             convertToNativeType,
             value.TargetType);
 
-        context.ReplaceAndRemove(value, convert);
+        return convert;
     }
-
-    /// <summary>
-    /// Removes or collects debug operations.
-    /// </summary>
-    private static void Specialize(
-        RewriterContext context,
-        SpecializerData data,
-        DebugAssertOperation value)
-    {
-        if (!data.EnableAssertions)
-            context.Remove(value);
-    }
-
-    /// <summary>
-    /// Removes or collects IO operations.
-    /// </summary>
-    private static void Specialize(
-        RewriterContext context,
-        SpecializerData data,
-        WriteToOutput value)
-    {
-        if (!data.EnableIOOperations)
-            context.Remove(value);
-    }
-
-    #endregion
-
-    #region Rewriter
-
-    /// <summary>
-    /// The internal rewriter.
-    /// </summary>
-    private static readonly Rewriter<SpecializerData> Rewriter = new();
-
-    /// <summary>
-    /// Registers all rewriting patterns.
-    /// </summary>
-    static AcceleratorSpecializer()
-    {
-        Rewriter.Add<AcceleratorTypeValue>(Specialize);
-        Rewriter.Add<WarpSizeValue>(Specialize);
-
-        Rewriter.Add<DebugAssertOperation>(Specialize);
-        Rewriter.Add<WriteToOutput>(Specialize);
-
-        Rewriter.Add<IntAsPointerCast>(CanSpecialize, Specialize);
-        Rewriter.Add<PointerAsIntCast>(CanSpecialize, Specialize);
-    }
-
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// Returns the current accelerator type.
-    /// </summary>
-    public AcceleratorType AcceleratorType { get; } = acceleratorType;
-
-    /// <summary>
-    /// Returns the current warp size (if any).
-    /// </summary>
-    public int? WarpSize { get; } = warpSize;
-
-    /// <summary>
-    /// Returns the target-platform specific integer pointer type.
-    /// </summary>
-    public PrimitiveType IntPointerType { get; } = intPointerType;
-
-    /// <summary>
-    /// Returns true if assertions are enabled.
-    /// </summary>
-    public bool EnableAssertions { get; } = enableAssertions;
-
-    /// <summary>
-    /// Returns true if debug output is enabled.
-    /// </summary>
-    public bool EnableIOOperations { get; } = enableIOOperations;
-
-    #endregion
-
-    #region Methods
-
-    /// <summary>
-    /// Applies an accelerator-specialization transformation.
-    /// </summary>
-    protected override void PerformTransformation(
-        IRContext context,
-        Method.Builder builder)
-    {
-        var data = new SpecializerData(this, context);
-        Rewriter.Rewrite(builder.SourceBlocks, builder, data);
-    }
-
-    #endregion
 }
