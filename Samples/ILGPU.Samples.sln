@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.1.32319.34
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11111.16 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceInfo", "DeviceInfo\DeviceInfo.csproj", "{715584CD-87DA-4F1F-86C3-A3D9AB50EE53}"
 EndProject
@@ -134,6 +134,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Analyzers", "..\Src\ILGPU.Analyzers\ILGPU.Analyzers.csproj", "{1C5E9E39-3C14-4B52-8D97-04555D5F6331}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterleaveFields", "InterleaveFields\InterleaveFields.csproj", "{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicILInjectionKernel", "DynamicILInjectionKernel\DynamicILInjectionKernel.csproj", "{493A5D16-AE8D-5E0B-4CB1-4BA2F3A17099}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -381,6 +383,10 @@ Global
 		{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{493A5D16-AE8D-5E0B-4CB1-4BA2F3A17099}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{493A5D16-AE8D-5E0B-4CB1-4BA2F3A17099}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{493A5D16-AE8D-5E0B-4CB1-4BA2F3A17099}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{493A5D16-AE8D-5E0B-4CB1-4BA2F3A17099}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -449,6 +455,7 @@ Global
 		{70B69CE3-24A9-463C-B14C-E2934988BBEE} = {25BA2234-5778-40BC-9386-9CE87AB87D1F}
 		{1C5E9E39-3C14-4B52-8D97-04555D5F6331} = {03FCC663-945D-4982-90D8-B14BE52D8FCD}
 		{1E6D0BC6-CFA1-4F52-9EB9-CAA62DD2F33A} = {C1D99632-ED4A-4B08-A14D-4C8DB375934F}
+		{493A5D16-AE8D-5E0B-4CB1-4BA2F3A17099} = {C1D99632-ED4A-4B08-A14D-4C8DB375934F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {30E502BD-3826-417F-888F-1CE19CF5C6DA}
