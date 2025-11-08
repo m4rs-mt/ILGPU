@@ -38,7 +38,12 @@ enum MemoryAddressSpace : int
     /// <summary>
     /// Represents the local address space.
     /// </summary>
-    Local = 3
+    Local = 3,
+
+    /// <summary>
+    /// Represents the constant address space.
+    /// </summary>
+    Constant = 4,
 }
 
 /// <summary>
