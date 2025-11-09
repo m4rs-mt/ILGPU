@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPUC.IR;
+
 namespace ILGPUC.Frontend;
 
 partial class CodeGenerator
@@ -47,4 +49,28 @@ partial class CodeGenerator
     /// <param name="value">The value.</param>
     private void LoadString(string value) =>
         Block.Push(Builder.CreatePrimitiveValue(Location, value));
+
+    /// <summary>
+    /// Loads a typed null reference (<c>ldnull</c>).
+    /// </summary>
+    /// <remarks>
+    /// We push a fresh <see cref="IR.PureValues.NullValue"/> of a generic
+    /// <c>void*</c> pointer type. Using a non-primitive type means
+    /// <c>ModuleBuilder.CreateNull</c> returns a distinct instance rather
+    /// than folding to a shared <c>PrimitiveValue(0)</c>, so multiple
+    /// <c>ldnull</c> sites in one method don't collide in delegate tables.
+    /// The chief consumer is method-group delegate construction:
+    /// <c>ldnull ; ldftn Foo ; newobj Func&lt;&gt;::.ctor</c> — the null
+    /// flows into <see cref="MakeNewDelegate"/> to mark a static target.
+    /// Existing <see cref="MakeIntrinsicBranch"/> null-folding logic
+    /// automatically collapses the compiler-generated delegate-cache
+    /// diamond.
+    /// </remarks>
+    private void LoadNull()
+    {
+        var nullType = ModuleBuilder.CreatePointerType(
+            ModuleBuilder.VoidType,
+            MemoryAddressSpace.Generic);
+        Block.Push(Builder.CreateNull(Location, nullType));
+    }
 }
