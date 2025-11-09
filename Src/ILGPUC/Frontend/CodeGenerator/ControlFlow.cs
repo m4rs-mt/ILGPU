@@ -9,8 +9,9 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.MethodValues;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 
 namespace ILGPUC.Frontend;
 
@@ -21,18 +22,12 @@ partial class CodeGenerator
     /// </summary>
     private void MakeReturn()
     {
-        var returnType = MethodBuilder.Method.ReturnType;
+        var returnType = MethodBuilder.Method.Type;
 
-        if (returnType.IsVoidType)
-        {
-            Builder.CreateReturn(Location);
-        }
+        if (returnType is VoidType)
+            Builder.CreateReturnTermination();
         else
-        {
-            Builder.CreateReturn(
-                Location,
-                Block.Pop(returnType, ConvertFlags.None));
-        }
+            Builder.CreateReturnTermination(Block.Pop(returnType, ConvertFlags.None));
     }
 
     /// <summary>
@@ -40,8 +35,8 @@ partial class CodeGenerator
     /// </summary>
     private void MakeBranch()
     {
-        var targets = Block.GetBuilderTerminator(1);
-        Builder.CreateBranch(Location, targets[0]);
+        var successors = Block.GetPendingSuccessors(1);
+        Builder.CreateUnconditionalTermination(successors[0]);
     }
 
     /// <summary>
@@ -53,14 +48,13 @@ partial class CodeGenerator
         CompareKind compareKind,
         ILInstructionFlags instructionFlags)
     {
-        var targets = Block.GetBuilderTerminator(2);
+        var successors = Block.GetPendingSuccessors(2);
 
         var condition = CreateCompare(compareKind, instructionFlags);
-        Builder.CreateIfBranch(
-            Location,
+        Builder.CreateConditionalTermination(
             condition,
-            targets[0],
-            targets[1]);
+            successors[0],
+            successors[1]);
     }
 
     /// <summary>
@@ -69,24 +63,76 @@ partial class CodeGenerator
     /// <param name="kind">The current compare kind.</param>
     private void MakeIntrinsicBranch(CompareKind kind)
     {
-        var targets = Block.GetBuilderTerminator(2);
-
         var comparisonValue = Block.PopCompareValue(Location, ConvertFlags.None);
-        var rightValue = Builder.CreatePrimitiveValue(
-            Location,
-            comparisonValue.BasicValueType,
-            0);
+
+        var successors = Block.GetPendingSuccessors(2);
+
+        // Delegate caching pattern: when the comparison value is a NullValue
+        // (from compiler-generated closure class field loads), the comparison
+        // `null != null` is always false. Fold directly to an unconditional
+        // branch and clean up the dead target's predecessor edges.
+        if (comparisonValue is NullValue)
+        {
+            // brtrue (NotEqual): null != 0 -> false -> take false branch
+            // brfalse (Equal): null == 0 -> true -> take true branch
+            bool isTrue = kind != CompareKind.NotEqual;
+            var liveTarget = isTrue ? successors[0] : successors[1];
+            var deadTarget = isTrue ? successors[1] : successors[0];
+
+            Builder.CreateUnconditionalTermination(liveTarget);
+
+            // The CFGBuilder's SetupPredecessors wired edges based on the
+            // pending termination which included both targets. Now that the
+            // branch is folded, remove the dead edge and propagate to any
+            // blocks that become unreachable.
+            CleanupDeadPredecessorEdge(Block.BasicBlock, deadTarget);
+            return;
+        }
+
+        // For pointer types, compare against a null of the same pointer type
+        // instead of a primitive zero to avoid Int64 → ptr conversion failures.
+        var rightValue = comparisonValue.Type is AddressSpaceType
+            ? Builder.CreateNull(Location, comparisonValue.Type)
+            : Builder.CreatePrimitiveValue(
+                Location,
+                comparisonValue.BasicValueType,
+                0);
 
         var condition = CreateCompare(
             comparisonValue,
             rightValue,
             kind,
             CompareFlags.None);
-        Builder.CreateIfBranch(
-            Location,
+        Builder.CreateConditionalTermination(
             condition,
-            targets[0],
-            targets[1]);
+            successors[0],
+            successors[1]);
+    }
+
+    /// <summary>
+    /// Cleans up predecessor edges after a branch is folded to unconditional.
+    /// Removes <paramref name="source"/> from <paramref name="deadTarget"/>'s
+    /// predecessors, then propagates: if a block becomes unreachable (zero
+    /// predecessors and not the method entry), its own successor edges are
+    /// also removed.
+    /// </summary>
+    /// <param name="source">The block whose branch was folded.</param>
+    /// <param name="deadTarget">The target that is no longer branched to.</param>
+    private static void CleanupDeadPredecessorEdge(
+        BasicBlock source,
+        BasicBlock deadTarget)
+    {
+        deadTarget.RemovePredecessor(source);
+
+        // If the dead target still has other predecessors it's reachable
+        // through another path — nothing more to do.
+        if (deadTarget.Predecessors.Length > 0)
+            return;
+
+        // The block is now unreachable. Remove it as a predecessor from
+        // all of its successors (propagate transitively).
+        foreach (var successor in deadTarget.Successors)
+            CleanupDeadPredecessorEdge(deadTarget, successor);
     }
 
     /// <summary>
@@ -105,13 +151,17 @@ partial class CodeGenerator
     /// <param name="branchTargets">All switch branch targets.</param>
     private void MakeSwitch(ILInstructionBranchTargets branchTargets)
     {
-        var targets = Block.GetBuilderTerminator(branchTargets.Count);
+        var successors = Block.GetPendingSuccessors(branchTargets.Count);
 
         var switchValue = Block.PopInt(Location, ConvertFlags.TargetUnsigned);
-        var targetList = targets.ToInlineList();
-        Builder.CreateSwitchBranch(
-            Location,
+
+        // Create switch termination with default (first) and cases (rest)
+        var switchBuilder = Builder.CreateSwitchTermination(
             switchValue,
-            ref targetList);
+            capacity: successors.Length);
+        switchBuilder.AddDefault(successors[0]);
+        for (int i = 1; i < successors.Length; i++)
+            switchBuilder.AddCase(successors[i]);
+        switchBuilder.Seal();
     }
 }
