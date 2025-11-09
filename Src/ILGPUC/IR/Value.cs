@@ -11,46 +11,47 @@
 
 using ILGPU.Resources;
 using ILGPU.Util;
-using ILGPUC.IR.Construction;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Runtime.CompilerServices;
-using UseList = ILGPU.Util.InlineList<ILGPUC.IR.Values.Use>;
-using ValueList = ILGPU.Util.InlineList<ILGPUC.IR.Values.ValueReference>;
+using UseList = ILGPU.Util.InlineList<ILGPUC.IR.Use>;
+using ValueList = ILGPU.Util.InlineList<ILGPUC.IR.Value>;
 
 namespace ILGPUC.IR;
 
 /// <summary>
 /// The base interface of all values.
 /// </summary>
-interface IValue : INode
+interface IValue : ILocation, IDumpable, IGenerationObject
 {
+    /// <summary>
+    /// Returns the unique value id.
+    /// </summary>
+    ValueId Id { get; }
+
     /// <summary>
     /// Returns the current value kind.
     /// </summary>
     ValueKind ValueKind { get; }
 
     /// <summary>
-    /// Returns the associated type information.
+    /// Returns the current value class.
     /// </summary>
-    TypeNode Type { get; }
+    ValueClass ValueClass { get; }
 
     /// <summary>
-    /// Returns the parent basic block.
+    /// Returns the type of this value.
     /// </summary>
-    BasicBlock BasicBlock { get; }
+    TypeValue Type { get; }
 
     /// <summary>
-    /// Returns the associated basic value type.
+    /// Returns all nested child values.
     /// </summary>
-    BasicValueType BasicValueType { get; }
-
-    /// <summary>
-    /// Returns all associated nodes.
-    /// </summary>
-    ReadOnlySpan<ValueReference> Nodes { get; }
+    ReadOnlySpan<Value> Values { get; }
 
     /// <summary>
     /// Returns all associated uses.
@@ -58,24 +59,9 @@ interface IValue : INode
     UseCollection Uses { get; }
 
     /// <summary>
-    /// Resolves the actual value with respect to
-    /// replacement information.
+    /// Returns the number of uses.
     /// </summary>
-    /// <returns>The actual value.</returns>
-    Value Resolve();
-
-    /// <summary>
-    /// Resolves the actual value with respect to replacement information.
-    /// </summary>
-    /// <typeparam name="T">The target type.</typeparam>
-    /// <returns>The actual value.</returns>
-    T? ResolveAs<T>() where T : Value;
-
-    /// <summary>
-    /// Replaces this value with the given value.
-    /// </summary>
-    /// <param name="other">The other value.</param>
-    void Replace(Value other);
+    int NumUses { get; }
 
     /// <summary>
     /// Accepts the given visitor.
@@ -86,245 +72,129 @@ interface IValue : INode
 }
 
 /// <summary>
-/// Contains extension methods for values.
+/// The base interface of all values in a specific scope.
 /// </summary>
-static class ValueExtensions
+/// <typeparam name="TScope">The scope marker type.</typeparam>
+interface IValue<TScope> : IValue where TScope : class, IValueScope
 {
     /// <summary>
-    /// Returns true if the given value is a primitive value.
+    /// Returns the parent scope.
     /// </summary>
-    /// <typeparam name="T">The value type.</typeparam>
-    /// <param name="value">The value to test.</param>
-    /// <returns>True, if the given value is a primitive value.</returns>
-    public static bool IsPrimitive<T>(this T value)
-        where T : IValue =>
-        value.Resolve() is PrimitiveValue;
-
-    /// <summary>
-    /// Returns true if the given value is a primitive value with the specified raw
-    /// value.
-    /// </summary>
-    /// <typeparam name="T">The value type.</typeparam>
-    /// <param name="value">The value to test.</param>
-    /// <param name="rawValue">The expected raw value.</param>
-    /// <returns>
-    /// True, if the given value is a primitive value with the specified raw value.
-    /// </returns>
-    public static bool IsPrimitive<T>(this T value, long rawValue)
-        where T : IValue =>
-        value.Resolve() is PrimitiveValue primitive &&
-        primitive.RawValue == rawValue;
-
-    /// <summary>
-    /// Returns true if the given value is an instantiated constant value.
-    /// </summary>
-    /// <typeparam name="T">The value type.</typeparam>
-    /// <param name="value">The value to test.</param>
-    /// <returns>
-    /// True, if the given value is an instantiated constant value.
-    /// </returns>
-    public static bool IsInstantiatedConstant<T>(this T value)
-        where T : IValue =>
-        value.Resolve() is ConstantNode;
-
-    /// <summary>
-    /// Returns true if the given value is a device constant value.
-    /// </summary>
-    /// <typeparam name="T">The value type.</typeparam>
-    /// <param name="value">The value to test.</param>
-    /// <returns>True, if the given value is a device constant value.</returns>
-    public static bool IsDeviceConstant<T>(this T value)
-        where T : IValue =>
-        value.Resolve() is DeviceConstantValue;
+    TScope Scope { get; }
 }
 
 /// <summary>
-/// Flags that can be associated with every value.
+/// The base interface of all values.
 /// </summary>
-[Flags]
-enum ValueFlags : int
+interface IValueInformation
 {
     /// <summary>
-    /// The default flags.
+    /// Returns the current value kind.
     /// </summary>
-    None,
+    static abstract ValueKind ValueKind { get; }
 
     /// <summary>
-    /// The value cannot be replaced.
+    /// Returns the current value group.
     /// </summary>
-    NotReplaceable = 1 << 0,
+    static abstract ValueGroup ValueGroup { get; }
+}
 
+/// <summary>
+/// The base interface of class values.
+/// </summary>
+interface IValueClassInformation
+{
     /// <summary>
-    /// The value cannot have uses.
+    /// Returns the value class.
     /// </summary>
-    NoUses = 1 << 1,
-
-    /// <summary>
-    /// Static type
-    /// </summary>
-    StaticType = 1 << 2,
-
-    /// <summary>
-    /// The value has been sealed.
-    /// </summary>
-    IsSealed = 1 << 3,
+    static abstract ValueClass ValueClass { get; }
 }
 
 /// <summary>
 /// A general value initializer.
 /// </summary>
-readonly struct ValueInitializer : ILocation
+/// <param name="Module">The parent module instance.</param>
+/// <param name="Location">The associated location.</param>
+readonly record struct ValueInitializer(Module Module, Location Location) : ILocation
 {
-    #region Instance
-
-    /// <summary>
-    /// Constructs a new value initializer.
-    /// </summary>
-    /// <param name="context">The context reference.</param>
-    /// <param name="parent">The associated parent.</param>
-    /// <param name="location">The current location.</param>
-    public ValueInitializer(
-        IRBaseContext context,
-        ValueParent? parent,
-        Location location)
-    {
-        // Enforce a valid location in all cases
-        Locations.AssertNotNull(location, location);
-
-        Context = context;
-        Parent = parent;
-        Location = location;
-    }
-
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// Returns the parent context reference.
-    /// </summary>
-    public IRBaseContext Context { get; }
-
-    /// <summary>
-    /// Returns the associated parent.
-    /// </summary>
-    public ValueParent? Parent { get; }
-
-    /// <summary>
-    /// Returns the associated location.
-    /// </summary>
-    public Location Location { get; }
-
-    #endregion
-
-    #region ILocation
-
     /// <summary>
     /// Formats an error message to include specific location information.
     /// </summary>
     string ILocation.FormatErrorMessage(string message) =>
         Location.FormatErrorMessage(message);
-
-    #endregion
 }
 
+// TODO: Implement global lookup key!!
+// Alternatively: support local lookup key with offsets given
+
 /// <summary>
-/// Represents a basic intermediate-representation value.
-/// It is the base class for all values in the scope of this IR.
+/// Represents a scoped value parent.
 /// </summary>
-abstract class Value : Node, IValue, IEquatable<Value>
+interface IValueScope : IGenerationObject;
+
+/// <summary>
+/// Represents a basic intermediate-representation node.
+/// It is the base class for all nodes in the scope of this IR.
+/// </summary>
+/// <param name="initializer">The current initializer.</param>
+/// <param name="type">
+/// The type to use (not part of the generic initializer provided).
+/// </param>
+abstract class Value(in ValueInitializer initializer, TypeValue type) : IValue
 {
-    #region Constants
+    #region Static
 
     /// <summary>
-    /// The default value flags.
+    /// Compares two nodes according to their id.
     /// </summary>
-    public const ValueFlags DefaultFlags = ValueFlags.None;
+    internal static readonly Comparison<Value> Comparison =
+        (first, second) => first.Id.CompareTo(second.Id);
+
+    /// <summary>
+    /// Compares two nodes according to their id.
+    /// </summary>
+    internal readonly struct Comparer : IEqualityComparer<Value>
+    {
+        public bool Equals(Value? x, Value? y) => x?.Id == y?.Id;
+        public int GetHashCode([DisallowNull] Value obj) => obj.Id.GetHashCode();
+    }
 
     #endregion
 
     #region Instance
 
     /// <summary>
-    /// The current parent container.
-    /// </summary>
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ValueParent? parent;
-
-    /// <summary>
-    /// The current node type.
-    /// </summary>
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private TypeNode? type;
-
-    /// <summary>
     /// The list of all values.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ValueList values;
+    private ValueList _values = ValueList.Empty;
 
-    /// <summary>
-    /// The collection of all uses.
-    /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private UseList uses;
-
-    /// <summary>
-    /// Constructs a new value that is marked as replaceable.
-    /// </summary>
-    /// <param name="initializer">The value initializer.</param>
-    protected Value(in ValueInitializer initializer)
-        : this(initializer, ValueFlags.None)
-    { }
-
-    /// <summary>
-    /// Constructs a new value that is marked as replaceable.
-    /// </summary>
-    /// <param name="initializer">The value initializer.</param>
-    /// <param name="staticType">The static type.</param>
-    protected Value(
-        in ValueInitializer initializer,
-        TypeNode staticType)
-        : this(initializer, ValueFlags.None, staticType)
-    { }
-
-    /// <summary>
-    /// Constructs a new value that is marked as replaceable.
-    /// </summary>
-    /// <param name="initializer">The value initializer.</param>
-    /// <param name="valueFlags">The value flags.</param>
-    protected Value(
-        in ValueInitializer initializer,
-        ValueFlags valueFlags)
-        : this(initializer, valueFlags, null)
-    { }
-
-    /// <summary>
-    /// Constructs a new value that is marked as replaceable.
-    /// </summary>
-    /// <param name="initializer">The value initializer.</param>
-    /// <param name="valueFlags">The value flags.</param>
-    /// <param name="staticType">The static type (if any).</param>
-    protected Value(
-        in ValueInitializer initializer,
-        ValueFlags valueFlags,
-        TypeNode? staticType)
-        : base(initializer.Location)
-    {
-        parent = initializer.Parent;
-        type = staticType;
-        values = ValueList.Empty;
-        uses = UseList.Empty;
-
-        if (staticType != null)
-            valueFlags |= ValueFlags.StaticType;
-        ValueFlags = valueFlags;
-        Replacement = this;
-    }
+    private UseList _uses = UseList.Create(4);
 
     #endregion
 
     #region Properties
+
+    /// <summary>
+    /// Returns the unique node id.
+    /// </summary>
+    public ValueId Id { get; } = ValueId.CreateNew();
+
+    /// <summary>
+    /// Returns the parent module.
+    /// </summary>
+    public Module Module { get; } = initializer.Module;
+
+    /// <summary>
+    /// Returns the current generation.
+    /// </summary>
+    public Generation Generation => Module.Generation;
+
+    /// <summary>
+    /// Returns the associated location.
+    /// </summary>
+    public Location Location { get; private set; } = initializer.Location;
 
     /// <summary>
     /// Returns the current value kind.
@@ -337,185 +207,167 @@ abstract class Value : Node, IValue, IEquatable<Value>
     public abstract ValueGroup ValueGroup { get; }
 
     /// <summary>
-    /// Returns the parent method.
+    /// Returns the current value class.
     /// </summary>
-    public Method Method =>
-        parent is BasicBlock basicBlock
-        ? basicBlock.Method
-        : parent.AsNotNullCast<Method>();
+    public abstract ValueClass ValueClass { get; }
 
     /// <summary>
-    /// Returns the parent basic block.
+    /// Returns the associated type information.
     /// </summary>
-    public BasicBlock BasicBlock
-    {
-        get => parent.AsNotNullCast<BasicBlock>();
-        internal set
-        {
-            this.Assert(value.IsBasicBlock);
-            parent = value;
-        }
-    }
-
-    /// <summary>
-    /// Returns the associated type.
-    /// </summary>
-    public TypeNode Type
-    {
-        get
-        {
-            if (type == null)
-            {
-                this.Assert(!HasStaticType);
-                type = ComputeType(new ValueInitializer(
-                    Method.BaseContext,
-                    parent,
-                    Location));
-            }
-            return type;
-        }
-    }
+    public TypeValue Type { get; private set; } = type;
 
     /// <summary>
     /// Returns the associated basic value type.
     /// </summary>
-    public BasicValueType BasicValueType =>
-        Type != null ? Type.BasicValueType : BasicValueType.None;
-
-    /// <summary>
-    /// Returns the associated value flags.
-    /// </summary>
-    public ValueFlags ValueFlags { get; private set; }
-
-    /// <summary>
-    /// Returns true if the current value can be replaced.
-    /// </summary>
-    public bool CanBeReplaced =>
-        (ValueFlags & ValueFlags.NotReplaceable) != ValueFlags.NotReplaceable;
-    /// <summary>
-    /// Returns true if the current value can have uses.
-    /// </summary>
-    public bool CanHaveUses =>
-        (ValueFlags & ValueFlags.NoUses) != ValueFlags.NoUses;
-
-    /// <summary>
-    /// Returns true if the current value has a static type.
-    /// </summary>
-    public bool HasStaticType =>
-        (ValueFlags & ValueFlags.StaticType) != ValueFlags.None;
-
-    /// <summary>
-    /// Returns true if the current value has been sealed.
-    /// </summary>
-    public bool IsSealed =>
-        (ValueFlags & ValueFlags.IsSealed) != ValueFlags.None;
-
-    /// <summary>
-    /// Returns the replacement of this value (if any).
-    /// </summary>
-    public Value Replacement { get; private set; }
-
-    /// <summary>
-    /// Returns true if the current value has been replaced.
-    /// </summary>
-    public bool IsReplaced => CanBeReplaced & Replacement != this;
-
-    /// <summary>
-    /// Returns all child values.
-    /// </summary>
-    [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-    public ReadOnlySpan<ValueReference> Nodes => values;
+    public BasicValueType BasicValueType { get; private set; } =
+        type?.BasicValueType ?? BasicValueType.None;
 
     /// <summary>
     /// Returns the number of child values.
     /// </summary>
-    public int Count => values.Count;
+    public int Count => _values.Count;
 
     /// <summary>
-    /// Returns the total number of all associated uses.
+    /// Exposes stored child values as span.
     /// </summary>
-    [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-    public int AllNumUses => uses.Count;
-
-    /// <summary>
-    /// Returns all current uses (to non-replaced values).
-    /// </summary>
-    [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-    public UseCollection Uses => new UseCollection(this, uses);
-
-    /// <summary>
-    /// Accesses the child value with the given index.
-    /// </summary>
-    /// <param name="index">The child-value index.</param>
-    /// <returns>The resolved child value.</returns>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public ValueReference this[int index] => Nodes[index];
+    public ReadOnlySpan<Value> Values => _values;
+
+    /// <inheritdoc/>
+    public UseCollection Uses => new(this, _uses);
+
+    /// <summary>
+    /// Returns the number of uses.
+    /// </summary>
+    public int NumUses => _uses.Count;
+
+    /// <summary>
+    /// Returns the number of uses.
+    /// </summary>
+    public bool HasUses => NumUses > 0;
+
+    /// <summary>
+    /// Returns true if the current value has been sealed.
+    /// </summary>
+    public bool IsSealed { get; private set; }
 
     #endregion
 
     #region Methods
 
     /// <summary>
-    /// Performs a GC run on this value.
+    /// Overwrites internally stored types.
     /// </summary>
-    internal void GC()
+    /// <param name="typeValue">The type value to use.</param>
+    /// <param name="basicValueType">The basic value type to use.</param>
+    protected void OverwriteType(
+        TypeValue? typeValue = null,
+        BasicValueType? basicValueType = null)
     {
-        // Refresh all value references
-        var newNodes = ValueList.Create(values.Count);
-        foreach (var node in Nodes)
-            newNodes.Add(node.Refresh());
-        newNodes.MoveTo(ref values);
-
-        // Cleanup all uses
-        var newUses = UseList.Create(uses.Count);
-        foreach (var use in uses)
-        {
-            if (!use.Target.IsReplaced)
-                newUses.Add(use);
-        }
-        newUses.MoveTo(ref uses);
+        Type = typeValue ?? Type;
+        BasicValueType = basicValueType ?? typeValue?.BasicValueType ?? BasicValueType;
     }
 
     /// <summary>
-    /// Resolves the first use.
+    /// Returns the n-th value.
     /// </summary>
-    /// <returns>The first use.</returns>
-    public Use GetFirstUse()
-    {
-        var enumerator = uses.GetEnumerator();
-        return enumerator.MoveNext()
-            ? enumerator.Current
-            : throw new InvalidOperationException(ErrorMessages.NoUses);
-    }
-
-    /// <summary>
-    /// Resolves the first use as value.
-    /// </summary>
-    /// <returns>The first use as value.</returns>
-    public Value GetFirstUseNode() => GetFirstUse().Resolve();
-
-    /// <summary>
-    /// Adds the given use to the use set.
-    /// </summary>
-    /// <param name="target">The target value.</param>
-    /// <param name="useIndex">The use index.</param>
-    private void AddUse(Value target, int useIndex)
-    {
-        this.AssertNotNull(target);
-        this.Assert(CanHaveUses && useIndex >= 0);
-        uses.Add(new Use(target, useIndex));
-    }
-
-    /// <summary>
-    /// Invalidates the current type and enforces a re-computation of the current
-    /// type.
-    /// </summary>
+    /// <typeparam name="T">The target type.</typeparam>
+    /// <param name="index">The value index.</param>
+    /// <returns>The n-th value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void InvalidateType()
+    public T GetValue<T>(int index) where T : Value =>
+        _values[index].AsNotNullCast<T>();
+
+    /// <summary>
+    /// Returns the assigned type.
+    /// </summary>
+    /// <typeparam name="T">The value-type target type.</typeparam>
+    /// <returns>The type of this value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T GetTypeAs<T>() where T : TypeValue => Type.As<T>();
+
+    /// <summary>
+    /// Returns the index of the given value (if any).
+    /// </summary>
+    /// <param name="value">The value to look for.</param>
+    /// <returns>
+    /// The index of the given value or -1 in case the value cannot be found.
+    /// </returns>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public int IndexOf(Value value)
     {
-        if (!HasStaticType)
-            type = null;
+        var nativeSpan = Values;
+        for (int i = 0; i < nativeSpan.Length; ++i)
+        {
+            if (nativeSpan[i] == value)
+                return i;
+        }
+
+        return -1;
     }
+
+    /// <summary>
+    /// Returns true if the given value is a primitive value with the specified raw
+    /// value.
+    /// </summary>
+    /// <param name="rawValue">The expected raw value.</param>
+    /// <returns>
+    /// True if the given value is a primitive value with the specified raw value.
+    /// </returns>
+    public virtual bool IsPrimitiveValue(long rawValue) => false;
+
+    /// <summary>
+    /// Registers the given use with this value.
+    /// </summary>
+    /// <param name="use">The use to add.</param>
+    protected internal void AddUseInternal(Use use) => _uses.Add(use);
+
+    /// <summary>
+    /// Computes uses and adds them to the target values for reference.
+    /// </summary>
+    /// <remarks>This operation is thread safe.</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public virtual bool ComputeUses(GlobalValueSet visited)
+    {
+        if (!visited.Add(this)) return false;
+        if (!IsSealed)
+        {
+            throw new InvalidOperationException(
+                $"[ComputeUses] Value has not been sealed: " +
+                $"type={GetType().Name}, val={ToReferenceString()}, gen={Generation}");
+        }
+
+        // Declare our uses and mark our node as processed
+        var values = _values.AsReadOnlySpan();
+        for (int i = 0; i < values.Length; ++i)
+            values[i].AddUseInternal(new(this, i));
+
+        // Define all uses recursively
+        foreach (var value in values)
+            value.ComputeUses(visited);
+
+        // Recurse into types
+        Type.ComputeUses(visited);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Formats an error message to include specific exception information.
+    /// </summary>
+    /// <param name="message">The source error message.</param>
+    /// <returns>The formatted error message.</returns>
+    public virtual string FormatErrorMessage(string message) =>
+        Location.FormatErrorMessage(message);
+
+    /// <summary>
+    /// Dumps this method to the given text writer.
+    /// </summary>
+    /// <param name="textWriter">The text writer.</param>
+    public virtual void Dump(TextWriter textWriter) =>
+        textWriter.WriteLine(ToString());
 
     /// <summary>
     /// Accepts the given visitor.
@@ -526,28 +378,56 @@ abstract class Value : Node, IValue, IEquatable<Value>
         where TVisitor : IValueVisitor;
 
     /// <summary>
-    /// Computes the current type.
+    /// Resolves the first use.
     /// </summary>
-    /// <param name="initializer">The value initializer.</param>
-    /// <returns>The resolved type node.</returns>
-    protected virtual TypeNode ComputeType(in ValueInitializer initializer) =>
-        throw new InvalidOperationException();
+    /// <returns>The first use.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Use GetFirstUse()
+    {
+        var enumerator = Uses.GetEnumerator();
+        return enumerator.MoveNext()
+            ? enumerator.Current
+            : throw new InvalidOperationException(ErrorMessages.NoUses);
+    }
 
     /// <summary>
-    /// Rebuilds the current value in the scope of the given rebuilder.
+    /// Invokes the callback for every use of the given value type.
     /// </summary>
-    /// <param name="builder">The builder to use.</param>
-    /// <param name="rebuilder">The rebuilder to use.</param>
-    /// <returns>The rebuilt value.</returns>
-    protected internal abstract Value Rebuild(
-        IRBuilder builder,
-        IRRebuilder rebuilder);
+    /// <typeparam name="TValue">The value type.</typeparam>
+    /// <param name="callback">
+    /// The callback to be invoked for a use of the given value type.
+    /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ForEachUseOf<TValue>(Action<TValue> callback)
+        where TValue : Value =>
+        Uses.ForEachUseOf(callback);
 
     /// <summary>
-    /// Verifies that the this value is not sealed.
+    /// Adds a new node as a child to this value.
     /// </summary>
-    protected void VerifyNotSealed() =>
-        Debug.Assert(!IsSealed, "Value has been sealed");
+    /// <param name="value">The node to add.</param>
+    private void AddValue(Value value)
+    {
+        // Verify generation
+        Generation.ValidateCurrentOrPreviousGeneration(value);
+
+        // Register value
+        _values.Add(value);
+    }
+
+    /// <summary>
+    /// Infers the location (if required) of the current node.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="elements">Elements we can infer the location from.</param>
+    protected void InferLocation<T>(ReadOnlySpan<T> elements)
+        where T : Value
+    {
+        if (Location.IsKnown)
+            return;
+        foreach (var element in elements)
+            Location = Location.Merge(Location, element.Location);
+    }
 
     /// <summary>
     /// Seals this value.
@@ -555,30 +435,29 @@ abstract class Value : Node, IValue, IEquatable<Value>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void Seal()
     {
-        VerifyNotSealed();
-        ValueFlags |= ValueFlags.IsSealed;
+        // Verify sealing process
+        Debug.Assert(!IsSealed, "Value has already been sealed");
+        IsSealed = true;
 
-        // Wire uses
-        for (int i = 0, e = values.Count; i < e; ++i)
-        {
-            Value value = values[i];
-            if (value.CanHaveUses)
-                value.AddUse(this, i);
-        }
+        // Register the final type node use
+        Type.AddUseInternal(new Use(this));
 
-        InferLocation(Nodes);
+        // Infer location
+        InferLocation<Value>(_values);
     }
 
     /// <summary>
     /// Seals this value.
     /// </summary>
     /// <param name="value1">The first child node.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void Seal(ValueReference value1)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    protected void Seal(Value value1)
     {
-        values.Reserve(1);
+        _values.Reserve(1);
 
-        values.Add(value1);
+        AddValue(value1);
 
         Seal();
     }
@@ -588,13 +467,15 @@ abstract class Value : Node, IValue, IEquatable<Value>
     /// </summary>
     /// <param name="value1">The first child node.</param>
     /// <param name="value2">The second child node.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void Seal(ValueReference value1, ValueReference value2)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    protected void Seal(Value value1, Value value2)
     {
-        values.Reserve(2);
+        _values.Reserve(2);
 
-        values.Add(value1);
-        values.Add(value2);
+        AddValue(value1);
+        AddValue(value2);
 
         Seal();
     }
@@ -605,17 +486,16 @@ abstract class Value : Node, IValue, IEquatable<Value>
     /// <param name="value1">The first child node.</param>
     /// <param name="value2">The second child node.</param>
     /// <param name="value3">The third child node.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void Seal(
-        ValueReference value1,
-        ValueReference value2,
-        ValueReference value3)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    protected void Seal(Value value1, Value value2, Value value3)
     {
-        values.Reserve(3);
+        _values.Reserve(3);
 
-        values.Add(value1);
-        values.Add(value2);
-        values.Add(value3);
+        AddValue(value1);
+        AddValue(value2);
+        AddValue(value3);
 
         Seal();
     }
@@ -624,86 +504,16 @@ abstract class Value : Node, IValue, IEquatable<Value>
     /// Seals this value.
     /// </summary>
     /// <param name="valueList">The nested child nodes.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void Seal(ref ValueList valueList)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    protected void Seal(ref ValueBuilderList valueList)
     {
-        VerifyNotSealed();
-        valueList.MoveTo(ref values);
+        // Move value list for performance reasons
+        valueList.MoveTo(ref _values);
 
         Seal();
     }
-
-    /// <summary>
-    /// Replaces this value with the given value.
-    /// </summary>
-    /// <param name="other">The other value.</param>
-    public void Replace(Value other)
-    {
-        this.AssertNotNull(other);
-        this.Assert(CanBeReplaced && !IsReplaced);
-
-        var target = other.Resolve();
-        this.Assert(target != this);
-        Replacement = target;
-
-        if (target.CanHaveUses)
-        {
-            // Propagate uses
-            foreach (var use in uses)
-                Replacement.AddUse(use.Target, use.Index);
-        }
-
-        // Notify nodes
-        foreach (var use in uses)
-            use.Target.OnReplacedNode();
-    }
-
-    /// <summary>
-    /// Invoked when an attached node is replaced.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void OnReplacedNode() => InvalidateType();
-
-    /// <summary>
-    /// Resolves the actual value with respect to replacement information.
-    /// </summary>
-    /// <returns>The actual value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Value Resolve()
-    {
-        if (IsReplaced)
-            Replacement = Replacement.Resolve();
-        return Replacement;
-    }
-
-    /// <summary>
-    /// Resolves the actual value with respect to replacement information.
-    /// </summary>
-    /// <typeparam name="T">The target type.</typeparam>
-    /// <returns>The actual value.</returns>
-    public T? ResolveAs<T>() where T : Value => Resolve() as T;
-
-    #endregion
-
-    #region IEquatable
-
-    /// <summary>
-    /// Returns true if the given value is the same value.
-    /// </summary>
-    /// <param name="other">The other value.</param>
-    /// <returns>True, if the given value is the same value.</returns>
-    public bool Equals(Value? other) => other == this;
-
-    #endregion
-
-    #region IEnumerable
-
-    /// <summary>
-    /// Returns an enumerator to enumerate all child values.
-    /// </summary>
-    /// <returns>An enumerator to enumerate all child values.</returns>
-    public ReadOnlySpan<ValueReference>.Enumerator GetEnumerator() =>
-        Nodes.GetEnumerator();
 
     #endregion
 
@@ -713,14 +523,33 @@ abstract class Value : Node, IValue, IEquatable<Value>
     /// Returns the argument string (operation arguments) of this node.
     /// </summary>
     /// <returns>The argument string.</returns>
-    protected virtual string ToArgString() =>
-        $"({Nodes.ToString(static t => t.ToString())})";
+    protected virtual string ToArgString() => ToArgString(offset: 0);
+
+    /// <summary>
+    /// Returns the argument string (operation arguments) of this node.
+    /// </summary>
+    /// <returns>The argument string.</returns>
+    protected string ToArgString(int offset) =>
+        $"({_values.AsReadOnlySpan()[offset..Count].ToString(
+            t => t.ToReferenceString())})";
+
+    /// <summary>
+    /// Returns the prefix string (operation name) of this node.
+    /// </summary>
+    /// <returns>The prefix string.</returns>
+    protected abstract string ToPrefixString();
+
+    /// <summary>
+    /// Returns the string representation of this node as reference.
+    /// </summary>
+    /// <returns>The string representation of this node as reference.</returns>
+    public string ToReferenceString() => $"{ToPrefixString()}_{Id}";
 
     /// <summary>
     /// Returns the string representation of this node.
     /// </summary>
     /// <returns>The string representation of this node.</returns>
-    public sealed override string ToString()
+    public override string ToString()
     {
         var argString = ToArgString();
         return string.IsNullOrEmpty(argString)
@@ -729,49 +558,51 @@ abstract class Value : Node, IValue, IEquatable<Value>
     }
 
     /// <summary>
-    /// Returns true if the given object is equal to the current value.
+    /// Returns the hash code of the value id.
     /// </summary>
-    /// <param name="obj">The other object.</param>
-    /// <returns>True, if the given object is equal to the current value.</returns>
-    public override bool Equals(object? obj) => obj == this;
+    public override int GetHashCode() =>
+        HashCode.Combine(
+            ValueKind.GetHashCode(),
+            BasicValueType,
+            Count);
 
     /// <summary>
-    /// Returns the hash code of this value.
+    /// Returns true if the given value is a value of the same value kind.
     /// </summary>
-    /// <returns>The hash code of this value.</returns>
-    public override int GetHashCode() => base.GetHashCode();
+    public override bool Equals(object? obj) =>
+        obj is Value value &&
+        value.ValueKind == ValueKind &&
+        value.BasicValueType == BasicValueType;
 
     #endregion
 }
 
 /// <summary>
-/// A parent value container that holds and manages values.
+/// Represents a basic intermediate-representation node.
+/// It is the base class for all nodes in the scope of this IR.
 /// </summary>
-abstract class ValueParent : Node
+/// <param name="initializer">The current initializer.</param>
+/// <param name="type">
+/// The type to use (not part of the generic initializer provided).
+/// </param>
+abstract class Value<TScope>(in ValueInitializer initializer, TypeValue type) :
+    Value(initializer, type),
+    IValue<TScope>
+    where TScope : class, IValueScope
 {
-    #region Instance
+    /// <summary>
+    /// Returns the parent scope.
+    /// </summary>
+    public abstract TScope Scope { get; }
 
     /// <summary>
-    /// Constructs a new value parent.
+    /// Returns the parent scope.
     /// </summary>
-    /// <param name="location">The current location.</param>
-    protected ValueParent(Location location)
-        : base(location)
-    { }
+    TScope IValue<TScope>.Scope => Scope;
 
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// Returns true if this parent container is a block.
-    /// </summary>
-    public virtual bool IsBasicBlock => false;
-
-    /// <summary>
-    /// Returns true if this container is method.
-    /// </summary>
-    public virtual bool IsMethod => false;
-
-    #endregion
+    [Conditional("DEBUG")]
+    public void VerifyScope(TScope other) =>
+        this.Assert(
+            Scope == other,
+            $"Value scope mismatch: expected '{other}', got '{Scope}'");
 }
