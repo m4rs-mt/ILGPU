@@ -13,11 +13,12 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.Frontend.Intrinsic;
 using ILGPUC.IR;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using ValueList = ILGPU.Util.InlineList<ILGPUC.IR.Values.ValueReference>;
 
 namespace ILGPUC.Frontend;
 
@@ -28,9 +29,7 @@ partial class CodeGenerator
     /// </summary>
     /// <param name="method">The target method to invoke.</param>
     /// <param name="arguments">The call arguments.</param>
-    private void CreateCall(
-        MethodBase method,
-        ref ValueList arguments)
+    private void CreateCall(MethodBase method, ref ValueBuilderList arguments)
     {
         // Try to implement the current intrinsic right now by generating IR code
         var intrinsicContext = new InvocationContext(
@@ -44,13 +43,11 @@ partial class CodeGenerator
         {
             // The method has already been implemented in IR code. We now have to map
             // the return value to the method return value handle
+            result ??= Builder.UndefinedValue;
             MakeCallReturnValue(method, result);
         }
         else
         {
-            // Early rejection for runtime-dependent methods
-            VerifyNotRuntimeMethod(method);
-
             var targetFunction = GetMethod(method);
             result = Builder.CreateCall(
                 Location,
@@ -67,9 +64,9 @@ partial class CodeGenerator
     /// </summary>
     /// <param name="method">The method that was called.</param>
     /// <param name="result">The return value.</param>
-    private void MakeCallReturnValue(MethodBase method, ValueReference result)
+    private void MakeCallReturnValue(MethodBase method, Value result)
     {
-        if (!result.IsValid || result.Type.IsVoidType)
+        if (result.Type is VoidType or KindType)
             return;
 
         var flags = method.GetReturnType().IsUnsignedInt()
@@ -221,8 +218,174 @@ partial class CodeGenerator
     /// </param>
     private void MakeVirtualCall(MethodInfo target, Type? constrainedType)
     {
+        // Intercept delegate Invoke calls for static devirtualization
+        if (target.Name == "Invoke" &&
+            target.DeclaringType is not null &&
+            target.DeclaringType.IsDelegate())
+        {
+            MakeDelegateInvoke(target);
+            return;
+        }
         target = ResolveVirtualCallTarget(target, constrainedType);
         MakeCall(target);
+    }
+
+    /// <summary>
+    /// Realizes a load-function-pointer instruction (ldftn).
+    /// Registers the lambda body for IR generation and records it as the pending
+    /// ldftn method (to be consumed by the subsequent newobj Delegate.ctor).
+    /// </summary>
+    /// <param name="method">The target method whose function pointer is loaded.</param>
+    private void MakeLdFunction(MethodBase method)
+    {
+        // Register the method so ILFrontend generates IR for it
+        GetMethod(method);
+        _pendingLdFunctionMethod = method;
+
+        // If the target is an intrinsic method with a registered
+        // generator, reify it into a one-block IR body so downstream
+        // passes (e.g. TryRecognizeOperation, Inliner) can introspect
+        // it. Direct-call sites still bypass the body via the inline
+        // generator fast path in CreateCall.
+        TrySynthesizeIntrinsicBody(method);
+
+        // Push a null IntPtr placeholder — the real value is the closure pointer
+        Block.Push(Builder.CreateNull(Location, ModuleBuilder.IntPointerType));
+    }
+
+    /// <summary>
+    /// Attempts to synthesise a one-block IR body for an intrinsic
+    /// <paramref name="method"/> by running its registered
+    /// <c>IntrinsicGenerator</c>. Triggered from <see cref="MakeLdFunction"/>
+    /// so only method-group delegate targets pay the synthesis cost —
+    /// direct intrinsic call sites are untouched. Memoised via
+    /// <see cref="MethodFlags.BodySynthesized"/>.
+    /// </summary>
+    /// <remarks>
+    /// Failure cases (generator uses <c>CodeGenerator</c> state that isn't
+    /// available during synthesis — e.g. <c>PullDelegateMethod</c> for
+    /// Warp/Group collective intrinsics) are caught and leave the method
+    /// bodiless. Direct-call sites for those methods still work via the
+    /// inline generator path.
+    /// </remarks>
+    private void TrySynthesizeIntrinsicBody(MethodBase method)
+    {
+        if (!Intrinsics.HasIntrinsicGenerator(method))
+            return;
+
+        var declaration = ModuleBuilder.CreateMethodDeclaration(method);
+        var methodBuilder = ModuleBuilder.GetOrCreateMethod(declaration);
+        var irMethod = methodBuilder.Method;
+
+        if (irMethod.HasFlags(MethodFlags.BodySynthesized))
+            return;
+
+        // Sealed methods have their bodies fixed — shouldn't happen for
+        // intrinsics under normal flow, but guard anyway.
+        if (irMethod.IsSealed)
+            return;
+
+        DisassembledMethod? disassembled;
+        try
+        {
+            disassembled = Disassembler.TryDisassemble(method);
+        }
+        catch
+        {
+            // Disassembly failed (e.g. missing method body) — leave the
+            // method bodiless and fall through to the direct-call path.
+            return;
+        }
+        if (disassembled is null)
+            return;
+
+        try
+        {
+            var synth = new CodeGenerator(methodBuilder, disassembled);
+            synth.GenerateIntrinsicBody(method);
+            methodBuilder.Seal();
+            irMethod.AddFlags(MethodFlags.BodySynthesized);
+            irMethod.RemoveFlags(MethodFlags.Intrinsic);
+        }
+        catch
+        {
+            // Generator uses state unavailable during synthesis (e.g.
+            // delegate pulling). The method stays bodiless — direct
+            // calls still work via the inline generator path.
+        }
+    }
+
+    /// <summary>
+    /// Realizes a Delegate.Invoke callvirt by statically de-virtualizing it
+    /// to a direct call to the lambda body method.
+    /// </summary>
+    /// <param name="invokeSig">The Invoke method signature.</param>
+    private void MakeDelegateInvoke(MethodInfo invokeSig)
+    {
+        // Pop explicit arguments in reverse order (preserve left-to-right order)
+        int numArgs = invokeSig.GetParameters().Length;
+        var savedArgs = new Value[numArgs];
+        for (int i = numArgs - 1; i >= 0; i--)
+            savedArgs[i] = Block.Pop();
+
+        // Pop the delegate handle (the closure pointer)
+        var delegateHandle = Block.Pop();
+
+        // Resolve lambda body via static devirtualization
+        if (!TryResolveDelegateMethod(delegateHandle, out var lambdaMethodBase))
+        {
+            throw Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedCannotDevirtualizeDelegate,
+                invokeSig.Name);
+        }
+
+        // Only re-push the closure pointer as 'this' when PopMethodArgs
+        // expects it (i.e. GetParameterOffset > 0). For static methods
+        // and non-capturing lambdas (instance methods on fieldless <>c),
+        // GetParameterOffset returns 0 so 'this' is not expected.
+        if (lambdaMethodBase.GetParameterOffset() > 0)
+            Block.Push(delegateHandle);
+        foreach (var arg in savedArgs)
+            Block.Push(arg);
+
+        // Emit a direct call to the lambda body (PopMethodArgs handles this+args)
+        MakeCall(lambdaMethodBase);
+    }
+
+    /// <summary>
+    /// Tries to resolve the lambda MethodBase behind a delegate handle value.
+    /// Checks both the direct value table (same-block resolution) and the
+    /// local variable table (cross-block resolution through phi merges).
+    /// </summary>
+    internal bool TryResolveDelegateMethod(
+        Value handle,
+        [NotNullWhen(true)] out MethodBase? method)
+    {
+        // Direct lookup (same-block or after LoadVariable propagation)
+        if (_delegateTable.TryGetValue(handle, out method))
+            return true;
+
+        // Cross-block fallback: check the local variable table (populated
+        // when a delegate was stored to a local via stloc).
+        foreach (var kv in _delegateLocalTable)
+        {
+            method = kv.Value;
+            return true;
+        }
+
+        // Pending delegate fallback: when MakeNewDelegate created a delegate
+        // but it was passed directly as an argument (no stloc), the pending
+        // delegate tracks it. This handles Warp.Reduce(value, (a,b) => a+b)
+        // where the lambda goes straight from newobj to the call arguments.
+        if (_pendingDelegateForLocal is not null)
+        {
+            method = _pendingDelegateForLocal;
+            _pendingDelegateForLocal = null;
+            return true;
+        }
+
+        method = null;
+        return false;
     }
 
     /// <summary>
