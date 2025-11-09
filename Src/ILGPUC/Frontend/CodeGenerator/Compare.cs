@@ -9,8 +9,9 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.PureValues;
 
 namespace ILGPUC.Frontend;
 
@@ -87,6 +88,6 @@ partial class CodeGenerator
             left,
             right,
             compareKind,
-            flags);
+            flags).ThrowIfNull();
     }
 }
