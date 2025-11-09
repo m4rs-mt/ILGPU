@@ -11,9 +11,10 @@
 
 using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
+using System;
 using System.Reflection;
 
 namespace ILGPUC.Frontend;
@@ -26,18 +27,15 @@ partial class CodeGenerator
     /// <param name="type">The type node.</param>
     /// <param name="field">The field.</param>
     /// <returns>The target field span.</returns>
-    private FieldSpan ComputeFieldSpan(TypeNode type, FieldInfo field)
+    private FieldSpan ComputeFieldSpan(TypeValue type, FieldInfo field)
     {
-        var typeInfo = TypeContext.GetTypeInfo(field.FieldType);
-        var parentInfo = TypeContext.GetTypeInfo(field.DeclaringType.AsNotNull());
+        var typeInfo = ModuleBuilder.GetTypeInfo(field.FieldType);
+        var parentInfo = ModuleBuilder.GetTypeInfo(field.DeclaringType.AsNotNull());
         var fieldIndex = parentInfo.GetAbsoluteIndex(field);
 
-        if (type.IsStructureType)
-        {
-            var structureType = type.As<StructureType>(Location);
+        if (type is StructureType structureType)
             fieldIndex = structureType.RemapFieldIndex(fieldIndex);
-        }
-        return new FieldSpan(fieldIndex, typeInfo.NumFlattenedFields);
+        return new(fieldIndex, typeInfo.NumFlattenedFields);
     }
 
     /// <summary>
@@ -46,17 +44,14 @@ partial class CodeGenerator
     /// <param name="field">The field.</param>
     private void MakeLoadField(FieldInfo field)
     {
-        if (field == null)
-            throw Location.GetInvalidOperationException();
-
         var fieldValue = Block.Pop();
-        if (fieldValue.Type.IsPointerType)
+        if (fieldValue.Type is PointerType)
         {
             // Load field from address
             Block.Push(fieldValue);
             MakeLoadFieldAddress(field);
             var fieldAddress = Block.Pop();
-            var fieldType = Builder.CreateType(field.FieldType);
+            var fieldType = ModuleBuilder.CreateType(field.FieldType);
             Block.Push(CreateLoad(
                 fieldAddress,
                 fieldType,
@@ -71,7 +66,7 @@ partial class CodeGenerator
             var getField = Builder.CreateGetField(
                 Location,
                 fieldValue,
-                fieldSpan);
+                fieldSpan).AsNotNull();
             if (fieldSpan.Span == 1)
             {
                 Block.Push(LoadOntoEvaluationStack(
@@ -91,12 +86,35 @@ partial class CodeGenerator
     /// <param name="field">The field.</param>
     private void MakeLoadFieldAddress(FieldInfo field)
     {
-        if (field == null)
-            throw Location.GetInvalidOperationException();
-        var targetPointerType = Builder.CreatePointerType(
-            Builder.CreateType(field.DeclaringType.AsNotNull()),
-            MemoryAddressSpace.Generic);
-        var address = Block.Pop(
+        var rawDeclaringType = field.DeclaringType.AsNotNull();
+        // For class types (sealed/compiler-generated), CreateType returns
+        // PointerType(struct) already; use the struct type as the pointer element.
+        TypeValue pointerElementType;
+        if (rawDeclaringType.IsClass && !rawDeclaringType.IsValueType &&
+            !rawDeclaringType.IsDelegate())
+        {
+            pointerElementType = ModuleBuilder.CreateClassStructureType(rawDeclaringType);
+        }
+        else
+        {
+            pointerElementType = ModuleBuilder.CreateType(rawDeclaringType);
+        }
+        // Preserve the source pointer's address space instead of forcing
+        // Generic. This prevents spurious Local→Generic AddressSpaceCasts
+        // on alloca pointers, which Metal rejects as cross-space casts.
+        // For non-pointer source values (value types on the stack), fall back
+        // to Generic as before.
+        var sourceValue = Block.Pop();
+        var sourceAddrSpace = sourceValue.Type is PointerType srcPtr
+            ? srcPtr.AddressSpace
+            : sourceValue.Type is ViewType srcView
+                ? srcView.AddressSpace
+                : MemoryAddressSpace.Generic;
+        var targetPointerType = ModuleBuilder.CreatePointerType(
+            pointerElementType,
+            sourceAddrSpace);
+        var address = CreateConversion(
+            sourceValue,
             targetPointerType,
             ConvertFlags.None);
 
@@ -105,7 +123,7 @@ partial class CodeGenerator
             Location,
             address,
             fieldSpan);
-        Block.Push(fieldAddress);
+        Block.Push(fieldAddress.AsNotNull());
     }
 
     /// <summary>
@@ -113,11 +131,26 @@ partial class CodeGenerator
     /// </summary>
     /// <param name="field">The field.</param>
     /// <returns>The loaded field value.</returns>
-    private ValueReference CreateLoadStaticFieldValue(FieldInfo field)
+    private Value CreateLoadStaticFieldValue(FieldInfo field)
     {
-        if (field == null)
-            throw Location.GetInvalidOperationException();
         VerifyStaticFieldLoad(field);
+
+        // Compiler-generated static fields in closure/display classes (<>c):
+        // - Delegate cache fields (<>9__*): return null so brtrue takes the
+        //   cache-miss path to ldftn+newobj
+        // - Closure singleton (<>9): return null as the delegate handle
+        //   for _delegateTable
+        // Both use the delegate pointer type for consistency at phi merge
+        // points in the brtrue control flow diamond.
+        if (field.DeclaringType?.Name.StartsWith(
+            "<>",
+            StringComparison.Ordinal) == true)
+        {
+            var delegatePointerType = ModuleBuilder.CreatePointerType(
+                ModuleBuilder.IntPointerType,
+                MemoryAddressSpace.Generic);
+            return Builder.CreateNull(Location, delegatePointerType);
+        }
 
         var fieldValue = field.GetValue(null);
         return fieldValue == null ?
@@ -150,7 +183,7 @@ partial class CodeGenerator
     /// <param name="field">The field.</param>
     private void MakeStoreField(FieldInfo field)
     {
-        var fieldType = Builder.CreateType(field.FieldType);
+        var fieldType = ModuleBuilder.CreateType(field.FieldType);
         var value = Block.Pop(
             fieldType,
             field.FieldType.ToTargetUnsignedFlags());
