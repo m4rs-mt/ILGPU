@@ -9,9 +9,10 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
 using System;
 
@@ -26,10 +27,10 @@ partial class CodeGenerator
     private void MakeNewArray(Type managedElementType)
     {
         // Create the array type to create
-        var elementType = Builder.CreateType(
+        var elementType = ModuleBuilder.CreateType(
             managedElementType,
             MemoryAddressSpace.Generic);
-        var arrayType = Builder.CreateArrayType(elementType, 1);
+        var arrayType = ModuleBuilder.CreateArrayType(elementType, 1);
 
         // Build the actual array instance
         var arrayBuilder = Builder.CreateNewArray(Location, arrayType);
@@ -49,12 +50,12 @@ partial class CodeGenerator
     /// <param name="elementType">The element type to load.</param>
     /// <param name="type">The IR element type to load.</param>
     /// <returns>The loaded array element address.</returns>
-    private Value CreateLoadArrayElementAddress(Type elementType, out TypeNode type)
+    private Value CreateLoadArrayElementAddress(Type elementType, out TypeValue type)
     {
         var index = Block.PopInt(Location, ConvertFlags.None);
         var array = Block.Pop();
 
-        type = Builder.CreateType(elementType);
+        type = ModuleBuilder.CreateType(elementType);
 
         var laeaBuilder = Builder.CreateLoadArrayElementAddress(Location, array);
         laeaBuilder.Add(index);
@@ -103,7 +104,7 @@ partial class CodeGenerator
         var array = Block.Pop();
         var length = Builder.CreateGetArrayLength(
             Location,
-            array);
+            array).AsNotNull();
         Block.Push(length);
     }
 }
