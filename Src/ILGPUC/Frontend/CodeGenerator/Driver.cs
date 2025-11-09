@@ -20,6 +20,7 @@
 //------------------------------------------------------------------------------
 
 using ILGPUC.IR;
+using ILGPUC.IR.PureValues;
 using ILGPUC.IR.Values;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -43,6 +44,14 @@ partial class CodeGenerator
                 return true;
             case ILInstructionType.LdToken:
                 MakeLoadToken(instruction.Argument);
+                return true;
+            case ILInstructionType.LdFunction:
+                MakeLdFunction(instruction.GetArgumentAs<MethodBase>());
+                return true;
+            case ILInstructionType.LdVirtualFunction:
+                // ldvirtftn pops the object reference per ECMA-335 III.4.18
+                Block.Pop();
+                MakeLdFunction(instruction.GetArgumentAs<MethodBase>());
                 return true;
 
             case ILInstructionType.Ldarg:
@@ -118,6 +127,9 @@ partial class CodeGenerator
                 return true;
             case ILInstructionType.Ldstr:
                 LoadString(instruction.GetArgumentAs<string>());
+                return true;
+            case ILInstructionType.Ldnull:
+                LoadNull();
                 return true;
 
             case ILInstructionType.Dup:
