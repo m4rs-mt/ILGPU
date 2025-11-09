@@ -11,8 +11,8 @@
 
 using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -76,15 +76,15 @@ partial class CodeGenerator
             TryGetBasicValueSize(baseAddress.Right, 1, out strideType))
         {
             // Cast raw pointer into an appropriate target type
-            var targetElementType = Builder.GetPrimitiveType(strideType);
+            var targetElementType = ModuleBuilder.GetPrimitiveType(strideType);
             left = Builder.CreatePointerCast(
                 Location,
                 left,
-                targetElementType);
+                targetElementType).AsNotNull();
             result = Builder.CreateLoadElementAddress(
                 Location,
                 left,
-                baseAddress.Left);
+                baseAddress.Left).AsNotNull();
             return true;
         }
         result = null;
@@ -110,7 +110,7 @@ partial class CodeGenerator
             arithmeticFlags |= ArithmeticFlags.Unsigned;
         }
 
-        ValueReference result = default;
+        Value? result = null;
         if (Block.PopArithmeticArgs(
             Location,
             convertFlags,
@@ -118,19 +118,19 @@ partial class CodeGenerator
             out var right) == Block.ArithmeticOperandKind.Pointer)
         {
             // This is a pointer access
-            bool isLeftPointer = left.Type.IsPointerType;
+            bool isLeftPointer = left.Type is PointerType;
             if (!isLeftPointer)
                 Utilities.Swap(ref left, ref right);
 
             // Check for raw combinations of two pointer values
             if (
-                !right.Type.IsPointerType &&
+                right.Type is not PointerType &&
                 // Check whether this can be safely converted into a LEA value
                 kind == BinaryArithmeticKind.Add)
             {
                 // Check the size of the element type and divide the raw offset
                 // by the element size to retrieve the actual element index.
-                var elementType = left.Type.As<PointerType>(Location).ElementType;
+                var elementType = left.GetTypeAs<PointerType>().ElementType;
                 var elementSize = Builder.CreateSizeOf(Location, elementType);
 
                 // Create the actual address computation
@@ -156,7 +156,7 @@ partial class CodeGenerator
             }
         }
 
-        if (!result.IsValid)
+        if (result is null)
         {
             switch (kind)
             {
@@ -194,7 +194,7 @@ partial class CodeGenerator
                     // Convert right operand to 32bits
                     right = CreateConversion(
                         right,
-                        Builder.GetPrimitiveType(BasicValueType.Int32),
+                        ModuleBuilder.GetPrimitiveType(BasicValueType.Int32),
                         convertFlags);
                     break;
             }
@@ -205,7 +205,7 @@ partial class CodeGenerator
                 kind,
                 arithmeticFlags);
         }
-        Block.Push(result);
+        Block.Push(result.AsNotNull());
     }
 
     /// <summary>
@@ -221,6 +221,6 @@ partial class CodeGenerator
             Location,
             value,
             kind);
-        Block.Push(arithmetic);
+        Block.Push(arithmetic.AsNotNull());
     }
 }
