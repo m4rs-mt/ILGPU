@@ -11,8 +11,8 @@
 
 using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
 using System;
 
@@ -25,9 +25,7 @@ partial class CodeGenerator
     /// </summary>
     /// <param name="targetType">The target type.</param>
     /// <param name="instructionFlags">The instruction flags.</param>
-    private void MakeConvert(
-        Type targetType,
-        ILInstructionFlags instructionFlags)
+    private void MakeConvert(Type targetType, ILInstructionFlags instructionFlags)
     {
         var value = Block.Pop();
         var convertFlags = ConvertFlags.None;
@@ -38,7 +36,7 @@ partial class CodeGenerator
             convertFlags |= ConvertFlags.SourceUnsigned;
             convertFlags |= ConvertFlags.TargetUnsigned;
         }
-        var targetTypeNode = Builder.CreateType(targetType);
+        var targetTypeNode = ModuleBuilder.CreateType(targetType);
         Block.Push(CreateConversion(
             value,
             targetTypeNode,
@@ -53,10 +51,7 @@ partial class CodeGenerator
     /// <param name="flags">
     /// True, if the comparison should be forced to be unsigned.
     /// </param>
-    public Value CreateConversion(
-        Value value,
-        TypeNode targetType,
-        ConvertFlags flags)
+    public Value CreateConversion(Value value, TypeValue targetType, ConvertFlags flags)
     {
         if (value.Type is AddressSpaceType)
         {
@@ -66,18 +61,18 @@ partial class CodeGenerator
                 value,
                 otherType.AddressSpace);
             return otherType is ViewType
-                ? (Value)Builder.CreateViewCast(
+                ? Builder.CreateViewCast(
                     Location,
                     value,
                     otherType.ElementType)
-                : (Value)Builder.CreatePointerCast(
+                : Builder.CreatePointerCast(
                     Location,
                     value,
                     otherType.ElementType);
         }
         else if (
             targetType is PointerType targetPointerType &&
-            targetPointerType.ElementType.IsRootType)
+            targetPointerType.ElementType is KindType)
         {
             // Must be a reflection array call
             // FIXME: note that we have to update this spot once we add support
