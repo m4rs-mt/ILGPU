@@ -542,7 +542,8 @@ static class ILInstructionTypes
 
             // Function
             { ILInstructionType.LdFunction, (0, 1) },
-            { ILInstructionType.LdVirtualFunction, (0, 1) },
+            // ldvirtftn pops the object reference (arg 0) and pushes the function ptr
+            { ILInstructionType.LdVirtualFunction, (1, 1) },
 
             // Exceptions
             { ILInstructionType.Throw, (1, 0) },
@@ -556,7 +557,7 @@ static class ILInstructionTypes
     /// <param name="instruction">The instruction to analyze.</param>
     /// <returns>The push and pop count effects on the stack.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static (ushort PushCount, ushort PopCount) GetPushPopBehavior(
+    public static (ushort PopCount, ushort PushCount) GetPushPopBehavior(
         this ILInstruction instruction)
     {
         switch (instruction.InstructionType)
@@ -564,7 +565,17 @@ static class ILInstructionTypes
             case ILInstructionType.Call:
             case ILInstructionType.Callvirt:
                 {
-                    var methodInfo = instruction.GetArgumentAs<MethodInfo>();
+                    // Value type constructors may appear as Call .ctor
+                    // instead of Newobj, so handle ConstructorInfo here too.
+                    var methodBase = instruction.GetArgumentAs<MethodBase>();
+                    if (methodBase is ConstructorInfo ci)
+                    {
+                        // call .ctor pops 'this' + parameters, pushes nothing
+                        int ciPop = ci.GetParameters().Length +
+                            ci.GetParameterOffset();
+                        return ((ushort)ciPop, 0);
+                    }
+                    var methodInfo = (MethodInfo)methodBase;
                     int popCount = methodInfo.GetParameters().Length +
                         methodInfo.GetParameterOffset();
                     ushort pushCount = methodInfo.ReturnType != typeof(void)
@@ -579,8 +590,14 @@ static class ILInstructionTypes
                 }
             case ILInstructionType.Ret:
                 {
+                    // Ret pops 1 if the method has a return value, 0 otherwise.
+                    // Constructors always return void.
                     var methodBase = instruction.GetArgumentAs<MethodBase>();
-                    return ((ushort)methodBase.GetParameterOffset(), 0);
+                    ushort retPop = methodBase is MethodInfo mi
+                        && mi.ReturnType != typeof(void)
+                        ? (ushort)1
+                        : (ushort)0;
+                    return (retPop, 0);
                 }
             default:
                 return _stackBehavior[instruction.InstructionType];

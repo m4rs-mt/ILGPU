@@ -13,7 +13,9 @@ using ILGPU.Util;
 using ILGPUC.Backends;
 using ILGPUC.Frontend.DebugInformation;
 using ILGPUC.Frontend.Intrinsic;
-using ILGPUC.IR;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.ModuleValues.Construction;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -22,6 +24,8 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+
+#pragma warning disable CA1031 // Do not catch general exception types
 
 namespace ILGPUC.Frontend;
 
@@ -198,7 +202,7 @@ sealed class ILFrontend
     private void DisassembleMethods(IReadOnlyCollection<MethodBase> methods)
     {
         var queue = new ConcurrentQueue<MethodBase>();
-        var remapping = new Dictionary<MethodBase, MethodBase>();
+        var remapping = new Dictionary<MethodBase, MethodBase>(capacity: 128);
 
         // Process all kernels in parallel
         Parallel.ForEach(methods, method =>
@@ -211,12 +215,12 @@ sealed class ILFrontend
                 ProcessMethod(method, queue, remapping);
         });
 
-        // Map all intrinsic implementations to original methods
+        // Map all intrinsic implementations to original methods.
+        // Note: _methods[target] may be null for Generated intrinsics that have
+        // no disassembled body. A simple assignment (instead of the old busy-wait
+        // while loop) avoids spinning forever in that case.
         foreach (var (source, target) in remapping)
-        {
-            while (_methods[source] is null)
-                _methods[source] = _methods[target];
-        }
+            _methods[source] ??= _methods[target];
     }
 
     /// <summary>
@@ -271,8 +275,22 @@ sealed class ILFrontend
         }
         else
         {
-            // Disassemble our new method
-            var disassembled = Disassembler.TryDisassemble(method);
+            // Disassemble our new method. Transitively discovered methods
+            // (e.g. BCL internals) may contain unsupported IL instructions or
+            // unresolvable tokens — treat them as non-disassemblable.
+            DisassembledMethod? disassembled;
+
+            try
+            {
+                disassembled = Disassembler.TryDisassemble(method);
+            }
+            catch (Exception)
+            {
+                // Transitively discovered methods may fail to disassemble due to
+                // unsupported IL, unresolvable tokens, etc. The code generator
+                // will simply skip methods without a disassembled body.
+                return;
+            }
 
             // Ignore empty assignments
             if (disassembled is null) return;
@@ -280,11 +298,51 @@ sealed class ILFrontend
             // Add method to internal methods
             lock (_methods) _methods[method] = disassembled;
 
-            // Determine all called methods to disassemble
+            // Determine all called methods to disassemble.
+            // For constrained virtual calls (interface dispatch on structs),
+            // also resolve and enqueue the concrete implementation so it
+            // gets disassembled before code generation needs it.
             foreach (var instruction in disassembled.Instructions)
             {
                 if (instruction.Argument is MethodBase calledMethod)
+                {
                     queue.Enqueue(calledMethod);
+
+                    // Resolve constrained interface calls to concrete methods
+                    if (instruction.HasFlags(ILInstructionFlags.Constrained)
+                        && instruction.FlagsContext.Argument is Type constrainedType
+                        && calledMethod is MethodInfo calledMethodInfo
+                        && calledMethodInfo.IsVirtual
+                        && calledMethodInfo.DeclaringType?.IsInterface == true)
+                    {
+                        try
+                        {
+                            var mapping = constrainedType.GetInterfaceMap(
+                                calledMethodInfo.DeclaringType);
+                            var genericDef = calledMethodInfo.IsGenericMethod
+                                ? calledMethodInfo.GetGenericMethodDefinition()
+                                : calledMethodInfo;
+                            for (int j = 0; j < mapping.InterfaceMethods.Length; j++)
+                            {
+                                if (mapping.InterfaceMethods[j] == genericDef)
+                                {
+                                    var concrete = mapping.TargetMethods[j];
+                                    if (calledMethodInfo.IsGenericMethod)
+                                    {
+                                        concrete = concrete.MakeGenericMethod(
+                                            calledMethodInfo.GetGenericArguments());
+                                    }
+                                    queue.Enqueue(concrete);
+                                    break;
+                                }
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // Interface mapping failed — skip
+                        }
+                    }
+                }
             }
         }
     }
@@ -325,57 +383,93 @@ sealed class ILFrontend
     /// <summary>
     /// Generates code for all methods given.
     /// </summary>
-    /// <param name="context">The target context.</param>
+    /// <param name="moduleBuilder">The target context.</param>
     /// <param name="methods">Methods to generate code for.</param>
     /// <returns>True if code was generated.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool GenerateCode(
-        IRContext context,
-        params IReadOnlyCollection<MethodBase> methods)
+        ModuleBuilder moduleBuilder,
+        IReadOnlyCollection<MethodBase> methods)
     {
         if (methods.Count < 1) return false;
 
-        var queue = new ConcurrentQueue<MethodBase>();
+        var queue = new Queue<MethodBase>(capacity: 32);
         var processed = new HashSet<MethodBase>();
 
         // Generates code for the given method
-        void GenerateCodeFor(MethodBase method)
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        void GenerateCodeFor(MethodBase method, bool isEntryPoint = false)
         {
-            lock (processed)
-            {
-                if (!processed.Add(method)) return;
-            }
+            if (!processed.Add(method))
+                return;
 
             // Get IR method and check for external declaration flags
-            var irMethod = context.Declare(method, out _);
-            if (irMethod.HasFlags(MethodFlags.External))
+            var declaration = moduleBuilder.CreateMethodDeclaration(method);
+            var methodBuilder = moduleBuilder.GetOrCreateMethod(declaration);
+            if (methodBuilder.Method.IsExternal)
                 return;
 
-            // Retrieve disassembled method
+            // Retrieve disassembled method. If not available, try on-the-fly
+            // disassembly — this handles methods discovered through
+            // devirtualization or intrinsic handler reflection during code
+            // generation that were never in the initial DisassembleMethods
+            // queue (e.g., IRadixSortOperation.ExtractRadixBits resolved
+            // via reflection in the RadixSort intrinsic handler).
             var disassembled = GetDisassembledMethod(method);
             if (disassembled is null)
-                return;
+            {
+                try
+                {
+                    disassembled = Disassembler.TryDisassemble(method);
+                }
+                catch (Exception)
+                {
+                    // Fall through to External marking below
+                }
 
-            using var builder = irMethod.CreateBuilder();
-            var codeGenerator = new CodeGenerator(
-                context,
-                builder,
-                disassembled);
-            codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
+                if (disassembled is not null)
+                {
+                    lock (_methods) _methods[method] = disassembled;
 
-            codeGenerator.GenerateCode();
-            builder.Complete();
+                    // Enqueue transitive dependencies so they also get
+                    // disassembled and compiled.
+                    foreach (var instruction in disassembled.Instructions)
+                    {
+                        if (instruction.Argument is MethodBase calledMethod)
+                            queue.Enqueue(calledMethod);
+                    }
+                }
+                else
+                {
+                    methodBuilder.Method.AddFlags(MethodFlags.External);
+                    return;
+                }
+            }
+
+            try
+            {
+                var codeGenerator = new CodeGenerator(methodBuilder, disassembled);
+                codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
+
+                codeGenerator.GenerateCode();
+                methodBuilder.Seal();
+            }
+            catch (Exception) when (!isEntryPoint)
+            {
+                // Transitively called methods may use types unsupported in GPU IR
+                // or hit other compilation issues. Mark them as external and
+                // continue.
+                methodBuilder.Method.AddFlags(MethodFlags.External);
+            }
         }
 
         // Generate code for all entry point methods
-        Parallel.ForEach(methods, GenerateCodeFor);
+        foreach (var method in methods)
+            GenerateCodeFor(method, isEntryPoint: true);
 
-        // Process all remaining methods in parallel
-        Parallel.For(0, queue.Count, _ =>
-        {
-            while (queue.TryDequeue(out var method))
-                GenerateCodeFor(method);
-        });
+        // Process all remaining methods
+        while (queue.TryDequeue(out var method))
+            GenerateCodeFor(method);
 
         return processed.Count > 0;
     }
@@ -383,14 +477,16 @@ sealed class ILFrontend
     /// <summary>
     /// Generates code for all methods in the current scope.
     /// </summary>
-    /// <param name="context">The target context.</param>
+    /// <param name="builder">The target builder.</param>
     /// <returns>True if code was generated.</returns>
-    public bool GenerateCode(IRContext context)
+    public bool GenerateCode(ModuleBuilder builder)
     {
         // Declare all methods and register them
         var methods = PopScope();
-        return GenerateCode(context, methods);
+        return GenerateCode(builder, methods);
     }
 
     #endregion
 }
+
+#pragma warning restore CA1031 // Do not catch general exception types
