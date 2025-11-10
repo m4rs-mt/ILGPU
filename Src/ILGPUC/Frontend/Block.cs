@@ -11,15 +11,17 @@
 
 using ILGPU.Resources;
 using ILGPU.Util;
-using ILGPUC.Frontend.Intrinsic;
 using ILGPUC.IR;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.BasicBlockValues.Construction;
+using ILGPUC.IR.MethodValues;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.ModuleValues.Construction;
+using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
 using System;
 using System.Diagnostics;
 using System.Reflection;
-using ValueList = ILGPU.Util.InlineList<ILGPUC.IR.Values.ValueReference>;
 
 namespace ILGPUC.Frontend;
 
@@ -55,7 +57,7 @@ sealed partial class Block
     /// </summary>
     /// <param name="codeGenerator">The parent code generator.</param>
     /// <param name="builder">The current basic block builder.</param>
-    private Block(CodeGenerator codeGenerator, BasicBlock.Builder builder)
+    private Block(CodeGenerator codeGenerator, BasicBlockBuilder builder)
     {
         CodeGenerator = codeGenerator;
         Builder = builder;
@@ -73,7 +75,12 @@ sealed partial class Block
     /// <summary>
     /// Returns the associated IR builder.
     /// </summary>
-    public BasicBlock.Builder Builder { get; }
+    public BasicBlockBuilder Builder { get; }
+
+    /// <summary>
+    /// Returns the associated IR module builder.
+    /// </summary>
+    public ModuleBuilder ModuleBuilder => Builder.ModuleBuilder;
 
     /// <summary>
     /// Returns the underlying basic block.
@@ -81,9 +88,9 @@ sealed partial class Block
     public BasicBlock BasicBlock => Builder.BasicBlock;
 
     /// <summary>
-    /// Returns the current terminator.
+    /// Returns the current termination kind.
     /// </summary>
-    public TerminatorValue? Terminator => BasicBlock.Terminator;
+    public BlockTerminationKind TerminationKind => BasicBlock.TerminationKind;
 
     /// <summary>
     /// Returns the current stack counter.
@@ -125,15 +132,15 @@ sealed partial class Block
     #region Methods
 
     /// <summary>
-    /// Resolves the current terminator as builder terminator.
+    /// Gets the pending termination targets (successors) for this block.
     /// </summary>
     /// <param name="count">The number of expected branch targets.</param>
-    /// <returns>The resolved branch targets.</returns>
-    public ReadOnlySpan<BasicBlock> GetBuilderTerminator(int count)
+    /// <returns>The resolved branch targets as a span.</returns>
+    public ReadOnlySpan<BasicBlock> GetPendingSuccessors(int count)
     {
-        var targets = Terminator.AsNotNullCast<BuilderTerminator>().Targets;
-        Terminator.Assert(targets.Length == count);
-        return targets;
+        BasicBlock.Assert(BasicBlock.TerminationKind == BlockTerminationKind.Pending);
+        BasicBlock.Assert(BasicBlock.Successors.Length == count);
+        return BasicBlock.Successors;
     }
 
     #endregion
@@ -145,7 +152,7 @@ sealed partial class Block
     /// </summary>
     /// <param name="location">The current location.</param>
     /// <returns>The peeked basic-value type.</returns>
-    public TypeNode PeekType(Location location)
+    public TypeValue PeekType(Location location)
     {
         location.Assert(StackCounter > 0);
         var value = GetValue(
@@ -188,9 +195,7 @@ sealed partial class Block
     /// </summary>
     /// <param name="targetType">The required target type.</param>
     /// <param name="flags">The conversion flags.</param>
-    public Value Pop(
-        TypeNode targetType,
-        ConvertFlags flags)
+    public Value Pop(TypeValue targetType, ConvertFlags flags)
     {
         var op = Pop();
         return Convert(op, targetType, flags);
@@ -202,11 +207,8 @@ sealed partial class Block
     /// <param name="value">The value to convert.</param>
     /// <param name="targetType">The required target type.</param>
     /// <param name="flags">The conversion flags.</param>
-    private Value Convert(
-        Value value,
-        TypeNode targetType,
-        ConvertFlags flags) =>
-        value.Type == targetType || targetType.IsRootType
+    private Value Convert(Value value, TypeValue targetType, ConvertFlags flags) =>
+        value.Type == targetType || targetType is KindType
         ? value
         : CodeGenerator.CreateConversion(
             value,
@@ -232,11 +234,11 @@ sealed partial class Block
             case BasicValueType.Int16:
             case BasicValueType.Float32:
                 return Pop(
-                    Builder.GetPrimitiveType(BasicValueType.Int32),
+                    ModuleBuilder.GetPrimitiveType(BasicValueType.Int32),
                     flags);
             case BasicValueType.Float64:
                 return Pop(
-                    Builder.GetPrimitiveType(BasicValueType.Int64),
+                    ModuleBuilder.GetPrimitiveType(BasicValueType.Int64),
                     flags);
             default:
                 throw location.GetNotSupportedException(
@@ -251,21 +253,23 @@ sealed partial class Block
     /// <param name="location">The current location.</param>
     /// <param name="methodBase">The method to use for the argument types.</param>
     /// <param name="instanceValue">The instance value (if available).</param>
-    public ValueList PopMethodArgs(
+    public ValueBuilderList PopMethodArgs(
         Location location,
         MethodBase methodBase,
         Value? instanceValue)
     {
         var parameters = methodBase.GetParameters();
         var parameterOffset = methodBase.GetParameterOffset();
-        var result = ValueList.Create(parameters.Length + parameterOffset);
+        var result = ValueBuilderList.Create(
+            Builder.Generation,
+            parameters.Length + parameterOffset);
 
         // Handle main params
         for (int i = parameters.Length - 1; i >= 0; --i)
         {
             var param = parameters[i];
             var argument = Pop(
-                Builder.CreateType(param.ParameterType),
+                ModuleBuilder.CreateType(param.ParameterType),
                 param.ParameterType.IsUnsignedInt() ?
                     ConvertFlags.TargetUnsigned : ConvertFlags.None);
             result.Add(argument);
@@ -277,12 +281,17 @@ sealed partial class Block
             if (instanceValue == null)
             {
                 var baseDeclaringType = methodBase.DeclaringType.AsNotNull();
-                var declaringType = Builder.CreateType(baseDeclaringType);
+                var declaringType = ModuleBuilder.CreateType(baseDeclaringType);
                 if (!baseDeclaringType.IsIntrinsicArrayType())
                 {
-                    declaringType = Builder.CreatePointerType(
-                        declaringType,
-                        MemoryAddressSpace.Generic);
+                    // For class types, CreateType already returns PointerType;
+                    // avoid creating a double pointer.
+                    if (declaringType is not PointerType)
+                    {
+                        declaringType = ModuleBuilder.CreatePointerType(
+                            declaringType,
+                            MemoryAddressSpace.Generic);
+                    }
                 }
                 instanceValue = Pop(
                     declaringType,
@@ -341,7 +350,7 @@ sealed partial class Block
             case BasicValueType.Int8:
             case BasicValueType.Int16:
                 return Pop(
-                    Builder.GetPrimitiveType(BasicValueType.Int32),
+                    ModuleBuilder.GetPrimitiveType(BasicValueType.Int32),
                     flags);
             default:
                 throw location.GetNotSupportedException(
@@ -364,15 +373,15 @@ sealed partial class Block
         out Value right)
     {
         // Check for pointer arithmetic
-        right = PeekType(location).IsPointerType
+        right = PeekType(location) is PointerType
             ? Pop()
             : PopCompareOrArithmeticValue(location, flags);
 
-        left = PeekType(location).IsPointerType
+        left = PeekType(location) is PointerType
             ? Pop()
             : PopCompareOrArithmeticValue(location, flags);
 
-        if (right.Type.IsPointerType || left.Type.IsPointerType)
+        if (right.Type is PointerType || left.Type is PointerType)
             return ArithmeticOperandKind.Pointer;
 
         Value result;

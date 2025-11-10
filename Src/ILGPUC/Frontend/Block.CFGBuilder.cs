@@ -10,9 +10,12 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR;
-using ILGPUC.IR.Analyses.ControlFlowDirection;
-using ILGPUC.IR.Analyses.TraversalOrders;
+using ILGPUC.IR.Analyses;
+using ILGPUC.IR.MethodValues;
+using ILGPUC.IR.ModuleValues.Construction;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Frontend;
 
@@ -51,39 +54,38 @@ partial class Block
             /// Registers the given instruction offset.
             /// </summary>
             public void Apply(ILInstruction instruction, int offset) =>
-                Builder.offsetMapping[offset] = InstructionIndex;
+                Builder._offsetMapping[offset] = InstructionIndex;
         }
 
         #endregion
 
         #region Instance
 
-        private readonly Dictionary<int, int> offsetMapping = [];
-        private readonly Dictionary<int, Block> blockMapping = [];
-        private readonly Dictionary<BasicBlock, Block> basicBlockMapping =
-            new(new BasicBlock.Comparer());
-        private readonly Dictionary<Block, List<Block>> successorMapping = [];
+        private readonly Dictionary<int, int> _offsetMapping = [];
+        private readonly Dictionary<int, Block> _blockMapping = [];
+        private readonly Dictionary<BasicBlock, Block> _basicBlockMapping =
+            new(new Value.Comparer());
+        private readonly Dictionary<Block, List<Block>> _successorMapping = [];
 
         /// <summary>
         /// Constructs a new CFG builder.
         /// </summary>
         /// <param name="codeGenerator">The current code generator.</param>
         /// <param name="methodBuilder">The current method builder.</param>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         internal CFGBuilder(
             CodeGenerator codeGenerator,
-            Method.Builder methodBuilder)
+            MethodBuilder methodBuilder)
         {
             CodeGenerator = codeGenerator;
             Builder = methodBuilder;
 
-            var mainEntry = methodBuilder.EntryBlockBuilder;
-            EntryBlock = new Block(
-                codeGenerator,
-                mainEntry)
+            var mainEntry = methodBuilder.EntryBuilder;
+            EntryBlock = new Block(codeGenerator, mainEntry)
             {
                 InstructionCount = 0
             };
-            basicBlockMapping.Add(EntryBlock.BasicBlock, EntryBlock);
+            _basicBlockMapping.Add(EntryBlock.BasicBlock, EntryBlock);
 
             // Create a temporary entry block to ensure that we have a single entry
             // block without any predecessors in all cases
@@ -92,8 +94,8 @@ partial class Block
                 methodBuilder.CreateBasicBlock(
                     mainEntry.BasicBlock.Location,
                     mainEntry.BasicBlock.Name));
-            blockMapping.Add(0, internalEntryBlock);
-            basicBlockMapping.Add(internalEntryBlock.BasicBlock, internalEntryBlock);
+            _blockMapping.Add(0, internalEntryBlock);
+            _basicBlockMapping.Add(internalEntryBlock.BasicBlock, internalEntryBlock);
             BuildBasicBlocks();
 
             var visited = new HashSet<Block>();
@@ -101,13 +103,19 @@ partial class Block
             WireBlocks();
 
             // Wire the main entry block with the actual entry block
-            mainEntry.CreateBranch(
-                mainEntry.BasicBlock.Location,
+            mainEntry.CreateUnconditionalTermination(
                 internalEntryBlock.BasicBlock);
 
             // Update control-flow structure to refresh all successor/predecessor
             // edge relations
-            Blocks = methodBuilder.UpdateControlFlow();
+            Blocks = mainEntry.BasicBlock.TraverseToCollection<
+                ReversePostOrder<BasicBlock>,
+                BasicBlock.SuccessorsProvider<Forwards>,
+                Forwards>(visited.Count);
+
+            // Connect predecessors for SSA builder
+            foreach (var block in Blocks)
+                block.SetupPredecessors();
         }
 
         /// <summary>
@@ -117,12 +125,12 @@ partial class Block
         /// <param name="target">The block target.</param>
         private Block AppendBasicBlock(Location location, int target)
         {
-            if (!blockMapping.TryGetValue(target, out Block? block))
+            if (!_blockMapping.TryGetValue(target, out Block? block))
             {
                 var basicBlock = Builder.CreateBasicBlock(location);
                 block = new Block(CodeGenerator, basicBlock);
-                blockMapping.Add(target, block);
-                basicBlockMapping.Add(block.BasicBlock, block);
+                _blockMapping.Add(target, block);
+                _basicBlockMapping.Add(block.BasicBlock, block);
             }
             return block;
         }
@@ -130,6 +138,7 @@ partial class Block
         /// <summary>
         /// Build all required basic blocks.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private void BuildBasicBlocks()
         {
             var disassembledMethod = CodeGenerator.DisassembledMethod;
@@ -146,7 +155,7 @@ partial class Block
                 {
                     foreach (var target in targets.GetTargetOffsets())
                     {
-                        if (blockMapping.ContainsKey(target))
+                        if (_blockMapping.ContainsKey(target))
                             continue;
                         AppendBasicBlock(instruction.Location, target);
                     }
@@ -163,10 +172,10 @@ partial class Block
         /// </param>
         private void AddSuccessor(Block current, Block successor)
         {
-            if (!successorMapping.TryGetValue(current, out List<Block>? successors))
+            if (!_successorMapping.TryGetValue(current, out List<Block>? successors))
             {
                 successors = new List<Block>();
-                successorMapping.Add(current, successors);
+                _successorMapping.Add(current, successors);
             }
             successors.Add(successor);
         }
@@ -178,16 +187,17 @@ partial class Block
         /// <param name="current">The current block.</param>
         /// <param name="stackCounter">The current stack counter.</param>
         /// <param name="target">The target block.</param>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private void SetupBasicBlock(
             HashSet<Block> visited,
             Block current,
             int stackCounter,
             int target)
         {
-            var targetBlock = blockMapping[target];
+            var targetBlock = _blockMapping[target];
             AddSuccessor(current, targetBlock);
             targetBlock.StackCounter = stackCounter;
-            var targetIdx = offsetMapping[target];
+            var targetIdx = _offsetMapping[target];
             SetupBasicBlocks(visited, targetBlock, targetIdx);
         }
 
@@ -197,6 +207,7 @@ partial class Block
         /// <param name="visited">The set of visited blocks.</param>
         /// <param name="current">The current block.</param>
         /// <param name="instructionIdx">The starting instruction index.</param>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private void SetupBasicBlocks(
             HashSet<Block> visited,
             Block current,
@@ -215,7 +226,7 @@ partial class Block
             {
                 var instruction = disassembledMethod[instructionIdx];
                 // Handle implicit cases: jumps to blocks without a jump instruction
-                if (blockMapping.TryGetValue(instruction.Offset, out Block? other) &&
+                if (_blockMapping.TryGetValue(instruction.Offset, out Block? other) &&
                     current != other)
                 {
                     // Wire current and new block
@@ -227,8 +238,10 @@ partial class Block
                 else
                 {
                     // Update the current block
-                    var behavior = ILInstructionTypes.GetPushPopBehavior(instruction);
-                    stackCounter += behavior.PushCount - behavior.PopCount;
+                    var (popCount, pushCount) = ILInstructionTypes.GetPushPopBehavior(
+                        instruction);
+                    stackCounter += pushCount - popCount;
+                    Debug.Assert(stackCounter >= 0, "Invalid stack counter");
                     current.InstructionCount += 1;
 
                     if (instruction.IsTerminator)
@@ -267,23 +280,23 @@ partial class Block
         /// <summary>
         /// Wires all terminators and connects all basic blocks.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private void WireBlocks()
         {
-            foreach (var entry in successorMapping)
+            foreach (var entry in _successorMapping)
             {
                 var block = entry.Key;
-                var terminatorBuilder = block.Builder.CreateBuilderTerminator(
-                    entry.Value.Count);
-                foreach (var target in entry.Value)
-                    terminatorBuilder.Add(target.BasicBlock);
-                terminatorBuilder.Seal();
+                var targets = new BasicBlock[entry.Value.Count];
+                for (int i = 0; i < targets.Length; ++i)
+                    targets[i] = entry.Value[i].BasicBlock;
+                block.Builder.CreatePendingTermination(targets);
             }
 
             // Handle blocks without terminator
-            foreach (var block in blockMapping.Values)
+            foreach (var block in _blockMapping.Values)
             {
-                if (!successorMapping.ContainsKey(block))
-                    block.Builder.CreateBuilderTerminator(0).Seal();
+                if (!_successorMapping.ContainsKey(block))
+                    block.Builder.CreatePendingTermination([]);
             }
         }
 
@@ -299,12 +312,15 @@ partial class Block
         /// <summary>
         /// Returns the associated SSA block collection.
         /// </summary>
-        public BasicBlockCollection<ReversePostOrder, Forwards> Blocks { get; }
+        public BasicBlockCollection<ReversePostOrder<BasicBlock>, Forwards> Blocks
+        {
+            get;
+        }
 
         /// <summary>
         /// Returns the internal method builder.
         /// </summary>
-        public Method.Builder Builder { get; }
+        public MethodBuilder Builder { get; }
 
         /// <summary>
         /// Returns the entry block.
@@ -316,7 +332,7 @@ partial class Block
         /// </summary>
         /// <param name="basicBlock">The source basic block.</param>
         /// <returns>The resolved frontend block.</returns>
-        public Block this[BasicBlock basicBlock] => basicBlockMapping[basicBlock];
+        public Block this[BasicBlock basicBlock] => _basicBlockMapping[basicBlock];
 
         #endregion
     }
