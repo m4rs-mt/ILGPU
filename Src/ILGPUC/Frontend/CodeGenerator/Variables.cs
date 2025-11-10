@@ -26,11 +26,19 @@ partial class CodeGenerator
             var.RefType == VariableRefType.Argument ||
             var.RefType == VariableRefType.Local);
         var addressOrValue = Block.GetValue(var);
-        var type = _variableTypes[var];
+        var (type, flags) = _variableTypes[var];
         if (_variables.Contains(var))
-            Block.Push(CreateLoad(addressOrValue, type.Type, type.Flags));
+            Block.Push(CreateLoad(addressOrValue, type, flags));
         else
-            Block.Push(LoadOntoEvaluationStack(addressOrValue, type.Flags));
+            Block.Push(LoadOntoEvaluationStack(addressOrValue, flags));
+
+        // Propagate delegate method from local table to the newly pushed stack value
+        if (_delegateLocalTable.TryGetValue(var, out var delegateMethod))
+        {
+            var topValue = Block.GetValue(
+                new VariableRef(Block.StackCounter - 1, VariableRefType.Stack));
+            _delegateTable[topValue] = delegateMethod;
+        }
     }
 
     /// <summary>
@@ -58,6 +66,26 @@ partial class CodeGenerator
             var.RefType == VariableRefType.Argument ||
             var.RefType == VariableRefType.Local);
         var (type, flags) = _variableTypes[var];
+
+        // Propagate delegate tracking before the value is converted/popped
+        if (Block.StackCounter > 0)
+        {
+            var rawTop = Block.GetValue(
+                new VariableRef(Block.StackCounter - 1, VariableRefType.Stack));
+            if (_delegateTable.TryGetValue(rawTop, out var delegateMethod))
+            {
+                _delegateLocalTable[var] = delegateMethod;
+            }
+            else if (_pendingDelegateForLocal is not null)
+            {
+                // Fallback: the stack top is a phi-merged value from a
+                // control flow merge (static lambda caching pattern).
+                // Use the most recent delegate from MakeNewDelegate.
+                _delegateLocalTable[var] = _pendingDelegateForLocal;
+                _pendingDelegateForLocal = null;
+            }
+        }
+
         var storeValue = Block.Pop(type, flags);
         if (_variables.Contains(var))
         {
