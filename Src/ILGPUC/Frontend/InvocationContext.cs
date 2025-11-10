@@ -11,14 +11,12 @@
 
 using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Construction;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.BasicBlockValues.Construction;
+using ILGPUC.IR.ModuleValues.Construction;
 using ILGPUC.Util;
 using System;
 using System.Reflection;
 using System.Text;
-using ValueList = ILGPU.Util.InlineList<ILGPUC.IR.Values.ValueReference>;
 
 namespace ILGPUC.Frontend;
 
@@ -26,14 +24,14 @@ namespace ILGPUC.Frontend;
 /// Represents an invocation context for compiler-known methods
 /// that are supported in the scope of ILGPU programs.
 /// </summary>
-unsafe ref struct InvocationContext
+ref struct InvocationContext
 {
     #region Instance
 
     /// <summary>
     /// The internal arguments pointer.
     /// </summary>
-    private readonly ref ValueList _arguments;
+    private readonly ref ValueBuilderList _arguments;
 
     /// <summary>
     /// Internal argument index counter.
@@ -55,7 +53,7 @@ unsafe ref struct InvocationContext
         Block block,
         MethodBase callerMethod,
         MethodBase method,
-        ref ValueList arguments)
+        ref ValueBuilderList arguments)
     {
         _arguments = ref arguments;
 
@@ -91,19 +89,14 @@ unsafe ref struct InvocationContext
     public Block Block { get; }
 
     /// <summary>
-    /// Returns the current IR context.
+    /// Returns the current IR module builder.
     /// </summary>
-    public readonly IRContext Context => CodeGenerator.Context;
-
-    /// <summary>
-    /// Returns the current type context.
-    /// </summary>
-    public readonly IRTypeContext TypeContext => CodeGenerator.TypeContext;
+    public readonly ModuleBuilder ModuleBuilder => CodeGenerator.ModuleBuilder;
 
     /// <summary>
     /// Returns the current IR builder.
     /// </summary>
-    public readonly IRBuilder Builder => Block.Builder;
+    public readonly BasicBlockBuilder Builder => Block.Builder;
 
     /// <summary>
     /// Represents the caller method.
@@ -116,14 +109,9 @@ unsafe ref struct InvocationContext
     public MethodBase Method { get; set; }
 
     /// <summary>
-    /// Returns the associated module.
-    /// </summary>
-    public readonly Module Module => Method.Module;
-
-    /// <summary>
     /// Returns the call arguments.
     /// </summary>
-    public readonly ref ValueList Arguments => ref _arguments;
+    public readonly ref ValueBuilderList Arguments => ref _arguments;
 
     /// <summary>
     /// Returns the number of arguments.
@@ -135,7 +123,7 @@ unsafe ref struct InvocationContext
     /// </summary>
     /// <param name="index">The argument index.</param>
     /// <returns>The argument with the given index.</returns>
-    public readonly ref ValueReference this[int index] => ref Arguments[index];
+    public readonly Value this[int index] => Arguments.Get<Value>(index);
 
     #endregion
 
@@ -165,6 +153,45 @@ unsafe ref struct InvocationContext
     /// </summary>
     /// <returns>The pulled argument.</returns>
     public Value Pull() => this[_argumentIndex++];
+
+    /// <summary>
+    /// Pulls an argument from this context.
+    /// </summary>
+    /// <returns>The pulled argument.</returns>
+    public TValue Pull<TValue>() where TValue : Value => Pull().AsNotNullCast<TValue>();
+
+    /// <summary>
+    /// Pulls a delegate argument from this context and resolves it to the
+    /// underlying <see cref="IR.ModuleValues.Method"/> IR node via static
+    /// delegate devirtualization. Use this for <c>Func&lt;T,T,T&gt;</c>
+    /// parameters that represent lambda operations.
+    /// </summary>
+    /// <returns>The resolved method, or null if the delegate cannot be
+    /// resolved.</returns>
+    /// <summary>
+    /// Pulls a delegate argument and resolves it to the underlying IR Method
+    /// via static delegate devirtualization.
+    /// </summary>
+    public IR.ModuleValues.Method? PullDelegateMethod()
+    {
+        var handle = Pull();
+        if (CodeGenerator.TryResolveDelegateMethod(handle, out var methodBase))
+            return CodeGenerator.GetMethod(methodBase);
+        return null;
+    }
+
+    /// <summary>
+    /// Pulls a delegate argument and resolves it to the underlying .NET
+    /// <see cref="System.Reflection.MethodBase"/> for IL inspection.
+    /// Use this when the IR Method body may not be compiled yet.
+    /// </summary>
+    public MethodBase? PullDelegateMethodBase()
+    {
+        var handle = Pull();
+        if (CodeGenerator.TryResolveDelegateMethod(handle, out var methodBase))
+            return methodBase;
+        return null;
+    }
 
     /// <summary>
     /// Pulls an argument from this context as a loaded instance.
@@ -216,7 +243,7 @@ unsafe ref struct InvocationContext
         {
             for (int i = 0, e = Arguments.Count; i < e; ++i)
             {
-                builder.Append(Arguments[i].ToString());
+                builder.Append(Arguments.Get<Value>(i).ToString());
                 if (i + 1 < e)
                     builder.Append(", ");
             }
