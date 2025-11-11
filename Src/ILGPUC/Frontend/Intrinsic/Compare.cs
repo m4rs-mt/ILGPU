@@ -9,7 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Values;
+using ILGPUC.IR;
+using ILGPUC.IR.PureValues;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -31,7 +32,7 @@ partial class Intrinsics
     /// <param name="kind">Compare kind to be used.</param>
     /// <param name="flags">Compare flags to be used.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Compare_Operation(
+    private static Value? Compare_Operation(
         ref InvocationContext context,
         CompareKind kind,
         CompareFlags flags) =>
@@ -48,7 +49,7 @@ partial class Intrinsics
     /// <param name="context">The current invocation context.</param>
     /// <param name="kind">Compare kind to be used.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Compare_OperationDynamic(
+    private static Value? Compare_OperationDynamic(
         ref InvocationContext context,
         CompareKind kind) =>
         Compare_Operation(

@@ -9,7 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Values;
+using ILGPUC.IR;
+using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
 
 namespace ILGPUC.Frontend.Intrinsic;
@@ -34,8 +35,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Convert_ImplicitOperation(
-        ref InvocationContext context) =>
+    private static Value? Convert_ImplicitOperation(ref InvocationContext context) =>
         Convert_Operation(ref context);
 
     /// <summary>
@@ -43,8 +43,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Convert_ExplicitOperation(
-        ref InvocationContext context) =>
+    private static Value? Convert_ExplicitOperation(ref InvocationContext context) =>
         Convert_Operation(ref context);
 
     /// <summary>
@@ -52,12 +51,11 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Convert_Operation(
-        ref InvocationContext context)
+    private static Value? Convert_Operation(ref InvocationContext context)
     {
         var flags = DetermineConvertFlags(ref context);
         var returnType = context.Method.GetReturnType();
-        var typeNode = context.Builder.CreateType(returnType);
+        var typeNode = context.ModuleBuilder.CreateType(returnType);
         return context.Builder.CreateConvert(
             context.Location,
             context.Pull(),
