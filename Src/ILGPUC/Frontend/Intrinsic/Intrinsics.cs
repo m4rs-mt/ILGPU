@@ -13,7 +13,6 @@ using ILGPU.Intrinsic;
 using ILGPU.Util;
 using ILGPUC.Backends;
 using ILGPUC.IR;
-using ILGPUC.IR.Values;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -139,6 +138,7 @@ static unsafe partial class Intrinsics
         /// </summary>
         /// <param name="method">The method to get a new context for.</param>
         /// <returns>The generic context if this method has one.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static GenericContext? TryGet(MethodBase method)
         {
             Type[] genericMethodArgs;
@@ -185,6 +185,7 @@ static unsafe partial class Intrinsics
         /// <summary>
         /// Finds a member using internal metadata token resolvers.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private T Find<T>(T[] members) where T : MemberInfo
         {
             foreach (var member in members)
@@ -202,6 +203,7 @@ static unsafe partial class Intrinsics
         /// </summary>
         /// <param name="method">The method to specialize.</param>
         /// <returns>The specialized method.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public MethodBase GetSpecializedMethod(MethodBase method)
         {
             if (method is MethodInfo methodInfo)
@@ -241,7 +243,7 @@ static unsafe partial class Intrinsics
     /// </summary>
     /// <param name="context">The current context.</param>
     /// <returns>The value reference return.</returns>
-    delegate ValueReference IntrinsicGenerator(ref InvocationContext context);
+    delegate Value? IntrinsicGenerator(ref InvocationContext context);
 
     #endregion
 
@@ -301,6 +303,14 @@ static unsafe partial class Intrinsics
             return IntrinsicImplementationKind.Implemented;
         }
 
+        // Handle CLR-generated methods on concrete array types (ECMA-335 II.14.2).
+        // These have no IL body and will be code-generated in TryGenerateCode.
+        if (method.DeclaringType is { IsArray: true })
+        {
+            remapped = null;
+            return IntrinsicImplementationKind.Generated;
+        }
+
         // Ignore methods that are not known intrinsics
         if (!method.IsILGPUIntrinsic())
             return IntrinsicImplementationKind.None;
@@ -319,22 +329,50 @@ static unsafe partial class Intrinsics
     /// <param name="context">The current invocation context.</param>
     /// <param name="result">The resulting value of the intrinsic call.</param>
     /// <returns>True if this call could handle the call.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static bool TryGenerateCode(
         ref InvocationContext context,
-        out ValueReference result)
+        out Value? result)
     {
         result = default;
         var method = context.Method;
 
-        // Remappings are not supported by this method and need to be handled upfront
-        if (HasIntrinsicRemapping(method))
-            throw context.Location.GetInvalidOperationException();
+        // If this method has a remapping (e.g., int.Abs -> XMath.Abs), follow it.
+        // Normally remappings are resolved upfront in ProcessMethod, but constrained
+        // virtual calls (e.g., INumber<T>.Abs resolved to int.Abs at code-gen time)
+        // may arrive here with the remapping still pending.
+        if (TryGetIntrinsicRemapping(method, out var remapped))
+        {
+            // Apply generic specialization if the remapped target needs it
+            var genericContext = GenericContext.TryGet(method);
+            if (genericContext is not null)
+                remapped = genericContext.Value.GetSpecializedMethod(remapped);
+
+            method = remapped;
+            context.Method = remapped;
+        }
 
         // Check for immediate code generators and backend implementations
         if (TryGetIntrinsicGenerator(method, out var generator))
         {
             // Implement the intrinsic
             result = generator(ref context);
+            return true;
+        }
+
+        // Handle CLR-generated methods on concrete array types (ECMA-335 §II.14.2).
+        // These are generated per concrete type (e.g., int32[0...,0...]) and cannot
+        // be registered via (Module, MetadataToken) lookup like System.Array methods.
+        if (method.DeclaringType is { IsArray: true })
+        {
+            result = method switch
+            {
+                ConstructorInfo => Arrays_CreateNew(ref context),
+                MethodInfo { ReturnType.IsByRef: true } => Arrays_GetAddress(ref context),
+                MethodInfo { ReturnType: var rt } when rt == typeof(void) =>
+                    Arrays_SetElement(ref context),
+                _ => Arrays_GetElement(ref context),
+            };
             return true;
         }
 
