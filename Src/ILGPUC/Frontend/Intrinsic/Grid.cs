@@ -9,7 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Values;
+using ILGPUC.IR;
+using ILGPUC.IR.BasicBlockValues;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -20,28 +21,26 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Grid_CurrentDimension(
+    private static Value? Grid_CurrentDimension(
         ref InvocationContext context) =>
         context.Builder.CreateGridDimensionValue(
-            context.Location,
-            DeviceConstantDimension3D.X);
+            context.Location);
 
     /// <summary>
     /// Handles grid dimension operations.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Grid_CurrentIndex(ref InvocationContext context) =>
+    private static Value? Grid_CurrentIndex(ref InvocationContext context) =>
         context.Builder.CreateGridIndexValue(
-            context.Location,
-            DeviceConstantDimension3D.X);
+            context.Location);
 
     /// <summary>
     /// Handles grid dimension operations.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Grid_MemoryFence(ref InvocationContext context) =>
+    private static Value? Grid_MemoryFence(ref InvocationContext context) =>
         context.Builder.CreateMemoryBarrier(
             context.Location,
             MemoryBarrierKind.DeviceLevel);
@@ -51,7 +50,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Grid_SystemMemoryFence(ref InvocationContext context) =>
+    private static Value? Grid_SystemMemoryFence(ref InvocationContext context) =>
         context.Builder.CreateMemoryBarrier(
             context.Location,
             MemoryBarrierKind.SystemLevel);
