@@ -11,8 +11,8 @@
 
 using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Types;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
 using System;
 using System.Reflection;
@@ -26,14 +26,14 @@ partial class Intrinsics
     /// Initializes arrays.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
-    private static unsafe ValueReference RuntimeHelpers_InitializeArray(
+    private static unsafe Value? RuntimeHelpers_InitializeArray(
         ref InvocationContext context)
     {
         var builder = context.Builder;
         var location = context.Location;
 
         // Resolve the array data
-        var handle = context[1].ResolveAs<HandleValue>().AsNotNull();
+        var handle = context[1].AsNotNullCast<HandleValue>();
         var fieldInfo = handle.GetHandle<FieldInfo>();
         var value = fieldInfo.GetValue(null).AsNotNull();
         int valueSize = Marshal.SizeOf(value);
@@ -44,8 +44,8 @@ partial class Intrinsics
 
         // Convert unsafe data into target chunks and emit
         // appropriate store instructions
-        Value target = builder.CreateArrayToViewCast(location, context[0]);
-        var arrayType = target.Type.As<ViewType>(location);
+        Value target = builder.CreateArrayToViewCast(location, context[0]).AsNotNull();
+        var arrayType = target.Type.AsNotNullCast<ViewType>();
         var elementType = fieldInfo.FieldType.GetElementType().ThrowIfNull();
 
         // Convert values to IR values
@@ -69,26 +69,55 @@ partial class Intrinsics
                     targetIndex),
                 irValue);
         }
-        return context.Builder.CreateUndefined();
+        return context.Builder.UndefinedValue;
     }
 
     /// <summary>
     /// Converts basic reinterpret casts.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
-    private static ValueReference Unsafe_As(ref InvocationContext context)
+    private static Value? Unsafe_As(ref InvocationContext context)
     {
-        var codeGenerator = context.CodeGenerator;
         var location = context.Location;
         var sourceValue = context[0];
-        var methodReturnType = context.TypeContext.CreateType(
-            context.Method.GetReturnType()).As<PointerType>(location);
+        var methodReturnType = context.ModuleBuilder.CreateType(
+            context.Method.GetReturnType()).AsNotNullCast<PointerType>();
 
-        return sourceValue.Type == methodReturnType || methodReturnType.IsRootType
-            ? sourceValue.Resolve()
-            : codeGenerator.CreateConversion(
+        if (sourceValue.Type == methodReturnType)
+            return sourceValue;
+
+        // Pointer-to-pointer reinterpret: use PointerCast to change element type
+        if (sourceValue.Type is PointerType && methodReturnType is PointerType targetPtr)
+            return context.Builder.CreatePointerCast(
+                location,
                 sourceValue,
-                methodReturnType,
-                ConvertFlags.None);
+                targetPtr.ElementType);
+
+        return context.Builder.CreateConvert(
+            location,
+            sourceValue,
+            methodReturnType,
+            ConvertFlags.None);
+    }
+
+    /// <summary>
+    /// Handles <c>System.Runtime.CompilerServices.Unsafe.Add&lt;T&gt;(
+    /// ref T source, int elementOffset)</c>. Returns a pointer advanced by
+    /// <paramref name="elementOffset"/> elements of type <c>T</c>.
+    ///
+    /// <para>Primary use case: element access on <c>[InlineArray(N)]</c>
+    /// structs (e.g. <c>buffer[2]</c> is compiled to
+    /// <c>Unsafe.Add&lt;int&gt;(ref _element0, 2)</c>). Without this handler
+    /// the frontend emits an un-lowered <c>MethodCall</c> to
+    /// <c>Unsafe.Add</c> which has no loadable body → undefined method
+    /// reference in the generated CPU kernel.</para>
+    /// </summary>
+    private static Value? Unsafe_Add(ref InvocationContext context)
+    {
+        var location = context.Location;
+        var source = context[0];
+        var offset = context[1];
+        return context.Builder.CreateLoadElementAddress(
+            location, source, offset);
     }
 }
