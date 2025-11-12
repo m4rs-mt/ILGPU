@@ -9,7 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Values;
+using ILGPUC.IR;
+using ILGPUC.IR.BasicBlockValues;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -29,7 +30,7 @@ partial class Intrinsics
     /// <param name="context">The current invocation context.</param>
     /// <param name="kind">Atomic kind to be used.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Atomic_Operation(
+    private static Value? Atomic_Operation(
         ref InvocationContext context,
         GenericAtomicKind kind)
     {
@@ -47,7 +48,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Atomic_CompareExchange(ref InvocationContext context)
+    private static Value? Atomic_CompareExchange(ref InvocationContext context)
     {
         var flags = DetermineAtomicFlags(ref context);
         return context.Builder.CreateAtomicCAS(
@@ -56,5 +57,26 @@ partial class Intrinsics
             context.Pull(),
             context.Pull(),
             flags);
+    }
+
+    /// <summary>
+    /// Handles <see cref="ILGPU.Atomic.MakeAtomic{T}"/>. Resolves the
+    /// user's binary operation delegate to an IR method and constructs a
+    /// <see cref="IR.BasicBlockValues.CustomAtomic"/> node. The user's
+    /// <c>CompareExchangeOperation&lt;T&gt;</c> delegate is consumed but
+    /// unused — the lowering pass always emits <see cref="IR.BasicBlockValues.AtomicCAS"/>
+    /// which every backend handles natively.
+    /// </summary>
+    /// <param name="context">The current invocation context.</param>
+    /// <returns>The resulting value.</returns>
+    private static Value? Atomic_MakeAtomic(ref InvocationContext context)
+    {
+        var flags = DetermineAtomicFlags(ref context);
+        var target = context.Pull();                  // ref T target
+        var value = context.Pull();                   // T value
+        var operation = context.PullDelegateMethod(); // MakeAtomicOperation<T>
+        _ = context.Pull();                           // CompareExchangeOperation<T> — unused
+        return context.Builder.CreateCustomAtomic(
+            context.Location, target, value, (Value?)operation, flags);
     }
 }
