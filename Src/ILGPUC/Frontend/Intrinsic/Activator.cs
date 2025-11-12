@@ -11,7 +11,6 @@
 
 using ILGPU.Resources;
 using ILGPUC.IR;
-using ILGPUC.IR.Values;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -22,7 +21,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Activator_CreateInstance(ref InvocationContext context)
+    private static Value? Activator_CreateInstance(ref InvocationContext context)
     {
         var location = context.Location;
 
@@ -36,6 +35,6 @@ partial class Intrinsics
 
         return context.Builder.CreateNull(
             location,
-            context.Builder.CreateType(args[0]));
+            context.ModuleBuilder.CreateType(args[0]));
     }
 }
