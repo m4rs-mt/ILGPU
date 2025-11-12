@@ -12,7 +12,7 @@
 using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.PureValues;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -23,7 +23,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_CreateNew(ref InvocationContext context)
+    private static ArrayValue Arrays_CreateNew(ref InvocationContext context)
     {
         var location = context.Location;
         var builder = context.Builder;
@@ -39,18 +39,18 @@ partial class Intrinsics
         // Create an array view type of the appropriate dimension
         var managedElementType =
             context.Method.DeclaringType.AsNotNull().GetElementType().AsNotNull();
-        var elementType = builder.CreateType(managedElementType);
-        var arrayType = builder.CreateArrayType(elementType, dimension);
+        var elementType = context.ModuleBuilder.CreateType(managedElementType);
+        var arrayType = context.ModuleBuilder.CreateArrayType(elementType, dimension);
 
         // Create array instance
         var arrayBuilder = builder.CreateNewArray(location, arrayType);
         for (int i = 0; i < dimension; ++i)
-            arrayBuilder.Add(context.Arguments[i + 1]);
+            arrayBuilder.Add(context[i + 1]);
         var newArray = arrayBuilder.Seal();
 
         // Store instance
         builder.CreateStore(location, context[0], newArray);
-        return default;
+        return newArray;
     }
 
     /// <summary>
@@ -58,13 +58,14 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_Empty(ref InvocationContext context)
+    private static Value? Arrays_Empty(ref InvocationContext context)
     {
         var location = context.Location;
         var builder = context.Builder;
 
-        var elementType = builder.CreateType(context.GetMethodGenericArguments()[0]);
-        var arrayType = builder.CreateArrayType(elementType, 1);
+        var elementType = context.ModuleBuilder.CreateType(
+            context.GetMethodGenericArguments()[0]);
+        var arrayType = context.ModuleBuilder.CreateArrayType(elementType, 1);
         return builder.CreateEmptyArray(location, arrayType);
     }
 
@@ -73,16 +74,16 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_GetElement(ref InvocationContext context)
+    private static Value? Arrays_GetElement(ref InvocationContext context)
     {
         var location = context.Location;
         var builder = context.Builder;
 
         var laeaBuilder = builder.CreateLoadArrayElementAddress(
             location,
-            context.Arguments[0]);
+            context[0]);
         for (int i = 1, e = context.NumArguments; i < e; ++i)
-            laeaBuilder.Add(context.Arguments[i]);
+            laeaBuilder.Add(context[i]);
         return builder.CreateLoad(location, laeaBuilder.Seal());
     }
 
@@ -91,16 +92,16 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_SetElement(ref InvocationContext context)
+    private static Value? Arrays_SetElement(ref InvocationContext context)
     {
         var location = context.Location;
         var builder = context.Builder;
 
         var laeaBuilder = builder.CreateLoadArrayElementAddress(
             location,
-            context.Arguments[0]);
+            context[0]);
         for (int i = 1, e = context.NumArguments - 1; i < e; ++i)
-            laeaBuilder.Add(context.Arguments[i]);
+            laeaBuilder.Add(context[i]);
         return builder.CreateStore(
             location,
             laeaBuilder.Seal(),
@@ -108,11 +109,29 @@ partial class Intrinsics
     }
 
     /// <summary>
+    /// Gets the address of an array element without loading.
+    /// </summary>
+    /// <param name="context">The current invocation context.</param>
+    /// <returns>The resulting value.</returns>
+    private static Value? Arrays_GetAddress(ref InvocationContext context)
+    {
+        var location = context.Location;
+        var builder = context.Builder;
+
+        var laeaBuilder = builder.CreateLoadArrayElementAddress(
+            location,
+            context[0]);
+        for (int i = 1, e = context.NumArguments; i < e; ++i)
+            laeaBuilder.Add(context[i]);
+        return laeaBuilder.Seal();
+    }
+
+    /// <summary>
     /// Gets an array lower bound.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_GetLowerBound(
+    private static Value? Arrays_GetLowerBound(
         ref InvocationContext context) =>
         context.Builder.CreatePrimitiveValue(
             context.Location,
@@ -123,7 +142,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_GetUpperBound(ref InvocationContext context) =>
+    private static Value? Arrays_GetUpperBound(ref InvocationContext context) =>
         context.Builder.CreateArithmetic(
             context.Location,
             Arrays_Length(ref context),
@@ -137,18 +156,17 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_LengthGet(ref InvocationContext context) =>
+    private static Value? Arrays_LengthGet(ref InvocationContext context) =>
         context.Builder.CreateGetArrayLength(
             context.Location,
             context.Pull());
-
 
     /// <summary>
     /// Gets a long array length.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_LongLengthGet(ref InvocationContext context) =>
+    private static Value? Arrays_LongLengthGet(ref InvocationContext context) =>
         context.Builder.CreateConvertToInt64(
             context.Location,
             Arrays_LengthGet(ref context));
@@ -158,7 +176,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_Length(ref InvocationContext context) =>
+    private static Value? Arrays_Length(ref InvocationContext context) =>
         context.Builder.CreateGetArrayLength(
             context.Location,
             context.Pull(),
@@ -169,7 +187,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Arrays_LongLength(ref InvocationContext context) =>
+    private static Value? Arrays_LongLength(ref InvocationContext context) =>
         context.Builder.CreateConvertToInt64(
             context.Location,
             Arrays_Length(ref context));
