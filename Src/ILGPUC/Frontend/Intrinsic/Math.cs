@@ -9,7 +9,9 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Values;
+using ILGPU.Util;
+using ILGPUC.IR;
+using ILGPUC.IR.PureValues;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -30,14 +32,14 @@ partial class Intrinsics
     /// <param name="context">The current invocation context.</param>
     /// <param name="kind">Operation kind to be used.</param>
     /// <returns>The resulting value.</returns>
-    public static ValueReference Math_UnaryOperation(
+    public static Value? Math_UnaryOperation(
         ref InvocationContext context,
         UnaryArithmeticKind kind) =>
         context.Builder.CreateArithmetic(
             context.Location,
             context.Pull(),
             kind,
-            DetermineArithmeticFlags(ref context));
+            DetermineArithmeticFlags(ref context)).AsNotNull();
 
     /// <summary>
     /// Handles binary math operations.
@@ -45,7 +47,7 @@ partial class Intrinsics
     /// <param name="context">The current invocation context.</param>
     /// <param name="kind">Operation kind to be used.</param>
     /// <returns>The resulting value.</returns>
-    public static ValueReference Math_BinaryOperation(
+    public static Value? Math_BinaryOperation(
         ref InvocationContext context,
         BinaryArithmeticKind kind) =>
         context.Builder.CreateArithmetic(
@@ -53,7 +55,7 @@ partial class Intrinsics
             context.Pull(),
             context.Pull(),
             kind,
-            DetermineArithmeticFlags(ref context));
+            DetermineArithmeticFlags(ref context)).AsNotNull();
 
     /// <summary>
     /// Handles ternary math operations.
@@ -61,7 +63,7 @@ partial class Intrinsics
     /// <param name="context">The current invocation context.</param>
     /// <param name="kind">Operation kind to be used.</param>
     /// <returns>The resulting value.</returns>
-    public static ValueReference Math_TernaryOperation(
+    public static Value? Math_TernaryOperation(
         ref InvocationContext context,
         TernaryArithmeticKind kind) =>
         context.Builder.CreateArithmetic(
