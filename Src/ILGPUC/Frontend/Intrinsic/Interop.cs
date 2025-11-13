@@ -11,9 +11,10 @@
 
 using ILGPU;
 using ILGPU.Resources;
-using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
+using ILGPUC.Util;
 using System.Linq;
 
 namespace ILGPUC.Frontend.Intrinsic;
@@ -25,21 +26,22 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Interop_SizeOf(ref InvocationContext context) =>
+    private static Value? Interop_SizeOf(ref InvocationContext context) =>
         context.Builder.CreateSizeOf(
             context.Location,
-            context.Builder.CreateType(context.GetMethodGenericArguments().First()));
+            context.ModuleBuilder.CreateType(
+                context.GetMethodGenericArguments().First()));
 
     /// <summary>
     /// Creates a new offset-of computation.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
-    private static ValueReference Interop_OffsetOf(ref InvocationContext context)
+    private static Value? Interop_OffsetOf(ref InvocationContext context)
     {
         var builder = context.Builder;
-        var typeInfo = builder.TypeContext.GetTypeInfo(
+        var typeInfo = builder.ModuleBuilder.GetTypeInfo(
             context.GetMethodGenericArguments().First());
-        var fieldName = context.Pull().ResolveAs<StringValue>().AsNotNull();
+        var fieldName = context.Pull<StringValue>();
         int fieldIndex = 0;
         foreach (var field in typeInfo.Fields)
         {
@@ -49,7 +51,7 @@ partial class Intrinsics
                 break;
             }
         }
-        var irType = context.Builder.CreateType(typeInfo.ManagedType);
+        var irType = context.ModuleBuilder.CreateType(typeInfo.ManagedType);
         return context.Builder.CreateOffsetOf(
             context.Location,
             irType,
@@ -60,14 +62,14 @@ partial class Intrinsics
     /// Creates a new float-as-int cast.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
-    private static ValueReference Interop_FloatAsInt(ref InvocationContext context) =>
+    private static Value? Interop_FloatAsInt(ref InvocationContext context) =>
         context.Builder.CreateFloatAsIntCast(context.Location, context.Pull());
 
     /// <summary>
     /// Creates a new int-as-float cast.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
-    private static ValueReference Interop_IntAsFloat(ref InvocationContext context) =>
+    private static Value? Interop_IntAsFloat(ref InvocationContext context) =>
         context.Builder.CreateIntAsFloatCast(context.Location, context.Pull());
 
     /// <summary>
@@ -75,22 +77,19 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resolved format expression string.</returns>
-    private static string GetFormatExpression(ref InvocationContext context)
-    {
-        var formatExpression = context[0].ResolveAs<StringValue>();
-        return formatExpression is null
-            ? throw context.Location.GetNotSupportedException(
-                ErrorMessages.NotSupportedWriteFormatConstant,
-                context[0].ToString())
-            : formatExpression.String ?? string.Empty;
-    }
+    private static string GetFormatExpression(ref InvocationContext context) =>
+        context[0] is not StringValue formatExpression
+        ? throw context.Location.GetNotSupportedException(
+            ErrorMessages.NotSupportedWriteFormatConstant,
+            context[0].ToString())
+        : formatExpression.String ?? string.Empty;
 
     /// <summary>
     /// Creates a new write instruction to the standard output stream.
     /// </summary>
     /// <param name="formatExpression">The format expression string.</param>
     /// <param name="context">The current invocation context.</param>
-    private static ValueReference CreateWrite(
+    private static Value? CreateWrite(
         string formatExpression,
         ref InvocationContext context)
     {
@@ -119,14 +118,15 @@ partial class Intrinsics
         }
 
         // Gather all arguments
-        var arguments = InlineList<ValueReference>.Empty;
-        context.Arguments.CopyTo(ref arguments);
-        arguments.RemoveAt(0);
+        var arguments = ValueBuilderList.Create(
+            context.Builder.Generation,
+            context.NumArguments - 1);
+        context.Arguments.CopyTo(ref arguments, 1);
 
         // Valid all argument types
         foreach (var arg in arguments)
         {
-            if (arg.Type.IsPointerType || arg.BasicValueType != BasicValueType.None)
+            if (arg.Type is PointerType || arg.BasicValueType != BasicValueType.None)
                 continue;
             throw location.GetNotSupportedException(
                 ErrorMessages.NotSupportedWriteFormatArgumentType,
@@ -145,7 +145,7 @@ partial class Intrinsics
     /// Creates a new write instruction to the standard output stream.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
-    private static ValueReference Interop_Write(ref InvocationContext context) =>
+    private static Value? Interop_Write(ref InvocationContext context) =>
         CreateWrite(
             GetFormatExpression(ref context),
             ref context);
@@ -154,7 +154,7 @@ partial class Intrinsics
     /// Creates a new write-line instruction to the standard output stream.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
-    private static ValueReference Interop_WriteLine(ref InvocationContext context)
+    private static Value? Interop_WriteLine(ref InvocationContext context)
     {
         var format = GetFormatExpression(ref context);
         format = Interop.GetWriteLineFormat(format);
