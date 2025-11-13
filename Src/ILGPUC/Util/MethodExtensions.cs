@@ -30,6 +30,17 @@ static class MethodExtensions
         method.IsStatic || method.IsNotCapturingLambda() ? 0 : 1;
 
     /// <summary>
+    /// Returns the number of parameters including the main parameter offset.
+    /// methods.
+    /// </summary>
+    /// <param name="method">The method to compute the parameter offset for.</param>
+    /// <returns>
+    /// The total number of parameters including the
+    /// </returns>
+    public static int GetNumParametersIncludingOffset(this MethodBase method) =>
+        method.GetParameterOffset() + method.GetParameters().Length;
+
+    /// <summary>
     /// Returns true if the method can be considered a non-capturing lambda.
     /// </summary>
     /// <param name="method">The method to check.</param>
