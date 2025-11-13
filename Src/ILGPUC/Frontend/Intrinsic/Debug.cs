@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Values;
+using ILGPUC.IR;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -20,18 +20,20 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Debug_Assert(ref InvocationContext context)
+    private static Value? Debug_Assert(ref InvocationContext context)
     {
         var builder = context.Builder;
         var location = context.Location;
 
+        var condition = context.Pull();
+
         var message = context.NumArguments == 1
             ? builder.CreatePrimitiveValue(location, "Assert failed")
-            : (ValueReference)context.Pull();
+            : context.Pull();
 
         return builder.CreateDebugAssert(
             location,
-            context.Pull(),
+            condition,
             message);
     }
 
@@ -40,7 +42,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Debug_Fail(ref InvocationContext context)
+    private static Value? Debug_Fail(ref InvocationContext context)
     {
         var builder = context.Builder;
         var location = context.Location;
