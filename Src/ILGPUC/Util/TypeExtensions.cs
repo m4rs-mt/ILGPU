@@ -12,7 +12,7 @@
 using ILGPU;
 using ILGPU.CodeGeneration;
 using ILGPU.Util;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.PureValues;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -34,6 +34,19 @@ static class TypeExtensions
     /// <returns>True, if the given type is an intrinsic array type.</returns>
     public static bool IsIntrinsicArrayType(this Type type) =>
         type == typeof(Array) || type.IsArray;
+
+    /// <summary>
+    /// Returns true if the given basic value type can be used in combination with
+    /// a view type.
+    /// </summary>
+    /// <param name="basicValueType"></param>
+    /// <returns>
+    /// True if the given value type is a compatible view index type.
+    /// </returns>
+    public static bool IsViewIndexType(this BasicValueType basicValueType) =>
+        Bitwise.Or(
+            basicValueType == BasicValueType.Int32,
+            basicValueType == BasicValueType.Int64);
 
     /// <summary>
     /// Resolves the actual IR name.
