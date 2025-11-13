@@ -11,15 +11,15 @@
 
 using ILGPU.Resources;
 using ILGPU.Runtime.Cuda;
-using ILGPU.Util;
 using ILGPUC.IR;
-using ILGPUC.IR.Values;
+using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.PureValues;
 using System;
 using System.Collections.Immutable;
 using System.Text.RegularExpressions;
-using static ILGPU.Util.FormatString;
+using static ILGPUC.Util.FormatString;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
-    ILGPU.Util.FormatString.FormatExpression>;
+    ILGPUC.Util.FormatString.FormatExpression>;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -30,7 +30,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Utilities_Select(ref InvocationContext context) =>
+    private static Value? Utilities_Select(ref InvocationContext context) =>
         context.Builder.CreatePredicate(
             context.Location,
             context.Pull(),
@@ -47,7 +47,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference CudaAsm_Emit(ref InvocationContext context) =>
+    private static Value? CudaAsm_Emit(ref InvocationContext context) =>
         // TODO: validate whether we want to support an intrinsic with ref params
         CreateLanguageEmitPTX(ref context, usingRefParams: false);
 
@@ -56,7 +56,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <param name="usingRefParams">True, if passing parameters by reference.</param>
-    private static ValueReference CreateLanguageEmitPTX(
+    private static LanguageEmitValue? CreateLanguageEmitPTX(
         ref InvocationContext context,
         bool usingRefParams) =>
         CreateLanguageEmitPTX(
@@ -71,7 +71,7 @@ partial class Intrinsics
     /// <param name="ptxExpression">The PTX expression string.</param>
     /// <param name="usingRefParams">True, if passing parameters by reference.</param>
     /// <param name="context">The current invocation context.</param>
-    private static ValueReference CreateLanguageEmitPTX(
+    private static LanguageEmitValue? CreateLanguageEmitPTX(
         string ptxExpression,
         bool usingRefParams,
         ref InvocationContext context)
@@ -104,18 +104,18 @@ partial class Intrinsics
         // The method parameter at position 0 is the PTX string.
         // The method parameter at position 1 is the first argument to the PTX string.
         var capacity = context.Arguments.Count - 1;
-        var arguments = InlineList<ValueReference>.Create(capacity);
-        var directions = ImmutableArray.CreateBuilder<CudaEmitParameterDirection>(
+        var arguments = ValueBuilderList.Create(context.Builder.Generation, capacity);
+        var directions = ImmutableArray.CreateBuilder<EmitParameterDirection>(
             capacity);
         var methodParams = context.Method.GetParameters();
         var genericArgs = context.Method.GetGenericArguments();
 
         for (int i = 1; i < context.Arguments.Count; i++)
         {
-            var argument = context.Arguments[i];
+            var argument = context[i];
             arguments.Add(argument);
 
-            CudaEmitParameterDirection direction;
+            EmitParameterDirection direction;
             if (usingRefParams)
             {
                 var genericArg = genericArgs[i - 1];
@@ -123,15 +123,15 @@ partial class Intrinsics
 
                 if (typeof(Input<>).IsAssignableFrom(genericArgType))
                 {
-                    direction = CudaEmitParameterDirection.In;
+                    direction = EmitParameterDirection.In;
                 }
                 else if (typeof(Output<>).IsAssignableFrom(genericArgType))
                 {
-                    direction = CudaEmitParameterDirection.Out;
+                    direction = EmitParameterDirection.Out;
                 }
                 else if (typeof(Ref<>).IsAssignableFrom(genericArgType))
                 {
-                    direction = CudaEmitParameterDirection.Both;
+                    direction = EmitParameterDirection.Both;
                 }
                 else
                 {
@@ -144,8 +144,8 @@ partial class Intrinsics
             else
             {
                 direction = methodParams[i].IsOut
-                    ? CudaEmitParameterDirection.Out
-                    : CudaEmitParameterDirection.In;
+                    ? EmitParameterDirection.Out
+                    : EmitParameterDirection.In;
             }
             directions.Add(direction);
         }
@@ -162,8 +162,9 @@ partial class Intrinsics
         }
 
         // Create the language statement
-        return context.Builder.CreateLanguageEmitPTX(
+        return context.Builder.CreateLanguageEmit(
             location,
+            LanguageEmitKind.PTX,
             usingRefParams,
             expressions,
             directions.ToImmutable(),
@@ -179,15 +180,12 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resolved PTX expression string.</returns>
-    private static string GetEmitPTXExpression(ref InvocationContext context)
-    {
-        var ptxExpression = context[0].ResolveAs<StringValue>();
-        return ptxExpression is null
-            ? throw context.Location.GetNotSupportedException(
-                ErrorMessages.NotSupportedInlinePTXFormatConstant,
-                context[0].ToString())
-            : ptxExpression.String ?? string.Empty;
-    }
+    private static string GetEmitPTXExpression(ref InvocationContext context) =>
+        context[0] is not StringValue ptxExpression
+        ? throw context.Location.GetNotSupportedException(
+            ErrorMessages.NotSupportedInlinePTXFormatConstant,
+            context[0].ToString())
+        : ptxExpression.String ?? string.Empty;
 
     /// <summary>
     /// Parses the given PTX expression into an array of format expressions.
