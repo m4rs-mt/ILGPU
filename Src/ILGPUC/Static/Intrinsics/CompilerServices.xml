@@ -7,6 +7,7 @@
     <Type Name="System.Runtime.CompilerServices.Unsafe">
         <Generators Target="Frontend.Intrinsic.Intrinsics">
             <Generator Name="As" Target="Unsafe_As" />
+            <Generator Name="Add" Target="Unsafe_Add" />
         </Generators>
     </Type>
 </Intrinsics>
