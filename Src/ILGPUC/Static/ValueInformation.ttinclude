@@ -50,8 +50,23 @@ public class ValueGroup
     [XmlAttribute]
     public string Name { get; set; } = string.Empty;
 
+    [XmlAttribute]
+    public string Namespace { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string BuilderType { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string BuildContextName { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string RewriterContext { get; set; } = string.Empty;
+
     [XmlElement("Value")]
     public ValueDefinition[] Values { get; set; } = Array.Empty<ValueDefinition>();
+
+    [XmlIgnore]
+    public bool HasNamespace => !string.IsNullOrWhiteSpace(Namespace);
 }
 
 [XmlType("Value")]
@@ -122,7 +137,7 @@ public class ValuePropertyValue
     [XmlIgnore]
     public string DescriptionString =>
         string.IsNullOrWhiteSpace(Description)
-        ? $"Represents the value {Name}."
+        ? $"Represents the value {Name}"
         : Description;
 }
 #>
