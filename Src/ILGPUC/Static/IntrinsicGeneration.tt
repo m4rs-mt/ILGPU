@@ -22,7 +22,9 @@ var infos = IntrinsicsInformation.LoadAll(rootPath);
 #>
 using ILGPU;
 using ILGPU.Util;
-using ILGPUC.IR.Values;
+using ILGPUC.IR;
+using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.PureValues;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -58,7 +60,7 @@ partial class Intrinsics
             var sources = sourceMethods["<#= generator.Name #>"];
 <#              } #>
 <#              if (generator.HasCustomArguments) { #>
-            ValueReference IntrinsicWrapper(ref InvocationContext context) =>
+            Value? IntrinsicWrapper(ref InvocationContext context) =>
                 <#= type.Generation.Target #>.<#= generator.Target #>(
                 ref context,
                 <#= string.Join(", ", generator.GetArguments()) #>);
@@ -107,6 +109,6 @@ partial class Intrinsics
     /// <summary>
     /// Returns true if the given method has an intrinsic generator.
     /// </summary>
-    private static bool HasIntrinsicGenerator(MethodBase methodBase) =>
+    internal static bool HasIntrinsicGenerator(MethodBase methodBase) =>
         _generators.ContainsKey((methodBase.Module, methodBase.MetadataToken));
 }

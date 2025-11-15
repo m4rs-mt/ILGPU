@@ -22,27 +22,230 @@ string rootPath = Host.ResolvePath(".");
 var enums = EnumInformation.Load(rootPath);
 #>
 using ILGPU;
-using ILGPU.Util;
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 
 // disable: max_line_length
 
-namespace ILGPUC;
-
-<# foreach (var entry in enums) { #>
-/// <summary>
-/// <#= string.IsNullOrWhiteSpace(entry.Description) ? $"Represents the {entry.Name} enum" : entry.Description #>
-/// </summary>
-enum <#= entry.Name #>
+namespace ILGPUC
 {
-<#      foreach (var value in entry.Values) { #>
+<# foreach (var entry in enums) { #>
     /// <summary>
-    /// <#= string.IsNullOrWhiteSpace(value.Description) ? $"{entry.Name} value" : value.Description #>
+    /// <#= string.IsNullOrWhiteSpace(entry.Description) ? $"Represents the {entry.Name} enum" : entry.Description #>
     /// </summary>
-    <#= value.Name #>,
+    enum <#= entry.Name #>
+    {
+<#      foreach (var value in entry.Values) { #>
+        /// <summary>
+        /// <#= string.IsNullOrWhiteSpace(value.Description) ? $"{entry.Name} value" : value.Description #>
+        /// </summary>
+        <#= value.Name #>,
 
 <#      } #>
-}
+    }
 
 <# } #>
+
+    namespace Util
+    {
+<# foreach (var entry in enums) { #>
+        /// <summary>
+        /// A type safe set of <#= entry.Name #> values.
+        /// </summary>
+        struct <#= entry.Name #>Set : IEnumerable<<#= entry.Name #>>
+        {
+            /// <summary>
+            /// A fast enumerator for the current set implementation.
+            /// </summary>
+            internal struct Enumerator(<#= entry.Name #>Set set)
+            {
+                private readonly uint _data = set._data;
+                private int _offset = 0;
+
+                /// <inheritdoc cref="IEnumerator{T}.Current" />
+                public readonly <#= entry.Name #> Current =>
+                    (<#= entry.Name #>)_offset;
+
+                private readonly bool HasElement(int index) =>
+                    (_data & (1 << index)) != 0;
+
+                /// <inheritdoc cref="IEnumerator.MoveNext" />
+                public bool MoveNext()
+                {
+                    while (HasElement(_offset) && _data != 0)
+                        ++_offset;
+                    return HasElement(_offset);
+                }
+            }
+
+            private uint _data;
+
+            /// <summary>
+            /// Returns the number of elements.
+            /// </summary>
+            public readonly int Count => XMath.PopCount(_data);
+
+            /// <summary>
+            /// Adds the given type to the set.
+            /// </summary>
+            /// <param name="type">The type to add.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool Add(<#= entry.Name #> type)
+            {
+                bool contained = Contains(type);
+                _data |= 1U << (int)type;
+                return !contained;
+            }
+
+            /// <summary>
+            /// Removes the given type to the set.
+            /// </summary>
+            /// <param name="type">The type to remove.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool Remove(<#= entry.Name #> type)
+            {
+                bool contained = Contains(type);
+                _data &= ~(1U << (int)type);
+                return contained;
+            }
+
+            /// <summary>
+            /// Returns true if the given type is contained in this set.
+            /// </summary>
+            /// <param name="type">The type to test.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly bool Contains(<#= entry.Name #> type) =>
+                (_data & (1U << (int)type)) != 0;
+
+            /// <summary>
+            /// Returns a new enumerator.
+            /// </summary>
+            public readonly Enumerator GetEnumerator() => new(this);
+
+            /// <summary>
+            /// Returns a boxed enumerator.
+            /// </summary>
+            readonly IEnumerator<<#= entry.Name #>> GetBoxedEnumerator()
+            {
+                var enumerator = GetEnumerator();
+                while (enumerator.MoveNext())
+                    yield return enumerator.Current;
+            }
+
+            /// <inheritdoc cref="IEnumerable{T}.GetEnumerator" />
+            readonly IEnumerator<<#= entry.Name #>>
+                IEnumerable<<#= entry.Name #>>.GetEnumerator() =>
+                GetBoxedEnumerator();
+
+            /// <inheritdoc cref="IEnumerable.GetEnumerator" />
+            readonly IEnumerator IEnumerable.GetEnumerator() => GetBoxedEnumerator();
+        }
+
+        /// <summary>
+        /// A type safe map of <#= entry.Name #> values.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        struct <#= entry.Name #>Map<T>() : IEnumerable<(<#= entry.Name #>, T)>
+        {
+            /// <summary>
+            /// Returns the maximum number of elements.
+            /// </summary>
+            public static readonly int Count =
+                Enum.GetValues<<#= entry.Name #>>().Length;
+
+            /// <summary>
+            /// A fast enumerator for the current map implementation.
+            /// </summary>
+            internal struct Enumerator(<#= entry.Name #>Map<T> map)
+            {
+                private readonly T[] _values = map._values;
+                private <#= entry.Name #>Set.Enumerator _set =
+                    map._set.GetEnumerator();
+
+                /// <inheritdoc cref="IEnumerator{T}.Current" />
+                public readonly (<#= entry.Name #>, T) Current
+                {
+                    get
+                    {
+                        var type = _set.Current;
+                        return (type, _values[(int)type]);
+                    }
+                }
+
+                /// <inheritdoc cref="IEnumerator.MoveNext" />
+                public bool MoveNext() => _set.MoveNext();
+            }
+
+            private readonly T[] _values = new T[Count];
+            private <#= entry.Name #>Set _set = new();
+
+            /// <summary>
+            /// Adds the given value to this map.
+            /// </summary>
+            /// <param name="type">The type to add.</param>
+            /// <param name="value">The value to add.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool Add(<#= entry.Name #> type, T value)
+            {
+                if (!_set.Add(type)) return false;
+                _values[(int)type] = value;
+                return true;
+            }
+
+            /// <summary>
+            /// Removes the given value from this map.
+            /// </summary>
+            /// <param name="type">The type to remove.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool Remove(<#= entry.Name #> type)
+            {
+                bool removed = _set.Remove(type);
+                _values[(int)type] = default!;
+                return removed;
+            }
+
+            /// <summary>
+            /// Gets or sets the specified key/value combination.
+            /// </summary>
+            /// <param name="item">The type to add or get.</param>
+            public T this[<#= entry.Name #> item]
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get
+                {
+                    if (!_set.Contains(item))
+                        throw new KeyNotFoundException();
+                    return _values[(int)item];
+                }
+                set => Add(item, value);
+            }
+
+            /// <summary>
+            /// Returns a boxed enumerator.
+            /// </summary>
+            private IEnumerator<(<#= entry.Name #>, T)> GetBoxedEnumerator()
+            {
+                var enumerator = GetEnumerator();
+                while (enumerator.MoveNext())
+                    yield return enumerator.Current;
+            }
+
+            /// <summary>
+            /// Returns a new enumerator.
+            /// </summary>
+            public Enumerator GetEnumerator() => new(this);
+
+            /// <inheritdoc cref="IEnumerable{T}.GetEnumerator" />
+            IEnumerator<(<#= entry.Name #>, T)>
+                IEnumerable<(<#= entry.Name #>, T)>.GetEnumerator() =>
+                GetBoxedEnumerator();
+
+            /// <inheritdoc cref="IEnumerable.GetEnumerator" />
+            IEnumerator IEnumerable.GetEnumerator() => GetBoxedEnumerator();
+        }
+
+<#      } #>
+    }
+}
