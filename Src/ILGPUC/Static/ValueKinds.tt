@@ -41,7 +41,13 @@ if (!ternaryOps.Any(t => values["TernaryArithmetic"].HasValues("Kind", t.Name)))
     throw new NotSupportedException("Ternary operation has no declared kind");
 if (!values["TernaryArithmetic"].HasValues("Kind", ternaryOps.Select(t => t.Name).ToArray()))
     throw new NotSupportedException("Ternary operation has no implementation");
+
+var namespaces = valueGroups.Select(t => t.Namespace).ToHashSet().OrderBy(t => t);
 #>
+<# foreach (var name in namespaces) { #>
+using ILGPUC.IR.<#= name #>;
+<# } #>
+
 // disable: max_line_length
 
 namespace ILGPUC.IR
@@ -51,12 +57,17 @@ namespace ILGPUC.IR
     /// </summary>
     enum ValueKind : int
     {
+        /// <summary>
+        /// An invalid value.
+        /// </summary>
+        Invalid = -1,
+
 <# foreach (var group in valueGroups) { #>
         // <#= group.Name #>
 
 <#      foreach (var valueType in group.Values) { #>
         /// <summary>
-        /// A <see cref="Values.<#= valueType.Implementation #>" /> value.
+        /// A value of type <#= valueType.Implementation #>.
         /// </summary>
         <#= valueType.Type #>,
 
@@ -88,7 +99,7 @@ namespace ILGPUC.IR
     }
 }
 
-namespace ILGPUC.IR.Values
+namespace ILGPUC.IR
 {
     interface IValueVisitor
     {
@@ -97,18 +108,26 @@ namespace ILGPUC.IR.Values
 
 <#      foreach (var valueType in group.Values) { #>
         /// <summary>
-        /// Visits a value of type <see cref="<#= valueType.Implementation #>"/>.
+        /// Visits a value of type <#= valueType.Implementation #>.
         /// </summary>
         void Visit(<#= valueType.Implementation #> value);
 
 <#      } #>
 <# } #>
     }
+}
 
 <# foreach (var valueType in valueGroups.SelectMany(t => t.Values).OrderBy(t => t.Type)) { #>
-    [ValueKind(ValueKind.<#= valueType.Type #>)]
-    partial class <#= valueType.Implementation #>
+namespace ILGPUC.IR.<#=  valueType.Group.Namespace #>
+{
+    partial class <#= valueType.Implementation #> : IValueInformation
     {
+        /// <inheritdoc cref="IValueInformation.ValueKind"/>
+        static ValueKind IValueInformation.ValueKind => ValueKind.<#= valueType.Type #>;
+
+        /// <inheritdoc cref="IValueInformation.ValueKind"/>
+        static ValueGroup IValueInformation.ValueGroup => ValueGroup.<#= valueType.Group.Name #>;
+
         /// <inheritdoc cref="Value.Accept{TVisitor}(TVisitor)"/>
         public override void Accept<TVisitor>(TVisitor visitor) => visitor.Visit(this);
 
@@ -143,9 +162,12 @@ namespace ILGPUC.IR.Values
     }
 
 <#      } #>
+}
 
 <# } #>
 
+namespace ILGPUC.IR.Values
+{
     /// <summary>
     /// Contains several extensions for arithmetic kinds.
     /// </summary>
