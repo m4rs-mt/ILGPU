@@ -2,7 +2,6 @@
 <Intrinsics>
     <Type Name="Array">
         <Generators Target="Frontend.Intrinsic.Intrinsics">
-            <Generator Name=".ctor" Target="Arrays_CreateNew" />
             <Generator Name="Empty" Target="Arrays_Empty" />
             <Generator Name="GetValue" Target="Arrays_GetElement" />
             <Generator Name="GetLength" Target="Arrays_Length" />

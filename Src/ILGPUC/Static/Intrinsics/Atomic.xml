@@ -62,6 +62,7 @@
             <Generator Name="Min" Target="Atomic_Operation" Arguments="GenericAtomicKind.Min" />
 
             <Generator Name="CompareExchange" Target="Atomic_CompareExchange" />
+            <Generator Name="MakeAtomic" Target="Atomic_MakeAtomic" />
         </Generators>
     </Type>
 </Intrinsics>
