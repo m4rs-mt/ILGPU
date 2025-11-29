@@ -9,29 +9,49 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Resources;
 using ILGPU.Runtime;
-using ILGPU.Util;
-using ILGPUC.Backends.EntryPoints;
-using ILGPUC.Frontend;
+using ILGPUC.Compilers;
 using ILGPUC.IR;
-using ILGPUC.IR.Analyses;
+using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.Transformations;
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ILGPUC.Backends;
+
+// These types will be consumed by external test frameworks
+#pragma warning disable CA1515 // Consider making public types internal
 
 /// <summary>
 /// Represents the general type of a backend.
 /// </summary>
-enum BackendType
+public enum BackendType
 {
     /// <summary>
-    /// A PTX backend.
+    /// A metal backend.
     /// </summary>
-    PTX,
+    Metal,
+
+    /// <summary>
+    /// An OpenCL backend.
+    /// </summary>
+    OpenCL,
+
+    /// <summary>
+    /// A CUDA backend.
+    /// </summary>
+    Cuda,
+
+    /// <summary>
+    /// A ROCm backend.
+    /// </summary>
+    ROCm,
+
+    /// <summary>
+    /// A CPU backend for vectorized CPU execution.
+    /// </summary>
+    CPU,
 }
 
 /// <summary>
@@ -46,130 +66,8 @@ enum BackendType
 abstract class Backend(
     BackendType backendType,
     AcceleratorType acceleratorType,
-    CapabilityContext capabilities) : DisposeBase
+    AcceleratorCapabilities capabilities)
 {
-    /// <summary>
-    /// Allocation information of kernels.
-    /// </summary>
-    internal sealed class Allocations
-    {
-        private readonly Dictionary<Method, Allocas> _allocations;
-
-        /// <summary>
-        /// Creates a new allocation instance.
-        /// </summary>
-        /// <param name="kernelContext">The kernel context.</param>
-        /// <param name="kernelMethod">The entry point kernel method.</param>
-        public Allocations(IRContext kernelContext, Method kernelMethod)
-        {
-            // Init dynamic allocations
-            var dynamicAllocations =
-                ImmutableArray.CreateBuilder<AllocaInformation>(4);
-
-            // Compute alloca information
-            _allocations = new Dictionary<Method, Allocas>(kernelContext.Methods.Count);
-
-            foreach (var method in kernelContext.Methods)
-            {
-                var allocas = Allocas.Create(method.Blocks);
-                _allocations.Add(method, allocas);
-
-                foreach (var dynamicAllocation in allocas.DynamicSharedAllocations)
-                    dynamicAllocations.Add(dynamicAllocation);
-            }
-
-            // Compute landscape to determine shared memory information
-            var landscape = Landscape.Create(kernelContext.Methods);
-
-
-            // Iterate through the call graph
-            var allocations = _allocations;
-            (CompiledKernelSharedMemoryMode Mode, int Shared, int Local) Traverse(
-                Landscape.Entry entry,
-                CompiledKernelSharedMemoryMode mode,
-                int sharedMemSize,
-                int localMemSize)
-            {
-                // Check shared memory status
-                var allocas = allocations[entry.Method];
-                localMemSize += allocas.LocalMemorySize;
-                sharedMemSize += allocas.SharedMemorySize;
-
-                switch (mode)
-                {
-                    case CompiledKernelSharedMemoryMode.Static when
-                        allocas.DynamicSharedAllocations.Length > 0 && sharedMemSize < 1:
-                        mode = CompiledKernelSharedMemoryMode.Dynamic;
-                        break;
-                    case CompiledKernelSharedMemoryMode.Static when
-                        allocas.DynamicSharedAllocations.Length > 0 && sharedMemSize > 0:
-                        mode = CompiledKernelSharedMemoryMode.Hybrid;
-                        break;
-                    case CompiledKernelSharedMemoryMode.Dynamic when
-                        allocas.SharedAllocations.Length > 0:
-                        mode = CompiledKernelSharedMemoryMode.Hybrid;
-                        break;
-                }
-
-                // Recurse into each child
-                foreach (var method in entry.References)
-                {
-                    var (newMode, newShared, newLocal) = Traverse(
-                        landscape[method],
-                        mode,
-                        sharedMemSize,
-                        localMemSize);
-
-                    mode = (CompiledKernelSharedMemoryMode)Math.Max(
-                        (int)mode,
-                        (int)newMode);
-                    sharedMemSize = Math.Max(sharedMemSize, newShared);
-                    localMemSize = Math.Max(localMemSize, newLocal);
-                }
-
-                return (mode, sharedMemSize, localMemSize);
-            }
-
-            // Begin traversal
-            var (mode, shared, local) = Traverse(
-                landscape[kernelMethod],
-                CompiledKernelSharedMemoryMode.Static,
-                0,
-                0);
-
-            // Store results
-            SharedMemoryMode = mode;
-            SharedMemorySize = shared;
-            LocalMemorySize = local;
-            DynamicAllocations = dynamicAllocations.ToImmutable();
-        }
-
-        /// <summary>
-        /// Returns allocation information for the given method.
-        /// </summary>
-        public Allocas this[Method method] => _allocations[method];
-
-        /// <summary>
-        /// Returns the shared memory mode.
-        /// </summary>
-        public CompiledKernelSharedMemoryMode SharedMemoryMode { get; }
-
-        /// <summary>
-        /// Returns the maximum size of shared memory required in bytes.
-        /// </summary>
-        public int SharedMemorySize { get; }
-
-        /// <summary>
-        /// Returns the maximum size of local memory required in bytes.
-        /// </summary>
-        public int LocalMemorySize { get; }
-
-        /// <summary>
-        /// Returns all dynamic allocations.
-        /// </summary>
-        public ImmutableArray<AllocaInformation> DynamicAllocations { get; }
-    }
-
     /// <summary>
     /// Returns the associated backend type.
     /// </summary>
@@ -188,235 +86,130 @@ abstract class Backend(
     /// <summary>
     /// Returns the supported capabilities.
     /// </summary>
-    public CapabilityContext Capabilities { get; } = capabilities;
+    public AcceleratorCapabilities Capabilities { get; } = capabilities;
 
     /// <summary>
-    /// Compiles a given method into a compiled kernel.
+    /// Returns the underlying language configuration.
     /// </summary>
-    /// <param name="frontend">
-    /// Frontend instance to be used for intrinsic code generation.
-    /// </param>
-    /// <param name="entryPoint">The entry point to use.</param>
-    /// <param name="context">The current context.</param>
-    /// <returns>The compiled kernel that represents the compilation result.</returns>
-    public CompiledKernelData Compile(
-        ILFrontend frontend,
-        EntryPoint entryPoint,
-        IRContext context)
+    public abstract LanguageConfiguration LanguageConfiguration { get; }
+
+    /// <summary>
+    /// Creates a platform-specific launcher emitter for this backend.
+    /// </summary>
+    public abstract LauncherEmitter CreateLauncherEmitter();
+
+    /// <summary>
+    /// Creates a platform-specific compiled kernel emitter for this backend.
+    /// </summary>
+    public abstract CompiledKernelEmitter CreateCompiledKernelEmitter();
+
+    /// <summary>
+    /// Creates a new architecture specification used to specialize a module for this
+    /// backend.
+    /// </summary>
+    protected abstract ArchitectureSpecification GetArchitectureSpecification();
+
+    /// <summary>
+    /// Creates a backend transformer to transform a given module into the right IR shape.
+    /// </summary>
+    /// <param name="properties">The compilation properties to use.</param>
+    /// <returns>The transformer to be used.</returns>
+    public Transformer CreateBackendTransformer(CompilationProperties properties)
     {
-        // Import the all kernel functions into a new kernel context
-        var targetMethod = context.GetMethod(entryPoint.Method);
+        var builder = Transformer.CreateBuilder();
 
-        try
-        {
-            using var kernelContext = targetMethod.ExtractToContext(out var kernelMethod);
-            kernelMethod.AddFlags(MethodFlags.EntryPoint);
+        // Specialize for this accelerator
+        builder.AddAcceleratorSpecializer(GetArchitectureSpecification());
 
-            // Create transformation pipeline
-            var pipelineBuilder = Transformer.CreateBuilder();
-            var transformationPipeline = CreateTransformer(
-                frontend,
-                kernelContext,
-                pipelineBuilder);
+        // Add general optimizations
+        builder.AddBasicOptimizations();
 
-            // Apply backend transformations
-            kernelContext.Transform(transformationPipeline);
-
-            return Compile(entryPoint, kernelContext, kernelMethod);
-        }
-        catch (InternalCompilerException)
-        {
-            // If we already have an internal compiler exception, re-throw it.
-            throw;
-        }
-        catch (Exception e)
-        {
-            // Wrap generic exceptions.
-            throw new InternalCompilerException(
-                ErrorMessages.InternalCompilerError,
-                e);
-        }
+        return builder.ToTransformer();
     }
 
     /// <summary>
-    /// Creates a new backend transformer to be used with the given context.
+    /// Generates code for the given module.
     /// </summary>
-    /// <param name="frontend">
-    /// Frontend instance to be used for intrinsic code generation.
-    /// </param>
-    /// <param name="context">The kernel context.</param>
-    /// <param name="builder">The transformation pipeline builder.</param>
-    /// <returns>The final transformer to use.</returns>
-    protected abstract Transformer CreateTransformer(
-        ILFrontend frontend,
-        IRContext context,
-        Transformer.Builder builder);
+    /// <param name="properties">Compilation properties to use.</param>
+    /// <param name="typeInformationManager">Shared type manager to use.</param>
+    /// <param name="module">The module to generate code for.</param>
+    /// <returns>The generated code.</returns>
+    public CodeGenerationResult GenerateCode(
+        CompilationProperties properties,
+        TypeInformationManager typeInformationManager,
+        Module module) =>
+        GenerateCode(properties, typeInformationManager, module, dumpWriter: null);
 
     /// <summary>
-    /// Compiles a given compile unit with the specified entry point using
-    /// the given kernel specialization and the placement information.
+    /// Generates code for the given module, optionally dumping the post-backend-
+    /// transform IR to <paramref name="dumpWriter"/>.
     /// </summary>
-    /// <param name="entryPoint">The desired entry point.</param>
-    /// <param name="kernelContext">
-    /// The current kernel context containing all required functions.
+    /// <param name="properties">Compilation properties to use.</param>
+    /// <param name="typeInformationManager">Shared type manager to use.</param>
+    /// <param name="module">The module to generate code for.</param>
+    /// <param name="dumpWriter">
+    /// Optional writer that receives a normalized IR dump after backend-specific
+    /// transforms are applied. Pass <see langword="null"/> to skip the dump.
     /// </param>
-    /// <param name="kernelMethod">The kernel method entry point.</param>
+    /// <param name="dumpFormat">
+    /// The IR printer format to use when writing the dump.
+    /// Defaults to <see cref="IRPrinterFormat.ILGPU"/>.
+    /// </param>
+    /// <returns>The generated code.</returns>
+    public CodeGenerationResult GenerateCode(
+        CompilationProperties properties,
+        TypeInformationManager typeInformationManager,
+        Module module,
+        TextWriter? dumpWriter,
+        IRPrinterFormat dumpFormat = IRPrinterFormat.ILGPU)
+    {
+        var transformer = CreateBackendTransformer(properties);
+        var finalModule = transformer.Apply(properties, typeInformationManager, module);
+
+        if (dumpWriter is not null)
+        {
+            finalModule.Dump(
+                dumpWriter,
+                IRDumpMode.Normalized,
+                format: dumpFormat,
+                point: IRDumpPoint.AfterBackendTransforms,
+                annotation: $"backend: {BackendType}  " +
+                $"opt: {properties.OptimizationLevel}");
+        }
+
+        return GenerateCode(finalModule);
+    }
+
+    /// <summary>
+    /// Generates code for the given module.
+    /// </summary>
+    /// <param name="module">The module to generate code for.</param>
+    /// <returns>The generated code.</returns>
+    protected virtual CodeGenerationResult GenerateCode(Module module)
+    {
+        var codeGenerator = new CodeGenerator(module, LanguageConfiguration);
+        return codeGenerator.GenerateCode();
+    }
+
+    /// <summary>
+    /// Compiles generated source code into a platform binary using the given compiler
+    /// manager.
+    /// </summary>
+    /// <typeparam name="TManager">
+    /// A type that implements <see cref="ICompilerManager"/>.
+    /// </typeparam>
+    /// <param name="source">The code generation result containing source code.</param>
+    /// <param name="manager">The compiler manager to use.</param>
+    /// <param name="ct">Cancellation token.</param>
     /// <returns>
-    /// The compiled kernel that represents the compilation result.
+    /// The compilation result, or null if this backend does not support compilation.
     /// </returns>
-    protected abstract CompiledKernelData Compile(
-        EntryPoint entryPoint,
-        IRContext kernelContext,
-        Method kernelMethod);
+    public virtual Task<CompilationResult?> CompileSourceAsync<TManager>(
+        CodeGenerationResult source,
+        TManager manager,
+        CancellationToken ct = default)
+        where TManager : ICompilerManager =>
+        Task.FromResult<CompilationResult?>(null);
 }
 
-/// <summary>
-/// Represents an abstract code generator that works on a given data type.
-/// </summary>
-/// <typeparam name="TKernelBuilder">
-/// The data type on which this code generator can work.
-/// </typeparam>
-interface IBackendCodeGenerator<TKernelBuilder>
-{
-    /// <summary>
-    /// Generates all constant definitions (if any).
-    /// </summary>
-    /// <param name="builder">The current builder.</param>
-    void GenerateConstants(TKernelBuilder builder);
-
-    /// <summary>
-    /// Generates a header definition (if any).
-    /// </summary>
-    /// <param name="builder">The current builder.</param>
-    void GenerateHeader(TKernelBuilder builder);
-
-    /// <summary>
-    /// Generates the actual function code.
-    /// </summary>
-    void GenerateCode();
-
-    /// <summary>
-    /// Merges all changes inside the current code generator into the given builder.
-    /// </summary>
-    /// <param name="builder">The builder to merge with.</param>
-    void Merge(TKernelBuilder builder);
-}
-
-/// <summary>
-/// A backend using custom code generators and kernel builders.
-/// </summary>
-/// <typeparam name="T">Backend-specific custom data.</typeparam>
-/// <typeparam name="TCodeGenerator">The code generator type to use.</typeparam>
-/// <typeparam name="TKernelBuilder">The custom kernel builder type.</typeparam>
-/// <param name="backendType">The backend type.</param>
-/// <param name="acceleratorType">The accelerator type.</param>
-/// <param name="capabilities">The supported capabilities.</param>
-abstract class Backend<T, TCodeGenerator, TKernelBuilder>(
-    BackendType backendType,
-    AcceleratorType acceleratorType,
-    CapabilityContext capabilities) :
-    Backend(backendType, acceleratorType, capabilities)
-    where TCodeGenerator : class, IBackendCodeGenerator<TKernelBuilder>
-{
-    /// <summary>
-    /// Compiles the given context and entry point information into binary form.
-    /// </summary>
-    protected sealed override CompiledKernelData Compile(
-        EntryPoint entryPoint,
-        IRContext kernelContext,
-        Method kernelMethod)
-    {
-        // Compute shared memory allocations
-        var allocations = new Allocations(kernelContext, kernelMethod);
-
-        // Initialize the main builder and generator
-        var mainBuilder = CreateKernelBuilder(
-            entryPoint,
-            kernelContext,
-            allocations,
-            out var data);
-
-        // Create kernel generator
-        var generators = new List<TCodeGenerator>(kernelContext.Methods.Count)
-        {
-            CreateKernelCodeGenerator(kernelMethod, data)
-        };
-
-        // Create all remaining builders and code generators
-        foreach (var method in kernelContext.GetMethodCollection(m => m != kernelMethod))
-        {
-            var gen = CreateFunctionCodeGenerator(method, data);
-            generators.Add(gen);
-        }
-
-        // Generate code
-        foreach (var generator in generators)
-            generator.GenerateCode();
-
-        // Generate all constants
-        foreach (var generator in generators)
-            generator.GenerateConstants(mainBuilder);
-
-        // Declare all methods
-        foreach (var generator in generators)
-            generator.GenerateHeader(mainBuilder);
-
-        // Merge all code generators in reverse order
-        for (int i = generators.Count - 1; i >= 0; --i)
-            generators[i].Merge(mainBuilder);
-
-        // Serialize data
-        var kernelData = SerializeBuilder(mainBuilder, data, out var customAttributes);
-
-        // Create kernel data
-        return entryPoint.CreateCompiledKernelData(
-            allocations.SharedMemoryMode,
-            allocations.SharedMemorySize,
-            allocations.LocalMemorySize,
-            kernelData,
-            customAttributes);
-    }
-
-    /// <summary>
-    /// Creates the main kernel builder and initializes
-    /// all required information.
-    /// </summary>
-    /// <param name="entryPoint">The current entry point.</param>
-    /// <param name="context">The backend context.</param>
-    /// <param name="allocations">Allocation information for the kernel program.</param>
-    /// <param name="data">Custom backend data.</param>
-    /// <returns>The resulting kernel builder.</returns>
-    protected abstract TKernelBuilder CreateKernelBuilder(
-        EntryPoint entryPoint,
-        IRContext context,
-        Allocations allocations,
-        out T data);
-
-    /// <summary>
-    /// Creates a new function-code generator.
-    /// </summary>
-    /// <param name="method">The current method.</param>
-    /// <param name="data">Custom backend data.</param>
-    /// <returns>The created function-code generator.</returns>
-    protected abstract TCodeGenerator CreateFunctionCodeGenerator(Method method, T data);
-
-    /// <summary>
-    /// Creates a new kernel-code generator.
-    /// </summary>
-    /// <param name="method">The current method.</param>
-    /// <param name="data">Custom backend data.</param>
-    /// <returns>The created kernel-code generator.</returns>
-    protected abstract TCodeGenerator CreateKernelCodeGenerator(Method method, T data);
-
-    /// <summary>
-    /// Serializes the given builder into binary form.
-    /// </summary>
-    /// <param name="builder">The builder to serialize.</param>
-    /// <param name="data">Custom backend data.</param>
-    /// <param name="customAttributes">Custom attributes to store (optional).</param>
-    /// <returns>The serialized representation of the builder.</returns>
-    protected abstract ReadOnlyMemory<byte> SerializeBuilder(
-        TKernelBuilder builder,
-        T data,
-        out ReadOnlyMemory<byte> customAttributes);
-}
+#pragma warning restore CA1515
