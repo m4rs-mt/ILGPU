@@ -13,10 +13,13 @@ using ILGPU;
 
 namespace ILGPUC;
 
+// These types will be consumed by external test frameworks
+#pragma warning disable CA1515 // Consider making public types internal
+
 /// <summary>
 /// The inlining behavior.
 /// </summary>
-enum InliningMode
+public enum InliningMode
 {
     /// <summary>
     /// Enables aggressive function inlining that inlines all functions by default.
@@ -33,7 +36,8 @@ enum InliningMode
 /// <summary>
 /// Specifies the debug mode to use.
 /// </summary>
-enum DebugSymbolsMode
+
+public enum DebugSymbolsMode
 {
     /// <summary>
     /// No debug symbols in kernels.
@@ -49,7 +53,7 @@ enum DebugSymbolsMode
 /// <summary>
 /// Represent an optimization level.
 /// </summary>
-enum OptimizationLevel
+public enum OptimizationLevel
 {
     /// <summary>
     /// Lightweight (required) transformations only.
@@ -70,7 +74,7 @@ enum OptimizationLevel
 /// <summary>
 /// The math precision mode.
 /// </summary>
-enum MathMode
+public enum MathMode
 {
     /// <summary>
     /// All floating point operations are performed using their intended bitness.
@@ -97,7 +101,7 @@ enum MathMode
 /// <summary>
 /// Internal flags to specify the behavior in the presence of static fields.
 /// </summary>
-enum StaticFieldMode
+public enum StaticFieldMode
 {
     /// <summary>
     /// Loads from readonly static fields are supported.
@@ -128,7 +132,7 @@ enum StaticFieldMode
 /// that static array fields are also affected by the <see cref="StaticFieldMode"/>
 /// settings.
 /// </summary>
-enum ArrayMode
+public enum ArrayMode
 {
     /// <summary>
     /// Loads from static array values are rejected by default.
@@ -156,7 +160,7 @@ enum ArrayMode
 /// <param name="MathMode">Math mode to use.</param>
 /// <param name="StaticFieldMode">Static field mode to use.</param>
 /// <param name="ArrayMode">Array mode to use.</param>
-sealed record class CompilationProperties(
+public sealed record class CompilationProperties(
     DebugSymbolsMode DebugSymbolsMode = DebugSymbolsMode.Default,
     bool EnableAssertions = true,
     bool EnableIOOperations = true,
@@ -172,3 +176,5 @@ sealed record class CompilationProperties(
     /// </summary>
     public TargetPlatform TargetPlatform { get; } = TargetPlatform.Platform64Bit;
 }
+
+#pragma warning restore CA1515
