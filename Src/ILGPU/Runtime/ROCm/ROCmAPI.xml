@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Imports Namespace="ILGPU.Runtime.ROCm"
+         ClassName="ROCmAPI"
+         DefaultReturnType="ROCmError"
+         NotSupportedException="RuntimeErrorMessages.ROCmNotSupported">
+    <LibraryNames>
+        <Windows>amdhip64</Windows>
+        <Linux>amdhip64</Linux>
+        <MacOS>amdhip64</MacOS>
+    </LibraryNames>
+
+    <!-- Module Management -->
+    <Import Name="hipModuleLoadData">
+        <Parameter Name="module" Type="IntPtr" Flags="Out" />
+        <Parameter Name="image" Type="byte*" />
+    </Import>
+    <Import Name="hipModuleGetFunction"
+            StringMarshalling="Utf8">
+        <Parameter Name="function" Type="IntPtr" Flags="Out" />
+        <Parameter Name="module" Type="IntPtr" />
+        <Parameter Name="name" Type="string" />
+    </Import>
+    <Import Name="hipModuleUnload">
+        <Parameter Name="module" Type="IntPtr" />
+    </Import>
+
+    <!-- Stream Management -->
+    <Import Name="hipStreamCreate">
+        <Parameter Name="stream" Type="IntPtr" Flags="Out" />
+    </Import>
+    <Import Name="hipStreamDestroy">
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="hipStreamSynchronize">
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="hipStreamCreateWithFlags">
+        <Parameter Name="stream" Type="IntPtr" Flags="Out" />
+        <Parameter Name="flags" Type="uint" />
+    </Import>
+
+    <!-- Kernel Launch -->
+    <Import Name="hipModuleLaunchKernel">
+        <Parameter Name="function" Type="IntPtr" />
+        <Parameter Name="gridDimX" Type="uint" />
+        <Parameter Name="gridDimY" Type="uint" />
+        <Parameter Name="gridDimZ" Type="uint" />
+        <Parameter Name="blockDimX" Type="uint" />
+        <Parameter Name="blockDimY" Type="uint" />
+        <Parameter Name="blockDimZ" Type="uint" />
+        <Parameter Name="sharedMemBytes" Type="uint" />
+        <Parameter Name="stream" Type="IntPtr" />
+        <Parameter Name="kernelParams" Type="IntPtr" />
+        <Parameter Name="extra" Type="IntPtr" />
+    </Import>
+
+    <!-- Memory Management -->
+    <Import Name="hipMalloc">
+        <Parameter Name="ptr" Type="IntPtr" Flags="Out" />
+        <Parameter Name="size" Type="IntPtr" />
+    </Import>
+    <Import Name="hipFree">
+        <Parameter Name="ptr" Type="IntPtr" />
+    </Import>
+    <Import Name="hipMemcpyAsync">
+        <Parameter Name="dst" Type="IntPtr" />
+        <Parameter Name="src" Type="IntPtr" />
+        <Parameter Name="sizeBytes" Type="IntPtr" />
+        <Parameter Name="kind" Type="HipMemcpyKind" />
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="hipMemset">
+        <Parameter Name="dst" Type="IntPtr" />
+        <Parameter Name="value" Type="int" />
+        <Parameter Name="count" Type="IntPtr" />
+    </Import>
+    <Import Name="hipMemsetAsync">
+        <Parameter Name="dst" Type="IntPtr" />
+        <Parameter Name="value" Type="int" />
+        <Parameter Name="count" Type="IntPtr" />
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+
+    <!-- Device Management -->
+    <Import Name="hipInit">
+        <Parameter Name="flags" Type="uint" />
+    </Import>
+    <Import Name="hipGetDeviceCount">
+        <Parameter Name="count" Type="int" Flags="Out" />
+    </Import>
+    <Import Name="hipGetDevice">
+        <Parameter Name="device" Type="int" Flags="Out" />
+    </Import>
+    <Import Name="hipSetDevice">
+        <Parameter Name="device" Type="int" />
+    </Import>
+    <Import Name="hipDeviceGetName">
+        <Parameter Name="name" Type="byte*" />
+        <Parameter Name="len" Type="int" />
+        <Parameter Name="device" Type="int" />
+    </Import>
+    <Import Name="hipDeviceGetAttribute">
+        <Parameter Name="value" Type="int" Flags="Out" />
+        <Parameter Name="attr" Type="HipDeviceAttributeKind" />
+        <Parameter Name="device" Type="int" />
+    </Import>
+    <Import Name="hipDeviceTotalMem">
+        <Parameter Name="bytes" Type="UIntPtr" Flags="Out" />
+        <Parameter Name="device" Type="int" />
+    </Import>
+    <Import Name="hipDeviceSynchronize" />
+    <Import Name="hipDeviceReset" />
+
+    <!-- Occupancy -->
+    <Import Name="hipOccupancyMaxActiveBlocksPerMultiprocessor">
+        <Parameter Name="numBlocks" Type="int" Flags="Out" />
+        <Parameter Name="function" Type="IntPtr" />
+        <Parameter Name="blockSize" Type="int" />
+        <Parameter Name="dynSharedMemPerBlk" Type="UIntPtr" />
+    </Import>
+    <Import Name="hipOccupancyMaxPotentialBlockSize">
+        <Parameter Name="gridSize" Type="int" Flags="Out" />
+        <Parameter Name="blockSize" Type="int" Flags="Out" />
+        <Parameter Name="function" Type="IntPtr" />
+        <Parameter Name="dynSharedMemPerBlk" Type="UIntPtr" />
+        <Parameter Name="blockSizeLimit" Type="int" />
+    </Import>
+
+    <!-- Peer Access -->
+    <Import Name="hipDeviceCanAccessPeer">
+        <Parameter Name="canAccessPeer" Type="int" Flags="Out" />
+        <Parameter Name="device" Type="int" />
+        <Parameter Name="peerDevice" Type="int" />
+    </Import>
+    <Import Name="hipDeviceEnablePeerAccess">
+        <Parameter Name="peerDevice" Type="int" />
+        <Parameter Name="flags" Type="uint" />
+    </Import>
+    <Import Name="hipDeviceDisablePeerAccess">
+        <Parameter Name="peerDevice" Type="int" />
+    </Import>
+</Imports>

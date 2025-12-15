@@ -1,9 +1,10 @@
 name: 'Update Copyright Year'
 
 on:
-  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
-  schedule:
-    - cron:  '0 0 * * *' # Run once per day, at midnight.
+  # Workflow is intentionally disabled on this PR branch. It will re-enable once the
+  # branch merges onto master with the redesigned canonical CI pipeline that uses
+  # the new ILGPUC.Tests suite. Use workflow_dispatch to trigger manually if needed.
+  workflow_dispatch:
 
 jobs:
   update-copyright-year:
@@ -17,10 +18,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup the latest .NET 8 SDK
+      - name: Setup the latest .NET 10 SDK
         uses: actions/setup-dotnet@v4.3.1
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
 
       - name: Update copyright year
         uses: technote-space/create-pr-action@v2

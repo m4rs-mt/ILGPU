@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaDeviceOverride.cs
@@ -9,40 +9,39 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-namespace ILGPU.Runtime.Cuda
+namespace ILGPU.Runtime.Cuda;
+
+/// <summary>
+/// Represents overridable settings of a Cuda device.
+/// </summary>
+public sealed class CudaDeviceOverride
 {
     /// <summary>
-    /// Represents overridable settings of a Cuda device.
+    /// The Cuda device to configure.
     /// </summary>
-    public sealed class CudaDeviceOverride
+    public CudaDevice Device { get; }
+
+    /// <summary>
+    /// Forces the Cuda device to use the specified Instruction Set.
+    /// </summary>
+    public CudaInstructionSet? InstructionSet { get; set; }
+
+    /// <summary>
+    /// Constructs a new instance with the overridable settings.
+    /// </summary>
+    /// <param name="device">The Cuda device.</param>
+    internal CudaDeviceOverride(CudaDevice device)
     {
-        /// <summary>
-        /// The Cuda device to configure.
-        /// </summary>
-        public CudaDevice Device { get; }
+        Device = device;
+        InstructionSet = device.InstructionSet;
+    }
 
-        /// <summary>
-        /// Forces the Cuda device to use the specified Instruction Set.
-        /// </summary>
-        public CudaInstructionSet? InstructionSet { get; set; }
-
-        /// <summary>
-        /// Constructs a new instance with the overridable settings.
-        /// </summary>
-        /// <param name="device">The Cuda device.</param>
-        internal CudaDeviceOverride(CudaDevice device)
-        {
-            Device = device;
-            InstructionSet = device.InstructionSet;
-        }
-
-        /// <summary>
-        /// Applies all the overridden settings to the Cuda device.
-        /// </summary>
-        internal void ApplyOverrides()
-        {
-            if (InstructionSet.HasValue)
-                Device.InstructionSet = InstructionSet;
-        }
+    /// <summary>
+    /// Applies all the overridden settings to the Cuda device.
+    /// </summary>
+    internal void ApplyOverrides()
+    {
+        if (InstructionSet.HasValue)
+            Device.InstructionSet = InstructionSet;
     }
 }
