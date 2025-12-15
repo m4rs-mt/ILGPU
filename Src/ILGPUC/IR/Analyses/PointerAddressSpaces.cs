@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2025 ILGPU Project
+//                           Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PointerAddressSpaces.cs
@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
+// disable: max_line_length
 using ILGPU;
 using ILGPU.Util;
 using ILGPUC.IR.BasicBlockValues;

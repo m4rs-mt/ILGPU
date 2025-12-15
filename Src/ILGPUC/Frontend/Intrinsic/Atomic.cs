@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2025 ILGPU Project
+//                           Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Atomic.cs
@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
+// disable: max_line_length
 using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 
