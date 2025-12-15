@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2025 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUMethodEmitter.cs
@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
+// disable: max_line_length
 using ILGPUC.IR;
 using ILGPUC.IR.Analyses;
 using ILGPUC.IR.BasicBlockValues;

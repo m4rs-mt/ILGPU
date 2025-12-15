@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2025 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
-// File: CudaBackend.cs
+// File: CUDABackend.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details.
