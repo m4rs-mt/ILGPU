@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Operations>
+    <Operation Name="MultiplyAdd">
+        <Summary>The FMA operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Call>XMath.FMA</Call>
+        <Implementation>{Value0} * {Value1} + {Value2}</Implementation>
+        <Velocity>
+            <Velocity128>
+                <Implementation>Vector128.Add(Vector128.Multiply({Value0}, {Value1}), {Value2})</Implementation>
+            </Velocity128>
+        </Velocity>
+    </Operation>
+</Operations>

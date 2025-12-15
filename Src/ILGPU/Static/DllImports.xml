@@ -5,4 +5,7 @@
 
     <!-- The OpenCL API -->
     <File>../Runtime/OpenCL/CLAPI.xml</File>
+
+    <!-- The ROCm/HIP API -->
+    <File>../Runtime/ROCm/ROCmAPI.xml</File>
 </ImportFiles>

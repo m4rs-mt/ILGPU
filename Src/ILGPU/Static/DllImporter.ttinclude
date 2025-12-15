@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                           Copyright (c) 2016-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DllImporter.ttinclude
@@ -9,9 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
+// disable: max_line_length
 <#@ assembly name="System.Core" #>
 <#@ assembly name="System.Xml" #>
-<#@ include file="TextTemplateHelpers.ttinclude" #>
+<#@ include file="../../ILGPUC/Static/TextTemplateHelpers.ttinclude" #>
 <#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.IO" #>
@@ -38,7 +40,7 @@ public class EntryPoint
 
     [XmlAttribute]
     public string AccessModifier { get; set; }
-    
+
     [XmlAttribute]
     public string DllImportSearchPath { get; set; }
 
@@ -47,7 +49,7 @@ public class EntryPoint
 
     [XmlAttribute]
     public string StringMarshalling { get; set; }
-    
+
     [XmlElement("Parameter")]
     public Parameter[] Parameters { get; set; }
 
@@ -98,7 +100,7 @@ public class Parameter
 
     [XmlAttribute]
     public ParameterDllFlags DllFlags { get; set; }
-    
+
     [XmlAttribute]
     public string MarshalAs { get; set; }
 
@@ -128,7 +130,7 @@ public class Parameter
                 ? "[Out]"
                 : "[In]"
         };
-        
+
     [XmlIgnore]
     public string MarshalAsExpression =>
         string.IsNullOrWhiteSpace(MarshalAs)
@@ -166,11 +168,15 @@ public void SetMakeMethodNameFunc(Func<string, string> func) =>
 /// </summary>
 public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
 {
-    WriteLine($"#if NET7_0_OR_GREATER");
+    // This functionality is old and can be used to generate imports for .Net7 and older
+    // WriteLine($"#if NET7_0_OR_GREATER");
+    // WriteMethodNativeImportInternal(libName, entryPoint, true);
+    // WriteLine($"#else");
+    // WriteMethodNativeImportInternal(libName, entryPoint, false);
+    // WriteLine($"#endif");
+
+    // The new method only creates imports using the latest import API
     WriteMethodNativeImportInternal(libName, entryPoint, true);
-    WriteLine($"#else");
-    WriteMethodNativeImportInternal(libName, entryPoint, false);
-    WriteLine($"#endif");
 }
 
 /// <summary>
