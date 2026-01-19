@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2025 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CompilerOptions.cs
@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
+// disable: max_line_length
 namespace ILGPUC.Compilers;
 
 /// <summary>

@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2025 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CompilerBase.cs
@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
+// disable: max_line_length
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
