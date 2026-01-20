@@ -1,0 +1,82 @@
+name: Cleanup old GHCR image tags
+
+# ---------------------------------------------------------------------------
+# Pruning workflow for the three ILGPUC.CompilerService images on GHCR.
+#
+# Why this exists: docker-publish.yml tags every push with `:sha-<sha>` (in
+# addition to `:latest` and the named version tag like `:13.2.0`). Those
+# `:sha-*` tags stay in GHCR forever unless something deletes them. This
+# workflow runs monthly to keep the GHCR namespace tidy.
+#
+# What it preserves:
+#   - `:latest`        (rolling pointer to the most recent default-branch build)
+#   - `:13.2.0` for cuda, `:7.1.1` for rocm  (the upstream-version pin tags)
+#   - The most recent `min-versions-to-keep` versions overall (defaults to 25)
+#
+# What it deletes:
+#   - Older tagged versions beyond the keep threshold — typically only
+#     `:sha-*` tags from old publishes since `:latest` and the version
+#     tags get re-applied to the newest publish each time.
+#   - Untagged orphaned versions (image manifests that lost all their tags
+#     when `:latest` moved).
+#
+# Because we publish ~once a month (per docker-publish.yml's cron), the
+# 25-version keep threshold takes ~2 years to start trimming anything
+# in steady state. The workflow is mostly defensive — if someone triggers
+# workflow_dispatch frequently or there's an iteration burst, this keeps
+# the package list manageable.
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_dispatch:
+    # Manual trigger lets a maintainer prune on demand without waiting for
+    # the monthly cron.
+  schedule:
+    # Monthly on the 5th at 04:30 UTC, four days after docker-publish.yml's
+    # monthly rebuild on the 1st. Order matters: the publish must complete
+    # first so its `:sha-<sha>` is in the keep window.
+    - cron: '30 4 5 * *'
+
+# `packages: write` is needed by actions/delete-package-versions to actually
+# delete versions. `contents: read` is the default but listed for clarity.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  cleanup:
+    name: Prune old tags (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: ilgpuc-compiler-service-cuda
+            # Protect both the rolling :latest tag and the upstream-version
+            # pin so a burst of workflow_dispatch runs can never accidentally
+            # prune them. The regex matches the full tag string.
+            ignore: '^(latest|13\.2\.0)$'
+          - package: ilgpuc-compiler-service-rocm
+            ignore: '^(latest|7\.1\.1)$'
+          - package: ilgpuc-compiler-service-opencl
+            # OpenCL has no upstream version pin (tracks ubuntu:24.04 base);
+            # only :latest needs explicit protection.
+            ignore: '^latest$'
+
+    steps:
+      - name: Prune ${{ matrix.package }}
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package }}
+          package-type: container
+          # Keep the 25 most recent versions overall. Combined with the
+          # ignore regex above, this guarantees :latest and the version
+          # pin always survive even if min-versions-to-keep wouldn't have
+          # caught them.
+          min-versions-to-keep: 25
+          ignore-versions: ${{ matrix.ignore }}
+          # Don't fail the job if the package doesn't exist yet (e.g., if
+          # docker-publish.yml hasn't run for the first time on a fresh
+          # repo) — just no-op in that case.
+          delete-only-untagged-versions: 'false'
