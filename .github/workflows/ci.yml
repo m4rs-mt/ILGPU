@@ -1,41 +1,100 @@
 name: CI
 
+# ---------------------------------------------------------------------------
+# ILGPU continuous integration — single source of truth.
+#
+# Pipeline shape (auto-rendered by GitHub Actions from the `needs:` graph):
+#
+#                       ┌─ check-style-line-lengths ─┐
+#                       ├─ check-style-line-endings  ┼─→ check-style ──┐
+#                       └─ check-style-copyright-h.  ┘                 │
+#                                                                      │
+#                       check-version (parallel) ────────────────────► │
+#                                                                      │
+#                       build (Windows verification, matrix) ────────► │
+#                                                                      │
+#                       build-test-binaries ─→ test-cpu ─┬─ test-metal-compile  ─┐
+#                                                        ├─ test-cuda-compile   ─┤
+#                                                        ├─ test-rocm-compile   ─┤
+#                                                        └─ test-opencl-compile ─┤
+#                                                                                ▼
+#                                                              ┌──→ checks-completed ◄─ all leaves
+#                                                              │   (display name: "All required checks done"
+#                                                              │    — keeps check-required.yml working)
+#                                                              ▼
+#                                                       package-library
+#                                                              │
+#                                                  ┌───────────┴───────────┐
+#                                                  ▼                       ▼
+#                                          publish-preview          publish-release
+#                                          (push to master)         (push to refs/tags/v*)
+#
+# Key invariants:
+#  - publishing CANNOT happen unless `checks-completed` succeeded
+#  - `checks-completed` uses `if: always()` + explicit result inspection so
+#    it never silently passes on a skipped upstream
+#  - the test-cpu job is the gate for the four compile-only jobs: a CPU
+#    regression fails fast and saves the runner credits the GPU pulls would
+#    burn
+#  - the four compile-only jobs run inside the GHCR-published Docker images
+#    that bundle the .NET 10 SDK + the native GPU compiler (see
+#    .github/workflows/docker-publish.yml and Src/docker/)
+#
+# See plans/ci_redesign.md for the full design rationale.
+# ---------------------------------------------------------------------------
+
 on:
-  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
   push:
     paths-ignore:
       - '.github/workflows/deploy-site.yml'
       - 'Docs/**'
       - 'Site/**'
+      - 'plans/**'
+      - 'Src/plans/**'
+      - 'Src/CLAUDE.md'
+      - '**/*.md'
   pull_request:
     paths-ignore:
       - '.github/workflows/deploy-site.yml'
       - 'Docs/**'
       - 'Site/**'
+      - 'plans/**'
+      - 'Src/plans/**'
+      - 'Src/CLAUDE.md'
+      - '**/*.md'
   schedule:
-    # Run daily at 00:00 so we get notified if CI is broken before a pull request
-    # is submitted.
-    - cron:  '0 0 * * *'
+    # Run daily at 00:00 UTC so we get notified if CI is broken before a
+    # pull request is submitted.
+    - cron: '0 0 * * *'
 
 env:
   DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+# Cancel stale PR runs when a new commit lands. Push and tag events queue
+# instead of cancelling so publishing isn't interrupted mid-flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The fork-PR-deduplication if: gate, factored to a YAML anchor would be
+# nice but GitHub Actions doesn't expand anchors inside expressions. The
+# expression below is repeated on every job. The intent: skip the
+# pull_request event when both branches are in the same repo (the push
+# event already handles internal PRs). External / fork PRs run via
+# pull_request and never have a corresponding push event, so they always
+# pass the gate.
+#
+# Conditional reference (for any job): `if: ${{ env.RUN_GATE }}` would be
+# clean but env: only supports literal strings, not expressions. Manual
+# repetition it is.
 
 jobs:
 
-  # Check some basic style rules.
-  check-style:
-    # Do not run this job for pull requests where both branches are from the same repo.
-    # Jobs that depend on this one will be skipped too.
-    # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
-    # run the CI for each branch push to a fork, and for each pull request originating from a fork.
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
-    needs:
-      - check-style-line-lengths
-      - check-style-line-endings
-      - check-style-copyright-headers
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "All style checks done"
+  # ===========================================================================
+  # Tier 1: Style checks (3 leaves + 1 aggregator)
+  # ===========================================================================
 
   check-style-line-lengths:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
@@ -66,10 +125,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
+          cache: true
+          cache-dependency-path: |
+            Tools/**/*.csproj
 
       - name: Check Copyright Headers
         run: |
@@ -81,139 +143,55 @@ jobs:
             exit 1
           fi
 
-  # Setup the OS matrix so that CUDA tests do not run on forks, as it needs self-hosted runners.
-  # Skip running on macOS in most cases.
-  setup-os-matrix:
-    # Do not run this job for pull requests where both branches are from the same repo.
-    # Jobs that depend on this one will be skipped too.
-    # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
-    # run the CI for each branch push to a fork, and for each pull request originating from a fork.
+  check-style:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs:
+      - check-style-line-lengths
+      - check-style-line-endings
+      - check-style-copyright-headers
     runs-on: ubuntu-latest
     steps:
-      - name: Check if repo is fork
-        id: is-fork
-        run: echo "fork=$(gh api repos/${{ github.repository }} | jq .fork)" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup OS matrix
-        id: setup-os-matrix
-        run: |
-          os=("ubuntu-latest" "windows-latest")
+      - run: echo "All style checks done"
 
-          # runs on macOS only if there is a push to master, or a tag is
-          # pushed, we do this since macOS builds last too long and ILGPU
-          # is rarely used on a macOS
-          (
-            [ "${{ github.event_name }}" == "workflow_dispatch" ] ||
-            [ "${{ github.event_name }}" == "schedule" ] ||
-            (
-              [ "${{ github.event_name }}" == "push" ] &&
-              (
-                [ "${{ github.ref }}" == "refs/heads/master" ] ||
-                [[ "${{ github.ref }}" =~ "refs/tags/v" ]]
-              )
-            )
-          ) && os+=("macos-latest")
+  # ===========================================================================
+  # Tier 1: Windows build verification (Src + Tools, warnings-as-errors)
+  # ===========================================================================
 
-          # Temporarily disabled cuda
-          # [ "${{ steps.is-fork.outputs.fork }}" == "false" ] && os+=("cuda")
-
-          echo "os=$(jq -cn '$ARGS.positional' --args ${os[@]})" >> $GITHUB_OUTPUT
-    outputs:
-      os: ${{ steps.setup-os-matrix.outputs.os }}
-
-  # Check that building the entire solution for all target frameworks works.
   build:
-    # Do not run this job for pull requests where both branches are from the same repo.
-    # Jobs that depend on this one will be skipped too.
-    # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
-    # run the CI for each branch push to a fork, and for each pull request originating from a fork.
+    # The Windows build catches portable-PDB / GUI-sample issues that the
+    # Linux test-binaries build doesn't (Tools/CopyrightUpdateTool may pull
+    # WinForms references on Windows, etc.). Kept on windows-latest with
+    # TreatWarningsAsErrors=true.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: windows-latest
+    timeout-minutes: 30
     strategy:
       matrix:
-        path: [Src, Samples, Tools]
+        path: [Src, Tools]
       fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
+          cache: true
+          cache-dependency-path: |
+            ${{ matrix.path }}/**/*.csproj
 
-      - name: Build
+      - name: Build ${{ matrix.path }}
         run: dotnet build ${{ matrix.path }} --configuration=Release -p:TreatWarningsAsErrors=true
 
-  # Run tests for all supported combinations of OS/library/framework.
-  test-library:
-    needs: setup-os-matrix
-    strategy:
-      matrix:
-        os: ${{ fromJson(needs.setup-os-matrix.outputs.os) }}
-        library: [ILGPU, ILGPU.Algorithms, ILGPU.Analyzers]
-        framework: [net6.0, net7.0, net8.0]
-        flavor: [CPU, Velocity, Velocity128]
-        exclude:
-          - library: ILGPU.Algorithms
-            flavor: Velocity
-          - library: ILGPU.Algorithms
-            flavor: Velocity128
-          - library: ILGPU.Analyzers
-            flavor: Velocity
-          - library: ILGPU.Analyzers
-            flavor: Velocity128
-          - os: cuda
-            flavor: Velocity
-          - os: cuda
-            flavor: Velocity128
-          - os: cuda
-            library: ILGPU.Analyzers
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  # ===========================================================================
+  # Tier 1: Version detection (parallel, no deps)
+  # ===========================================================================
 
-      - name: Setup the latest .NET 6 SDK
-        if: matrix.framework == 'net6.0'
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 6.0.x
-
-      - name: Setup the latest .NET 7 SDK
-        if: matrix.framework == 'net7.0'
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 7.0.x
-
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Set test flavor
-        id: test-flavor
-        shell: bash
-        run: |
-          flavor="Tests.${{ matrix.flavor }}"
-          [[ "${{ matrix.os }}" == cuda ]] && flavor="Tests.Cuda"
-          [[ "${{ matrix.library }}" == "ILGPU.Analyzers" ]] && flavor="Tests"
-          echo "flavor=$flavor" >> $GITHUB_OUTPUT
-
-      - name: Build and test
-        run: dotnet test Src/${{ matrix.library }}.${{ steps.test-flavor.outputs.flavor }} --configuration=Release --framework=${{ matrix.framework }} -p:TreatWarningsAsErrors=true
-        env:
-          ILGPU_CLEAN_TESTS: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) }}
-
-  # Ensure that ILGPU libraries are built using the same version tag.
   check-version:
-    # Do not run this job for pull requests where both branches are from the same repo.
-    # Jobs that depend on this one will be skipped too.
-    # This prevents duplicate CI runs for our own pull requests, whilst preserving the ability to
-    # run the CI for each branch push to a fork, and for each pull request originating from a fork.
+    # Reads LibraryVersionPrefix from Src/Directory.Build.props and produces
+    # outputs that package-library / publish-release consume. Validates
+    # tag-vs-version match on tag pushes.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     runs-on: ubuntu-latest
     steps:
@@ -247,20 +225,524 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       suffix: ${{ steps.version.outputs.suffix }}
 
-  # Create the NuGet packages, with fixes for portable symbols.
+  # ===========================================================================
+  # Tier 1: Build the test binaries once (Linux Debug)
+  # ===========================================================================
+
+  build-test-binaries:
+    # Built on a vanilla ubuntu-latest runner with the .NET 10 SDK pinned by
+    # global.json. The compiled `Bin/Debug/` directory is uploaded as the
+    # `test-binaries` artifact and downloaded by every downstream test job —
+    # so each test job uses the EXACT same binaries that this build
+    # produced. No re-build per job, no risk of inconsistent inputs.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          # global.json pins 10.0.0 with rollForward: latestFeature; this
+          # selects the highest installed 10.0.x SDK on the runner.
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            Src/**/*.csproj
+            Tools/**/*.csproj
+
+      - name: Build solution
+        run: dotnet build Src/ILGPU.sln -c Debug
+
+      # Upload both Bin/Debug/ and every project's obj/ directory so the
+      # downstream --no-build --no-restore test jobs see the complete MSBuild
+      # context (project.assets.json, T4-generated .cs, etc.). Without obj/
+      # dotnet test silently discovers zero tests.
+      - name: Upload test binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-binaries
+          path: |
+            Bin/Debug/
+            Src/*/obj/
+          if-no-files-found: error
+          retention-days: 1
+
+  # ===========================================================================
+  # Tier 2: CPU gate
+  # ===========================================================================
+  #
+  # Runs the entire CPU-eligible test surface: IRTests, NonKernelTests,
+  # BackendTests.CPU, ExecutionTests.CPU, IntegrationTests, and the
+  # CompilerService contract tests. Every compile-only job below depends on
+  # this job — a CPU regression here aborts the pipeline before any GPU
+  # image pulls or macOS minutes are spent.
+
+  test-cpu:
+    name: CPU tests (IR + NonKernel + CPU backend + integration)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: build-test-binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # The artifact packs both Bin/Debug/ and Src/*/obj/, so extract at the
+      # repo root to preserve that layout. --no-build --no-restore downstream
+      # needs obj/ intact to resolve project metadata.
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      # The artifact's obj/*.nuget.g.props files hardcode absolute paths to
+      # ~/.nuget/packages/ on the build job's runner. The test runner's
+      # NuGet cache is empty, so every conditional <Import Project=...
+      # Condition="Exists(...)"/> skips — including the one that sets
+      # <IsTestProject>true</IsTestProject>. Without that property set, the
+      # MSBuild VSTest target silently no-ops and zero tests run. Explicit
+      # `dotnet restore` rewrites the .nuget.g.props to reference the local
+      # packages cache; the subsequent --no-build --no-restore then works.
+      - name: Restore NuGet packages
+        run: |
+          dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj
+          dotnet restore Src/ILGPUC.CompilerService.Tests/ILGPUC.CompilerService.Tests.csproj
+
+      - name: Run ILGPUC.Tests (CPU + IR + integration)
+        run: |
+          dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+            --no-build --no-restore \
+            --blame-hang-timeout 900s \
+            --logger "trx;LogFileName=cpu.trx" \
+            --filter "FullyQualifiedName~IRTests|FullyQualifiedName~NonKernelTests|FullyQualifiedName~ExecutionTests.CPU|FullyQualifiedName~CPUBackendTests|FullyQualifiedName~IntegrationTests"
+
+      - name: Run ILGPUC.CompilerService.Tests
+        run: |
+          dotnet test Src/ILGPUC.CompilerService.Tests/ILGPUC.CompilerService.Tests.csproj \
+            --no-build --no-restore \
+            --blame-hang-timeout 900s \
+            --logger "trx;LogFileName=compilerservice.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-cpu
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # Tier 3: compile-only jobs (parallel after test-cpu)
+  # ===========================================================================
+  #
+  # All four `*-compile` jobs declare `needs: test-cpu`. They run in
+  # parallel with each other; a CPU regression cascade-skips them all.
+  #
+  # The three Linux compile jobs `docker run` the GHCR-published images
+  # (built by .github/workflows/docker-publish.yml) and execute
+  # `dotnet test --no-build` INSIDE the container, where the native GPU
+  # compiler is on PATH. The image bundles the .NET 10 SDK so the test
+  # runner is local. Tests' `Availability.IsCompilerAvailableAsync` finds
+  # the local nvcc/hipcc/ocloc; `IsRuntimeAvailable` correctly returns
+  # false (no real GPU device) so ExecutionTests skip cleanly.
+  #
+  # Metal runs on macos-latest (Apple Silicon) where xcrun is preinstalled.
+  # No Docker needed and no Metal device passthrough on hosted runners
+  # either — Metal is also a compile-only check.
+
+  test-metal-compile:
+    name: Metal compile-only tests
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: test-cpu
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Verify Metal toolchain
+        run: |
+          xcrun --find metal
+          xcrun -sdk macosx metal --version
+
+      # See the identical comment on test-cpu — restore rewrites the stale
+      # absolute paths in obj/*.nuget.g.props to point at this runner's cache.
+      - name: Restore NuGet packages
+        run: dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj
+
+      - name: Run BackendTests.Metal
+        run: |
+          dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+            --no-build --no-restore \
+            --blame-hang-timeout 900s \
+            --logger "trx;LogFileName=metal.trx" \
+            --filter "FullyQualifiedName~MetalBackendTests"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-metal
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+  test-cuda-compile:
+    name: Cuda compile-only tests
+    # Fork PRs skip this job — the bundled GHCR image is Private and fork-PR
+    # GITHUB_TOKENs cannot authenticate against private packages in the base
+    # repo. `checks-completed` below tolerates this `skipped` result on fork
+    # PR events. Fork contributors still get CPU + Metal coverage via the
+    # other test jobs.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-cpu
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Cuda compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest
+
+      # docker run --user "$(id -u):..." overrides the container's ilgpuc
+      # user with the host runner's UID, which has no /etc/passwd entry
+      # inside the container → HOME resolves to empty string → dotnet tries
+      # to create /.dotnet and fails with UnauthorizedAccess. -e HOME=/tmp
+      # gives it a writable state dir. bash -c chains restore + test so the
+      # updated obj/*.nuget.g.props from restore is used by the test run
+      # (two separate docker runs would not share /tmp state).
+      - name: Run BackendTests.Cuda inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest \
+            bash -c '
+              dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+              && dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+                   --no-build --no-restore \
+                   --blame-hang-timeout 900s \
+                   --logger "trx;LogFileName=cuda.trx" \
+                   --filter "FullyQualifiedName~CudaBackendTests"
+            '
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-cuda
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+  test-rocm-compile:
+    name: ROCm compile-only tests
+    # Fork PRs skip this job — same reason as test-cuda-compile above.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-cpu
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # rocm/dev-ubuntu-24.04:7.1.1-complete is ~26.5 GB on disk after pull
+      # (the -complete tag bundles the entire ROCm SDK). The standard
+      # ubuntu-latest runner only has ~14 GB free of ~84 GB total — not
+      # enough headroom. Reclaim ~30 GB by removing preinstalled software
+      # we don't need for this job.
+      - name: Free disk space for the ROCm devel image
+        run: |
+          df -h /
+          sudo rm -rf \
+            /opt/hostedtoolcache \
+            /usr/share/dotnet/sdk \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/share/boost
+          df -h /
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull ROCm compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest
+
+      # See matching comment on test-cuda-compile — same HOME + bash-c pattern.
+      - name: Run BackendTests.ROCm inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest \
+            bash -c '
+              dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+              && dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+                   --no-build --no-restore \
+                   --blame-hang-timeout 900s \
+                   --logger "trx;LogFileName=rocm.trx" \
+                   --filter "FullyQualifiedName~ROCmBackendTests"
+            '
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-rocm
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+  test-opencl-compile:
+    name: OpenCL compile-only tests
+    # Fork PRs skip this job — same reason as test-cuda-compile above.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-cpu
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull OpenCL compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest
+
+      # See matching comment on test-cuda-compile — same HOME + bash-c pattern.
+      - name: Run BackendTests.OpenCL inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest \
+            bash -c '
+              dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+              && dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+                   --no-build --no-restore \
+                   --blame-hang-timeout 900s \
+                   --logger "trx;LogFileName=opencl.trx" \
+                   --filter "FullyQualifiedName~OpenCLBackendTests"
+            '
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-opencl
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # Tier 4: Aggregator
+  # ===========================================================================
+  #
+  # The single required status check for branch protection.
+  #
+  # IMPORTANT: the display name MUST stay "All required checks done" so that
+  # .github/workflows/check-required.yml continues to recognize it. That
+  # workflow does a string match on the job name and creates a synthetic
+  # "All required checks succeeded" check that branch protection can
+  # require — even on internal PR pull_request events that this job skips.
+  #
+  # `if: always()` ensures the aggregator runs even when upstream jobs
+  # failed; the explicit shell check below then fails appropriately.
+  #
+  # Two classes of upstream jobs:
+  #  - Required-everywhere: must be `success` on every event, including fork
+  #    PRs. Any other result fails the aggregator.
+  #  - GPU-private (cuda/rocm/opencl compile-only): must be `success` on
+  #    non-fork events. On fork PRs they are legitimately `skipped` because
+  #    the fork-PR GITHUB_TOKEN cannot pull the Private GHCR images — in
+  #    that case only `skipped` is also accepted.
+  #
+  # `if: always()` is combined with the same fork-PR-deduplication gate as
+  # all other jobs so that internal PR pull_request events still skip the
+  # aggregator (otherwise it would run with all upstreams skipped and fail).
+
+  checks-completed:
+    name: All required checks done
+    needs:
+      - check-style
+      - check-version
+      - build
+      - build-test-binaries
+      - test-cpu
+      - test-metal-compile
+      - test-cuda-compile
+      - test-rocm-compile
+      - test-opencl-compile
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event_name == 'schedule' ||
+       github.event_name == 'push' ||
+       github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify upstream jobs
+        env:
+          IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id }}
+          RESULT_CHECK_STYLE: ${{ needs.check-style.result }}
+          RESULT_CHECK_VERSION: ${{ needs.check-version.result }}
+          RESULT_BUILD: ${{ needs.build.result }}
+          RESULT_BUILD_TEST_BINARIES: ${{ needs.build-test-binaries.result }}
+          RESULT_TEST_CPU: ${{ needs.test-cpu.result }}
+          RESULT_TEST_METAL: ${{ needs.test-metal-compile.result }}
+          RESULT_TEST_CUDA: ${{ needs.test-cuda-compile.result }}
+          RESULT_TEST_ROCM: ${{ needs.test-rocm-compile.result }}
+          RESULT_TEST_OPENCL: ${{ needs.test-opencl-compile.result }}
+        run: |
+          fail=0
+
+          check_required() {
+            local job="$1" result="$2"
+            if [[ "$result" != "success" ]]; then
+              echo "::error::required upstream '$job' result: $result"
+              fail=1
+            fi
+          }
+
+          check_gpu_private() {
+            local job="$1" result="$2"
+            if [[ "$IS_FORK_PR" == "true" ]]; then
+              if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+                echo "::error::gpu-private upstream '$job' result on fork PR: $result"
+                fail=1
+              fi
+            else
+              if [[ "$result" != "success" ]]; then
+                echo "::error::gpu-private upstream '$job' result: $result"
+                fail=1
+              fi
+            fi
+          }
+
+          check_required  check-style          "$RESULT_CHECK_STYLE"
+          check_required  check-version        "$RESULT_CHECK_VERSION"
+          check_required  build                "$RESULT_BUILD"
+          check_required  build-test-binaries  "$RESULT_BUILD_TEST_BINARIES"
+          check_required  test-cpu             "$RESULT_TEST_CPU"
+          check_required  test-metal-compile   "$RESULT_TEST_METAL"
+          check_gpu_private test-cuda-compile  "$RESULT_TEST_CUDA"
+          check_gpu_private test-rocm-compile  "$RESULT_TEST_ROCM"
+          check_gpu_private test-opencl-compile "$RESULT_TEST_OPENCL"
+
+          if [[ "$fail" -eq 0 ]]; then
+            echo "All upstream jobs OK for event '${{ github.event_name }}' (fork PR: $IS_FORK_PR)."
+          fi
+          exit "$fail"
+
+  # ===========================================================================
+  # Tier 5: NuGet packaging (gated by checks-completed)
+  # ===========================================================================
+  #
+  # Runs on every push (any branch) once tests pass. Produces the
+  # `nuget-packages` artifact attached to the workflow run, available for
+  # download in the Actions UI. publish-preview / publish-release consume
+  # this artifact.
+
   package-library:
-    needs: check-version
+    needs:
+      - checks-completed
+      - check-version
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
+          cache: true
+          cache-dependency-path: |
+            Src/**/*.csproj
 
       - name: Create NuGet packages
+        shell: pwsh
         run: |
           $suffix = "${{ needs.check-version.outputs.suffix }}"
 
@@ -275,120 +757,61 @@ jobs:
         with:
           name: nuget-packages
           path: ./Bin/Release/ILGPU*.${{ needs.check-version.outputs.version }}.*nupkg
+          if-no-files-found: error
 
-  # Create the Samples zip file, replacing ILGPU project references with equivalent NuGet package references.
-  package-samples:
-    needs:
-      - check-version
-      - package-library
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  # ===========================================================================
+  # Tier 6: Publishing (gated by package-library, which is gated by tests)
+  # ===========================================================================
 
-      - name: Setup the latest .NET 8 SDK
-        uses: actions/setup-dotnet@v4.3.1
-        with:
-          dotnet-version: 8.0.x
-
-      # Change the ILGPU project references to NuGet package references
-      - name: Update sample references
-        id: package
-        run: .github/workflows/Scripts/UpdateSampleReferences.ps1 -version "${{ needs.check-version.outputs.version }}" -suffix "${{ needs.check-version.outputs.suffix }}"
-
-      # Compress the Samples folder
-      - name: Compress samples
-        run: |
-          $artifactPath = "Samples-${{ needs.check-version.outputs.version }}.zip"
-          Compress-Archive .\Samples\* -DestinationPath $artifactPath
-
-      # Verify that the sample projects can compile after switching to NuGet references
-      - name: Download NuGet package artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages
-          path: local-nuget-packages
-
-      - name: Compile sample projects
-        run: |
-          # Decompress sample projects into temp folder
-          $tempFolder = Join-Path $env:RUNNER_TEMP "TempSamples"
-          Expand-Archive "Samples-*.zip" -DestinationPath $tempFolder
-
-          # Add local nuget packages
-          # NB: We use a fully qualified path because relative paths are relative to the
-          # NuGet.Config file. This could either be the NuGet.Config file in the samples,
-          # or the global NuGet.Config file (if we did not create one in the samples)
-          pushd $tempFolder
-          $repoPath = Resolve-Path (Join-Path $env:GITHUB_WORKSPACE "local-nuget-packages")
-          dotnet nuget add source $repoPath --name "ILGPU Local NuGet Packages"
-
-          # Ensure sample projects can compile
-          dotnet build --configuration=Release -p:TreatWarningsAsErrors=true
-
-          popd
-
-      # Upload samples artifact (for version tags and master branch only)
-      - name: Upload Samples artifact
-        uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && !github.event.repository.fork && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
-        with:
-          name: samples
-          path: ./Samples-*.zip
-
-  # Virtual job that can be configured as a required check before a PR can be
-  # merged.
-  # As GitHub considers a check as successful if it is skipped, we need to
-  # check its status in another workflow (check-required.yml) and create a
-  # check there.
-  all-required-checks-done:
-    needs:
-      - check-style
-      - build
-      - test-library
-      - package-library
-      - package-samples
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "All required checks done"
-
-  # Publish a preview version of the NuGet packages on feedz.io when there is
-  # a push to master.
   publish-preview:
+    # Push to FeedzIO preview feed on master push (not forks).
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && !github.event.repository.fork
-    needs: all-required-checks-done
+    needs: package-library
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
       - name: Download NuGet package artifact
         uses: actions/download-artifact@v4
         with:
           name: nuget-packages
+
       - name: Publish to FeedzIO
         run: dotnet nuget push "*.nupkg" --api-key ${{ secrets.FEEDZIO_API_KEY }} --source https://f.feedz.io/ilgpu/preview/nuget/index.json
 
-
-  # Create a GitHub release and publish the NuGet packages to nuget.org when
-  # a tag is pushed.
   publish-release:
+    # Create a draft GitHub release and publish to nuget.org on tag push
+    # (not forks).
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !github.event.repository.fork
-    # Depends explictly on the 'check-version' job so we can access its output
     needs:
-      - all-required-checks-done
+      - package-library
       - check-version
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
       - name: Download NuGet package artifact
         uses: actions/download-artifact@v4
         with:
           name: nuget-packages
-      - name: Download Samples artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: samples
 
-      # if tag contains "-" treat it as pre-release
-      # example: 1.0.0-beta1
+      # NOTE: the prior version of this job downloaded a "samples"
+      # artifact that was never created anywhere in the workflow,
+      # causing the job to fail on every tag push. The samples zip
+      # was also referenced in `files:` below. Both removed here.
+      # If the samples bundle is wanted in releases, add a producing
+      # job and re-attach.
+
       - name: Create release
+        # if tag contains "-" treat it as pre-release (e.g. 1.0.0-beta1)
         uses: softprops/action-gh-release@v2
         with:
           name: Release v${{ needs.check-version.outputs.version }}
@@ -396,7 +819,6 @@ jobs:
           prerelease: ${{ contains(needs.check-version.outputs.version, '-') }}
           files: |
             *.nupkg
-            Samples-*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

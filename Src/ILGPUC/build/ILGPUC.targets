@@ -1,0 +1,19 @@
+<Project>
+
+  <!-- ===================================================================
+       NuGet auto-import entry point.
+
+       NuGet automatically imports build/<PackageId>.targets from a
+       referenced package. Since the ILGPUC package ID is "ILGPUC", this
+       file (named ILGPUC.targets) is the file MSBuild looks for and
+       auto-imports.
+
+       Its only job is to import the real targets file. We keep the
+       implementation in ILGPU.Kernels.targets so local-development users
+       (who Import the targets file directly via <Import Project=".../
+       ILGPU.Kernels.targets"/>) get the same behavior.
+       =================================================================== -->
+
+  <Import Project="$(MSBuildThisFileDirectory)ILGPU.Kernels.targets" />
+
+</Project>

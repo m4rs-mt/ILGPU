@@ -1,0 +1,61 @@
+# ---------------------------------------------------------------------------
+# Docker build context exclusions for Src/docker/Dockerfile.{cuda,rocm}
+#
+# The build context is the repo root (so the Dockerfile can pick up
+# global.json + Tools/CheckStyles/ILGPU.CheckStyles.targets, both of which
+# are imported transitively by Src/Directory.Build.props and ILGPU.csproj).
+#
+# Without this file, Docker would try to send the entire repo (Bin/, Docs/,
+# Site/, Samples/, Snapshots/, etc. — multiple GB) to the daemon and bust
+# the restore-layer cache on every change.
+# ---------------------------------------------------------------------------
+
+# Build outputs
+**/bin
+**/obj
+Bin
+
+# Editor / IDE
+**/.vs
+**/.vscode
+**/.idea
+**/*.user
+**/*.suo
+**/*.userprefs
+
+# Git
+.git
+.gitignore
+.gitmodules
+.gitattributes
+
+# CI / GitHub
+.github
+
+# Large directories not needed inside the image
+Docs
+Samples
+Site
+Tools/CopyrightUpdateTool
+Tools/CudaVersionUpdateTool
+Tools/GenerateCompatibilitySuppressionFiles
+
+# Test snapshots and per-project test data
+Src/ILGPUC.Tests/Snapshots
+Src/ILGPUC.Tests/bin
+Src/ILGPUC.Tests/obj
+
+# Planning + scratch
+Src/plans
+Src/scripts
+Src/*.md
+Src/CLAUDE.md
+plans
+
+# Top-level markdown docs (READMEs, CHANGELOGs) aren't needed in the image.
+# LICENSE.txt and LICENSE-3RD-PARTY.txt ARE copied into each image at
+# /usr/share/doc/ilgpuc/ for compliance — do not re-add LICENSE* here.
+*.md
+
+# Don't ship the docker assets into the image itself
+Src/docker
