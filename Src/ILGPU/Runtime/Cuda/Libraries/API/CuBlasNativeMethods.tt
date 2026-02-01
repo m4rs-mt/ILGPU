@@ -1,0 +1,929 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2020-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: CuBlasNativeMethods.tt/CuBlasNativeMethods.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../CuBlasMappings.ttinclude"#>
+<#@ include file="../../../../Static/DllLibraryImporter.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+
+using ILGPU.Runtime.Cuda.Libraries;
+using System;
+using System.Runtime.InteropServices;
+
+// disable: max_line_length
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+<#
+var libraryVersions = new (string, Platform, string)[]
+    {
+        ("V10", Platform.Windows,   "cublas64_10.dll"),
+        ("V10", Platform.Linux,     "libcublas.so.10"),
+        ("V10", Platform.OSX,       "libcublas.10.dylib"),
+
+        ("V11", Platform.Windows,   "cublas64_11.dll"),
+        ("V11", Platform.Linux,     "libcublas.so.11"),
+        ("V11", Platform.OSX,       "libcublas.11.dylib"),
+
+        ("V12", Platform.Windows,   "cublas64_12.dll"),
+        ("V12", Platform.Linux,     "libcublas.so.12"),
+    };
+
+var regions = new List<Region>();
+Region currRegion;
+List<EntryPoint> currEntryPoints;
+
+//
+// Context Region definition
+//
+regions.Add(new Region() { Name = "Context" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasCreate_v2",
+        Parameters = new[]
+            {
+                new Parameter()
+                {
+                    Name = "handle",
+                    Type = "IntPtr",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasGetVersion_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "version",
+                    Type = "int",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasDestroy_v2",
+        DisplayName = "Free",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasGetStream_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "stream",
+                    Type = "IntPtr",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasSetStream_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter() { Name = "stream", Type = "IntPtr" }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasGetPointerMode_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "mode",
+                    Type = "CuBlasPointerMode",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasSetPointerMode_v2",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter() { Name = "mode", Type = "CuBlasPointerMode" }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasGetAtomicsMode",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "mode",
+                    Type = "CuBlasAtomicsMode",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasSetAtomicsMode",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter() { Name = "mode", Type = "CuBlasAtomicsMode" }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasGetMathMode",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter()
+                {
+                    Name = "mode",
+                    Type = "CuBlasMathMode",
+                    Flags = ParameterFlags.Out
+                }
+            }
+    });
+currEntryPoints.Add(
+    new EntryPoint()
+    {
+        Name = "cublasSetMathMode",
+        Parameters = new[]
+            {
+                new Parameter() { Name = "handle", Type = "IntPtr" },
+                new Parameter() { Name = "mode", Type = "CuBlasMathMode" }
+            }
+    });
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Level 1 Region definition
+//
+regions.Add(new Region() { Name = "Level 1" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Amax, Amin, Asum, Nrm2))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "result", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Axpy))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Dot, RotM))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "result", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Rot))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "s", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(RotG))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "s", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Scal))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Swap))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Level 2 Region definition
+//
+regions.Add(new Region() { Name = "Level 2" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Gbmv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "kl", Type = "int" },
+                    new Parameter() { Name = "ku", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Gemv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Ger))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Sbmv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Spmv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "ap", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Spr))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "ap", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Spr2))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "ap", Type = "void*" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Symv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Syr))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Syr2))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "y", Type = "void*" },
+                    new Parameter() { Name = "incy", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Tbmv, Tbsv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Tpmv, Tpsv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "ap", Type = "void*" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Trmv, Trsv))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" }
+                }
+        });
+}
+
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Level 3 Region definition
+//
+regions.Add(new Region() { Name = "Level 3" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Gemm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "transa", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "transb", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Symm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "side", Type = "CuBlasSideMode" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Syrk))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Syr2k, Syrkx))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "k", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Trmm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "side", Type = "CuBlasSideMode" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Trsm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "side", Type = "CuBlasSideMode" },
+                    new Parameter() { Name = "uplo", Type = "CuBlasFillMode" },
+                    new Parameter() { Name = "trans", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "diag", Type = "CuBlasDiagType" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" }
+                }
+        });
+}
+
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Blas Extensions Region definition
+//
+regions.Add(new Region() { Name = "Extensions" });
+currRegion = regions.Last();
+currEntryPoints = new List<EntryPoint>();
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Geam))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "transa", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "transb", Type = "CuBlasOperation" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "alpha", Type = "void*" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "beta", Type = "void*" },
+                    new Parameter() { Name = "b", Type = "void*" },
+                    new Parameter() { Name = "ldb", Type = "int" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+foreach (var (func, nativeFunc) in GetBlasEntries(Dgmm))
+{
+    currEntryPoints.Add(
+        new EntryPoint()
+        {
+            Name = nativeFunc,
+            DisplayName = func,
+            Unsafe = true,
+            Parameters = new[]
+                {
+                    new Parameter() { Name = "handle", Type = "IntPtr" },
+                    new Parameter() { Name = "mode", Type = "CuBlasSideMode" },
+                    new Parameter() { Name = "m", Type = "int" },
+                    new Parameter() { Name = "n", Type = "int" },
+                    new Parameter() { Name = "a", Type = "void*" },
+                    new Parameter() { Name = "lda", Type = "int" },
+                    new Parameter() { Name = "x", Type = "void*" },
+                    new Parameter() { Name = "incx", Type = "int" },
+                    new Parameter() { Name = "c", Type = "void*" },
+                    new Parameter() { Name = "ldc", Type = "int" }
+                }
+        });
+}
+
+currRegion.EntryPoints = currEntryPoints.ToArray();
+
+//
+// Write CuBlas library
+//
+var importLib = new ImportLibrary()
+    {
+        Namespace = "ILGPU.Runtime.Cuda.API",
+        ClassName="CuBlasAPI",
+        VersionType="CuBlasAPIVersion",
+        DefaultDllImportSearchPath="LegacyBehavior",
+        DefaultMethodAccessModifier="public",
+        DefaultReturnType="CuBlasStatus",
+        LibraryVersions =
+            libraryVersions.Select(lv =>
+                new LibraryVersion()
+                {
+                    Name = lv.Item1,
+                    Platform = lv.Item2,
+                    LibName = lv.Item3
+                }
+            ).ToArray(),
+        Regions = regions.ToArray()
+    };
+importLib.ApplyDefaults();
+
+// Remove 'cublas' prefix, and '_v2' suffix.
+SetMakeMethodNameFunc(methodName =>
+    Regex.Replace(methodName, "^cublas(.+?)(_v\\d+)?$", "$1"));
+
+WriteLibrary(importLib);
+
+#>
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

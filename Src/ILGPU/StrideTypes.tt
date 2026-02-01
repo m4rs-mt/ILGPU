@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StrideTypes.tt/StrideTypes.cs
@@ -21,701 +21,746 @@ using ILGPU.Util;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace ILGPU
-{
+namespace ILGPU;
+
 <#  foreach (var def in IndexDimensions) { #>
 <#      var indexName = IndexDefinitions[def.Dimension - 1].Name; #>
 <#      var longIndexName = IndexDefinitions[def.Dimension + 2].Name; #>
 <#      var strideName = $"IStride{def.Dimension}D"; #>
 <#      var className = $"Stride{def.Dimension}D"; #>
+/// <summary>
+/// An abstract <#= def.Dimension #>D stride.
+/// </summary>
+public interface <#= strideName #> : IStride<<#= indexName #>, <#= longIndexName #>>
+{
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
     /// <summary>
-    /// An abstract <#= def.Dimension #>D stride.
+    /// Returns the <#= IndexDimensions[i] #> dimension of the stride extent.
     /// </summary>
-    public interface <#= strideName #> : IStride<<#= indexName #>, <#= longIndexName #>>
-    {
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-        /// <summary>
-        /// Returns the <#= IndexDimensions[i] #> dimension of the stride extent.
-        /// </summary>
-        int <#= IndexDimensions[i] #>Stride { get; }
+    int <#= IndexDimensions[i] #>Stride { get; }
 
 <#      } #>
-        /// <summary>
-        /// Returns this stride as general <#= def.Dimension #>D stride.
-        /// </summary>
-        <#= className #>.General AsGeneral();
-    }
-
     /// <summary>
-    /// Container class for all <#= def.Dimension #>D strides.
+    /// Returns this stride as general <#= def.Dimension #>D stride.
     /// </summary>
-    public static partial class <#= className #>
+    <#= className #>.General AsGeneral();
+}
+
+/// <summary>
+/// An abstract <#= def.Dimension #>D stride with explicit self type parameter.
+/// </summary>
+public interface <#= strideName #><TSelf> :
+    <#= strideName #>
+<#      if (def.Dimension > 1) { #>
+    , IStride<TSelf, <#= indexName #>, <#= longIndexName #>>
+<#      } #>
+    where TSelf : <#= strideName #><TSelf>;
+
+/// <summary>
+/// Container class for all <#= def.Dimension #>D strides.
+/// </summary>
+public static partial class <#= className #>
+{
+    /// <summary>
+    /// An infinite stride.
+    /// </summary>
+    public readonly struct Infinite : <#= strideName #><Infinite>
     {
-        /// <summary>
-        /// An infinite stride.
-        /// </summary>
-        public readonly struct Infinite : <#= strideName #>
-        {
-            #region Properties
+        #region Properties
 
-            /// <summary>
-            /// Returns a constant stride of <#= indexName #>.Zero;
-            /// </summary>
-            public readonly <#= indexName #> StrideExtent => <#= indexName #>.Zero;
+        /// <summary>
+        /// Returns a constant stride of <#= indexName #>.Zero;
+        /// </summary>
+        public <#= indexName #> StrideExtent => <#= indexName #>.Zero;
 <#      for (int i = 0; i < def.Dimension; ++i) { #>
 
-            /// <summary>
-            /// Returns the constant 0.
-            /// </summary>
-            public readonly int <#= IndexDimensions[i] #>Stride => 0;
+        /// <summary>
+        /// Returns the constant 0.
+        /// </summary>
+        public int <#= IndexDimensions[i] #>Stride => 0;
 <#      } #>
 
-            #endregion
+        #endregion
 
-            #region Methods
+        #region Methods
 
-            /// <summary>
-            /// Computes the linear 32-bit element address using the given index.
-            /// </summary>
-            /// <param name="index">The dimension for index computation.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int ComputeElementIndex(<#= indexName #> index) => 0;
-
-            /// <summary>
-            /// Computes the linear 64-bit element address using the given index.
-            /// </summary>
-            /// <param name="index">The dimension for index computation.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public long ComputeElementIndex(<#= longIndexName #> index) => 0L;
-
-            /// <summary>
-            /// Computes the linear 32-bit element address using the given index while
-            /// verifying that the given index is within the bounds of the specified
-            /// extent.
-            /// </summary>
-            /// <param name="index">The dimension for the index computation.</param>
-            /// <param name="extent">The extent dimension to check.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int ComputeElementIndexChecked(
-                <#= indexName #> index,
-                <#= indexName #> extent) =>
-                // Note that all element indices are in bounds
-                ComputeElementIndex(index);
-
-            /// <summary>
-            /// Computes the linear 64-bit element address using the given index while
-            /// verifying that the given index is within the bounds of the specified
-            /// extent.
-            /// </summary>
-            /// <param name="index">The dimension for index computation.</param>
-            /// <param name="extent">The extent dimension to check.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public long ComputeElementIndexChecked(
-                <#= longIndexName #> index,
-                <#= longIndexName #> extent) =>
-                // Note that all element indices are in bounds
-                ComputeElementIndex(index);
-
-            /// <summary>
-            /// Reconstructs a 32-bit index from a linear element index.
-            /// </summary>
-            /// <param name="elementIndex">The linear element index.</param>
-            /// <returns>The reconstructed index.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public <#= indexName #> ReconstructFromElementIndex(int elementIndex)
-            {
-                Trace.Assert(
-                    false,
-                    "Reconstruction of general strides is not supported");
-                return <#= indexName #>.Invalid;
-            }
-
-            /// <summary>
-            /// Reconstructs a 64-bit index from a linear element index.
-            /// </summary>
-            /// <param name="elementIndex">The linear element index.</param>
-            /// <returns>The reconstructed index.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public <#= longIndexName #> ReconstructFromElementIndex(long elementIndex)
-            {
-                Trace.Assert(
-                    false,
-                    "Reconstruction of general strides is not supported");
-                return <#= longIndexName #>.Invalid;
-            }
-
-            /// <summary>
-            /// Computes the 32-bit length of a required allocation.
-            /// </summary>
-            /// <param name="extent">The extent to allocate.</param>
-            /// <returns>The 32-bit length of a required allocation.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int ComputeBufferLength(<#= indexName #> extent) => 1;
-
-            /// <summary>
-            /// Computes the 64-bit length of a required allocation.
-            /// </summary>
-            /// <param name="extent">The extent to allocate.</param>
-            /// <returns>The 64-bit length of a required allocation.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public long ComputeBufferLength(<#= longIndexName #> extent) => 1L;
-
-            /// <summary>
-            /// Returns this stride as general <#= def.Dimension #>D stride.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public General AsGeneral() => new General(default);
-
-            /// <summary>
-            /// Converts this stride instance into a general 1D stride.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Stride1D.General To1DStride() => default;
-
-            #endregion
-
-            #region Object
-
-            /// <summary>
-            /// Returns the string representation of this stride.
-            /// </summary>
-            /// <returns>The string representation of this stride.</returns>
-            [NotInsideKernel]
-            public override string ToString() => "<inf>";
-
-            #endregion
-        }
-
-<#      if  (def.Dimension < 2) { #>
+<#      if (def.Dimension > 1) { #>
         /// <summary>
-        /// A dense stride without padding.
+        /// Creates a stride from the given extent.
         /// </summary>
-        public readonly partial struct Dense : <#= strideName #>
-        {
-            #region Properties
-
-            /// <summary>
-            /// Returns a constant stride of <#= indexName #>.One;
-            /// </summary>
-            public readonly <#= indexName #> StrideExtent => <#= indexName #>.One;
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-
-            /// <summary>
-            /// Returns the constant 1.
-            /// </summary>
-            public readonly int <#= IndexDimensions[i] #>Stride => 1;
-<#      } #>
-
-            #endregion
-
-            #region Methods
-
-            /// <summary>
-            /// Computes the linear 32-bit element address using the given index.
-            /// </summary>
-            /// <param name="index">The dimension for index computation.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int ComputeElementIndex(<#= indexName #> index) => index;
-
-            /// <summary>
-            /// Computes the linear 64-bit element address using the given index.
-            /// </summary>
-            /// <param name="index">The dimension for index computation.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public long ComputeElementIndex(<#= longIndexName #> index) => index;
-
-            /// <summary>
-            /// Computes the linear 32-bit element address using the given index while
-            /// verifying that the given index is within the bounds of the specified
-            /// extent.
-            /// </summary>
-            /// <param name="index">The dimension for the index computation.</param>
-            /// <param name="extent">The extent dimension to check.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int ComputeElementIndexChecked(
-                <#= indexName #> index,
-                <#= indexName #> extent) =>
-                <#= className #>.ComputeElementIndexChecked(this, index, extent);
-
-            /// <summary>
-            /// Computes the linear 64-bit element address using the given index while
-            /// verifying that the given index is within the bounds of the specified
-            /// extent.
-            /// </summary>
-            /// <param name="index">The dimension for index computation.</param>
-            /// <param name="extent">The extent dimension to check.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public long ComputeElementIndexChecked(
-                <#= longIndexName #> index,
-                <#= longIndexName #> extent) =>
-                <#= className #>.ComputeElementIndexChecked(this, index, extent);
-
-            /// <summary>
-            /// Reconstructs a 32-bit index from a linear element index.
-            /// </summary>
-            /// <param name="elementIndex">The linear element index.</param>
-            /// <returns>The reconstructed index.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public <#= indexName #> ReconstructFromElementIndex(int elementIndex) =>
-                elementIndex;
-
-            /// <summary>
-            /// Reconstructs a 64-bit index from a linear element index.
-            /// </summary>
-            /// <param name="elementIndex">The linear element index.</param>
-            /// <returns>The reconstructed index.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public <#= longIndexName #> ReconstructFromElementIndex(long elementIndex) =>
-                elementIndex;
-
-            /// <summary>
-            /// Computes the 32-bit length of a required allocation.
-            /// </summary>
-            /// <param name="extent">The extent to allocate.</param>
-            /// <returns>The 32-bit length of a required allocation.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int ComputeBufferLength(<#= indexName #> extent) => extent;
-
-            /// <summary>
-            /// Computes the 64-bit length of a required allocation.
-            /// </summary>
-            /// <param name="extent">The extent to allocate.</param>
-            /// <returns>The 64-bit length of a required allocation.</returns>
-            public long ComputeBufferLength(<#= longIndexName #> extent) => extent;
-
-            /// <summary>
-            /// Returns this stride as general <#= def.Dimension #>D stride.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public General AsGeneral() =>
-                new General(
-                    <#= string.Join(", ", Enumerable.Range(0, def.Dimension)
-                        .Select(t => $"{IndexDimensions[t]}Stride"))#>
-                );
-
-            /// <summary>
-            /// Converts this stride instance into a general 1D stride.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public General To1DStride() => AsGeneral();
-
-            #endregion
-
-            #region Object
-
-            /// <summary>
-            /// Returns the string representation of this stride.
-            /// </summary>
-            /// <returns>The string representation of this stride.</returns>
-            [NotInsideKernel]
-            public override string ToString() => "<dense>";
-
-            #endregion
-        }
-<#      } else { #>
-        /// <summary>
-        /// Returns the size of the leading dimension based on the given extent.
-        /// </summary>
-        public delegate long GetLeadingDimensionSize(<#= longIndexName #> extent);
+        /// <param name="extent">The dimension for index computation.</param>
+        /// <returns>The derived stride information.</returns>
+        public static Infinite FromExtent(<#= indexName #> extent) => new();
 
         /// <summary>
-        /// Builds a stride based on the given extent and the size of the leading
-        /// dimension.
+        /// Creates a stride from the given extent.
         /// </summary>
-        public delegate TStride BuildStride<TStride>(
-            <#= longIndexName #> extent,
-            int leadingDimension)
-            where TStride : struct, <#= strideName #>;
+        /// <param name="extent">The dimension for index computation.</param>
+        /// <returns>The derived stride information.</returns>
+        public static Infinite FromExtent(<#= longIndexName #> extent) => new();
+
 <#      } #>
-
-        /// <summary>
-        /// A general <#= def.Dimension #>D stride.
-        /// </summary>
-        public struct General : <#= strideName #>
-        {
-            #region Instance
-
-            /// <summary>
-            /// Creates a new general <#= def.Dimension #>D stride.
-            /// </summary>
-            /// <param name="stride">The underlying stride information.</param>
-            public General(<#= indexName #> stride)
-            {
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-                Trace.Assert(
-                    stride.<#= IndexDimensions[i] #> >= 0,
-                    "stride out of range");
-<#      } #>
-                StrideExtent = stride;
-            }
-
-            #endregion
-
-            #region Properties
-
-            /// <summary>
-            /// Returns the associated stride extent.
-            /// </summary>
-            public <#= indexName #> StrideExtent { get; }
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-
-            /// <summary>
-            /// Returns the <#= IndexDimensions[i] #>-dimension stride.
-            /// </summary>
-            public int <#= IndexDimensions[i] #>Stride =>
-                StrideExtent.<#= IndexDimensions[i] #>;
-<#      } #>
-
-            #endregion
-
-            #region Methods
-
-            /// <summary>
-            /// Computes the linear 32-bit element address using the given index.
-            /// </summary>
-            /// <param name="index">The dimension for index computation.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int ComputeElementIndex(<#= indexName #> index) =>
-                <#= className #>.ComputeElementIndex(this, index);
-
-            /// <summary>
-            /// Computes the linear 64-bit element address using the given index.
-            /// </summary>
-            /// <param name="index">The dimension for index computation.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public long ComputeElementIndex(<#= longIndexName #> index) =>
-                <#= className #>.ComputeElementIndex(this, index);
-
-            /// <summary>
-            /// Computes the linear 32-bit element address using the given index while
-            /// verifying that the given index is within the bounds of the specified
-            /// extent.
-            /// </summary>
-            /// <param name="index">The dimension for the index computation.</param>
-            /// <param name="extent">The extent dimension to check.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int ComputeElementIndexChecked(
-                <#= indexName #> index,
-                <#= indexName #> extent) =>
-                <#= className #>.ComputeElementIndexChecked(this, index, extent);
-
-            /// <summary>
-            /// Computes the linear 64-bit element address using the given index while
-            /// verifying that the given index is within the bounds of the specified
-            /// extent.
-            /// </summary>
-            /// <param name="index">The dimension for index computation.</param>
-            /// <param name="extent">The extent dimension to check.</param>
-            /// <returns>The computed linear element address.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public long ComputeElementIndexChecked(
-                <#= longIndexName #> index,
-                <#= longIndexName #> extent) =>
-                <#= className #>.ComputeElementIndexChecked(this, index, extent);
-
-            /// <summary>
-            /// Reconstructs a 32-bit index from a linear element index.
-            /// </summary>
-            /// <param name="elementIndex">The linear element index.</param>
-            /// <returns>The reconstructed index.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public <#= indexName #> ReconstructFromElementIndex(int elementIndex)
-            {
-<#      if (def.Dimension == 1) { #>
-                return new <#= indexName #>(elementIndex);
-<#      } else if (def.Dimension == 2) { #>
-                bool prefer1st =
-                    <#= IndexDimensions[0] #>Stride >
-                    <#= IndexDimensions[1] #>Stride;
-                var index = prefer1st
-                    ? new DenseY(<#= IndexDimensions[0] #>Stride)
-                        .ReconstructFromElementIndex(elementIndex)
-                    : new DenseX(<#= IndexDimensions[1] #>Stride)
-                        .ReconstructFromElementIndex(elementIndex);
-                int minDimension = Utilities.Select(
-                    prefer1st,
-                    <#= IndexDimensions[1] #>Stride,
-                    <#= IndexDimensions[0] #>Stride);
-                return new <#= indexName #>(index.X, index.Y / minDimension);
-<#      } else if (def.Dimension == 3) { #>
-                bool prefer1st =
-                    <#= IndexDimensions[0] #>Stride >
-                    <#= IndexDimensions[2] #>Stride;
-                Trace.Assert(
-                    !prefer1st &
-                    <#= IndexDimensions[2] #>Stride >
-                    <#= IndexDimensions[1] #>Stride |
-                    prefer1st &
-                    <#= IndexDimensions[1] #>Stride >
-                    <#= IndexDimensions[2] #>Stride,
-                    "Reconstruction of general 3D strides is not supported");
-                int mainDim = Utilities.Select(
-                    prefer1st,
-                    <#= IndexDimensions[2] #>Stride,
-                    <#= IndexDimensions[0] #>Stride);
-                var index = prefer1st
-                    ? new DenseZY(
-                        <#= IndexDimensions[0] #>Stride * mainDim,
-                        <#= IndexDimensions[1] #>Stride * mainDim)
-                        .ReconstructFromElementIndex(elementIndex)
-                    : new DenseXY(
-                        <#= IndexDimensions[1] #>Stride * mainDim,
-                        <#= IndexDimensions[2] #>Stride * mainDim)
-                        .ReconstructFromElementIndex(elementIndex);
-                return index;
-<#      } else { #>
-                Trace.Assert(
-                    false,
-                    "Reconstruction of general strides is not supported");
-                return <#= indexName #>.Invalid;
-<#      } #>
-            }
-
-            /// <summary>
-            /// Reconstructs a 64-bit index from a linear element index.
-            /// </summary>
-            /// <param name="elementIndex">The linear element index.</param>
-            /// <returns>The reconstructed index.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public <#= longIndexName #> ReconstructFromElementIndex(long elementIndex)
-            {
-<#      if (def.Dimension == 1) { #>
-                return new <#= longIndexName #>(elementIndex);
-<#      } else if (def.Dimension == 2) { #>
-                bool prefer1st =
-                    <#= IndexDimensions[0] #>Stride >
-                    <#= IndexDimensions[1] #>Stride;
-                var index = prefer1st
-                    ? new DenseY(<#= IndexDimensions[0] #>Stride)
-                        .ReconstructFromElementIndex(elementIndex)
-                    : new DenseX(<#= IndexDimensions[1] #>Stride)
-                        .ReconstructFromElementIndex(elementIndex);
-                int minDimension = Utilities.Select(
-                    prefer1st,
-                    <#= IndexDimensions[1] #>Stride,
-                    <#= IndexDimensions[0] #>Stride);
-                return new <#= longIndexName #>(index.X, index.Y / minDimension);
-<#      } else if (def.Dimension == 3) { #>
-                bool prefer1st =
-                    <#= IndexDimensions[0] #>Stride >
-                    <#= IndexDimensions[2] #>Stride;
-                Trace.Assert(
-                    !prefer1st &
-                    <#= IndexDimensions[2] #>Stride >
-                    <#= IndexDimensions[1] #>Stride |
-                    prefer1st &
-                    <#= IndexDimensions[1] #>Stride >
-                    <#= IndexDimensions[2] #>Stride,
-                    "Reconstruction of general 3D strides is not supported");
-                int mainDim = Utilities.Select(
-                    prefer1st,
-                    <#= IndexDimensions[2] #>Stride,
-                    <#= IndexDimensions[0] #>Stride);
-                var index = prefer1st
-                    ? new DenseZY(
-                        <#= IndexDimensions[0] #>Stride * mainDim,
-                        <#= IndexDimensions[1] #>Stride * mainDim)
-                        .ReconstructFromElementIndex(elementIndex)
-                    : new DenseXY(
-                        <#= IndexDimensions[1] #>Stride * mainDim,
-                        <#= IndexDimensions[2] #>Stride * mainDim)
-                        .ReconstructFromElementIndex(elementIndex);
-                return index;
-<#      } else { #>
-                Trace.Assert(
-                    false,
-                    "Reconstruction of general strides is not supported");
-                return <#= longIndexName #>.Invalid;
-<#      } #>
-            }
-
-            /// <summary>
-            /// Computes the 32-bit length of a required allocation.
-            /// </summary>
-            /// <param name="extent">The extent to allocate.</param>
-            /// <returns>The 32-bit length of a required allocation.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int ComputeBufferLength(<#= indexName #> extent) =>
-                <#= className #>.ComputeBufferLength(this, extent);
-
-            /// <summary>
-            /// Computes the 64-bit length of a required allocation.
-            /// </summary>
-            /// <param name="extent">The extent to allocate.</param>
-            /// <returns>The 64-bit length of a required allocation.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public long ComputeBufferLength(<#= longIndexName #> extent) =>
-                <#= className #>.ComputeBufferLength(this, extent);
-
-            /// <summary>
-            /// Returns this stride as general <#= def.Dimension #>D stride.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public General AsGeneral() => this;
-
-            /// <summary>
-            /// Converts this stride instance into a general 1D stride.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Stride1D.General To1DStride() =>
-                new Stride1D.General(XStride);
-
-            #endregion
-
-            #region Object
-
-            /// <summary>
-            /// Returns the string representation of this stride.
-            /// </summary>
-            /// <returns>The string representation of this stride.</returns>
-            [NotInsideKernel]
-            public override string ToString() => StrideExtent.ToString();
-
-            #endregion
-        }
-
         /// <summary>
         /// Computes the linear 32-bit element address using the given index.
         /// </summary>
-        /// <param name="stride">The stride to use.</param>
         /// <param name="index">The dimension for index computation.</param>
         /// <returns>The computed linear element address.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeElementIndex<TStride>(
-            this TStride stride,
-            <#= indexName #> index)
-            where TStride : struct, <#= strideName #> =>
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-<#          var iName = IndexDimensions[i].PropertyName; #>
-<#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
-            index.<#= iName #> * stride.<#= iName #>Stride<#= separator #>
-<#      } #>
+        public int ComputeElementIndex(<#= indexName #> index) => 0;
 
         /// <summary>
         /// Computes the linear 64-bit element address using the given index.
         /// </summary>
-        /// <param name="stride">The stride to use.</param>
         /// <param name="index">The dimension for index computation.</param>
         /// <returns>The computed linear element address.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long ComputeElementIndex<TStride>(
-            this TStride stride,
-            <#= longIndexName #> index)
-            where TStride : struct, <#= strideName #> =>
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-<#          var iName = IndexDimensions[i].PropertyName; #>
-<#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
-            index.<#= iName #> * stride.<#= iName #>Stride<#= separator #>
-<#      } #>
+        public long ComputeElementIndex(<#= longIndexName #> index) => 0L;
 
         /// <summary>
         /// Computes the linear 32-bit element address using the given index while
-        /// verifying that the given index is within the bounds of the specified extent.
+        /// verifying that the given index is within the bounds of the specified
+        /// extent.
         /// </summary>
-        /// <param name="stride">The stride to use.</param>
         /// <param name="index">The dimension for the index computation.</param>
         /// <param name="extent">The extent dimension to check.</param>
         /// <returns>The computed linear element address.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeElementIndexChecked<TStride>(
-            this TStride stride,
+        public int ComputeElementIndexChecked(
             <#= indexName #> index,
-            <#= indexName #> extent)
-            where TStride : struct, <#= strideName #>
-        {
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-<#          var iName = IndexDimensions[i].PropertyName; #>
-            Trace.Assert(
-                Bitwise.Or(
-                    // Default bound checks
-                    Bitwise.And(
-                        index.<#= iName #> >= 0,
-                        index.<#= iName #> < extent.<#= iName #>),
-                    // Zero length views
-                    Bitwise.And(index.<#= iName #> == 0, extent.<#= iName #> == 0)),
-                "<#= iName #> index out of bounds");
-<#      } #>
-            return ComputeElementIndex(stride, index);
-        }
+            <#= indexName #> extent) =>
+            // Note that all element indices are in bounds
+            ComputeElementIndex(index);
 
         /// <summary>
         /// Computes the linear 64-bit element address using the given index while
-        /// verifying that the given index is within the bounds of the specified extent.
+        /// verifying that the given index is within the bounds of the specified
+        /// extent.
         /// </summary>
-        /// <param name="stride">The stride to use.</param>
         /// <param name="index">The dimension for index computation.</param>
         /// <param name="extent">The extent dimension to check.</param>
         /// <returns>The computed linear element address.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long ComputeElementIndexChecked<TStride>(
-            this TStride stride,
+        public long ComputeElementIndexChecked(
             <#= longIndexName #> index,
-            <#= longIndexName #> extent)
-            where TStride : struct, <#= strideName #>
+            <#= longIndexName #> extent) =>
+            // Note that all element indices are in bounds
+            ComputeElementIndex(index);
+
+        /// <summary>
+        /// Reconstructs a 32-bit index from a linear element index.
+        /// </summary>
+        /// <param name="elementIndex">The linear element index.</param>
+        /// <returns>The reconstructed index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public <#= indexName #> ReconstructFromElementIndex(int elementIndex)
         {
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-<#          var iName = IndexDimensions[i].PropertyName; #>
             Trace.Assert(
-                Bitwise.And(
-                    index.<#= iName #> >= 0,
-                    index.<#= iName #> < extent.<#= iName #>),
-                "<#= iName #> index out of bounds");
-<#      } #>
-            return ComputeElementIndex(stride, index);
+                false,
+                "Reconstruction of general strides is not supported");
+            return <#= indexName #>.Invalid;
+        }
+
+        /// <summary>
+        /// Reconstructs a 64-bit index from a linear element index.
+        /// </summary>
+        /// <param name="elementIndex">The linear element index.</param>
+        /// <returns>The reconstructed index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public <#= longIndexName #> ReconstructFromElementIndex(long elementIndex)
+        {
+            Trace.Assert(
+                false,
+                "Reconstruction of general strides is not supported");
+            return <#= longIndexName #>.Invalid;
         }
 
         /// <summary>
         /// Computes the 32-bit length of a required allocation.
         /// </summary>
-        /// <param name="stride">The stride to use.</param>
         /// <param name="extent">The extent to allocate.</param>
         /// <returns>The 32-bit length of a required allocation.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeBufferLength<TStride>(
-            this TStride stride,
-            <#= indexName #> extent)
-            where TStride : struct, <#= strideName #>
-        {
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-<#          var iName = IndexDimensions[i].PropertyName; #>
-            if (extent.<#= iName #> == 0)
-                return 0;
-<#      } #>
-            return ComputeElementIndex(stride, extent - <#= indexName #>.One) + 1;
-        }
+        public int ComputeBufferLength(<#= indexName #> extent) => 1;
 
         /// <summary>
         /// Computes the 64-bit length of a required allocation.
         /// </summary>
-        /// <param name="stride">The stride to use.</param>
         /// <param name="extent">The extent to allocate.</param>
         /// <returns>The 64-bit length of a required allocation.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long ComputeBufferLength<TStride>(
-            this TStride stride,
-            <#= longIndexName #> extent)
-            where TStride : struct, <#= strideName #>
-        {
-<#      for (int i = 0; i < def.Dimension; ++i) { #>
-<#          var iName = IndexDimensions[i].PropertyName; #>
-            if (extent.<#= iName #> == 0L)
-                return 0L;
-<#      } #>
-            return ComputeElementIndex(stride, extent - <#= longIndexName #>.One) + 1L;
-        }
+        public long ComputeBufferLength(<#= longIndexName #> extent) => 1L;
 
+        /// <summary>
+        /// Returns this stride as general <#= def.Dimension #>D stride.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public General AsGeneral() => new General(default);
+
+        /// <summary>
+        /// Converts this stride instance into a general 1D stride.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Stride1D.General To1DStride() => default;
+
+        #endregion
+
+        #region Object
+
+        /// <summary>
+        /// Returns the string representation of this stride.
+        /// </summary>
+        /// <returns>The string representation of this stride.</returns>
+        [NotInsideKernel]
+        public override string ToString() => "<inf>";
+
+        #endregion
     }
 
-<#  } #>
+<#      if  (def.Dimension < 2) { #>
+    /// <summary>
+    /// A dense stride without padding.
+    /// </summary>
+    public readonly partial struct Dense : <#= strideName #><Dense>
+    {
+        #region Properties
+
+        /// <summary>
+        /// Returns a constant stride of <#= indexName #>.One;
+        /// </summary>
+        public <#= indexName #> StrideExtent => <#= indexName #>.One;
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+
+        /// <summary>
+        /// Returns the constant 1.
+        /// </summary>
+        public int <#= IndexDimensions[i] #>Stride => 1;
+<#      } #>
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Computes the linear 32-bit element address using the given index.
+        /// </summary>
+        /// <param name="index">The dimension for index computation.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ComputeElementIndex(<#= indexName #> index) => index;
+
+        /// <summary>
+        /// Computes the linear 64-bit element address using the given index.
+        /// </summary>
+        /// <param name="index">The dimension for index computation.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long ComputeElementIndex(<#= longIndexName #> index) => index;
+
+        /// <summary>
+        /// Computes the linear 32-bit element address using the given index while
+        /// verifying that the given index is within the bounds of the specified
+        /// extent.
+        /// </summary>
+        /// <param name="index">The dimension for the index computation.</param>
+        /// <param name="extent">The extent dimension to check.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ComputeElementIndexChecked(
+            <#= indexName #> index,
+            <#= indexName #> extent) =>
+            <#= className #>.ComputeElementIndexChecked(this, index, extent);
+
+        /// <summary>
+        /// Computes the linear 64-bit element address using the given index while
+        /// verifying that the given index is within the bounds of the specified
+        /// extent.
+        /// </summary>
+        /// <param name="index">The dimension for index computation.</param>
+        /// <param name="extent">The extent dimension to check.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long ComputeElementIndexChecked(
+            <#= longIndexName #> index,
+            <#= longIndexName #> extent) =>
+            <#= className #>.ComputeElementIndexChecked(this, index, extent);
+
+        /// <summary>
+        /// Reconstructs a 32-bit index from a linear element index.
+        /// </summary>
+        /// <param name="elementIndex">The linear element index.</param>
+        /// <returns>The reconstructed index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public <#= indexName #> ReconstructFromElementIndex(int elementIndex) =>
+            elementIndex;
+
+        /// <summary>
+        /// Reconstructs a 64-bit index from a linear element index.
+        /// </summary>
+        /// <param name="elementIndex">The linear element index.</param>
+        /// <returns>The reconstructed index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public <#= longIndexName #> ReconstructFromElementIndex(long elementIndex) =>
+            elementIndex;
+
+        /// <summary>
+        /// Computes the 32-bit length of a required allocation.
+        /// </summary>
+        /// <param name="extent">The extent to allocate.</param>
+        /// <returns>The 32-bit length of a required allocation.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ComputeBufferLength(<#= indexName #> extent) => extent;
+
+        /// <summary>
+        /// Computes the 64-bit length of a required allocation.
+        /// </summary>
+        /// <param name="extent">The extent to allocate.</param>
+        /// <returns>The 64-bit length of a required allocation.</returns>
+        public long ComputeBufferLength(<#= longIndexName #> extent) => extent;
+
+        /// <summary>
+        /// Returns this stride as general <#= def.Dimension #>D stride.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public General AsGeneral() =>
+            new General(
+                <#= string.Join(", ", Enumerable.Range(0, def.Dimension)
+                    .Select(t => $"{IndexDimensions[t]}Stride"))#>
+            );
+
+        /// <summary>
+        /// Converts this stride instance into a general 1D stride.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public General To1DStride() => AsGeneral();
+
+        #endregion
+
+        #region Object
+
+        /// <summary>
+        /// Returns the string representation of this stride.
+        /// </summary>
+        /// <returns>The string representation of this stride.</returns>
+        [NotInsideKernel]
+        public override string ToString() => "<dense>";
+
+        #endregion
+    }
+<#      } else { #>
+    /// <summary>
+    /// Returns the size of the leading dimension based on the given extent.
+    /// </summary>
+    public delegate long GetLeadingDimensionSize(<#= longIndexName #> extent);
+
+    /// <summary>
+    /// Builds a stride based on the given extent and the size of the leading
+    /// dimension.
+    /// </summary>
+    public delegate TStride BuildStride<TStride>(
+        <#= longIndexName #> extent,
+        int leadingDimension)
+        where TStride : struct, <#= strideName #>;
+<#      } #>
+
+    /// <summary>
+    /// A general <#= def.Dimension #>D stride.
+    /// </summary>
+    public readonly struct General : <#= strideName #><General>
+    {
+        #region Instance
+
+        /// <summary>
+        /// Creates a new general <#= def.Dimension #>D stride.
+        /// </summary>
+        /// <param name="stride">The underlying stride information.</param>
+        public General(<#= indexName #> stride)
+        {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+            Trace.Assert(
+                stride.<#= IndexDimensions[i] #> >= 0,
+                "stride out of range");
+<#      } #>
+            StrideExtent = stride;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the associated stride extent.
+        /// </summary>
+        public <#= indexName #> StrideExtent { get; }
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+
+        /// <summary>
+        /// Returns the <#= IndexDimensions[i] #>-dimension stride.
+        /// </summary>
+        public int <#= IndexDimensions[i] #>Stride =>
+            StrideExtent.<#= IndexDimensions[i] #>;
+<#      } #>
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Creates a stride from the given extent.
+        /// </summary>
+        /// <param name="extent">The dimension for index computation.</param>
+        /// <returns>The derived stride information.</returns>
+        public static General FromExtent(<#= indexName #> extent) => new(extent);
+
+        /// <summary>
+        /// Creates a stride from the given extent.
+        /// </summary>
+        /// <param name="extent">The dimension for index computation.</param>
+        /// <returns>The derived stride information.</returns>
+        public static General FromExtent(<#= longIndexName #> extent)
+        {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+            IndexTypeExtensions.AssertIntIndex(extent.<#= IndexDimensions[i] #>);
+<#      } #>
+            return new((<#= indexName #>)extent);
+        }
+
+        /// <summary>
+        /// Computes the linear 32-bit element address using the given index.
+        /// </summary>
+        /// <param name="index">The dimension for index computation.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ComputeElementIndex(<#= indexName #> index) =>
+            <#= className #>.ComputeElementIndex(this, index);
+
+        /// <summary>
+        /// Computes the linear 64-bit element address using the given index.
+        /// </summary>
+        /// <param name="index">The dimension for index computation.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long ComputeElementIndex(<#= longIndexName #> index) =>
+            <#= className #>.ComputeElementIndex(this, index);
+
+        /// <summary>
+        /// Computes the linear 32-bit element address using the given index while
+        /// verifying that the given index is within the bounds of the specified
+        /// extent.
+        /// </summary>
+        /// <param name="index">The dimension for the index computation.</param>
+        /// <param name="extent">The extent dimension to check.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ComputeElementIndexChecked(
+            <#= indexName #> index,
+            <#= indexName #> extent) =>
+            <#= className #>.ComputeElementIndexChecked(this, index, extent);
+
+        /// <summary>
+        /// Computes the linear 64-bit element address using the given index while
+        /// verifying that the given index is within the bounds of the specified
+        /// extent.
+        /// </summary>
+        /// <param name="index">The dimension for index computation.</param>
+        /// <param name="extent">The extent dimension to check.</param>
+        /// <returns>The computed linear element address.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long ComputeElementIndexChecked(
+            <#= longIndexName #> index,
+            <#= longIndexName #> extent) =>
+            <#= className #>.ComputeElementIndexChecked(this, index, extent);
+
+        /// <summary>
+        /// Reconstructs a 32-bit index from a linear element index.
+        /// </summary>
+        /// <param name="elementIndex">The linear element index.</param>
+        /// <returns>The reconstructed index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public <#= indexName #> ReconstructFromElementIndex(int elementIndex)
+        {
+<#      if (def.Dimension == 1) { #>
+            return new(elementIndex);
+<#      } else if (def.Dimension == 2) { #>
+            bool prefer1st =
+                <#= IndexDimensions[0] #>Stride >
+                <#= IndexDimensions[1] #>Stride;
+            var index = prefer1st
+                ? new DenseY(<#= IndexDimensions[0] #>Stride)
+                    .ReconstructFromElementIndex(elementIndex)
+                : new DenseX(<#= IndexDimensions[1] #>Stride)
+                    .ReconstructFromElementIndex(elementIndex);
+            int minDimension = Utilities.Select(
+                prefer1st,
+                <#= IndexDimensions[1] #>Stride,
+                <#= IndexDimensions[0] #>Stride);
+            return new <#= indexName #>(index.X, index.Y / minDimension);
+<#      } else if (def.Dimension == 3) { #>
+            bool prefer1st =
+                <#= IndexDimensions[0] #>Stride >
+                <#= IndexDimensions[2] #>Stride;
+            Trace.Assert(
+                !prefer1st &
+                <#= IndexDimensions[2] #>Stride >
+                <#= IndexDimensions[1] #>Stride |
+                prefer1st &
+                <#= IndexDimensions[1] #>Stride >
+                <#= IndexDimensions[2] #>Stride,
+                "Reconstruction of general 3D strides is not supported");
+            int mainDim = Utilities.Select(
+                prefer1st,
+                <#= IndexDimensions[2] #>Stride,
+                <#= IndexDimensions[0] #>Stride);
+            var index = prefer1st
+                ? new DenseZY(
+                    <#= IndexDimensions[0] #>Stride * mainDim,
+                    <#= IndexDimensions[1] #>Stride * mainDim)
+                    .ReconstructFromElementIndex(elementIndex)
+                : new DenseXY(
+                    <#= IndexDimensions[1] #>Stride * mainDim,
+                    <#= IndexDimensions[2] #>Stride * mainDim)
+                    .ReconstructFromElementIndex(elementIndex);
+            return index;
+<#      } else { #>
+            Trace.Assert(
+                false,
+                "Reconstruction of general strides is not supported");
+            return <#= indexName #>.Invalid;
+<#      } #>
+        }
+
+        /// <summary>
+        /// Reconstructs a 64-bit index from a linear element index.
+        /// </summary>
+        /// <param name="elementIndex">The linear element index.</param>
+        /// <returns>The reconstructed index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public <#= longIndexName #> ReconstructFromElementIndex(long elementIndex)
+        {
+<#      if (def.Dimension == 1) { #>
+            return new <#= longIndexName #>(elementIndex);
+<#      } else if (def.Dimension == 2) { #>
+            bool prefer1st =
+                <#= IndexDimensions[0] #>Stride >
+                <#= IndexDimensions[1] #>Stride;
+            var index = prefer1st
+                ? new DenseY(<#= IndexDimensions[0] #>Stride)
+                    .ReconstructFromElementIndex(elementIndex)
+                : new DenseX(<#= IndexDimensions[1] #>Stride)
+                    .ReconstructFromElementIndex(elementIndex);
+            int minDimension = Utilities.Select(
+                prefer1st,
+                <#= IndexDimensions[1] #>Stride,
+                <#= IndexDimensions[0] #>Stride);
+            return new <#= longIndexName #>(index.X, index.Y / minDimension);
+<#      } else if (def.Dimension == 3) { #>
+            bool prefer1st =
+                <#= IndexDimensions[0] #>Stride >
+                <#= IndexDimensions[2] #>Stride;
+            Trace.Assert(
+                !prefer1st &
+                <#= IndexDimensions[2] #>Stride >
+                <#= IndexDimensions[1] #>Stride |
+                prefer1st &
+                <#= IndexDimensions[1] #>Stride >
+                <#= IndexDimensions[2] #>Stride,
+                "Reconstruction of general 3D strides is not supported");
+            int mainDim = Utilities.Select(
+                prefer1st,
+                <#= IndexDimensions[2] #>Stride,
+                <#= IndexDimensions[0] #>Stride);
+            var index = prefer1st
+                ? new DenseZY(
+                    <#= IndexDimensions[0] #>Stride * mainDim,
+                    <#= IndexDimensions[1] #>Stride * mainDim)
+                    .ReconstructFromElementIndex(elementIndex)
+                : new DenseXY(
+                    <#= IndexDimensions[1] #>Stride * mainDim,
+                    <#= IndexDimensions[2] #>Stride * mainDim)
+                    .ReconstructFromElementIndex(elementIndex);
+            return index;
+<#      } else { #>
+            Trace.Assert(
+                false,
+                "Reconstruction of general strides is not supported");
+            return <#= longIndexName #>.Invalid;
+<#      } #>
+        }
+
+        /// <summary>
+        /// Computes the 32-bit length of a required allocation.
+        /// </summary>
+        /// <param name="extent">The extent to allocate.</param>
+        /// <returns>The 32-bit length of a required allocation.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ComputeBufferLength(<#= indexName #> extent) =>
+            <#= className #>.ComputeBufferLength(this, extent);
+
+        /// <summary>
+        /// Computes the 64-bit length of a required allocation.
+        /// </summary>
+        /// <param name="extent">The extent to allocate.</param>
+        /// <returns>The 64-bit length of a required allocation.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long ComputeBufferLength(<#= longIndexName #> extent) =>
+            <#= className #>.ComputeBufferLength(this, extent);
+
+        /// <summary>
+        /// Returns this stride as general <#= def.Dimension #>D stride.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public General AsGeneral() => this;
+
+        /// <summary>
+        /// Converts this stride instance into a general 1D stride.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Stride1D.General To1DStride() =>
+            new Stride1D.General(XStride);
+
+        #endregion
+
+        #region Object
+
+        /// <summary>
+        /// Returns the string representation of this stride.
+        /// </summary>
+        /// <returns>The string representation of this stride.</returns>
+        [NotInsideKernel]
+        public override string ToString() => StrideExtent.ToString();
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Computes the linear 32-bit element address using the given index.
+    /// </summary>
+    /// <param name="stride">The stride to use.</param>
+    /// <param name="index">The dimension for index computation.</param>
+    /// <returns>The computed linear element address.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int ComputeElementIndex<TStride>(
+        this TStride stride,
+        <#= indexName #> index)
+        where TStride : struct, <#= strideName #> =>
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+<#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
+        index.<#= iName #> * stride.<#= iName #>Stride<#= separator #>
+<#      } #>
+
+    /// <summary>
+    /// Computes the linear 64-bit element address using the given index.
+    /// </summary>
+    /// <param name="stride">The stride to use.</param>
+    /// <param name="index">The dimension for index computation.</param>
+    /// <returns>The computed linear element address.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long ComputeElementIndex<TStride>(
+        this TStride stride,
+        <#= longIndexName #> index)
+        where TStride : struct, <#= strideName #> =>
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+<#          var separator = i + 1 < def.Dimension ? " +" : ";"; #>
+        index.<#= iName #> * stride.<#= iName #>Stride<#= separator #>
+<#      } #>
+
+    /// <summary>
+    /// Computes the linear 32-bit element address using the given index while
+    /// verifying that the given index is within the bounds of the specified extent.
+    /// </summary>
+    /// <param name="stride">The stride to use.</param>
+    /// <param name="index">The dimension for the index computation.</param>
+    /// <param name="extent">The extent dimension to check.</param>
+    /// <returns>The computed linear element address.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int ComputeElementIndexChecked<TStride>(
+        this TStride stride,
+        <#= indexName #> index,
+        <#= indexName #> extent)
+        where TStride : struct, <#= strideName #>
+    {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+        Trace.Assert(
+            Bitwise.Or(
+                // Default bound checks
+                Bitwise.And(
+                    index.<#= iName #> >= 0,
+                    index.<#= iName #> < extent.<#= iName #>),
+                // Zero length views
+                Bitwise.And(index.<#= iName #> == 0, extent.<#= iName #> == 0)),
+            "<#= iName #> index out of bounds");
+<#      } #>
+        return ComputeElementIndex(stride, index);
+    }
+
+    /// <summary>
+    /// Computes the linear 64-bit element address using the given index while
+    /// verifying that the given index is within the bounds of the specified extent.
+    /// </summary>
+    /// <param name="stride">The stride to use.</param>
+    /// <param name="index">The dimension for index computation.</param>
+    /// <param name="extent">The extent dimension to check.</param>
+    /// <returns>The computed linear element address.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long ComputeElementIndexChecked<TStride>(
+        this TStride stride,
+        <#= longIndexName #> index,
+        <#= longIndexName #> extent)
+        where TStride : struct, <#= strideName #>
+    {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+        Trace.Assert(
+            Bitwise.And(
+                index.<#= iName #> >= 0,
+                index.<#= iName #> < extent.<#= iName #>),
+            "<#= iName #> index out of bounds");
+<#      } #>
+        return ComputeElementIndex(stride, index);
+    }
+
+    /// <summary>
+    /// Computes the 32-bit length of a required allocation.
+    /// </summary>
+    /// <param name="stride">The stride to use.</param>
+    /// <param name="extent">The extent to allocate.</param>
+    /// <returns>The 32-bit length of a required allocation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int ComputeBufferLength<TStride>(
+        this TStride stride,
+        <#= indexName #> extent)
+        where TStride : struct, <#= strideName #>
+    {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+        if (extent.<#= iName #> == 0)
+            return 0;
+<#      } #>
+        return ComputeElementIndex(stride, extent - <#= indexName #>.One) + 1;
+    }
+
+    /// <summary>
+    /// Computes the 64-bit length of a required allocation.
+    /// </summary>
+    /// <param name="stride">The stride to use.</param>
+    /// <param name="extent">The extent to allocate.</param>
+    /// <returns>The 64-bit length of a required allocation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long ComputeBufferLength<TStride>(
+        this TStride stride,
+        <#= longIndexName #> extent)
+        where TStride : struct, <#= strideName #>
+    {
+<#      for (int i = 0; i < def.Dimension; ++i) { #>
+<#          var iName = IndexDimensions[i].PropertyName; #>
+        if (extent.<#= iName #> == 0L)
+            return 0L;
+<#      } #>
+        return ComputeElementIndex(stride, extent - <#= longIndexName #>.One) + 1L;
+    }
+
 }
+
+<#  } #>

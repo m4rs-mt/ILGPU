@@ -1,0 +1,142 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: IntrinsicRemapping.tt/IntrinsicRemapping.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="IntrinsicsInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath(".");
+var infos = IntrinsicsInformation.LoadAll(rootPath);
+#>
+using ILGPU;
+using ILGPU.Util;
+using ILGPUC.Util;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+
+// disable: max_line_length
+
+namespace ILGPUC.Frontend.Intrinsic;
+
+partial class Intrinsics
+{
+<# int totalEntries = 0; #>
+<# foreach (var info in infos) { #>
+<#      foreach (var type in info.Types.Where(t => t.HasRemapping)) { #>
+<#          if (type.HasFrameworkRestrictions) { #>
+#if <#= string.Join(" or ", type.OnlyOnFrameworks) #>
+<#          } #>
+    /// <summary>
+    /// Initializes remappings for type <see cref="<#= type.CommentName #>" />.
+    /// </summary>
+    private static void InitializeRemapping_<#= type.FunctionName #>()
+    {
+        static void Add(MethodBase source, MethodBase target) =>
+            _remappings.Add((source.Module, source.MetadataToken), target);
+
+        var type = typeof(<#= type.ManagedTypeName #>);
+<#          foreach (var remap in type.Remapping) { #>
+<#              var (targetTypeName, targetMethodName) = remap.GetTarget(); #>
+<#              foreach (var specialization in remap.GetSpecializations()) { #>
+<#                  var targetName = $"{targetMethodName}{specialization.SuffixString}"; #>
+        {
+<#                  if (specialization.RequiresSourceTypeMatching) { #>
+            var sourceTypes = new Type[]
+            {
+                <#= string.Join(", ", specialization.GetSourceTypesToMatch()) #>
+            };
+            var source = type.GetMethod("<#= remap.Name #>", RemapBindingFlags, sourceTypes);
+<#                  } else { #>
+<#                      if (remap.IsProperty) { #>
+            var source = type.GetProperty("<#= remap.Name #>", RemapBindingFlags)
+                        .ThrowIfNull()
+                        .GetGetMethod();
+<#                      } else { #>
+            var source = type.GetMethod("<#= remap.Name #>", RemapBindingFlags);
+<#                      } #>
+<#                  } #>
+<#                  if (specialization.RequiresTargetTypeMatching) { #>
+            var targetTypes = new Type[]
+            {
+                <#= string.Join(", ", specialization.GetTargetTypesToMatch()) #>
+            };
+            var target = typeof(<#= targetTypeName #>)
+                .GetMethod("<#= targetName #>", RemapBindingFlags, targetTypes);
+<#                  } else { #>
+<#                      if (remap.IsProperty) { #>
+            var target = typeof(<#= targetTypeName #>)
+                .GetProperty("<#= targetName #>", RemapBindingFlags)
+                .ThrowIfNull()
+                .GetGetMethod();
+<#                      } else { #>
+            var target = typeof(<#= targetTypeName #>)
+                .GetMethod("<#= targetName #>", RemapBindingFlags);
+<#                      } #>
+<#                  } #>
+            Add(source.ThrowIfNull(), target.ThrowIfNull());
+        }
+<#                  ++totalEntries; #>
+<#              } #>
+<#          } #>
+    }
+<#          if (type.HasFrameworkRestrictions) { #>
+#endif
+<#          } #>
+
+<#      } #>
+<# } #>
+    /// <summary>
+    /// Initializes all remappings.
+    /// </summary>
+    private static void InitializeRemapping()
+    {
+<# foreach (var info in infos) { #>
+<#      foreach (var type in info.Types.Where(t => t.HasRemapping)) { #>
+<#          if (type.HasFrameworkRestrictions) { #>
+#if <#= string.Join(" or ", type.OnlyOnFrameworks) #>
+<#          } #>
+        InitializeRemapping_<#= type.FunctionName #>();
+<#          if (type.HasFrameworkRestrictions) { #>
+#endif
+<#          } #>
+<#      } #>
+<# } #>
+    }
+
+    /// <summary>
+    /// Stores internal type remappings.
+    /// </summary>
+    private static readonly Dictionary<(Module, int), MethodBase> _remappings =
+        new(<#= totalEntries #>);
+
+    /// <summary>
+    /// Tries to get a remapping for the given method.
+    /// </summary>
+    private static bool TryGetIntrinsicRemapping(
+        MethodBase methodBase,
+        [NotNullWhen(true)] out MethodBase? remapping) =>
+        _remappings.TryGetValue(
+            (methodBase.Module, methodBase.MetadataToken),
+            out remapping);
+
+    /// <summary>
+    /// Returns true if the given method has a remapping.
+    /// </summary>
+    private static bool HasIntrinsicRemapping(MethodBase methodBase) =>
+        _remappings.ContainsKey((methodBase.Module, methodBase.MetadataToken));
+}
