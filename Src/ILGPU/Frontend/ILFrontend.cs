@@ -81,7 +81,9 @@ namespace ILGPU.Frontend
         #region Instance
 
         private volatile bool running = true;
-        private readonly Thread[] threads;
+
+        private Thread[] threads;
+        private bool syncMode;
         private readonly ManualResetEventSlim driverNotifier;
         private volatile int activeThreads;
         private readonly object processingSyncObject = new object();
@@ -121,16 +123,38 @@ namespace ILGPU.Frontend
                 throw new ArgumentOutOfRangeException(nameof(numThreads));
             DebugInformationManager = debugInformationManager;
             driverNotifier = new ManualResetEventSlim(false);
-            threads = new Thread[numThreads];
-            for (int i = 0; i < numThreads; ++i)
+            
+            // Check for threading support
+            bool threadingSupported = true;
+            try 
+            { 
+                 var testThread = new Thread(() => { });
+                 testThread.Start();
+                 testThread.Join();
+            } 
+            catch (PlatformNotSupportedException) 
+            { 
+                 threadingSupported = false; 
+            }
+
+            if (threadingSupported)
             {
-                var thread = new Thread(DoWork)
+                threads = new Thread[numThreads];
+                for (int i = 0; i < numThreads; ++i)
                 {
-                    Name = $"ILGPU_{context.InstanceId}_Frontend_{i}",
-                    IsBackground = true,
-                };
-                threads[i] = thread;
-                thread.Start();
+                    var thread = new Thread(DoWork)
+                    {
+                        Name = $"ILGPU_{context.InstanceId}_Frontend_{i}",
+                        IsBackground = true,
+                    };
+                    threads[i] = thread;
+                    thread.Start();
+                }
+            }
+            else
+            {
+                threads = new Thread[0];
+                syncMode = true;
             }
         }
 
@@ -253,9 +277,55 @@ namespace ILGPU.Frontend
                     method,
                     new CompilationStackLocation(new Method.MethodLocation(method)),
                     result));
-                Monitor.Pulse(processingSyncObject);
+                if (syncMode)
+                {
+                    DoWorkSync();
+                }
+                else
+                {
+                    Monitor.Pulse(processingSyncObject);
+                }
             }
             return result;
+        }
+
+        private void DoWorkSync()
+        {
+            var detectedMethods = new Dictionary<MethodBase, CompilationStackLocation>();
+            while (processing.Count > 0)
+            {
+                ProcessingEntry current = processing.Pop();
+
+                Debug.Assert(
+                    codeGenerationPhase != null,
+                    "Invalid processing state");
+
+                detectedMethods.Clear();
+                try
+                {
+                    codeGenerationPhase.GenerateCodeInternal(
+                        current.Method,
+                        current.IsExternalRequest,
+                        current.CompilationStackLocation,
+                        detectedMethods,
+                        out Method method);
+                    current.SetResult(method);
+                }
+                catch (Exception e)
+                {
+                    codeGenerationPhase.RecordException(e);
+                    detectedMethods.Clear();
+                }
+
+                foreach (var detectedMethod in detectedMethods)
+                {
+                    processing.Push(new ProcessingEntry(
+                        detectedMethod.Key,
+                        detectedMethod.Value,
+                        null));
+                }
+            }
+            driverNotifier.Set();
         }
 
         /// <summary>
@@ -289,7 +359,7 @@ namespace ILGPU.Frontend
             Debug.WriteLineIf(
                 !phase.HadWorkToDo,
                 "This code generation phase had nothing to do");
-            if (phase.HadWorkToDo)
+            if (phase.HadWorkToDo && !syncMode)
                 driverNotifier.Wait();
             LastException = codeGenerationPhase?.FirstException;
 

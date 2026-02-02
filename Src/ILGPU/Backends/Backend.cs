@@ -79,7 +79,12 @@ namespace ILGPU.Backends
         /// <summary>
         /// An OpenCL source backend.
         /// </summary>
-        OpenCL
+        OpenCL,
+
+        /// <summary>
+        /// A WebGPU/WGSL source backend.
+        /// </summary>
+        WebGPU,
     }
 
     /// <summary>

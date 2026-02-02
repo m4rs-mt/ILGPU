@@ -44,7 +44,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// <#= c.Summary #>
         /// </summary>
-        public bool <#= c.Name #> { get; internal set; }
+        public bool <#= c.Name #> { get; protected set; }
 
 <# } #>
         #endregion

@@ -202,6 +202,20 @@ namespace ILGPU.Runtime
         public abstract Accelerator CreateAccelerator(Context context);
 
         /// <summary>
+        /// Creates a new accelerator instance asynchronously.
+        /// This is designed for backends that require async initialization (e.g., WebGPU).
+        /// </summary>
+        /// <param name="context">The context instance.</param>
+        /// <returns>A task representing the asynchronous operation that returns the created accelerator.</returns>
+        public virtual async System.Threading.Tasks.Task<Accelerator> CreateAcceleratorAsync(Context context)
+        {
+            // Default implementation for backends that don't require async initialization
+            await System.Threading.Tasks.Task.CompletedTask;
+            return CreateAccelerator(context);
+        }
+
+
+        /// <summary>
         /// Prints device information to the given text writer.
         /// </summary>
         /// <param name="writer">The target text writer to write to.</param>

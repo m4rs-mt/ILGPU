@@ -63,7 +63,7 @@ namespace ILGPU
             /// <summary>
             /// All accelerator descriptions that have been registered.
             /// </summary>
-            internal DeviceRegistry DeviceRegistry { get; } = new DeviceRegistry();
+            public DeviceRegistry DeviceRegistry { get; } = new DeviceRegistry();
 
             /// <summary>
             /// Returns the underlying intrinsic manager.

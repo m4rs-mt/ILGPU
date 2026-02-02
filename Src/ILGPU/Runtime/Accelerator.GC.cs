@@ -44,7 +44,15 @@ namespace ILGPU.Runtime
                 Name = $"ILGPU_{InstanceId}_GCThread",
                 IsBackground = true,
             };
-            gcThread.Start();
+            try
+            {
+                gcThread.Start();
+            }
+            catch (System.PlatformNotSupportedException)
+            {
+                // Threading not supported (e.g. WebAssembly)
+                gcActivated = false;
+            }
         }
 
         /// <summary>

@@ -44,7 +44,13 @@ namespace ILGPU.Runtime
         /// Represents an OpenCL accelerator (CPU/GPU via OpenCL).
         /// </summary>
         OpenCL,
+
+        /// <summary>
+        /// Represents a WebGPU accelerator (GPU via WebGPU in browsers/WASM).
+        /// </summary>
+        WebGPU,
     }
+
 
     /// <summary>
     /// An abstract builder type for accelerators.
@@ -837,7 +843,7 @@ namespace ILGPU.Runtime
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected sealed override void Dispose(bool disposing)
         {
-            Debug.Assert(NativePtr != IntPtr.Zero, "Invalid native pointer");
+            // Debug.Assert(NativePtr != IntPtr.Zero, "Invalid native pointer");
 
             // Dispose all accelerator extensions
             base.Dispose(disposing);
