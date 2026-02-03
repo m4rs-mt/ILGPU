@@ -361,7 +361,7 @@ namespace ILGPU
         /// <summary>
         /// Returns the main type context.
         /// </summary>
-        internal IRTypeContext TypeContext { get; }
+        public IRTypeContext TypeContext { get; }
 
         /// <summary>
         /// Returns the default context transformer.

@@ -227,7 +227,7 @@ namespace ILGPU.Backends
         /// <summary>
         /// Returns the internally used entry point.
         /// </summary>
-        internal EntryPoint EntryPoint { get; }
+        public EntryPoint EntryPoint { get; }
 
         /// <summary>
         /// Returns information about all functions in the compiled kernel.
