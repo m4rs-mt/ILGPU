@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2024 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRTypeContext.cs
@@ -74,8 +74,12 @@ namespace ILGPU.IR.Types
         /// <param name="context">The associated main context.</param>
         public IRTypeContext(Context context)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(context);
+#else
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
+#endif
 
             TargetPlatform = context.TargetPlatform;
             RuntimeSystem = context.RuntimeSystem;
@@ -300,8 +304,12 @@ namespace ILGPU.IR.Types
         /// <returns>The IR type.</returns>
         public TypeNode CreateType(Type type, MemoryAddressSpace addressSpace)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(type);
+#else
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
+#endif
 
             // Avoid querying the cache for primitive types
             var basicValueType = type.GetBasicValueType();

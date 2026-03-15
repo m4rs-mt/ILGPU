@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Device.cs
@@ -207,8 +207,12 @@ namespace ILGPU.Runtime
         /// <param name="writer">The target text writer to write to.</param>
         public void PrintInformation(TextWriter writer)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(writer);
+#else
             if (writer is null)
                 throw new ArgumentNullException(nameof(writer));
+#endif
 
             PrintHeader(writer);
             PrintGeneralInfo(writer);
@@ -319,8 +323,12 @@ namespace ILGPU.Runtime
         /// <returns>The accelerator type.</returns>
         public static AcceleratorType GetAcceleratorType(Type type)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(type);
+#else
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
+#endif
 
             var attribute = type.GetCustomAttribute<DeviceTypeAttribute>();
             return attribute is null
@@ -399,8 +407,12 @@ namespace ILGPU.Runtime
         /// <param name="device">The device to register.</param>
         public void Register(Device device)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(device);
+#else
             if (device is null)
                 throw new ArgumentNullException(nameof(device));
+#endif
             if (!registered.Add(device))
                 return;
 
@@ -418,10 +430,15 @@ namespace ILGPU.Runtime
         public void Register<TDevice>(TDevice device, Predicate<TDevice> predicate)
             where TDevice : Device
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(device);
+            ArgumentNullException.ThrowIfNull(predicate);
+#else
             if (device is null)
                 throw new ArgumentNullException(nameof(device));
             if (predicate is null)
                 throw new ArgumentNullException(nameof(predicate));
+#endif
 
             if (predicate(device))
                 Register(device);

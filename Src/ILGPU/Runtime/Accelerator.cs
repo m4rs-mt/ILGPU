@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.cs
@@ -271,10 +271,15 @@ namespace ILGPU.Runtime
         /// <returns>An allocated buffer on this accelerator.</returns>
         public MemoryBuffer AllocateRaw(long length, int elementSize)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
+            ArgumentOutOfRangeException.ThrowIfLessThan(elementSize, 1);
+#else
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
             if (elementSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(elementSize));
+#endif
 
             Bind();
             return AllocateRawInternal(length, elementSize);
@@ -446,15 +451,23 @@ namespace ILGPU.Runtime
             int groupSize,
             int dynamicSharedMemorySizeInBytes)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(kernel);
+#else
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
+#endif
             if (groupSize < 1)
                 throw new ArgumentNullException(nameof(groupSize));
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(dynamicSharedMemorySizeInBytes);
+#else
             if (dynamicSharedMemorySizeInBytes < 0)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(dynamicSharedMemorySizeInBytes));
             }
+#endif
             Bind();
             return EstimateMaxActiveGroupsPerMultiprocessorInternal(
                 kernel,
@@ -577,12 +590,21 @@ namespace ILGPU.Runtime
             int maxGroupSize,
             out int minGridSize)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(kernel);
+            ArgumentNullException.ThrowIfNull(computeSharedMemorySize);
+#else
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
             if (computeSharedMemorySize == null)
                 throw new ArgumentNullException(nameof(computeSharedMemorySize));
+#endif
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(maxGroupSize);
+#else
             if (maxGroupSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxGroupSize));
+#endif
             Bind();
             return EstimateGroupSizeInternal(
                 kernel,
@@ -640,8 +662,16 @@ namespace ILGPU.Runtime
             int maxGroupSize,
             out int minGridSize)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(kernel);
+#else
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
+#endif
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(maxGroupSize);
+            ArgumentOutOfRangeException.ThrowIfNegative(dynamicSharedMemorySizeInBytes);
+#else
             if (maxGroupSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxGroupSize));
             if (dynamicSharedMemorySizeInBytes < 0)
@@ -649,6 +679,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentOutOfRangeException(
                     nameof(dynamicSharedMemorySizeInBytes));
             }
+#endif
             Bind();
             return EstimateGroupSizeInternal(
                 kernel,
@@ -779,8 +810,12 @@ namespace ILGPU.Runtime
             long numElements)
             where T : unmanaged
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(numElements);
+#else
             if (numElements < 0L)
                 throw new ArgumentOutOfRangeException(nameof(numElements));
+#endif
 
             EnsureBlittable<T>();
             return CreatePageLockFromPinnedInternal<T>(pinned, numElements);
@@ -798,8 +833,12 @@ namespace ILGPU.Runtime
         public unsafe PageLockScope<T> CreatePageLockFromPinned<T>(T[] pinned)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(pinned);
+#else
             if (pinned is null)
                 throw new ArgumentNullException(nameof(pinned));
+#endif
 
             // The array is already pinned - "fixing" it to obtain the memory address.
             fixed (T* ptr = pinned)

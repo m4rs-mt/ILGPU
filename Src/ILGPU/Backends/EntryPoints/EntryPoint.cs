@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: EntryPoint.cs
@@ -206,8 +206,12 @@ namespace ILGPU.Backends.EntryPoints
         /// </param>
         public SharedMemorySpecification(int staticSize, bool hasDynamicMemory)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(staticSize);
+#else
             if (staticSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(staticSize));
+#endif
 
             StaticSize = staticSize;
             HasDynamicMemory = hasDynamicMemory;

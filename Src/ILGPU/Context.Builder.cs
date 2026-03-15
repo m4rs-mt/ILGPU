@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2024 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Context.Builder.cs
@@ -401,8 +401,12 @@ namespace ILGPU
         /// <returns>The created context.</returns>
         public static Context Create(Action<Builder> buildingCallback)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(buildingCallback);
+#else
             if (buildingCallback is null)
                 throw new ArgumentNullException(nameof(buildingCallback));
+#endif
 
             var builder = Create();
             buildingCallback(builder);

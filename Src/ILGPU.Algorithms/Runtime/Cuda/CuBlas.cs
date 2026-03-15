@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuBlas.cs
@@ -136,8 +136,12 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="apiVersion">The cuBlas API version.</param>
         private CuBlas(CudaAccelerator accelerator, CuBlasAPIVersion? apiVersion)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(accelerator);
+#else
             if (accelerator == null)
                 throw new ArgumentNullException(nameof(accelerator));
+#endif
 
             API = CuBlasAPI.Create(apiVersion);
             accelerator.Bind();
@@ -234,8 +238,12 @@ namespace ILGPU.Runtime.Cuda
             [MemberNotNull(nameof(stream))]
             set
             {
+#if NET6_0_OR_GREATER
+                ArgumentNullException.ThrowIfNull(value);
+#else
                 if (value == null)
                     throw new ArgumentNullException(nameof(value));
+#endif
                 CuBlasException.ThrowIfFailed(
                     API.SetStream(Handle, value.StreamPtr));
                 stream = value;

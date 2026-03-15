@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CompiledKernel.cs
@@ -42,8 +42,12 @@ namespace ILGPU.Backends
                 MethodBase method,
                 int localMemorySize)
             {
+#if NET8_0_OR_GREATER
+                ArgumentOutOfRangeException.ThrowIfNegative(localMemorySize);
+#else
                 if (localMemorySize < 0)
                     throw new ArgumentOutOfRangeException(nameof(localMemorySize));
+#endif
 
                 Name = name ?? throw new ArgumentNullException(nameof(name));
                 Method = method;
@@ -126,8 +130,12 @@ namespace ILGPU.Backends
             /// <param name="textWriter">The text writer.</param>
             public virtual void Dump(TextWriter textWriter)
             {
+#if NET6_0_OR_GREATER
+                ArgumentNullException.ThrowIfNull(textWriter);
+#else
                 if (textWriter == null)
                     throw new ArgumentNullException(nameof(textWriter));
+#endif
 
                 // Shared memory
                 if (SharedAllocations.TotalSize > 0)

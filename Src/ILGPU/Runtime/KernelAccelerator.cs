@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelAccelerator.cs
@@ -45,8 +45,12 @@ namespace ILGPU.Runtime
         /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
         protected sealed override Kernel LoadKernelInternal(CompiledKernel kernel)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(kernel);
+#else
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
+#endif
             if (!(kernel is TCompiledKernel compiledKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
             return CreateKernel(
@@ -66,8 +70,12 @@ namespace ILGPU.Runtime
             int customGroupSize,
             out KernelInfo kernelInfo)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(kernel);
+#else
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
+#endif
             if (customGroupSize < 0 || customGroupSize > MaxNumThreadsPerGroup)
                 throw new ArgumentOutOfRangeException(nameof(customGroupSize));
             if (!(kernel is TCompiledKernel compiledKernel))
@@ -97,8 +105,12 @@ namespace ILGPU.Runtime
             CompiledKernel kernel,
             out KernelInfo kernelInfo)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(kernel);
+#else
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
+#endif
             if (!(kernel is TCompiledKernel compiledKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
             if (kernel.EntryPoint.IsExplicitlyGrouped)

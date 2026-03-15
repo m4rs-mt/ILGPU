@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IfConversion.cs
@@ -611,10 +611,15 @@ namespace ILGPU.IR.Transformations
             int maxBlockSize,
             int maxBlockDifference)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfLessThan(maxBlockSize, 1);
+            ArgumentOutOfRangeException.ThrowIfNegative(maxBlockDifference);
+#else
             if (maxBlockSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(maxBlockSize));
             if (maxBlockDifference < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxBlockDifference));
+#endif
 
             MaxBlockSize = maxBlockSize;
             MaxBlockDifference = maxBlockDifference;
@@ -1636,8 +1641,12 @@ namespace ILGPU.IR.Transformations
         /// <param name="maxBlockSize">The maximum block size in instructions.</param>
         public IfConditionConversion(int maxBlockSize)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfLessThan(maxBlockSize, 1);
+#else
             if (maxBlockSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(maxBlockSize));
+#endif
 
             MaxBlockSize = maxBlockSize;
         }

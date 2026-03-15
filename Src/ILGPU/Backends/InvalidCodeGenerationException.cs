@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InvalidCodeGenerationException.cs
@@ -11,14 +11,18 @@
 
 using ILGPU.Resources;
 using System;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
+#endif
 
 namespace ILGPU.Backends
 {
     /// <summary>
     /// An exception that is thrown in case of a fatal error in a backend.
     /// </summary>
+#if !NET8_0_OR_GREATER
     [Serializable]
+#endif
     public sealed class InvalidCodeGenerationException : Exception
     {
         /// <summary>
@@ -48,6 +52,7 @@ namespace ILGPU.Backends
             : base(message, innerException)
         { }
 
+#if !NET8_0_OR_GREATER
         /// <summary>
         /// Constructs a new code generation exception.
         /// </summary>
@@ -56,5 +61,6 @@ namespace ILGPU.Backends
             StreamingContext context)
             : base(info, context)
         { }
+#endif
     }
 }

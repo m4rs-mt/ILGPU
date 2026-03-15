@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NotSupportedIntrinsicException.cs
@@ -12,14 +12,18 @@
 using ILGPU.IR;
 using ILGPU.Resources;
 using System;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
+#endif
 
 namespace ILGPU.Backends
 {
     /// <summary>
     /// An exception that is thrown in case of a not support intrinsic.
     /// </summary>
+#if !NET8_0_OR_GREATER
     [Serializable]
+#endif
     public sealed class NotSupportedIntrinsicException : Exception
     {
         /// <summary>
@@ -62,6 +66,7 @@ namespace ILGPU.Backends
             : base(message, innerException)
         { }
 
+#if !NET8_0_OR_GREATER
         /// <summary>
         /// Constructs a new intrinsic exception.
         /// </summary>
@@ -70,5 +75,6 @@ namespace ILGPU.Backends
             StreamingContext context)
             : base(info, context)
         { }
+#endif
     }
 }

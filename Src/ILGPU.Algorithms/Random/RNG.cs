@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RNG.cs
@@ -363,8 +363,12 @@ namespace ILGPU.Algorithms.Random
             int maxNumParallelWarps)
             : base(accelerator)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfLessThan(maxNumParallelWarps, 1);
+#else
             if (maxNumParallelWarps < 1)
                 throw new ArgumentOutOfRangeException(nameof(maxNumParallelWarps));
+#endif
 
             // Initialize a single provider per warp
             int maxNumWarps = Math.Max(GetMaxNumWarps(accelerator), maxNumParallelWarps);

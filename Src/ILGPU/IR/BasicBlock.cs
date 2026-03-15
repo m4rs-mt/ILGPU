@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicBlock.cs
@@ -518,8 +518,12 @@ namespace ILGPU.IR
         /// </summary>
         public override void Dump(TextWriter textWriter)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(textWriter);
+#else
             if (textWriter == null)
                 throw new ArgumentNullException(nameof(textWriter));
+#endif
 
             textWriter.Write(ToString());
             textWriter.WriteLine(":");

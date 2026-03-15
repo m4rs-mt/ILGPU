@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: UseDistribution.cs
@@ -33,8 +33,12 @@ namespace ILGPU.IR.Values
         /// <param name="context">The target context.</param>
         public UseDistribution(IRContext context)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(context);
+#else
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
+#endif
 
             var groupedUses = new Dictionary<int, int>();
             var usesPerType = new Dictionary<Type, (int, int)>();

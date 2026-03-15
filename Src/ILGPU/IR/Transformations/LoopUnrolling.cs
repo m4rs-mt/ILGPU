@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LoopUnrolling.cs
@@ -633,8 +633,12 @@ namespace ILGPU.IR.Transformations
         /// <param name="maxUnrollFactor">The maximum unroll factor.</param>
         public LoopUnrolling(int maxUnrollFactor)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfLessThan(maxUnrollFactor, 1);
+#else
             if (maxUnrollFactor < 1)
                 throw new ArgumentOutOfRangeException(nameof(maxUnrollFactor));
+#endif
             MaxUnrollFactor = maxUnrollFactor;
         }
 

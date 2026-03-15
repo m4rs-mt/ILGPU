@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SeparateViewEntryPoint.cs
@@ -264,11 +264,16 @@ namespace ILGPU.Backends.EntryPoints
             int numImplementationFieldsPerView)
             : base(description, sharedMemory, specialization)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfLessThan(
+                numImplementationFieldsPerView, 1);
+#else
             if (numImplementationFieldsPerView < 1)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(numImplementationFieldsPerView));
             }
+#endif
             NumImplementationFieldsPerView = numImplementationFieldsPerView;
 
             var builder = ImmutableArray.CreateBuilder<ViewParameter>(

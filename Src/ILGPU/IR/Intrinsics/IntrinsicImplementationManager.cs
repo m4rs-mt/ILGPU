@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicImplementationManager.cs
@@ -184,8 +184,12 @@ namespace ILGPU.IR.Intrinsics
                     struct,
                     IIntrinsicImplementationTransformer<ImplementationEntry, TOther>
             {
+#if NET6_0_OR_GREATER
+                ArgumentNullException.ThrowIfNull(otherMatchers);
+#else
                 if (otherMatchers == null)
                     throw new ArgumentNullException(nameof(otherMatchers));
+#endif
                 if (otherMatchers.Length < matchers.Length)
                     throw new ArgumentOutOfRangeException(nameof(otherMatchers));
 
@@ -245,8 +249,12 @@ namespace ILGPU.IR.Intrinsics
             IntrinsicImplementation implementation)
             where TMatcher : IntrinsicMatcher<ImplementationEntry>
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(implementation);
+#else
             if (implementation == null)
                 throw new ArgumentNullException(nameof(implementation));
+#endif
             var container = this[implementation.BackendType];
             return container[kind].AsNotNullCast<TMatcher>();
         }

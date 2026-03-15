@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2025 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaDevice.cs
@@ -61,12 +61,18 @@ namespace ILGPU.Runtime.Cuda
             Predicate<CudaDevice> predicate,
             DeviceRegistry registry)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(configure);
+            ArgumentNullException.ThrowIfNull(registry);
+            ArgumentNullException.ThrowIfNull(predicate);
+#else
             if (configure is null)
                 throw new ArgumentNullException(nameof(configure));
             if (registry is null)
                 throw new ArgumentNullException(nameof(registry));
             if (predicate is null)
                 throw new ArgumentNullException(nameof(predicate));
+#endif
 
             try
             {
@@ -154,8 +160,12 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="deviceId">The Cuda device id.</param>
         internal CudaDevice(int deviceId)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(deviceId);
+#else
             if (deviceId < 0)
                 throw new ArgumentOutOfRangeException(nameof(deviceId));
+#endif
 
             DeviceId = deviceId;
 

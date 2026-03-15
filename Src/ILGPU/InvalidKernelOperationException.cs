@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InvalidKernelOperationException.cs
@@ -11,7 +11,9 @@
 
 using ILGPU.Resources;
 using System;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
+#endif
 
 namespace ILGPU
 {
@@ -19,7 +21,9 @@ namespace ILGPU
     /// An exception that is thrown when an ILGPU kernel method is called from the
     /// managed CPU side instead of a kernel.
     /// </summary>
+#if !NET8_0_OR_GREATER
     [Serializable]
+#endif
     public sealed class InvalidKernelOperationException : InvalidOperationException
     {
         /// <summary>
@@ -39,10 +43,12 @@ namespace ILGPU
             : base(message, innerException)
         { }
 
+#if !NET8_0_OR_GREATER
         private InvalidKernelOperationException(
             SerializationInfo serializationInfo,
             StreamingContext streamingContext)
             : base(serializationInfo, streamingContext)
         { }
+#endif
     }
 }

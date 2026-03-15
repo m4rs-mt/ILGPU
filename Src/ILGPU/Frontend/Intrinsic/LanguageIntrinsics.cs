@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LanguageIntrinsics.cs
@@ -16,6 +16,7 @@ using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using static ILGPU.Util.FormatString;
 using FormatArray = System.Collections.Immutable.ImmutableArray<
@@ -216,6 +217,10 @@ namespace ILGPU.Frontend.Intrinsic
         /// <param name="ptxExpression">The PTX format expression.</param>
         /// <param name="expressions">The array of managed format expressions.</param>
         /// <returns>True, if all expressions could be parsed successfully.</returns>
+        [SuppressMessage(
+            "Performance",
+            "CA1865:Use char overload",
+            Justification = "string.StartsWith(char) not available in net471")]
         public static bool TryParse(
             string ptxExpression,
             out FormatArray expressions)

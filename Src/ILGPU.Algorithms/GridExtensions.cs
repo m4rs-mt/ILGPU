@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: GridExtensions.cs
@@ -260,8 +260,12 @@ namespace ILGPU.Algorithms
             var kernel = accelerator.LoadKernel<LongIndex1D, TBody>(GridStrideLoopKernel);
             return (stream, numDataElements, body) =>
             {
+#if NET6_0_OR_GREATER
+                ArgumentNullException.ThrowIfNull(stream);
+#else
                 if (stream is null)
                     throw new ArgumentNullException(nameof(stream));
+#endif
                 if (numDataElements < 0)
                     throw new ArgumentOutOfRangeException(nameof(numDataElements));
                 if (numDataElements < 1)
@@ -307,8 +311,12 @@ namespace ILGPU.Algorithms
             in TBody body)
             where TBody : struct, IGridStrideKernelBody
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(stream);
+#else
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
+#endif
             if (numDataElements < 0)
                 throw new ArgumentOutOfRangeException(nameof(numDataElements));
             if (numDataElements < 1)

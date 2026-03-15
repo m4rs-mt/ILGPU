@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: OptimizedPTXBlockSchedule.cs
@@ -171,7 +171,8 @@ namespace ILGPU.Backends.PTX.Analyses
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         /// <param name="blocks">The input blocks.</param>
         /// <returns>The created block schedule.</returns>
-        private static PTXBlockSchedule CreateSchedule<TOrder, TDirection>(
+        private static OptimizedPTXBlockSchedule<TOrder, TDirection>
+            CreateSchedule<TOrder, TDirection>(
             in BasicBlockCollection<TOrder, TDirection> blocks)
             where TOrder : struct, ITraversalOrder
             where TDirection : struct, IControlFlowDirection =>

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArrayViewExtensions.cs
@@ -612,8 +612,12 @@ namespace ILGPU.Runtime
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
+#else
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
+#endif
             if (length < 1)
                 return;
 
@@ -682,8 +686,12 @@ namespace ILGPU.Runtime
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
+#else
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
+#endif
             if (length < 1)
                 return;
 
@@ -858,8 +866,12 @@ namespace ILGPU.Runtime
             T[] data)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(data);
+#else
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
+#endif
             if (view.HasNoData())
                 return;
             if (data.Length < view.Extent.X)
@@ -922,8 +934,12 @@ namespace ILGPU.Runtime
             T[,] data)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(data);
+#else
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
+#endif
             if (view.HasNoData())
                 return;
             if (data.GetLength(0) < view.Extent.X || data.GetLength(1) < view.Extent.Y)
@@ -992,8 +1008,12 @@ namespace ILGPU.Runtime
             T[,,] data)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(data);
+#else
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
+#endif
             if (view.HasNoData())
                 return;
             if (data.GetLength(0) < view.Extent.X ||
@@ -1070,8 +1090,12 @@ namespace ILGPU.Runtime
             T[] data)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(data);
+#else
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
+#endif
             if (data.Length < 1)
                 return;
             if (data.Length < view.Extent.X)
@@ -1130,8 +1154,12 @@ namespace ILGPU.Runtime
             T[,] data)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(data);
+#else
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
+#endif
             if (data.Length < 1)
                 return;
             if (data.GetLength(0) < view.Extent.X || data.GetLength(1) < view.Extent.Y)
@@ -1194,8 +1222,12 @@ namespace ILGPU.Runtime
             T[,,] data)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(data);
+#else
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
+#endif
             if (data.Length < 1)
                 return;
             if (data.GetLength(0) < view.Extent.X ||
@@ -1424,8 +1456,12 @@ namespace ILGPU.Runtime
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(pageLockScope);
+#else
             if (pageLockScope == null)
                 throw new ArgumentNullException(nameof(pageLockScope));
+#endif
             if (pageLockScope.LengthInBytes < 1)
                 return;
 
@@ -1460,8 +1496,12 @@ namespace ILGPU.Runtime
             where TView : IContiguousArrayView<T>
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(pageLockScope);
+#else
             if (pageLockScope == null)
                 throw new ArgumentNullException(nameof(pageLockScope));
+#endif
             if (pageLockScope.LengthInBytes < 1)
                 return;
 
@@ -1806,8 +1846,12 @@ namespace ILGPU.Runtime
             T[] data)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(data);
+#else
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
+#endif
 
             if (data.Length < 1)
             {

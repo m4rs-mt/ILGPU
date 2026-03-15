@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.cs
@@ -165,6 +165,10 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="method">The method.</param>
         /// <returns>The resolved OpenCL function name.</returns>
+        [SuppressMessage(
+            "Performance",
+            "CA1865:Use char overload",
+            Justification = "string.StartsWith(char) not available in net471")]
         protected static string GetMethodName(Method method)
         {
             var handleName = method.Handle.Name;

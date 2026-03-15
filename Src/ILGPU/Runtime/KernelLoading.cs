@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelLoading.cs
@@ -36,8 +36,12 @@ namespace ILGPU.Runtime
             ref int customGroupSize,
             EntryPoint entryPoint)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(customGroupSize);
+#else
             if (customGroupSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(customGroupSize));
+#endif
 
             if (entryPoint.IsExplicitlyGrouped)
             {

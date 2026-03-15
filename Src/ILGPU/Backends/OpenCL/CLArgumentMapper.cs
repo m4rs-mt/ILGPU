@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLArgumentMapper.cs
@@ -383,8 +383,12 @@ namespace ILGPU.Backends.OpenCL
             SeparateViewEntryPoint entryPoint)
             where TILEmitter : struct, IILEmitter
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(entryPoint);
+#else
             if (entryPoint == null)
                 throw new ArgumentNullException(nameof(entryPoint));
+#endif
 
             // Declare local
             var resultLocal = emitter.DeclareLocal(typeof(int));

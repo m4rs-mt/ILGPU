@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLDevice.cs
@@ -109,10 +109,15 @@ namespace ILGPU.Runtime.OpenCL
             Predicate<CLDevice> predicate,
             DeviceRegistry registry)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(registry);
+            ArgumentNullException.ThrowIfNull(predicate);
+#else
             if (registry is null)
                 throw new ArgumentNullException(nameof(registry));
             if (predicate is null)
                 throw new ArgumentNullException(nameof(predicate));
+#endif
 
             try
             {
@@ -202,10 +207,15 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="deviceId">The OpenCL device id.</param>
         public CLDevice(IntPtr platformId, IntPtr deviceId)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfEqual(platformId, IntPtr.Zero);
+            ArgumentOutOfRangeException.ThrowIfEqual(deviceId, IntPtr.Zero);
+#else
             if (platformId == IntPtr.Zero)
                 throw new ArgumentOutOfRangeException(nameof(platformId));
             if (deviceId == IntPtr.Zero)
                 throw new ArgumentOutOfRangeException(nameof(deviceId));
+#endif
 
             Backends.Backend.EnsureRunningOnNativePlatform();
 

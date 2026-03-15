@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Context.cs
@@ -139,8 +139,12 @@ namespace ILGPU
             {
                 get
                 {
+#if NET8_0_OR_GREATER
+                    ArgumentOutOfRangeException.ThrowIfNegative(deviceIndex);
+#else
                     if (deviceIndex < 0)
                         throw new ArgumentOutOfRangeException(nameof(deviceIndex));
+#endif
                     return deviceIndex < Count
                         ? devices[deviceIndex].AsNotNullCast<TDevice>()
                         : throw new NotSupportedException(
@@ -435,7 +439,7 @@ namespace ILGPU
                 .Where(d => d.AcceleratorType != AcceleratorType.CPU)
                 .ToList();
 
-            if (sorted.Any())
+            if (sorted.Count > 0)
             {
                 if (matchingDevicesOnly)
                 {
@@ -486,8 +490,12 @@ namespace ILGPU
         /// <returns>The new code generation phase.</returns>
         public ContextCodeGenerationPhase BeginCodeGeneration(IRContext irContext)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(irContext);
+#else
             if (irContext == null)
                 throw new ArgumentNullException(nameof(irContext));
+#endif
             codeGenerationSemaphore.Wait();
             return new ContextCodeGenerationPhase(this, irContext);
         }

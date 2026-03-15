@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MemoryBuffer.cs
@@ -48,10 +48,15 @@ namespace ILGPU.Runtime
         /// <param name="elementSize">The element size.</param>
         private void Init(long length, int elementSize)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
+            ArgumentOutOfRangeException.ThrowIfLessThan(elementSize, 1);
+#else
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
             if (elementSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(elementSize));
+#endif
 
             Length = length;
             ElementSize = elementSize;
@@ -203,8 +208,12 @@ namespace ILGPU.Runtime
         /// <returns></returns>
         public ArrayView<byte> AsRawArrayView(long offsetInBytes, long lengthInBytes)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(offsetInBytes);
+#else
             if (offsetInBytes < 0)
                 throw new ArgumentOutOfRangeException(nameof(offsetInBytes));
+#endif
             if (LengthInBytes > 0 && offsetInBytes >= LengthInBytes)
                 throw new ArgumentOutOfRangeException(nameof(offsetInBytes));
             if (lengthInBytes < 0 || offsetInBytes + lengthInBytes > LengthInBytes)

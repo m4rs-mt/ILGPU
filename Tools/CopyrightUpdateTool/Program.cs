@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -39,6 +39,9 @@ namespace CopyrightUpdateTool
             services.AddSingleton<ICopyrightParser, NuspecCopyrightParser>();
             services.AddSingleton<ICopyrightParser, LicenseCopyrighParser>();
             services.AddSingleton<ICopyrightParser, ReadmeCopyrightParser>();
+
+            // Disable owner validation to prevent failure when opening repositories.
+            LibGit2Sharp.GlobalSettings.SetOwnerValidation(false);
 
             // Perform copyright update.
             var serviceProvider = services.BuildServiceProvider();

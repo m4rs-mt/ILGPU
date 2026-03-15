@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RemappedIntrinsics.cs
@@ -175,8 +175,12 @@ namespace ILGPU.Frontend.Intrinsic
             MethodInfo methodInfo,
             DeviceFunctionRemapper remapper)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(methodInfo);
+#else
             if (methodInfo == null)
                 throw new ArgumentNullException(nameof(methodInfo));
+#endif
             FunctionRemappers[methodInfo] = remapper
                 ?? throw new ArgumentNullException(nameof(remapper));
         }

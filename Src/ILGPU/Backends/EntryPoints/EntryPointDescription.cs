@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: EntryPointDescription.cs
@@ -44,8 +44,12 @@ namespace ILGPU.Backends.EntryPoints
         public static EntryPointDescription FromImplicitlyGroupedKernel(
             MethodInfo methodSource)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(methodSource);
+#else
             if (methodSource == null)
                 throw new ArgumentNullException(nameof(methodSource));
+#endif
             var parameters = methodSource.GetParameters();
             if (parameters.Length < 1)
             {

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelLoaders.tt/KernelLoaders.cs
@@ -77,8 +77,12 @@ namespace ILGPU.Runtime
             out KernelInfo? kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
+#endif
             return accelerator.LoadKernel<Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>>(
                 action.Method,
                 default,
@@ -155,8 +159,12 @@ namespace ILGPU.Runtime
             out KernelInfo? kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
+#endif
             return accelerator.LoadKernel<Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>>(
                 action.Method,
                 specialization,
@@ -234,8 +242,12 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
+#endif
             return accelerator.LoadImplicitlyGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
                 action.Method,
                 customGroupSize);
@@ -264,8 +276,12 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
+#endif
             return accelerator.LoadImplicitlyGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
                 action.Method,
                 customGroupSize,
@@ -344,8 +360,12 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
+#endif
             return accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(action.Method);
         }
 
@@ -366,8 +386,12 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
+#endif
             return accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
                 action.Method,
                 out kernelInfo);

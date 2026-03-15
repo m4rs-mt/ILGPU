@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CompareFloatOperations.tt/CompareFloatOperations.cs
@@ -73,8 +73,9 @@ namespace ILGPU.Tests
             c[index] = result ? 1 : 0;
         }
 
-        public static TheoryData<object, object> <#= testName #>Data =>
-            new TheoryData<object, object>
+        public static TheoryData<<#= type.Type #>, <#= type.Type #>>
+            <#= testName #>Data =>
+            new TheoryData<<#= type.Type #>, <#= type.Type #>>
             {
 <#          foreach (var range in floatRanges) { #>
 <#              foreach (var range2 in floatRanges) { #>

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelNameAttribute.cs
@@ -42,8 +42,12 @@ namespace ILGPU.Backends.EntryPoints
         /// <returns>The kernel name.</returns>
         public static string GetKernelName(MethodInfo methodInfo)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(methodInfo);
+#else
             if (methodInfo is null)
                 throw new ArgumentNullException(nameof(methodInfo));
+#endif
             var attribute = methodInfo.GetCustomAttribute<KernelNameAttribute>();
             var kernelName = GetCompatibleName(attribute?.KernelName ?? methodInfo.Name);
             return KernelNamePrefix + kernelName;

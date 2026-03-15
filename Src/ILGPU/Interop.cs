@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Interop.cs
@@ -134,8 +134,12 @@ namespace ILGPU
             where TFirst : unmanaged
             where TSecond : unmanaged
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfLessThan(numSecondElements, 1L);
+#else
             if (numSecondElements < 1)
                 throw new ArgumentOutOfRangeException(nameof(numSecondElements));
+#endif
 
             var firstSize = SizeOf<TFirst>();
             var secondSize = SizeOf<TSecond>();

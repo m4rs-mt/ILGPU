@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IntrinsicMatcher.cs
@@ -153,8 +153,12 @@ namespace ILGPU.IR.Intrinsics
         /// </param>
         public void Register(MethodInfo value, T implementation)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(value);
+#else
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
+#endif
 
             if (value.IsGenericMethod)
                 value = value.GetGenericMethodDefinition();

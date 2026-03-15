@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AlgorithmContext.cs
@@ -69,8 +69,12 @@ namespace ILGPU
         /// <param name="builder">The builder to enable algorithms for.</param>
         public static Context.Builder EnableAlgorithms(this Context.Builder builder)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(builder);
+#else
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
+#endif
 
             var intrinsicManager = builder.GetIntrinsicManager();
             CLContext.EnableCLAlgorithms(intrinsicManager);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: MethodHandle.cs
@@ -67,8 +67,12 @@ namespace ILGPU.IR
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentNullException(nameof(name));
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(id);
+#else
             if (id < 0)
                 throw new ArgumentOutOfRangeException(nameof(id));
+#endif
             Name = name;
             Id = id;
         }

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUMemoryBuffer.cs
@@ -568,8 +568,12 @@ namespace ILGPU.Runtime.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static CPUMemoryBuffer FromArray(Array array)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(array);
+#else
             if (array is null)
                 throw new ArgumentNullException(nameof(array));
+#endif
             int elementSize =
                 Interop.SizeOf(array.GetType().GetElementType().AsNotNull());
             return FromArray(array, elementSize);

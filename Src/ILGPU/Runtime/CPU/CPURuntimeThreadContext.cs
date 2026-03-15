@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPURuntimeThreadContext.cs
@@ -56,10 +56,15 @@ namespace ILGPU.Runtime.CPU
         /// <param name="warpIndex">The current warp index.</param>
         public CPURuntimeThreadContext(int laneIdx, int warpIndex)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(laneIdx);
+            ArgumentOutOfRangeException.ThrowIfNegative(warpIndex);
+#else
             if (laneIdx < 0)
                 throw new ArgumentOutOfRangeException(nameof(laneIdx));
             if (warpIndex < 0)
                 throw new ArgumentOutOfRangeException(nameof(warpIndex));
+#endif
             LaneIndex = laneIdx;
             WarpIndex = warpIndex;
         }
