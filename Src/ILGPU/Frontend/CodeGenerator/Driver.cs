@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Driver.cs
@@ -220,7 +220,7 @@ namespace ILGPU.Frontend
                     return true;
 
                 case ILInstructionType.Conv:
-                    MakeConvert(instruction.GetArgumentAs<Type>(), instruction.Flags);
+                    MakeConvert(instruction.Argument, instruction.Flags);
                     return true;
 
                 case ILInstructionType.Initobj:

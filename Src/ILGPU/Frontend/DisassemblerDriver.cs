@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DisassemblerDriver.cs
@@ -32,7 +32,7 @@ namespace ILGPU.Frontend
     {
         [SuppressMessage("Microsoft.Maintainability", "CA1505:AvoidUnmaintainableCode")]
         [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
-        private bool TryDisasembleInstruction(ILOpCode opCode)
+        private bool TryDisassembleInstruction(ILOpCode opCode)
         {
             switch (opCode)
             {
@@ -403,7 +403,7 @@ namespace ILGPU.Frontend
                     AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(double));
                     return true;
                 case ILOpCode.Conv_R_Un:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Unsigned, typeof(double));
+                    AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.Unsigned, ILInstruction.ConvRUnArguments);
                     return true;
                 case ILOpCode.Conv_U1:
                     AppendInstructionWithFlags(ILInstructionType.Conv, 1, 1, ILInstructionFlags.None, typeof(byte));

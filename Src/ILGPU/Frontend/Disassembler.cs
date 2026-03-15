@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Disassembler.cs
@@ -189,7 +189,7 @@ namespace ILGPU.Frontend
                 if (TryDisassemblePrefix(opCode))
                     continue;
 
-                if (TryDisasembleInstruction(opCode))
+                if (TryDisassembleInstruction(opCode))
                 {
                     // Reset flags
                     flags = ILInstructionFlags.None;
