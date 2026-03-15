@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2022 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RemappedIntrinsics.cs
@@ -262,12 +262,14 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(Math),
                 MathType,
                 "CopySign",
+                required: false,
                 typeof(double),
                 typeof(double));
             AddRemapping(
                 typeof(MathF),
                 MathType,
                 "CopySign",
+                required: false,
                 typeof(float),
                 typeof(float));
 #endif
