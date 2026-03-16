@@ -271,7 +271,7 @@ jobs:
           dotnet pack Src --configuration=Release @params
 
       - name: Upload NuGet package artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-packages
           path: ./Bin/Release/ILGPU*.${{ needs.check-version.outputs.version }}.*nupkg
@@ -330,7 +330,7 @@ jobs:
 
       # Upload samples artifact (for version tags and master branch only)
       - name: Upload Samples artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: github.event_name == 'push' && !github.event.repository.fork && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
         with:
           name: samples
