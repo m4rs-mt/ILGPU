@@ -266,12 +266,14 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(Math),
                 MathType,
                 "CopySign",
+                required: false,
                 typeof(double),
                 typeof(double));
             AddRemapping(
                 typeof(MathF),
                 MathType,
                 "CopySign",
+                required: false,
                 typeof(float),
                 typeof(float));
 #endif
