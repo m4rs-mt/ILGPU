@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StructureValues.cs
@@ -485,6 +485,61 @@ namespace ILGPU.Tests
             var expected = new int[] { 42 };
             Verify(output.View, expected);
         }
+
+        public struct SimilarType1
+        {
+            public int A;
+            public SimilarTypeCommon BCD;
+        }
+
+        public struct SimilarType2
+        {
+            public SimilarTypeCommon ABC;
+            public int D;
+        }
+
+        public struct SimilarTypeCommon
+        {
+            public int X;
+            public int Y;
+            public int Z;
+        }
+
+        public readonly struct SimilarTypeContainer
+        {
+            public static SimilarType2 Member { get; } =
+                new SimilarType2
+                {
+                    ABC = new SimilarTypeCommon
+                    {
+                        X = 42,
+                        Y = 6,
+                        Z = 7
+                    },
+                    D = 8
+                };
+        }
+
+        internal static void StructureSimilarTypeKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> output,
+            SimilarType1 st1)
+        {
+            var v = SimilarTypeContainer.Member.ABC;
+            output[index] = v.X;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StructureSimilarTypeKernel))]
+        public void StructureSimilarType()
+        {
+            using var output = Accelerator.Allocate1D<int>(1);
+            Execute(1, output.View, default(SimilarType1));
+
+            var expected = new int[] { 42 };
+            Verify(output.View, expected);
+        }
+
     }
 }
 

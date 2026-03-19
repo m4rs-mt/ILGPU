@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2025 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: StructureType.cs
@@ -888,7 +888,7 @@ namespace ILGPU.IR.Types
                 {
                     builder.Add(type);
                 }
-                else if (nestedSpan.Contains(span))
+                else if (nestedSpan.Overlaps(span))
                 {
                     // This must be a nested structure
                     type.AsNotNullCast<StructureType>().SliceRecursive(
