@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2025 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXBackend.cs
@@ -207,7 +207,7 @@ namespace ILGPU.Backends.PTX
             backendContext.EnsureIntrinsicImplementations(IntrinsicProvider);
 
             var debugSymbolsMode = Context.Properties.DebugSymbolsMode;
-            bool useDebugInfo = debugSymbolsMode > DebugSymbolsMode.Kernel;
+            bool useDebugInfo = debugSymbolsMode >= DebugSymbolsMode.Kernel;
             PTXDebugInfoGenerator debugInfoGenerator = PTXNoDebugInfoGenerator.Empty;
             if (useDebugInfo)
             {

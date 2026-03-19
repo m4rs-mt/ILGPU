@@ -117,11 +117,17 @@ namespace ILGPU
             /// </summary>
             /// <param name="debugSymbolsMode">The symbols mode to use.</param>
             /// <returns>The current builder instance.</returns>
-            public Builder DebugSymbols(DebugSymbolsMode debugSymbolsMode) =>
-                debugSymbolsMode < DebugSymbolsMode
-                ? throw new InvalidOperationException(
-                    RuntimeErrorMessages.InvalidDowngradeOfDebugSymbols)
-                : this;
+            public Builder DebugSymbols(DebugSymbolsMode debugSymbolsMode)
+            {
+                if (debugSymbolsMode < DebugSymbolsMode)
+                {
+                    throw new InvalidOperationException(
+                        RuntimeErrorMessages.InvalidDowngradeOfDebugSymbols);
+                }
+                DebugSymbolsMode = debugSymbolsMode;
+                EnableKernelInformation = DebugSymbolsMode >= DebugSymbolsMode.Kernel;
+                return this;
+            }
 
             /// <summary>
             /// Turns on all assertion checks (including out-of-bounds checks) for view
