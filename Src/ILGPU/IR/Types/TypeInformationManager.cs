@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TypeInformationManager.cs
@@ -238,8 +238,12 @@ namespace ILGPU.IR.Types
         /// <returns>The resolved type information.</returns>
         public TypeInformation GetTypeInfo(Type type)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(type);
+#else
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
+#endif
 
             // Synchronize all accesses below using a read/write scope
             using var readWriteScope = cachingLock.EnterUpgradeableReadScope();

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2021 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InternalCompilerException.cs
@@ -10,14 +10,18 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
+#endif
 
 namespace ILGPU
 {
     /// <summary>
     /// The exception that is thrown when an internal compiler error has been detected.
     /// </summary>
+#if !NET8_0_OR_GREATER
     [Serializable]
+#endif
     public sealed class InternalCompilerException : Exception
     {
         /// <summary>
@@ -51,6 +55,7 @@ namespace ILGPU
             : base(message, innerException)
         { }
 
+#if !NET8_0_OR_GREATER
         /// <summary>
         /// Initializes a new instance of the InternalCompilerException class with
         /// serialized data.
@@ -68,5 +73,6 @@ namespace ILGPU
             StreamingContext streamingContext)
             : base(serializationInfo, streamingContext)
         { }
+#endif
     }
 }

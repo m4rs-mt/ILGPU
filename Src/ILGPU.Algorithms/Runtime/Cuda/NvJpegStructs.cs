@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvJpegStructs.cs
@@ -52,10 +52,18 @@ namespace ILGPU.Runtime.Cuda
             int height,
             int numComponents)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+#else
             if (width <= 0)
                 throw new ArgumentOutOfRangeException(nameof(width));
+#endif
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+#else
             if (height <= 0)
                 throw new ArgumentOutOfRangeException(nameof(height));
+#endif
             if (numComponents <= 0 ||
                 numComponents > NvJpegConstants.NVJPEG_MAX_COMPONENT)
 

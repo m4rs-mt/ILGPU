@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.Allocations.cs
@@ -78,10 +78,15 @@ namespace ILGPU.Runtime
         {
             if (extent.X < 0 || extent.Y < 0)
                 throw new ArgumentOutOfRangeException(nameof(extent));
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(getLeadingDimensionSize);
+            ArgumentNullException.ThrowIfNull(buildStride);
+#else
             if (getLeadingDimensionSize is null)
                 throw new ArgumentNullException(nameof(getLeadingDimensionSize));
             if (buildStride is null)
                 throw new ArgumentNullException(nameof(buildStride));
+#endif
 
             // Get the leading dimension
             long leadingDimSize = getLeadingDimensionSize(extent);
@@ -273,10 +278,15 @@ namespace ILGPU.Runtime
         {
             if (extent.X < 0 || extent.Y < 0 || extent.Z < 0)
                 throw new ArgumentOutOfRangeException(nameof(extent));
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(getLeadingDimensionSize);
+            ArgumentNullException.ThrowIfNull(buildStride);
+#else
             if (getLeadingDimensionSize is null)
                 throw new ArgumentNullException(nameof(getLeadingDimensionSize));
             if (buildStride is null)
                 throw new ArgumentNullException(nameof(buildStride));
+#endif
 
             // Get the leading dimension
             long leadingDimSize = getLeadingDimensionSize(extent);

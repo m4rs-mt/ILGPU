@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                        Copyright (c) 2017-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PeerAccess.cs
@@ -54,8 +54,12 @@ namespace ILGPU.Runtime
         /// of the given accelerator.</returns>
         public bool CanAccessPeer(Accelerator otherAccelerator)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(otherAccelerator);
+#else
             if (otherAccelerator == null)
                 throw new ArgumentNullException(nameof(otherAccelerator));
+#endif
             Bind();
             return CanAccessPeerInternal(otherAccelerator);
         }
@@ -68,8 +72,12 @@ namespace ILGPU.Runtime
         /// <returns></returns>
         public bool HasPeerAccess(Accelerator otherAccelerator)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(otherAccelerator);
+#else
             if (otherAccelerator == null)
                 throw new ArgumentNullException(nameof(otherAccelerator));
+#endif
             lock (syncRoot)
             {
                 return storedPeerAccelerators.Contains(

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuRand.cs
@@ -264,8 +264,12 @@ namespace ILGPU.Runtime.Cuda
             [MemberNotNull(nameof(currentStream))]
             set
             {
+#if NET6_0_OR_GREATER
+                ArgumentNullException.ThrowIfNull(value);
+#else
                 if (value == null)
                     throw new ArgumentNullException(nameof(value));
+#endif
                 CuRandException.ThrowIfFailed(
                     API.SetStream(GeneratorPtr, value.StreamPtr));
                 currentStream = value;
@@ -284,8 +288,12 @@ namespace ILGPU.Runtime.Cuda
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UpdateOrKeepStream(AcceleratorStream stream)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(stream);
+#else
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
+#endif
             if (currentStream == stream)
                 return;
             Stream = (CudaStream)stream;
@@ -489,8 +497,12 @@ namespace ILGPU.Runtime.Cuda
             CuRandRngType rngType,
             CuRandAPIVersion? apiVersion)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(context);
+#else
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
+#endif
 
             // Note: We currently do not use the context parameter to instantiate the API.
             // However, we do pass the context instance to this constructor to ensure

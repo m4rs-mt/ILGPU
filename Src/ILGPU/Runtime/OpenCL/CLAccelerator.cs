@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLAccelerator.cs
@@ -497,11 +497,16 @@ namespace ILGPU.Runtime.OpenCL
             int groupSize,
             int dynamicSharedMemorySizeInBytes)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(
+                dynamicSharedMemorySizeInBytes, 0);
+#else
             if (dynamicSharedMemorySizeInBytes > 0)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(dynamicSharedMemorySizeInBytes));
             }
+#endif
 
             groupSize = IntrinsicMath.Min(groupSize, MaxNumThreadsPerGroup);
             return MaxNumThreadsPerGroup / groupSize;
@@ -524,11 +529,16 @@ namespace ILGPU.Runtime.OpenCL
             int maxGroupSize,
             out int minGridSize)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(
+                dynamicSharedMemorySizeInBytes, 0);
+#else
             if (dynamicSharedMemorySizeInBytes > 0)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(dynamicSharedMemorySizeInBytes));
             }
+#endif
 
             if (maxGroupSize < 1)
                 maxGroupSize = MaxNumThreadsPerGroup;

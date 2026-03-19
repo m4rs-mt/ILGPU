@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Location.cs
@@ -139,6 +139,12 @@ namespace ILGPU.IR
         {
             if (string.IsNullOrEmpty(fileName))
                 throw new ArgumentNullException(nameof(fileName));
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(startColumn);
+            ArgumentOutOfRangeException.ThrowIfNegative(endColumn);
+            ArgumentOutOfRangeException.ThrowIfNegative(startLine);
+            ArgumentOutOfRangeException.ThrowIfNegative(endLine);
+#else
             if (startColumn < 0)
                 throw new ArgumentOutOfRangeException(nameof(startColumn));
             if (endColumn < 0)
@@ -147,6 +153,7 @@ namespace ILGPU.IR
                 throw new ArgumentOutOfRangeException(nameof(startLine));
             if (endLine < 0)
                 throw new ArgumentOutOfRangeException(nameof(endLine));
+#endif
 
             FileName = fileName;
             StartColumn = startColumn;
@@ -280,8 +287,12 @@ namespace ILGPU.IR
         /// <param name="location">The initial location.</param>
         public CompilationStackLocation(Location location)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(location);
+#else
             if (location == null)
                 throw new ArgumentNullException(nameof(location));
+#endif
             Stack = ImmutableStack.Create(location);
         }
 

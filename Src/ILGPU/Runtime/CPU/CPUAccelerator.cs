@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUAccelerator.cs
@@ -177,10 +177,14 @@ namespace ILGPU.Runtime.CPU
         /// <param name="kernel">The kernel to load.</param>
         /// <param name="customGroupSize">The custom group size.</param>
         /// <returns>The loaded kernel</returns>
-        private Kernel LoadKernel(CompiledKernel kernel, int customGroupSize)
+        private CPUKernel LoadKernel(CompiledKernel kernel, int customGroupSize)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(kernel);
+#else
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
+#endif
             if (!(kernel is ILCompiledKernel ilKernel))
             {
                 throw new NotSupportedException(
@@ -211,8 +215,12 @@ namespace ILGPU.Runtime.CPU
             int customGroupSize,
             out KernelInfo kernelInfo)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(customGroupSize);
+#else
             if (customGroupSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(customGroupSize));
+#endif
             kernelInfo = KernelInfo.CreateFrom(
                 kernel.Info,
                 customGroupSize,

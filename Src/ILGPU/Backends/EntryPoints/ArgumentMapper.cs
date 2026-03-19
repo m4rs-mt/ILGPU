@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ArgumentMapper.cs
@@ -539,8 +539,12 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="context">The current context.</param>
         protected ArgumentMapper(Context context)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(context);
+#else
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
+#endif
 
             RuntimeSystem = context.RuntimeSystem;
             TypeContext = context.TypeContext;

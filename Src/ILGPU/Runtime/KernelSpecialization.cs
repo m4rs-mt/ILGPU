@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelSpecialization.cs
@@ -98,8 +98,12 @@ namespace ILGPU.Runtime
         /// </returns>
         public bool IsCompatibleWith(Accelerator accelerator)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(accelerator);
+#else
             if (accelerator == null)
                 throw new ArgumentNullException(nameof(accelerator));
+#endif
 
             // TODO: We might want to verify MinNumGroupsPerMultiprocessor in the future
             // at this point. However, this requires further extensions of the

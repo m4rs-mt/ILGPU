@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AcceleratorException.cs
@@ -10,14 +10,18 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
+#endif
 
 namespace ILGPU.Runtime
 {
     /// <summary>
     /// The exception that is thrown when a specific operation did not succeed.
     /// </summary>
+#if !NET8_0_OR_GREATER
     [Serializable]
+#endif
     public abstract class AcceleratorException : Exception
     {
         /// <summary>
@@ -51,6 +55,7 @@ namespace ILGPU.Runtime
             : base(message, innerException)
         { }
 
+#if !NET8_0_OR_GREATER
         /// <summary>
         /// Initializes a new instance of the AcceleratorException class with serialized
         /// data.
@@ -68,6 +73,7 @@ namespace ILGPU.Runtime
             StreamingContext streamingContext)
             : base(serializationInfo, streamingContext)
         { }
+#endif
 
         /// <summary>
         /// Returns the associated accelerator type.

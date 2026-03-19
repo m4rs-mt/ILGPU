@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ConcurrentStreamProcessor.cs
@@ -97,12 +97,20 @@ namespace ILGPU.Algorithms
             int numActions,
             Action<AcceleratorStream, int> action)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(numActions);
+#else
             if (numActions < 0)
                 throw new ArgumentOutOfRangeException(nameof(numActions));
+#endif
             if (numActions == 0)
                 return;
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null)
                 throw new ArgumentOutOfRangeException(nameof(action));
+#endif
 
             if (stream != null && numActions == 1 && MaxNumConcurrentStreams == 1)
             {

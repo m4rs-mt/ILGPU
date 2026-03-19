@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILFrontend.cs
@@ -117,8 +117,12 @@ namespace ILGPU.Frontend
             DebugInformationManager? debugInformationManager,
             int numThreads)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfLessThan(numThreads, 1);
+#else
             if (numThreads < 1)
                 throw new ArgumentOutOfRangeException(nameof(numThreads));
+#endif
             DebugInformationManager = debugInformationManager;
             driverNotifier = new ManualResetEventSlim(false);
             threads = new Thread[numThreads];
@@ -265,8 +269,12 @@ namespace ILGPU.Frontend
         /// <returns>The created code-generation phase.</returns>
         public CodeGenerationPhase BeginCodeGeneration(IRContext context)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(context);
+#else
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
+#endif
             var newPhase = new CodeGenerationPhase(this, context, context.Verifier);
             if (Interlocked.CompareExchange(
                 ref codeGenerationPhase,
@@ -506,8 +514,12 @@ namespace ILGPU.Frontend
         /// <returns>A completion future.</returns>
         public CodeGenerationResult GenerateCode(MethodBase method)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(method);
+#else
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
+#endif
             hadWorkToDo = true;
             return Frontend.GenerateCode(method);
         }

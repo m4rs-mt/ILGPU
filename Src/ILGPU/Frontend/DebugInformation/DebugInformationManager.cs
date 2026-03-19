@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DebugInformationManager.cs
@@ -292,8 +292,12 @@ namespace ILGPU.Frontend.DebugInformation
             string pdbFileName,
             [NotNullWhen(true)] out AssemblyDebugInformation? assemblyDebugInformation)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(pdbFileName);
+#else
             if (pdbFileName == null)
                 throw new ArgumentNullException(nameof(pdbFileName));
+#endif
             if (!File.Exists(pdbFileName))
                 throw new FileNotFoundException();
 
@@ -317,8 +321,12 @@ namespace ILGPU.Frontend.DebugInformation
             Stream pdbStream,
             [NotNullWhen(true)] out AssemblyDebugInformation? assemblyDebugInformation)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(pdbStream);
+#else
             if (pdbStream == null)
                 throw new ArgumentNullException(nameof(pdbStream));
+#endif
 
             return TryLoadSymbolsInternal(
                 assembly,
@@ -342,8 +350,12 @@ namespace ILGPU.Frontend.DebugInformation
             [NotNullWhen(true)] out AssemblyDebugInformation? assemblyDebugInformation)
             where TLoader : struct, ILoader
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(assembly);
+#else
             if (assembly == null)
                 throw new ArgumentNullException(nameof(assembly));
+#endif
 
             cacheLock.EnterUpgradeableReadLock();
             try
@@ -401,8 +413,12 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="directory">The directory to register.</param>
         public void RegisterLookupDirectory(string directory)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(directory);
+#else
             if (directory == null)
                 throw new ArgumentNullException(nameof(directory));
+#endif
             if (!Directory.Exists(directory))
                 throw new DirectoryNotFoundException();
 

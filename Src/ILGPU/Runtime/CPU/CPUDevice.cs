@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUDevice.cs
@@ -191,10 +191,15 @@ namespace ILGPU.Runtime.CPU
             Predicate<CPUDevice> predicate,
             DeviceRegistry registry)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(registry);
+            ArgumentNullException.ThrowIfNull(predicate);
+#else
             if (registry is null)
                 throw new ArgumentNullException(nameof(registry));
             if (predicate is null)
                 throw new ArgumentNullException(nameof(predicate));
+#endif
 
             foreach (var desc in All)
                 registry.Register(desc, predicate);

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Method.cs
@@ -562,8 +562,12 @@ namespace ILGPU.IR
         /// <param name="textWriter">The text writer.</param>
         public override void Dump(TextWriter textWriter)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(textWriter);
+#else
             if (textWriter == null)
                 throw new ArgumentNullException(nameof(textWriter));
+#endif
 
             textWriter.Write(ToString());
             // Dump parameters

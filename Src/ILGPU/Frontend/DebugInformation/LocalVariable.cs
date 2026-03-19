@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LocalVariable.cs
@@ -28,8 +28,12 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="name">The variable name.</param>
         public LocalVariable(int index, string name)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+#else
             if (index < 0)
                 throw new ArgumentOutOfRangeException(nameof(index));
+#endif
             Index = index;
             Name = name ?? string.Empty;
         }

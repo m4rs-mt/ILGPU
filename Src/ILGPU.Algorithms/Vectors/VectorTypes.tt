@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2023 ILGPU Project
+//                        Copyright (c) 2023-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VectorTypes.tt/VectorTypes.cs
@@ -463,7 +463,7 @@ namespace ILGPU.Algorithms.Vectors
         /// </summary>
         /// <returns>The readonly span instance.</returns>
         public unsafe ReadOnlySpan<<#= type.Type #>> AsSpan() =>
-            new(Unsafe.AsPointer(ref Unsafe.AsRef(this)), <#= vectorLength #>);
+            new(Unsafe.AsPointer(ref Unsafe.AsRef(in this)), <#= vectorLength #>);
 
         /// <summary>
         /// Iterates over all elements by applying the given iterator to each element.

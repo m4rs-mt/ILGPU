@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CuFFTException.cs
@@ -11,15 +11,19 @@
 
 using System;
 using System.Runtime.CompilerServices;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
 using System.Security.Permissions;
+#endif
 
 namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
     /// Represents an exception that can be thrown by the cuFFT library.
     /// </summary>
+#if !NET8_0_OR_GREATER
     [Serializable]
+#endif
     public sealed class CuFFTException : Exception
     {
         #region Instance
@@ -55,12 +59,14 @@ namespace ILGPU.Runtime.Cuda
             Error = CuFFTResult.CUFFT_NOT_SUPPORTED;
         }
 
+#if !NET8_0_OR_GREATER
         /// <summary cref="Exception(SerializationInfo, StreamingContext)"/>
         private CuFFTException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             Error = (CuFFTResult)info.GetInt32("Error");
         }
+#endif
 
         #endregion
 
@@ -75,10 +81,9 @@ namespace ILGPU.Runtime.Cuda
 
         #region Methods
 
+#if !NET8_0_OR_GREATER
         /// <summary cref="Exception.GetObjectData(SerializationInfo, StreamingContext)"/>
-#if !NET5_0_OR_GREATER
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
-#endif
         public override void GetObjectData(
             SerializationInfo info,
             StreamingContext context)
@@ -87,6 +92,7 @@ namespace ILGPU.Runtime.Cuda
 
             info.AddValue("Error", (int)Error);
         }
+#endif
 
         /// <summary>
         /// Checks the given status and throws an exception in case of an error.

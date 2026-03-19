@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLException.cs
@@ -11,15 +11,19 @@
 
 using System;
 using System.Runtime.CompilerServices;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
 using System.Security.Permissions;
+#endif
 
 namespace ILGPU.Runtime.OpenCL
 {
     /// <summary>
     /// Represents an OpenCL exception that can be thrown by the OpenCL runtime.
     /// </summary>
+#if !NET8_0_OR_GREATER
     [Serializable]
+#endif
     public sealed class CLException : AcceleratorException
     {
         #region Instance
@@ -63,12 +67,14 @@ namespace ILGPU.Runtime.OpenCL
             : base(message, innerException)
         { }
 
+#if !NET8_0_OR_GREATER
         /// <summary cref="Exception(SerializationInfo, StreamingContext)"/>
         private CLException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             Error = (CLError)info.GetInt32("Error");
         }
+#endif
 
         #endregion
 
@@ -88,10 +94,9 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Methods
 
+#if !NET8_0_OR_GREATER
         /// <summary cref="Exception.GetObjectData(SerializationInfo, StreamingContext)"/>
-#if !NET5_0_OR_GREATER
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
-#endif
         public override void GetObjectData(
             SerializationInfo info,
             StreamingContext context)
@@ -100,6 +105,7 @@ namespace ILGPU.Runtime.OpenCL
 
             info.AddValue("Error", (int)Error);
         }
+#endif
 
         /// <summary>
         /// Checks the given status and throws an exception in case of an error if

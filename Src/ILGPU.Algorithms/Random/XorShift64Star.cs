@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XorShift64Star.cs
@@ -34,8 +34,12 @@ namespace ILGPU.Algorithms.Random
         /// <returns>A new rng instance.</returns>
         public static XorShift64Star Create(System.Random random)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(random);
+#else
             if (random == null)
                 throw new ArgumentNullException(nameof(random));
+#endif
             var state0 = (ulong)random.Next(1, int.MaxValue) << 32;
             var state1 = (ulong)random.Next();
             return new XorShift64Star(state0 | state1);

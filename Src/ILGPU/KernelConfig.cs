@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: KernelConfig.cs
@@ -362,8 +362,12 @@ namespace ILGPU
         public static SharedMemoryConfig RequestDynamic<T>(int numElements)
             where T : unmanaged
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfLessThan(numElements, 1);
+#else
             if (numElements < 1)
                 throw new ArgumentOutOfRangeException(nameof(numElements));
+#endif
             var elementSize = Interop.SizeOf<T>();
             return new SharedMemoryConfig(numElements, elementSize);
         }
@@ -379,10 +383,15 @@ namespace ILGPU
         /// <param name="elementSize">The element size to allocate.</param>
         public SharedMemoryConfig(int numElements, int elementSize)
         {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegative(numElements);
+            ArgumentOutOfRangeException.ThrowIfNegative(elementSize);
+#else
             if (numElements < 0)
                 throw new ArgumentOutOfRangeException(nameof(numElements));
             if (elementSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(elementSize));
+#endif
 
             NumElements = numElements;
             ElementSize = elementSize;

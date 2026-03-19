@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CLMemoryBuffer.cs
@@ -36,8 +36,12 @@ namespace ILGPU.Runtime.OpenCL
             in ArrayView<T> targetView)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(stream);
+#else
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
+#endif
 
             if (targetView.GetAcceleratorType() != AcceleratorType.OpenCL)
             {
@@ -72,8 +76,12 @@ namespace ILGPU.Runtime.OpenCL
             in ArrayView<T> targetView)
             where T : unmanaged
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(stream);
+#else
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
+#endif
 
             using var binding = stream.Accelerator.BindScoped();
 

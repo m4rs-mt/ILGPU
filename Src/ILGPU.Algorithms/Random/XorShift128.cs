@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: XorShift128.cs
@@ -32,8 +32,12 @@ namespace ILGPU.Algorithms.Random
         /// <returns>A new rng instance.</returns>
         public static XorShift128 Create(System.Random random)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(random);
+#else
             if (random == null)
                 throw new ArgumentNullException(nameof(random));
+#endif
             var state0 = (uint)random.Next(1, int.MaxValue);
             var state1 = (uint)random.Next();
             var state2 = (uint)random.Next();

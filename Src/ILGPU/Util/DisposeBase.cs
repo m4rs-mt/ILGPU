@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: DisposeBase.cs
@@ -60,8 +60,12 @@ namespace ILGPU.Util
         /// </remarks>
         protected void VerifyNotDisposed()
         {
+#if NET8_0_OR_GREATER
+            ObjectDisposedException.ThrowIf(IsDisposed, GetType().Name);
+#else
             if (IsDisposed)
                 throw new ObjectDisposedException(GetType().Name);
+#endif
         }
 
         #endregion

@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.Launchers.cs
@@ -93,8 +93,12 @@ namespace ILGPU.Runtime
             where TSource : Delegate
             where TTarget : Delegate
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action is null)
                 throw new ArgumentNullException(nameof(action));
+#endif
 
             // Create a new launcher loader.
             TLaunchLoader loader = default;

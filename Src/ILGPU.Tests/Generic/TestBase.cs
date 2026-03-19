@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: TestBase.cs
@@ -44,7 +44,7 @@ namespace ILGPU.Tests
                 var env = Environment.GetEnvironmentVariable(
                     CleanTestsEnvironmentVariable);
                 return !string.IsNullOrWhiteSpace(env)
-                       && env.ToUpperInvariant() != "FALSE"
+                       && !string.Equals(env, "FALSE", StringComparison.OrdinalIgnoreCase)
                        && env != "0";
             }
         }
@@ -71,8 +71,12 @@ namespace ILGPU.Tests
             }
             if (method.IsGenericMethod)
             {
+#if NET6_0_OR_GREATER
+                ArgumentNullException.ThrowIfNull(typeArguments);
+#else
                 if (typeArguments == null)
                     throw new ArgumentNullException(nameof(typeArguments));
+#endif
 
                 // Try to specialize the method
                 method = method.MakeGenericMethod(typeArguments);

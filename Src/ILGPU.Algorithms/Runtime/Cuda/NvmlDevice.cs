@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: NvmlDevice.cs
@@ -28,8 +28,12 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         public static NvmlDevice CreateFromAccelerator(CudaAccelerator accelerator)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(accelerator);
+#else
             if (accelerator == null)
                 throw new ArgumentNullException(nameof(accelerator));
+#endif
             return CreateFromPciBusId(accelerator.NVMLPCIBusId);
         }
 

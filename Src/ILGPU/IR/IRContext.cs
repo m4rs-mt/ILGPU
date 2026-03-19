@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IRContext.cs
@@ -174,8 +174,12 @@ namespace ILGPU.IR
             MethodBase method,
             [NotNullWhen(true)] out MethodHandle? handle)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(method);
+#else
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
+#endif
 
             // Synchronize all accesses below using a read scope
             using var readScope = irLock.EnterUpgradeableReadScope();
@@ -215,8 +219,12 @@ namespace ILGPU.IR
             MethodBase method,
             [NotNullWhen(true)] out Method? function)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(method);
+#else
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
+#endif
 
             // Synchronize all accesses below using a read scope
             using var readScope = irLock.EnterUpgradeableReadScope();
