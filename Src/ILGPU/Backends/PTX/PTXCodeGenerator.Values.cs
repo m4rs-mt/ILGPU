@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2023 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Values.cs
@@ -134,10 +134,19 @@ namespace ILGPU.Backends.PTX
                     value.Kind,
                     value.ArithmeticBasicValueType,
                     Backend.Capabilities,
-                    FastMath));
+                    FastMath,
+                    out var reversedArgs));
             command.AppendArgument(targetRegister);
-            command.AppendArgument(left);
-            command.AppendArgument(right);
+            if (reversedArgs)
+            {
+                command.AppendArgument(right);
+                command.AppendArgument(left);
+            }
+            else
+            {
+                command.AppendArgument(left);
+                command.AppendArgument(right);
+            }
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(TernaryArithmeticValue)"/>

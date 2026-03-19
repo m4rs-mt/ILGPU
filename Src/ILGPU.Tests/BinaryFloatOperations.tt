@@ -1,0 +1,87 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BinaryFloatOperations.tt/BinaryFloatOperations.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Generic/ConfigurationBase.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+using ILGPU.Runtime;
+using System;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace ILGPU.Tests
+{
+    public abstract class BinaryFloatOperations : TestBase
+    {
+        private const int Length = 32;
+
+        protected BinaryFloatOperations(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
+        { }
+
+<#
+    foreach (var type in AtomicFloatTypes) {
+        var mathSuffix = type.Type == "float" ? "F" : "";
+        var typeSuffix = type.Type == "float" ? "f" : "";
+        var testName = "CopySign_" + type.Name;
+        var kernelName = "Kernel" + testName;
+#>
+        internal static void <#= kernelName #>(
+            Index1D index,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> x,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> y,
+            ArrayView1D<<#= type.Type #>, Stride1D.Dense> output)
+        {
+#if NETFRAMEWORK || NETSTANDARD
+            // NB: net471 and netstandard2.1 do not support Math.CopySign.
+            output[index] = IntrinsicMath.CopySign(x[index], y[index]);
+#else
+            output[index] = Math<#= mathSuffix #>.CopySign(x[index], y[index]);
+#endif
+        }
+
+        [Theory]
+<#
+        var floatRanges = GetFloatRanges(type, true);
+        foreach (var xFloatRange in floatRanges) {
+            foreach (var yFloatRange in floatRanges) {
+#>
+        [InlineData(<#= xFloatRange #>, <#= yFloatRange #>)]
+<#
+            }
+        }
+#>
+        [KernelMethod(nameof(<#= kernelName #>))]
+        public void <#= testName #>(<#= type.Type #> xValue, <#= type.Type #> yValue)
+        {
+            using var x = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var y = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            using var output = Accelerator.Allocate1D<<#= type.Type #>>(Length);
+            Initialize(x.View, xValue);
+            Initialize(y.View, yValue);
+            Execute(Length, x.View, y.View, output.View);
+
+#if NETFRAMEWORK || NETSTANDARD
+            // NB: net471 and netstandard2.1 do not support Math.CopySign.
+            var expectedValue = IntrinsicMath.CopySign(xValue, yValue);
+#else
+            var expectedValue = Math<#= mathSuffix#>.CopySign(xValue, yValue);
+#endif
+            var expected = Enumerable.Repeat(expectedValue, Length).ToArray();
+            Verify(output.View, expected);
+
+        }
+<#  } #>
+    }
+}

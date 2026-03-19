@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2019-2023 ILGPU Project
+//                        Copyright (c) 2019-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PTXInstructions.cs
@@ -131,6 +131,36 @@ namespace ILGPU.Backends.PTX
             CudaCapabilityContext capabilities,
             bool fastMath)
         {
+            // This simplified overload only supports arguments in the non-reversed order.
+            var operation = GetArithmeticOperation(
+                kind,
+                type,
+                capabilities,
+                fastMath,
+                out var reversedArgs);
+            if (reversedArgs)
+                throw new NotSupportedIntrinsicException(kind.ToString());
+            return operation;
+        }
+
+        /// <summary>
+        /// Resolves a binary arithmetic operation.
+        /// </summary>
+        /// <param name="kind">The arithmetic kind.</param>
+        /// <param name="type">The operation type.</param>
+        /// <param name="capabilities">The supported capabilities.</param>
+        /// <param name="fastMath">True, to use a fast-math operation.</param>
+        /// <param name="reversedArgs">
+        /// Filled in with true if the order of arguments should be reversed.
+        /// </param>
+        /// <returns>The resolved arithmetic operation.</returns>
+        public static string GetArithmeticOperation(
+            BinaryArithmeticKind kind,
+            ArithmeticBasicValueType type,
+            CudaCapabilityContext capabilities,
+            bool fastMath,
+            out bool reversedArgs)
+        {
             if (kind == BinaryArithmeticKind.Min &&
                type == ArithmeticBasicValueType.Float16 &&
                !capabilities.Float16_Min)
@@ -145,6 +175,8 @@ namespace ILGPU.Backends.PTX
             }
 
             var key = (kind, type);
+            reversedArgs = kind == BinaryArithmeticKind.CopySignF;
+
             return fastMath &&
                 BinaryArithmeticOperationsFastMath.TryGetValue(
                     key,
