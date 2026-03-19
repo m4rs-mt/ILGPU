@@ -310,22 +310,38 @@ namespace ILGPU
                 var nvvmRoot = Path.Combine(cudaPath, "nvvm");
 
                 // Find the NVVM DLL.
-                var nvvmBinName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? "bin"
-                    : "lib64";
-                var nvvmBinDir = Path.Combine(nvvmRoot, nvvmBinName);
+                var nvvmBinNames = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? new[] { "bin\\x64", "bin" }
+                    : new[] { "lib64" };
                 var nvvmSearchPattern =
                     RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                     ? "nvvm64*.dll"
                     : "libnvvm*.so";
-                var nvvmFiles = Directory.EnumerateFiles(nvvmBinDir, nvvmSearchPattern);
-                var libNvvmPath = nvvmFiles.FirstOrDefault();
+                string? libNvvmPath = null;
+                foreach (var nvvmBinName in nvvmBinNames)
+                {
+                    var nvvmBinDir = Path.Combine(nvvmRoot, nvvmBinName);
+
+                    try
+                    {
+                        var nvvmFiles = Directory.EnumerateFiles(
+                            nvvmBinDir,
+                            nvvmSearchPattern);
+                        libNvvmPath = nvvmFiles.FirstOrDefault();
+                        if (libNvvmPath is not null)
+                            break;
+                    }
+                    catch (DirectoryNotFoundException)
+                    { }
+                }
                 if (libNvvmPath is null)
                 {
                     return throwIfNotFound
                     ? throw new NotSupportedException(string.Format(
                         RuntimeErrorMessages.NotSupportedLibDeviceNotFoundNvvmDll,
-                        nvvmBinDir))
+                        string.Join(
+                            " or ",
+                            nvvmBinNames.Select(x => Path.Combine(nvvmRoot, x)))))
                     : this;
                 }
 
