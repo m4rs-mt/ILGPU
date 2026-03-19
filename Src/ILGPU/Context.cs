@@ -247,14 +247,21 @@ namespace ILGPU
             IntrinsicManager = builder.IntrinsicManager;
 
             // Create frontend
-            DebugInformationManager? frontendDebugInformationManager =
-                Properties.DebugSymbolsMode > DebugSymbolsMode.Disabled
-                ? DebugInformationManager
-                : null;
-
+            if (Properties.DebugSymbolsMode > DebugSymbolsMode.Disabled)
+            {
+#pragma warning disable CA1031 // Do not catch general exception types
+                try
+                {
+                    DebugInformationManager = new DebugInformationManager();
+                }
+                catch (Exception)
+                { }
+#pragma warning restore CA1031 // Do not catch general exception types
+            }
+            
             ILFrontend = builder.EnableParallelCodeGenerationInFrontend
-                ? new ILFrontend(this, frontendDebugInformationManager)
-                : new ILFrontend(this, frontendDebugInformationManager, 1);
+                ? new ILFrontend(this, DebugInformationManager)
+                : new ILFrontend(this, DebugInformationManager, 1);
 
             // Create default IL backend
             DefautltILBackend = new DefaultILBackend(this);
@@ -359,8 +366,7 @@ namespace ILGPU
         /// <summary>
         /// Returns the main debug-information manager.
         /// </summary>
-        internal DebugInformationManager DebugInformationManager { get; } =
-            new DebugInformationManager();
+        internal DebugInformationManager? DebugInformationManager { get; }
 
         /// <summary>
         /// Returns the main type context.
@@ -529,7 +535,7 @@ namespace ILGPU
         {
             IRContext.ClearCache(mode);
             TypeContext.ClearCache(mode);
-            DebugInformationManager.ClearCache(mode);
+            DebugInformationManager?.ClearCache(mode);
             DefautltILBackend.ClearCache(mode);
             RuntimeSystem.ClearCache(mode);
 
@@ -570,7 +576,7 @@ namespace ILGPU
                 ILFrontend.Dispose();
                 DefautltILBackend.Dispose();
 
-                DebugInformationManager.Dispose();
+                DebugInformationManager?.Dispose();
                 TypeContext.Dispose();
             }
             base.Dispose(disposing);
