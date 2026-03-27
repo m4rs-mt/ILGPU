@@ -1,0 +1,31 @@
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>13.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>HelloKernel</RootNamespace>
+    <AssemblyName>HelloKernel</AssemblyName>
+
+    <!-- ILGPU MSBuild integration -->
+    <ILGPUBackend>$(ILGPU_BACKEND)</ILGPUBackend>
+    <ILGPUCompilerTool>dotnet "$(ILGPU_REPO_ROOT)/Bin/Debug/net10.0/ILGPUC.dll" </ILGPUCompilerTool>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="ILGPU">
+      <HintPath>$(ILGPU_REPO_ROOT)/Bin/Debug/net10.0/ILGPU.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Sdk.targets must be imported BEFORE ILGPU.Kernels.targets so
+       $(IntermediateOutputPath) is set when our PropertyGroup evaluates. -->
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="$(ILGPU_REPO_ROOT)/Src/ILGPUC/build/ILGPU.Kernels.targets" />
+
+</Project>
