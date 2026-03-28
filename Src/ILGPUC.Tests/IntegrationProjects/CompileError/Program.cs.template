@@ -1,0 +1,46 @@
+// CompileError: kernel that uses an unsupported pattern (closure inside a
+// loop body). ILGPUC's LowerGCInit pass detects the GCInit node inside a
+// loop and throws NotSupportedException. The build must fail with a
+// non-zero exit code.
+//
+// This is the same pattern validated in
+// NonKernelTests/LambdaCompilationErrorTests.cs.
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace CompileError;
+
+static class Kernels
+{
+    public static void LambdaInLoopKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int sum = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            int captured = i;          // new closure per iteration -> rejected
+            Func<int> f = () => captured;
+            sum += f();
+        }
+        data[index] = sum;
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var buffer = stream.Allocate1D<int>(4);
+        stream.Launch(
+            (Index1D)4,
+            index => Kernels.LambdaInLoopKernel(index, buffer.View));
+        stream.Synchronize();
+    }
+}
