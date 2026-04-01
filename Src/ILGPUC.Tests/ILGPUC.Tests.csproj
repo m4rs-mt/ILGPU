@@ -17,6 +17,7 @@
     </PackageReference>
     <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <PackageReference Include="T4.Build" Version="0.2.5" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
