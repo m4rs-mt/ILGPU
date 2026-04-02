@@ -44,11 +44,29 @@ name: CI
 # ---------------------------------------------------------------------------
 
 on:
-  # Workflow is intentionally disabled on this PR branch. The redesigned canonical
-  # CI pipeline in this file depends on the ILGPUC.Tests project which is introduced
-  # in the tests PR; this workflow re-enables on that branch. Use workflow_dispatch
-  # to trigger manually if needed.
   workflow_dispatch:
+  push:
+    paths-ignore:
+      - '.github/workflows/deploy-site.yml'
+      - 'Docs/**'
+      - 'Site/**'
+      - 'plans/**'
+      - 'Src/plans/**'
+      - 'Src/CLAUDE.md'
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - '.github/workflows/deploy-site.yml'
+      - 'Docs/**'
+      - 'Site/**'
+      - 'plans/**'
+      - 'Src/plans/**'
+      - 'Src/CLAUDE.md'
+      - '**/*.md'
+  schedule:
+    # Run daily at 00:00 UTC so we get notified if CI is broken before a
+    # pull request is submitted.
+    - cron: '0 0 * * *'
 
 env:
   DOTNET_NOLOGO: true
