@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: XorInt.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: BinaryIntOp Xor<int>
 // Kernel bitwise-XORs two arrays element-wise.
 // Input a: [255, 240, 15, 85], b: [15, 15, 15, 85]

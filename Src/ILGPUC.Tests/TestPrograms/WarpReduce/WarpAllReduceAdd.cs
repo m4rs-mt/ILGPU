@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: WarpAllReduceAdd.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: WarpAllReduceAdd
 // Each thread contributes index+1, all-reduce with addition.
 // For 4 threads: sum = 1+2+3+4 = 10, all lanes get 10.

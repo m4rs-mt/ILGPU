@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: StructPassByValue.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 // Test program: StructPassByValue
 // Kernel passes struct to helper, modifies fields, sums result.
 // Input: X=10, Y=100, Z=2, W=30 → modified: X=11, Y=110, Z=102, W=1030 → sum=1253

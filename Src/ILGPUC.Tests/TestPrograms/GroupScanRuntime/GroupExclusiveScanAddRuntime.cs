@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: GroupExclusiveScanAddRuntime.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: GroupExclusiveScanAddRuntime
 // Input read from a runtime buffer so the optimizer cannot fold.
 // 4 threads, input = [1, 2, 3, 4], Group.ExclusiveScan(+, identity=0)

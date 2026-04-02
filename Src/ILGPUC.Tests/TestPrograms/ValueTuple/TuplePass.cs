@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: TuplePass.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 // Test program: ValueTuple TuplePass
 // Kernel passes values through a helper that returns a tuple.
 // Index 0..3: intOutput = [1, 2, 3, 4], floatOutput = [1, 2, 3, 4]

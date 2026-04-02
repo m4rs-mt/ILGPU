@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: GroupAllReduceMaxRuntime.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: GroupAllReduceMaxRuntime
 // Input read from a runtime buffer. Uses XMath.Max method group.
 // 4 threads, input = [3, 1, 4, 2], Group.AllReduce(max) → 4 for all.

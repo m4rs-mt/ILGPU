@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: LambdaAppliedTwice.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 // Test program: LambdaAppliedTwice
 // Lambda (shift = x + offset) is called twice per element: shift(x) + shift(x+1), offset=5.
 // Expected output: 11 13 15 17 (one per line)

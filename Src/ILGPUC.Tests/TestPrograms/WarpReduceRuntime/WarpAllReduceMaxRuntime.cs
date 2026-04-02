@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: WarpAllReduceMaxRuntime.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: WarpAllReduceMaxRuntime
 // Input read from a runtime buffer. Uses XMath.Max as a method group.
 // 4 threads, input = [3, 1, 4, 2], AllReduce(max) → max = 4 for all lanes.

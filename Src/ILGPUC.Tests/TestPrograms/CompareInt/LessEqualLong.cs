@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: LessEqualLong.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 // Test program: CompareInt LessEqual<long>
 // Kernel compares a <= b element-wise.
 // a: [1, 5, 3, 7], b: [1, 4, 6, 8] → result: [1, 0, 1, 1]
