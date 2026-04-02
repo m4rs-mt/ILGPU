@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: SimpleArray.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 // Test program: SimpleArray
 // Kernel reads input, computes value*2+1, writes output.
 // Input: [1, 2, 3, 4] → Output: [3, 5, 7, 9]

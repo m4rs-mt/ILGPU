@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: AccumulateClosure.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 // Test program: AccumulateClosure
 // Lambda writes to a captured variable (sum) twice.
 // sum += index; sum += index+1; data[index] = sum

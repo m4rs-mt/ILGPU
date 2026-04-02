@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: NegLong.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 // Test program: NegLong
 // Kernel negates longs.
 // Input: [1L,2L,3L,4L], Expected output: -1 -2 -3 -4

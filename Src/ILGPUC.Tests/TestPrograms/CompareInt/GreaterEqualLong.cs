@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: GreaterEqualLong.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 // Test program: CompareInt GreaterEqual<long>
 // Kernel compares a >= b element-wise.
 // a: [5, 4, 7, 8], b: [2, 4, 6, 8] → result: [1, 1, 1, 1]

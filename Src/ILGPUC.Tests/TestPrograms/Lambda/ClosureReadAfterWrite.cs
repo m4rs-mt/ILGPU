@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: ClosureReadAfterWrite.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
 // Test program: ClosureReadAfterWrite
 // Two lambdas share a captured variable (state).
 // write(read()) doubles the state, then read() returns it.

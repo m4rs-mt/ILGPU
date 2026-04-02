@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: WarpAllReduceAddRuntime.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: WarpAllReduceAddRuntime
 // Input read from a runtime buffer so the optimizer cannot fold the reduce.
 // 4 threads, input = [1, 2, 3, 4], AllReduce(+) → sum = 10 for all lanes.

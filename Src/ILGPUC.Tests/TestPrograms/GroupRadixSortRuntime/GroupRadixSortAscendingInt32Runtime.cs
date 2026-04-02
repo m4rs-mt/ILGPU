@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: GroupRadixSortAscendingInt32Runtime.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: GroupRadixSortAscendingInt32Runtime
 // Input read from a runtime buffer so the optimizer cannot fold.
 // 8 threads in one group (matches CPU VectorWidth=8).

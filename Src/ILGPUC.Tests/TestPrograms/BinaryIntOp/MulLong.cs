@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: MulLong.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: BinaryIntOp Mul<long>
 // Kernel multiplies two arrays element-wise.
 // Input a: [2, 3, 4, 5], b: [10, 10, 10, 10]

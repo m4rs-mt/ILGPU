@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: FloatType.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: LocalArray FloatType
 // Kernel allocates float[4], fills {1.5,2.5,3.5,4.5}, copies to output.
 // Expected output: 1.5 2.5 3.5 4.5

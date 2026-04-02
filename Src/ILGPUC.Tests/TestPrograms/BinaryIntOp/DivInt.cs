@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: DivInt.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: BinaryIntOp Div<int>
 // Kernel divides two arrays element-wise.
 // Input a: [10, 20, 30, 40], b: [2, 4, 5, 8]

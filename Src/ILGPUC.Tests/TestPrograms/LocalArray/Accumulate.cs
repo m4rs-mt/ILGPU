@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Accumulate.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
 // Test program: LocalArray Accumulate
 // Kernel allocates scratch[3], fills {1,2,3}, sums to output.
 // Uses unrolled sum (no loop) to avoid CPU vectorization loop-order issues.
