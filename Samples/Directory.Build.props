@@ -1,20 +1,24 @@
-﻿<Project>
-  <PropertyGroup Condition="'$(MSBuildVersion)' &gt;= '17.8'">
-    <LibrarySamplesTargetFrameworks>net8.0</LibrarySamplesTargetFrameworks>
-    <LibrarySamplesTargetFrameworksWindows>net8.0-windows</LibrarySamplesTargetFrameworksWindows>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(MSBuildVersion)' &gt;= '17.4' AND '$(MSBuildVersion)' &lt; '17.8' ">
-    <LibrarySamplesTargetFrameworks>net7.0</LibrarySamplesTargetFrameworks>
-    <LibrarySamplesTargetFrameworksWindows>net7.0-windows</LibrarySamplesTargetFrameworksWindows>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(MSBuildVersion)' &lt; '17.4'">
-    <LibrarySamplesTargetFrameworks>net6.0</LibrarySamplesTargetFrameworks>
-    <LibrarySamplesTargetFrameworksWindows>net6.0-windows</LibrarySamplesTargetFrameworksWindows>
+<Project>
+
+  <PropertyGroup>
+    <SamplesTargetFramework>net10.0</SamplesTargetFramework>
+    <LangVersion>13.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+
+    <!-- Path to pre-built ILGPU + ILGPUC artifacts.
+         Build Src/ILGPU.sln first: dotnet build Src/ILGPU.sln -->
+    <ILGPUBinDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../Bin/$(Configuration)/net10.0'))</ILGPUBinDir>
+
+    <!-- Backend(s) to compile for. Semicolon-delimited for multi-backend.
+         Override: dotnet build -p:ILGPUBackend=Metal
+         Multi:    dotnet build -p:ILGPUBackend="CPU;Metal" -->
+    <!-- Multi-backend (e.g. CPU;Metal) requires codegen fix for unique class names.
+         Default to CPU for now; override with: dotnet build -p:ILGPUBackend=Metal -->
+    <ILGPUBackend Condition="'$(ILGPUBackend)' == ''">CPU</ILGPUBackend>
+
+    <!-- ILGPUC compiler tool invocation -->
+    <ILGPUCompilerTool>dotnet "$(ILGPUBinDir)/ILGPUC.dll"</ILGPUCompilerTool>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibrarySamplesTargetFrameworks>net6.0;net7.0;net8.0</LibrarySamplesTargetFrameworks>
-    <LibrarySamplesTargetFrameworksWindows>net6.0-windows;net7.0-windows;net8.0-windows</LibrarySamplesTargetFrameworksWindows>
-    <CheckEolTargetFramework>false</CheckEolTargetFramework>
-  </PropertyGroup>
 </Project>
