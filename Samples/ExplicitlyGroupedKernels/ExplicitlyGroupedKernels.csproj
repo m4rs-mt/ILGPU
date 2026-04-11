@@ -1,16 +1,22 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFrameworks>$(LibrarySamplesTargetFrameworks)</TargetFrameworks>
-    <OutputType>Exe</OutputType>
-    <LangVersion>8.0</LangVersion>
-  </PropertyGroup>
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
-    <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(SamplesTargetFramework)</TargetFramework>
+    <RootNamespace>ExplicitlyGroupedKernels</RootNamespace>
+    <AssemblyName>ExplicitlyGroupedKernels</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
+    <Reference Include="ILGPU">
+      <HintPath>$(ILGPUBinDir)/ILGPU.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="$(MSBuildThisFileDirectory)../../Src/ILGPUC/build/ILGPU.Kernels.targets" />
+
 </Project>
