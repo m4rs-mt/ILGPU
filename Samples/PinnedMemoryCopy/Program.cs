@@ -1,150 +1,117 @@
-﻿// ---------------------------------------------------------------------------------------
-//                                    ILGPU Samples
-//                        Copyright (c) 2021-2024 ILGPU Project
-//                                    www.ilgpu.net
-//
-// File: Program.cs
-//
-// This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details.
-// ---------------------------------------------------------------------------------------
-
+using System;
+using System.Linq;
+using System.Runtime.InteropServices;
 using ILGPU;
 using ILGPU.Runtime;
-using ILGPU.Runtime.CPU;
-using System;
-using System.Runtime.InteropServices;
 
-namespace PinnedMemoryCopy
+namespace PinnedMemoryCopy;
+
+static class Program
 {
-    class Program
+    static void PerformPinnedCopyUsingGCHandle(Accelerator accelerator, int dataSize)
     {
-        /// <summary>
-        /// Uses GCHandle to allocate pinned chunks of memory in CPU host memory.
-        /// </summary>
-        /// <param name="accelerator">The current accelerator.</param>
-        /// <param name="dataSize">The number of elements to copy.</param>
-        static void PerformPinnedCopyUsingGCHandle(Accelerator accelerator, int dataSize)
+        var array = new int[dataSize];
+        var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+        try
         {
-            var array = new int[dataSize];
-            var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
-            try
-            {
-                // Allocate buffer on this device
-                using var bufferOnGPU = accelerator.Allocate1D<int>(array.Length);
-                var stream = accelerator.DefaultStream;
-
-                // Page locked buffers enable async memory transfers
-                using var scope = accelerator.CreatePageLockFromPinned(array);
-                bufferOnGPU.View.CopyFrom(stream, scope.ArrayView);
-
-                //
-                // Perform other operations...
-                //
-
-                // Wait for the copy operation to finish
-                stream.Synchronize();
-            }
-            finally
-            {
-                handle.Free();
-            }
-        }
-
-        /// <summary>
-        /// Uses System.GC.AllocateArray to allocate pinned chunks of memory in CPU host memory.
-        /// </summary>
-        /// <param name="accelerator">The current accelerator.</param>
-        /// <param name="dataSize">The number of elements to copy.</param>
-        static void PerformPinnedCopyUsingGCAllocateArray(Accelerator accelerator, int dataSize)
-        {
-            var array = GC.AllocateArray<int>(dataSize, pinned: true);
-
-            // Allocate buffer on this device
-            using var bufferOnGPU = accelerator.Allocate1D<int>(array.Length);
+            using var bufferOnGPU = accelerator.DefaultStream.Allocate1D<int>(array.Length);
             var stream = accelerator.DefaultStream;
 
-            // Page locked buffers enable async memory transfers
             using var scope = accelerator.CreatePageLockFromPinned(array);
             bufferOnGPU.View.CopyFrom(stream, scope.ArrayView);
 
-            //
-            // Perform other operations...
-            //
-
-            // Wait for the copy operation to finish
             stream.Synchronize();
         }
-
-        /// <summary>
-        /// Uses Accelerator.AllocatePageLockedArray1D to allocate pinned chunks of memory in CPU host memory.
-        /// </summary>
-        /// <param name="accelerator">The current accelerator.</param>
-        /// <param name="dataSize">The number of elements to copy.</param>
-        static void PerformPinnedCopyUsingAllocatePageLockedArray(Accelerator accelerator, int dataSize)
+        finally
         {
-            using var array = accelerator.AllocatePageLocked1D<int>(dataSize);
+            handle.Free();
+        }
+    }
 
-            // Allocate buffer on this device
-            using var bufferOnGPU = accelerator.Allocate1D<int>(array.Length);
-            var stream = accelerator.DefaultStream;
+    static void PerformPinnedCopyUsingGCAllocateArray(Accelerator accelerator, int dataSize)
+    {
+        var array = GC.AllocateArray<int>(dataSize, pinned: true);
 
-            bufferOnGPU.View.CopyFrom(stream, array.ArrayView);
+        using var bufferOnGPU = accelerator.DefaultStream.Allocate1D<int>(array.Length);
+        var stream = accelerator.DefaultStream;
 
-            //
-            // Perform other operations...
-            //
+        using var scope = accelerator.CreatePageLockFromPinned(array);
+        bufferOnGPU.View.CopyFrom(stream, scope.ArrayView);
 
-            // Wait for the copy operation to finish
-            stream.Synchronize();
+        stream.Synchronize();
+    }
 
-            // Retrieve the results into an existing page locked array
-            bufferOnGPU.View.CopyTo(stream, array.ArrayView);
+    static void PerformPinnedCopyUsingAllocatePageLockedArray(
+        Accelerator accelerator,
+        int dataSize)
+    {
+        using var array = accelerator.AllocatePageLocked1D<int>(dataSize);
 
-            // Retrieve the results into a new array
-            // Rely on disabled (default) or automatic page locking behavior
-            var result1 = bufferOnGPU.GetAsArray1D();
+        using var bufferOnGPU = accelerator.DefaultStream.Allocate1D<int>(array.Length);
+        var stream = accelerator.DefaultStream;
 
-            // Explicitly retrieve the results into a new page locked array
-            var result2 = bufferOnGPU.View.GetAsPageLocked1D();
+        bufferOnGPU.View.CopyFrom(stream, array.ArrayView);
+
+        stream.Synchronize();
+
+        // Retrieve results into existing page locked array
+        bufferOnGPU.View.CopyTo(stream, array.ArrayView);
+
+        // Retrieve results into a new array
+        var result1 = bufferOnGPU.GetAsArray1D();
+
+        // Retrieve results into a new page locked array
+        var result2 = bufferOnGPU.View.GetAsPageLocked1D();
+    }
+
+    static void Main()
+    {
+        const int DataSize = 1024;
+
+        using (var context = Context.CreateDefault())
+        {
+            var device = context.Devices
+                .OrderByDescending(d => d.AcceleratorType switch
+                {
+                    AcceleratorType.Metal  => 5,
+                    AcceleratorType.Cuda   => 4,
+                    AcceleratorType.ROCm   => 3,
+                    AcceleratorType.OpenCL => 2,
+                    AcceleratorType.CPU    => 1,
+                    _                      => 0,
+                })
+                .First();
+
+            using var accelerator = device.CreateAccelerator(context);
+            Console.WriteLine($"Using {accelerator}");
+
+            PerformPinnedCopyUsingGCHandle(accelerator, DataSize);
+            PerformPinnedCopyUsingGCAllocateArray(accelerator, DataSize);
+            PerformPinnedCopyUsingAllocatePageLockedArray(accelerator, DataSize);
         }
 
-        /// <summary>
-        /// Demonstrates async copy operations using the <see cref="CPUAccelerator"/> class to allocate
-        /// pinned CPU memory.
-        /// </summary>
-        static void Main()
+        // Enable automatic page locking
+        using (var context = Context.Create(builder =>
+            builder.Default().PageLocking(PageLockingMode.Auto)))
         {
-            const int DataSize = 1024;
-
-            using (var context = Context.CreateDefault())
-            {
-                // For each available device...
-                foreach (var device in context)
+            var device = context.Devices
+                .OrderByDescending(d => d.AcceleratorType switch
                 {
-                    // Create accelerator for the given device
-                    using var accelerator = device.CreateAccelerator(context);
-                    Console.WriteLine($"Performing operations on {accelerator}");
+                    AcceleratorType.Metal  => 5,
+                    AcceleratorType.Cuda   => 4,
+                    AcceleratorType.ROCm   => 3,
+                    AcceleratorType.OpenCL => 2,
+                    AcceleratorType.CPU    => 1,
+                    _                      => 0,
+                })
+                .First();
 
-                    PerformPinnedCopyUsingGCHandle(accelerator, DataSize);
-                    PerformPinnedCopyUsingGCAllocateArray(accelerator, DataSize);
-                    PerformPinnedCopyUsingAllocatePageLockedArray(accelerator, DataSize);
-                }
-            }
+            using var accelerator = device.CreateAccelerator(context);
+            Console.WriteLine($"Using {accelerator} (Automatic Page Locking)");
 
-            // Enable automatic page locking
-            using (var context = Context.Create(builder => builder.Default().PageLocking(PageLockingMode.Auto)))
-            {
-                // For each available device...
-                foreach (var device in context)
-                {
-                    // Create accelerator for the given device
-                    using var accelerator = device.CreateAccelerator(context);
-                    Console.WriteLine($"Performing operations on {accelerator} (Automatic Page Locking)");
-
-                    PerformPinnedCopyUsingAllocatePageLockedArray(accelerator, DataSize);
-                }
-            }
+            PerformPinnedCopyUsingAllocatePageLockedArray(accelerator, DataSize);
         }
+
+        Console.WriteLine("Done.");
     }
 }
