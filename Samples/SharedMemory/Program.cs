@@ -1,159 +1,134 @@
-﻿// ---------------------------------------------------------------------------------------
-//                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
-//                                    www.ilgpu.net
-//
-// File: Program.cs
-//
-// This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details.
-// ---------------------------------------------------------------------------------------
-
-using ILGPU;
-using ILGPU.Runtime;
 using System;
 using System.Linq;
+using ILGPU;
+using ILGPU.Runtime;
 
-namespace SharedMemory
+namespace SharedMemory;
+
+static class Kernels
 {
-    class Program
+    /// <summary>
+    /// Shared-memory variable kernel: finds the max per group.
+    /// </summary>
+    public static void SharedMemoryVariableKernel(
+        ArrayView1D<int, Stride1D.Dense> dataSource,
+        ArrayView1D<int, Stride1D.Dense> dataTarget)
     {
-        /// <summary>
-        /// Explicitly grouped kernels receive an index type (first parameter) of type:
-        /// <see cref="GroupedIndex"/>, <see cref="GroupedIndex2"/> or <see cref="GroupedIndex3"/>.
-        /// Shared memory is only supported in explicitly-grouped kernel contexts and can be accesses
-        /// via the static <see cref="ILGPU.SharedMemory"/> class.
-        /// </summary>
-        /// <param name="index">The current thread index.</param>
-        /// <param name="dataView">The view pointing to our memory buffer.</param>
-        static void SharedMemoryVariableKernel(
-            ArrayView<int> dataView,          // A view to a chunk of memory (1D in this case)
-            ArrayView<int> outputView)        // A view to a chunk of memory (1D in this case)
-        {
-            // Compute the global 1D index for accessing the data view
-            int globalIndex = Grid.GlobalIndex.X;
+        int globalIndex = (int)Grid.GlobalThreadIndex;
 
-            // 'Allocate' a single shared memory variable of type int (= 4 bytes)
-            ref int sharedVariable = ref ILGPU.SharedMemory.Allocate<int>();
+        // Allocate a single-element shared memory array
+        var shared = Group.GetSharedMemory<int>(1);
 
-            // Initialize shared memory
-            if (Group.IsFirstThread)
-                sharedVariable = 0;
-            // Wait for the initialization to complete
-            Group.Barrier();
+        // Initialize shared memory
+        if (Group.IsFirstThread)
+            shared[0] = 0;
+        Group.Barrier();
 
-            if (globalIndex < dataView.Length)
-                Atomic.Max(ref sharedVariable, dataView[globalIndex]);
+        if (globalIndex < dataSource.Length)
+            Atomic.Max(ref shared[0], dataSource[globalIndex]);
 
-            // Wait for all threads to complete the maximum computation process
-            Group.Barrier();
+        // Wait for all threads to complete the maximum computation
+        Group.Barrier();
 
-            // Write the maximum of all values into the data view
-            if (globalIndex < outputView.Length)
-                outputView[globalIndex] = sharedVariable;
-        }
+        if (globalIndex < dataTarget.Length)
+            dataTarget[globalIndex] = shared[0];
+    }
 
-        /// <summary>
-        /// Demonstrates the use of shared-memory variable referencing multiple elements.
-        /// </summary>
-        /// <param name="index">The current thread index.</param>
-        /// <param name="dataView">The view pointing to our memory buffer.</param>
-        /// <param name="outputView">The view pointing to our memory buffer.</param>
-        /// <param name="sharedArray">Implicit shared-memory parameter that is handled by the runtime.</param>
-        static void SharedMemoryArrayKernel(
-            ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
-            ArrayView<int> outputView)   // A view to a chunk of memory (1D in this case)
-        {
-            // Compute the global 1D index for accessing the data view
-            int globalIndex = Grid.GlobalIndex.X;
+    /// <summary>
+    /// Shared-memory array kernel: computes per-group sum.
+    /// </summary>
+    public static void SharedMemoryArrayKernel(
+        ArrayView1D<int, Stride1D.Dense> dataSource,
+        ArrayView1D<int, Stride1D.Dense> dataTarget)
+    {
+        int globalIndex = (int)Grid.GlobalThreadIndex;
 
-            // Declares a shared-memory array with 128 elements of type int = 4 * 128 = 512 bytes
-            // of shared memory per group
-            // Note that 'Allocate' requires a compile-time known constant array size.
-            // If the size is unknown at compile-time, consider using `GetDynamic`.
-            ArrayView<int> sharedArray = ILGPU.SharedMemory.Allocate<int>(128);
+        // Allocate a shared-memory array with 128 elements
+        ArrayView<int> sharedArray = Group.GetSharedMemory<int>(128);
 
-            // Load the element into shared memory
-            var value = globalIndex < dataView.Length ?
-                dataView[globalIndex] :
-                0;
-            sharedArray[Group.IdxX] = value;
+        // Load the element into shared memory
+        var value = globalIndex < dataSource.Length
+            ? dataSource[globalIndex]
+            : 0;
+        sharedArray[Group.Index] = value;
 
-            // Wait for all threads to complete the loading process
-            Group.Barrier();
+        // Wait for all threads to complete the loading process
+        Group.Barrier();
 
-            // Compute the sum over all elements in the group
-            int sum = 0;
-            for (int i = 0, e = Group.Dimension.X; i < e; ++i)
-                sum += sharedArray[i];
+        // Compute the sum over all elements in the group
+        int sum = 0;
+        for (int i = 0, e = Group.Dimension; i < e; ++i)
+            sum += sharedArray[i];
 
-            // Store the sum
-            if (globalIndex < outputView.Length)
-                outputView[globalIndex] = sum;
-        }
+        if (globalIndex < dataTarget.Length)
+            dataTarget[globalIndex] = sum;
+    }
+}
 
-        /// <summary>
-        /// Launches a simple 1D kernel using shared memory.
-        /// </summary>
-        static void Main()
-        {
-            // Create main context
-            using var context = Context.CreateDefault();
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.CreateDefault();
 
-            // For each available device...
-            foreach (var device in context)
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
             {
-                // Create accelerator for the given device
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-                // The maximum group size in this example is 128 since the second
-                // kernel has a shared-memory array of 128 elements.
-                var groupSize = Math.Min(accelerator.MaxNumThreadsPerGroup, 128);
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Using {accelerator}");
+        var stream = accelerator.DefaultStream;
 
-                var data = Enumerable.Range(1, 128).ToArray();
+        // The maximum group size in this example is 128 since the second
+        // kernel has a shared-memory array of 128 elements.
+        var groupSize = Math.Min(accelerator.MaxNumThreadsPerGroup, 128);
 
-                // Initialize data source
-                using var dataSource = accelerator.Allocate1D<int>(data.Length);
-                dataSource.CopyFromCPU(data);
+        var data = Enumerable.Range(1, 128).ToArray();
 
-                KernelConfig dimension = (
-                    ((int)dataSource.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
-                    groupSize);                                           // Use the given group size
+        using var dataSource = stream.Allocate1D<int>(data.Length);
+        dataSource.CopyFromCPU(data);
 
-                using var dataTarget = accelerator.Allocate1D<int>(data.Length);
-                var sharedMemVarKernel = accelerator.LoadStreamKernel<
-                    ArrayView<int>, ArrayView<int>>(SharedMemoryVariableKernel);
-                dataTarget.MemSetToZero();
+        int numGroups = (data.Length + groupSize - 1) / groupSize;
+        var config = new KernelConfig(gridDim: numGroups, groupDim: groupSize);
 
-                // Note that shared memory cannot be accessed from the outside
-                // and must be initialized by the kernel
-                sharedMemVarKernel(dimension, dataSource.View, dataTarget.View);
+        using var dataTarget = stream.Allocate1D<int>(data.Length);
 
-                // Reads data from the GPU buffer into a new CPU array.
-                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                // that the kernel and memory copy are completed first.
-                Console.WriteLine("Shared-memory kernel");
-                var target = dataTarget.GetAsArray1D();
-                for (int i = 0, e = target.Length; i < e; ++i)
-                    Console.WriteLine($"Data[{i}] = {target[i]}");
+        // Shared-memory variable kernel: finds the max per group
+        {
+            dataTarget.MemSetToZero();
 
-                var sharedMemArrKernel = accelerator.LoadStreamKernel<
-                    ArrayView<int>, ArrayView<int>>(SharedMemoryArrayKernel);
-                dataTarget.MemSetToZero();
+            stream.Launch(in config, index =>
+                Kernels.SharedMemoryVariableKernel(dataSource.View, dataTarget.View));
+            stream.Synchronize();
 
-                // Note that shared memory cannot be accessed from the outside
-                // and must be initialized by the kernel
-                sharedMemArrKernel(dimension, dataSource.View, dataTarget.View);
-
-                // Reads data from the GPU buffer into a new CPU array.
-                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                // that the kernel and memory copy are completed first.
-                Console.WriteLine("Shared-memory-array kernel");
-                target = dataTarget.GetAsArray1D();
-                for (int i = 0, e = target.Length; i < e; ++i)
-                    Console.WriteLine($"Data[{i}] = {target[i]}");
-            }
+            Console.WriteLine("Shared-memory kernel");
+            var target = dataTarget.GetAsArray1D();
+            for (int i = 0, e = target.Length; i < e; ++i)
+                Console.WriteLine($"Data[{i}] = {target[i]}");
         }
+
+        // Shared-memory array kernel: computes per-group sum
+        {
+            dataTarget.MemSetToZero();
+
+            stream.Launch(in config, index =>
+                Kernels.SharedMemoryArrayKernel(dataSource.View, dataTarget.View));
+            stream.Synchronize();
+
+            Console.WriteLine("Shared-memory-array kernel");
+            var target = dataTarget.GetAsArray1D();
+            for (int i = 0, e = target.Length; i < e; ++i)
+                Console.WriteLine($"Data[{i}] = {target[i]}");
+        }
+
+        Console.WriteLine("Done.");
     }
 }
