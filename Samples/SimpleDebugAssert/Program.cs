@@ -1,73 +1,52 @@
-﻿// ---------------------------------------------------------------------------------------
-//                                    ILGPU Samples
-//                        Copyright (c) 2021-2024 ILGPU Project
-//                                    www.ilgpu.net
-//
-// File: Program.cs
-//
-// This file is part of ILGPU and is distributed under the University of Illinois Open
-// Source License. See LICENSE.txt for details.
-// ---------------------------------------------------------------------------------------
-
-using ILGPU;
-using ILGPU.Runtime;
-using ILGPU.Runtime.Cuda;
-using ILGPU.Runtime.OpenCL;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using ILGPU;
+using ILGPU.Runtime;
 
-namespace SimpleDebugAssert
+namespace SimpleDebugAssert;
+
+static class Kernels
 {
-    class Program
+    public static void DebugAssertKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> dataView)
     {
-        /// <summary>
-        /// Example of using Debug.Assert to help debugging.
-        /// </summary>
-        static void DebugAssertKernel(Index1D index, ArrayView<int> dataView)
-        {
-            /// NB: Only <see cref="Debug.Assert(bool)"/> and
-            /// <see cref="Debug.Assert(bool, string)"/> are currently supported.
-            Debug.Assert(index == 0, "Failure at this line");
-        }
+        Debug.Assert(index == 0, "Failure at this line");
+    }
+}
 
+static class Program
+{
+    static void Main()
+    {
+        var values = Enumerable.Range(0, 4).ToArray();
 
-        /// <summary>
-        /// Example of using Interop.WriteLine within a kernel. Useful for debugging
-        /// GPU kernels.
-        /// </summary>
-        static void Main()
-        {
-            var values = Enumerable.Range(0, 4).ToArray();
+        using var context = Context.CreateDefault();
 
-            // Create main context
-            using var context = Context.Create(builder =>
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
             {
-                builder.Default().DebugConfig(
-                    enableAssertions: true,
-                    forceDebuggingOfOptimizedKernels: true);
-                // Alternatives to explore:
-                //   builder.Default();
-                //   builder.AllAccelerators().Debug();
-                //   builder.Default().Optimize(OptimizationLevel.Debug);
-            });
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-            // For each available device...
-            foreach (var device in context)
-            {
-                // Create accelerator for the given device
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Performing operations on {accelerator}");
+        var stream = accelerator.DefaultStream;
 
-                var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<int>>(DebugAssertKernel);
-                using var buffer = accelerator.Allocate1D(values);
+        using var buffer = stream.Allocate1D(values);
 
-                kernel((int)buffer.Length, buffer.View);
+        stream.Launch(
+            (Index1D)buffer.Length,
+            index => Kernels.DebugAssertKernel(index, buffer.View));
+        stream.Synchronize();
 
-                // Wait for the kernel to finish before the accelerator is disposed
-                // at the end of this block.
-                accelerator.Synchronize();
-            }
-        }
+        Console.WriteLine("Done.");
     }
 }
