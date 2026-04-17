@@ -14,6 +14,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 #if NET7_0_OR_GREATER
@@ -478,7 +479,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
         {
             ref var baseRef = ref positions.AsSpan().GetItemRef(
                 playerIndex * NumPaddedDimensions);
-            return new Span<T>(Unsafe.AsPointer(ref baseRef), NumPaddedDimensions);
+            return MemoryMarshal.CreateSpan(ref baseRef, NumPaddedDimensions);
         }
 
         /// <summary>
@@ -493,7 +494,7 @@ namespace ILGPU.Algorithms.Optimization.CPU
         {
             ref var baseRef = ref nextPositions.AsSpan().GetItemRef(
                 playerIndex * NumPaddedDimensions);
-            return new Span<T>(Unsafe.AsPointer(ref baseRef), NumPaddedDimensions);
+            return MemoryMarshal.CreateSpan(ref baseRef, NumPaddedDimensions);
         }
 
         /// <summary>
