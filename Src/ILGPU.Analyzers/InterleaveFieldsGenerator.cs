@@ -34,7 +34,7 @@ namespace ILGPU.Analyzers
             id: "ILA001",
             title: ErrorMessages.StructMustBePartial_Title,
             messageFormat: ErrorMessages.StructMustBePartial_Message,
-            category: ErrorMessages.Usage_Category,
+            category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
@@ -42,7 +42,7 @@ namespace ILGPU.Analyzers
             id: "ILA002",
             title: ErrorMessages.ContainingTypeMustBePartial_Title,
             messageFormat: ErrorMessages.ContainingTypeMustBePartial_Message,
-            category: ErrorMessages.Usage_Category,
+            category: DiagnosticCategory.Usage,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 

@@ -36,6 +36,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Resources\ILA003_ManagedTypeInKernel.resx">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ILA003_ManagedTypeInKernel.Designer.cs</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\ILA004_ManagedTypeArrayInKernel.resx">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ILA004_ManagedTypeArrayInKernel.Designer.cs</DependentUpon>
+    </Compile>
     <Compile Update="Resources\ErrorMessages.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
