@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2016-2023 ILGPU Project
+//                        Copyright (c) 2016-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PrimitiveDataBlocks.tt/PrimitiveDataBlocks.cs
@@ -21,9 +21,9 @@
         new { TypeName = "Short", Info = SignedIntTypes[1] },
         new { TypeName = "Int", Info = SignedIntTypes[2] },
         new { TypeName = "Long", Info = SignedIntTypes[3] },
-        new { TypeName = "Half", Info = FloatTypes[0] },
-        new { TypeName = "Float", Info = FloatTypes[1] },
-        new { TypeName = "Double", Info = FloatTypes[2] },
+        new { TypeName = "Half", Info = FloatTypes[3] },
+        new { TypeName = "Float", Info = FloatTypes[4] },
+        new { TypeName = "Double", Info = FloatTypes[5] },
     };
 #>
 <# var typeParameterRanges = new int[] { 2, 3, 4 }; #>

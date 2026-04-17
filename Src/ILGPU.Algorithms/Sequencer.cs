@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                   ILGPU Algorithms
-//                        Copyright (c) 2019-2021 ILGPU Project
+//                        Copyright (c) 2019-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Sequencer.cs
@@ -40,6 +40,39 @@ namespace ILGPU.Algorithms.Sequencers
         public readonly Index1D ComputeSequenceElement(LongIndex1D sequenceIndex) =>
             (Index1D)sequenceIndex;
     }
+
+
+    /// <summary>
+    /// Represents an identity implementation of a FP8E4M3 sequencer.
+    /// </summary>
+    public readonly struct FP8E4M3Sequencer : ISequencer<FP8E4M3>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public readonly FP8E4M3 ComputeSequenceElement(LongIndex1D sequenceIndex)
+            => (FP8E4M3)sequenceIndex.X;
+    }
+
+    /// <summary>
+    /// Represents an identity implementation of a FP8E5M2 sequencer.
+    /// </summary>
+    public readonly struct FP8E5M2Sequencer : ISequencer<FP8E5M2>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public readonly FP8E5M2 ComputeSequenceElement(LongIndex1D sequenceIndex) =>
+            (FP8E5M2)sequenceIndex.X;
+    }
+
+    /// <summary>
+    /// Represents an identity implementation of a BF16 sequencer.
+    /// </summary>
+    public readonly struct BF16Sequencer : ISequencer<BF16>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(LongIndex1D)" />
+        public readonly BF16 ComputeSequenceElement(LongIndex1D sequenceIndex) =>
+            (BF16)sequenceIndex.X;
+    }
+
+
 
     /// <summary>
     /// Represents an identity implementation of a half sequencer.

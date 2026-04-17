@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: BasicValueType.cs
@@ -45,6 +45,23 @@ namespace ILGPU
         /// Represents a 64-bit integer.
         /// </summary>
         Int64,
+
+        /// <summary>
+        /// Represents a 8-bit float with 3 bit mantissa.
+        /// </summary>
+        Float8E4M3,
+
+
+        /// <summary>
+        /// Represents a 8-bit float with 2 bit mantissa.
+        /// </summary>
+        Float8E5M2,
+
+
+        /// <summary>
+        /// Represents a 16-bit brain float.
+        /// </summary>
+        BFloat16,
 
         /// <summary>
         /// Represents a 16-bit float.
@@ -96,6 +113,22 @@ namespace ILGPU
         /// Represents a 64-bit integer.
         /// </summary>
         Int64,
+
+        /// <summary>
+        /// Represents a 8-bit float with 3 bit mantissa.
+        /// </summary>
+        Float8E4M3,
+
+        /// <summary>
+        /// Represents a 8-bit float with 2 bit mantissa.
+        /// </summary>
+        Float8E5M2,
+
+        /// <summary>
+        /// Represents a 16-bit brain float.
+        /// </summary>
+        BFloat16,
+
 
         /// <summary>
         /// Represents a 16-bit float.
