@@ -107,7 +107,7 @@ namespace ILGPU.Tests
                 .ThrowIfNull();
             var method = methodInfo.MakeGenericMethod(genericType);
 
-            var disassembler = new Disassembler(method, SequencePointEnumerator.Empty);
+            var disassembler = new Disassembler(new(null, method), SequencePointEnumerator.Empty);
             disassembler.Disassemble();
         }
     }

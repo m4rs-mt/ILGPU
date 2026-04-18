@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
+using ILGPU.IR.Construction;
 using ILGPU.IR.Transformations;
 using ILGPU.Util;
 using System;
@@ -35,7 +36,7 @@ namespace ILGPU.Frontend
         private readonly struct ProcessingEntry
         {
             public ProcessingEntry(
-                MethodBase method,
+                SpecializedMethod method,
                 CompilationStackLocation compilationStackLocation,
                 CodeGenerationResult? result)
             {
@@ -47,7 +48,7 @@ namespace ILGPU.Frontend
             /// <summary>
             /// Returns the method.
             /// </summary>
-            public MethodBase Method { get; }
+            public SpecializedMethod Method { get; }
 
             /// <summary>
             /// Returns the source location.
@@ -166,7 +167,7 @@ namespace ILGPU.Frontend
             Justification = "Must be caught to propagate errors")]
         private void DoWork()
         {
-            var detectedMethods = new Dictionary<MethodBase, CompilationStackLocation>();
+            var detectedMethods = new Dictionary<SpecializedMethod, CompilationStackLocation>();
             for (; ; )
             {
                 ProcessingEntry current;
@@ -243,7 +244,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="method">The method.</param>
         /// <returns>The generation future.</returns>
-        internal CodeGenerationResult GenerateCode(MethodBase method)
+        internal CodeGenerationResult GenerateCode(SpecializedMethod method)
         {
             var result = new CodeGenerationResult(method);
             lock (processingSyncObject)
@@ -251,7 +252,7 @@ namespace ILGPU.Frontend
                 driverNotifier.Reset();
                 processing.Push(new ProcessingEntry(
                     method,
-                    new CompilationStackLocation(new Method.MethodLocation(method)),
+                    new CompilationStackLocation(new Method.MethodLocation(method.Underlying)),
                     result));
                 Monitor.Pulse(processingSyncObject);
             }
@@ -333,7 +334,7 @@ namespace ILGPU.Frontend
         /// Creates a new code generation result.
         /// </summary>
         /// <param name="method">The associated method.</param>
-        internal CodeGenerationResult(MethodBase method)
+        internal CodeGenerationResult(SpecializedMethod method)
         {
             Method = method;
         }
@@ -341,7 +342,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the associated method.
         /// </summary>
-        public MethodBase Method { get; }
+        public SpecializedMethod Method { get; }
 
         /// <summary>
         /// The associated function result.
@@ -443,22 +444,22 @@ namespace ILGPU.Frontend
         /// <param name="detectedMethods">The set of newly detected methods.</param>
         /// <param name="generatedMethod">The resolved IR method.</param>
         internal void GenerateCodeInternal(
-            MethodBase method,
+            SpecializedMethod method,
             bool isExternalRequest,
             CompilationStackLocation compilationStackLocation,
-            Dictionary<MethodBase, CompilationStackLocation> detectedMethods,
+            Dictionary<SpecializedMethod, CompilationStackLocation> detectedMethods,
             out Method generatedMethod)
         {
+
             ILocation? location = null;
-            try
-            {
+            try {
                 generatedMethod = Context.Declare(method, out bool created);
                 if (!created & isExternalRequest)
                     return;
                 location = generatedMethod;
 
                 SequencePointEnumerator sequencePoints =
-                    DebugInformationManager?.LoadSequencePoints(method)
+                    DebugInformationManager?.LoadSequencePoints(method.Underlying)
                     ?? SequencePointEnumerator.Empty;
                 var disassembler = new Disassembler(
                     method,
@@ -494,7 +495,7 @@ namespace ILGPU.Frontend
             catch (Exception e)
             {
                 // Wrap generic exceptions with location information.
-                location ??= new Method.MethodLocation(method);
+                location ??= new Method.MethodLocation(method.Underlying);
                 throw location.GetException(e);
             }
         }
@@ -504,9 +505,9 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="method">The method.</param>
         /// <returns>A completion future.</returns>
-        public CodeGenerationResult GenerateCode(MethodBase method)
+        public CodeGenerationResult GenerateCode(SpecializedMethod method)
         {
-            if (method == null)
+            if (method.Underlying == null)
                 throw new ArgumentNullException(nameof(method));
             hadWorkToDo = true;
             return Frontend.GenerateCode(method);

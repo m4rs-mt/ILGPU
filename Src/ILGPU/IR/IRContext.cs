@@ -172,10 +172,10 @@ namespace ILGPU.IR
         /// <param name="handle">The resolved function reference (if any).</param>
         /// <returns>True, if the requested function could be resolved.</returns>
         public bool TryGetMethodHandle(
-            MethodBase method,
+            SpecializedMethod method,
             [NotNullWhen(true)] out MethodHandle? handle)
         {
-            if (method == null)
+            if (method.Underlying == null)
                 throw new ArgumentNullException(nameof(method));
 
             // Synchronize all accesses below using a read scope
@@ -213,10 +213,10 @@ namespace ILGPU.IR
         /// <param name="function">The resolved function (if any).</param>
         /// <returns>True, if the requested function could be resolved.</returns>
         public bool TryGetMethod(
-            MethodBase method,
+            SpecializedMethod method,
             [NotNullWhen(true)] out Method? function)
         {
-            if (method == null)
+            if (method.Underlying == null)
                 throw new ArgumentNullException(nameof(method));
 
             // Synchronize all accesses below using a read scope
@@ -245,27 +245,26 @@ namespace ILGPU.IR
         /// <param name="methodBase">The method to declare.</param>
         /// <param name="created">True, if the method has been created.</param>
         /// <returns>The declared method.</returns>
-        public Method Declare(MethodBase methodBase, out bool created)
+        public Method Declare(SpecializedMethod method, out bool created)
         {
-            Debug.Assert(methodBase != null, "Invalid method base");
+            Debug.Assert(method != null, "Invalid method base");
 
             // Synchronize all accesses below using a read scope
             using var readScope = irLock.EnterUpgradeableReadScope();
 
             // Check for existing method
-            if (methods.TryGetHandle(methodBase, out MethodHandle? handle))
-            {
+            if (methods.TryGetHandle(method, out MethodHandle? handle)) {
                 created = false;
                 return methods[handle.Value];
             }
 
-            var externalAttribute = methodBase.GetCustomAttribute<ExternalAttribute>();
-            var methodName = externalAttribute?.Name ?? methodBase.Name;
+            var externalAttribute = method.Underlying.GetCustomAttribute<ExternalAttribute>();
+            var methodName = externalAttribute?.Name ?? method.Underlying.Name;
             handle = MethodHandle.Create(methodName);
             var declaration = new MethodDeclaration(
                 handle.Value,
-                CreateType(methodBase.GetReturnType()),
-                methodBase);
+                CreateType(method.Underlying.GetReturnType()),
+                method);
 
             // Declare a new method sync using a write scope
             using var writeScope = readScope.EnterWriteScope();
@@ -322,8 +321,7 @@ namespace ILGPU.IR
             out MethodHandle handle)
         {
             var methodId = Context.CreateMethodHandle();
-            var methodName = declaration.Handle.Name ??
-                (declaration.HasSource ? declaration.Source.AsNotNull().Name : "Func");
+            var methodName = declaration.Handle.Name ?? (declaration.Source != null ? declaration.Source.Value.Underlying.Name : "Func");
             handle = new MethodHandle(methodId, methodName);
             var specializedDeclaration = declaration.Specialize(handle);
 
@@ -350,11 +348,9 @@ namespace ILGPU.IR
             var bbBuilder = builder.EntryBlockBuilder;
 
             // Attach all method parameters
-            if (method.HasSource)
-            {
-                var parameters = method.Source.GetParameters();
-                foreach (var parameter in parameters)
-                {
+            if (method.Source != null) {
+                var parameters = method.Source.Value.Underlying.GetParameters();
+                foreach (var parameter in parameters) {
                     var paramType = bbBuilder.CreateType(parameter.ParameterType);
                     builder.AddParameter(paramType, parameter.Name);
                 }

@@ -221,7 +221,7 @@ namespace ILGPU.IR
             /// <summary>
             /// Returns the original source method (may be null).
             /// </summary>
-            public MethodBase Source => Method.Source;
+            public SpecializedMethod? Source => Method.Source;
 
             /// <summary>
             /// Returns all blocks of the source method.

@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Construction;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -148,7 +149,7 @@ namespace ILGPU.Frontend.Intrinsic
                 {
                     AddRemapping(
                         srcFunc,
-                        (ref InvocationContext context) => context.Method = dstFunc);
+                        (ref InvocationContext context) => context.Method = new(targetType, dstFunc));
                 }
                 else if (required)
                 {
@@ -184,9 +185,8 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="context">The invocation context.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void RemapIntrinsic(ref InvocationContext context)
-        {
-            if (FunctionRemappers.TryGetValue(context.Method, out var remapper))
+        public static void RemapIntrinsic(ref InvocationContext context) {
+            if (FunctionRemappers.TryGetValue(context.Method.Underlying, out var remapper))
                 remapper(ref context);
         }
 

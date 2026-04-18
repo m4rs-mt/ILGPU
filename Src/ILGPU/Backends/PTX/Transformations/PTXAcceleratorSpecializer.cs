@@ -129,7 +129,7 @@ namespace ILGPU.Backends.PTX.Transformations
             var innerBuilder = methodBuilder[innerBlock];
             var assertFailed = innerBuilder.CreateCall(
                 location,
-                context.Declare(AssertFailedMethod, out var _));
+                context.Declare(new(null, AssertFailedMethod), out var _));
 
             // Move the debug assertion to this block
             var sourceMessage = debugAssert.Message.ResolveAs<StringValue>().AsNotNull();
@@ -208,7 +208,7 @@ namespace ILGPU.Backends.PTX.Transformations
                 MemoryAddressSpace.Generic);
 
             // Create a call to the native printf
-            var printFMethod = context.Declare(PrintFMethod, out bool _);
+            var printFMethod = context.Declare(new(null, PrintFMethod), out bool _);
             var callBuilder = builder.CreateCall(location, printFMethod);
             callBuilder.Add(expression);
             callBuilder.Add(alloca);

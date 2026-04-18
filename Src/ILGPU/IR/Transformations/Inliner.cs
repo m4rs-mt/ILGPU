@@ -44,9 +44,8 @@ namespace ILGPU.IR.Transformations
             if (!method.HasImplementation)
                 return;
 
-            if (method.HasSource)
-            {
-                var source = method.Source;
+            if (method.Source != null) {
+                var source = method.Source.Value.Underlying;
                 if ((source.MethodImplementationFlags &
                     MethodImplAttributes.NoInlining) ==
                     MethodImplAttributes.NoInlining)

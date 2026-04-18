@@ -12,6 +12,7 @@
 using ILGPU.Frontend;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
+using ILGPU.IR.Construction;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -298,7 +299,7 @@ namespace ILGPU.IR
             /// Constructs a new method location.
             /// </summary>
             /// <param name="method">The target method (if any).</param>
-            public MethodLocation(MethodBase method)
+            public MethodLocation(MethodBase? method)
             {
                 Method = method;
             }
@@ -306,7 +307,7 @@ namespace ILGPU.IR
             /// <summary>
             /// Returns the managed method (if any).
             /// </summary>
-            public MethodBase Method { get; }
+            public MethodBase? Method { get; }
 
             /// <summary>
             /// Tries to include managed method information if possible.
@@ -400,10 +401,9 @@ namespace ILGPU.IR
             : base(
                   location.IsKnown
                   ? location
-                  : new MethodLocation(declaration.Source.AsNotNull()))
+                  : new MethodLocation(declaration.Source?.Underlying))
         {
-            Location.Assert(
-                declaration.HasHandle && declaration.ReturnType != null);
+            Location.Assert(declaration.HasHandle && declaration.ReturnType != null);
 
             BaseContext = baseContext;
             Declaration = declaration;
@@ -449,12 +449,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the original source method (may be null).
         /// </summary>
-        public MethodBase Source => Declaration.Source.AsNotNull();
-
-        /// <summary>
-        /// Returns true if the associated source method is not null.
-        /// </summary>
-        public bool HasSource => Declaration.HasSource;
+        public SpecializedMethod? Source => Declaration.Source;
 
         /// <summary>
         /// Returns the return-type of the method.

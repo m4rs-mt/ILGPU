@@ -37,8 +37,8 @@ namespace ILGPU.Backends
         /// </param>
         public NotSupportedIntrinsicException(Method intrinsicMethod)
             : this(
-                  intrinsicMethod.HasSource
-                  ? intrinsicMethod.Source.Name
+                  intrinsicMethod.Source != null
+                  ? intrinsicMethod.Source.Value.Underlying.Name
                   : intrinsicMethod.Name)
         { }
 

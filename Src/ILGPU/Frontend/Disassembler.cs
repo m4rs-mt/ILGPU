@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
+using ILGPU.IR.Construction;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
@@ -82,32 +83,30 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Constructs a new disassembler.
         /// </summary>
-        /// <param name="methodBase">The target method.</param>
+        /// <param name="method">The target method.</param>
         /// <param name="sequencePointEnumerator">
         /// The associated sequence-point enumerator.
         /// </param>
         /// <param name="compilationStackLocation">The source location (optional).</param>
         public Disassembler(
-            MethodBase methodBase,
+            SpecializedMethod? method,
             SequencePointEnumerator sequencePointEnumerator,
-            CompilationStackLocation? compilationStackLocation = null)
-        {
-            MethodBase = methodBase
-                ?? throw new ArgumentNullException(nameof(methodBase));
-            MethodGenericArguments = MethodBase is MethodInfo
-                ? MethodBase.GetGenericArguments()
+            CompilationStackLocation? compilationStackLocation = null) {
+            Method = method
+                ?? throw new ArgumentNullException(nameof(method));
+            MethodGenericArguments = Method.Underlying is MethodInfo
+                ? Method.Underlying.GetGenericArguments()
                 : Array.Empty<Type>();
-            TypeGenericArguments =
-                MethodBase.DeclaringType.AsNotNull().GetGenericArguments();
-            MethodBody = MethodBase.GetMethodBody()
+            TypeGenericArguments = Method.Underlying.DeclaringType.AsNotNull().GetGenericArguments();
+            MethodBody = Method.Underlying.GetMethodBody()
                 ?? throw new NotSupportedException(string.Format(
                     ErrorMessages.NativeMethodNotSupported,
-                    MethodBase.Name));
+                    Method.Underlying.Name));
             il = MethodBody.GetILAsByteArray() ?? Array.Empty<byte>();
             instructions = ImmutableArray.CreateBuilder<ILInstruction>(il.Length);
             debugInformationEnumerator = sequencePointEnumerator;
             this.compilationStackLocation = compilationStackLocation;
-            CurrentLocation = new Method.MethodLocation(methodBase);
+            CurrentLocation = new Method.MethodLocation(method.Value.Underlying);
         }
 
         #endregion
@@ -117,7 +116,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the current method base.
         /// </summary>
-        public MethodBase MethodBase { get; }
+        public SpecializedMethod Method { get; }
 
         /// <summary>
         /// Returns the current method body.
@@ -127,7 +126,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the declaring type of the method.
         /// </summary>
-        public Type DeclaringType => MethodBase.DeclaringType.AsNotNull();
+        public Type DeclaringType => Method.Underlying.DeclaringType.AsNotNull();
 
         /// <summary>
         /// Returns the associated managed module.
@@ -211,7 +210,7 @@ namespace ILGPU.Frontend
             }
 
             return new DisassembledMethod(
-                MethodBase,
+                Method,
                 instructions.ToImmutable(),
                 MethodBody.MaxStackSize);
         }

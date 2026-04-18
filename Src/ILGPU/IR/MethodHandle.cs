@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System;
 using System.Diagnostics;
@@ -229,7 +230,7 @@ namespace ILGPU.IR
         public MethodDeclaration(
             MethodHandle handle,
             TypeNode returnType,
-            MethodBase source)
+            SpecializedMethod source)
             : this(handle, returnType, source, MethodFlags.None)
         { }
 
@@ -243,9 +244,8 @@ namespace ILGPU.IR
         public MethodDeclaration(
             MethodHandle handle,
             TypeNode returnType,
-            MethodBase? source,
-            MethodFlags flags)
-        {
+            SpecializedMethod? source,
+            MethodFlags flags) {
             Handle = handle;
             ReturnType = returnType
                 ?? throw new ArgumentNullException(nameof(returnType));
@@ -253,7 +253,7 @@ namespace ILGPU.IR
             Flags = flags;
 
             if (flags == MethodFlags.None && Source != null)
-                Flags = Method.ResolveMethodFlags(Source);
+                Flags = Method.ResolveMethodFlags(Source.Value.Underlying);
         }
 
         #endregion
@@ -286,14 +286,9 @@ namespace ILGPU.IR
         public TypeNode ReturnType { get; }
 
         /// <summary>
-        /// Returns true if the associated source method is not null.
-        /// </summary>
-        public bool HasSource => Source != null;
-
-        /// <summary>
         /// Returns the managed source method.
         /// </summary>
-        public MethodBase? Source { get; }
+        public SpecializedMethod? Source { get; }
 
         #endregion
 

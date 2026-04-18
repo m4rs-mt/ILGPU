@@ -192,7 +192,7 @@ namespace ILGPU.Frontend
                     DisassembleCall(ILInstructionType.Callvirt, ReadIntArg());
                     return true;
                 case ILOpCode.Ret:
-                    AppendInstruction(ILInstructionType.Ret, (ushort)MethodBase.GetParameterOffset(), 0, OpCodes.Ret);
+                    AppendInstruction(ILInstructionType.Ret, (ushort)Method.Underlying.GetParameterOffset(), 0, OpCodes.Ret);
                     return true;
 
                     // Branch
@@ -708,7 +708,7 @@ namespace ILGPU.Frontend
                 case ILOpCode.Tail:
                     AddFlags(ILInstructionFlags.Tail);
                     return true;
-                case ILOpCode.Constrained: 
+                case ILOpCode.Constrained:
                     AddFlags(ILInstructionFlags.Constrained);
                     flagsArgument = ReadTypeArg();
                     return true;

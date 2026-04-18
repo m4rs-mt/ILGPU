@@ -174,20 +174,17 @@ namespace ILGPU.Frontend.Intrinsic
             result = default;
             var method = context.Method;
 
-            var intrinsic = method.GetCustomAttribute<IntrinsicAttribute>();
+            var intrinsic = method.Underlying.GetCustomAttribute<IntrinsicAttribute>();
             if (intrinsic != null)
                 result = IntrinsicHandlers[(int)intrinsic.Type](ref context, intrinsic);
 
-            if (IsIntrinsicArrayType(method.DeclaringType.AsNotNull()))
-            {
+            var ty = method.InstanceType.AsNotNull();
+            if (IsIntrinsicArrayType(ty)) {
                 result = HandleArrays(ref context);
                 // All array operations will be handled by the ILGPU intrinsic handlers
                 return true;
             }
-            else if (FunctionHandlers.TryGetValue(
-                method.DeclaringType.AsNotNull(),
-                out DeviceFunctionHandler? handler))
-            {
+            else if (FunctionHandlers.TryGetValue(ty, out DeviceFunctionHandler? handler)) {
                 result = handler(ref context);
             }
 
@@ -208,14 +205,14 @@ namespace ILGPU.Frontend.Intrinsic
             var location = context.Location;
 
             var genericArgs = context.GetMethodGenericArguments();
-            if (context.Method.Name != nameof(Activator.CreateInstance) ||
+            if (context.Method.Underlying.Name != nameof(Activator.CreateInstance) ||
                 context.NumArguments != 0 ||
                 genericArgs.Length != 1 ||
                 !genericArgs[0].IsValueType)
             {
                 throw context.Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedActivatorOperation,
-                    context.Method.Name);
+                    context.Method.Underlying.Name);
             }
 
             return context.Builder.CreateNull(
@@ -233,7 +230,7 @@ namespace ILGPU.Frontend.Intrinsic
             var builder = context.Builder;
             var location = context.Location;
 
-            return context.Method.Name switch
+            return context.Method.Underlying.Name switch
             {
                 nameof(Debug.Assert) when context.NumArguments == 1 =>
                     builder.CreateDebugAssert(
@@ -249,7 +246,7 @@ namespace ILGPU.Frontend.Intrinsic
                         context[0]),
                 _ => throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedIntrinsic,
-                    context.Method.Name),
+                    context.Method.Underlying.Name),
             };
         }
 
@@ -260,14 +257,14 @@ namespace ILGPU.Frontend.Intrinsic
         /// <returns>The resulting value.</returns>
         private static Value HandleRuntimeHelper(ref InvocationContext context)
         {
-            switch (context.Method.Name)
+            switch (context.Method.Underlying.Name)
             {
                 case nameof(RuntimeHelpers.InitializeArray):
                     InitializeArray(ref context);
                     return context.Builder.CreateUndefined();
             }
             throw context.Location.GetNotSupportedException(
-                ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
+                ErrorMessages.NotSupportedIntrinsic, context.Method.Underlying.Name);
         }
 
         /// <summary>
@@ -324,13 +321,13 @@ namespace ILGPU.Frontend.Intrinsic
         /// <returns>The resulting value.</returns>
         private static Value HandleUnsafe(ref InvocationContext context)
         {
-            switch (context.Method.Name)
+            switch (context.Method.Underlying.Name)
             {
                 case nameof(Unsafe.As):
                     return ConvertUnsafeAs(ref context);
             }
             throw context.Location.GetNotSupportedException(
-                ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
+                ErrorMessages.NotSupportedIntrinsic, context.Method.Underlying.Name);
         }
 
         /// <summary>
@@ -343,9 +340,9 @@ namespace ILGPU.Frontend.Intrinsic
             var location = context.Location;
             var sourceValue = context[0];
             var methodReturnType = context.TypeContext.CreateType(
-                context.Method.GetReturnType()).As<PointerType>(location);
+                context.Method.Underlying.GetReturnType()).As<PointerType>(location);
 
-            return sourceValue.Type == methodReturnType || methodReturnType.IsRootType
+            return Equals(sourceValue.Type, methodReturnType) || methodReturnType.IsRootType
                 ? sourceValue.Resolve()
                 : codeGenerator.CreateConversion(
                     sourceValue,
