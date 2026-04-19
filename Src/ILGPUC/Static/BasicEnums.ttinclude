@@ -1,0 +1,62 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2024-2025 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BasicEnums.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Xml.Serialization" #>
+<#+
+[XmlRoot("Enums")]
+public class EnumInformation
+{
+    public static EnumDefinition[] Load(string rootPath) =>
+        XmlHelper.Load<EnumInformation>(rootPath, "BasicEnums.xml").Enums;
+
+    public static Dictionary<string, EnumValue[]> LoadEnums(string rootPath) =>
+        Load(rootPath).ToDictionary(t => t.Name, t => t.Values);
+
+    [XmlElement("Enum")]
+    public EnumDefinition[] Enums { get; set; } = Array.Empty<EnumDefinition>();
+}
+
+[XmlType("Enum")]
+public class EnumDefinition
+{
+    [XmlAttribute]
+    public string Name { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string? Description { get; set; }
+
+    [XmlElement("Value")]
+    public EnumValue[] Values { get; set; } = Array.Empty<EnumValue>();
+}
+
+[XmlType("Value")]
+public class EnumValue
+{
+    [XmlAttribute]
+    public string Name { get; set; } = string.Empty;
+
+    [XmlAttribute]
+    public string? Description { get; set; }
+
+    [XmlAttribute]
+    public string Type { get; set; }
+
+    [XmlIgnore]
+    public string TypeName => char.ToUpper(Type[0]) + Type[1..];
+}
+#>

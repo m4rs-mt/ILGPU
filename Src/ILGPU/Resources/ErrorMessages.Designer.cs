@@ -833,5 +833,32 @@ namespace ILGPU.Resources {
                 return ResourceManager.GetString("NoUses", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Closure allocation of type '{0}' inside a loop is not supported.
+        /// </summary>
+        internal static string NotSupportedClosureAllocationInLoop {
+            get {
+                return ResourceManager.GetString("NotSupportedClosureAllocationInLoop", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot statically devirtualize delegate invocation '{0}'.
+        /// </summary>
+        internal static string NotSupportedCannotDevirtualizeDelegate {
+            get {
+                return ResourceManager.GetString("NotSupportedCannotDevirtualizeDelegate", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Recursive reference type '{0}' is not supported.
+        /// </summary>
+        internal static string NotSupportedRecursiveReferenceType {
+            get {
+                return ResourceManager.GetString("NotSupportedRecursiveReferenceType", resourceCulture);
+            }
+        }
     }
 }
