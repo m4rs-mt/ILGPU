@@ -343,6 +343,11 @@ namespace ILGPU.Runtime.Cuda
                 DeviceAttributeKind.
                     CU_DEVICE_ATTRIBUTE_CAN_USE_HOST_POINTER_FOR_REGISTERED_MEM,
                 DeviceId) != 0;
+
+            // Resolve whether this device has IPC support
+            HasIpcSupport = CurrentAPI.GetDeviceAttribute(
+                DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORT,
+                DeviceId) != 0;
         }
 
         /// <summary>
@@ -460,6 +465,11 @@ namespace ILGPU.Runtime.Cuda
         /// memory.
         /// </summary>
         public bool SupportsUsingHostPointerForRegisteredMemory { get; private set; }
+
+        /// <summary>
+        /// Returns true if this device supports inter process communication for memory and events.
+        /// </summary>
+        public bool HasIpcSupport { get; private set; }
 
         /// <summary>
         /// Returns the current device driver mode.
