@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2024 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: PageLockScope.cs
@@ -12,98 +12,87 @@
 using ILGPU.Runtime.CPU;
 using System;
 
-namespace ILGPU.Runtime
+namespace ILGPU.Runtime;
+
+/// <summary>
+/// Represents the scope/duration of a page lock.
+/// </summary>
+public abstract class PageLockScope<T> : AcceleratorObject where T : unmanaged
 {
     /// <summary>
-    /// Represents the scope/duration of a page lock.
+    /// Constructs a page lock scope for the accelerator.
     /// </summary>
-    public abstract class PageLockScope<T> : AcceleratorObject
-        where T : unmanaged
+    /// <param name="accelerator">The associated accelerator.</param>
+    /// <param name="addrOfLockedObject">The address of page locked object.</param>
+    /// <param name="numElements">The number of elements.</param>
+    protected PageLockScope(
+        Accelerator? accelerator,
+        IntPtr addrOfLockedObject,
+        long numElements)
+        : base(accelerator)
     {
-        /// <summary>
-        /// Constructs a page lock scope for the accelerator.
-        /// </summary>
-        /// <param name="accelerator">The associated accelerator.</param>
-        /// <param name="addrOfLockedObject">The address of page locked object.</param>
-        /// <param name="numElements">The number of elements.</param>
-        protected PageLockScope(
-            Accelerator accelerator,
-            IntPtr addrOfLockedObject,
-            long numElements)
-            : base(accelerator)
-        {
-            AddrOfLockedObject = addrOfLockedObject;
-            Length = numElements;
+        AddrOfLockedObject = addrOfLockedObject;
+        Length = numElements;
 
-            if (Length > 0)
-            {
-                MemoryBuffer = CPUMemoryBuffer.Create(
-                    accelerator,
-                    AddrOfLockedObject,
-                    Length,
-                    Interop.SizeOf<T>());
-                ArrayView = MemoryBuffer.AsArrayView<T>(0L, MemoryBuffer.Length);
-            }
-            else
-            {
-                ArrayView = ArrayView<T>.Empty;
-            }
+        if (Length > 0)
+        {
+            MemoryBuffer = CPUMemoryBuffer.Create(
+                AddrOfLockedObject,
+                Length,
+                Interop.SizeOf<T>());
+            ArrayView = MemoryBuffer.AsArrayView<T>(0L, MemoryBuffer.Length);
         }
-
-        /// <summary>
-        /// Returns the address of page locked object.
-        /// </summary>
-        public IntPtr AddrOfLockedObject { get; }
-
-        /// <summary>
-        /// Returns the number of elements.
-        /// </summary>
-        public long Length { get; }
-
-        /// <summary>
-        /// Returns the length of the page locked memory in bytes.
-        /// </summary>
-        public long LengthInBytes => Length * Interop.SizeOf<T>();
-
-        /// <summary>
-        /// Returns the memory buffer wrapper of the .Net array.
-        /// </summary>
-        private MemoryBuffer? MemoryBuffer { get; set; }
-
-        /// <summary>
-        /// Returns the array view of the underlying .Net array.
-        /// </summary>
-        public ArrayView<T> ArrayView { get; private set; }
-
-        /// <inheritdoc/>
-        protected override void DisposeAcceleratorObject(bool disposing)
+        else
         {
-            if (disposing)
-            {
-                MemoryBuffer?.Dispose();
-                MemoryBuffer = null;
-                ArrayView = ArrayView<T>.Empty;
-            }
+            ArrayView = ArrayView<T>.Empty;
         }
     }
 
     /// <summary>
-    /// A null/no-op page lock scope.
+    /// Returns the address of page locked object.
     /// </summary>
-    internal sealed class NullPageLockScope<T> : PageLockScope<T>
-        where T : unmanaged
+    public IntPtr AddrOfLockedObject { get; }
+
+    /// <summary>
+    /// Returns the number of elements.
+    /// </summary>
+    public long Length { get; }
+
+    /// <summary>
+    /// Returns the length of the page locked memory in bytes.
+    /// </summary>
+    public long LengthInBytes => Length * Interop.SizeOf<T>();
+
+    /// <summary>
+    /// Returns the memory buffer wrapper of the .Net array.
+    /// </summary>
+    private MemoryBuffer? MemoryBuffer { get; set; }
+
+    /// <summary>
+    /// Returns the array view of the underlying .Net array.
+    /// </summary>
+    public ArrayView<T> ArrayView { get; private set; }
+
+    /// <inheritdoc/>
+    protected override void DisposeAcceleratorObject(bool disposing)
     {
-        /// <summary>
-        /// Constructs a page lock scope for the accelerator.
-        /// </summary>
-        /// <param name="accelerator">The associated accelerator.</param>
-        /// <param name="hostPtr">The host buffer pointer to page lock.</param>
-        /// <param name="numElements">The number of elements in the buffer.</param>
-        public NullPageLockScope(
-            Accelerator accelerator,
-            IntPtr hostPtr,
-            long numElements)
-            : base(accelerator, hostPtr, numElements)
-        { }
+        if (disposing)
+        {
+            MemoryBuffer?.Dispose();
+            MemoryBuffer = null;
+            ArrayView = ArrayView<T>.Empty;
+        }
     }
 }
+
+/// <summary>
+/// A null/no-op page lock scope.
+/// </summary>
+/// <param name="accelerator">The associated accelerator.</param>
+/// <param name="hostPtr">The host buffer pointer to page lock.</param>
+/// <param name="numElements">The number of elements in the buffer.</param>
+internal sealed class NullPageLockScope<T>(
+    Accelerator accelerator,
+    IntPtr hostPtr,
+    long numElements) : PageLockScope<T>(accelerator, hostPtr, numElements)
+    where T : unmanaged;

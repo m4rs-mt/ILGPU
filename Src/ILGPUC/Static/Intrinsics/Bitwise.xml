@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="ILGPU.Util.Bitwise">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="And" Target="Bitwise_And" />
+            <Generator Name="Or" Target="Bitwise_Or" />
+        </Generators>
+    </Type>
+</Intrinsics>
