@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="System.Threading.Interlocked">
+        <Remapping>
+            <Remap Name="Add" Target="Atomic.Add">
+                <Specialization Type="int*, int" />
+                <Specialization Type="uint*, uint" />
+                <Specialization Type="long*, long" />
+                <Specialization Type="ulong*, ulong" />
+            </Remap>
+            <Remap Name="And" Target="Atomic.And">
+                <Specialization Type="int*, int" />
+                <Specialization Type="uint*, uint" />
+                <Specialization Type="long*, long" />
+                <Specialization Type="ulong*, ulong" />
+            </Remap>
+            <Remap Name="CompareExchange" Target="Atomic.CompareExchange">
+                <Specialization Type="int*, int, int" />
+                <Specialization Type="long*, long, long" />
+                <Specialization Type="uint*, uint, uint" />
+                <Specialization Type="ulong*, ulong, ulong" />
+                <Specialization Type="float*, float, float" />
+                <Specialization Type="double*, double, double" />
+            </Remap>
+            <Remap Name="Decrement" Target="PlatformSupport.Interlocked.Decrement">
+                <Specialization Type="int*" />
+                <Specialization Type="long*" />
+                <Specialization Type="uint*" />
+                <Specialization Type="ulong*" />
+            </Remap>
+            <Remap Name="Exchange" Target="Atomic.Exchange">
+                <Specialization Type="int*, int" />
+                <Specialization Type="long*, long" />
+                <Specialization Type="uint*, uint" />
+                <Specialization Type="ulong*, ulong" />
+                <Specialization Type="float*, float" />
+                <Specialization Type="double*, double" />
+            </Remap>
+            <Remap Name="Increment" Target="PlatformSupport.Interlocked.Increment">
+                <Specialization Type="int*" />
+                <Specialization Type="long*" />
+                <Specialization Type="uint*" />
+                <Specialization Type="ulong*" />
+            </Remap>
+            <Remap Name="Or" Target="Atomic.Or">
+                <Specialization Type="int*, int" />
+                <Specialization Type="uint*, uint" />
+                <Specialization Type="long*, long" />
+                <Specialization Type="ulong*, ulong" />
+            </Remap>
+        </Remapping>
+    </Type>
+    <Type Name="Atomic">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="Add" Target="Atomic_Operation" Arguments="GenericAtomicKind.Add" />
+            <Generator Name="And" Target="Atomic_Operation" Arguments="GenericAtomicKind.And" />
+            <Generator Name="Exchange" Target="Atomic_Operation"
+                Arguments="GenericAtomicKind.Exchange" />
+            <Generator Name="Or" Target="Atomic_Operation" Arguments="GenericAtomicKind.Or" />
+            <Generator Name="Xor" Target="Atomic_Operation" Arguments="GenericAtomicKind.Xor" />
+            <Generator Name="Max" Target="Atomic_Operation" Arguments="GenericAtomicKind.Max" />
+            <Generator Name="Min" Target="Atomic_Operation" Arguments="GenericAtomicKind.Min" />
+
+            <Generator Name="CompareExchange" Target="Atomic_CompareExchange" />
+        </Generators>
+    </Type>
+</Intrinsics>
