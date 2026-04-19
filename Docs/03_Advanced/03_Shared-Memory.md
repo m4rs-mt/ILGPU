@@ -42,4 +42,4 @@ class ...
 }
 ```
 
-*Note that this feature available on CPU, Cuda and OpenCL accelerators.*
+*Note that this feature is available on CPU, Cuda and OpenCL accelerators.*
