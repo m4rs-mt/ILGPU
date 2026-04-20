@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaLibDevice.ttinclude
@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+<#@ include file="../../ILGPUC/Static/TextTransformHelpers.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ assembly name="System.Xml" #>
 <#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
@@ -59,7 +60,7 @@ public class LibDeviceFunctionParameter
 
     [XmlAttribute]
     public string Type { get; set; }
-    
+
     [XmlAttribute]
     public string Flags { get; set; }
 

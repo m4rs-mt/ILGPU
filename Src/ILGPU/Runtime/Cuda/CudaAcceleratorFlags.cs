@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2018-2021 ILGPU Project
+//                        Copyright (c) 2018-2025 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAcceleratorFlags.cs
@@ -11,32 +11,31 @@
 
 using System;
 
-namespace ILGPU.Runtime.Cuda
+namespace ILGPU.Runtime.Cuda;
+
+/// <summary>
+/// Represents the accelerator flags for a Cuda accelerator.
+/// </summary>
+[Flags]
+public enum CudaAcceleratorFlags
 {
     /// <summary>
-    /// Represents the accelerator flags for a Cuda accelerator.
+    /// Automatic scheduling (default).
     /// </summary>
-    [Flags]
-    public enum CudaAcceleratorFlags
-    {
-        /// <summary>
-        /// Automatic scheduling (default).
-        /// </summary>
-        ScheduleAuto = 0,
+    ScheduleAuto = 0,
 
-        /// <summary>
-        /// Spin scheduling.
-        /// </summary>
-        ScheduleSpin = 1,
+    /// <summary>
+    /// Spin scheduling.
+    /// </summary>
+    ScheduleSpin = 1,
 
-        /// <summary>
-        /// Yield scheduling
-        /// </summary>
-        ScheduleYield = 2,
+    /// <summary>
+    /// Yield scheduling
+    /// </summary>
+    ScheduleYield = 2,
 
-        /// <summary>
-        /// Blocking synchronization as default scheduling.
-        /// </summary>
-        ScheduleBlockingSync = 4,
-    }
+    /// <summary>
+    /// Blocking synchronization as default scheduling.
+    /// </summary>
+    ScheduleBlockingSync = 4,
 }
