@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2021-2026 ILGPU Project
+//                        Copyright (c) 2021-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Context.Builder.cs
