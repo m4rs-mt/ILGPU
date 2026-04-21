@@ -299,7 +299,7 @@ static class LauncherStubGenerator
                 .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                 .Replace("global::", "", StringComparison.Ordinal);
             // Strip the generic arity suffix (e.g. INumber<T> display includes <T>)
-            var angleIdx = baseName.IndexOf('<');
+            var angleIdx = baseName.IndexOf('<', StringComparison.Ordinal);
             if (angleIdx >= 0)
                 baseName = baseName[..angleIdx];
             var typeArgs = string.Join(", ",

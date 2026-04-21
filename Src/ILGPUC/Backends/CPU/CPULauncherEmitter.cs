@@ -9,11 +9,10 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-
-// disable: max_line_length
-using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
 using System.Collections.Generic;
+
+#pragma warning disable CA1508 // Avoid dead conditional code
 
 namespace ILGPUC.Backends.CPU;
 
@@ -135,10 +134,13 @@ sealed class CPULauncherEmitter : LauncherEmitter
                     // → "struct_1717"). Create a byte view first (to avoid
                     // depending on the pre-optimization struct ID), then BitCast
                     // to the entry point's element type.
-                    var entryViewType = param.EntryPointTypeName ?? $"CPURuntimeView<{elemType}>";
+                    var entryViewType = param.EntryPointTypeName
+                        ?? $"CPURuntimeView<{elemType}>";
                     // Extract element type: "CPURuntimeView<X>" → "X"
                     const string prefix = "CPURuntimeView<";
-                    var entryElemType = entryViewType.StartsWith(prefix)
+                    var entryElemType = entryViewType.StartsWith(
+                        prefix,
+                        System.StringComparison.Ordinal)
                         ? entryViewType[prefix.Length..^1]
                         : elemType;
                     ctx.WriteLine(
@@ -169,7 +171,8 @@ sealed class CPULauncherEmitter : LauncherEmitter
                 // signedness mismatches (e.g., user code has sbyte but
                 // IR maps Int8 to byte). The cast is harmless for
                 // same-type parameters.
-                if (param.EntryPointTypeName != null)
+
+                if (param.EntryPointTypeName is not null)
                 {
                     // When the IR decomposes a single-field struct to a
                     // scalar (e.g. LambdaClosure { long Offset } → long),
@@ -185,6 +188,7 @@ sealed class CPULauncherEmitter : LauncherEmitter
                     }
                     return $"({param.EntryPointTypeName}){param.Name}";
                 }
+
                 return param.Name;
         }
     }
@@ -309,3 +313,5 @@ sealed class CPULauncherEmitter : LauncherEmitter
             or "long" or "ulong" or "float" or "double"
             or "Half" or "nint" or "nuint" or "char" or "decimal";
 }
+
+#pragma warning restore CA1508 // Avoid dead conditional code

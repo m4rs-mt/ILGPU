@@ -145,6 +145,10 @@ sealed class KernelCompiler
     /// call sites resolve correctly. When <see langword="null"/>, falls back
     /// to the IR-derived internal entry point name.
     /// </param>
+    /// <param name="indexDimOverride">
+    /// Optional user-facing override functionality to change behavior of indexed
+    /// dimension parameters for launch-index propagation.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The compilation result with class name and C# source.</returns>
     internal async Task<KernelCompilationResult> CompileKernelAsync(

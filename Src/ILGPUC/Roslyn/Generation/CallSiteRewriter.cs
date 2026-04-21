@@ -282,7 +282,7 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
     /// is the user's extent cast to <c>long</c>; for grouped launches it is
     /// <c>config.GridSize * config.GroupSize</c>.
     /// </summary>
-    private static ExpressionSyntax BuildUserExtentExpression(
+    private static CastExpressionSyntax BuildUserExtentExpression(
         ExpressionSyntax extentOrConfig,
         ExpressionSyntax configExpr,
         LaunchVariant variant)

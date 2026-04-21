@@ -229,7 +229,7 @@ static class DispatchStubGenerator
             var baseName = named.OriginalDefinition
                 .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                 .Replace("global::", "", StringComparison.Ordinal);
-            var angleIdx = baseName.IndexOf('<');
+            var angleIdx = baseName.IndexOf('<', StringComparison.Ordinal);
             if (angleIdx >= 0)
                 baseName = baseName[..angleIdx];
             var typeArgs = string.Join(", ",

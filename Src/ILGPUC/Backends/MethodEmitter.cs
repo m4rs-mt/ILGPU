@@ -15,6 +15,7 @@ using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Backends;
 
@@ -468,7 +469,8 @@ sealed class MethodEmitter(
     /// <summary>
     /// Returns true if the given branch has phi transitions to emit.
     /// </summary>
-    private bool HasBranchPhiTransitions(
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static bool HasBranchPhiTransitions(
         ControlFlowStructure branch,
         BasicBlock conditionBlock)
     {

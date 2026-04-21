@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU;
+using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.PureValues;
 
@@ -174,7 +175,7 @@ partial class Intrinsics
                 viewLength,
                 offset,
                 BinaryArithmeticKind.Sub,
-                ArithmeticFlags.Unsigned);
+                ArithmeticFlags.Unsigned).AsNotNull();
         }
 
         return builder.CreateSubView(

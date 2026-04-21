@@ -196,7 +196,7 @@ sealed class LowerWarpCollectives(
         // If the backend supports this operation natively, leave the node
         // for the ExpressionEmitter to emit via IntrinsicEmitter.
         if (reduce.HasIntrinsicOperation
-            && SupportsNativeWarpReduce(reduce.IntrinsicOp.Value))
+            && SupportsNativeWarpReduce(reduce.IntrinsicOp!.Value))
         {
             return reduce;
         }

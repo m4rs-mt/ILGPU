@@ -102,9 +102,7 @@ partial class Intrinsics
 
     /// <summary>
     /// Handles <c>System.Runtime.CompilerServices.Unsafe.Add&lt;T&gt;(
-    /// ref T source, int elementOffset)</c>. Returns a pointer advanced by
-    /// <paramref name="elementOffset"/> elements of type <c>T</c>.
-    ///
+    /// ref T source, int elementOffset)</c>.
     /// <para>Primary use case: element access on <c>[InlineArray(N)]</c>
     /// structs (e.g. <c>buffer[2]</c> is compiled to
     /// <c>Unsafe.Add&lt;int&gt;(ref _element0, 2)</c>). Without this handler
