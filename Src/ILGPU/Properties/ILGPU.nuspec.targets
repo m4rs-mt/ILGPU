@@ -4,7 +4,7 @@
         <PackageVersion>$(Version)</PackageVersion>
 
         <Title>ILGPU</Title>
-        <Copyright>Copyright (c) 2016-2025 ILGPU Project. All rights reserved.</Copyright>
+        <Copyright>Copyright (c) 2016-2026 ILGPU Project. All rights reserved.</Copyright>
         <Company />
         <Authors>Marcel Koester</Authors>
         <Description>ILGPU Compiler Framework</Description>
@@ -46,6 +46,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" PrivateAssets="All" />
     </ItemGroup>
 </Project>
