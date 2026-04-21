@@ -9,12 +9,12 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-
-// disable: max_line_length
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
+#pragma warning disable CA1031 // Do not catch general exception types
 
 namespace ILGPU.Runtime.Metal;
 
@@ -115,7 +115,7 @@ public struct MTLSize(ulong width, ulong height, ulong depth)
 /// Metal uses Objective-C messaging via objc_msgSend. This class provides
 /// managed wrappers for the compute-relevant subset of the Metal API.
 /// </remarks>
-public static unsafe class MetalAPI
+public static unsafe partial class MetalAPI
 {
     private const string ObjCLib = "/usr/lib/libobjc.A.dylib";
     private const string MetalLib =
@@ -126,116 +126,121 @@ public static unsafe class MetalAPI
     /// Creates a dispatch_data_t from raw bytes. Used to wrap metallib
     /// binary data for <c>newLibraryWithData:error:</c>.
     /// </summary>
-    [DllImport(LibSystem, EntryPoint = "dispatch_data_create")]
-    private static extern IntPtr DispatchDataCreate(
+    [LibraryImport(LibSystem, EntryPoint = "dispatch_data_create")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
+    internal static partial IntPtr DispatchDataCreate(
         void* buffer, nuint size, IntPtr queue, IntPtr destructor);
 
     /// <summary>
     /// Releases a dispatch_data_t object.
     /// </summary>
-    [DllImport(LibSystem, EntryPoint = "dispatch_release")]
-    private static extern void DispatchRelease(IntPtr obj);
+    [LibraryImport(LibSystem, EntryPoint = "dispatch_release")]
+    internal static partial void DispatchRelease(IntPtr obj);
 
     #region Objective-C Runtime
 
-    [DllImport(ObjCLib, EntryPoint = "objc_getClass", CharSet = CharSet.Ansi)]
-    [SuppressMessage("Globalization", "CA2101", Justification = "ObjC class names are ASCII.")]
-    private static extern IntPtr ObjcGetClass(string name);
+    [LibraryImport(ObjCLib, EntryPoint = "objc_getClass")]
+    [SuppressMessage("Globalization", "CA2101",
+        Justification = "ObjC class names are ASCII.")]
+    internal static partial IntPtr ObjcGetClass(
+        [MarshalAs(UnmanagedType.LPStr)] string name);
 
-    [DllImport(ObjCLib, EntryPoint = "sel_registerName", CharSet = CharSet.Ansi)]
-    [SuppressMessage("Globalization", "CA2101", Justification = "ObjC selector names are ASCII.")]
-    private static extern IntPtr SelRegisterName(string name);
+    [LibraryImport(ObjCLib, EntryPoint = "sel_registerName")]
+    [SuppressMessage("Globalization", "CA2101",
+        Justification = "ObjC selector names are ASCII.")]
+    internal static partial IntPtr SelRegisterName(
+        [MarshalAs(UnmanagedType.LPStr)] string name);
 
     // IntPtr return, no args
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern IntPtr ObjcMsgSend(IntPtr receiver, IntPtr selector);
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial IntPtr ObjcMsgSend(IntPtr receiver, IntPtr selector);
 
     // IntPtr return, 1 IntPtr arg
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern IntPtr ObjcMsgSend(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial IntPtr ObjcMsgSend(
         IntPtr receiver, IntPtr selector, IntPtr arg1);
 
     // IntPtr return, IntPtr + ulong args
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern IntPtr ObjcMsgSend(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial IntPtr ObjcMsgSend(
         IntPtr receiver, IntPtr selector, IntPtr arg1, ulong arg2);
 
     // IntPtr return, void* + ulong + ulong args (setBytes:length:atIndex:)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern IntPtr ObjcMsgSend(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial IntPtr ObjcMsgSend(
         IntPtr receiver, IntPtr selector, void* arg1, ulong arg2, ulong arg3);
 
     // IntPtr return, IntPtr + IntPtr + IntPtr* args
     // (newLibraryWithSource:options:error:)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern IntPtr ObjcMsgSend(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial IntPtr ObjcMsgSend(
         IntPtr receiver, IntPtr selector,
         IntPtr arg1, IntPtr arg2, IntPtr* arg3);
 
     // IntPtr return, IntPtr + IntPtr* args
     // (newComputePipelineStateWithFunction:error:)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern IntPtr ObjcMsgSend(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial IntPtr ObjcMsgSend(
         IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr* arg2);
 
     // IntPtr return, ulong + ulong args (newBufferWithLength:options:)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern IntPtr ObjcMsgSendBuffer(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial IntPtr ObjcMsgSendBuffer(
         IntPtr receiver, IntPtr selector, ulong arg1, ulong arg2);
 
     // ulong return, no args (for ulong property getters)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern ulong ObjcMsgSendUlong(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial ulong ObjcMsgSendUlong(
         IntPtr receiver, IntPtr selector);
 
     // MTLSize return, no args (for maxThreadsPerThreadgroup on MTLDevice)
     // MTLSize is 24 bytes; on arm64 the runtime passes a hidden pointer in x8
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern MTLSize ObjcMsgSendMTLSize(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial MTLSize ObjcMsgSendMTLSize(
         IntPtr receiver, IntPtr selector);
 
     // bool return, ulong arg (supportsFamily:)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern byte ObjcMsgSendBool(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial byte ObjcMsgSendBool(
         IntPtr receiver, IntPtr selector, ulong arg1);
 
     // IntPtr return, IntPtr arg (initWithUTF8String:)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern IntPtr ObjcMsgSendInitString(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial IntPtr ObjcMsgSendInitString(
         IntPtr receiver, IntPtr selector, byte* arg1);
 
     // void return, no args
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern void ObjcMsgSendVoid(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial void ObjcMsgSendVoid(
         IntPtr receiver, IntPtr selector);
 
     // void return, 1 IntPtr arg
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern void ObjcMsgSendVoid(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial void ObjcMsgSendVoid(
         IntPtr receiver, IntPtr selector, IntPtr arg1);
 
     // void return, ulong + ulong args
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern void ObjcMsgSendVoid(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial void ObjcMsgSendVoid(
         IntPtr receiver, IntPtr selector, ulong arg1, ulong arg2);
 
     // void return, IntPtr + ulong + ulong args
     // (setBuffer:offset:atIndex:)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern void ObjcMsgSendVoid(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial void ObjcMsgSendVoid(
         IntPtr receiver, IntPtr selector,
         IntPtr arg1, ulong arg2, ulong arg3);
 
     // void return, MTLSize + MTLSize args
     // (dispatchThreadgroups:threadsPerThreadgroup:)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern void ObjcMsgSendDispatch(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial void ObjcMsgSendDispatch(
         IntPtr receiver, IntPtr selector,
         MTLSize arg1, MTLSize arg2);
 
     // byte* return, no args (UTF8String)
-    [DllImport(ObjCLib, EntryPoint = "objc_msgSend")]
-    private static extern byte* ObjcMsgSendUtf8(
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial byte* ObjcMsgSendUtf8(
         IntPtr receiver, IntPtr selector);
 
     #endregion
@@ -268,8 +273,6 @@ public static unsafe class MetalAPI
         SelRegisterName("waitUntilCompleted");
     private static readonly IntPtr SelNewLibraryWithSource =
         SelRegisterName("newLibraryWithSource:options:error:");
-    private static readonly IntPtr SelNewLibraryWithData =
-        SelRegisterName("newLibraryWithData:error:");
     private static readonly IntPtr SelNewLibraryWithURL =
         SelRegisterName("newLibraryWithURL:error:");
     private static readonly IntPtr SelFileURLWithPath =
@@ -407,8 +410,8 @@ public static unsafe class MetalAPI
     /// <returns>
     /// Handle to the default MTLDevice, or IntPtr.Zero if unavailable.
     /// </returns>
-    [DllImport(MetalLib, EntryPoint = "MTLCreateSystemDefaultDevice")]
-    internal static extern IntPtr CreateSystemDefaultDevice();
+    [LibraryImport(MetalLib, EntryPoint = "MTLCreateSystemDefaultDevice")]
+    internal static partial IntPtr CreateSystemDefaultDevice();
 
     /// <summary>
     /// Creates a new command queue on the given device.
@@ -522,7 +525,7 @@ public static unsafe class MetalAPI
     /// <param name="data">The metallib binary data.</param>
     /// <param name="error">Output NSError handle (zero if no error).</param>
     /// <returns>Handle to the loaded library.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static IntPtr NewLibraryWithData(
         IntPtr device,
         ReadOnlySpan<byte> data,
@@ -788,3 +791,5 @@ public static unsafe class MetalAPI
 
     #endregion
 }
+
+#pragma warning restore CA1031 // Do not catch general exception types

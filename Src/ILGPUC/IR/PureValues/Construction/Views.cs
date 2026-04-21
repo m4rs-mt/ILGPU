@@ -153,7 +153,7 @@ partial class PureValueBuilder
             st.NumFields >= 1 &&
             st.Fields[0] is AddressSpaceType)
         {
-            source = CreateGetField(location, source, new FieldSpan(0));
+            source = CreateGetField(location, source, new FieldSpan(0)).AsNotNull();
         }
 
         var addressSpaceType = source.Type.AsNotNullCast<AddressSpaceType>();

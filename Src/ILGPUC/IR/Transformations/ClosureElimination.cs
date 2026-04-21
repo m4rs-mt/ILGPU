@@ -46,7 +46,8 @@ sealed class ClosureElimination(TransformationArgs args) : Transformation(args)
     /// <summary>
     /// Set of Globals that are safe to decompose.
     /// </summary>
-    private readonly HashSet<ValueId> _candidates = [];
+    private readonly ValueSet<Module, Global> _candidates =
+        args.Module.CreateSet<Global>();
 
     /// <summary>
     /// Per-field allocas: (Global ID, field index) → Alloca.
@@ -60,17 +61,17 @@ sealed class ClosureElimination(TransformationArgs args) : Transformation(args)
         base.OnMap(transform);
 
         // Identify closure Globals that are safe to decompose
-        foreach (var global in args.Module.Globals)
+        foreach (var global in transform.OldModule.Globals)
         {
             if (IsClosureCandidate(global) && AllUsesAreSafe(global))
-                _candidates.Add(global.Id);
+                _candidates.Add(global);
         }
 
         // Map LoadFieldAddress values that reference closure Globals
         MapPureValue<LoadFieldAddress>((pureTransform, lfa) =>
         {
             var source = ResolveSource(lfa.Source);
-            if (source is not Global global || !_candidates.Contains(global.Id))
+            if (source is not Global global || !_candidates.Contains(global))
                 return lfa;
 
             var key = (global.Id, lfa.FieldSpan.Index);
@@ -97,7 +98,7 @@ sealed class ClosureElimination(TransformationArgs args) : Transformation(args)
         transform.OldMethod.ForEachValue<LoadFieldAddress>(lfa =>
         {
             var source = ResolveSource(lfa.Source);
-            if (source is not Global global || !_candidates.Contains(global.Id))
+            if (source is not Global global || !_candidates.Contains(global))
                 return;
 
             var key = (global.Id, lfa.FieldSpan.Index);
