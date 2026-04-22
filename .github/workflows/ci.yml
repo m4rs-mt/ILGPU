@@ -241,6 +241,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -256,11 +258,17 @@ jobs:
       - name: Build solution
         run: dotnet build Src/ILGPU.sln -c Debug
 
+      # Upload both Bin/Debug/ and every project's obj/ directory so the
+      # downstream --no-build --no-restore test jobs see the complete MSBuild
+      # context (project.assets.json, T4-generated .cs, etc.). Without obj/
+      # dotnet test silently discovers zero tests.
       - name: Upload test binaries
         uses: actions/upload-artifact@v4
         with:
           name: test-binaries
-          path: Bin/Debug/
+          path: |
+            Bin/Debug/
+            Src/*/obj/
           if-no-files-found: error
           retention-days: 1
 
@@ -283,20 +291,34 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
-          cache: true
-          cache-dependency-path: |
-            Src/**/*.csproj
 
+      # The artifact packs both Bin/Debug/ and Src/*/obj/, so extract at the
+      # repo root to preserve that layout. --no-build --no-restore downstream
+      # needs obj/ intact to resolve project metadata.
       - name: Download test binaries
         uses: actions/download-artifact@v4
         with:
           name: test-binaries
-          path: Bin/Debug/
+
+      # The artifact's obj/*.nuget.g.props files hardcode absolute paths to
+      # ~/.nuget/packages/ on the build job's runner. The test runner's
+      # NuGet cache is empty, so every conditional <Import Project=...
+      # Condition="Exists(...)"/> skips — including the one that sets
+      # <IsTestProject>true</IsTestProject>. Without that property set, the
+      # MSBuild VSTest target silently no-ops and zero tests run. Explicit
+      # `dotnet restore` rewrites the .nuget.g.props to reference the local
+      # packages cache; the subsequent --no-build --no-restore then works.
+      - name: Restore NuGet packages
+        run: |
+          dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj
+          dotnet restore Src/ILGPUC.CompilerService.Tests/ILGPUC.CompilerService.Tests.csproj
 
       - name: Run ILGPUC.Tests (CPU + IR + integration)
         run: |
@@ -349,25 +371,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
-          cache: true
-          cache-dependency-path: |
-            Src/**/*.csproj
 
       - name: Download test binaries
         uses: actions/download-artifact@v4
         with:
           name: test-binaries
-          path: Bin/Debug/
 
       - name: Verify Metal toolchain
         run: |
           xcrun --find metal
           xcrun -sdk macosx metal --version
+
+      # See the identical comment on test-cpu — restore rewrites the stale
+      # absolute paths in obj/*.nuget.g.props to point at this runner's cache.
+      - name: Restore NuGet packages
+        run: dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj
 
       - name: Run BackendTests.Metal
         run: |
@@ -387,37 +412,64 @@ jobs:
 
   test-cuda-compile:
     name: Cuda compile-only tests
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    # Fork PRs skip this job — the bundled GHCR image is Private and fork-PR
+    # GITHUB_TOKENs cannot authenticate against private packages in the base
+    # repo. `checks-completed` below tolerates this `skipped` result on fork
+    # PR events. Fork contributors still get CPU + Metal coverage via the
+    # other test jobs.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
     needs: test-cpu
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Download test binaries
         uses: actions/download-artifact@v4
         with:
           name: test-binaries
-          path: Bin/Debug/
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Cuda compiler image
         run: |
           docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest
 
+      # docker run --user "$(id -u):..." overrides the container's ilgpuc
+      # user with the host runner's UID, which has no /etc/passwd entry
+      # inside the container → HOME resolves to empty string → dotnet tries
+      # to create /.dotnet and fails with UnauthorizedAccess. -e HOME=/tmp
+      # gives it a writable state dir. bash -c chains restore + test so the
+      # updated obj/*.nuget.g.props from restore is used by the test run
+      # (two separate docker runs would not share /tmp state).
       - name: Run BackendTests.Cuda inside the container
         run: |
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
             -e DOTNET_NOLOGO=1 \
             -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
             ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest \
-            dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
-              --no-build --no-restore \
-              --blame-hang-timeout 900s \
-              --logger "trx;LogFileName=cuda.trx" \
-              --filter "FullyQualifiedName~CudaBackendTests"
+            bash -c '
+              dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+              && dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+                   --no-build --no-restore \
+                   --blame-hang-timeout 900s \
+                   --logger "trx;LogFileName=cuda.trx" \
+                   --filter "FullyQualifiedName~CudaBackendTests"
+            '
 
       - name: Upload test results
         if: always()
@@ -429,13 +481,19 @@ jobs:
 
   test-rocm-compile:
     name: ROCm compile-only tests
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    # Fork PRs skip this job — same reason as test-cuda-compile above.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
     needs: test-cpu
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       # rocm/dev-ubuntu-24.04:7.1.1-complete is ~26.5 GB on disk after pull
       # (the -complete tag bundles the entire ROCm SDK). The standard
@@ -457,25 +515,36 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: test-binaries
-          path: Bin/Debug/
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull ROCm compiler image
         run: |
           docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest
 
+      # See matching comment on test-cuda-compile — same HOME + bash-c pattern.
       - name: Run BackendTests.ROCm inside the container
         run: |
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
             -e DOTNET_NOLOGO=1 \
             -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
             ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest \
-            dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
-              --no-build --no-restore \
-              --blame-hang-timeout 900s \
-              --logger "trx;LogFileName=rocm.trx" \
-              --filter "FullyQualifiedName~ROCmBackendTests"
+            bash -c '
+              dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+              && dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+                   --no-build --no-restore \
+                   --blame-hang-timeout 900s \
+                   --logger "trx;LogFileName=rocm.trx" \
+                   --filter "FullyQualifiedName~ROCmBackendTests"
+            '
 
       - name: Upload test results
         if: always()
@@ -487,37 +556,54 @@ jobs:
 
   test-opencl-compile:
     name: OpenCL compile-only tests
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    # Fork PRs skip this job — same reason as test-cuda-compile above.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
     needs: test-cpu
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Download test binaries
         uses: actions/download-artifact@v4
         with:
           name: test-binaries
-          path: Bin/Debug/
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull OpenCL compiler image
         run: |
           docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest
 
+      # See matching comment on test-cuda-compile — same HOME + bash-c pattern.
       - name: Run BackendTests.OpenCL inside the container
         run: |
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
             -e DOTNET_NOLOGO=1 \
             -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
             ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest \
-            dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
-              --no-build --no-restore \
-              --blame-hang-timeout 900s \
-              --logger "trx;LogFileName=opencl.trx" \
-              --filter "FullyQualifiedName~OpenCLBackendTests"
+            bash -c '
+              dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+              && dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+                   --no-build --no-restore \
+                   --blame-hang-timeout 900s \
+                   --logger "trx;LogFileName=opencl.trx" \
+                   --filter "FullyQualifiedName~OpenCLBackendTests"
+            '
 
       - name: Upload test results
         if: always()
@@ -540,8 +626,15 @@ jobs:
   # require — even on internal PR pull_request events that this job skips.
   #
   # `if: always()` ensures the aggregator runs even when upstream jobs
-  # failed; the explicit shell check below then fails if any upstream is
-  # not "success" (treating skipped/cancelled/failure all as failures).
+  # failed; the explicit shell check below then fails appropriately.
+  #
+  # Two classes of upstream jobs:
+  #  - Required-everywhere: must be `success` on every event, including fork
+  #    PRs. Any other result fails the aggregator.
+  #  - GPU-private (cuda/rocm/opencl compile-only): must be `success` on
+  #    non-fork events. On fork PRs they are legitimately `skipped` because
+  #    the fork-PR GITHUB_TOKEN cannot pull the Private GHCR images — in
+  #    that case only `skipped` is also accepted.
   #
   # `if: always()` is combined with the same fork-PR-deduplication gate as
   # all other jobs so that internal PR pull_request events still skip the
@@ -568,16 +661,58 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify every upstream job succeeded
+      - name: Verify upstream jobs
+        env:
+          IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id }}
+          RESULT_CHECK_STYLE: ${{ needs.check-style.result }}
+          RESULT_CHECK_VERSION: ${{ needs.check-version.result }}
+          RESULT_BUILD: ${{ needs.build.result }}
+          RESULT_BUILD_TEST_BINARIES: ${{ needs.build-test-binaries.result }}
+          RESULT_TEST_CPU: ${{ needs.test-cpu.result }}
+          RESULT_TEST_METAL: ${{ needs.test-metal-compile.result }}
+          RESULT_TEST_CUDA: ${{ needs.test-cuda-compile.result }}
+          RESULT_TEST_ROCM: ${{ needs.test-rocm-compile.result }}
+          RESULT_TEST_OPENCL: ${{ needs.test-opencl-compile.result }}
         run: |
-          echo "Upstream results: ${{ toJSON(needs.*.result) }}"
-          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || \
-                "${{ contains(needs.*.result, 'cancelled') }}" == "true" || \
-                "${{ contains(needs.*.result, 'skipped') }}" == "true" ]]; then
-            echo "::error::One or more upstream jobs did not succeed."
-            exit 1
+          fail=0
+
+          check_required() {
+            local job="$1" result="$2"
+            if [[ "$result" != "success" ]]; then
+              echo "::error::required upstream '$job' result: $result"
+              fail=1
+            fi
+          }
+
+          check_gpu_private() {
+            local job="$1" result="$2"
+            if [[ "$IS_FORK_PR" == "true" ]]; then
+              if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+                echo "::error::gpu-private upstream '$job' result on fork PR: $result"
+                fail=1
+              fi
+            else
+              if [[ "$result" != "success" ]]; then
+                echo "::error::gpu-private upstream '$job' result: $result"
+                fail=1
+              fi
+            fi
+          }
+
+          check_required  check-style          "$RESULT_CHECK_STYLE"
+          check_required  check-version        "$RESULT_CHECK_VERSION"
+          check_required  build                "$RESULT_BUILD"
+          check_required  build-test-binaries  "$RESULT_BUILD_TEST_BINARIES"
+          check_required  test-cpu             "$RESULT_TEST_CPU"
+          check_required  test-metal-compile   "$RESULT_TEST_METAL"
+          check_gpu_private test-cuda-compile  "$RESULT_TEST_CUDA"
+          check_gpu_private test-rocm-compile  "$RESULT_TEST_ROCM"
+          check_gpu_private test-opencl-compile "$RESULT_TEST_OPENCL"
+
+          if [[ "$fail" -eq 0 ]]; then
+            echo "All upstream jobs OK for event '${{ github.event_name }}' (fork PR: $IS_FORK_PR)."
           fi
-          echo "All upstream jobs succeeded."
+          exit "$fail"
 
   # ===========================================================================
   # Tier 5: NuGet packaging (gated by checks-completed)

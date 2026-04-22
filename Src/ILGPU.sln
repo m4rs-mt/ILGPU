@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPUC.Compilers", "ILGPUC.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPUC.CompilerService.Tests", "ILGPUC.CompilerService.Tests\ILGPUC.CompilerService.Tests.csproj", "{6B62BF3E-CF7C-4C21-97B6-E90FDE83D169}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPUC.Tests", "ILGPUC.Tests\ILGPUC.Tests.csproj", "{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{6B62BF3E-CF7C-4C21-97B6-E90FDE83D169}.Release|x64.Build.0 = Release|Any CPU
 		{6B62BF3E-CF7C-4C21-97B6-E90FDE83D169}.Release|x86.ActiveCfg = Release|Any CPU
 		{6B62BF3E-CF7C-4C21-97B6-E90FDE83D169}.Release|x86.Build.0 = Release|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Debug|x64.Build.0 = Debug|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Debug|x86.Build.0 = Debug|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Release|x64.ActiveCfg = Release|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Release|x64.Build.0 = Release|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Release|x86.ActiveCfg = Release|Any CPU
+		{02CFE468-33D8-48B8-9B60-C69D39FBCAF5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

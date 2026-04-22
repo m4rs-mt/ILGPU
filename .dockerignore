@@ -52,9 +52,10 @@ Src/*.md
 Src/CLAUDE.md
 plans
 
-# Top-level docs and licenses (we don't need them in the image)
+# Top-level markdown docs (READMEs, CHANGELOGs) aren't needed in the image.
+# LICENSE.txt and LICENSE-3RD-PARTY.txt ARE copied into each image at
+# /usr/share/doc/ilgpuc/ for compliance — do not re-add LICENSE* here.
 *.md
-LICENSE*
 
 # Don't ship the docker assets into the image itself
 Src/docker

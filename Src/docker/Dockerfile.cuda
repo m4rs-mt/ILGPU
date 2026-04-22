@@ -68,10 +68,45 @@ RUN dotnet publish Src/ILGPUC.CompilerService/ILGPUC.CompilerService.csproj \
 FROM nvidia/cuda:13.2.0-devel-ubuntu24.04 AS runtime
 
 # OCI labels — auto-link the published GHCR package back to the source repo
-# (so it appears under the repo's Packages tab) and tag it with the license.
+# (so it appears under the repo's Packages tab) and tag it with the compound
+# license set that actually applies: ILGPU code is NCSA; the bundled
+# nvidia/cuda layers are governed by the NVIDIA Deep Learning Container
+# License (referenced via SPDX LicenseRef-* for non-SPDX-identifier licenses).
 LABEL org.opencontainers.image.source="https://github.com/m4rs-mt/ILGPU"
-LABEL org.opencontainers.image.licenses="University-of-Illinois/NCSA"
+LABEL org.opencontainers.image.licenses="NCSA AND LicenseRef-NVIDIA-DL-Container-License"
 LABEL org.opencontainers.image.description="ILGPUC CompilerService bundled with the CUDA toolchain (nvcc + ptxas). Used as a remote compile-only service AND as a CI test runner: `docker run image dotnet test ...` overrides the default CMD to run tests inside the container with the .NET 10 SDK preinstalled."
+
+# Bundle ILGPU's own license texts. Third-party licenses are already present
+# in the image: the nvidia/cuda base ships the NVIDIA Deep Learning Container
+# License at /NGC-DL-CONTAINER-LICENSE, and every apt-packaged component's
+# copyright/license text sits at /usr/share/doc/<package>/copyright per
+# Debian convention — no further bundling needed for those.
+COPY LICENSE.txt LICENSE-3RD-PARTY.txt /usr/share/doc/ilgpuc/
+
+# NVIDIA Deep Learning Container License §2.b attribution + an index pointing
+# at every license text already present in the image filesystem, so a
+# consumer inspecting the image has a single starting point.
+RUN printf '%s\n' \
+    'This software contains source code provided by NVIDIA Corporation.' \
+    '' \
+    'This image is a derivative of nvidia/cuda:13.2.0-devel-ubuntu24.04.' \
+    'The NVIDIA Deep Learning Container License governs the bundled NVIDIA' \
+    'CUDA components; its full text is present in the image at' \
+    '  /NGC-DL-CONTAINER-LICENSE' \
+    'See also the upstream copy:' \
+    '  https://developer.download.nvidia.com/licenses/NVIDIA_Deep_Learning_Container_License.pdf' \
+    '' \
+    'ILGPU source code is licensed under the University of Illinois/NCSA' \
+    'Open Source License. The full text is present in the image at:' \
+    '  /usr/share/doc/ilgpuc/LICENSE.txt' \
+    'Attributions for bundled third-party ILGPU dependencies are at:' \
+    '  /usr/share/doc/ilgpuc/LICENSE-3RD-PARTY.txt' \
+    '' \
+    'Licenses for other apt-installed components (CUDA toolkit libraries,' \
+    'Ubuntu base packages, .NET runtime dependencies, etc.) are at their' \
+    'Debian-convention paths:' \
+    '  /usr/share/doc/<package>/copyright' \
+    > /usr/share/doc/ilgpuc/NOTICES
 
 ENV DEBIAN_FRONTEND=noninteractive \
     DOTNET_ROOT=/usr/share/dotnet \
