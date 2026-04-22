@@ -199,9 +199,12 @@ sealed class ProgramBuilder : DisposeBase
                     .Select(p => LauncherStubGenerator.FormatTypeNamePublic(p.Type))
                     .ToArray();
 
-                // Extract user property names for struct params (CPU marshaling)
+                // Extract user property names for struct params (CPU marshaling).
+                // ExtractFieldAccessors returns null for non-struct parameters; coalesce
+                // to an empty array so the jagged array type matches
+                // GenerateWrapper's non-nullable inner-element contract.
                 var fieldAccessors = kernel.Parameters
-                    .Select(p => ExtractFieldAccessors(p.Type))
+                    .Select(p => ExtractFieldAccessors(p.Type) ?? [])
                     .ToArray();
 
                 var result = GenerateWrapper(

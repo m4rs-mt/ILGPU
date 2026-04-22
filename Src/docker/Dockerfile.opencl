@@ -81,10 +81,39 @@ RUN dotnet publish Src/ILGPUC.CompilerService/ILGPUC.CompilerService.csproj \
 FROM ubuntu:24.04 AS runtime
 
 # OCI labels — auto-link the published GHCR package back to the source repo
-# (so it appears under the repo's Packages tab) and tag it with the license.
+# (so it appears under the repo's Packages tab) and tag it with the compound
+# license set that actually applies: ILGPU code is NCSA; Intel ocloc and
+# Intel Graphics Compiler (libigc2, libigdfcl2) are both MIT-licensed.
 LABEL org.opencontainers.image.source="https://github.com/m4rs-mt/ILGPU"
-LABEL org.opencontainers.image.licenses="University-of-Illinois/NCSA"
+LABEL org.opencontainers.image.licenses="NCSA AND MIT"
 LABEL org.opencontainers.image.description="ILGPUC CompilerService bundled with the Intel ocloc OpenCL offline compiler. Used as a remote compile-only service AND as a CI test runner: `docker run image dotnet test ...` overrides the default CMD to run tests inside the container with the .NET 10 SDK preinstalled."
+
+# Bundle ILGPU's own license texts. Third-party licenses are already present
+# in the image: intel-ocloc, libigc2, libigdfcl2, and every Ubuntu base
+# package ship their copyright / license text at /usr/share/doc/<package>/
+# copyright per Debian convention — no further bundling needed for those.
+COPY LICENSE.txt LICENSE-3RD-PARTY.txt /usr/share/doc/ilgpuc/
+
+# Index pointing at every license text already present in the image
+# filesystem, so a consumer inspecting the image has a single starting point.
+RUN printf '%s\n' \
+    'This image bundles the Intel Graphics Compute Runtime offline compiler' \
+    '(intel-ocloc) and the Intel Graphics Compiler (libigc2, libigdfcl2),' \
+    'all licensed under the MIT License by Intel Corporation. Per-package' \
+    'license texts are in the image at:' \
+    '  /usr/share/doc/intel-ocloc/copyright' \
+    '  /usr/share/doc/libigc2/copyright' \
+    '  /usr/share/doc/libigdfcl2/copyright' \
+    'Upstream copies:' \
+    '  https://github.com/intel/compute-runtime/blob/master/LICENSE.md' \
+    '  https://github.com/intel/intel-graphics-compiler/blob/master/LICENSE.md' \
+    '' \
+    'ILGPU source code is licensed under the University of Illinois/NCSA' \
+    'Open Source License. The full text is present in the image at:' \
+    '  /usr/share/doc/ilgpuc/LICENSE.txt' \
+    'Attributions for bundled third-party ILGPU dependencies are at:' \
+    '  /usr/share/doc/ilgpuc/LICENSE-3RD-PARTY.txt' \
+    > /usr/share/doc/ilgpuc/NOTICES
 
 ENV DEBIAN_FRONTEND=noninteractive \
     DOTNET_ROOT=/usr/share/dotnet \

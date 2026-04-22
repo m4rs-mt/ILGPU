@@ -28,8 +28,4 @@
     <ProjectReference Include="..\ILGPUC.Compilers\ILGPUC.Compilers.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-*" />
-  </ItemGroup>
-
 </Project>
