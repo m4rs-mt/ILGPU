@@ -1,0 +1,49 @@
+// SharedMemory2D: reproduces the Group.GetSharedMemory2D<T, TStride> codegen
+// bug. Allocates a 2D tile in shared memory, writes through the 2D view,
+// barrier, reads back. Currently triggers a dotnet build failure because
+// ILGPUC emits a reference to an undefined 'method_GetSharedMemory2D_*'
+// helper and invalid CPURuntimeView<T> conversions in the generated
+// *_CompiledKernel.cs. When the ILGPUC bug is fixed, this project must
+// build AND produce the expected output.
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace SharedMemory2D;
+
+static class Kernels
+{
+    public static void Shared2DKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var shared = Group.GetSharedMemory2D<int, Stride2D.DenseX>(
+            new Index2D(4, 4));
+        int gi = Group.Index;
+        if (gi < 16)
+            shared[gi / 4, gi % 4] = gi;
+        Group.Barrier();
+        if (index.X < data.Length && gi < 16)
+            data[index] = shared[gi % 4, gi / 4];
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var buffer = stream.Allocate1D<int>(16);
+        stream.Launch(
+            (Index1D)16,
+            index => Kernels.Shared2DKernel(index, buffer.View));
+        stream.Synchronize();
+
+        foreach (var v in buffer.GetAsArray1D())
+            Console.WriteLine(v);
+    }
+}
